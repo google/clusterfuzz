@@ -41,6 +41,7 @@ CUTOFF_PERCENTILE_FLAG = '--cutoff-percentile'
 CUTOFF_STD_FLAG = '--cutoff-std'
 MEDIAN_MULT_FLAG = '--median-mult-cutoff'
 FUZZ_TARGET_BINARY_FLAG = '--fuzz-target-binary'
+DEFAULT_MEDIAN_MULT_CUTOFF = '2'
 
 # For `train.py`.
 RUN_NAME_FLAG = '--run-name'

@@ -13,6 +13,8 @@
 # limitations under the License.
 """Tests for train_gradientfuzz_task.py."""
 
+import glob
+import numpy as np
 import os
 import tempfile
 import unittest
@@ -25,8 +27,17 @@ from system import shell
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
 
-# TODO(ryancao): Rewrite integration test!
-DATA_DIRECTORY = 'placeholder'
+# Directory for testing files.
+GRADIENTFUZZ_TESTING_DIR = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), os.pardir, 'fuzzers',
+        'ml', 'gradientfuzz'))
+
+# Small, precompiled fuzz target.
+TESTING_BINARY = 'zlib_uncompress_sample_fuzzer'
+
+# Tiny sample corpus.
+TESTING_CORPUS_DIR = 'sample_corpus'
 
 
 class ExecuteTaskTest(unittest.TestCase):
@@ -43,8 +54,11 @@ class ExecuteTaskTest(unittest.TestCase):
     self.models_dir = os.path.join(self.home_dir, constants.MODEL_DIR)
     self.data_dir = os.path.join(self.home_dir, constants.DATASET_DIR)
     self.temp_dir = tempfile.mkdtemp()
+    self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
 
+    # TODO(ryancao): Fix env var name!
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
+    os.environ['TEST_BINARY_PATH'] = self.binary_path
 
     test_helpers.patch(self, [
         'bot.tasks.train_gradientfuzz_task.get_corpus',
@@ -78,8 +92,8 @@ class ExecuteTaskTest(unittest.TestCase):
                               self.fuzzer_name + run_constants.CORPUS_SUFFIX)
     train_gradientfuzz_task.execute_task(self.fuzzer_name, self.job_type)
 
-    # TODO(ryancao): Fuzzer binary path!
-    self.mock.gen_inputs_labels.assert_called_once_with(corpus_dir, 'TODO')
+    self.mock.gen_inputs_labels.assert_called_once_with(
+        corpus_dir, self.binary_path)
     self.mock.train_gradientfuzz.assert_called_once_with(
         self.fuzzer_name, 'fake_dataset')
     self.mock.upload_model_to_gcs.assert_called_once_with(
@@ -87,8 +101,56 @@ class ExecuteTaskTest(unittest.TestCase):
 
 
 @test_utils.integration
-class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
-  """ML RNN training integration tests."""
+class GenerateInputsIntegrationTest(unittest.TestCase):
+  """
+  Unit tests for generating model inputs/labels from
+  raw input files.
+  """
+
+  def setUp(self):
+    self.home_dir = train_gradientfuzz_task.GRADIENTFUZZ_SCRIPTS_DIR
+    self.corpus_dir = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_CORPUS_DIR)
+    self.dataset_dir = os.path.join(self.home_dir, constants.DATASET_DIR,
+                                    TESTING_CORPUS_DIR)
+    self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
+
+  def tearDown(self):
+    shell.remove_directory(os.path.join(self.home_dir, constants.DATASET_DIR))
+
+  def check_all_same_lengths(self, files):
+    standard_length = None
+    for input_file in glob.glob(files):
+      input_length = len(np.load(input_file))
+      if standard_length is None:
+        standard_length = input_length
+      self.assertTrue(standard_length == input_length)
+
+  def test_gen_inputs_labels(self):
+    """
+    Generates input/label pairs using a tiny corpus and
+    pre-compiled binary.
+    """
+    result, dataset_name = train_gradientfuzz_task.gen_inputs_labels(
+        self.corpus_dir, self.binary_path)
+
+    print(result)
+    print(dataset_name)
+
+    # Asserts that directories were created.
+    inputs = os.path.join(self.dataset_dir, constants.STANDARD_INPUT_DIR, '*')
+    labels = os.path.join(self.dataset_dir, constants.STANDARD_LABEL_DIR, '*')
+    self.assertTrue(os.path.isdir(self.dataset_dir))
+
+    # Checks lengths of generated files.
+    self.check_all_same_lengths(inputs)
+    self.check_all_same_lengths(labels)
+
+
+@test_utils.integration
+class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
+  """
+  Tests all of execute_task() except GCS functionality.
+  """
 
   def setUp(self):
     self.input_directory = os.path.join(DATA_DIRECTORY, 'input')

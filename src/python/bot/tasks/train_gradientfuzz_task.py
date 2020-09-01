@@ -32,7 +32,8 @@ from system import shell
 
 # Model script directory.
 GRADIENTFUZZ_SCRIPTS_DIR = os.path.join(
-    os.path.dirname(__file__), os.pardir, 'fuzzers', 'ml', 'gradientfuzz')
+    os.path.dirname(os.path.dirname(__file__)),
+    'fuzzers', 'ml', 'gradientfuzz')
 
 
 def get_corpus(corpus_directory, fuzzer_name):
@@ -182,6 +183,10 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
   # Run process in GradientFuzz directory.
   data_gen_proc = new_process.ProcessRunner(sys.executable)
 
+  print('Launching the training with the following arguments: "{}".'.format(
+      str(args_list)))
+  print('Using cwd={}'.format(GRADIENTFUZZ_SCRIPTS_DIR))
+
   return data_gen_proc.run_and_wait(
       additional_args=args_list,
       cwd=GRADIENTFUZZ_SCRIPTS_DIR,
@@ -276,8 +281,8 @@ def execute_task(fuzzer_name, job_type):
         'Failed to download corpus backup for {}.'.format(fuzzer_name))
     return
 
-  # TODO(ryancao): Get the compiled fuzzer binary!
-  fuzzer_binary_path = 'TODO'
+  # TODO(ryancao): Change env var name!
+  fuzzer_binary_path = environment.get_value('TEST_BINARY_PATH')
 
   # First, generate input/label pairs for training.
   gen_inputs_labels_result, dataset_name = gen_inputs_labels(

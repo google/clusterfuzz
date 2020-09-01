@@ -18,7 +18,7 @@
 __author__ = 'Ryan Cao (ryancao@google.com)'
 
 import tensorflow.keras as keras
-from bot.fuzzers.ml.gradientfuzz import models
+import bot.fuzzers.ml.gradientfuzz.models as models
 from datetime import datetime
 import enum
 
