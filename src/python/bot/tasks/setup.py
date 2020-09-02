@@ -475,7 +475,7 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
   environment.set_value('FUZZER_DIR', fuzzer_directory)
   environment.set_value('UNTRUSTED_CONTENT', fuzzer.untrusted_content)
 
-  # If the fuzzer generate large testcases or a large number of smaller ones
+  # If the fuzzer generates large testcases or a large number of small ones
   # that don't fit on tmpfs, then use the larger disk directory.
   if fuzzer.has_large_testcases:
     testcase_disk_directory = environment.get_value('FUZZ_INPUTS_DISK')
