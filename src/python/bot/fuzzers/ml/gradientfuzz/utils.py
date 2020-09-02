@@ -15,8 +15,8 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Utility Functions."""
 
-import os
 import glob
+import os
 import json
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants

@@ -22,8 +22,8 @@ import tensorflow.keras as keras
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 import bot.fuzzers.ml.gradientfuzz.data_utils as data_utils
-import bot.fuzzers.ml.gradientfuzz.models as models
 import bot.fuzzers.ml.gradientfuzz.model_utils as model_utils
+import bot.fuzzers.ml.gradientfuzz.models as models
 import bot.fuzzers.ml.gradientfuzz.opts as opts
 import bot.fuzzers.ml.gradientfuzz.utils as utils
 
