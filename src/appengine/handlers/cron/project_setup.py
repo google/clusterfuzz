@@ -478,7 +478,7 @@ def create_project_settings(project, info, service_account):
   oss_fuzz_project = key.get()
 
   # Expecting to run a blackbox fuzzer, so use high end hosts.
-  is_high_end = info.get('fuzzing_engines') == ['none']
+  is_high_end = info.get('blackbox', False)
 
   ccs = ccs_from_info(info)
   language = info.get('language')

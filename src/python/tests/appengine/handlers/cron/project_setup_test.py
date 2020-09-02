@@ -268,7 +268,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'language': 'go',
             'sanitizers': ['address'],
             'auto_ccs': 'User@example.com',
-            'fuzzing_engines': ['none',],
+            'fuzzing_engines': ['none'],
+            'blackbox': True,
         }),
         ('lib5', {
             'homepage': 'http://example5.com',
