@@ -15,13 +15,13 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Training Utilities."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
+import os
+
+import tensorflow as tf
+import tensorflow.keras as keras
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 import bot.fuzzers.ml.gradientfuzz.utils as utils
-import tensorflow as tf
-import tensorflow.keras as keras
-import os
 
 
 class BitmapAcc(keras.metrics.Metric):

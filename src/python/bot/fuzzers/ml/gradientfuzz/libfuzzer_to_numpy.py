@@ -15,20 +15,19 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Coverage Parsing."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
-
 import argparse
-import constants
 import glob
 import json
 import math
-import numpy as np
 import os
 import subprocess
 import sys
 import threading
+
+import numpy as np
 import tqdm
 
+import bot.fuzzers.ml.gradientfuzz.constants as constants
 from bot.fuzzers.ml.gradientfuzz.count_prop_covered_branches \
     import plot_coverage_distribution
 from bot.fuzzers.ml.gradientfuzz.plot_dataset_lengths import plot_lengths

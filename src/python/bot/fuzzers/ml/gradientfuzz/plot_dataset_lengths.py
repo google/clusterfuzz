@@ -15,15 +15,15 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Dataset Stats."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
+import argparse
+import glob
+import os
+
+import numpy as np
+import tqdm
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 import bot.fuzzers.ml.gradientfuzz.plot_utils as plot_utils
-import argparse
-import glob
-import numpy as np
-import os
-import tqdm
 
 
 def plot_lengths(dataset_name,

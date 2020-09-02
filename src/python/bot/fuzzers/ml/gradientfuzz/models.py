@@ -15,8 +15,6 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Model Architectures."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
-
 import tensorflow.keras as keras
 import tensorflow.keras.layers as layers
 

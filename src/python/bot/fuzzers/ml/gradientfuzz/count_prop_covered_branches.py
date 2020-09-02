@@ -15,15 +15,15 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Dataset Stats."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
-
-import numpy as np
-import bot.fuzzers.ml.gradientfuzz.constants as constants
-import bot.fuzzers.ml.gradientfuzz.plot_utils as plot_utils
 import glob
 import os
-import tqdm
 import argparse
+
+import tqdm
+import numpy as np
+
+import bot.fuzzers.ml.gradientfuzz.constants as constants
+import bot.fuzzers.ml.gradientfuzz.plot_utils as plot_utils
 
 
 def plot_coverage_distribution(dataset_name,

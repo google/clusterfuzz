@@ -15,12 +15,12 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Globals."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
-
-import tensorflow.keras as keras
-import bot.fuzzers.ml.gradientfuzz.models as models
 from datetime import datetime
 import enum
+
+import tensorflow.keras as keras
+
+import bot.fuzzers.ml.gradientfuzz.models as models
 
 
 class ModelTypes(enum.Enum):

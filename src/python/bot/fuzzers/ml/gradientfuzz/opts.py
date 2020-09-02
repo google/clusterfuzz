@@ -15,10 +15,9 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Argparse Options."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
+import argparse
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
-import argparse
 
 
 def get_train_args():

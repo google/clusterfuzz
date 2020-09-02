@@ -15,7 +15,10 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Network Training."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
+import os
+
+import tensorflow as tf
+import tensorflow.keras as keras
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 import bot.fuzzers.ml.gradientfuzz.data_utils as data_utils
@@ -23,9 +26,6 @@ import bot.fuzzers.ml.gradientfuzz.models as models
 import bot.fuzzers.ml.gradientfuzz.model_utils as model_utils
 import bot.fuzzers.ml.gradientfuzz.opts as opts
 import bot.fuzzers.ml.gradientfuzz.utils as utils
-import tensorflow as tf
-import tensorflow.keras as keras
-import os
 
 
 def load_existing_model_from(config):
@@ -117,7 +117,7 @@ def train_model(model, config, train_dataset, val_dataset):
     """
   utils.save_model_config(config)
   callback_list = model_utils.get_callbacks(config)
-  _ = model.fit(
+  model.fit(
       train_dataset,
       batch_size=config['batch_size'],
       epochs=config['epochs'],

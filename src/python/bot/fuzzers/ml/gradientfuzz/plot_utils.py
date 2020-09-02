@@ -15,8 +15,6 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Plotting Functions."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
-
 import seaborn as sns
 import matplotlib.pyplot as plt
 

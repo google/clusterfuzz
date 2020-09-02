@@ -15,13 +15,12 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Utility Functions."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
-
-import bot.fuzzers.ml.gradientfuzz.constants as constants
-import bot.fuzzers.ml.gradientfuzz.opts as opts
 import os
 import glob
 import json
+
+import bot.fuzzers.ml.gradientfuzz.constants as constants
+import bot.fuzzers.ml.gradientfuzz.opts as opts
 
 
 def make_required_dirs():

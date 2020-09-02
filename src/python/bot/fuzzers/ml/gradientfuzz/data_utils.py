@@ -15,15 +15,14 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Dataset Objects."""
 
-__author__ = 'Ryan Cao (ryancao@google.com)'
-
-import bot.fuzzers.ml.gradientfuzz.constants as constants
 import glob
-import numpy as np
 import os
-import tensorflow.keras as keras
 
 from natsort import natsorted
+import numpy as np
+import tensorflow.keras as keras
+
+import bot.fuzzers.ml.gradientfuzz.constants as constants
 
 
 class ProgramDataset(keras.utils.Sequence):
