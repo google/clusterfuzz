@@ -6,3 +6,6 @@ PyJWT==1.7.1
 pyOpenSSL==19.1.0
 requests-toolbelt==0.9.1
 sendgrid==6.0.4
+mock==4.0.2
+webtest==2.0.35
+parameterized==0.7.4
