@@ -38,8 +38,6 @@ class Handler(base_handler.Handler):
         task_list.append('train_gradientfuzz')
       if utils.string_is_true(job.get_environment().get('USE_RNN_GENERATOR')):
         task_list.append('train_rnn_generator')
-      if utils.string_is_true(job.get_environment().get('USE_RL_FUZZ')):
-        task_list.append('train_rl_fuzz')
 
       if len(task_list) == 0:
         continue

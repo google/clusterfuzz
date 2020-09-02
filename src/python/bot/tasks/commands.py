@@ -32,7 +32,6 @@ from bot.tasks import regression_task
 from bot.tasks import symbolize_task
 from bot.tasks import train_gradientfuzz_task
 from bot.tasks import train_rnn_generator_task
-from bot.tasks import train_rl_fuzz_task
 from bot.tasks import unpack_task
 from bot.tasks import upload_reports_task
 from bot.tasks import variant_task
@@ -53,7 +52,6 @@ COMMAND_MAP = {
     'minimize': minimize_task,
     'train_rnn_generator': train_rnn_generator_task,
     'train_gradientfuzz': train_gradientfuzz_task,
-    'train_rl_fuzz': train_rl_fuzz_task,
     'progression': progression_task,
     'regression': regression_task,
     'symbolize': symbolize_task,
