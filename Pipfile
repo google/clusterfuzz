@@ -11,6 +11,8 @@ protobuf = "==3.11.3"
 psutil = "==5.7.0"
 numpy = "==1.18.4"
 tensorflow = "==2.3.0"
+torch = "==1.4.0"
+gym = "==0.17.2"
 
 [dev-packages]
 pylint = "~=2.4"
