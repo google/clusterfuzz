@@ -345,6 +345,10 @@ class Fuzzer(Model):
   # Whether this is a differential fuzzer.
   differential = ndb.BooleanProperty(default=False)
 
+  # If this flag is set, fuzzer generates the testcase in the larger directory
+  # on disk |FUZZ_INPUTS_DISK|, rather than smaller tmpfs one (FUZZ_INPUTS).
+  has_large_testcases = ndb.BooleanProperty(default=False)
+
 
 class BuildCrashStatsJobHistory(Model):
   """Represents the record of build_crash_stats run."""
