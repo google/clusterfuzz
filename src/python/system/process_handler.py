@@ -185,14 +185,14 @@ def run_process(cmdline,
     # Run the app.
     adb_output = android.adb.run_command(cmdline, timeout=timeout)
   else:
-    cmd, args = shell.get_command_and_arguments(cmdline)
+    cmd = shell.get_command(cmdline)
 
     process_output = mozprocess.processhandler.StoreOutput()
     process_status = ProcessStatus()
     try:
       process_handle = mozprocess.ProcessHandlerMixin(
           cmd,
-          args,
+          None,
           cwd=current_working_directory,
           shell=need_shell,
           processOutputLine=[process_output],
