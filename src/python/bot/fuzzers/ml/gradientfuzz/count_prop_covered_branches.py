@@ -15,9 +15,9 @@
 ################################################################################
 """libFuzzer Neural Smoothing - Dataset Stats."""
 
+import argparse
 import glob
 import os
-import argparse
 
 import tqdm
 import numpy as np

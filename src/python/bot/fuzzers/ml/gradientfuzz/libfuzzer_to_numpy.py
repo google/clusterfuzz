@@ -27,9 +27,9 @@ import threading
 import numpy as np
 import tqdm
 
-import bot.fuzzers.ml.gradientfuzz.constants as constants
 from bot.fuzzers.ml.gradientfuzz.count_prop_covered_branches \
     import plot_coverage_distribution
+import bot.fuzzers.ml.gradientfuzz.constants as constants
 from bot.fuzzers.ml.gradientfuzz.plot_dataset_lengths import plot_lengths
 
 ZLIB_FUZZER_BINARY_PATH = \
