@@ -1,0 +1,137 @@
+# If both conf.yaml and command line provide same arguments,
+# train.py and generate.py will use command line argument.
+# Otherwise train.py and genearte.py will use conf.yaml.
+
+# Configuration for model basic parameters.
+# It will be used in both train.py and generate.py.
+model:
+  # default is rnn
+  model_name:
+
+  # hidden_state_size is the number of hidden nodes in each layer
+  # 512 by default.
+  hidden_state_size:
+
+  # hidden_layer_number is the number of hidden layers
+  # 3 by default for RNN and 6 by default for GPT and BERT.
+  hidden_layer_number:
+
+  # pkeep is the keep rate in RNN model
+  # 0.8 by default.
+  pkeep:
+
+
+general:
+
+  # Train data and validation data directory.
+  input_dir:
+
+  # Log information will be output in log_dir.
+  log_dir:
+
+  # Model weight checkpoints will be saved at model_weight_dir.
+  model_weight_dir:
+
+  # In debug mode lots of intermediate result will be printed.
+  # Valid value should be true or false.
+  debug: false
+
+  # Whether or not use existing model to continue training.
+  # If it's empty, it means that training starts from scratch.
+  # Otherwise use specified model to continue training
+  existing_model:
+
+  # validation is whether print validation stats during training
+  # Valid value should be true or false
+  validation: false
+
+  # sliding_window is the size of average epoch loss
+  # We use mean value of last `sliding_window` number of epoch loss
+  # to decide whether continue training or not
+  # 5 by default
+  sliding_window:
+
+
+hyperparameters:
+  # If all_default is true,
+  # the settings below will be ignored and
+  # all hyperparameters will set to default value
+  # If all_default is false,
+  # you can still leave parameters empty in following hyperparameters,
+  # and they will use default value.
+  all_default: true
+
+  # batch_size is the size of each batch
+  # 100 by default.
+  # If all_default is false, you can leave empty as default.
+  batch_size:
+
+  # learning_rate is the initial learning rate in RNN model
+  # 0.001 by default.
+  learning_rate:
+
+  # train_seqlen is the length of train data sequence
+  # 30 by default.
+  train_seqlen:
+
+  # validation_seqlen is the length of validation data sequence
+  # 1024 by default.
+  validation_seqlen:
+
+  # n_epochs is the number of epochs
+  # 100 by default
+  n_epochs:
+
+
+# This part is for using existing model to generate input for fuzzer.
+# For non required parameters, you can leave it empty to use default value.
+generate:
+  # Input for generating data.
+  # required
+  input_dir:
+
+  # Directory to store the output.
+  # required
+  output_dir:
+
+  # Load the model weights from model_weights_path.
+  # requied
+  model_weights_path:
+
+  # Number of similar inputs to generate
+  # required
+  count:
+
+  # pos_change is the number of bytes to be replaced by model.
+  # If it's 0, it means that we generate the file starting from scratch,
+  # If it's greater than 0, we will randomly change `pos_change` number of positions.
+  # If it's smaller than 0, we will randomly change `file_size/(-pos_change)` number of positions.
+  # 20 by default
+  pos_change:
+
+  # The size of predict window.
+  # 0 means feeding the whole sequence to the model.
+  # Non 0 stands for the size of prefix sequence feeding to the model.
+  # If pos_change is negative, predict_window_size will be set to 0 in config.py,
+  # because O(file_size/(-pos_change)*predict_window_size) < O(file_size)
+  # if and only if predict_window_size is very small,
+  # which is unrealistic for inference.
+  # 30 by default
+  predict_window_size:
+
+  # generate_batch_size is the number of batches you want to genearte
+  # 50 by default
+  generate_batch_size:
+
+  # temperature means the T in below formula:
+  # p[i] = exp(z[i] / T) / sum(exp(z[i] / T))
+  # where z[i] is the logits of model and p[i] is the probability of character i.
+  # When temperature is large, the distribution is close to uniform.
+  # When temperature is small, the distribution is close to argmax.
+  # 1 by default.
+  temperature:
+
+  # Number of insertions.
+  # Useful only in insertion strategy
+  # 5 by default
+  insert_nums:
