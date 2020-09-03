@@ -178,28 +178,29 @@ def update_issue_impact_labels(testcase, issue):
     # No impact information.
     return
 
-  versions_foundin = [
-      x for x in [testcase.impact_beta_version, testcase.impact_stable_version]
-      if x
-  ]
-  milestones_foundin = set([x.split('.')[0] for x in versions_foundin])
+  update_issue_foundin_labels(testcase, issue)
 
   if existing_impact == new_impact:
     # Correct impact already set.
-    update_issue_foundin_labels(testcase, issue, milestones_foundin)
     return
 
   if existing_impact != data_types.SecurityImpact.MISSING:
     issue.labels.remove('Security_Impact-' + impact_to_string(existing_impact))
 
   issue.labels.add('Security_Impact-' + impact_to_string(new_impact))
-  update_issue_foundin_labels(testcase, issue, milestones_foundin)
 
 
-def update_issue_foundin_labels(testcase, issue, milestones_foundin):
-  labels = [label.lower() for label in issue.labels]
+def update_issue_foundin_labels(testcase, issue):
+  """Updates FoundIn- labels on issue."""
+  if not testcase.is_impact_set_flag:
+    return
+  versions_foundin = [
+      x for x in [testcase.impact_beta_version, testcase.impact_stable_version]
+      if x
+  ]
+  milestones_foundin = set([x.split('.')[0] for x in versions_foundin])
   for found_milestone in milestones_foundin:
-    if 'foundin-%s' % found_milestone in labels:
+    if f'foundin-{found_milestone}' in issue.labels:
       continue
     issue.labels.add('FoundIn-' + found_milestone)
 
