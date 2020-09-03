@@ -29,8 +29,8 @@ import tqdm
 
 from bot.fuzzers.ml.gradientfuzz.count_prop_covered_branches \
     import plot_coverage_distribution
-import bot.fuzzers.ml.gradientfuzz.constants as constants
 from bot.fuzzers.ml.gradientfuzz.plot_dataset_lengths import plot_lengths
+import bot.fuzzers.ml.gradientfuzz.constants as constants
 
 ZLIB_FUZZER_BINARY_PATH = \
     '~/Ryan_Summer_2020/oss-fuzz/build/out/zlib/zlib_uncompress_fuzzer'

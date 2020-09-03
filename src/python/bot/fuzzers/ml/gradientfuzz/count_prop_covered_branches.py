@@ -19,8 +19,8 @@ import argparse
 import glob
 import os
 
-import tqdm
 import numpy as np
+import tqdm
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 import bot.fuzzers.ml.gradientfuzz.plot_utils as plot_utils
