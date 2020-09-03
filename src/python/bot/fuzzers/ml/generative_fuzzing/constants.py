@@ -59,9 +59,10 @@ VAE_DECODER_LAYER_1_DIM = 128
 # Default max length of file is 100K.
 DEFAULT_MAX_LENGTH = 100000
 
+
 class ExitCode(object):
-    """Exit code for training and generation."""
-    SUCCESS = 0
-    INVALID_PATH = 1
-    CORPUS_TOO_SMALL = 2
-    TENSORFLOW_ERROR = 3
+  """Exit code for training and generation."""
+  SUCCESS = 0
+  INVALID_PATH = 1
+  CORPUS_TOO_SMALL = 2
+  TENSORFLOW_ERROR = 3
