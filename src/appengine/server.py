@@ -161,6 +161,7 @@ handlers = [
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/bots', bots.Handler),
     ('/bots/dead', bots.DeadBotsHandler),
+    ('/bots/load', bots.JsonHandler),
     ('/commit-range', commit_range.Handler),
     ('/commit-range/load', commit_range.JsonHandler),
     ('/configuration', configuration.Handler),
