@@ -198,7 +198,7 @@ def update_issue_foundin_labels(testcase, issue):
       x for x in [testcase.impact_beta_version, testcase.impact_stable_version]
       if x
   ]
-  milestones_foundin = set([x.split('.')[0] for x in versions_foundin])
+  milestones_foundin = {x.split('.')[0] for x in versions_foundin}
   for found_milestone in milestones_foundin:
     if f'foundin-{found_milestone}' in issue.labels:
       continue
