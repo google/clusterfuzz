@@ -60,15 +60,14 @@ class ExecuteTaskTest(unittest.TestCase):
     self.temp_dir = tempfile.mkdtemp()
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
 
-    # TODO(ryancao): Fix env var name!
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
-    os.environ['TEST_BINARY_PATH'] = self.binary_path
 
     test_helpers.patch(self, [
         'bot.tasks.train_gradientfuzz_task.get_corpus',
         'bot.tasks.train_gradientfuzz_task.gen_inputs_labels',
         'bot.tasks.train_gradientfuzz_task.train_gradientfuzz',
         'bot.tasks.train_gradientfuzz_task.upload_model_to_gcs',
+        'build_management.build_manager.setup_build',
     ])
 
     self.mock.get_corpus.return_value = True
@@ -77,6 +76,7 @@ class ExecuteTaskTest(unittest.TestCase):
     self.mock.train_gradientfuzz.return_value = new_process.ProcessResult(
         return_code=0), self.run_name
     self.mock.upload_model_to_gcs.return_value = True
+    self.mock.setup_build.side_effect = self.mock_build_manager
 
     # Fakes creating directory tree.
     self.fake_dataset_dir = os.path.join(self.data_dir, self.dataset_name)
@@ -84,6 +84,12 @@ class ExecuteTaskTest(unittest.TestCase):
         self.models_dir, constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL, self.run_name)
     os.makedirs(self.fake_dataset_dir)
     os.makedirs(self.fake_model_dir)
+
+  def mock_build_manager(self):
+    """
+    Just sets the 'APP_PATH' environment variable.
+    """
+    os.environ['APP_PATH'] = self.binary_path
 
   def tearDown(self):
     shell.remove_directory(self.temp_dir)
@@ -104,7 +110,7 @@ class ExecuteTaskTest(unittest.TestCase):
         self.fake_model_dir, self.fuzzer_name)
 
 
-@test_utils.integration
+# @test_utils.integration
 class GenerateInputsIntegration(unittest.TestCase):
   """
   Unit tests for generating model inputs/labels from
@@ -147,7 +153,7 @@ class GenerateInputsIntegration(unittest.TestCase):
     self.check_all_same_lengths(labels)
 
 
-@test_utils.integration
+# @test_utils.integration
 class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
   """
   Tests all of execute_task() except GCS functionality.
@@ -175,13 +181,20 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     test_helpers.patch(self, [
         'bot.tasks.train_gradientfuzz_task.get_corpus',
         'bot.tasks.train_gradientfuzz_task.upload_model_to_gcs',
+        'build_management.build_manager.setup_build'
     ])
 
-    self.mock.get_corpus.return_value = True
-    self.mock.get_corpus.side_effect = self.fake_get_corpus
     self.mock.upload_model_to_gcs.return_value = True
+    self.mock.get_corpus.side_effect = self.mock_get_corpus
+    self.mock.setup_build.side_effect = self.mock_build_manager
 
-  def fake_get_corpus(self, corpus_directory, _):
+  def mock_build_manager(self):
+    """
+    Just sets the 'APP_PATH' environment variable.
+    """
+    os.environ['APP_PATH'] = self.binary_path
+
+  def mock_get_corpus(self, corpus_directory, _):
     """
     Copy over training corpus to temp dir.
     """

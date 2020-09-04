@@ -20,6 +20,7 @@ import os
 import sys
 import shutil
 
+from build_management import build_manager
 from bot.fuzzers.ml.gradientfuzz import run_constants
 from bot.fuzzers.ml.gradientfuzz import constants
 from fuzzing import corpus_manager
@@ -216,10 +217,10 @@ def train_gradientfuzz(fuzzer_name, dataset_name):
   logs.log('Launching training with the following arguments: "{}".'.format(
       str(args_list)))
 
-  # Run process in rnn directory.
-  rnn_trainer = new_process.ProcessRunner(sys.executable)
+  # Run process in gradientfuzz directory.
+  gradientfuzz_trainer = new_process.ProcessRunner(sys.executable)
 
-  return rnn_trainer.run_and_wait(
+  return gradientfuzz_trainer.run_and_wait(
       args_list,
       cwd=GRADIENTFUZZ_SCRIPTS_DIR,
       env=script_environment,
@@ -257,9 +258,14 @@ def execute_task(fuzzer_name, job_type):
   """
   if not job_type:
     logs.log_error(
-        'job_type is not set when training ML RNN for fuzzer {}.'.format(
+        'job_type is not set when training GradientFuzz for fuzzer {}.'.format(
             fuzzer_name))
     return
+
+  # Sets up fuzzer binary build.
+  environment.set_value('FUZZ_TARGET', fuzzer_name)
+  build_manager.setup_build()
+  fuzzer_binary_path = environment.get_value('APP_PATH')
 
   # Directory to place corpus. |FUZZ_INPUTS_DISK| is not size constrained.
   temp_directory = environment.get_value('FUZZ_INPUTS_DISK')
@@ -274,9 +280,6 @@ def execute_task(fuzzer_name, job_type):
     logs.log_error(
         'Failed to download corpus backup for {}.'.format(fuzzer_name))
     return
-
-  # TODO(ryancao): Change env var name!
-  fuzzer_binary_path = environment.get_value('TEST_BINARY_PATH')
 
   # First, generate input/label pairs for training.
   gen_inputs_labels_result, dataset_name = gen_inputs_labels(
