@@ -243,9 +243,10 @@ class LLVMSymbolizer(Symbolizer):
     # Setup symbolizer command line.
     cmd = [
         self.symbolizer_path,
-        '--default-arch=%s' % self.default_arch, '--demangle=true',
+        '--default-arch=%s' % self.default_arch,
+        '--demangle',
         '--functions=linkage',
-        '--inlining=%s' % stack_inlining, '--use-symbol-table=true'
+        '--inlining=%s' % stack_inlining,
     ]
     if self.system == 'darwin':
       for hint in self.dsym_hints:
