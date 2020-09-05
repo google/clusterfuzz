@@ -1,3 +1,17 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""GPT model."""
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
@@ -49,14 +63,14 @@ def scaled_dot_product_attention(q, k, v, mask):
   """Calculate the attention weights.
   q, k, v must have same leading dimensions.
   k, v must have same seq_len. i.e. seq_len_k == seq_len_v
-    
+
   Args:
     q: query matrix with shape (..., seq_len_q, dimension)
     k: key matrix with shape   (..., seq_len_k, dimension)
     v: value matrix with shape (..., seq_len_v, dimension_v)
-    mask: Float tensor with shape broadcastable 
+    mask: Float tensor with shape broadcastable
           to (..., seq_len_q, seq_len_k). Defaults to None.
-      
+
   Returns:
     output, attention_weights
   """
@@ -72,7 +86,8 @@ def scaled_dot_product_attention(q, k, v, mask):
 
   # software is normalized on the last axis (seq_len_k) so that the scores
   # add up to 1.
-  attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1) # (..., seq_len_q, seq_len_k)
+  # (..., seq_len_q, seq_len_k)
+  attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
 
   output = tf.matmul(attention_weights, v) # (..., seq_len_q, depth_v)
 
@@ -80,6 +95,7 @@ def scaled_dot_product_attention(q, k, v, mask):
 
 
 class MultiHeadAttention(layers.Layer):
+  """Multi-head attention layer."""
   def __init__(self, d_model, num_heads):
     assert d_model % num_heads == 0
 
@@ -97,7 +113,8 @@ class MultiHeadAttention(layers.Layer):
 
   def split_heads(self, x, batch_size):
     """Split the last dimension into (num_heads, depth).
-    Transpose the result such that the shape is (batch_size, num_heads, seq_len, depth)
+    Transpose the result such that the shape is
+    (batch_size, num_heads, seq_len, depth)
     """
     x = tf.reshape(x, (batch_size, -1, self.num_heads, self.depth))
     return tf.transpose(x, perm=[0, 2, 1, 3])
@@ -109,9 +126,12 @@ class MultiHeadAttention(layers.Layer):
     k = self.wk(k) # (batch_size, seq_len, d_model)
     v = self.wv(v) # (batch_size, seq_len, d_model)
 
-    q = self.split_heads(q, batch_size) # (batch_size, num_heads, seq_len_q, depth)
-    k = self.split_heads(k, batch_size) # (batch_size, num_heads, seq_len_k, depth)
-    v = self.split_heads(v, batch_size) # (batch_size, num_heads, seq_len_v, depth)
+    # (batch_size, num_heads, seq_len_q, depth)
+    q = self.split_heads(q, batch_size)
+    # (batch_size, num_heads, seq_len_k, depth)
+    k = self.split_heads(k, batch_size)
+    # (batch_size, num_heads, seq_len_v, depth)
+    v = self.split_heads(v, batch_size)
 
     # scaled_attention.shape == (batch_size, num_heads, seq_len_q, depth)
     # attention_weights.shape == (batch_size, num_heads, seq_len_q, seq_len_k)
@@ -131,12 +151,14 @@ class MultiHeadAttention(layers.Layer):
 
 def point_wise_feed_forward_network(d_model, dff):
   return tf.keras.Sequential([
-    layers.Dense(dff, activation="relu"), # (batch_size, seq_len, dff)
-    layers.Dense(d_model) # (batch_size, seq_len, d_model)
-  ])
+      # (batch_size, seq_len, dff)
+      layers.Dense(dff, activation="relu"),
+      # (batch_size, seq_len, d_model)
+      layers.Dense(d_model)])
 
 
 class DecoderLayer(layers.Layer):
+  """Decoder layer."""
   def __init__(self, d_model, num_heads, dff, rate=.1):
     super(DecoderLayer, self).__init__()
 
@@ -166,7 +188,9 @@ class DecoderLayer(layers.Layer):
 
 
 class GPTModel(tf.keras.Model):
-  def __init__(self, hidden_layer_number, d_model, num_heads, dff, ALPHA_SIZE, seq_len, pkeep, batch_size, temperature = 1.0, seed = 0):
+  """GPT model."""
+  def __init__(self, hidden_layer_number, d_model, num_heads, dff, ALPHA_SIZE,
+               seq_len, pkeep, batch_size, temperature=1.0, seed=0):
     """Initialize GPT model
 
     Args:
@@ -174,12 +198,14 @@ class GPTModel(tf.keras.Model):
       d_model: dimension of the each input
       num_heads: number of attention heads
       dff: size of FC layer
-      ALPHA_SIZE: size of the alphabet that we work with which is also the output dimension
+      ALPHA_SIZE: size of the alphabet that we work with
+                  which is also the output dimension
       seq_len: length of the input sequence
       pkeep: keeping rate
       batch_size: batch size
       temperature: when prediction, it stands for
-                   whether we want the probability distribution to be close to uniform or argmax
+                   whether we want the probability distribution
+                   to be close to uniform or argmax
       seed: graph-level default random seed
     """
     super(GPTModel, self).__init__()
@@ -196,24 +222,24 @@ class GPTModel(tf.keras.Model):
     self.pos_encoding = positional_encoding(self.seq_len, self.d_model)
 
     self.embedding = layers.Embedding(
-      ALPHA_SIZE,
-      self.d_model,
-      input_shape=[batch_size, None])
+        ALPHA_SIZE,
+        self.d_model,
+        input_shape=[batch_size, None])
     self.dropout = layers.Dropout(1 - pkeep)
 
     self.dec_layers = []
-    for i in range(self.num_layers):
+    for _ in range(self.num_layers):
       self.dec_layers.append(DecoderLayer(
-        d_model=self.d_model,
-        num_heads=num_heads,
-        dff=dff,
-        rate=1-pkeep))
-    
+          d_model=self.d_model,
+          num_heads=num_heads,
+          dff=dff,
+          rate=1-pkeep))
+
     self.linear = layers.Dense(ALPHA_SIZE)
     self.softmax = layers.Softmax()
 
   def call(self, x, training):
-    assert(self.seq_len == x.shape[1])
+    assert self.seq_len == x.shape[1]
 
     x = self.embedding(x)
     x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))

@@ -133,8 +133,6 @@ def sample_from_probabilities(probabilities):
     A random integer.
   """
   p = np.squeeze(probabilities)
-  # Since we have temperature parameter in model, the line below is not useful any more.
-  # p[np.argsort(p)[:-topn]] = 0
   p = p / np.sum(p)
   return np.random.choice(constants.ALPHA_SIZE, 1, p=p)[0]
 
@@ -307,7 +305,7 @@ class Progress(object):
     return print_progress
 
 
-def read_data_files(directory, validation=False):
+def read_data_files(directory):
   """Read data files (recursively) and split to training and validation sets.
 
   Optionally set aside the last file as validation data. No validation
@@ -340,50 +338,13 @@ def read_data_files(directory, validation=False):
   if not input_ranges:
     sys.exit('No training data has been found. Aborting.')
 
-  # For validation, use roughly 90K of text,
-  # but no more than 10% of the entire text
-  # and no more than 1 input in 5 => no validation at all for 5 files or fewer.
-
-  # 10% of the text is how many files?
-  total_len = len(code_text)
-  validation_len = 0
-  nb_inputs1 = 0
-  for one_input in reversed(input_ranges):
-    validation_len += one_input['end'] - one_input['start']
-    nb_inputs1 += 1
-    if validation_len > total_len // 10:
-      break
-
-  # 90K of text is how many inputs?
-  validation_len = 0
-  nb_inputs2 = 0
-  for one_input in reversed(input_ranges):
-    validation_len += one_input['end'] - one_input['start']
-    nb_inputs2 += 1
-    if validation_len > 90 * 1024:
-      break
-
-  # 20% of the inputs is how many inputs?
-  nb_inputs3 = len(input_ranges) // 5
-
-  # Pick the smallest.
-  nb_inputs = min(nb_inputs1, nb_inputs2, nb_inputs3)
-
-  if nb_inputs == 0 or not validation:
-    cutoff = len(code_text)
-  else:
-    cutoff = input_ranges[-nb_inputs]['start']
-  validation_text = code_text[cutoff:]
-  code_text = code_text[:cutoff]
-  return code_text, validation_text, input_ranges
+  return code_text
 
 
-def print_data_stats(data_len, validation_len, epoch_size):
+def print_data_info(data_len, epoch_size):
   """Print training data statistics, such as size, batches."""
   data_len_mb = data_len / 1024.0 / 1024.0
-  validation_len_kb = validation_len / 1024.0
-  print('Training text size is {:.2f}MB with {:.2f}KB set aside for validation.'
-        .format(data_len_mb, validation_len_kb) +
+  print('Training text size is {:.2f}MB'.format(data_len_mb) +
         'There will be {} batches per epoch'.format(epoch_size))
 
 
@@ -422,7 +383,7 @@ def compute_batch_loss_and_acc_value(true_value,
 
   Args:
     true_value: True value of the batch, shape should be (batch_size, seq_len).
-    prediction: Output of the model, shape should be (batch_size, seq_len, alpha_size).
+    prediction: Output of the model, shape is (batch_size, seq_len, alpha_size).
     loss: Loss function.
     all_stats: Whether or not return prediction_value and sequence loss
   """
@@ -437,11 +398,9 @@ def compute_batch_loss_and_acc_value(true_value,
   # we return pred_value, seq_loss, batch_loss, acc_value,
   # otherwise return batch_loss, acc_value.
   if all_stats:
-    return pred_value, np.mean(
-        loss_value,
-        axis=1), np.mean(loss_value), np.mean(pred_value == true_value)
-  else:
-    return np.mean(loss_value), np.mean(pred_value == true_value)
+    return pred_value, np.mean(loss_value, axis=1), \
+      np.mean(loss_value), np.mean(pred_value == true_value)
+  return np.mean(loss_value), np.mean(pred_value == true_value)
 
 
 def tensorboard_write(writer, batch_loss, acc_value, steps):

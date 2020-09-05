@@ -1,11 +1,26 @@
-import numpy as np
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""RNN model."""
 import tensorflow as tf
 from tensorflow.keras import layers
 
 from bot.fuzzers.ml import constants
 
 class RNNModel(tf.keras.Model):
-  def __init__(self, ALPHA_SIZE, hidden_state_size, hidden_layer_number, pkeep, batch_size, temperature = 1.0, seed = 0):
+  """RNN model."""
+  def __init__(self, ALPHA_SIZE, hidden_state_size, hidden_layer_number,
+               pkeep, batch_size, temperature=1.0, seed=0):
     """Initialize RNN model
 
     Args:
@@ -15,7 +30,8 @@ class RNNModel(tf.keras.Model):
       pkeep: keeping rate
       batch_size: size of a mini batch
       temperature: when prediction, it stands for
-                   whether we want the probability distribution to be close to uniform or argmax
+                   whether we want the probability distribution
+                   to be close to uniform or argmax
       seed: graph-level default random seed
     """
     super(RNNModel, self).__init__()
@@ -28,17 +44,17 @@ class RNNModel(tf.keras.Model):
     self.temperature = temperature
 
     self.embedding = layers.Embedding(
-      ALPHA_SIZE,
-      constants.EMBEDDING_DIM,
-      input_shape=[batch_size, None])
+        ALPHA_SIZE,
+        constants.EMBEDDING_DIM,
+        input_shape=[batch_size, None])
     self.gru_layers = []
-    for i in range(self.num_layers):
+    for _ in range(self.num_layers):
       self.gru_layers.append(layers.GRU(
-        hidden_state_size,
-        dropout=1-pkeep,
-        return_sequences=True,
-        stateful=True,
-        recurrent_initializer="glorot_uniform"))
+          hidden_state_size,
+          dropout=1-pkeep,
+          return_sequences=True,
+          stateful=True,
+          recurrent_initializer="glorot_uniform"))
     self.linear = layers.Dense(ALPHA_SIZE)
     self.softmax = layers.Softmax()
 

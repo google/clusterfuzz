@@ -1,3 +1,18 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""RNN mk generator."""
+
 import numpy as np
 
 from bot.fuzzers.ml import utils
@@ -9,15 +24,16 @@ class RNNMKGenerator:
   """Generate inputs using RNN model and mk strategy.
   pos_change and predict_window_size must be > 0.
   Mutate `min(200, log(file_size) * pos_change)` number of bytes."""
-  def __init__(self, hidden_layer_number, hidden_state_size, pkeep, model_weights_path,
-                input_dir, pos_change, predict_window_size, batch_size, temperature):
+  def __init__(self, hidden_layer_number, hidden_state_size,
+               pkeep, model_weights_path, input_dir, pos_change,
+               predict_window_size, batch_size, temperature):
     self.model = RNNModel(
-      constants.ALPHA_SIZE,
-      hidden_state_size=hidden_state_size,
-      hidden_layer_number=hidden_layer_number,
-      pkeep=pkeep,
-      batch_size=batch_size,
-      temperature=temperature)
+        constants.ALPHA_SIZE,
+        hidden_state_size=hidden_state_size,
+        hidden_layer_number=hidden_layer_number,
+        pkeep=pkeep,
+        batch_size=batch_size,
+        temperature=temperature)
     self.model.build(input_shape=(batch_size, None))
     self.model.load_weights(model_weights_path)
 
@@ -26,12 +42,14 @@ class RNNMKGenerator:
     self.batch_size = batch_size
 
     assert self.pos_change > 0, "pos_change must be > 0 in MK strategy"
-    assert self.predict_window_size > 0, "predict_window_size must be > 0 in MK strategy"
+    assert self.predict_window_size > 0,\
+      "predict_window_size must be > 0 in MK strategy"
 
     self.corpus_files_info = utils.get_files_info(input_dir, True)
     assert self.corpus_files_info, "Corpus not exists"
 
   def generate(self):
+    """Main part for generation."""
     new_files_bytes = []
     modify_positions = []
     len_modify_positions = []
@@ -42,14 +60,21 @@ class RNNMKGenerator:
       # Need to sample `min(200, int(log(file_size) * self.pos_change))` numbers
       num_of_mutate = min(200, int(np.log(file_size) * self.pos_change))
       if self.predict_window_size + num_of_mutate >= file_size:
-        mod_positions = np.random.choice(file_size - 1, num_of_mutate, replace=False) + 1
+        mod_positions = np.random.choice(
+            file_size - 1, num_of_mutate, replace=False) + 1
       else:
-        mod_positions = np.random.choice(file_size - self.predict_window_size, num_of_mutate, replace=False) + self.predict_window_size
+        mod_positions = np.random.choice(
+            file_size - self.predict_window_size,
+            num_of_mutate,
+            replace=False) + \
+            self.predict_window_size
       modify_positions.append(sorted(mod_positions))
       len_modify_positions.append(len(mod_positions))
 
     pos_change = max(len_modify_positions)
-    input_bytes = np.zeros((self.batch_size, self.predict_window_size), dtype=np.int)
+    input_bytes = np.zeros(
+        (self.batch_size, self.predict_window_size),
+        dtype=np.int)
 
     for j in range(pos_change):
       print(f"{j + 1}/{pos_change}", end='\r')
@@ -59,11 +84,14 @@ class RNNMKGenerator:
       for i in range(self.batch_size):
         for offset in range(self.predict_window_size):
           if j < len_modify_positions[i]:
-            input_bytes[i][offset] = new_files_bytes[i][max(0, modify_positions[i][j] - self.predict_window_size + offset)]
+            input_bytes[i][offset] = \
+              new_files_bytes[i][max(0, modify_positions[i][j] - \
+                self.predict_window_size + offset)]
       prediction = self.model(input_bytes, training=False)
 
       for i in range(self.batch_size):
-        predicted_byte = utils.sample_from_probabilities(prediction[i][-1].numpy())
+        predicted_byte = utils.sample_from_probabilities(
+            prediction[i][-1].numpy())
         if j < len_modify_positions[i]:
           new_files_bytes[i][modify_positions[i][j]] = predicted_byte
 

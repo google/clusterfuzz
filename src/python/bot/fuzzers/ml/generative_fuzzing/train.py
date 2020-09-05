@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Train ml rnn model."""
-from builtins import next, range, str
+"""Train ml models."""
+from builtins import range, str
 
 import math
 import os
@@ -29,7 +29,7 @@ from bot.fuzzers.ml import utils
 from bot.fuzzers.ml.models.rnn_model import RNNModel
 from bot.fuzzers.ml.models.gpt_model import GPTModel
 from bot.fuzzers.ml.models.bert_model import BERTModel
-from bot.fuzzers.ml.models.vae_model import VAEModel, vae_mask, vae_loss
+from bot.fuzzers.ml.models.vae_model import VAEModel, vae_loss
 
 
 def validate_paths(args):
@@ -85,25 +85,20 @@ def main(args):
   # Extract paths.
   input_dir = args.input_dir
   model_weight_dir = args.model_weight_dir
-  log_dir = args.log_dir
   existing_model = args.existing_model
 
   # Extract train parameters.
   debug = args.debug
-  validation = args.validation
   sliding_window = args.sliding_window
 
   # Extract model parameters.
   batch_size = args.batch_size
   hidden_state_size = args.hidden_state_size
   hidden_layer_number = args.hidden_layer_number
-  learning_rate = args.learning_rate
   train_seqlen = args.train_seqlen
 
-  # Split corpus for training and validation.
-  # validation_text will be empty if validation is False
-  code_text, validation_text, input_ranges = utils.read_data_files(
-      input_dir, validation=validation)
+  # Read train data
+  code_text = utils.read_data_files(input_dir)
 
   # Bail out if we don't have enough corpus for training.
   if len(code_text) < batch_size * train_seqlen + diff_xy:
@@ -116,22 +111,11 @@ def main(args):
     files_info_list = utils.get_files_info(input_dir)
     assert files_info_list
 
-  # Calculate validation batch size. It will be 0 if we choose not to validate.
-  validation_batch_size = len(validation_text) // args.validation_seqlen
-
   # Display some stats on the data.
   epoch_size = len(code_text) // (batch_size * train_seqlen)
-  utils.print_data_stats(len(code_text), len(validation_text), epoch_size)
+  utils.print_data_info(data_len=len(code_text), epoch_size=epoch_size)
 
-  # Init Tensorboard stuff.
-  # This will save Tensorboard information in folder specified in command line.
-  # Two sets of data are saved so that you can compare training and
-  # validation curves visually in Tensorboard.
   timestamp = str(math.trunc(time.time()))
-  training_writer = tf.summary.create_file_writer(
-      os.path.join(log_dir, timestamp + "-training"))
-  validation_writer = tf.summary.create_file_writer(
-      os.path.join(log_dir, timestamp + "-validation"))
 
   # For display: init the progress bar.
   step_size = batch_size * train_seqlen
@@ -196,6 +180,8 @@ def main(args):
   # If the mean of epoch_loss_sum is going up, we stop training early.
   epoch_loss_sum = [0] * args.n_epochs
 
+  num_of_epochs = 0
+
   # Training loop.
   for input_batch, expected_batch, epoch in utils.minibatch_sequencer(
       code_text,
@@ -203,6 +189,9 @@ def main(args):
       args.train_seqlen,
       nb_epochs=args.n_epochs,
       rtn_diff_xy=diff_xy):
+
+    # store the number of epochs we train for outside use
+    num_of_epochs = epoch
 
     model.reset_states()
 
@@ -245,14 +234,19 @@ def main(args):
       utils.save_weights(model, model_weight_dir,
                          f"{args.model_name}_{timestamp}_epoch_{epoch + 1}")
       print(f"epoch {epoch + 1} loss sum = {epoch_loss_sum[epoch]}")
-      # Compare the current sliding_window mean and the last sliding_window mean.
+      # Compare the average value of current sliding_window
+      # with the average value of past sliding_window.
       # If the model is getting worse, we stop early.
       if epoch + 1 >= sliding_window * 2 and \
-        np.mean(epoch_loss_sum[epoch + 1 - sliding_window:epoch + 1]) >= np.mean(epoch_loss_sum[epoch + 1 - 2 * sliding_window:epoch + 1 - sliding_window]):
+        np.mean(epoch_loss_sum[epoch + 1 - sliding_window:epoch + 1]) >= \
+        np.mean(epoch_loss_sum[epoch + 1 - 2 * sliding_window: \
+          epoch + 1 - sliding_window]):
         break
 
-  argmin_epoch = np.argmin(epoch_loss_sum[:min(args.n_epochs, epoch + 1)])
-  print(f"epoch {argmin_epoch + 1} has minimum loss_sum = {epoch_loss_sum[argmin_epoch]}")
+  argmin_epoch = np.argmin(epoch_loss_sum[:\
+    min(args.n_epochs, num_of_epochs + 1)])
+  print(f"epoch {argmin_epoch + 1} has " \
+        f"minimum loss_sum = {epoch_loss_sum[argmin_epoch]}")
 
   return constants.ExitCode.SUCCESS
 

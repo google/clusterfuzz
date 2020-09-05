@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Inference based on existing model weigths."""
 
 from __future__ import print_function
 
@@ -19,7 +20,6 @@ from builtins import str
 
 import os
 import sys
-import tensorflow as tf
 import math
 import time
 
@@ -27,18 +27,22 @@ from bot.fuzzers.ml import constants
 from bot.fuzzers.ml import config
 
 from bot.fuzzers.ml.generators.random_generator import RandomGenerator
-from bot.fuzzers.ml.generators.random_delete_generator import RandomDeleteGenerator
+from bot.fuzzers.ml.generators.random_delete_generator \
+  import RandomDeleteGenerator
 from bot.fuzzers.ml.generators.rnn_generator import RNNGenerator
 from bot.fuzzers.ml.generators.rnn_mk_generator import RNNMKGenerator
 from bot.fuzzers.ml.generators.rnn_insert_generator import RNNInsertGenerator
-from bot.fuzzers.ml.generators.rnn_score_generator import RNNScoreGenerator
-from bot.fuzzers.ml.generators.rnn_score_insert_generator import RNNScoreInsertGenerator
+from bot.fuzzers.ml.generators.rnn_score_generator \
+  import RNNScoreGenerator
+from bot.fuzzers.ml.generators.rnn_score_insert_generator \
+  import RNNScoreInsertGenerator
 from bot.fuzzers.ml.generators.gpt_generator import GPTGenerator
 from bot.fuzzers.ml.generators.gpt_insert_generator import GPTInsertGenerator
 from bot.fuzzers.ml.generators.bert_mask_generator import BERTMaskGenerator
 from bot.fuzzers.ml.generators.bert_first_generator import BERTFirstGenerator
 from bot.fuzzers.ml.generators.bert_batch_generator import BERTBatchGenerator
-from bot.fuzzers.ml.generators.bert_batch_insert_generator import BERTBatchInsertGenerator
+from bot.fuzzers.ml.generators.bert_batch_insert_generator \
+  import BERTBatchInsertGenerator
 from bot.fuzzers.ml.generators.vae_generator import VAEGenerator
 
 
@@ -183,7 +187,8 @@ def main(args):
       with open(new_file_path, 'wb') as new_file:
         new_file.write(new_files_bytes[i])
       print(
-          f'generate input: {new_file_path}, input length: {len(new_files_bytes[i])}'
+          f'generate input: {new_file_path}, '\
+          f'input length: {len(new_files_bytes[i])}'
       )
 
       # Check if we have got enough files or not.

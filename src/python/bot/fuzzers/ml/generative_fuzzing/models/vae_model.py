@@ -1,3 +1,17 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""VAE model."""
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
@@ -29,14 +43,16 @@ def vae_loss(y_true, y_pred, mu, log_var):
 
 
 class VAEModel(tf.keras.Model):
-  def __init__(self, batch_size, seq_len, temperature = 1.0, seed = 0):
+  """VAE model."""
+  def __init__(self, batch_size, seq_len, temperature=1.0, seed=0):
     """Initialize VAE model
 
     Args:
       ALPHA_SIZE: size of the alphabet that we work with
       batch_size: size of a mini batch
       temperature: when prediction, it stands for
-                   whether we want the probability distribution to be close to uniform or argmax
+                   whether we want the probability distribution
+                   to be close to uniform or argmax
       seed: graph-level default random seed
     """
     super(VAEModel, self).__init__()
@@ -50,12 +66,13 @@ class VAEModel(tf.keras.Model):
     self.temperature = temperature
 
     self.embedding = layers.Embedding(
-      constants.ALPHA_SIZE,
-      constants.EMBEDDING_DIM,
-      input_shape=[batch_size, seq_len])
+        constants.ALPHA_SIZE,
+        constants.EMBEDDING_DIM,
+        input_shape=[batch_size, seq_len])
 
     # Flatten the shape
-    # from (batch_size, seq_len, ALPHA_SIZE) to (batch_size, seq_len * ALPHA_SIZE).
+    # from (batch_size, seq_len, ALPHA_SIZE)
+    # to (batch_size, seq_len * ALPHA_SIZE).
     self.enc_reshape = layers.Reshape((-1,))
 
     # Encoder
@@ -67,7 +84,8 @@ class VAEModel(tf.keras.Model):
     self.dec_fc1 = layers.Dense(768, activation="relu")
     self.dec_fc2 = layers.Dense(seq_len * constants.ALPHA_SIZE)
 
-    # Reshape from (batch_size, seq_len * ALPHA_SIZE) to (batch_size, seq_len, ALPHA_SIZE)
+    # Reshape from (batch_size, seq_len * ALPHA_SIZE)
+    # to (batch_size, seq_len, ALPHA_SIZE)
     self.dec_reshape = layers.Reshape((seq_len, constants.ALPHA_SIZE))
 
     self.softmax = layers.Softmax()
