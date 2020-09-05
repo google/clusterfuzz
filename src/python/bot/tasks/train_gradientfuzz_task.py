@@ -17,8 +17,8 @@ from builtins import str
 
 import glob
 import os
-import sys
 import shutil
+import sys
 
 from build_management import build_manager
 from bot.fuzzers.ml.gradientfuzz import run_constants
