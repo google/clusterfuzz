@@ -20,9 +20,9 @@ import os
 import shutil
 import sys
 
-from build_management import build_manager
 from bot.fuzzers.ml.gradientfuzz import run_constants
 from bot.fuzzers.ml.gradientfuzz import constants
+from build_management import build_manager
 from fuzzing import corpus_manager
 from google_cloud_utils import storage
 from metrics import logs
