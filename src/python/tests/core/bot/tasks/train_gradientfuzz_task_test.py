@@ -29,6 +29,7 @@ from bot.tasks import train_gradientfuzz_task
 from system import new_process
 from system import shell
 from tests.test_libs import helpers as test_helpers
+from tests.test_libs import test_utils
 
 # Directory for testing files.
 GRADIENTFUZZ_TESTING_DIR = os.path.abspath(
@@ -112,7 +113,7 @@ class ExecuteTaskTest(unittest.TestCase):
         self.fake_model_dir, self.fuzzer_name)
 
 
-# @test_utils.integration
+@test_utils.integration
 class GenerateInputsIntegration(unittest.TestCase):
   """
   Unit tests for generating model inputs/labels from
@@ -162,7 +163,7 @@ class GenerateInputsIntegration(unittest.TestCase):
     self.check_all_same_lengths(labels)
 
 
-# @test_utils.integration
+@test_utils.integration
 class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
   """
   Tests all of execute_task() except GCS functionality.
