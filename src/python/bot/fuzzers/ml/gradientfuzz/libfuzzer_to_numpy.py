@@ -25,11 +25,7 @@ import sys
 import threading
 
 import numpy as np
-import tqdm
 
-from bot.fuzzers.ml.gradientfuzz.count_prop_covered_branches \
-    import plot_coverage_distribution
-from bot.fuzzers.ml.gradientfuzz.plot_dataset_lengths import plot_lengths
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 
 ZLIB_FUZZER_BINARY_PATH = \
@@ -143,7 +139,7 @@ def convert_input_to_numpy(test_case_path):
   return numpy_in
 
 
-def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path, first):
+def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path):
   """
     Processes a range of inputs based on index.
 
@@ -160,15 +156,12 @@ def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path, first):
             (for multithreading; inclusive).
         end_idx (int): Process files ending at this index
             (for multithreading; exclusive).
-        first (bool): Whether to display tqdm progress bar.
 
     Returns:
         N/A
     """
   all_coverage, all_inputs, input_file_paths, all_input_lengths = all_data
-  iterator = tqdm.tqdm(range(start_idx, end_idx)) if first else range(
-      start_idx, end_idx)
-  for idx in iterator:
+  for idx in range(start_idx, end_idx):
     test_case_path = input_file_paths[idx]
     coverage = process_one_fuzzer(test_case_path, fuzzer_binary_path)
     all_coverage[idx] = coverage
@@ -180,7 +173,6 @@ def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path, first):
 
 def process_all(input_dir,
                 output_dir,
-                dataset_name,
                 fuzz_target_binary,
                 cutoff_std,
                 cutoff_percentile,
@@ -195,8 +187,6 @@ def process_all(input_dir,
         input_dir (str): Directory from which to read raw input files.
         output_dir (str): Directory to which to save numpy byte array
             inputs and labels.
-        dataset_name (str): Save all results under
-            (data/[dataset_name]/{inputs, labels}).
         fuzz_target_binary (str): Path to compiled fuzz target.
         cutoff_std (float): Prune all inputs where
             len(input) > mean_length(inputs) + std_length(inputs).
@@ -235,7 +225,7 @@ def process_all(input_dir,
     workers[worker_idx] = threading.Thread(
         target=worker_fn,
         args=((all_coverage, all_inputs, input_file_paths, all_input_lengths),
-              start_idx, end_idx, fuzz_target_binary, worker_idx == 0))
+              start_idx, end_idx, fuzz_target_binary))
     workers[worker_idx].start()
 
   for worker in workers:
@@ -245,13 +235,6 @@ def process_all(input_dir,
   # coverage status.
   for coverage in all_coverage:
     assert coverage.shape == all_coverage[0].shape
-
-  # Plot initial dataset statistics.
-  print('Plotting initial dataset statistics...')
-  plot_coverage_distribution(dataset_name, all_coverage, 'pre_truncation_',
-                             'Branch Coverage Pre-Truncation')
-  plot_lengths(dataset_name, all_inputs, 'pre_truncation_',
-               'Input Lengths Pre-Truncation')
 
   # Perform dataset pruning based on input length.
   cutoff_len = None
@@ -282,13 +265,6 @@ def process_all(input_dir,
 
     print('{} files removed due to length.'.format(orig_num_files -
                                                    len(all_inputs)))
-
-  # Plot dataset statistics post-truncation.
-  print('Plotting post-truncation dataset statistics...')
-  plot_coverage_distribution(dataset_name, all_coverage, 'post_truncation_',
-                             'Branch Coverage Post-Truncation')
-  plot_lengths(dataset_name, all_inputs, 'post_truncation_',
-               'Input Lengths Post-Truncation')
 
   # Pad all inputs to be same length.
   if pad:
@@ -424,7 +400,6 @@ def main():
   process_all(
       args.input_dir,
       output_dir,
-      args.dataset_name,
       args.fuzz_target_binary,
       args.cutoff_std,
       args.cutoff_percentile,

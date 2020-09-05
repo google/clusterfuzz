@@ -18,7 +18,6 @@
 import glob
 import os
 
-from natsort import natsorted
 import numpy as np
 import tensorflow.keras as keras
 
@@ -105,14 +104,10 @@ def get_dataset_from(config):
   train_dataset, val_dataset = None, None
 
   # Sorted for consistency in train/val split when re-loading datasets.
-  input_file_paths = natsorted(
-      list(
-          glob.glob(
-              os.path.join(dataset_path, constants.STANDARD_INPUT_DIR, '*'))))
-  label_file_paths = natsorted(
-      list(
-          glob.glob(
-              os.path.join(dataset_path, constants.STANDARD_LABEL_DIR, '*'))))
+  input_file_paths = list(
+      glob.glob(os.path.join(dataset_path, constants.STANDARD_INPUT_DIR, '*')))
+  label_file_paths = list(
+      glob.glob(os.path.join(dataset_path, constants.STANDARD_LABEL_DIR, '*')))
 
   # Check if we need an RNN dataset
   is_rnn_dataset = constants.MODEL_TYPE_MAP[config[
