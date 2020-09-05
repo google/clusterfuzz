@@ -29,7 +29,6 @@ from bot.tasks import train_gradientfuzz_task
 from system import new_process
 from system import shell
 from tests.test_libs import helpers as test_helpers
-from tests.test_libs import test_utils
 
 # Directory for testing files.
 GRADIENTFUZZ_TESTING_DIR = os.path.abspath(
@@ -42,6 +41,9 @@ TESTING_BINARY = 'zlib_uncompress_sample_fuzzer'
 
 # Tiny sample corpus.
 TESTING_CORPUS_DIR = 'sample_corpus'
+
+# We should keep around 78 inputs from small sample corpus after pruning.
+TEST_NUM_INPUTS = 75
 
 
 class ExecuteTaskTest(unittest.TestCase):
@@ -135,6 +137,10 @@ class GenerateInputsIntegration(unittest.TestCase):
         standard_length = input_length
       self.assertTrue(standard_length == input_length)
 
+  def check_num_files(self, inputs, labels):
+    self.assertTrue(len(glob.glob(inputs)) >= TEST_NUM_INPUTS)
+    self.assertTrue(len(glob.glob(inputs)) == len(glob.glob(labels)))
+
   def test_gen_inputs_labels(self):
     """
     Generates input/label pairs using a tiny corpus and
@@ -147,6 +153,9 @@ class GenerateInputsIntegration(unittest.TestCase):
     inputs = os.path.join(self.dataset_dir, constants.STANDARD_INPUT_DIR, '*')
     labels = os.path.join(self.dataset_dir, constants.STANDARD_LABEL_DIR, '*')
     self.assertTrue(os.path.isdir(self.dataset_dir))
+
+    # Ensures that number of files was correctly generated.
+    self.check_num_files(inputs, labels)
 
     # Checks lengths of generated files.
     self.check_all_same_lengths(inputs)
