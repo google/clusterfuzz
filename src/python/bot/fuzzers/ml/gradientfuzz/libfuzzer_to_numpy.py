@@ -25,6 +25,7 @@ import sys
 import threading
 
 import numpy as np
+
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 
 ZLIB_FUZZER_BINARY_PATH = \
