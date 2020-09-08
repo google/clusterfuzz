@@ -632,10 +632,7 @@ class StackAnalyzerState(object):
     self.raw_frames = []
     self.last_frame_id = -1
 
-    if fuzz_target:
-      self.fuzz_target = fuzz_target
-    else:
-      self.fuzz_target = environment.get_value('FUZZ_TARGET')
+    self.fuzz_target = fuzz_target or environment.get_value('FUZZ_TARGET')
 
     # Additional tracking for Android bugs.
     self.found_java_exception = False
