@@ -42,19 +42,14 @@ def get_corpus(corpus_directory, fuzzer_name):
   This function will download latest corpus backup file from GCS, unzip
   the file and put them in corpus directory.
 
-  TODO(ryancao): Make default corpus directory.
-
   Args:
     directory: The directory to place corpus.
     fuzzer_name: Fuzzer name, e.g. libpng_read_fuzzer, xml_parser_fuzzer, etc.
 
   Returns:
-    True if corpus can be acquired, False otherwise.
+    True if the corpus can be acquired and False otherwise.
   """
-  # e.g. clusterfuzz-libfuzzer-backup
   backup_bucket_name = environment.get_value('BACKUP_BUCKET')
-
-  # e.g. libfuzzer
   corpus_fuzzer_name = environment.get_value('CORPUS_FUZZER_NAME_OVERRIDE')
 
   # Get GCS backup path.
@@ -100,7 +95,6 @@ def get_corpus_directory(root_dir, fuzzer_name):
 
 def get_gcs_model_directory():
   """Get gcs bucket path to store latest model."""
-  # e.g. clusterfuzz-corpus
   model_bucket_name = environment.get_value('CORPUS_BUCKET')
   if not model_bucket_name:
     return None
@@ -121,6 +115,9 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
   Args:
     model_directory (str): models/[architecture]/[run-name].
     fuzzer_name (str): The fuzzer the model is trained for.
+
+  Returns:
+    True if corpus can be acquired and False otherwise.
   """
   # Get GCS model path.
   gcs_model_directory = get_gcs_model_directory()
@@ -189,27 +186,38 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
       timeout=run_constants.DATA_GEN_TIMEOUT), dataset_name
 
 
-def train_gradientfuzz(fuzzer_name, dataset_name):
+def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
   """Train GradientFuzz model.
 
   Args:
     fuzzer_name (str): Prefix to --run-name flag.
     dataset_name (str): Inputs/labels stored under
         GRADIENTFUZZ_SCRIPTS_DIR/data/[dataset_name].
+    num_inputs (int): Number of input files (for val split/batch size).
+    testing (bool): Whether or not we use testing number of epochs.
 
   Returns:
     (new_process.ProcessResult): Result of `run_and_wait()`.
     (str): Run name (results stored under
         GRADIENTFUZZ_SCRIPTS_DIR/models/[architecture]/[run_name]).
   """
+  if num_inputs < run_constants.MIN_NUM_INPUTS:
+    return new_process.ProcessResult(
+        return_code=run_constants.ExitCode.CORPUS_TOO_SMALL), None
+
+  batch_size = str(4) if testing else str(min(32, int(num_inputs * 0.4)))
+  val_batch_size = str(4) if testing else str(min(32, int(num_inputs * 0.1)))
+  num_epochs = str(run_constants.NUM_TEST_EPOCHS
+                   if testing else run_constants.NUM_EPOCHS)
+
   script_path = get_script_path(run_constants.TRAIN_MODEL_SCRIPT)
   run_name = fuzzer_name + run_constants.RUN_NAME_SUFFIX
   args_list = [
       script_path, run_constants.RUN_NAME_FLAG, run_name,
       run_constants.DATASET_NAME_FLAG, dataset_name, run_constants.EPOCHS_FLAG,
-      '10', run_constants.BATCH_SIZE_FLAG, '4',
-      run_constants.VAL_BATCH_SIZE_FLAG, '2', run_constants.ARCHITECTURE_FLAG,
-      constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL
+      num_epochs, run_constants.BATCH_SIZE_FLAG, batch_size,
+      run_constants.VAL_BATCH_SIZE_FLAG, val_batch_size,
+      run_constants.ARCHITECTURE_FLAG, constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL
   ]
 
   script_environment = os.environ.copy()
@@ -289,7 +297,10 @@ def execute_task(fuzzer_name, job_type):
     logs.log_warn('Data gen script for {} timed out.'.format(fuzzer_name))
 
   # Next, invoke training script.
-  train_result, run_name = train_gradientfuzz(fuzzer_name, dataset_name)
+  num_inputs = len(glob.glob(os.path.join(corpus_directory, '*')))
+  testing = environment.get_value('GRADIENTFUZZ_TESTING') is not None
+  train_result, run_name = train_gradientfuzz(fuzzer_name, dataset_name,
+                                              num_inputs, testing)
 
   # Training process exited abnormally, but not via timeout -- do not proceed.
   if train_result.return_code and not train_result.timed_out:

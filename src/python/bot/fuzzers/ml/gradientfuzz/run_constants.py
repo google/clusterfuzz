@@ -13,13 +13,18 @@
 # limitations under the License.
 """Constants for GradientFuzz training process."""
 
-import enum
-
 # Execution time limits.
 DATA_GEN_TIMEOUT = 60 * 60 * 1
 TRAIN_TIMEOUT = 60 * 60 * 2
 LOC_GEN_TIMEOUT = 60 * 60 * 3
 MUT_GEN_TIMEOUT = 60 * 60 * 3
+
+# Dataset size.
+MIN_NUM_INPUTS = 10
+
+# Shorten number of runs during unit tests.
+NUM_TEST_EPOCHS = 5
+NUM_EPOCHS = 50
 
 # For GCS.
 GRADIENTFUZZ_DIR = 'gradientfuzz'
@@ -73,9 +78,9 @@ ARITH_MIN_FLAG = '--arith-min'
 ARITH_MAX_FLAG = '--arith-max'
 
 
-class ExitCode(enum.Enum):
+class ExitCode(object):
   """Exit code for training and generation."""
-  SUCCESS = enum.auto()
-  INVALID_PATH = enum.auto()
-  CORPUS_TOO_SMALL = enum.auto()
-  TENSORFLOW_ERROR = enum.auto()
+  SUCCESS = 0
+  INVALID_PATH = 1
+  CORPUS_TOO_SMALL = 2
+  TENSORFLOW_ERROR = 3

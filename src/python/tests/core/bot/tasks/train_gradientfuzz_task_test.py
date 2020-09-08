@@ -64,6 +64,7 @@ class ExecuteTaskTest(unittest.TestCase):
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
 
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
+    os.environ['GRADIENTFUZZ_TESTING'] = str(True)
 
     test_helpers.patch(self, [
         'bot.tasks.train_gradientfuzz_task.get_corpus',
@@ -108,7 +109,7 @@ class ExecuteTaskTest(unittest.TestCase):
     self.mock.gen_inputs_labels.assert_called_once_with(corpus_dir,
                                                         self.binary_path)
     self.mock.train_gradientfuzz.assert_called_once_with(
-        self.fuzzer_name, 'fake_dataset')
+        self.fuzzer_name, 'fake_dataset', 0, True)
     self.mock.upload_model_to_gcs.assert_called_once_with(
         self.fake_model_dir, self.fuzzer_name)
 
@@ -126,6 +127,8 @@ class GenerateInputsIntegration(unittest.TestCase):
     self.dataset_dir = os.path.join(self.home_dir, constants.DATASET_DIR,
                                     TESTING_CORPUS_DIR)
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
+
+    os.environ['GRADIENTFUZZ_TESTING'] = str(True)
 
   def tearDown(self):
     shell.remove_directory(os.path.join(self.home_dir, constants.DATASET_DIR))
@@ -184,9 +187,8 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     self.temp_dir = tempfile.mkdtemp()
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
 
-    # TODO(ryancao): Fix env var name!
-    os.environ['TEST_BINARY_PATH'] = self.binary_path
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
+    os.environ['GRADIENTFUZZ_TESTING'] = str(True)
 
     test_helpers.patch(self, [
         'bot.tasks.train_gradientfuzz_task.get_corpus',
@@ -244,6 +246,3 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
         model_config['input_shape'],
         hidden_layer_dim=model_config['num_hidden'])
     model.load_weights(ckpt_path).expect_partial()
-
-    # TODO(ryancao): Check model accuracy!
-    # TODO(ryancao): Check small corpus situation!
