@@ -64,8 +64,8 @@ def start_bot(bot_command):
     logs.log_error('Unable to start bot process (%s).' % bot_command)
     return 1
 
-  log_message = ('Command: %s (exit=%s)\n' % (command, exit_code) +
-                 output.decode('utf-8', errors='ignore'))
+  output = output.decode('utf-8', errors='ignore')
+  log_message = f'Command: {command} (exit={exit_code})\n{output}'
 
   if exit_code == 0:
     logs.log(log_message)

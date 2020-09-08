@@ -192,7 +192,7 @@ def run_process(cmdline,
     try:
       process_handle = mozprocess.ProcessHandlerMixin(
           cmd,
-          None,
+          args=None,
           cwd=current_working_directory,
           shell=need_shell,
           processOutputLine=[process_output],
