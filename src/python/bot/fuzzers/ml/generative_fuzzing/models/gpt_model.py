@@ -120,6 +120,7 @@ class MultiHeadAttention(layers.Layer):
     return tf.transpose(x, perm=[0, 2, 1, 3])
 
   def call(self, v, k, q, mask):
+    """Main part for multi-head attention."""
     batch_size = tf.shape(q)[0]
 
     q = self.wq(q) # (batch_size, seq_len, d_model)
@@ -189,7 +190,7 @@ class DecoderLayer(layers.Layer):
 
 class GPTModel(tf.keras.Model):
   """GPT model."""
-  def __init__(self, hidden_layer_number, d_model, num_heads, dff, ALPHA_SIZE,
+  def __init__(self, hidden_layer_number, d_model, num_heads, dff, alpha_size,
                seq_len, pkeep, batch_size, temperature=1.0, seed=0):
     """Initialize GPT model
 
@@ -198,7 +199,7 @@ class GPTModel(tf.keras.Model):
       d_model: dimension of the each input
       num_heads: number of attention heads
       dff: size of FC layer
-      ALPHA_SIZE: size of the alphabet that we work with
+      alpha_size: size of the alphabet that we work with
                   which is also the output dimension
       seq_len: length of the input sequence
       pkeep: keeping rate
@@ -222,7 +223,7 @@ class GPTModel(tf.keras.Model):
     self.pos_encoding = positional_encoding(self.seq_len, self.d_model)
 
     self.embedding = layers.Embedding(
-        ALPHA_SIZE,
+        alpha_size,
         self.d_model,
         input_shape=[batch_size, None])
     self.dropout = layers.Dropout(1 - pkeep)
@@ -235,10 +236,11 @@ class GPTModel(tf.keras.Model):
           dff=dff,
           rate=1-pkeep))
 
-    self.linear = layers.Dense(ALPHA_SIZE)
+    self.linear = layers.Dense(alpha_size)
     self.softmax = layers.Softmax()
 
   def call(self, x, training):
+    """Main part for GPT model."""
     assert self.seq_len == x.shape[1]
 
     x = self.embedding(x)

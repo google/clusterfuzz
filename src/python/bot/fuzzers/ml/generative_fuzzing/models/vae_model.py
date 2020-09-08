@@ -110,6 +110,7 @@ class VAEModel(tf.keras.Model):
     return z
 
   def call(self, x, training):
+    """Main part for VAE model."""
     # (batch_size, seq_len) -> (batch_size, seq_len * ALPHA_SIZE)
     x = self.embedding(x)
     x = self.enc_reshape(x)

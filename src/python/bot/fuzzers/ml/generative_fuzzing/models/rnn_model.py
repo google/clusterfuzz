@@ -19,12 +19,12 @@ from bot.fuzzers.ml import constants
 
 class RNNModel(tf.keras.Model):
   """RNN model."""
-  def __init__(self, ALPHA_SIZE, hidden_state_size, hidden_layer_number,
+  def __init__(self, alpha_size, hidden_state_size, hidden_layer_number,
                pkeep, batch_size, temperature=1.0, seed=0):
     """Initialize RNN model
 
     Args:
-      ALPHA_SIZE: size of the alphabet that we work with
+      alpha_size: size of the alphabet that we work with
       hidden_state_size: size of each hidden layer
       hidden_layer_number: number of hidden layers
       pkeep: keeping rate
@@ -44,7 +44,7 @@ class RNNModel(tf.keras.Model):
     self.temperature = temperature
 
     self.embedding = layers.Embedding(
-        ALPHA_SIZE,
+        alpha_size,
         constants.EMBEDDING_DIM,
         input_shape=[batch_size, None])
     self.gru_layers = []
@@ -55,10 +55,11 @@ class RNNModel(tf.keras.Model):
           return_sequences=True,
           stateful=True,
           recurrent_initializer="glorot_uniform"))
-    self.linear = layers.Dense(ALPHA_SIZE)
+    self.linear = layers.Dense(alpha_size)
     self.softmax = layers.Softmax()
 
   def call(self, x, training):
+    """Main part for RNN model."""
     x = self.embedding(x)
 
     for i in range(self.num_layers):

@@ -108,6 +108,7 @@ class MultiHeadAttention(layers.Layer):
     return tf.transpose(x, perm=[0, 2, 1, 3])
 
   def call(self, v, k, q, mask=None):
+    """Main part for multi-head attention."""
     batch_size = tf.shape(q)[0]
 
     q = self.wq(q) # (batch_size, seq_len, d_model)
@@ -236,6 +237,7 @@ class BERTModel(tf.keras.Model):
 
 
   def call(self, x, training):
+    """Main part for BERT model."""
     x = self.embedding(x)
     x *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
     x += self.pos_encoding
