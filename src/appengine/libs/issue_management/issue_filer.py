@@ -178,6 +178,8 @@ def update_issue_impact_labels(testcase, issue):
     # No impact information.
     return
 
+  update_issue_foundin_labels(testcase, issue)
+
   if existing_impact == new_impact:
     # Correct impact already set.
     return
@@ -186,6 +188,21 @@ def update_issue_impact_labels(testcase, issue):
     issue.labels.remove('Security_Impact-' + impact_to_string(existing_impact))
 
   issue.labels.add('Security_Impact-' + impact_to_string(new_impact))
+
+
+def update_issue_foundin_labels(testcase, issue):
+  """Updates FoundIn- labels on issue."""
+  if not testcase.is_impact_set_flag:
+    return
+  versions_foundin = [
+      x for x in [testcase.impact_beta_version, testcase.impact_stable_version]
+      if x
+  ]
+  milestones_foundin = {x.split('.')[0] for x in versions_foundin}
+  for found_milestone in milestones_foundin:
+    if f'foundin-{found_milestone}' in issue.labels:
+      continue
+    issue.labels.add('FoundIn-' + found_milestone)
 
 
 def apply_substitutions(policy, label, testcase, security_severity=None):
