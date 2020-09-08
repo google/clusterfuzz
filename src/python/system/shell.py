@@ -292,13 +292,12 @@ def execute_command(shell_command):
   return output
 
 
-def get_command_and_arguments(command_line):
+def get_command(command_line):
+  """Get the command to pass to subprocess."""
   if environment.platform() == 'WINDOWS':
-    command = command_line
-  else:
-    command = shlex.split(command_line, posix=True)
+    return command_line
 
-  return command, None
+  return shlex.split(command_line, posix=True)
 
 
 def get_command_line_from_argument_list(argument_list):
