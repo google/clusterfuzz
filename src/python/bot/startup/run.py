@@ -22,9 +22,8 @@ modules.fix_module_search_paths()
 
 import atexit
 import os
+import subprocess
 import time
-
-import mozprocess
 
 from base import persistent_cache
 from base.untrusted import untrusted_noop
@@ -33,7 +32,6 @@ from datastore import data_handler
 from datastore import ndb_init
 from metrics import logs
 from system import environment
-from system import process_handler
 from system import shell
 
 BOT_SCRIPT = 'run_bot.py'
@@ -46,31 +44,28 @@ _heartbeat_handle = None
 
 def start_bot(bot_command):
   """Start the bot process."""
-  command, arguments = shell.get_command_and_arguments(bot_command)
-  store_output = mozprocess.processhandler.StoreOutput()
+  command = shell.get_command(bot_command)
 
+  # Wait until the process terminates or until run timed out.
+  run_timeout = environment.get_value('RUN_TIMEOUT')
   try:
-    process_handle = mozprocess.ProcessHandlerMixin(
+    result = subprocess.run(
         command,
-        arguments,
-        kill_on_timeout=True,
-        processOutputLine=[store_output])
-    process_handler.start_process(process_handle)
+        timeout=run_timeout,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False)
+    exit_code = result.returncode
+    output = result.stdout
+  except subprocess.TimeoutExpired as e:
+    exit_code = 0
+    output = e.stdout
   except Exception:
     logs.log_error('Unable to start bot process (%s).' % bot_command)
     return 1
 
-  # Wait until the process terminates or until run timed out.
-  run_timeout = environment.get_value('RUN_TIMEOUT')
-  exit_code = process_handle.wait(timeout=run_timeout)
-  try:
-    process_handle.kill()
-  except Exception:
-    pass
-
-  log_message = (
-      'Command: %s %s (exit=%s)\n' % (command, arguments, exit_code) +
-      b'\n'.join(store_output.output).decode('utf-8', errors='ignore'))
+  output = output.decode('utf-8', errors='ignore')
+  log_message = f'Command: {command} (exit={exit_code})\n{output}'
 
   if exit_code == 0:
     logs.log(log_message)
@@ -97,9 +92,8 @@ def start_heartbeat(heartbeat_command):
     return
 
   try:
-    command, arguments = shell.get_command_and_arguments(heartbeat_command)
-    process_handle = mozprocess.ProcessHandlerMixin(command, arguments)
-    process_handler.start_process(process_handle)
+    command = shell.get_command(heartbeat_command)
+    process_handle = subprocess.Popen(command)
   except Exception:
     logs.log_error(
         'Unable to start heartbeat process (%s).' % heartbeat_command)
