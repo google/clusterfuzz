@@ -25,7 +25,7 @@ from libs import helpers
 
 
 class Handler(base_handler.Handler):
-  """Handler that gets the crash stats when user first lands on the page."""
+  """Handler for crash querying."""
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.oauth
