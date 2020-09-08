@@ -23,7 +23,6 @@ import sys
 import threading
 
 import numpy as np
-import tqdm
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 import bot.fuzzers.ml.gradientfuzz.libfuzzer_to_numpy as libfuzzer_to_numpy
@@ -305,15 +304,9 @@ def mutate_one_simple_random(seed_file_numpy, ordered_indices, mutations_dir,
     write_numpy_to_bytefile(seed_file_copy, save_path)
 
 
-def mutation_gen_loop(start_idx,
-                      end_idx,
-                      ordered_index_file_paths,
-                      seed_file_paths,
-                      seed_file_mapping,
-                      mutations_dir,
-                      input_length_mapping,
-                      args,
-                      first=False):
+def mutation_gen_loop(start_idx, end_idx, ordered_index_file_paths,
+                      seed_file_paths, seed_file_mapping, mutations_dir,
+                      input_length_mapping, args):
   """
     Iterates through each critical index file and mutates the original inputs.
 
@@ -330,15 +323,12 @@ def mutation_gen_loop(start_idx,
             input byte lengths.
         args (argparse.Namespace): Arguments passed into
             `get_gen_mutations_args()` (opts.py).
-        first (bool): Whether to display the tqdm progress bar.
 
     Returns:
         N/A
     """
   this_thread_file_paths = ordered_index_file_paths[start_idx:end_idx]
-  iterator = tqdm.tqdm(
-      this_thread_file_paths) if first else this_thread_file_paths
-  for gradient_file_path in iterator:
+  for gradient_file_path in this_thread_file_paths:
     seed_file_name = os.path.basename(gradient_file_path)
 
     if seed_file_name == constants.METADATA_FILENAME:
@@ -410,8 +400,7 @@ def generate_mutations(args, gradient_metadata, gradients_dir, mutations_dir):
     workers[worker_idx] = threading.Thread(
         target=mutation_gen_loop,
         args=(start_idx, end_idx, ordered_index_file_paths, seed_file_paths,
-              seed_file_mapping, mutations_dir, input_length_mapping, args,
-              worker_idx == 0))
+              seed_file_mapping, mutations_dir, input_length_mapping, args))
     workers[worker_idx].start()
 
   for worker in workers:
