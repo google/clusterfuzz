@@ -618,13 +618,12 @@ REPEATED_CYCLE_COUNT = 3
 class StackAnalyzerState(object):
   """Effectively a struct to store state while analyzing a crash stack."""
 
-  def __init__(self, symbolized=True):
+  def __init__(self, symbolized=True, fuzz_target=None):
     self.crash_type = ''
     self.crash_address = ''
     self.crash_state = ''
     self.crash_stacktrace = ''
     self.frame_count = 0
-    self.fuzz_target = environment.get_value('FUZZ_TARGET')
     self.process_name = 'NULL'
     self.process_died = False
     self.tool = ''
@@ -632,6 +631,11 @@ class StackAnalyzerState(object):
     self.frames = []
     self.raw_frames = []
     self.last_frame_id = -1
+
+    if fuzz_target:
+      self.fuzz_target = fuzz_target
+    else:
+      self.fuzz_target = environment.get_value('FUZZ_TARGET')
 
     # Additional tracking for Android bugs.
     self.found_java_exception = False
@@ -1175,7 +1179,11 @@ def update_kasan_crash_details(state, line):
                                        kasan_access_match.group(2))
 
 
-def get_crash_data(crash_data, symbolize_flag=True):
+def get_crash_data(crash_data,
+                   symbolize_flag=True,
+                   fuzz_target=None,
+                   already_symbolized=False,
+                   detect_ooms_and_hangs=None):
   """Get crash parameters from crash data.
   Crash parameters include crash type, address, state and stacktrace.
   If the stacktrace is not already symbolized, we will try to symbolize it
@@ -1201,7 +1209,8 @@ def get_crash_data(crash_data, symbolize_flag=True):
   # TODO(flowerhack): Fuchsia-specific stacktrace code goes here.
 
   # Compose the StackAnalyzerState object.
-  state = StackAnalyzerState(symbolized=symbolize_flag)
+  state = StackAnalyzerState(
+      symbolized=symbolize_flag or already_symbolized, fuzz_target=fuzz_target)
   state.crash_stacktrace += crash_stacktrace_with_inlines
   # We always want to detect v8 runtime errors in analyze task, and
   # we don't expect DETECT_V8_RUNTIME_ERRORS to be specified in jobs
@@ -1215,9 +1224,12 @@ def get_crash_data(crash_data, symbolize_flag=True):
   # Detect OOMs and hangs if flag is set and redzone is below certain size (only
   # applicable for ASan jobs).
   redzone_size = environment.get_value('REDZONE')
-  detect_ooms_and_hangs = (
-      environment.get_value('REPORT_OOMS_AND_HANGS') and
-      (not redzone_size or redzone_size <= MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS))
+
+  if detect_ooms_and_hangs is None:
+    detect_ooms_and_hangs = (
+        environment.get_value('REPORT_OOMS_AND_HANGS') and
+        (not redzone_size or
+         redzone_size <= MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS))
 
   is_kasan = 'KASAN' in crash_stacktrace_without_inlines
   is_golang = '.go:' in crash_stacktrace_without_inlines

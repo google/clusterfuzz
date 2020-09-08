@@ -26,6 +26,7 @@ from handlers import commit_range
 from handlers import configuration
 from handlers import corpora
 from handlers import coverage_report
+from handlers import crash_query
 from handlers import crash_stats
 from handlers import domain_verifier
 from handlers import download
@@ -170,13 +171,14 @@ handlers = [
      coverage_report.Handler),
     ('/coverage-report/<report_type>/<argument>/<date>/<path:extra>',
      coverage_report.Handler),
-    ('/delete-external-user-permission',
-     configuration.DeleteExternalUserPermission),
+    ('/crash-query', crash_query.Handler),
     ('/crash-stats/load', crash_stats.JsonHandler),
     ('/crash-stats', crash_stats.Handler),
     ('/corpora', corpora.Handler),
     ('/corpora/create', corpora.CreateHandler),
     ('/corpora/delete', corpora.DeleteHandler),
+    ('/delete-external-user-permission',
+     configuration.DeleteExternalUserPermission),
     ('/docs', help_redirector.DocumentationHandler),
     ('/download', download.Handler),
     ('/download/<resource>', download.Handler),
