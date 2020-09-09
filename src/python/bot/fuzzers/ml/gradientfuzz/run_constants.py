@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ ARITH_MIN_FLAG = '--arith-min'
 ARITH_MAX_FLAG = '--arith-max'
 
 
-class ExitCode(object):
+class ExitCode():
   """Exit code for training and generation."""
   SUCCESS = 0
   INVALID_PATH = 1

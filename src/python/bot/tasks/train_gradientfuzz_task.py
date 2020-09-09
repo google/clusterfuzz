@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,6 @@
 # limitations under the License.
 """GradientFuzz training task."""
 
-from builtins import str
-
 import glob
 import os
 import shutil
@@ -22,11 +20,10 @@ import sys
 
 from bot.fuzzers.ml.gradientfuzz import constants
 from bot.fuzzers.ml.gradientfuzz import run_constants
+from bot.tasks import ml_train_utils
 from build_management import build_manager
-from fuzzing import corpus_manager
 from google_cloud_utils import storage
 from metrics import logs
-from system import archive
 from system import environment
 from system import new_process
 from system import shell
@@ -34,44 +31,6 @@ from system import shell
 # Model script directory.
 GRADIENTFUZZ_SCRIPTS_DIR = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'fuzzers', 'ml', 'gradientfuzz')
-
-
-def get_corpus(corpus_directory, fuzzer_name):
-  """Get corpus directory.
-
-  This function will download latest corpus backup file from GCS, unzip
-  the file and put them in corpus directory.
-
-  Args:
-    directory: The directory to place corpus.
-    fuzzer_name: Fuzzer name, e.g. libpng_read_fuzzer, xml_parser_fuzzer, etc.
-
-  Returns:
-    True if the corpus can be acquired and False otherwise.
-  """
-  backup_bucket_name = environment.get_value('BACKUP_BUCKET')
-  corpus_fuzzer_name = environment.get_value('CORPUS_FUZZER_NAME_OVERRIDE')
-
-  # Get GCS backup path.
-  gcs_backup_path = corpus_manager.gcs_url_for_backup_file(
-      backup_bucket_name, corpus_fuzzer_name, fuzzer_name,
-      corpus_manager.LATEST_BACKUP_TIMESTAMP)
-
-  # Get local backup path.
-  local_backup_name = os.path.basename(gcs_backup_path)
-  local_backup_path = os.path.join(corpus_directory, local_backup_name)
-
-  # Download latest backup.
-  if not storage.copy_file_from(gcs_backup_path, local_backup_path):
-    logs.log_error(
-        'Failed to download corpus from GCS bucket {}.'.format(gcs_backup_path))
-    return False
-
-  # Extract corpus from zip file.
-  archive.unpack(local_backup_path, corpus_directory)
-  shell.remove_file(local_backup_path)
-
-  return True
 
 
 def get_script_path(which_script):
@@ -93,18 +52,6 @@ def get_corpus_directory(root_dir, fuzzer_name):
                       fuzzer_name + run_constants.CORPUS_SUFFIX)
 
 
-def get_gcs_model_directory():
-  """Get gcs bucket path to store latest model."""
-  model_bucket_name = environment.get_value('CORPUS_BUCKET')
-  if not model_bucket_name:
-    return None
-
-  gcs_model_directory = 'gs://{}/{}'.format(model_bucket_name,
-                                            run_constants.GRADIENTFUZZ_DIR)
-
-  return gcs_model_directory
-
-
 def upload_model_to_gcs(model_directory, fuzzer_name):
   """
   Upload the entire model directory to GCS bucket.
@@ -120,7 +67,8 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
     True if corpus can be acquired and False otherwise.
   """
   # Get GCS model path.
-  gcs_model_directory = get_gcs_model_directory()
+  gcs_model_directory = ml_train_utils.get_gcs_model_directory(
+      run_constants.GRADIENTFUZZ_DIR)
   if not gcs_model_directory:
     logs.log_error('Failed to upload model: cannot get GCS model bucket.')
     return
@@ -172,8 +120,6 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
       run_constants.DEFAULT_MEDIAN_MULT_CUTOFF,
   ]
 
-  script_environment = os.environ.copy()
-
   logs.log('Launching input gen with args: "{}".'.format(str(args_list)))
 
   # Run process in GradientFuzz directory.
@@ -182,7 +128,6 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
   return data_gen_proc.run_and_wait(
       additional_args=args_list,
       cwd=GRADIENTFUZZ_SCRIPTS_DIR,
-      env=script_environment,
       timeout=run_constants.DATA_GEN_TIMEOUT), dataset_name
 
 
@@ -205,22 +150,21 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
     return new_process.ProcessResult(
         return_code=run_constants.ExitCode.CORPUS_TOO_SMALL), None
 
-  batch_size = str(4) if testing else str(min(32, int(num_inputs * 0.4)))
-  val_batch_size = str(4) if testing else str(min(32, int(num_inputs * 0.1)))
-  num_epochs = str(run_constants.NUM_TEST_EPOCHS
-                   if testing else run_constants.NUM_EPOCHS)
+  batch_size = 4 if testing else min(32, int(num_inputs * 0.4))
+  val_batch_size = 4 if testing else min(32, int(num_inputs * 0.1))
+  num_epochs = (
+      run_constants.NUM_TEST_EPOCHS if testing else run_constants.NUM_EPOCHS)
 
   script_path = get_script_path(run_constants.TRAIN_MODEL_SCRIPT)
   run_name = fuzzer_name + run_constants.RUN_NAME_SUFFIX
   args_list = [
       script_path, run_constants.RUN_NAME_FLAG, run_name,
       run_constants.DATASET_NAME_FLAG, dataset_name, run_constants.EPOCHS_FLAG,
-      num_epochs, run_constants.BATCH_SIZE_FLAG, batch_size,
-      run_constants.VAL_BATCH_SIZE_FLAG, val_batch_size,
-      run_constants.ARCHITECTURE_FLAG, constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL
+      str(num_epochs), run_constants.BATCH_SIZE_FLAG,
+      str(batch_size), run_constants.VAL_BATCH_SIZE_FLAG,
+      str(val_batch_size), run_constants.ARCHITECTURE_FLAG,
+      constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL
   ]
-
-  script_environment = os.environ.copy()
 
   logs.log('Launching training with the following arguments: "{}".'.format(
       str(args_list)))
@@ -231,7 +175,6 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
   return gradientfuzz_trainer.run_and_wait(
       args_list,
       cwd=GRADIENTFUZZ_SCRIPTS_DIR,
-      env=script_environment,
       timeout=run_constants.TRAIN_TIMEOUT), run_name
 
 
@@ -284,7 +227,7 @@ def execute_task(fuzzer_name, job_type):
 
   # This actually downloads corpus directory based on fuzzer name from GCS.
   logs.log('Downloading corpus backup for {}.'.format(fuzzer_name))
-  if not get_corpus(corpus_directory, fuzzer_name):
+  if not ml_train_utils.get_corpus(corpus_directory, fuzzer_name):
     logs.log_error(
         'Failed to download corpus backup for {}.'.format(fuzzer_name))
     return

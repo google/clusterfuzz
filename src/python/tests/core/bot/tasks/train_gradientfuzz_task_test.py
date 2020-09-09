@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ class ExecuteTaskTest(unittest.TestCase):
     os.environ['GRADIENTFUZZ_TESTING'] = str(True)
 
     test_helpers.patch(self, [
-        'bot.tasks.train_gradientfuzz_task.get_corpus',
+        'bot.tasks.ml_train_utils.get_corpus',
         'bot.tasks.train_gradientfuzz_task.gen_inputs_labels',
         'bot.tasks.train_gradientfuzz_task.train_gradientfuzz',
         'bot.tasks.train_gradientfuzz_task.upload_model_to_gcs',
@@ -191,7 +191,7 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     os.environ['GRADIENTFUZZ_TESTING'] = str(True)
 
     test_helpers.patch(self, [
-        'bot.tasks.train_gradientfuzz_task.get_corpus',
+        'bot.tasks.ml_train_utils.get_corpus',
         'bot.tasks.train_gradientfuzz_task.upload_model_to_gcs',
         'build_management.build_manager.setup_build'
     ])
