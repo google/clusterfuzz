@@ -251,6 +251,10 @@ def execute_task(fuzzer_name, job_type):
   train_result, run_name = train_gradientfuzz(fuzzer_name, dataset_name,
                                               num_inputs, testing)
 
+  # TODO(ryancao): Debugging only! REMOVE.
+  if run_name != 'fake_run':
+    raise ValueError(train_result.output, run_name)
+
   # Training process exited abnormally, but not via timeout -- do not proceed.
   if train_result.return_code and not train_result.timed_out:
     if train_result.return_code == run_constants.ExitCode.CORPUS_TOO_SMALL:
