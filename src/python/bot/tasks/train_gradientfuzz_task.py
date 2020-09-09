@@ -155,6 +155,12 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
   num_epochs = (
       run_constants.NUM_TEST_EPOCHS if testing else run_constants.NUM_EPOCHS)
 
+  # TODO(ryancao) TESTING ONLY. REMOVE!
+  assert batch_size == 4
+  assert val_batch_size == 4
+  assert num_epochs == 5
+  assert num_inputs > 80
+
   script_path = get_script_path(run_constants.TRAIN_MODEL_SCRIPT)
   run_name = fuzzer_name + run_constants.RUN_NAME_SUFFIX
   args_list = [
