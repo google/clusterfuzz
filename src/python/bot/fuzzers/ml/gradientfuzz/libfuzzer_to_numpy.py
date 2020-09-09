@@ -27,6 +27,10 @@ import threading
 import numpy as np
 
 import bot.fuzzers.ml.gradientfuzz.constants as constants
+from system import environment
+
+# For fuzz target coverage printing.
+os.environ['ASAN_SYMBOLIZER_PATH'] = environment.get_llvm_symbolizer_path()
 
 ZLIB_FUZZER_BINARY_PATH = \
     '~/Ryan_Summer_2020/oss-fuzz/build/out/zlib/zlib_uncompress_fuzzer'
