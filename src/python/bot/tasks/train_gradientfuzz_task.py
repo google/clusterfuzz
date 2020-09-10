@@ -120,9 +120,6 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
       run_constants.DEFAULT_MEDIAN_MULT_CUTOFF,
   ]
 
-  # TODO(ryancao): REMOVE
-  print('Launching input gen with args: "{}".'.format(str(args_list)))
-
   logs.log('Launching input gen with args: "{}".'.format(str(args_list)))
 
   # Run process in GradientFuzz directory.
@@ -157,12 +154,6 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
   val_batch_size = 4 if testing else min(32, int(num_inputs * 0.1))
   num_epochs = (
       run_constants.NUM_TEST_EPOCHS if testing else run_constants.NUM_EPOCHS)
-
-  # TODO(ryancao) TESTING ONLY. REMOVE!
-  # assert batch_size == 4
-  # assert val_batch_size == 4
-  # assert num_epochs == 5
-  # assert num_inputs > 80
 
   script_path = get_script_path(run_constants.TRAIN_MODEL_SCRIPT)
   run_name = fuzzer_name + run_constants.RUN_NAME_SUFFIX
@@ -253,10 +244,6 @@ def execute_task(fuzzer_name, job_type):
   testing = environment.get_value('GRADIENTFUZZ_TESTING') is not None
   train_result, run_name = train_gradientfuzz(fuzzer_name, dataset_name,
                                               num_inputs, testing)
-
-  # TODO(ryancao): Debugging only! REMOVE.
-  # if run_name != 'fake_run':
-  #   raise ValueError(train_result.output, run_name)
 
   # Training process exited abnormally, but not via timeout -- do not proceed.
   if train_result.return_code and not train_result.timed_out:

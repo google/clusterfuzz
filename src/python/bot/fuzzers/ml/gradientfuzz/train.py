@@ -117,9 +117,6 @@ def train_model(model, config, train_dataset, val_dataset):
     """
   utils.save_model_config(config)
   callback_list = model_utils.get_callbacks(config)
-  # TODO(ryancao): DEBUGGING ONLY! REMOVE!
-  os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-  # print('Got here! Before model.fit()')
   model.fit(
       train_dataset,
       batch_size=config['batch_size'],
@@ -133,10 +130,6 @@ def train_model(model, config, train_dataset, val_dataset):
       validation_freq=1,
       workers=os.cpu_count(),
       use_multiprocessing=False)
-  # print('Got here! After model.fit()')
-  # import glob
-  # file_list = glob.glob(os.path.join('models/' + config['architecture'] + '/' + config['run_name'] + '/*'))
-  # raise RuntimeError('Done with training! Here are the files in the models/ directory:\n{}'.format(file_list))
   return constants.ExitCodes.SUCCESS
 
 
