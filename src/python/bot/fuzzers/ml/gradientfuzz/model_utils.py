@@ -95,7 +95,6 @@ class NeuzzJaccardAcc(keras.metrics.Metric):
       Computes (true positives) / (true positives + errors).
       """
     y_true, y_pred = args
-    print('{} | {}'.format(y_true, y_pred))
     y_pred = tf.cast(tf.round(y_pred), tf.bool)
     self.true_positives.assign_add(
         tf.reduce_sum(tf.cast(tf.logical_and(y_true, y_pred), tf.float32)))
