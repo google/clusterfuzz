@@ -48,6 +48,11 @@ def start_bot(bot_command):
 
   # Wait until the process terminates or until run timed out.
   run_timeout = environment.get_value('RUN_TIMEOUT')
+  max_timeout = int(2**31 / 1000)  # https://bugs.python.org/issue20493
+  if run_timeout and run_timeout > max_timeout:
+    logs.log_error('Capping RUN_TIMEOUT to max allowed value: %d' % max_timeout)
+    run_timeout = max_timeout
+
   try:
     result = subprocess.run(
         command,
