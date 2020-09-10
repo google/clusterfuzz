@@ -164,10 +164,18 @@ class QemuProcess(object):
     ]
     # yapf: enable
 
-    # Detecing KVM is tricky, so use an environment variable to determine
+    # Detecting KVM is tricky, so use an environment variable to determine
     # whether to turn it on or not.
     if environment.get_value('FUCHSIA_USE_KVM'):
-      qemu_args.extend(['-cpu', 'host,migratable=no'])
+      # In builds before fxrev.dev/375343, a bug prevents booting with newer
+      # versions of KVM. On some of these older builds,
+      # `kernel.x86.disable-spec-mitigations` also doesn't work as
+      # expected, so we work around this by selecting a CPU type where the
+      # speculation mitigation will not applied.
+      if environment.get_value('APP_REVISION') < 20200414210423:
+        qemu_args.extend(['-cpu', 'Opteron_G5,+invtsc'])
+      else:
+        qemu_args.extend(['-cpu', 'host,migratable=no,+invtsc'])
       qemu_args.append('-enable-kvm')
     else:
       # Can't use host CPU since we don't necessarily have KVM on the machine.
@@ -185,7 +193,7 @@ class QemuProcess(object):
     # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
     environment.set_value('FUCHSIA_PKEY_PATH', qemu_vars['pkey_path'])
     logs.log('Ready to run QEMU. Command: ' + qemu_vars['qemu_path'] + ' ' +
-             str(qemu_args))
+             ' '.join('"{}"'.format(arg) for arg in qemu_args))
     self.process_runner = new_process.ProcessRunner(qemu_vars['qemu_path'],
                                                     qemu_args)
 
