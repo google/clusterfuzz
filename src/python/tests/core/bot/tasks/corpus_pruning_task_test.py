@@ -305,7 +305,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
         platform='FUCHSIA',
         environment_string=env_string).put()
     data_types.FuzzTarget(
-        binary='example-fuzzers/trap_fuzzer',
+        binary='example-fuzzers/crash_fuzzer',
         engine='libFuzzer',
         project='fuchsia').put()
 
@@ -321,7 +321,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
     """Basic pruning test."""
     self.corpus_dir = self.fuchsia_corpus_dir
     corpus_pruning_task.execute_task(
-        'libFuzzer_fuchsia_example-fuzzers-trap_fuzzer',
+        'libFuzzer_fuchsia_example-fuzzers-crash_fuzzer',
         'libfuzzer_asan_fuchsia')
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
