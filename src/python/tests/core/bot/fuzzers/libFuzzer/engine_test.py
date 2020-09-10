@@ -984,7 +984,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     Additionally, tests that pushing a corpus to the target works & produces
     an expanded corpus."""
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
-    environment.set_value('FUZZ_TARGET', 'example-fuzzers/trap_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example-fuzzers/crash_fuzzer')
     build_manager.setup_build()
 
     _, corpus_path = setup_testcase_and_corpus('aaaa', 'fuchsia_corpus')
@@ -992,10 +992,10 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     engine_impl = engine.LibFuzzerEngine()
 
     self.mock.get_fuzz_timeout.return_value = get_fuzz_timeout(20.0)
-    options = engine_impl.prepare(corpus_path, 'example-fuzzers/trap_fuzzer',
+    options = engine_impl.prepare(corpus_path, 'example-fuzzers/crash_fuzzer',
                                   DATA_DIR)
-    results = engine_impl.fuzz('example-fuzzers/trap_fuzzer', options, TEMP_DIR,
-                               20)
+    results = engine_impl.fuzz('example-fuzzers/crash_fuzzer', options,
+                               TEMP_DIR, 20)
 
     # If we don't get a crash, something went wrong.
     self.assertIn('Test unit written to', results.logs)
@@ -1059,7 +1059,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
       'Temporarily disabling the Fuchsia tests until build size reduced.')
   def test_minimize_testcase(self):
     """Tests running a testcase that should be able to minimize."""
-    environment.set_value('FUZZ_TARGET', 'example-fuzzers/trap_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example-fuzzers/crash_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
     build_manager.setup_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_overlong_crash',
@@ -1067,7 +1067,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     minimize_output_path = os.path.join(TEMP_DIR, 'output')
 
     engine_impl = engine.LibFuzzerEngine()
-    result = engine_impl.minimize_testcase('example-fuzzers/trap_fuzzer',
+    result = engine_impl.minimize_testcase('example-fuzzers/crash_fuzzer',
                                            ['-runs=1000000'], testcase_path,
                                            minimize_output_path, 30)
     with open(minimize_output_path) as f:
