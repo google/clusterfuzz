@@ -78,7 +78,7 @@ ARITH_MIN_FLAG = '--arith-min'
 ARITH_MAX_FLAG = '--arith-max'
 
 
-class ExitCode():
+class ExitCode:
   """Exit code for training and generation."""
   SUCCESS = 0
   INVALID_PATH = 1

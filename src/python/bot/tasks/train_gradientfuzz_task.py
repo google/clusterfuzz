@@ -76,21 +76,20 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
   # Zip entire model directory and upload.
   model_dir_name = os.path.basename(model_directory)
   zipped_dir = shutil.make_archive(model_dir_name, 'zip', model_directory)
-  gcs_model_path = '{}/{}'.format(gcs_model_directory, zipped_dir)
+  gcs_model_path = f'{gcs_model_directory}/{zipped_dir}'
 
-  logs.log('Uploading the model for fuzzer {} and run {} to {}.'.format(
-      fuzzer_name, model_dir_name, gcs_model_path))
+  logs.log(f'Uploading the model for fuzzer {fuzzer_name} and run' +
+           f'{model_dir_name} to {gcs_model_path}.')
 
   # Upload files to GCS.
-  result = (storage.copy_file_to(zipped_dir, gcs_model_path))
+  result = storage.copy_file_to(zipped_dir, gcs_model_path)
 
   if result:
-    logs.log('Uploaded GradientFuzz model {} for fuzzer {}.'.format(
-        model_dir_name, fuzzer_name))
+    logs.log(f'Uploaded GradientFuzz model {model_dir_name} for fuzzer' +
+             f'{fuzzer_name}.')
   else:
-    logs.log_error(
-        'Failed to upload GradientFuzz model {} for fuzzer {}.'.format(
-            model_dir_name, fuzzer_name))
+    logs.log_error(f'Failed to upload GradientFuzz model {model_dir_name} ' +
+                   f'for fuzzer {fuzzer_name}.')
 
 
 def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
@@ -120,11 +119,10 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
       run_constants.DEFAULT_MEDIAN_MULT_CUTOFF,
   ]
 
-  logs.log('Launching input gen with args: "{}".'.format(str(args_list)))
+  logs.log(f'Launching input gen with args: "{args_list}".')
 
   # Run process in GradientFuzz directory.
   data_gen_proc = new_process.ProcessRunner(sys.executable)
-
   return data_gen_proc.run_and_wait(
       additional_args=args_list,
       cwd=GRADIENTFUZZ_SCRIPTS_DIR,
@@ -166,12 +164,10 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
       constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL
   ]
 
-  logs.log('Launching training with the following arguments: "{}".'.format(
-      str(args_list)))
+  logs.log('Launching training with the following arguments: "{args_list}".')
 
   # Run process in gradientfuzz directory.
   gradientfuzz_trainer = new_process.ProcessRunner(sys.executable)
-
   return gradientfuzz_trainer.run_and_wait(
       args_list,
       cwd=GRADIENTFUZZ_SCRIPTS_DIR,
@@ -208,9 +204,8 @@ def execute_task(fuzzer_name, job_type):
     job_type (str): Job type, e.g. libfuzzer_chrome_asan.
   """
   if not job_type:
-    logs.log_error(
-        'job_type is not set when training GradientFuzz for fuzzer {}.'.format(
-            fuzzer_name))
+    logs.log_error('job_type is not set when training GradientFuzz for ' +
+                   f'fuzzer {fuzzer_name}.')
     return
 
   # Sets up fuzzer binary build.
@@ -226,10 +221,9 @@ def execute_task(fuzzer_name, job_type):
   shell.remove_directory(corpus_directory, recreate=True)
 
   # This actually downloads corpus directory based on fuzzer name from GCS.
-  logs.log('Downloading corpus backup for {}.'.format(fuzzer_name))
+  logs.log(f'Downloading corpus backup for {fuzzer_name}.')
   if not ml_train_utils.get_corpus(corpus_directory, fuzzer_name):
-    logs.log_error(
-        'Failed to download corpus backup for {}.'.format(fuzzer_name))
+    logs.log_error(f'Failed to download corpus backup for {fuzzer_name}.')
     return
 
   # First, generate input/label pairs for training.
@@ -237,11 +231,11 @@ def execute_task(fuzzer_name, job_type):
       corpus_directory, fuzzer_binary_path)
 
   if gen_inputs_labels_result.timed_out:
-    logs.log_warn('Data gen script for {} timed out.'.format(fuzzer_name))
+    logs.log_warn(f'Data gen script for {fuzzer_name} timed out.')
 
   # Next, invoke training script.
   num_inputs = len(glob.glob(os.path.join(corpus_directory, '*')))
-  testing = environment.get_value('GRADIENTFUZZ_TESTING') is not None
+  testing = bool(environment.get_value('GRADIENTFUZZ_TESTING'))
   train_result, run_name = train_gradientfuzz(fuzzer_name, dataset_name,
                                               num_inputs, testing)
 
@@ -249,12 +243,12 @@ def execute_task(fuzzer_name, job_type):
   if train_result.return_code and not train_result.timed_out:
     if train_result.return_code == run_constants.ExitCode.CORPUS_TOO_SMALL:
       logs.log_warn(
-          'GradientFuzz training task for fuzzer {} aborted due to corpus size.'
-          .format(fuzzer_name))
+          f'GradientFuzz training task for fuzzer {fuzzer_name} aborted ' +
+          'due to corpus size.')
     else:
       logs.log_error(
-          'GradientFuzz training task for fuzzer {} failed with ExitCode = {}.'
-          .format(fuzzer_name, train_result.return_code),
+          f'GradientFuzz training task for fuzzer {fuzzer_name} failed with ' +
+          f'ExitCode = {train_result.return_code}.',
           output=train_result.output)
     return
 
