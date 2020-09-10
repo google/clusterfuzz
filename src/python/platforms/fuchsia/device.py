@@ -21,6 +21,7 @@ from builtins import object
 from builtins import str
 
 import os
+import shlex
 import socket
 import subprocess
 import tempfile
@@ -193,7 +194,7 @@ class QemuProcess(object):
     # Fuzzing jobs that SSH into the QEMU VM need access to this env var.
     environment.set_value('FUCHSIA_PKEY_PATH', qemu_vars['pkey_path'])
     logs.log('Ready to run QEMU. Command: ' + qemu_vars['qemu_path'] + ' ' +
-             ' '.join('"{}"'.format(arg) for arg in qemu_args))
+             ' '.join(shlex.quote(arg) for arg in qemu_args))
     self.process_runner = new_process.ProcessRunner(qemu_vars['qemu_path'],
                                                     qemu_args)
 
