@@ -38,6 +38,7 @@ BOT_SCRIPT = 'run_bot.py'
 HEARTBEAT_SCRIPT = 'run_heartbeat.py'
 HEARTBEAT_START_WAIT_TIME = 60
 LOOP_SLEEP_INTERVAL = 3
+MAX_SUBPROCESS_TIMEOUT = 2**31 // 1000  # https://bugs.python.org/issue20493
 
 _heartbeat_handle = None
 
@@ -48,10 +49,10 @@ def start_bot(bot_command):
 
   # Wait until the process terminates or until run timed out.
   run_timeout = environment.get_value('RUN_TIMEOUT')
-  max_timeout = int(2**31 / 1000)  # https://bugs.python.org/issue20493
-  if run_timeout and run_timeout > max_timeout:
-    logs.log_error('Capping RUN_TIMEOUT to max allowed value: %d' % max_timeout)
-    run_timeout = max_timeout
+  if run_timeout and run_timeout > MAX_SUBPROCESS_TIMEOUT:
+    logs.log_error(
+        'Capping RUN_TIMEOUT to max allowed value: %d' % MAX_SUBPROCESS_TIMEOUT)
+    run_timeout = MAX_SUBPROCESS_TIMEOUT
 
   try:
     result = subprocess.run(
