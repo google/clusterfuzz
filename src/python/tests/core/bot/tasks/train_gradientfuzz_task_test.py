@@ -114,7 +114,7 @@ class ExecuteTaskTest(unittest.TestCase):
         self.fake_model_dir, self.fuzzer_name)
 
 
-# @test_utils.integration
+@test_utils.integration
 class GenerateInputsIntegration(unittest.TestCase):
   """
   Unit tests for generating model inputs/labels from
@@ -166,7 +166,7 @@ class GenerateInputsIntegration(unittest.TestCase):
     self.check_all_same_lengths(labels)
 
 
-# @test_utils.integration
+@test_utils.integration
 class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
   """
   Tests all of execute_task() except GCS functionality.
