@@ -109,7 +109,7 @@ class ExecuteTaskTest(unittest.TestCase):
     self.mock.gen_inputs_labels.assert_called_once_with(corpus_dir,
                                                         self.binary_path)
     self.mock.train_gradientfuzz.assert_called_once_with(
-        self.fuzzer_name, 'fake_dataset', 0, True)
+        self.fuzzer_name, 'fake_dataset', 0)
     self.mock.upload_model_to_gcs.assert_called_once_with(
         self.fake_model_dir, self.fuzzer_name)
 
@@ -189,6 +189,9 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
 
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
     os.environ['GRADIENTFUZZ_TESTING'] = str(True)
+    os.environ['GRADIENTFUZZ_BATCH_SIZE'] = str(4)
+    os.environ['GRADIENTFUZZ_VAL_BATCH_SIZE'] = str(4)
+    os.environ['GRADIENTFUZZ_NUM_EPOCHS'] = str(run_constants.NUM_TEST_EPOCHS)
 
     test_helpers.patch(self, [
         'bot.tasks.ml_train_utils.get_corpus',

@@ -129,7 +129,7 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
       timeout=run_constants.DATA_GEN_TIMEOUT), dataset_name
 
 
-def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
+def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs):
   """Train GradientFuzz model.
 
   Args:
@@ -137,7 +137,6 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
     dataset_name (str): Inputs/labels stored under
         GRADIENTFUZZ_SCRIPTS_DIR/data/[dataset_name].
     num_inputs (int): Number of input files (for val split/batch size).
-    testing (bool): Whether or not we use testing number of epochs.
 
   Returns:
     (new_process.ProcessResult): Result of `run_and_wait()`.
@@ -148,10 +147,12 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs, testing):
     return new_process.ProcessResult(
         return_code=run_constants.ExitCode.CORPUS_TOO_SMALL), None
 
-  batch_size = 4 if testing else min(32, int(num_inputs * 0.4))
-  val_batch_size = 4 if testing else min(32, int(num_inputs * 0.1))
-  num_epochs = (
-      run_constants.NUM_TEST_EPOCHS if testing else run_constants.NUM_EPOCHS)
+  batch_size = os.environ.get(
+      'GRADIENTFUZZ_BATCH_SIZE', default=min(32, int(num_inputs * 0.4)))
+  val_batch_size = os.environ.get(
+      'GRADIENTFUZZ_VAL_BATCH_SIZE', default=min(32, int(num_inputs * 0.1)))
+  num_epochs = os.environ.get(
+      'GRADIENTFUZZ_NUM_EPOCHS', default=run_constants.NUM_EPOCHS)
 
   script_path = get_script_path(run_constants.TRAIN_MODEL_SCRIPT)
   run_name = fuzzer_name + run_constants.RUN_NAME_SUFFIX
@@ -235,9 +236,8 @@ def execute_task(fuzzer_name, job_type):
 
   # Next, invoke training script.
   num_inputs = len(glob.glob(os.path.join(corpus_directory, '*')))
-  testing = bool(environment.get_value('GRADIENTFUZZ_TESTING'))
   train_result, run_name = train_gradientfuzz(fuzzer_name, dataset_name,
-                                              num_inputs, testing)
+                                              num_inputs)
 
   # Training process exited abnormally, but not via timeout -- do not proceed.
   if train_result.return_code and not train_result.timed_out:

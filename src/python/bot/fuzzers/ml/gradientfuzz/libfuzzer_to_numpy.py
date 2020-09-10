@@ -29,12 +29,6 @@ import numpy as np
 import bot.fuzzers.ml.gradientfuzz.constants as constants
 from system import environment
 
-# For fuzz target coverage printing.
-os.environ['ASAN_SYMBOLIZER_PATH'] = environment.get_llvm_symbolizer_path()
-
-ZLIB_FUZZER_BINARY_PATH = \
-    '~/Ryan_Summer_2020/oss-fuzz/build/out/zlib/zlib_uncompress_fuzzer'
-
 
 def get_branch_coverage(libfuzzer_out, get_branch_numbers=False):
   """
@@ -355,8 +349,8 @@ def parse_args():
   parser.add_argument(
       '--fuzz-target-binary',
       help='Path to fuzz target executable.',
-      type=str,
-      default=ZLIB_FUZZER_BINARY_PATH)
+      required=True,
+      type=str)
   return parser.parse_args()
 
 
@@ -401,6 +395,10 @@ def main():
 
   os.makedirs(os.path.join(output_dir, constants.STANDARD_INPUT_DIR))
   os.makedirs(os.path.join(output_dir, constants.STANDARD_LABEL_DIR))
+
+  # For fuzz target coverage printing.
+  os.environ['ASAN_SYMBOLIZER_PATH'] = environment.get_llvm_symbolizer_path()
+
   process_all(
       args.input_dir,
       output_dir,
