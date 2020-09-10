@@ -142,11 +142,11 @@ def get_callbacks(config):
 
   cp_callback = keras.callbacks.ModelCheckpoint(
       filepath=os.path.join(model_dir_path, constants.CHECKPOINT_FILENAME),
-      # monitor='val_neuzz_jaccard_acc',
-      # mode='max',
+      monitor='val_neuzz_jaccard_acc',
+      mode='max',
       save_freq='epoch',
       save_weights_only=True,
-      # save_best_only=True,
+      save_best_only=True,
   )
 
   tb_callback = keras.callbacks.TensorBoard(
