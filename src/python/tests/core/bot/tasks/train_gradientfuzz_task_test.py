@@ -188,7 +188,6 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
 
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
-    os.environ['GRADIENTFUZZ_TESTING'] = str(True)
     os.environ['GRADIENTFUZZ_BATCH_SIZE'] = str(4)
     os.environ['GRADIENTFUZZ_VAL_BATCH_SIZE'] = str(4)
     os.environ['GRADIENTFUZZ_NUM_EPOCHS'] = str(run_constants.NUM_TEST_EPOCHS)
