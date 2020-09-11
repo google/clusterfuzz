@@ -32,6 +32,9 @@ CORPUS_MUTATION_RADAMSA_STRATEGY = Strategy(
     name='corpus_mutations_radamsa', probability=0.15, manually_enable=False)
 CORPUS_MUTATION_ML_RNN_STRATEGY = Strategy(
     name='corpus_mutations_ml_rnn', probability=0.50, manually_enable=False)
+CORPUS_MUTATION_GRADIENTFUZZ_STRATEGY = Strategy(
+    name='corpus_mutations_gradientfuzz', probability=0.50,
+    manually_enable=False)
 DATAFLOW_TRACING_STRATEGY = Strategy(
     name='dataflow_tracing', probability=0.50, manually_enable=True)
 ENTROPIC_STRATEGY = Strategy(
@@ -59,6 +62,7 @@ LIBFUZZER_STRATEGY_LIST = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     CORPUS_MUTATION_ML_RNN_STRATEGY,
+    CORPUS_MUTATION_GRADIENTFUZZ_STRATEGY,
     VALUE_PROFILE_STRATEGY,
     FORK_STRATEGY,
     CORPUS_SUBSET_STRATEGY,

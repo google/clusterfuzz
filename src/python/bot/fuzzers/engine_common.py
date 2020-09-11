@@ -87,6 +87,7 @@ class Generator(object):
   NONE = 0
   RADAMSA = 1
   ML_RNN = 2
+  GRADIENTFUZZ = 3
 
 
 def select_generator(strategy_pool, fuzzer_path):
@@ -96,17 +97,21 @@ def select_generator(strategy_pool, fuzzer_path):
     # Unsupported.
     return Generator.NONE
 
+  generator_options = []
+
   # We can't use radamsa binary on Windows. Disable ML for now until we know it
   # works on Win.
   # These generators don't produce testcases that LPM fuzzers can use.
   if (environment.platform() == 'WINDOWS' or is_lpm_fuzz_target(fuzzer_path)):
     return Generator.NONE
   if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
-    return Generator.ML_RNN
+    generator_options.append(Generator.ML_RNN)
   if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
-    return Generator.RADAMSA
+    generator_options.append(Generator.RADAMSA)
+  if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_GRADIENTFUZZ_STRATEGY):
+    generator_options.append(Generator.GRADIENTFUZZ)
 
-  return Generator.NONE
+  return random.choice(generator_options)
 
 
 def generate_new_testcase_mutations(corpus_directory,
@@ -216,6 +221,15 @@ def generate_new_testcase_mutations_using_ml_rnn(
     corpus_directory, new_testcase_mutations_directory, fuzzer_name,
     generation_timeout):
   """Generate new testcase mutations using ML RNN model."""
+  # No return value for now. Will add later if this is necessary.
+  ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
+                           fuzzer_name, generation_timeout)
+
+
+def generate_new_testcase_mutations_using_gradientfuzz(
+    corpus_directory, new_testcase_mutations_directory, fuzzer_name,
+    generation_timeout):
+  """Generates new testcase mutations using pretrained GradientFuzz model."""
   # No return value for now. Will add later if this is necessary.
   ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
                            fuzzer_name, generation_timeout)

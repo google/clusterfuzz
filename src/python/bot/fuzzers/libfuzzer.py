@@ -1779,6 +1779,9 @@ def pick_strategies(strategy_pool,
             strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
       elif candidate_generator == engine_common.Generator.ML_RNN:
         fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
+      elif candidate_generator == engine_common.Generator.GRADIENTFUZZ:
+        fuzzing_strategies.append(
+            strategy.CORPUS_MUTATION_GRADIENTFUZZ_STRATEGY.name)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
 
