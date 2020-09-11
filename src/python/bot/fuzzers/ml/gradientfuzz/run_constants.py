@@ -49,6 +49,7 @@ CUTOFF_PERCENTILE_FLAG = '--cutoff-percentile'
 CUTOFF_STD_FLAG = '--cutoff-std'
 MEDIAN_MULT_FLAG = '--median-mult-cutoff'
 FUZZ_TARGET_BINARY_FLAG = '--fuzz-target-binary'
+PROCESS_INPUTS_ONLY_FLAG = '--process-inputs-only'
 DEFAULT_MEDIAN_MULT_CUTOFF = '2'
 
 # For `train.py`.
@@ -71,6 +72,8 @@ GENERATION_NAME_FLAG = '--generation-name'
 GRADIENT_GEN_METHOD_FLAG = '--gradient-gen-method'
 NUM_OUTPUT_LOCS_FLAG = '--num-output-locs'
 TOP_K_FLAG = '--top-k'
+DEFAULT_NUM_OUTPUT_LOCS = 10
+DEFAULT_TOP_K = 100
 
 # For `gen_mutations.py`.
 MUTATION_NAME_FLAG = '--mutation-name'
@@ -79,6 +82,8 @@ NUM_MUTATIONS_FLAG = '--num-mutations'
 NEIGHBORHOOD_MAX_WIDTH_FLAG = '--neighborhood-max-width'
 ARITH_MIN_FLAG = '--arith-min'
 ARITH_MAX_FLAG = '--arith-max'
+DEFAULT_NUM_MUTATIONS = 5
+DEFAULT_MUT_DIR_NAME = 'mutated_inputs'
 
 
 class ExitCode:

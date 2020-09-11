@@ -20,6 +20,7 @@ try:
 except ImportError:
   pass
 
+import glob
 import os
 import shutil
 import sys
@@ -32,12 +33,6 @@ from metrics import logs
 from system import environment
 from system import new_process
 from system import shell
-
-# Model script directory absolute path.
-ML_RNN_SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
-
-# Maximum number of new units to generate.
-GENERATION_MAX_COUNT = 5000
 
 
 def download_model_from_gcs(local_model_dir, fuzzer_name):
@@ -117,68 +112,6 @@ def prepare_model_directory(fuzzer_name):
   return os.path.join(model_directory, constants.RNN_MODEL_NAME)
 
 
-def run(input_directory,
-        output_directory,
-        model_path,
-        generation_timeout,
-        generation_count=None,
-        hidden_state_size=None,
-        hidden_layer_size=None):
-  """Generate inputs with specified model paramters.
-
-  Args:
-    input_directory: Corpus directory. Required argument for generation script.
-    output_directory: New inputs directory. Required argument for generation
-        script.
-    model_path: Model path. Required argument for generation script.
-    generation_timeout: Timeout for running generation process.
-    generation_count: Number of inputs to generate. Required argument for
-        generation script.
-    hidden_state_size: Hidden state size of LSTM cell.
-    hidden_layer_size: Hidden layer size of LSTM model.
-
-  Returns:
-    Result of running generation process. Format is defined by
-    ProcessRunner.run_and_wait().
-  """
-  # Get generation script path.
-  script_path = os.path.join(ML_RNN_SCRIPT_DIR,
-                             constants.GENERATION_SCRIPT_NAME)
-
-  # Wrap commmand arguments.
-  args_list = [
-      script_path,
-      constants.INPUT_DIR_ARGUMENT_PREFIX + input_directory,
-      constants.OUTPUT_DIR_ARGUMENT_PREFIX + output_directory,
-      constants.MODEL_PATH_ARGUMENT_PREFIX + model_path,
-  ]
-
-  if generation_count:
-    args_list.append(constants.GENERATION_COUNT_ARGUMENT_PREFIX +
-                     str(generation_count))
-  else:
-    args_list.append(constants.GENERATION_COUNT_ARGUMENT_PREFIX +
-                     str(GENERATION_MAX_COUNT))
-
-  # Optional arguments.
-  if hidden_state_size:
-    args_list.append(constants.HIDDEN_STATE_ARGUMENT_PREFIX +
-                     str(hidden_state_size))
-  if hidden_layer_size:
-    args_list.append(constants.HIDDEN_LAYER_ARGUMENT_PREFIX +
-                     str(hidden_layer_size))
-
-  script_environment = os.environ.copy()
-
-  # Run process in script directory.
-  rnn_runner = new_process.ProcessRunner(sys.executable)
-  return rnn_runner.run_and_wait(
-      args_list,
-      cwd=ML_RNN_SCRIPT_DIR,
-      env=script_environment,
-      timeout=generation_timeout)
-
-
 def create_directory_tree():
   """
   Mimics the directory tree as would be created by running
@@ -194,6 +127,120 @@ def create_directory_tree():
 
   if not os.path.isdir(constants.DATASET_DIR):
     os.makedirs(constants.DATASET_DIR)
+
+
+def generate_numpy_inputs(input_directory):
+  """
+  Runs libfuzzer_to_numpy.py generation script to convert raw inputs stored in
+  `input_directory` into Numpy arrays to be processed.
+
+  Args:
+    input_directory (str): Absolute path to corpus.
+
+  Returns:
+    (new_process.ProcessResult): Result of `run_and_wait()`.
+    (str): Dataset name (results stored under data/[dataset_name]).
+  """
+  dataset_name = os.path.basename(input_directory)
+  script_path = run_constants.GENERATE_DATA_SCRIPT
+  args_list = [
+      script_path,
+      run_constants.PROCESS_INPUTS_ONLY_FLAG,
+      run_constants.INPUT_DIR_FLAG,
+      input_directory,
+      run_constants.DATASET_NAME_FLAG,
+      dataset_name,
+      run_constants.MEDIAN_MULT_FLAG,
+      run_constants.DEFAULT_MEDIAN_MULT_CUTOFF,
+  ]
+
+  logs.log(f'Launching input gen with args: "{args_list}".')
+
+  # Run process in current directory (bot/fuzzers/ml/gradientfuzz).
+  input_gen_proc = new_process.ProcessRunner(sys.executable)
+  return input_gen_proc.run_and_wait(
+      additional_args=args_list,
+      timeout=run_constants.DATA_GEN_TIMEOUT), dataset_name
+
+
+def generate_critical_locations(dataset_name, fuzzer_name):
+  """
+  Invokes `gradient_gen_critical_locations.py` script to generate a critical
+  locations file for each input file in the input corpus.
+
+  Args:
+    dataset_name (str): Numpy inputs previously generated under
+        [data/[dataset_name]/inputs/].
+    fuzzer_name (str): Name of fuzzer for which mutated inputs are
+        being generated.
+
+  Returns:
+    (new_process.ProcessResult): Result of `run_and_wait()`.
+    (str): Gen name (results stored under generated/[gen-name]).
+  """
+  script_path = run_constants.GENERATE_LOCATIONS_SCRIPT
+  run_name = fuzzer_name + run_constants.RUN_NAME_SUFFIX
+  path_to_seeds = os.path.join(constants.DATASET_DIR, dataset_name,
+                               constants.STANDARD_INPUT_DIR)
+  path_to_lengths = os.path.join(constants.DATASET_DIR, dataset_name,
+                                 constants.INPUT_LENGTHS_FILENAME)
+  gen_name = f'{fuzzer_name}_{dataset_name}'
+
+  args_list = [
+      script_path,
+      run_constants.RUN_NAME_FLAG, run_name,
+      run_constants.PATH_TO_SEEDS_FLAG, path_to_seeds,
+      run_constants.PATH_TO_LENGTHS_FLAG, path_to_lengths,
+      run_constants.GENERATION_NAME_FLAG, gen_name,
+      run_constants.NUM_OUTPUT_LOCS_FLAG, run_constants.DEFAULT_NUM_OUTPUT_LOCS,
+      run_constants.TOP_K_FLAG, run_constants.DEFAULT_TOP_K,
+  ]
+
+  logs.log(f'Launching critical location generation with args: "{args_list}".')
+
+  # Run process in current directory (bot/fuzzers/ml/gradientfuzz).
+  crit_loc_gen_proc = new_process.ProcessRunner(sys.executable)
+  return crit_loc_gen_proc.run_and_wait(
+      additional_args=args_list,
+      timeout=run_constants.LOC_GEN_TIMEOUT), gen_name
+
+
+def generate_mutations(gen_name, dataset_name):
+  """
+  Invokes `gen_mutations.py` script to generate mutated files from existing
+  corpus files and write them to a separate directory.
+
+  Args:
+    gen_name (str): Previously generated critical locations saved under
+        [generated/[gen_name]/gradients/].
+    dataset_name (str): Numpy inputs previously generated under
+        [data/[dataset_name]/inputs/].
+
+  Returns:
+    (new_process.ProcessResult): Result of `run_and_wait()`.
+    (str): Mutated files dir name (generated mutations saved under
+        [generated/[gen_name]/mutated/[mutated_dir]]).
+  """
+  script_path = run_constants.GENERATE_MUTATIONS_SCRIPT
+  path_to_lengths = os.path.join(constants.DATASET_DIR, dataset_name,
+                                 constants.INPUT_LENGTHS_FILENAME)
+  mutation_name = run_constants.DEFAULT_MUT_DIR_NAME
+
+  args_list = [
+      script_path,
+      run_constants.GENERATION_NAME_FLAG, gen_name,
+      run_constants.PATH_TO_LENGTHS_FLAG, path_to_lengths,
+      run_constants.MUTATION_GEN_METHOD_FLAG, constants.LIMITED_NEIGHBORHOOD,
+      run_constants.MUTATION_NAME_FLAG, mutation_name
+  ]
+
+  logs.log(f'Launching mutation generation with args: "{args_list}".')
+
+  # Run process in current directory (bot/fuzzers/ml/gradientfuzz).
+  mut_gen_proc = new_process.ProcessRunner(sys.executable)
+  return mut_gen_proc.run_and_wait(
+      additional_args=args_list,
+      timeout=run_constants.LOC_GEN_TIMEOUT), mutation_name
 
 
 def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
@@ -218,12 +265,8 @@ def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
   # Validate corpus folder.
   file_count = shell.get_directory_file_count(input_directory)
   if not file_count:
-    logs.log('Corpus is empty. Skip generation.')
+    logs.log('Corpus is empty; skipping generation step.')
     return
-
-  # Number of existing inputs.
-  old_corpus_units = shell.get_directory_file_count(output_directory)
-  old_corpus_bytes = shell.get_directory_size(output_directory)
 
   # Download pretrained model from GCS.
   create_directory_tree()
@@ -233,36 +276,26 @@ def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
     return
 
   # Re-generate numpy inputs and lengths.json file.
+  _, dataset_name = generate_numpy_inputs(input_directory)
 
-  result = run(input_directory, output_directory, model_path,
-               generation_timeout)
+  # Generate critical locations.
+  _, gen_name = generate_critical_locations(dataset_name, fuzzer_name)
 
-  # Generation process exited abnormally but not caused by timeout, meaning
-  # error occurred during execution.
-  if result.return_code and not result.timed_out:
-    if result.return_code == constants.ExitCode.CORPUS_TOO_SMALL:
-      logs.log_warn(
-          'ML RNN generation for fuzzer %s aborted due to small corpus.' %
-          fuzzer_name)
-    else:
-      logs.log_error(
-          'ML RNN generation for fuzzer %s failed with ExitCode = %d.' %
-          (fuzzer_name, result.return_code),
-          output=result.output)
-    return
+  # Generate mutations.
+  _, mutation_name = generate_mutations(gen_name, dataset_name)
 
-  # Timeout is not error, if we have new units generated.
-  if result.timed_out:
-    logs.log_warn('ML RNN generation for fuzzer %s timed out.' % fuzzer_name)
-
-  new_corpus_units = (
-      shell.get_directory_file_count(output_directory) - old_corpus_units)
-  new_corpus_bytes = (
-      shell.get_directory_size(output_directory) - old_corpus_bytes)
-  if new_corpus_units:
-    logs.log('Added %d new inputs (%d bytes) using ML RNN generator for %s.' %
-             (new_corpus_units, new_corpus_bytes, fuzzer_name))
+  # Copy mutated files over into suggested output directory.
+  mutated_inputs_path = os.path.join(constants.GENERATED_DIR, gen_name,
+                                     constants.MUTATIONS_DIR, mutation_name)
+  mutated_inputs = glob.glob(os.path.join(mutated_inputs_path, '*'))
+  num_mutated_inputs = len(mutated_inputs)
+  if num_mutated_inputs == 0:
+    logs.log_error('GradientFuzz failed to generate any new inputs for ' +
+                   f'fuzzer {fuzzer_name}.')
   else:
-    logs.log_error(
-        'ML RNN generator did not produce any inputs for %s' % fuzzer_name,
-        output=result.output)
+    logs.log(f'GradientFuzz produced {num_mutated_inputs} new inputs for ' +
+             f'{fuzzer_name}')
+
+  for mutated_input in mutated_inputs:
+    if not shell.copy_file(mutated_input, output_directory):
+      logs.log_warn(f'Failed to copy {mutated_input} to {output_directory}'.)
