@@ -239,10 +239,8 @@ def find_regression_range(testcase_id, job_type):
   revision_list = build_manager.get_revisions_list(
       build_bucket_path, testcase=testcase)
   if not revision_list:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Failed to fetch revision list')
-    tasks.add_task('regression', testcase_id, job_type)
+    data_handler.close_testcase_with_error(testcase_id,
+                                           'Failed to fetch revision list')
     return
 
   # Don't burden NFS server with caching these random builds.
