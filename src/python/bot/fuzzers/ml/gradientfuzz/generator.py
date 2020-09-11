@@ -58,8 +58,7 @@ def download_model_from_gcs(local_model_dir, fuzzer_name):
     return False
 
   gcs_model_directory = ml_train_utils.get_gcs_model_directory(
-      run_constants.GRADIENTFUZZ_DIR, fuzzer_name
-  )
+      run_constants.GRADIENTFUZZ_DIR, fuzzer_name)
 
   path_to_gcs_model = f'{gcs_model_directory}/{run_name}' + '.zip'
 
@@ -86,30 +85,6 @@ def download_model_from_gcs(local_model_dir, fuzzer_name):
   shell.remove_file(zipped_path)
 
   return True
-
-
-def prepare_model_directory(fuzzer_name):
-  """Prepare model directory, and return model path.
-
-  Args:
-    fuzzer_name: Name of the fuzzer to which this model belongs.
-
-  Returns:
-    Model path. For example, if `/tmp/model` is the directory containing model
-    files(e.g. rnn.meta), the path should be '/tmp/model/rnn'.
-  """
-  # Get temporary directory.
-  temp_directory = environment.get_value('BOT_TMPDIR')
-
-  # Create model directory.
-  model_directory = os.path.join(temp_directory, fuzzer_name)
-  shell.remove_directory(model_directory, recreate=True)
-
-  if not download_model_from_gcs(model_directory, fuzzer_name):
-    return None
-
-  # Got the model. Return model path.
-  return os.path.join(model_directory, constants.RNN_MODEL_NAME)
 
 
 def create_directory_tree():
@@ -188,12 +163,18 @@ def generate_critical_locations(dataset_name, fuzzer_name):
 
   args_list = [
       script_path,
-      run_constants.RUN_NAME_FLAG, run_name,
-      run_constants.PATH_TO_SEEDS_FLAG, path_to_seeds,
-      run_constants.PATH_TO_LENGTHS_FLAG, path_to_lengths,
-      run_constants.GENERATION_NAME_FLAG, gen_name,
-      run_constants.NUM_OUTPUT_LOCS_FLAG, run_constants.DEFAULT_NUM_OUTPUT_LOCS,
-      run_constants.TOP_K_FLAG, run_constants.DEFAULT_TOP_K,
+      run_constants.RUN_NAME_FLAG,
+      run_name,
+      run_constants.PATH_TO_SEEDS_FLAG,
+      path_to_seeds,
+      run_constants.PATH_TO_LENGTHS_FLAG,
+      path_to_lengths,
+      run_constants.GENERATION_NAME_FLAG,
+      gen_name,
+      run_constants.NUM_OUTPUT_LOCS_FLAG,
+      run_constants.DEFAULT_NUM_OUTPUT_LOCS,
+      run_constants.TOP_K_FLAG,
+      run_constants.DEFAULT_TOP_K,
   ]
 
   logs.log(f'Launching critical location generation with args: "{args_list}".')
@@ -227,8 +208,7 @@ def generate_mutations(gen_name, dataset_name):
   mutation_name = run_constants.DEFAULT_MUT_DIR_NAME
 
   args_list = [
-      script_path,
-      run_constants.GENERATION_NAME_FLAG, gen_name,
+      script_path, run_constants.GENERATION_NAME_FLAG, gen_name,
       run_constants.PATH_TO_LENGTHS_FLAG, path_to_lengths,
       run_constants.MUTATION_GEN_METHOD_FLAG, constants.LIMITED_NEIGHBORHOOD,
       run_constants.MUTATION_NAME_FLAG, mutation_name
@@ -243,7 +223,7 @@ def generate_mutations(gen_name, dataset_name):
       timeout=run_constants.LOC_GEN_TIMEOUT), mutation_name
 
 
-def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
+def execute(input_directory, output_directory, fuzzer_name):
   """Execute ML RNN generator to produce new inputs.
 
   It will fetch the GradientFuzz pretrained model from the GCS bucket
@@ -256,7 +236,6 @@ def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
     output_directory (str): The directory to save mutated inputs to.
     fuzzer_name (str): It indicates the subdirectory in the GCS bucket where
         models are stored.
-    generation_timeout (int): Maximum time (seconds) for generator to run.
   """
   if environment.platform() != 'LINUX':
     logs.log('Unsupported platform for GradientFuzz generation; skipping.')
@@ -298,4 +277,4 @@ def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
 
   for mutated_input in mutated_inputs:
     if not shell.copy_file(mutated_input, output_directory):
-      logs.log_warn(f'Failed to copy {mutated_input} to {output_directory}'.)
+      logs.log_warn(f'Failed to copy {mutated_input} to {output_directory}.')

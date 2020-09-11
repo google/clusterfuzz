@@ -33,6 +33,7 @@ import six
 from base import utils
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
+from bot.fuzzers.ml.gradientfuzz import generator as gradientfuzz_generator
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from fuzzing import strategy
 from metrics import fuzzer_stats
@@ -227,12 +228,10 @@ def generate_new_testcase_mutations_using_ml_rnn(
 
 
 def generate_new_testcase_mutations_using_gradientfuzz(
-    corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-    generation_timeout):
+    corpus_directory, new_testcase_mutations_directory, fuzzer_name, _):
   """Generates new testcase mutations using pretrained GradientFuzz model."""
-  # No return value for now. Will add later if this is necessary.
-  ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
-                           fuzzer_name, generation_timeout)
+  gradientfuzz_generator.execute(corpus_directory,
+                                 new_testcase_mutations_directory, fuzzer_name)
 
 
 def get_radamsa_path():

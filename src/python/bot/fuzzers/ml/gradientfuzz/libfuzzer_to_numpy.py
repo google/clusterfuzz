@@ -137,7 +137,7 @@ def convert_input_to_numpy(test_case_path):
   return numpy_in
 
 
-def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path, 
+def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path,
               process_inputs_only):
   """
     Processes a range of inputs based on index.
