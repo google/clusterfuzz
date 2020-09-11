@@ -26,8 +26,8 @@ import threading
 
 import numpy as np
 
-import bot.fuzzers.ml.gradientfuzz.constants as constants
 from system import environment
+import bot.fuzzers.ml.gradientfuzz.constants as constants
 
 
 def get_branch_coverage(libfuzzer_out, get_branch_numbers=False):

@@ -68,7 +68,7 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
   """
   # Get GCS model path.
   gcs_model_directory = ml_train_utils.get_gcs_model_directory(
-      run_constants.GRADIENTFUZZ_DIR)
+      run_constants.GRADIENTFUZZ_DIR, fuzzer_name)
   if not gcs_model_directory:
     logs.log_error('Failed to upload model: cannot get GCS model bucket.')
     return
