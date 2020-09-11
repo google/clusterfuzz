@@ -29,6 +29,9 @@ NUM_EPOCHS = 50
 # For GCS.
 GRADIENTFUZZ_DIR = 'gradientfuzz'
 
+# FIXME: Get model architecture BEFORE downloading from GCS!
+DUMMY_MODEL_DIR = 'all_models'
+
 # Corpus directory (corpora backups stored here).
 CORPUS_DIR = 'corpus'
 CORPUS_SUFFIX = '-raw-inputs'

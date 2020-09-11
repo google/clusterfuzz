@@ -137,7 +137,8 @@ def convert_input_to_numpy(test_case_path):
   return numpy_in
 
 
-def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path):
+def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path, 
+              process_inputs_only):
   """
     Processes a range of inputs based on index.
 
@@ -154,6 +155,8 @@ def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path):
             (for multithreading; inclusive).
         end_idx (int): Process files ending at this index
             (for multithreading; exclusive).
+        process_inputs_only (bool): Whether to only convert inputs to numpy
+            (no coverage information generated).
 
     Returns:
         N/A
@@ -161,8 +164,10 @@ def worker_fn(all_data, start_idx, end_idx, fuzzer_binary_path):
   all_coverage, all_inputs, input_file_paths, all_input_lengths = all_data
   for idx in range(start_idx, end_idx):
     test_case_path = input_file_paths[idx]
-    coverage = process_one_fuzzer(test_case_path, fuzzer_binary_path)
-    all_coverage[idx] = coverage
+
+    if not process_inputs_only:
+      coverage = process_one_fuzzer(test_case_path, fuzzer_binary_path)
+      all_coverage[idx] = coverage
 
     numpy_input = convert_input_to_numpy(test_case_path)
     all_input_lengths[idx] = len(numpy_input)
@@ -175,7 +180,8 @@ def process_all(input_dir,
                 cutoff_std,
                 cutoff_percentile,
                 median_mult_cutoff,
-                pad=True):
+                pad=True,
+                process_inputs_only=False):
   """
     Processes every file in input_dir with libFuzzer and
     saves both inputs and labels in numpy array form under
@@ -193,6 +199,8 @@ def process_all(input_dir,
         median_mult_cutoff(float): Prune all inputs where
             len(input) > median_length(inputs) * median_mult_cutoff.
         pad (bool): Whether to pad all inputs to the same length.
+        process_inputs_only (bool): Whether to only convert raw inputs to
+            Numpy arrays (i.e. no fuzz target specified).
 
     Returns:
         N/A (results saved under data/[dataset_name]/{inputs, labels})
@@ -210,8 +218,9 @@ def process_all(input_dir,
     return
 
   # Get branch numbers first.
-  _, branch_numbers = process_one_fuzzer(
-      input_file_paths[0], fuzz_target_binary, first=True)
+  if not process_inputs_only:
+    _, branch_numbers = process_one_fuzzer(
+        input_file_paths[0], fuzz_target_binary, first=True)
 
   # Divide into number of usable CPUs for parallelism.
   workers = [None] * os.cpu_count()
@@ -223,7 +232,7 @@ def process_all(input_dir,
     workers[worker_idx] = threading.Thread(
         target=worker_fn,
         args=((all_coverage, all_inputs, input_file_paths, all_input_lengths),
-              start_idx, end_idx, fuzz_target_binary))
+              start_idx, end_idx, fuzz_target_binary, process_inputs_only))
     workers[worker_idx].start()
 
   for worker in workers:
@@ -231,8 +240,9 @@ def process_all(input_dir,
 
   # Should always report on the same number of branches, regardless of
   # coverage status.
-  for coverage in all_coverage:
-    assert coverage.shape == all_coverage[0].shape
+  if not process_inputs_only:
+    for coverage in all_coverage:
+      assert coverage.shape == all_coverage[0].shape
 
   # Perform dataset pruning based on input length.
   cutoff_len = None
@@ -289,24 +299,26 @@ def process_all(input_dir,
   print('Saving input lengths under {}...'.format(input_lengths_save_path))
   json.dump(input_length_mapping, open(input_lengths_save_path, 'w'))
 
-  print('Saving labels under {}...'.format(
-      os.path.join(output_dir, constants.STANDARD_LABEL_DIR)))
-  for num_label, _ in enumerate(all_coverage):
-    label_save_path = os.path.join(
-        output_dir,
-        constants.STANDARD_LABEL_DIR,
-        constants.LABEL_FILENAME.format(num=num_label))
-    np.save(label_save_path, all_coverage[num_label])
+  if not process_inputs_only:
+    print('Saving labels under {}...'.format(
+        os.path.join(output_dir, constants.STANDARD_LABEL_DIR)))
+    for num_label, _ in enumerate(all_coverage):
+      label_save_path = os.path.join(
+          output_dir,
+          constants.STANDARD_LABEL_DIR,
+          constants.LABEL_FILENAME.format(num=num_label))
+      np.save(label_save_path, all_coverage[num_label])
 
   input_filenames_file_name = os.path.join(
       output_dir, constants.RAW_INPUT_FILE_NAMES_FILENAME)
   print('Saving input filenames to {}...'.format(input_filenames_file_name))
   json.dump(input_file_paths, open(input_filenames_file_name, 'w'))
 
-  branch_number_save_path = os.path.join(output_dir,
-                                         constants.BRANCH_LABELS_FILENAME)
-  print('Saving branch numbers to {}...'.format(branch_number_save_path))
-  json.dump(branch_numbers, open(branch_number_save_path, 'w'))
+  if not process_inputs_only:
+    branch_number_save_path = os.path.join(output_dir,
+                                           constants.BRANCH_LABELS_FILENAME)
+    print('Saving branch numbers to {}...'.format(branch_number_save_path))
+    json.dump(branch_numbers, open(branch_number_save_path, 'w'))
 
 
 def parse_args():
@@ -347,9 +359,14 @@ def parse_args():
       type=bool,
       default=True)
   parser.add_argument(
+      '--process-inputs-only',
+      help='Whether only process raw input files to Numpy. (Default: False)',
+      type=bool,
+      default=False)
+  parser.add_argument(
       '--fuzz-target-binary',
-      help='Path to fuzz target executable.',
-      required=True,
+      help='Path to fuzz target executable. MUST be specified unless ' +
+      '--process-inputs-only is invoked.',
       type=str)
   return parser.parse_args()
 
@@ -380,6 +397,11 @@ def main():
           .format(output_dir, constants.DATASET_DIR))
     sys.exit()
 
+  if not args.process_inputs_only and args.fuzz_target_binary is None:
+    print('Error: Exactly one of --process-inputs-only and ' +
+          '--fuzz-target-binary must be specified.')
+    sys.exit()
+
   cutoff_args = [
       args.cutoff_std, args.cutoff_percentile, args.median_mult_cutoff
   ]
@@ -406,7 +428,8 @@ def main():
       args.cutoff_std,
       args.cutoff_percentile,
       args.median_mult_cutoff,
-      pad=args.pad)
+      pad=args.pad,
+      process_inputs_only=args.process_inputs_only)
 
 
 if __name__ == '__main__':
