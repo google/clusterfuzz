@@ -51,6 +51,7 @@ class BitmapAcc(keras.metrics.Metric):
       Computes (total matches) / (total branches).
       """
     y_true, y_pred = args
+    # y_true = tf.cast(tf.round(y_true), tf.bool)
     y_pred = tf.cast(tf.round(y_pred), tf.bool)
     total_correct_branches = tf.reduce_sum(
         tf.cast(tf.equal(y_true, y_pred), tf.float32))
@@ -95,6 +96,7 @@ class NeuzzJaccardAcc(keras.metrics.Metric):
       Computes (true positives) / (true positives + errors).
       """
     y_true, y_pred = args
+    # y_true = tf.cast(tf.round(y_true), tf.bool)
     y_pred = tf.cast(tf.round(y_pred), tf.bool)
     self.true_positives.assign_add(
         tf.reduce_sum(tf.cast(tf.logical_and(y_true, y_pred), tf.float32)))
