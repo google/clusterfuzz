@@ -132,6 +132,11 @@ def get_product_name():
   return adb.get_property('ro.product.name')
 
 
+def get_product_model():
+  """Return product's model."""
+  return adb.get_property('ro.product.model')
+
+
 def get_build_product():
   """Return builds's product."""
   return adb.get_property('ro.build.product')
@@ -172,6 +177,12 @@ def is_google_device():
     return None
 
   return product_brand in ('google', 'generic')
+
+
+def is_automotive():
+  """Returns if we are running in Android Automotive OS, currently only for Osprey."""
+  product_model = get_product_model()
+  return product_model == 'Osprey'
 
 
 def set_content_setting(table, key, value):
