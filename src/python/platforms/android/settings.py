@@ -174,6 +174,12 @@ def is_google_device():
   return product_brand in ('google', 'generic')
 
 
+def is_automotive():
+  """Returns if we are running in Android Automotive OS, currently only for Osprey."""
+  product_name = get_product_name()
+  return product_name == 'osprey_hwasan'
+
+
 def set_content_setting(table, key, value):
   """Set a device content setting. The input is not sanitized, so make sure to
   use with trusted input key and value pair only."""
