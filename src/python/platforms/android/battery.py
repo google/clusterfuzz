@@ -58,7 +58,7 @@ def wait_until_good_state():
   """Check battery and make sure it is charged beyond minimum level and
   temperature thresholds."""
   # Battery levels are not applicable on GCE.
-  if adb.is_gce():
+  if adb.is_gce() or adb.is_automotive():
     return
 
   # Make sure device is online.

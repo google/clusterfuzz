@@ -320,6 +320,10 @@ def is_gce():
   android_serial = environment.get_value('ANDROID_SERIAL')
   return android_serial.startswith('127.0.0.1:')
 
+def is_automotive():
+  """Returns if we are running in Android Automotive OS, currently only for Osprey."""
+  model = get_property('ro.product.model')
+  return model.startswith('Osprey')
 
 def kill_processes_and_children_matching_name(process_name):
   """Kills process along with children matching names."""
