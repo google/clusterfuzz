@@ -453,6 +453,37 @@ class GetComponentsListTest(unittest.TestCase):
         revisions_dict, 'libfuzzer_asan_libass')
     self.assertEqual(expected_components_list, actual_components_list)
 
+  def test_get_components_list_no_exact_matches(self):
+    """Test get_components_list (no exact matches)."""
+    data_types.Job(
+        name='libfuzzer_asan_php',
+        environment_string=('PROJECT_NAME = php\n'
+                            'HELP_URL = help_url\n')).put()
+    revisions_dict = {
+        '/src/afl': {
+            'type': 'git',
+            'url': 'https://github.com/google/AFL.git',
+            'rev': '82b5e359463238d790cadbe2dd494d6a4928bff3'
+        },
+        '/src/php-src': {
+            'type': 'git',
+            'url': 'https://github.com/php/php-src.git',
+            'rev': '853b7945bc6c97d7d1643f5f8b22851e323829cd'
+        },
+        '/src/php-src/oniguruma': {
+            'type': 'git',
+            'url': 'https://github.com/kkos/oniguruma.git',
+            'rev': '2b7b94122c696ffb5ed7fbe9a42c73d4563e3498'
+        },
+    }
+
+    expected_components_list = [
+        '/src/php-src', '/src/afl', '/src/php-src/oniguruma'
+    ]
+    actual_components_list = revisions.get_components_list(
+        revisions_dict, 'libfuzzer_asan_php')
+    self.assertEqual(expected_components_list, actual_components_list)
+
 
 class DepsToRevisionsDictTest(unittest.TestCase):
   """Tests deps_to_revisions_dict"""
