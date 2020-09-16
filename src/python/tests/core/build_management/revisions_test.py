@@ -484,6 +484,29 @@ class GetComponentsListTest(unittest.TestCase):
         revisions_dict, 'libfuzzer_asan_php')
     self.assertEqual(expected_components_list, actual_components_list)
 
+    revisions_dict = {
+        '/src/afl': {
+            'type': 'git',
+            'url': 'https://github.com/google/AFL.git',
+            'rev': '82b5e359463238d790cadbe2dd494d6a4928bff3'
+        },
+        '/src/php-src': {
+            'type': 'git',
+            'url': 'https://github.com/php/php-src.git',
+            'rev': '853b7945bc6c97d7d1643f5f8b22851e323829cd'
+        },
+        '/src/php': {
+            'type': 'git',
+            'url': 'https://github.com/kkos/oniguruma.git',
+            'rev': '2b7b94122c696ffb5ed7fbe9a42c73d4563e3498'
+        },
+    }
+
+    expected_components_list = ['/src/php', '/src/afl', '/src/php-src']
+    actual_components_list = revisions.get_components_list(
+        revisions_dict, 'libfuzzer_asan_php')
+    self.assertEqual(expected_components_list, actual_components_list)
+
 
 class DepsToRevisionsDictTest(unittest.TestCase):
   """Tests deps_to_revisions_dict"""
