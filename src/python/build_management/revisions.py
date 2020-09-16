@@ -316,12 +316,17 @@ def get_components_list(component_revisions_dict, job_type):
     # No project name found in job environment, return list as-is.
     return components
 
-  project_src = '/src/%s' % project_name
-  for component in components:
+  project_src = '/src/' + project_name
+  for component in components.copy():
     if component == project_src:
       components.remove(component)
       components.insert(0, component)
       break
+
+    if project_name in os.path.basename(component):
+      components.remove(component)
+      components.insert(0, component)
+      # Keep trying in case an exact match is found later.
 
   return components
 
