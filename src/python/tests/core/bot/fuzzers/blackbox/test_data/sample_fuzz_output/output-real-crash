@@ -1,0 +1,4 @@
+#
+# Fatal error in ../../v8/src/compiler/verifier.cc, line 394
+# Check failed: a == b (2 vs. 3).
+#

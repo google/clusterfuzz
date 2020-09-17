@@ -865,7 +865,8 @@ def get_command_line_for_application(file_to_run='',
                                      app_path=None,
                                      app_args=None,
                                      needs_http=False,
-                                     write_command_line_file=False):
+                                     write_command_line_file=False,
+                                     get_arguments_only=False):
   """Returns the complete command line required to execute application."""
   if app_args is None:
     app_args = environment.get_value('APP_ARGS')
@@ -903,9 +904,14 @@ def get_command_line_for_application(file_to_run='',
   if ' ' in app_path:
     app_path = '"%s"' % app_path
 
-  # Prepend command with interpreter if it is a script.
   interpreter = shell.get_interpreter(app_name)
-  if interpreter:
+  if get_arguments_only:
+    # If we are only returning the arguments, leave do not return the
+    # application path or anything else required to run it such as an
+    # interpreter.
+    app_path = ''
+  elif interpreter:
+    # Prepend command with interpreter if it is a script.
     app_path = '%s %s' % (interpreter, app_path)
 
   # Start creating the command line.
