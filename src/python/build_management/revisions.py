@@ -323,7 +323,7 @@ def get_components_list(component_revisions_dict, job_type):
       components.insert(0, component)
       break
 
-    if project_name in os.path.basename(component):
+    if project_name.lower() in os.path.basename(component).lower():
       components.remove(component)
       components.insert(0, component)
       # Keep trying in case an exact match is found later.
