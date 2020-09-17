@@ -51,7 +51,7 @@ MAX_TASKS_LIMIT = 100000
 TASK_COMPLETION_BUFFER = 90 * 60
 TASK_CREATION_WAIT_INTERVAL = 2 * 60
 TASK_EXCEPTION_WAIT_INTERVAL = 5 * 60
-TASK_LEASE_SECONDS = 6 * 60 * 60
+TASK_LEASE_SECONDS = 6 * 60 * 60  # Can be overridden via environment variable.
 TASK_LEASE_SECONDS_BY_COMMAND = {
     'corpus_pruning': 24 * 60 * 60,
     'regression': 24 * 60 * 60,
@@ -292,7 +292,7 @@ class PubSubTask(Task):
   def lease(self, _event=None):  # pylint: disable=arguments-differ
     """Maintain a lease for the task."""
     task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
-        self.command, TASK_LEASE_SECONDS)
+        self.command, get_task_lease_timeout())
 
     environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
     track_task_start(self, task_lease_timeout)
@@ -376,12 +376,16 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
       [task.to_pubsub_message()])
 
 
+def get_task_lease_timeout():
+  """Return the task lease timeout."""
+  return environment.get_value('TASK_LEASE_SECONDS', TASK_LEASE_SECONDS)
+
+
 def get_task_completion_deadline():
   """Return task completion deadline. This gives an additional buffer over the
   task lease deadline."""
   start_time = time.time()
-  task_lease_timeout = environment.get_value('TASK_LEASE_SECONDS',
-                                             TASK_LEASE_SECONDS)
+  task_lease_timeout = get_task_lease_timeout()
   return start_time + task_lease_timeout - TASK_COMPLETION_BUFFER
 
 
