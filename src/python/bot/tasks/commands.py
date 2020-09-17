@@ -30,8 +30,6 @@ from bot.tasks import minimize_task
 from bot.tasks import progression_task
 from bot.tasks import regression_task
 from bot.tasks import symbolize_task
-from bot.tasks import train_gradientfuzz_task
-from bot.tasks import train_rnn_generator_task
 from bot.tasks import unpack_task
 from bot.tasks import upload_reports_task
 from bot.tasks import variant_task
@@ -50,8 +48,6 @@ COMMAND_MAP = {
     'fuzz': fuzz_task,
     'impact': impact_task,
     'minimize': minimize_task,
-    'train_rnn_generator': train_rnn_generator_task,
-    'train_gradientfuzz': train_gradientfuzz_task,
     'progression': progression_task,
     'regression': regression_task,
     'symbolize': symbolize_task,
@@ -184,6 +180,15 @@ def start_web_server_if_needed():
 
 def run_command(task_name, task_argument, job_name):
   """Run the command."""
+  # Tensorflow has additional dependencies on Windows. To avoid these and
+  # simplify installation, ML training tasks are only supported on other
+  # platforms.
+  if environment.platform() != 'WINDOWS':
+    from bot.tasks import train_rnn_generator_task
+    from bot.tasks import train_gradientfuzz_task
+    COMMAND_MAP['train_rnn_generator'] = train_rnn_generator_task
+    COMMAND_MAP['train_gradientfuzz'] =  train_gradientfuzz_task
+
   if task_name not in COMMAND_MAP:
     logs.log_error("Unknown command '%s'" % task_name)
     return
