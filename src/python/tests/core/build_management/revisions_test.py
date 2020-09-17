@@ -465,7 +465,7 @@ class GetComponentsListTest(unittest.TestCase):
             'url': 'https://github.com/google/AFL.git',
             'rev': '82b5e359463238d790cadbe2dd494d6a4928bff3'
         },
-        '/src/php-src': {
+        '/src/PHP-src': {
             'type': 'git',
             'url': 'https://github.com/php/php-src.git',
             'rev': '853b7945bc6c97d7d1643f5f8b22851e323829cd'
@@ -478,7 +478,7 @@ class GetComponentsListTest(unittest.TestCase):
     }
 
     expected_components_list = [
-        '/src/php-src', '/src/afl', '/src/php-src/oniguruma'
+        '/src/PHP-src', '/src/afl', '/src/php-src/oniguruma'
     ]
     actual_components_list = revisions.get_components_list(
         revisions_dict, 'libfuzzer_asan_php')
