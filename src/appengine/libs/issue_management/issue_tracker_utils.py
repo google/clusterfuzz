@@ -117,8 +117,12 @@ def get_similar_issues(issue_tracker, testcase, only_open=True):
   # Get list of issues using the search query.
   keywords = get_search_keywords(testcase)
 
-  issues = list(
-      issue_tracker.find_issues(keywords=keywords, only_open=only_open))
+  issues = issue_tracker.find_issues(keywords=keywords, only_open=only_open)
+  if issues:
+    issues = list(issues)
+  else:
+    issues = []
+
   issue_ids = [issue.id for issue in issues]
 
   # Add issues from similar testcases sharing the same group id.
