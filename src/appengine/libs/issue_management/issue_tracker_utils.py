@@ -118,7 +118,9 @@ def get_similar_issues(issue_tracker, testcase, only_open=True):
   keywords = get_search_keywords(testcase)
 
   issues = issue_tracker.find_issues(keywords=keywords, only_open=only_open)
-  if not issues:
+  if issues:
+    issues = list(issues)
+  else:
     issues = []
 
   issue_ids = [issue.id for issue in issues]
