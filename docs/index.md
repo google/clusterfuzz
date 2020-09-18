@@ -52,7 +52,7 @@ and [~22,500] bugs in over [340] open source projects integrated with [OSS-Fuzz]
 [libFuzzer]: http://llvm.org/docs/LibFuzzer.html
 [AFL]: https://github.com/google/AFL
 [Honggfuzz]: https://github.com/google/honggfuzz
-[blackbox fuzzing]: {{ site.baseurl }}//setting-up-fuzzing/blackbox-fuzzing/
+[blackbox fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing/
 [coverage guided fuzzing engines]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/
 [fuzzing strategies]: https://i.blackhat.com/eu-19/Wednesday/eu-19-Arya-ClusterFuzz-Fuzzing-At-Google-Scale.pdf#page=27
 [ensemble fuzzing]: https://www.usenix.org/system/files/sec19-chen-yuanliang.pdf
