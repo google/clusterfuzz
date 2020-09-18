@@ -285,7 +285,7 @@ def get_environment_settings_as_string():
     from platforms import android
 
     environment_string += '[Environment] Build fingerprint: %s\n' % (
-        get_value('BUILD_FINGERPRINT'))
+        android.settings.get_build_fingerprint())
 
     environment_string += ('[Environment] Patch level: %s\n' %
                            android.settings.get_security_patch_level())
