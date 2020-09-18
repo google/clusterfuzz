@@ -17,8 +17,9 @@ a software project's development process:
 - Accurate deduplication of crashes.
 - Fully automatic bug filing, triage and closing for various issue trackers
   (e.g. [Monorail], [Jira]).
-- Support for coverage guided fuzzing (e.g. [libFuzzer], [AFL] and [Honggfuzz]).
-  Ensembles fuzzers for optimal fuzzing efficiency.
+- Supports multiple coverage-guided fuzzing engines
+  ([libFuzzer], [AFL] and [Honggfuzz])
+  for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
 - Support for blackbox fuzzing.
 - Testcase minimization.
 - Regression finding through [bisection].
@@ -59,3 +60,5 @@ We will use [clusterfuzz-announce(#)googlegroups.com](https://groups.google.com/
 [Honggfuzz]: https://github.com/google/honggfuzz
 [blackbox fuzzing]: https://google.github.io/clusterfuzz/setting-up-fuzzing/blackbox-fuzzing/
 [coverage guided fuzzing]: https://google.github.io/clusterfuzz/setting-up-fuzzing/libfuzzer-and-afl/
+[fuzzing strategies]: https://i.blackhat.com/eu-19/Wednesday/eu-19-Arya-ClusterFuzz-Fuzzing-At-Google-Scale.pdf#page=27
+[ensemble fuzzing]: https://www.usenix.org/system/files/sec19-chen-yuanliang.pdf
