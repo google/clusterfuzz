@@ -21,10 +21,6 @@ a software project's development process:
   ([libFuzzer], [AFL] and [Honggfuzz])
   for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
 - Support for [blackbox fuzzing].
-- Supports multiple coverage-guided fuzzing engines
-  ([libFuzzer], [AFL] and [Honggfuzz])
-  for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
-- Support for blackbox fuzzing.
 - Testcase minimization.
 - Regression finding through [bisection].
 - Statistics for analyzing fuzzer performance, and crash rates.
