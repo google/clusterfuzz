@@ -15,36 +15,41 @@ has_children: true
 ClusterFuzz is a scalable [fuzzing](https://en.wikipedia.org/wiki/Fuzzing)
 infrastructure that finds security and stability issues in software.
 
-Google uses ClusterFuzz to fuzz the Chrome Browser and as the fuzzing
+Google uses ClusterFuzz to fuzz all Google products and as the fuzzing
 backend for [OSS-Fuzz].
 
 ClusterFuzz provides many features to seamlessly integrate fuzzing into
 a software project's development process:
-- Highly scalable. Google's internal instance runs on over 25,000 machines.
+- Highly scalable. Can run on any size cluster (e.g. Google's instance runs on
+  30,000 VMs).
 - Accurate deduplication of crashes.
-- Fully automatic bug filing and closing for issue trackers
-  ([Monorail] only for now).
+- Fully automatic bug filing, triage and closing for various issue trackers
+  (e.g. [Monorail], [Jira]).
+- Support for [coverage guided fuzzing] (e.g. [libFuzzer], [AFL] and [Honggfuzz]).
+  Ensembles fuzzers for optimal fuzzing efficiency.
+- Support for [blackbox fuzzing].
 - Testcase minimization.
 - Regression finding through [bisection].
 - Statistics for analyzing fuzzer performance, and crash rates.
 - Easy to use web interface for management and viewing crashes.
-- [Firebase authentication].
-- Support for [coverage guided fuzzing] (e.g. libFuzzer and AFL) and
-  [blackbox fuzzing].
+- Support for various authentication providers using [Firebase].
 
 [Monorail]: https://opensource.google.com/projects/monorail
 
 ## Trophies
-As of January 2019, ClusterFuzz has found [~16,000] bugs
-in Chrome and [~11,000] bugs in over [160] open source projects integrated with
-[OSS-Fuzz].
+As of September 2020, ClusterFuzz has found 25,000+ bugs in Google (e.g. [Chrome])
+and [~22,500] bugs in over [340] open source projects integrated with [OSS-Fuzz].
 
-[~16,000]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
-[~11,000]: https://bugs.chromium.org/p/oss-fuzz/issues/list?can=1&q=-status%3AWontFix%2CDuplicate+-Infra
-[160]: https://github.com/google/oss-fuzz/tree/master/projects
+[Chrome]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
+[~22,500]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=-status%3AWontFix%2CDuplicate%20-component%3AInfra&can=1
+[340]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
 [Monorail]: https://opensource.google.com/projects/monorail
+[Jira]: https://www.atlassian.com/software/jira
 [bisection]: https://en.wikipedia.org/wiki/Bisection_(software_engineering)
-[Firebase authentication]: https://firebase.google.com/docs/auth
+[Firebase]: https://firebase.google.com/docs/auth
+[libFuzzer]: http://llvm.org/docs/LibFuzzer.html
+[AFL]: https://github.com/google/AFL
+[Honggfuzz]: https://github.com/google/honggfuzz
 [blackbox fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing/
 [coverage guided fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/
