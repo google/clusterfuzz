@@ -63,7 +63,7 @@ class BlackboxEngineTest(unittest.TestCase):
 
   def test_reproduce(self):
     blackbox_engine = engine.BlackboxEngine()
-    blackbox_engine.reproduce('/build/test_binary', '/testcase', None, 10)
+    blackbox_engine.reproduce('/build/test_binary', '/testcase', [], 10)
     self.mock.run_and_wait.assert_called_once_with(
         mock.ANY,
         additional_args=[
