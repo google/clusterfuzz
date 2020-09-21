@@ -906,9 +906,8 @@ def get_command_line_for_application(file_to_run='',
 
   interpreter = shell.get_interpreter(app_name)
   if get_arguments_only:
-    # If we are only returning the arguments, leave do not return the
-    # application path or anything else required to run it such as an
-    # interpreter.
+    # If we are only returning the arguments, do not return the application
+    # path or anything else required to run it such as an interpreter.
     app_path = ''
   elif interpreter:
     # Prepend command with interpreter if it is a script.

@@ -16,6 +16,8 @@
 import os
 import unittest
 
+from unittest import mock
+
 from bot.fuzzers.blackbox import engine
 from system import environment
 from tests.test_libs import helpers as test_helpers
@@ -23,12 +25,6 @@ from tests.test_libs import helpers as test_helpers
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
 FUZZ_OUTPUT_DIR = os.path.join(DATA_DIR, 'sample_fuzz_output')
-
-
-class Any:
-
-  def __eq__(self, other):
-    return True
 
 
 class BlackboxEngineTest(unittest.TestCase):
@@ -69,9 +65,9 @@ class BlackboxEngineTest(unittest.TestCase):
     blackbox_engine = engine.BlackboxEngine()
     blackbox_engine.reproduce('/build/test_binary', '/testcase', None, 10)
     self.mock.run_and_wait.assert_called_once_with(
-        Any(),
+        mock.ANY,
         additional_args=[
-            '--testcase_path=/testcase', '--app_path=/build/test_binary',
-            '--app_args=-a -b'
+            '--app_path=/build/test_binary', '--app_args=-a -b',
+            '--testcase_path=/testcase'
         ],
         timeout=10)
