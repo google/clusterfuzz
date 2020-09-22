@@ -788,6 +788,10 @@ class ProjectSetup(object):
       if selective_unpack:
         job.environment_string += 'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
 
+      main_repo = info.get('main_repo')
+      if main_repo:
+        job.environment_string += f'MAIN_REPO = {main_repo}\n'
+
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and
           'dataflow' in info.get('fuzzing_engines', DEFAULT_ENGINES)):

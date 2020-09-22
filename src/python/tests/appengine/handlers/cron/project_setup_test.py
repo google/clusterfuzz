@@ -277,6 +277,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'fuzzing_engines': ['libfuzzer',],
             'experimental': True,
             'selective_unpack': True,
+            'main_repo': 'https://github.com/google/main-repo',
         }),
         ('lib6', {
             'homepage': 'http://example6.com',
@@ -464,7 +465,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'BACKUP_BUCKET = lib5-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib5,Engine-libfuzzer\n'
         'EXPERIMENTAL = True\n'
-        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n')
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
+        'MAIN_REPO = https://github.com/google/main-repo\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib6').get()
