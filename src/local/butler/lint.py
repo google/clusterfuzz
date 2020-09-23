@@ -174,9 +174,6 @@ def execute(_):
   if 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
     _, output = common.execute('git diff --name-only master FETCH_HEAD')
-  elif 'TRAVIS_BRANCH' in os.environ:
-    _, output = common.execute(
-        'git diff --name-only HEAD $(git merge-base HEAD FETCH_HEAD)')
   else:
     _, output = common.execute('git diff --name-only FETCH_HEAD')
 
