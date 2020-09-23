@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Presubmit checks
+name: Run basic tests
 on: [pull_request]
 
 jobs:
@@ -30,6 +30,6 @@ jobs:
         with:
           python-version: 3.7
 
-      - name: Run tests
+      - name: Run basic tests
         run: ./local/tests/ci_tests.bash
 
