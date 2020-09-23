@@ -453,6 +453,29 @@ class GetComponentsListTest(unittest.TestCase):
         revisions_dict, 'libfuzzer_asan_libass')
     self.assertEqual(expected_components_list, actual_components_list)
 
+  def test_get_components_list_main_repo(self):
+    """Test get_components_list with a main_repo set."""
+    data_types.Job(
+        name='libfuzzer_asan_project',
+        environment_string=('PROJECT_NAME = project\n'
+                            'MAIN_REPO = https://github.com/org/main.git\n'
+                            'HELP_URL = help_url\n')).put()
+    revisions_dict = {
+        '/src/main': {
+            'url': 'https://github.com/org/main.git',
+            'rev': '35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2',
+        },
+        '/src/project-fuzzing-corpus': {
+            'url': 'https://github.com/org/project-fuzzing-corpus.git',
+            'rev': '881b8d891cc61989ab8811b74d0e721f72bf913b',
+        }
+    }
+
+    expected_components_list = ['/src/main', '/src/project-fuzzing-corpus']
+    actual_components_list = revisions.get_components_list(
+        revisions_dict, 'libfuzzer_asan_project')
+    self.assertEqual(expected_components_list, actual_components_list)
+
   def test_get_components_list_no_exact_matches(self):
     """Test get_components_list (no exact matches)."""
     data_types.Job(

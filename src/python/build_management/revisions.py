@@ -316,8 +316,15 @@ def get_components_list(component_revisions_dict, job_type):
     # No project name found in job environment, return list as-is.
     return components
 
+  main_repo = data_handler.get_main_repo(job_type)
   project_src = '/src/' + project_name
   for component in components.copy():
+    if component_revisions_dict[component]['url'] == main_repo:
+      # Matches recorded main repo.
+      components.remove(component)
+      components.insert(0, component)
+      break
+
     if component == project_src:
       components.remove(component)
       components.insert(0, component)

@@ -676,6 +676,12 @@ def get_project_name(job_type):
                                        default_project_name)
 
 
+@memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
+def get_main_repo(job_type):
+  """Return project name for a job type."""
+  return get_value_from_job_definition(job_type, 'MAIN_REPO')
+
+
 def _get_security_severity(crash, job_type, gestures):
   """Get security severity."""
   if crash.security_flag:
