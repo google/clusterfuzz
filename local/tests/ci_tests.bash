@@ -28,7 +28,6 @@ docker run -i --rm \
   pipenv run setup
 docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
-  -e TRAVIS_BRANCH=$TRAVIS_BRANCH \
   -v $(pwd):/workspace \
   $IMAGE \
   pipenv run python butler.py lint
