@@ -16,9 +16,6 @@ jobs:
         with:
           python-version: 3.7
 
-      - name: Pull CI image
-        run: docker pull gcr.io/clusterfuzz-images/ci
-
       - name: Run tests
         run: ./local/tests/ci_tests.bash
 

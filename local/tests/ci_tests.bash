@@ -14,26 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export IMAGE=gcr.io/clusterfuzz-images/ci
+IMAGE=gcr.io/clusterfuzz-images/ci
 
-docker run -ti --rm \
+docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
-  -v $TRAVIS_BUILD_DIR:/workspace \
+  -v $(pwd):/workspace \
   $IMAGE \
   pipenv sync --dev
-docker run -ti --rm \
+docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
-  -v $TRAVIS_BUILD_DIR:/workspace \
+  -v $(pwd):/workspace \
   $IMAGE \
   pipenv run setup
-docker run -ti --rm \
+docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
   -e TRAVIS_BRANCH=$TRAVIS_BRANCH \
-  -v $TRAVIS_BUILD_DIR:/workspace \
+  -v $(pwd):/workspace \
   $IMAGE \
   pipenv run python butler.py lint
-docker run -ti --rm --privileged --cap-add=all \
+docker run -i --rm --privileged --cap-add=all \
   -e PIPENV_VENV_IN_PROJECT=1 \
-  -v $TRAVIS_BUILD_DIR:/workspace \
+  -v $(pwd):/workspace \
   $IMAGE \
   pipenv run local/tests/run_tests
