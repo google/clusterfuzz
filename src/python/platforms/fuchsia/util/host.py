@@ -15,11 +15,11 @@
 from __future__ import absolute_import
 from builtins import object
 
+from collections import defaultdict
 import json
 import os
 import re
 import subprocess
-from collections import defaultdict
 
 from .process import Process
 
