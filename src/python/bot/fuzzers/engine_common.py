@@ -283,9 +283,10 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
 
 def find_fuzzer_path(build_directory, fuzzer_name):
   """Find the fuzzer path with the given name."""
+  # Blackbox fuzzers are special cases. They search for the fuzzer in the
+  # fuzzers directory rather than the build, and implement logic to handle this.
   if fuzzer_name == 'blackbox':
-    # TODO(mbarbella): Implement this.
-    return ''
+    return fuzzer_name
 
   if not build_directory:
     # Grey-box fuzzers might not have the build directory for a particular job

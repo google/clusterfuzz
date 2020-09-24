@@ -26,6 +26,13 @@ TESTCASE_PREFIX = 'fuzz-'
 OUTPUT_PREFIX = 'output-'
 
 
+def _get_fuzzer_path(fuzzer_name, executable_path):
+  """Get the path to the fuzzer binary."""
+  fuzzer_directory = environment.get_value('FUZZERS_DIR')
+  fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
+  return os.path.join(fuzzer_directory, executable_path)
+
+
 def _get_arguments(app_path, app_args):
   """Get arguments shared between multiple run types."""
   return [f'--app_path={app_path}', f'--app_args={app_args}']
@@ -81,18 +88,12 @@ class BlackboxEngine(engine.Engine):
     Returns:
       A FuzzOptions object.
     """
-    app_path = environment.get_value('APP_PATH')
-    app_args = testcase_manager.get_command_line_for_application(
-        get_arguments_only=True).strip()
-
-    arguments = _get_arguments(app_path, app_args)
-    arguments.append(f'--input_dir={corpus_dir}')
-
+    executable_path = environment.get_value('FUZZER_EXECUTABLE_PATH')
+    arguments = [executable_path]
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
   # TODO(mbarbella): As implemented, this will not work for untrusted workers.
-  # For this support we will also need to copy fuzzer binaries and possibly
-  # shared corpora to the workers.
+  # We would need to copy fuzzer binaries to workers.
   def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzzing session.
     Args:
@@ -104,15 +105,22 @@ class BlackboxEngine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    # For blackbox fuzzers, |target_path| refers to the fuzzer script itself
-    # rather than a specific target in the build archive.
-    fuzzer_path = target_path
+    # For blackbox fuzzers, |target_path| supplies the fuzzer name rather than
+    # the path to a target within the build archive.
+    fuzzer_name = target_path
+    executable_path = options.arguments[0]
+    fuzzer_path = _get_fuzzer_path(fuzzer_name, executable_path)
     os.chmod(fuzzer_path, 0o775)
 
-    args = options.arguments
-    args.append(f'--output_dir={reproducers_dir}')
+    app_path = environment.get_value('APP_PATH')
+    app_args = testcase_manager.get_command_line_for_application(
+        get_arguments_only=True).strip()
+    corpus_dir = options.corpus_dir
+    command_line_args = _get_arguments(app_path, app_args)
+    command_line_args.append(f'--input_dir={corpus_dir}')
 
-    result = _run_with_interpreter_if_needed(fuzzer_path, args, max_time)
+    result = _run_with_interpreter_if_needed(fuzzer_path, command_line_args,
+                                             max_time)
     crashes = []
     for testcase_path in os.listdir(reproducers_dir):
       if not testcase_path.startswith(TESTCASE_PREFIX):
@@ -137,7 +145,7 @@ class BlackboxEngine(engine.Engine):
         continue
 
       full_testcase_path = os.path.join(reproducers_dir, testcase_path)
-      crash = engine.Crash(full_testcase_path, output, args,
+      crash = engine.Crash(full_testcase_path, output, options.arguments,
                            int(result.time_executed))
       crashes.append(crash)
 
@@ -147,7 +155,7 @@ class BlackboxEngine(engine.Engine):
     return engine.FuzzResult(result.output, result.command, crashes, stats,
                              result.time_executed)
 
-  def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
+  def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
     Args:
       target_path: Path to the fuzzer script or binary.
@@ -157,9 +165,11 @@ class BlackboxEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    # For blackbox fuzzers, |target_path| refers to the fuzzer script itself
-    # rather than a specific target in the build archive.
-    fuzzer_path = target_path
+    # For blackbox fuzzers, |target_path| supplies the fuzzer name rather than
+    # the path to a target within the build archive.
+    fuzzer_name = target_path
+    executable_path = arguments[0]
+    fuzzer_path = _get_fuzzer_path(fuzzer_name, executable_path)
     os.chmod(fuzzer_path, 0o775)
 
     app_path = environment.get_value('APP_PATH')

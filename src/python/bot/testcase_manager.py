@@ -574,10 +574,6 @@ class TestcaseRunner(object):
     self._gestures = gestures
     self._needs_http = needs_http
 
-    # TODO(mbarbella): Remove this check once blackbox fuzzers are fully
-    # transitioned to the engine interface.
-    if environment.get_value('
-
     if fuzz_target:
       engine_impl = engine.get(fuzz_target.engine)
     else:
