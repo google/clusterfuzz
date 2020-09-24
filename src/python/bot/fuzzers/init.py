@@ -14,6 +14,7 @@
 """Fuzzing engine initialization."""
 
 from bot.fuzzers import engine
+from bot.fuzzers.blackbox import engine as blackbox_engine
 from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
 from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 from bot.fuzzers.syzkaller import engine as syzkaller_engine
@@ -21,6 +22,7 @@ from bot.fuzzers.syzkaller import engine as syzkaller_engine
 
 def run():
   """Initialise builtin fuzzing engines."""
-  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
+  engine.register('blackbox', blackbox_engine.BlackboxEngine)
   engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
+  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
   engine.register('syzkaller', syzkaller_engine.SyzkallerEngine)

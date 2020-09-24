@@ -283,6 +283,10 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
 
 def find_fuzzer_path(build_directory, fuzzer_name):
   """Find the fuzzer path with the given name."""
+  if fuzzer_name == 'blackbox':
+    # TODO(mbarbella): Implement this.
+    return ''
+
   if not build_directory:
     # Grey-box fuzzers might not have the build directory for a particular job
     # configuration when doing variant task testing (e.g. Android on-device

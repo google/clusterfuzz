@@ -1571,6 +1571,10 @@ class FuzzingSession(object):
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
+    # For blackbox fuzzers, |FUZZ_TARGET| is the current |FUZZER_NAME|.
+    if engine_impl.name == 'blackbox':
+      environment.set_value('FUZZ_TARGET', environment.get_value('FUZZER_NAME'))
+
     # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
     self.fuzz_target = record_fuzz_target(engine_impl.name, fuzz_target_name,
@@ -1880,7 +1884,13 @@ class FuzzingSession(object):
     # apply some of the time. Adjust APP_ARGS for them if needed.
     trials.setup_additional_args_for_app()
 
-    engine_impl = engine.get(fuzzer.name)
+    # TODO(mbarbella): Remove the environment variable check when the old
+    # blackbox pipeline has been converted to the engine interface.
+    if environment.get_value('USE_BLACKBOX_ENGINE'):
+      engine_impl = engine.get('blackbox')
+    else:
+      engine_impl = engine.get(fuzzer.name)
+      
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
