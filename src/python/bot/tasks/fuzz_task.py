@@ -1572,7 +1572,8 @@ class FuzzingSession(object):
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
-    # For blackbox fuzzers, |FUZZ_TARGET| should be set to the fuzzer name.
+    # For blackbox fuzzers, |FUZZ_TARGET| should be set to the fuzzer name, and
+    # the executable path is required to find an run the main script.
     if engine_impl.name == 'blackbox':
       environment.set_value('FUZZ_TARGET', self.fuzzer_name)
       environment.set_value('FUZZER_EXECUTABLE_PATH',

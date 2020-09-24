@@ -55,8 +55,7 @@ class BlackboxEngineTest(unittest.TestCase):
   def test_fuzz(self):
     blackbox_engine = engine.BlackboxEngine()
     options = blackbox_engine.prepare('/input/corpus', 'unused', '/build')
-    result = blackbox_engine.fuzz('/fuzzers/fuzzer_script', options,
-                                  FUZZ_OUTPUT_DIR, 10)
+    result = blackbox_engine.fuzz('my_fuzzer', options, FUZZ_OUTPUT_DIR, 10)
     self.assertEqual(len(result.crashes), 1)
     self.assertEqual(result.crashes[0].input_path,
                      os.path.join(FUZZ_OUTPUT_DIR, 'fuzz-real-crash'))
@@ -71,7 +70,7 @@ class BlackboxEngineTest(unittest.TestCase):
   def test_reproduce(self):
     blackbox_engine = engine.BlackboxEngine()
     args = ['fuzzer_executable']
-    blackbox_engine.reproduce('/fuzzers/fuzzer_script', '/testcase', args, 10)
+    blackbox_engine.reproduce('my_fuzzer', '/testcase', args, 10)
     self.mock.run_and_wait.assert_called_once_with(
         mock.ANY,
         additional_args=[
