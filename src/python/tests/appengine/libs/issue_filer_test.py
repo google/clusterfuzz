@@ -25,6 +25,7 @@ import parameterized
 import six
 
 from datastore import data_types
+from google_cloud_utils import pubsub
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import monorail
@@ -32,6 +33,7 @@ from libs.issue_management.issue_tracker import LabelStore
 from libs.issue_management.monorail.issue import Issue as MonorailIssue
 
 from tests.test_libs import helpers
+from tests.test_libs import mock_config
 from tests.test_libs import test_utils
 
 CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
@@ -750,3 +752,69 @@ class UpdateImpactTest(unittest.TestCase):
                          ['Security_Impact-Stable', 'FoundIn-2', 'FoundIn-3'],
                          mock_issue.labels.added)
     six.assertCountEqual(self, [], mock_issue.labels.removed)
+
+
+@test_utils.with_cloud_emulators('datastore', 'pubsub')
+class NotifyIssueUpdateTests(unittest.TestCase):
+  """notify_issue_update tests."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'config.local_config.ProjectConfig',
+    ])
+
+    self.topic = 'projects/project/topics/issue-updates'
+    self.subscription = 'projects/project/subscriptions/issue-updates'
+
+    self.mock.ProjectConfig.return_value = mock_config.MockConfig({
+        'issue_updates': {
+            'pubsub_topic': self.topic,
+        },
+    })
+
+    self.pubsub_client = pubsub.PubSubClient()
+    self.pubsub_client.create_topic(self.topic)
+    self.pubsub_client.create_subscription(self.subscription, self.topic)
+
+    self.testcase = data_types.Testcase(
+        crash_type='CRASH TYPE',
+        crash_state='CRASH STATE',
+        bug_information='123')
+    self.testcase.put()
+
+  def test_basic(self):
+    """Basic test."""
+    issue_filer.notify_issue_update(self.testcase, 'new')
+    messages = self.pubsub_client.pull_from_subscription(
+        self.subscription, max_messages=16)
+    self.assertEqual(1, len(messages))
+    self.assertDictEqual({
+        'crash_state': 'CRASH STATE',
+        'crash_type': 'CRASH TYPE',
+        'issue_id': '123',
+        'status': 'new',
+        'testcase_id': '1'
+    }, messages[0].attributes)
+
+  def test_no_topic(self):
+    """Test when no topic is specified."""
+    self.mock.ProjectConfig.return_value = mock_config.MockConfig({})
+    issue_filer.notify_issue_update(self.testcase, 'new')
+    messages = self.pubsub_client.pull_from_subscription(
+        self.subscription, max_messages=16)
+    self.assertEqual(0, len(messages))
+
+  def test_no_issue(self):
+    """Basic test."""
+    self.testcase.bug_information = None
+    issue_filer.notify_issue_update(self.testcase, 'new')
+    messages = self.pubsub_client.pull_from_subscription(
+        self.subscription, max_messages=16)
+    self.assertEqual(1, len(messages))
+    self.assertDictEqual({
+        'crash_state': 'CRASH STATE',
+        'crash_type': 'CRASH TYPE',
+        'issue_id': '',
+        'status': 'new',
+        'testcase_id': '1'
+    }, messages[0].attributes)

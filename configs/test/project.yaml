@@ -120,4 +120,7 @@ env:
   # Any of the above variables can be overridden in a job definition.
 
 bisect_service:
-  #pubsub_topic: /projects/project/topics/topic
+  #pubsub_topic: projects/project/topics/topic
+
+issue_updates:
+  #pubsub_topic: projects/project/topics/topic

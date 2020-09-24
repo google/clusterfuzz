@@ -307,6 +307,7 @@ class Handler(base_handler.Handler):
       issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
           testcase)
       if not issue_tracker:
+        issue_filer.notify_issue_update(testcase, 'new')
         continue
 
       # If there are similar issues to this test case already filed or recently
@@ -325,5 +326,7 @@ class Handler(base_handler.Handler):
         continue
 
       _create_filed_bug_metadata(testcase)
+      issue_filer.notify_issue_update(testcase, 'new')
+
       logs.log('Filed new issue %s for testcase %d.' %
                (testcase.bug_information, testcase_id))

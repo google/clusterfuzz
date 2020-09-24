@@ -19,9 +19,11 @@ import re
 
 from base import external_users
 from base import utils
+from config import local_config
 from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
+from google_cloud_utils import pubsub
 from libs.issue_management import issue_tracker_policy
 from metrics import logs
 from system import environment
@@ -255,6 +257,26 @@ def _get_from_metadata(testcase, name):
       delimiter=',',
       strip=True,
       remove_empty=True)
+
+
+def notify_issue_update(testcase, status):
+  """Notify that an issue update occurred (i.e. issue was filed or closed)."""
+  topic = local_config.ProjectConfig().get('issue_updates.pubsub_topic')
+  if not topic:
+    return
+
+  pubsub_client = pubsub.PubSubClient()
+  pubsub_client.publish(
+      topic, [
+          pubsub.Message(
+              attributes={
+                  'status': status,
+                  'testcase_id': str(testcase.key.id()),
+                  'crash_type': testcase.crash_type,
+                  'crash_state': testcase.crash_state,
+                  'issue_id': testcase.bug_information or '',
+              })
+      ])
 
 
 def file_issue(testcase,
