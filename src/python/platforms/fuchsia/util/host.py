@@ -19,6 +19,7 @@ import json
 import os
 import re
 import subprocess
+from collections import defaultdict
 
 from .process import Process
 
@@ -106,10 +107,18 @@ class Host(object):
     self.fuzzers = []
     with open(json_file) as f:
       fuzz_specs = json.load(f)
+    by_label = defaultdict(dict)
     for fuzz_spec in fuzz_specs:
+      # Try v2 metadata first.
+      label = fuzz_spec.get('label')
+      if label:
+        by_label[label].update(fuzz_spec)
+        continue
+      # Fallback to v1 metadata.
       pkg = fuzz_spec['fuzzers_package']
-      for tgt in fuzz_spec['fuzzers']:
-        self.fuzzers.append((pkg, tgt))
+      self.fuzzers += [(pkg, tgt) for tgt in fuzz_spec['fuzzers']]
+    self.fuzzers += [(fuzz_spec['package'], fuzz_spec['fuzzer'])
+                     for fuzz_spec in by_label.values()]
 
   def set_build_dir(self, build_dir):
     """Configure the host using data from a build directory."""
