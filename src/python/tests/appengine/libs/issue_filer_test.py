@@ -805,7 +805,7 @@ class NotifyIssueUpdateTests(unittest.TestCase):
     self.assertEqual(0, len(messages))
 
   def test_no_issue(self):
-    """Basic test."""
+    """Test no issue id."""
     self.testcase.bug_information = None
     issue_filer.notify_issue_update(self.testcase, 'new')
     messages = self.pubsub_client.pull_from_subscription(
