@@ -192,7 +192,7 @@ handlers = [
     ('/fuzzers/edit', fuzzers.EditHandler),
     ('/fuzzers/log/<fuzzer_name>', fuzzers.LogHandler),
     ('/gcs-redirect', gcs_redirector.Handler),
-    ('/google.<tag>.html', domain_verifier.Handler),
+    ('/google<tag>.html', domain_verifier.Handler),
     ('/issue', issue_redirector.Handler),
     ('/issue/<testcase_id>', issue_redirector.Handler),
     ('/jobs', jobs.Handler),

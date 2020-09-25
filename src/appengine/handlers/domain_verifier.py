@@ -23,7 +23,7 @@ class Handler(base_handler.Handler):
 
   def get(self, tag=None):
     """Handle a get request."""
-    tag = 'google.' + tag + '.html'
+    tag = 'google' + tag + '.html'
     verification_tag = local_config.GAEConfig().get('domain_verification_tag')
     if verification_tag != tag:
       raise helpers.EarlyExitException('Not found.', 404)
