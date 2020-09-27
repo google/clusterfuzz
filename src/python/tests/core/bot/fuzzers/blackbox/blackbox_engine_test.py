@@ -40,7 +40,6 @@ class BlackboxEngineTest(unittest.TestCase):
     os.environ['APP_NAME'] = 'test_binary'
 
     os.environ['FUZZERS_DIR'] = '/fuzzers'
-    os.environ['FUZZER_EXECUTABLE_PATH'] = 'fuzzer_executable'
 
     test_helpers.patch(self, [
         'os.chmod',
@@ -49,13 +48,16 @@ class BlackboxEngineTest(unittest.TestCase):
 
   def test_prepare(self):
     blackbox_engine = engine.BlackboxEngine()
-    result = blackbox_engine.prepare('my_fuzzer', 'unused', '/build')
-    self.assertEqual(result.arguments, ['fuzzer_executable'])
+    result = blackbox_engine.prepare('/input/corpus', 'unused', '/build')
+    self.assertEqual(result.corpus_dir, '/input/corpus')
+    self.assertEqual(result.arguments, [])
+    self.assertEqual(result.strategies, {})
 
   def test_fuzz(self):
     blackbox_engine = engine.BlackboxEngine()
     options = blackbox_engine.prepare('/input/corpus', 'unused', '/build')
-    result = blackbox_engine.fuzz('my_fuzzer', options, FUZZ_OUTPUT_DIR, 10)
+    result = blackbox_engine.fuzz('/fuzzers/my_fuzzer', options,
+                                  FUZZ_OUTPUT_DIR, 10)
     self.assertEqual(len(result.crashes), 1)
     self.assertEqual(result.crashes[0].input_path,
                      os.path.join(FUZZ_OUTPUT_DIR, 'fuzz-real-crash'))
@@ -70,7 +72,7 @@ class BlackboxEngineTest(unittest.TestCase):
   def test_reproduce(self):
     blackbox_engine = engine.BlackboxEngine()
     args = ['fuzzer_executable']
-    blackbox_engine.reproduce('my_fuzzer', '/testcase', args, 10)
+    blackbox_engine.reproduce('/fuzzers/my_fuzzer', '/testcase', args, 10)
     self.mock.run_and_wait.assert_called_once_with(
         mock.ANY,
         additional_args=[

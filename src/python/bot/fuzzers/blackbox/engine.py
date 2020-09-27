@@ -26,13 +26,6 @@ TESTCASE_PREFIX = 'fuzz-'
 OUTPUT_PREFIX = 'output-'
 
 
-def _get_fuzzer_path(fuzzer_name, executable_path):
-  """Get the path to the fuzzer binary."""
-  fuzzer_directory = environment.get_value('FUZZERS_DIR')
-  fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
-  return os.path.join(fuzzer_directory, executable_path)
-
-
 def _get_arguments(app_path, app_args):
   """Get arguments shared between multiple run types."""
   return [f'--app_path={app_path}', f'--app_args={app_args}']
@@ -88,9 +81,7 @@ class BlackboxEngine(engine.Engine):
     Returns:
       A FuzzOptions object.
     """
-    executable_path = environment.get_value('FUZZER_EXECUTABLE_PATH')
-    arguments = [executable_path]
-    return engine.FuzzOptions(corpus_dir, arguments, {})
+    return engine.FuzzOptions(corpus_dir, [], {})
 
   # TODO(mbarbella): As implemented, this will not work for untrusted workers.
   # We would need to copy fuzzer binaries to workers.
@@ -105,11 +96,9 @@ class BlackboxEngine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    # For blackbox fuzzers, |target_path| supplies the fuzzer name rather than
-    # the path to a target within the build archive.
-    fuzzer_name = target_path
-    executable_path = options.arguments[0]
-    fuzzer_path = _get_fuzzer_path(fuzzer_name, executable_path)
+    # For blackbox fuzzers, |target_path| supplies the path to the fuzzer script
+    # rather than a target in the build archive.
+    fuzzer_path = target_path
     os.chmod(fuzzer_path, 0o775)
 
     app_path = environment.get_value('APP_PATH')
@@ -165,11 +154,9 @@ class BlackboxEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    # For blackbox fuzzers, |target_path| supplies the fuzzer name rather than
-    # the path to a target within the build archive.
-    fuzzer_name = target_path
-    executable_path = arguments[0]
-    fuzzer_path = _get_fuzzer_path(fuzzer_name, executable_path)
+    # For blackbox fuzzers, |target_path| supplies the path to the fuzzer script
+    # rather than a target in the build archive.
+    fuzzer_path = target_path
     os.chmod(fuzzer_path, 0o775)
 
     app_path = environment.get_value('APP_PATH')

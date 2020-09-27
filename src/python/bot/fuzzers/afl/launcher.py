@@ -1446,7 +1446,8 @@ def main(argv):
   profiler.start_if_needed('afl_launcher')
 
   build_directory = environment.get_value('BUILD_DIR')
-  fuzzer_path = engine_common.find_fuzzer_path(build_directory, target_name)
+  fuzzer_path = engine_common.find_fuzzer_path(build_directory, 'afl',
+                                               target_name)
   if not fuzzer_path:
     return
 

@@ -1293,7 +1293,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
                                   sync_corpus_directory, testcase_directory)
 
   build_dir = environment.get_value('BUILD_DIR')
-  target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+  target_path = engine_common.find_fuzzer_path(build_dir, engine_impl.name,
+                                               target_name)
   options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
@@ -1572,12 +1573,9 @@ class FuzzingSession(object):
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
-    # For blackbox fuzzers, |FUZZ_TARGET| should be set to the fuzzer name, and
-    # the executable path is required to find an run the main script.
+    # For blackbox fuzzers, |FUZZ_TARGET| should be set to the fuzzer name.
     if engine_impl.name == 'blackbox':
       environment.set_value('FUZZ_TARGET', self.fuzzer_name)
-      environment.set_value('FUZZER_EXECUTABLE_PATH',
-                            self.fuzzer.executable_path)
 
     # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
@@ -1890,10 +1888,9 @@ class FuzzingSession(object):
 
     # TODO(mbarbella): Remove the environment variable check when the old
     # blackbox pipeline has been converted to the engine interface.
-    if environment.get_value('USE_BLACKBOX_ENGINE'):
+    engine_impl = engine.get(self.fuzzer.name)
+    if not engine_impl and environment.get_value('USE_BLACKBOX_ENGINE'):
       engine_impl = engine.get('blackbox')
-    else:
-      engine_impl = engine.get(self.fuzzer.name)
 
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)

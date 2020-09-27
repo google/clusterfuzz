@@ -489,7 +489,8 @@ class IntegrationTests(BaseIntegrationTest):
     """Tests libfuzzer with a crashing testcase."""
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path,
                                    ['-timeout=60', '-rss_limit_mb=2560'], 65)
     self.compare_arguments(
@@ -510,7 +511,8 @@ class IntegrationTests(BaseIntegrationTest):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'test_fuzzer')
     dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
@@ -545,7 +547,8 @@ class IntegrationTests(BaseIntegrationTest):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer_old')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'test_fuzzer_old')
     dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
@@ -576,7 +579,7 @@ class IntegrationTests(BaseIntegrationTest):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
                                                  'always_crash_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
@@ -618,7 +621,8 @@ class IntegrationTests(BaseIntegrationTest):
                                                'corpus_with_some_files')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'test_fuzzer')
     dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
@@ -641,7 +645,7 @@ class IntegrationTests(BaseIntegrationTest):
     minimize_output_path = os.path.join(TEMP_DIR, 'minimized_testcase')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
                                                  'crash_with_A_fuzzer')
     result = engine_impl.minimize_testcase(target_path, [], testcase_path,
                                            minimize_output_path, 120)
@@ -657,7 +661,7 @@ class IntegrationTests(BaseIntegrationTest):
     cleanse_output_path = os.path.join(TEMP_DIR, 'cleansed_testcase')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
                                                  'crash_with_A_fuzzer')
     result = engine_impl.cleanse(target_path, [], testcase_path,
                                  cleanse_output_path, 120)
@@ -689,7 +693,7 @@ class IntegrationTests(BaseIntegrationTest):
                                                'corpus_with_some_files')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
                                                  'analyze_dict_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
@@ -727,7 +731,8 @@ class IntegrationTests(BaseIntegrationTest):
         plugin_archive_path)
     custom_mutator_print_string = 'CUSTOM MUTATOR\n'
     try:
-      target_path = engine_common.find_fuzzer_path(DATA_DIR, fuzz_target_name)
+      target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                   fuzz_target_name)
       engine_impl = engine.LibFuzzerEngine()
       options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
       results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
@@ -784,7 +789,8 @@ class IntegrationTests(BaseIntegrationTest):
     self.mock._create_merge_corpus_dir.side_effect = (
         mocked_create_merge_directory)
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, fuzz_target_name)
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 fuzz_target_name)
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     options.arguments.append('-runs=10')
@@ -809,7 +815,8 @@ class IntegrationTests(BaseIntegrationTest):
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     options.extra_env['EXIT_FUZZER_CODE'] = '1'
@@ -835,7 +842,8 @@ class IntegrationTests(BaseIntegrationTest):
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     options.extra_env['EXIT_FUZZER_CODE'] = exit_code
@@ -861,7 +869,8 @@ class IntegrationTests(BaseIntegrationTest):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'test_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 
     invalid_dict_path = os.path.join(DATA_DIR, 'invalid.dict')
@@ -933,7 +942,8 @@ class MinijailIntegrationTests(IntegrationTests):
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'exit_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'libFuzzer',
+                                                 'exit_fuzzer')
     engine_impl = engine.LibFuzzerEngine()
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     options.extra_env['EXIT_FUZZER_CODE'] = exit_code
@@ -1114,7 +1124,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     """Tests libfuzzer with a crashing testcase."""
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR, 'libFuzzer',
                                                  'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path,
                                    ['-timeout=60', '-rss_limit_mb=2560'], 65)
@@ -1139,7 +1149,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR, 'libFuzzer',
                                                  'test_fuzzer')
     dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
@@ -1178,7 +1188,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.LibFuzzerEngine()
 
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR, 'libFuzzer',
                                                  'always_crash_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
 
@@ -1227,7 +1237,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
                                                'corpus_with_some_files')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR, 'libFuzzer',
                                                  'test_fuzzer')
     dict_path = target_path + '.dict'
     options = engine_impl.prepare(corpus_path, target_path, ANDROID_DATA_DIR)
@@ -1257,7 +1267,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     minimize_output_path = os.path.join(TEMP_DIR, 'minimized_testcase')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR, 'libFuzzer',
                                                  'crash_with_A_fuzzer')
     result = engine_impl.minimize_testcase(target_path, [], testcase_path,
                                            minimize_output_path, 120)
@@ -1273,7 +1283,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     cleanse_output_path = os.path.join(TEMP_DIR, 'cleansed_testcase')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR, 'libFuzzer',
                                                  'crash_with_A_fuzzer')
     result = engine_impl.cleanse(target_path, [], testcase_path,
                                  cleanse_output_path, 120)
@@ -1305,7 +1315,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
                                                'corpus_with_some_files')
 
     engine_impl = engine.LibFuzzerEngine()
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
+    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR, 'libFuzzer',
                                                  'analyze_dict_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
 

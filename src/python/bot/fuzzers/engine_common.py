@@ -34,6 +34,7 @@ from base import utils
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
+from datastore import data_types
 from fuzzing import strategy
 from metrics import fuzzer_stats
 from metrics import logs
@@ -281,24 +282,28 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
   fuzzer_stats.TestcaseRun.write_to_disk(testcase_run, testcase_file_path)
 
 
-def find_fuzzer_path(build_directory, fuzzer_name):
+def find_fuzzer_path(build_directory, engine_name, target_name):
   """Find the fuzzer path with the given name."""
-  # Blackbox fuzzers are special cases. They search for the fuzzer in the
-  # fuzzers directory rather than the build, and implement logic to handle this.
-  if fuzzer_name == 'blackbox':
-    return fuzzer_name
+  # Blackbox fuzzers are special cases. They run from the fuzzers directory
+  # rather than using a target from the build archive.
+  if engine_name == 'blackbox':
+    fuzzer_directory = environment.get_value('FUZZERS_DIR')
+    fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
+    fuzzer = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == fuzzer.name).get()
+    return os.path.join(fuzzer_directory, fuzzer.executable_path)
 
   if not build_directory:
     # Grey-box fuzzers might not have the build directory for a particular job
     # configuration when doing variant task testing (e.g. Android on-device
     # fuzz target might not exist on host). In this case, treat it similar to
     # target not found by returning None.
-    logs.log_warn('No build directory found for fuzzer: %s' % fuzzer_name)
+    logs.log_warn('No build directory found for fuzzer: %s' % target_name)
     return None
 
   if environment.platform() == 'FUCHSIA':
     # Fuchsia targets are not on disk.
-    return fuzzer_name
+    return target_name
 
   if environment.platform() == 'ANDROID_KERNEL':
     return os.path.join(build_directory, 'syzkaller', 'bin', 'syz-manager')
@@ -310,10 +315,10 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   if project_name:
     legacy_name_prefix = project_name + u'_'
 
-  fuzzer_filename = environment.get_executable_filename(fuzzer_name)
+  fuzzer_filename = environment.get_executable_filename(target_name)
   for root, _, files in shell.walk(build_directory):
     for filename in files:
-      if (legacy_name_prefix + filename == fuzzer_name or
+      if (legacy_name_prefix + filename == target_name or
           filename == fuzzer_filename):
         return os.path.join(root, filename)
 
@@ -322,7 +327,7 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   # message to an untrusted worker that just restarted and lost information on
   # build directory.
   logs.log_warn('Fuzzer: %s not found in build_directory: %s.' %
-                (fuzzer_name, build_directory))
+                (target_name, build_directory))
   return None
 
 
@@ -466,7 +471,8 @@ def get_all_issue_metadata_for_testcase(testcase):
     return None
 
   build_dir = environment.get_value('BUILD_DIR')
-  target_path = find_fuzzer_path(build_dir, fuzz_target.binary)
+  target_path = find_fuzzer_path(build_dir, fuzz_target.engine,
+                                 fuzz_target.binary)
   if not target_path:
     logs.log_error('Failed to find target path for ' + fuzz_target.binary)
     return None
