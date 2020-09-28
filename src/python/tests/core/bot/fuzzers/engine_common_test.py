@@ -232,7 +232,7 @@ class FindFuzzerPathTest(fake_filesystem_unittest.TestCase):
     """
     if fuzzer_name is None:
       fuzzer_name = self.fuzzer_name
-    return engine_common.find_fuzzer_path(self.build_dir, 'engine', fuzzer_name)
+    return engine_common.find_fuzzer_path(self.build_dir, fuzzer_name)
 
   def test_finds_fuzzer(self):
     """Test common case of finding fuzzer in root of build directory."""
@@ -259,7 +259,7 @@ class FindFuzzerPathTest(fake_filesystem_unittest.TestCase):
   def test_no_build_directory(self):
     """Test that no exception occurs when there is no build directory set."""
     self.assertIsNone(
-        engine_common.find_fuzzer_path(None, 'engine', self.fuzzer_name))
+        engine_common.find_fuzzer_path(None, self.fuzzer_name))
 
 
 class GetStrategyProbabilityTest(unittest.TestCase):
