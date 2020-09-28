@@ -777,6 +777,8 @@ class NotifyIssueUpdateTests(unittest.TestCase):
     self.pubsub_client.create_subscription(self.subscription, self.topic)
 
     self.testcase = data_types.Testcase(
+        crash_address='0xffff',
+        security_flag=True,
         crash_type='CRASH TYPE',
         crash_state='CRASH STATE',
         bug_information='123')
@@ -789,9 +791,11 @@ class NotifyIssueUpdateTests(unittest.TestCase):
         self.subscription, max_messages=16)
     self.assertEqual(1, len(messages))
     self.assertDictEqual({
+        'crash_address': '0xffff',
         'crash_state': 'CRASH STATE',
         'crash_type': 'CRASH TYPE',
         'issue_id': '123',
+        'security': 'true',
         'status': 'new',
         'testcase_id': '1'
     }, messages[0].attributes)
@@ -812,9 +816,11 @@ class NotifyIssueUpdateTests(unittest.TestCase):
         self.subscription, max_messages=16)
     self.assertEqual(1, len(messages))
     self.assertDictEqual({
+        'crash_address': '0xffff',
         'crash_state': 'CRASH STATE',
         'crash_type': 'CRASH TYPE',
         'issue_id': '',
+        'security': 'true',
         'status': 'new',
         'testcase_id': '1'
     }, messages[0].attributes)

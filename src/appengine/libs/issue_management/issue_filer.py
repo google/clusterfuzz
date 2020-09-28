@@ -270,11 +270,13 @@ def notify_issue_update(testcase, status):
       topic, [
           pubsub.Message(
               attributes={
+                  'crash_address': testcase.crash_address,
+                  'crash_state': testcase.crash_state,
+                  'crash_type': testcase.crash_type,
+                  'issue_id': testcase.bug_information or '',
+                  'security': str(testcase.security_flag).lower(),
                   'status': status,
                   'testcase_id': str(testcase.key.id()),
-                  'crash_type': testcase.crash_type,
-                  'crash_state': testcase.crash_state,
-                  'issue_id': testcase.bug_information or '',
               })
       ])
 
