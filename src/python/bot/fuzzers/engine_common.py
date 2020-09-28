@@ -282,15 +282,15 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
   fuzzer_stats.TestcaseRun.write_to_disk(testcase_run, testcase_file_path)
 
 
-def find_fuzzer_path(build_directory, target_name, is_blackbox=False):
+def find_fuzzer_path(build_directory, fuzzer_name, is_blackbox=False):
   """Find the fuzzer path with the given name."""
   # Blackbox fuzzers are special cases. They run from the fuzzers directory
   # rather than using a target from the build archive.
   if is_blackbox:
     fuzzer_directory = environment.get_value('FUZZERS_DIR')
-    fuzzer_directory = os.path.join(fuzzer_directory, target_name)
+    fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
     fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == target_name).get()
+        data_types.Fuzzer.name == fuzzer_name).get()
     return os.path.join(fuzzer_directory, fuzzer.executable_path)
 
   if not build_directory:
@@ -298,12 +298,12 @@ def find_fuzzer_path(build_directory, target_name, is_blackbox=False):
     # configuration when doing variant task testing (e.g. Android on-device
     # fuzz target might not exist on host). In this case, treat it similar to
     # target not found by returning None.
-    logs.log_warn('No build directory found for fuzzer: %s' % target_name)
+    logs.log_warn('No build directory found for fuzzer: %s' % fuzzer_name)
     return None
 
   if environment.platform() == 'FUCHSIA':
     # Fuchsia targets are not on disk.
-    return target_name
+    return fuzzer_name
 
   if environment.platform() == 'ANDROID_KERNEL':
     return os.path.join(build_directory, 'syzkaller', 'bin', 'syz-manager')
@@ -315,10 +315,10 @@ def find_fuzzer_path(build_directory, target_name, is_blackbox=False):
   if project_name:
     legacy_name_prefix = project_name + u'_'
 
-  fuzzer_filename = environment.get_executable_filename(target_name)
+  fuzzer_filename = environment.get_executable_filename(fuzzer_name)
   for root, _, files in shell.walk(build_directory):
     for filename in files:
-      if (legacy_name_prefix + filename == target_name or
+      if (legacy_name_prefix + filename == fuzzer_name or
           filename == fuzzer_filename):
         return os.path.join(root, filename)
 
@@ -327,7 +327,7 @@ def find_fuzzer_path(build_directory, target_name, is_blackbox=False):
   # message to an untrusted worker that just restarted and lost information on
   # build directory.
   logs.log_warn('Fuzzer: %s not found in build_directory: %s.' %
-                (target_name, build_directory))
+                (fuzzer_name, build_directory))
   return None
 
 
