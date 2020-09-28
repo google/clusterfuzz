@@ -34,8 +34,6 @@ CORPUS_MUTATION_ML_RNN_STRATEGY = Strategy(
     name='corpus_mutations_ml_rnn', probability=0.50, manually_enable=False)
 DATAFLOW_TRACING_STRATEGY = Strategy(
     name='dataflow_tracing', probability=0.50, manually_enable=True)
-ENTROPIC_STRATEGY = Strategy(
-    name='entropic', probability=0.50, manually_enable=False)
 CORPUS_SUBSET_STRATEGY = Strategy(
     name='corpus_subset', probability=0.50, manually_enable=True)
 FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)
@@ -49,7 +47,6 @@ RECOMMENDED_DICTIONARY_STRATEGY = Strategy(
     name='recommended_dict', probability=0.10, manually_enable=False)
 VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
-# TODO(mpherman): Increase the probability of peach mutation strategy.
 PEACH_GRAMMAR_MUTATION_STRATEGY = Strategy(
     name='peach_grammar_mutation', probability=0.90, manually_enable=True)
 
@@ -67,7 +64,6 @@ LIBFUZZER_STRATEGY_LIST = [
     MUTATOR_PLUGIN_STRATEGY,
     MUTATOR_PLUGIN_RADAMSA_STRATEGY,
     PEACH_GRAMMAR_MUTATION_STRATEGY,
-    ENTROPIC_STRATEGY,
 ]
 
 # TODO: Add more syzkaller strategies.
@@ -103,7 +99,6 @@ LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     RANDOM_MAX_LENGTH_STRATEGY,
     RECOMMENDED_DICTIONARY_STRATEGY,
     VALUE_PROFILE_STRATEGY,
-    ENTROPIC_STRATEGY,
 ]
 
 # To ensure that all strategies present in |strategy_list| are parsed for stats.

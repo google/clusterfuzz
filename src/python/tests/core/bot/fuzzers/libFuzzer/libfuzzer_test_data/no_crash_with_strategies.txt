@@ -76,4 +76,4 @@ stat::average_exec_per_sec:     97
 stat::new_units_added:          55
 stat::slowest_unit_time_sec:    0
 stat::peak_rss_mb:              103
-cf::fuzzing_strategies: corpus_mutations_radamsa,dummy_strategy_to_be_ignored,corpus_subset_50,random_max_len,fork_1,mutator_plugin,entropic
+cf::fuzzing_strategies: corpus_mutations_radamsa,dummy_strategy_to_be_ignored,corpus_subset_50,random_max_len,fork_1,mutator_plugin

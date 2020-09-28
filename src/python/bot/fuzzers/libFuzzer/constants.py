@@ -47,8 +47,6 @@ ANALYZE_DICT_ARGUMENT = '-analyze_dict=1'
 
 CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
 
-ENTROPIC_ARGUMENT = '-entropic=1'
-
 MERGE_ARGUMENT = '-merge=1'
 
 MERGE_CONTROL_FILE_ARGUMENT = '-merge_control_file='

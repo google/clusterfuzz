@@ -213,7 +213,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         '-timeout=123',
         '-dict=blah.dict',
         '-max_len=9001',
-        '-entropic=1',
         '-use_value_profile=1',
     ], [], ['/corpus'], {}, False, False)
 
@@ -273,7 +272,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
             '-timeout=123',
             '-dict=blah.dict',
             '-max_len=9001',
-            '-entropic=1',
             '-use_value_profile=1',
         ],
         artifact_prefix='/fake',
