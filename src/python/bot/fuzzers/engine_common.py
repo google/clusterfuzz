@@ -282,15 +282,15 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
   fuzzer_stats.TestcaseRun.write_to_disk(testcase_run, testcase_file_path)
 
 
-def find_fuzzer_path(build_directory, engine_name, target_name):
+def find_fuzzer_path(build_directory, target_name, is_blackbox=False):
   """Find the fuzzer path with the given name."""
   # Blackbox fuzzers are special cases. They run from the fuzzers directory
   # rather than using a target from the build archive.
-  if engine_name == 'blackbox':
+  if is_blackbox:
     fuzzer_directory = environment.get_value('FUZZERS_DIR')
-    fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
+    fuzzer_directory = os.path.join(fuzzer_directory, target_name)
     fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == fuzzer.name).get()
+        data_types.Fuzzer.name == target_name).get()
     return os.path.join(fuzzer_directory, fuzzer.executable_path)
 
   if not build_directory:

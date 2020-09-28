@@ -1293,8 +1293,9 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
                                   sync_corpus_directory, testcase_directory)
 
   build_dir = environment.get_value('BUILD_DIR')
-  target_path = engine_common.find_fuzzer_path(build_dir, engine_impl.name,
-                                               target_name)
+  is_blackbox = engine_impl.name == 'blackbox'
+  target_path = engine_common.find_fuzzer_path(
+      build_dir, target_name, is_blackbox=is_blackbox)
   options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')

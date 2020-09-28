@@ -80,8 +80,7 @@ class IntegrationTest(unittest.TestCase):
     """Tests reproducing a crash."""
     testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
     engine_impl = engine.HonggfuzzEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'honggfuzz',
-                                                 'test_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path, [], 65)
     self.assertListEqual([target_path], result.command)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
@@ -91,8 +90,7 @@ class IntegrationTest(unittest.TestCase):
     """Test fuzzing (no crash)."""
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.HonggfuzzEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'honggfuzz',
-                                                 'test_fuzzer')
+    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     self.assertListEqual([
@@ -127,7 +125,7 @@ class IntegrationTest(unittest.TestCase):
     """Test fuzzing that results in a crash."""
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.HonggfuzzEngine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'honggfuzz',
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
