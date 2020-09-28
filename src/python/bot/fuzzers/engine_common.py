@@ -471,8 +471,9 @@ def get_all_issue_metadata_for_testcase(testcase):
     return None
 
   build_dir = environment.get_value('BUILD_DIR')
-  target_path = find_fuzzer_path(build_dir, fuzz_target.engine,
-                                 fuzz_target.binary)
+  is_blackbox = fuzz_target.engine == 'blackbox'
+  target_path = find_fuzzer_path(
+      build_dir, fuzz_target.binary, is_blackbox=is_blackbox)
   if not target_path:
     logs.log_error('Failed to find target path for ' + fuzz_target.binary)
     return None

@@ -328,8 +328,7 @@ class Runner(object):
     self.context = context
 
     self.target_path = engine_common.find_fuzzer_path(
-        self.build_directory,
-        self.context.fuzz_target.binary)
+        self.build_directory, self.context.fuzz_target.binary)
     if not self.target_path:
       raise CorpusPruningException(
           'Failed to get fuzzer path for %s.' % self.context.fuzz_target.binary)
