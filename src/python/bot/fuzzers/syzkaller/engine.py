@@ -13,17 +13,22 @@
 # limitations under the License.
 """Fuzzing engine interface."""
 
+import os
+import shutil
+
 from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import constants
 from bot.fuzzers.syzkaller import runner
 from metrics import profiler
+from platforms.android import settings
 from system import environment
-import os
+from system import shell
 
 BIN_FOLDER_PATH = 'bin'
 REPRO_TIME = 70
+CORPUS_FILENAME = 'corpus.db'
 
 
 class SyzkallerError(Exception):
@@ -93,6 +98,35 @@ class SyzkallerEngine(engine.Engine):
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
 
+  def save_corpus(self, source, destination):
+    """Saves syzkaller to folder so it is backed up to the cloud.
+
+    Args:
+      source: Folder where syzkaller corpus is.
+      destination: Folder where the corpus is synced with the cloud.
+    """
+    source_file = os.path.join(source, CORPUS_FILENAME)
+    shell.create_directory(destination)
+    target_file = os.path.join(destination,
+                               settings.get_device_codename() + '.db')
+    if os.path.isfile(source_file):
+      shutil.copy(source_file, target_file)
+
+  def init_corpus(self, source, destination):
+    """Uses corpus from the cloud to initialize syzkaller corpus.
+
+    Args:
+      source: Folder where the corpus is downloaded from the cloud.
+      destination: Folder where syzkaller will be looking for corpus.
+    """
+    source_file = os.path.join(source, settings.get_device_codename() + '.db')
+    shell.create_directory(destination)
+    destination_file = os.path.join(destination, CORPUS_FILENAME)
+    if os.path.isfile(source_file) and (
+        not os.path.exists(destination_file) or
+        (os.path.getsize(source_file) > os.path.getsize(destination_file))):
+      shutil.copy(source_file, destination_file)
+
   def fuzz(self, target_path, options, unused_reproducers_dir=None, max_time=0):
     """Run a fuzz session.
 
@@ -115,7 +149,10 @@ class SyzkallerEngine(engine.Engine):
     args = options.arguments
     args += ['--coverfile', runner.get_cover_file_path()]
 
-    return syzkaller_runner.fuzz(max_time, additional_args=args)
+    self.init_corpus(options.corpus_dir, runner.get_work_dir())
+    fuzz_result = syzkaller_runner.fuzz(max_time, additional_args=args)
+    self.save_corpus(runner.get_work_dir(), options.corpus_dir)
+    return fuzz_result
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduce a crash given an input.
