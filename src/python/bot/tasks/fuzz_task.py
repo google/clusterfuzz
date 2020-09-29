@@ -1293,7 +1293,9 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
                                   sync_corpus_directory, testcase_directory)
 
   build_dir = environment.get_value('BUILD_DIR')
-  target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+  is_blackbox = engine_impl.name == 'blackbox'
+  target_path = engine_common.find_fuzzer_path(
+      build_dir, target_name, is_blackbox=is_blackbox)
   options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
@@ -1342,6 +1344,7 @@ class FuzzingSession(object):
     self.test_timeout = set_test_timeout(test_timeout, self.timeout_multiplier)
 
     # Set up during run().
+    self.fuzzer = None
     self.testcase_directory = None
     self.data_directory = None
 
@@ -1571,6 +1574,10 @@ class FuzzingSession(object):
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
+    # For blackbox fuzzers, |FUZZ_TARGET| should be set to the fuzzer name.
+    if engine_impl.name == 'blackbox':
+      environment.set_value('FUZZ_TARGET', self.fuzzer_name)
+
     # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
     self.fuzz_target = record_fuzz_target(engine_impl.name, fuzz_target_name,
@@ -1818,8 +1825,8 @@ class FuzzingSession(object):
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    fuzzer = setup.update_fuzzer_and_data_bundles(self.fuzzer_name)
-    if not fuzzer:
+    self.fuzzer = setup.update_fuzzer_and_data_bundles(self.fuzzer_name)
+    if not self.fuzzer:
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.FUZZER_SETUP_FAILED)
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
@@ -1873,14 +1880,19 @@ class FuzzingSession(object):
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
       logs.log_error(
-          'Unable to setup data bundle %s.' % fuzzer.data_bundle_name)
+          'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
       return
 
     # For some binaries, we specify trials, which are sets of flags that we only
     # apply some of the time. Adjust APP_ARGS for them if needed.
     trials.setup_additional_args_for_app()
 
-    engine_impl = engine.get(fuzzer.name)
+    # TODO(mbarbella): Remove the environment variable check when the old
+    # blackbox pipeline has been converted to the engine interface.
+    engine_impl = engine.get(self.fuzzer.name)
+    if not engine_impl and environment.get_value('USE_BLACKBOX_ENGINE'):
+      engine_impl = engine.get('blackbox')
+
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -1890,7 +1902,8 @@ class FuzzingSession(object):
     else:
       fuzzer_directory = setup.get_fuzzer_directory(self.fuzzer_name)
       fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes = (
-          self.do_blackbox_fuzzing(fuzzer, fuzzer_directory, self.job_type))
+          self.do_blackbox_fuzzing(self.fuzzer, fuzzer_directory,
+                                   self.job_type))
 
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
