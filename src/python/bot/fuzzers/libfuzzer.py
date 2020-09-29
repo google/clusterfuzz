@@ -1526,7 +1526,6 @@ def remove_fuzzing_arguments(arguments, is_merge=False):
       # Remove the following flags/arguments that are only used for fuzzing.
       constants.DATA_FLOW_TRACE_FLAG,
       constants.DICT_FLAG,
-      constants.ENTROPIC_ARGUMENT,
       constants.FOCUS_FUNCTION_FLAG,
   ]:
     fuzzer_utils.extract_argument(arguments, argument)
@@ -1740,16 +1739,10 @@ def pick_strategies(strategy_pool,
   is_mutations_run = (not environment.is_ephemeral() and
                       candidate_generator != engine_common.Generator.NONE)
 
-  if strategy_pool.do_strategy(strategy.ENTROPIC_STRATEGY):
-    arguments.append(constants.ENTROPIC_ARGUMENT)
-    fuzzing_strategies.append(strategy.ENTROPIC_STRATEGY.name)
-
   # Depends on the presense of DFSan instrumented build.
   dataflow_build_dir = environment.get_value('DATAFLOW_BUILD_DIR')
   use_dataflow_tracing = (
       dataflow_build_dir and
-      # Focus function is not compatible with entropic mode.
-      strategy.ENTROPIC_STRATEGY.name not in fuzzing_strategies and
       strategy_pool.do_strategy(strategy.DATAFLOW_TRACING_STRATEGY))
   if use_dataflow_tracing:
     dataflow_binary_path = os.path.join(
