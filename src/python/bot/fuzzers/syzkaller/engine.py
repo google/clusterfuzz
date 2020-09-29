@@ -113,7 +113,7 @@ class SyzkallerEngine(engine.Engine):
       shutil.copy(source_file, target_file)
 
   def init_corpus(self, source, destination):
-    """Uses corpus from the ckoud to initialize syzkaller corpus.
+    """Uses corpus from the cloud to initialize syzkaller corpus.
 
     Args:
       source: Folder where the corpus is downloaded from the cloud.
