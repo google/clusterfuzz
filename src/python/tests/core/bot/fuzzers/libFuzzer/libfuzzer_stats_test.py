@@ -95,7 +95,6 @@ class PerformanceStatsTest(unittest.TestCase):
         'slow_units_count': 0,
         'startup_crash_count': 0,
         'strategy_dataflow_tracing': 0,
-        'strategy_entropic': 0,
         'strategy_corpus_mutations_radamsa': 1,
         'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 50,

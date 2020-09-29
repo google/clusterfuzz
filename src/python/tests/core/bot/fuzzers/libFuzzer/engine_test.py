@@ -350,7 +350,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_subset': 0,
         'strategy_dataflow_tracing': 0,
-        'strategy_entropic': 0,
         'strategy_fork': 0,
         'strategy_mutator_plugin': 0,
         'strategy_mutator_plugin_radamsa': 0,
