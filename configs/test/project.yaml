@@ -119,5 +119,10 @@ env:
 
   # Any of the above variables can be overridden in a job definition.
 
-bisect_service:
-  #pubsub_topic: /projects/project/topics/topic
+# Pub/Sub topic for a custom bisection service.
+#bisect_service:
+  #pubsub_topic: projects/test-project/topics/bisection
+
+# Pub/Sub topic for receiving issue updates.
+#issue_updates:
+  #pubsub_topic: projects/test-project/topics/issue-updates

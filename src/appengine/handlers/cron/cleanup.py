@@ -479,6 +479,7 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
   issue.save(new_comment=comment, notify=True)
   logs.log('Mark issue %d as verified for fixed testcase %d.' %
            (issue.id, testcase.key.id()))
+  issue_filer.notify_issue_update(testcase, 'verified')
 
 
 def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
