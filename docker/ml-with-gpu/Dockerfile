@@ -53,7 +53,7 @@ RUN apt-get install -y --no-install-recommends \
 RUN python3.7 -m pip uninstall tensorflow -y && \
     python3.7 -m pip uninstall tensorboard -y && \
     python3.7 -m pip install mock==2.0.0 && \
-    python3.7 -m pip install tensorflow-gpu==2.3.0
+    python3.7 -m pip install tensorflow-gpu==2.3.1
 
 WORKDIR $INSTALL_DIRECTORY
 
