@@ -36,14 +36,14 @@ dependencies_installed="true"
 
 # Create the config directory if needed and check the ClusterFuzz version.
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-current_version=1
+current_version=2
 version_file=$CLUSTERFUZZ_CONFIG_DIR/version
 if [ ! -e $version_file ] || [ "$(cat $version_file)" != "$current_version" ]; then
   dependencies_installed="false"
 fi
 
 # Check if we have a valid pipenv.
-if ! pipenv graph 2>&1 > /dev/null; then
+if ! which pipenv > /dev/null || ! pipenv graph 2>&1 > /dev/null; then
   dependencies_installed="false"
 fi
 
