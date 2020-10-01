@@ -110,10 +110,12 @@ class SyzkallerEngine(engine.Engine):
     """
     source_file = os.path.join(source_dir, CORPUS_DB_FILENAME)
     shell.create_directory(destination_dir)
-    target_file = os.path.join(destination_dir,
-                               self._get_device_corpus_db_filename())
-    if os.path.isfile(source_file):
-      shutil.copy(source_file, target_file)
+    destination_file = os.path.join(destination_dir,
+                                    self._get_device_corpus_db_filename())
+    if os.path.isfile(source_file) and (
+        not os.path.exists(destination_file) or
+        (os.path.getsize(source_file) > os.path.getsize(destination_file))):
+      shutil.copy(source_file, destination_file)
 
   def init_corpus(self, source_dir, destination_dir):
     """Uses corpus from the cloud to initialize syzkaller corpus.
@@ -126,9 +128,7 @@ class SyzkallerEngine(engine.Engine):
                                self._get_device_corpus_db_filename())
     shell.create_directory(destination_dir)
     destination_file = os.path.join(destination_dir, CORPUS_DB_FILENAME)
-    if os.path.isfile(source_file) and (
-        not os.path.exists(destination_file) or
-        (os.path.getsize(source_file) > os.path.getsize(destination_file))):
+    if os.path.isfile(source_file):
       shutil.copy(source_file, destination_file)
 
   def fuzz(self, target_path, options, unused_reproducers_dir=None, max_time=0):
