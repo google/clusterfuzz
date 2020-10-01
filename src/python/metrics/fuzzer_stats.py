@@ -566,11 +566,11 @@ class FuzzerRunLogsContext(BuiltinFieldContext):
 
   def get_logs_bucket(self, fuzzer_name=None, job_type=None):
     """Return logs bucket for the job."""
-    if job_type:
-      return self._get_logs_bucket_from_job(job_type)
-
     if fuzzer_name:
       return self._get_logs_bucket_from_fuzzer(fuzzer_name)
+
+    if job_type:
+      return self._get_logs_bucket_from_job(job_type)
 
     return None
 
