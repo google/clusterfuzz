@@ -547,7 +547,10 @@ class GcsCorpus(object):
       # For Android Kernel job, sync back all corpus files containing this
       # device serial.
       device_serial = environment.get_value('ANDROID_SERIAL')
-      return [f for f in self._walk() if f.startswith(device_serial)]
+      return [
+          f for f in self._walk()
+          if os.path.basename(f).startswith(device_serial)
+      ]
 
     new_files = []
     for file_path in self._walk():
