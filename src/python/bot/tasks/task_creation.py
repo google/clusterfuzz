@@ -285,6 +285,35 @@ def request_bisection(testcase_id):
     testcase.set_metadata('requested_fixed_bisect', True)
 
 
+def _check_commits(testcase, bisect_type, old_commit, new_commit):
+  """Check old and new commit validity."""
+  if old_commit != new_commit:
+    return old_commit, new_commit
+
+  # Something went wrong during bisection for the same commit to be chosen for
+  # both the start and end range.
+  # Get the bisection infrastructure to re-bisect.
+  bucket_path = build_manager.get_primary_bucket_path()
+  revision_list = build_manager.get_revisions_list(bucket_path)
+
+  last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
+  known_crash_revision = last_tested_revision or testcase.crash_revision
+
+  if bisect_type == 'fixed':
+    # Narrowest range: last crashing revision up to the latest build.
+    return _get_commits(
+        str(known_crash_revision) + ':' + str(revision_list[-1]),
+        testcase.job_type)
+
+  if bisect_type == 'regressed':
+    # Narrowest range: first build to the first crashing revision.
+    return _get_commits(
+        str(revision_list[0]) + ':' + str(testcase.crash_revision),
+        testcase.job_type)
+
+  raise ValueError('Invalid bisection type: ' + bisect_type)
+
+
 def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
   """Make a bisection request to the external bisection service. Returns whether
   or not a request was actually made."""
@@ -299,6 +328,9 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
   if not new_commit:
     # old_commit can be empty (i.e. '0' case), but new_commit should never be.
     return False
+
+  old_commit, new_commit = _check_commits(testcase, bisect_type, old_commit,
+                                          new_commit)
 
   reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
   pubsub_client = pubsub.PubSubClient()
