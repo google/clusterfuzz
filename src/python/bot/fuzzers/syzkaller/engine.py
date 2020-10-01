@@ -22,13 +22,12 @@ from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import constants
 from bot.fuzzers.syzkaller import runner
 from metrics import profiler
-from platforms.android import settings
 from system import environment
 from system import shell
 
 BIN_FOLDER_PATH = 'bin'
 REPRO_TIME = 70
-CORPUS_FILENAME = 'corpus.db'
+CORPUS_DB_FILENAME = 'corpus.db'
 
 
 class SyzkallerError(Exception):
@@ -98,30 +97,35 @@ class SyzkallerEngine(engine.Engine):
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
 
-  def save_corpus(self, source, destination):
+  def _get_device_corpus_db_filename(self):
+    """Return device-specific corpus db filename."""
+    return environment.get_value('ANDROID_SERIAL') + '.db'
+
+  def save_corpus(self, source_dir, destination_dir):
     """Saves syzkaller to folder so it is backed up to the cloud.
 
     Args:
-      source: Folder where syzkaller corpus is.
-      destination: Folder where the corpus is synced with the cloud.
+      source_dir: Folder where syzkaller corpus is.
+      destination_dir: Folder where the corpus is synced with the cloud.
     """
-    source_file = os.path.join(source, CORPUS_FILENAME)
-    shell.create_directory(destination)
-    target_file = os.path.join(destination,
-                               settings.get_device_codename() + '.db')
+    source_file = os.path.join(source_dir, CORPUS_DB_FILENAME)
+    shell.create_directory(destination_dir)
+    target_file = os.path.join(destination_dir,
+                               self._get_device_corpus_db_filename())
     if os.path.isfile(source_file):
       shutil.copy(source_file, target_file)
 
-  def init_corpus(self, source, destination):
+  def init_corpus(self, source_dir, destination_dir):
     """Uses corpus from the cloud to initialize syzkaller corpus.
 
     Args:
-      source: Folder where the corpus is downloaded from the cloud.
-      destination: Folder where syzkaller will be looking for corpus.
+      source_dir: Folder where the corpus is downloaded from the cloud.
+      destination_dir: Folder where syzkaller will be looking for corpus.
     """
-    source_file = os.path.join(source, settings.get_device_codename() + '.db')
-    shell.create_directory(destination)
-    destination_file = os.path.join(destination, CORPUS_FILENAME)
+    source_file = os.path.join(source_dir,
+                               self._get_device_corpus_db_filename())
+    shell.create_directory(destination_dir)
+    destination_file = os.path.join(destination_dir, CORPUS_DB_FILENAME)
     if os.path.isfile(source_file) and (
         not os.path.exists(destination_file) or
         (os.path.getsize(source_file) > os.path.getsize(destination_file))):
