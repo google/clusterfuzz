@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for performing remote tasks on linux."""
-from __future__ import print_function
 from fabric import api
 
 from local.remote import utils

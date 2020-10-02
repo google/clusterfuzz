@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Minimizer used for additional reduction on javascript test cases."""
-from __future__ import absolute_import
 
 from . import delta_minimizer
 from . import errors

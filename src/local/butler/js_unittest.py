@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """js_unittest.py runs JS tests under src/appengine"""
-from __future__ import print_function
 
 import os
 import re

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cron to managed VMs."""
-from __future__ import division
 
 from collections import namedtuple
 from concurrent.futures import ThreadPoolExecutor

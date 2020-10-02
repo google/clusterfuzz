@@ -13,9 +13,6 @@
 # limitations under the License.
 """The superclass of all handlers."""
 
-from future import standard_library
-standard_library.install_aliases()
-
 import base64
 import cgi
 import datetime

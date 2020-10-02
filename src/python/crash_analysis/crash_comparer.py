@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for helping in crash comparison."""
+
 # pylint: disable=consider-using-enumerate
-from __future__ import division
 
 
 def _levenshtein_distance(string_1, string_2):

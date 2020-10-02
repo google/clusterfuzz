@@ -12,8 +12,6 @@
 # limitations under the License.
 """Issue tracker interface."""
 
-from future.utils import itervalues
-
 
 class LabelStore(object):
   """Label storage which tracks changes. Case insensitive, but preserves
@@ -28,7 +26,7 @@ class LabelStore(object):
       self._backing[item.lower()] = item
 
   def __iter__(self):
-    for value in itervalues(self._backing):
+    for value in self._backing.values():
       yield value
 
   def __contains__(self, item):
@@ -36,11 +34,11 @@ class LabelStore(object):
 
   @property
   def added(self):
-    return itervalues(self._added)
+    return self._added.values()
 
   @property
   def removed(self):
-    return itervalues(self._removed)
+    return self._removed.values()
 
   def add(self, label):
     """Add a new label."""

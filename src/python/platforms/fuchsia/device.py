@@ -15,7 +15,6 @@
 
 # TODO(flowerhack): Re-enable this check once functions below are implemented.
 # pylint: disable=unused-argument
-from __future__ import print_function
 
 import os
 import shlex

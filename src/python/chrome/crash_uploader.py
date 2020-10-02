@@ -13,8 +13,6 @@
 # limitations under the License.
 """Crash minidump and symbols uploader."""
 
-from future import standard_library
-standard_library.install_aliases()
 import email
 import os
 import re

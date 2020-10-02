@@ -13,8 +13,6 @@
 # limitations under the License.
 """Handler that serves the testcase file."""
 
-from future import standard_library
-standard_library.install_aliases()
 import urllib.parse
 
 from flask import request

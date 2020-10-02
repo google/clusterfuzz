@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Home page handler."""
-from __future__ import absolute_import
 
 from base import external_users
 from base import memoize

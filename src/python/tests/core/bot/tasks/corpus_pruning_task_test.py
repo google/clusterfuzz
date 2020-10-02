@@ -15,8 +15,6 @@
 # pylint: disable=unused-argument
 # pylint: disable=protected-access
 
-from future import standard_library
-standard_library.install_aliases()
 import datetime
 import mock
 import os

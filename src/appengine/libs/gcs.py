@@ -13,8 +13,6 @@
 # limitations under the License.
 """App Engine GCS helpers."""
 
-from future import standard_library
-standard_library.install_aliases()
 import base64
 import collections
 import datetime

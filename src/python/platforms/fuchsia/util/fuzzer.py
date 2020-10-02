@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fuchsia utilities for handling fuzzers."""
-from __future__ import absolute_import
-from __future__ import print_function
 
 import datetime
 import errno

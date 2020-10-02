@@ -13,9 +13,6 @@
 # limitations under the License.
 """Download files from GCS."""
 
-from future import standard_library
-standard_library.install_aliases()
-
 import os
 import urllib.parse
 

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Device information related functions."""
 
-from __future__ import absolute_import
-
 import copy
 import datetime
 import os

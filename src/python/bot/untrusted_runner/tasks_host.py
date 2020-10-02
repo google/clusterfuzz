@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tasks host."""
-from __future__ import absolute_import
 
 import datetime
 
@@ -209,8 +208,7 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
       # Resurface the right exception.
       raise testcase_manager.TargetNotFoundError('Failed to find target ' +
                                                  target_name)
-    else:
-      raise
+    raise
 
   return engine.ReproduceResult(
       list(response.command), response.return_code, response.time_executed,

@@ -14,9 +14,6 @@
 """common.py contains common methods and variables that are used by multiple
    commands."""
 
-from __future__ import print_function
-from future import standard_library
-standard_library.install_aliases()
 from past.builtins import basestring
 
 import datetime

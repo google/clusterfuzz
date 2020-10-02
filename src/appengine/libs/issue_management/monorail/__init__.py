@@ -13,8 +13,6 @@
 # limitations under the License.
 """Monorail issue tracker."""
 
-from future import standard_library
-standard_library.install_aliases()
 import urllib.parse
 
 from libs.issue_management import issue_tracker

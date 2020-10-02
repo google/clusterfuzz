@@ -13,9 +13,6 @@
 # limitations under the License.
 """Common utility functions."""
 
-from future import standard_library
-standard_library.install_aliases()
-
 import ast
 import datetime
 import functools

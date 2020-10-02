@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Bot startup script."""
-from __future__ import print_function
 
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
@@ -20,8 +19,6 @@ from __future__ import print_function
 from python.base import modules
 modules.fix_module_search_paths()
 
-from future import standard_library
-standard_library.install_aliases()
 import multiprocessing
 import os
 import sys

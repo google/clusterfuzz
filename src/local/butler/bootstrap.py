@@ -14,8 +14,6 @@
 """Install all required dependencies for running an appengine, a bot, and a
   mapreduce locally."""
 
-from __future__ import print_function
-
 from local.butler import appengine
 from local.butler import common
 

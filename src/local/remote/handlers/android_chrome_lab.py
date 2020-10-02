@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for managing an android in the chrome lab."""
-from __future__ import print_function
 import os
 
 from fabric import api

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """HTTP utility functions for the reproduce tool."""
-from __future__ import print_function
 
 import httplib2
 import os

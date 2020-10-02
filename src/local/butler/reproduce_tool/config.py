@@ -13,9 +13,6 @@
 # limitations under the License.
 """Configuration helpers for the reproduce tool."""
 
-from future import standard_library
-standard_library.install_aliases()
-
 from urllib import parse
 
 from base import json_utils

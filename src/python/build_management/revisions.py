@@ -15,9 +15,6 @@
 
 from past.builtins import basestring
 
-from future import standard_library
-standard_library.install_aliases()
-
 import ast
 import base64
 import bisect

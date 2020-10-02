@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Integration tests for AFL launcher.py."""
-from __future__ import print_function
-
-from future import standard_library
-standard_library.install_aliases()
 
 import getpass
 import mock

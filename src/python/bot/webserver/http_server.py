@@ -13,8 +13,6 @@
 # limitations under the License.
 """Runs http(s) server in the background."""
 
-from future import standard_library
-standard_library.install_aliases()
 import http.server
 import mimetypes
 import os

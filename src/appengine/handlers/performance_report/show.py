@@ -13,8 +13,6 @@
 # limitations under the License.
 """Fuzzer performance report handler."""
 
-from future import standard_library
-standard_library.install_aliases()
 import datetime
 import json
 import logging

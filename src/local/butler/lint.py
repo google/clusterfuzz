@@ -13,8 +13,6 @@
 # limitations under the License.
 """Lint changed code in current branch."""
 
-from __future__ import print_function
-
 import os
 import sys
 import yaml

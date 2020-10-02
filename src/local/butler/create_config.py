@@ -13,8 +13,6 @@
 # limitations under the License.
 """Script for creating a new deployment config."""
 
-from __future__ import print_function
-
 import json
 import os
 import shutil

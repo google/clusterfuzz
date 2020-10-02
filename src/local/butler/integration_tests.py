@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """py_unittest.py runs tests under src/appengine and butler/tests"""
-from __future__ import print_function
-from future import standard_library
-standard_library.install_aliases()
 import time
 import urllib.error
 import urllib.request
