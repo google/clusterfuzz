@@ -13,7 +13,6 @@
 # limitations under the License.
 """Functions for dictionary analysis and management."""
 
-from builtins import object
 import os
 import re
 

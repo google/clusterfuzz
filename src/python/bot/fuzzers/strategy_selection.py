@@ -17,7 +17,6 @@ Decides the set strategies to be considered by the launcher. Note
 that because of compatability issues, the exact set of strategies
 generated here may be modified in the launcher before being launched."""
 from __future__ import division
-from builtins import object
 
 from base import utils
 from bot.fuzzers import engine_common

@@ -14,8 +14,6 @@
 """js_unittest.py runs JS tests under src/appengine"""
 from __future__ import print_function
 
-from builtins import input
-
 import os
 import re
 import sys
@@ -98,8 +96,8 @@ def execute(args):
       is_complete = driver.execute_script('return WCT._reporter.complete;')
       if is_complete:
         break
-      else:
-        time.sleep(0.1)
+
+      time.sleep(0.1)
 
     sys.stdout.write('\r' + (' ' * 70))
     sys.stdout.flush()

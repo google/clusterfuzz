@@ -13,7 +13,6 @@
 # limitations under the License.
 """show tests."""
 # pylint: disable=protected-access
-from builtins import str
 import collections
 import datetime
 import os

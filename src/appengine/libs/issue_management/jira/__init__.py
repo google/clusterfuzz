@@ -18,7 +18,6 @@ from libs.issue_management.jira.issue_tracker_manager import (
     IssueTrackerManager)
 from config import db_config
 
-from builtins import str
 from dateutil import parser
 
 

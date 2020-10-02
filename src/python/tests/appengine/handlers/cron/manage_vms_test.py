@@ -13,10 +13,6 @@
 # limitations under the License.
 """manage_vms tests."""
 
-from builtins import object
-from builtins import range
-from builtins import str
-
 import copy
 import functools
 import mock

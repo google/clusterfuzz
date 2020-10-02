@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for project_setup."""
-from builtins import object
 import ast
 import copy
 import flask

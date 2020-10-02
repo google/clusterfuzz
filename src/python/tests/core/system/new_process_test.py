@@ -16,8 +16,6 @@
 
 from future import standard_library
 standard_library.install_aliases()
-from builtins import object
-from builtins import range
 import mock
 import queue
 import time

@@ -14,9 +14,6 @@
 """Trusted host."""
 from __future__ import absolute_import
 
-from builtins import object
-from builtins import range
-
 import sys
 import threading
 import time

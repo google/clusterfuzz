@@ -14,8 +14,6 @@
 """Heartbeat script wrapper."""
 from __future__ import print_function
 
-from builtins import str
-
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.

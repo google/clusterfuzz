@@ -13,7 +13,6 @@
 # limitations under the License.
 """Retry tests."""
 # pylint: disable=protected-access
-from builtins import range
 import mock
 import unittest
 
@@ -99,7 +98,7 @@ class WrapTest(unittest.TestCase):
     """Test when retry once and succeed for generator function.."""
     self.func_body.side_effect = [self._FakeException(), 1, 2, 3]
 
-    results = [i for i in self._yield_func(123)]
+    results = list(self._yield_func(123))
     self.assertEqual([1, 2, 3], results)
 
     self.assertEqual(4, self.func_body.call_count)
@@ -133,7 +132,7 @@ class WrapTest(unittest.TestCase):
         self._FakeException(), 1, 2, 3
     ]
 
-    results = [i for i in self._yield_func(123)]
+    results = list(self._yield_func(123))
     self.assertEqual([1, 2, 3], results)
 
     self.assertEqual(8, self.func_body.call_count)
@@ -283,7 +282,7 @@ class WrapTest(unittest.TestCase):
     """Test retry with exception matching type for generator function."""
     self.func_body.side_effect = [self._FakeException(), 1, 2, 3]
 
-    results = [i for i in self._yield_func_exception_type(123)]
+    results = list(self._yield_func_exception_type(123))
     self.assertEqual([1, 2, 3], results)
     self.assertEqual(4, self.func_body.call_count)
     self.func_body.assert_has_calls(

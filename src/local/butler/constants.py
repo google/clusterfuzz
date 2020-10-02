@@ -13,8 +13,6 @@
 # limitations under the License.
 """Constants shared across butler commands."""
 
-from builtins import str
-
 import collections
 import os
 import sys

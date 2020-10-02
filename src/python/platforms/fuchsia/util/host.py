@@ -13,7 +13,6 @@
 # limitations under the License.
 """Utilities for handling Fuchsia hosts."""
 from __future__ import absolute_import
-from builtins import object
 
 from collections import defaultdict
 import json

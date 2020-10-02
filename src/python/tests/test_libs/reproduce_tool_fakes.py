@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fake objects used in reproduce tool tests."""
-from builtins import object
 
 from local.butler import reproduce
 from local.butler.reproduce_tool import http_utils

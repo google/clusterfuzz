@@ -13,7 +13,6 @@
 # limitations under the License.
 """Configuration helpers for the reproduce tool."""
 
-from builtins import object
 from future import standard_library
 standard_library.install_aliases()
 

@@ -15,7 +15,6 @@
 
 from future import standard_library
 standard_library.install_aliases()
-from builtins import object
 import urllib.parse
 
 from libs.issue_management import issue_tracker

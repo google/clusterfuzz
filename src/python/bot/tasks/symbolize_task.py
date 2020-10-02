@@ -14,7 +14,6 @@
 """Symbolize task.
    Add stack traces from non-optimized release and debug builds."""
 
-from builtins import range
 import os
 
 from base import tasks

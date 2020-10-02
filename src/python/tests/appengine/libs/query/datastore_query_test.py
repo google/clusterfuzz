@@ -13,7 +13,6 @@
 # limitations under the License.
 """datastore_query tests."""
 # pylint: disable=protected-access
-from builtins import range
 import datetime
 import mock
 import unittest

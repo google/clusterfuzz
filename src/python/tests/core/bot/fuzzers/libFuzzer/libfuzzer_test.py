@@ -14,10 +14,6 @@
 """Tests for libFuzzer script."""
 # pylint: disable=unused-argument
 
-from builtins import object
-from builtins import range
-from builtins import str
-
 from future import standard_library
 standard_library.install_aliases()
 

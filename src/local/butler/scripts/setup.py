@@ -14,7 +14,6 @@
 """Initial datastore setup."""
 from __future__ import print_function
 
-from builtins import object
 import six
 
 from google.cloud import monitoring_v3

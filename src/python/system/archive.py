@@ -13,9 +13,6 @@
 # limitations under the License.
 """Functions for handling archives."""
 
-from builtins import object
-from builtins import oct
-
 import lzma
 import os
 import tarfile

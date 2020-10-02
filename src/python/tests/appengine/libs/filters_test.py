@@ -13,7 +13,6 @@
 # limitations under the License.
 """filters tests"""
 
-from builtins import str
 import mock
 import unittest
 

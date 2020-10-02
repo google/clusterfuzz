@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for the http_server module."""
 
-from builtins import object
 import os
 import six
 import unittest

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Handler used for loading bigquery data."""
 
-from builtins import range
 import datetime
 import httplib2
 import random

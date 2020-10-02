@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """oss_fuzz_apply_ccs tests."""
-from builtins import object
 import datetime
 import unittest
 

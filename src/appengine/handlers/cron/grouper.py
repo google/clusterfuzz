@@ -14,7 +14,6 @@
 """Grouper for grouping similar looking testcases."""
 from __future__ import absolute_import
 
-from builtins import object
 import six
 
 from base import errors

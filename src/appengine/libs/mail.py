@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Helpers for sending mail."""
-from builtins import str
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import From
 from sendgrid.helpers.mail import HtmlContent

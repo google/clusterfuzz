@@ -14,8 +14,6 @@
 """Handler used for setting up oss-fuzz jobs."""
 from __future__ import absolute_import
 
-from builtins import object
-from builtins import str
 from past.builtins import basestring
 
 import base64

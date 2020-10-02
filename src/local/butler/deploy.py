@@ -14,7 +14,6 @@
 """deploy.py handles the deploy command"""
 from __future__ import print_function
 
-from builtins import range
 from collections import namedtuple
 import contextlib
 import datetime

@@ -14,9 +14,6 @@
 """Classes for dealing with Performance Analysis."""
 from __future__ import division
 
-from builtins import map
-from builtins import object
-from builtins import range
 import collections
 import datetime
 import json

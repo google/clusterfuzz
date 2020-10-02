@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for jira issue management."""
 
-from builtins import object
 from dateutil import tz
 import datetime
 import unittest

@@ -13,7 +13,6 @@
 # limitations under the License.
 """handler.py provides decorators for POST and GET handlers."""
 
-from builtins import str
 import datetime
 import functools
 import json

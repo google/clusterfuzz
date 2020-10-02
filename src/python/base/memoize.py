@@ -13,9 +13,6 @@
 # limitations under the License.
 """Memoize caches the result of methods."""
 
-from builtins import object
-from builtins import str
-
 import collections
 import functools
 import json

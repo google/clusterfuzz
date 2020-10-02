@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for performance_analyzer."""
 
-from builtins import next
-
 import json
 import os
 import unittest

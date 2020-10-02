@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for corpus_manager."""
 
-from builtins import object
 import datetime
 import mock
 import os

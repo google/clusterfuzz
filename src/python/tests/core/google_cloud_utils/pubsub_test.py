@@ -13,7 +13,6 @@
 # limitations under the License.
 """Pubsub tests."""
 
-from builtins import range
 import time
 import unittest
 

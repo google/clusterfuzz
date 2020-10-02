@@ -13,7 +13,6 @@
 # limitations under the License.
 """Functions for running gsutil."""
 
-from builtins import object
 import os
 import six
 

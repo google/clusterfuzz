@@ -15,7 +15,6 @@
 
 from flask import request
 
-from builtins import str
 from datastore import data_handler
 from handlers import base_handler
 from handlers.testcase_detail import show

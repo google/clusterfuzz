@@ -29,8 +29,6 @@ from __future__ import print_function
 # Disable all pylint warnings/errors as this is based on external code.
 # pylint: disable-all
 
-from builtins import object
-from builtins import str
 from past.builtins import cmp
 
 import os

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for Google Cloud Profiler integration."""
 
-from builtins import range
 import time
 import unittest
 

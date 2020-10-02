@@ -13,10 +13,6 @@
 # limitations under the License.
 """Common utility functions."""
 
-from builtins import map
-from builtins import range
-from builtins import str
-
 from future import standard_library
 standard_library.install_aliases()
 

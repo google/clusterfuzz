@@ -22,9 +22,6 @@ try:
 except ImportError:
   pass
 
-from builtins import object
-from builtins import str
-
 import atexit
 import collections
 import os

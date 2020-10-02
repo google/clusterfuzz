@@ -13,7 +13,6 @@
 # limitations under the License.
 """HTTP utility functions for the reproduce tool."""
 from __future__ import print_function
-from builtins import object
 
 import httplib2
 import os

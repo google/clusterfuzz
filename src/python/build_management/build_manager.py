@@ -13,11 +13,6 @@
 # limitations under the License.
 """Build manager."""
 
-from builtins import map
-from builtins import object
-from builtins import range
-from builtins import str
-
 import os
 import re
 import subprocess

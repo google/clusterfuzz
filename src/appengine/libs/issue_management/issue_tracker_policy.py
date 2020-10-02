@@ -12,8 +12,6 @@
 # limitations under the License.
 """Issue tracker policy."""
 
-from builtins import object
-from builtins import str
 from collections import namedtuple
 
 from config import local_config

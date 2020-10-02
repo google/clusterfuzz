@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Performance stats constants and helpers for libFuzzer."""
-from builtins import str
 
 import re
 
@@ -89,7 +88,8 @@ def calculate_log_lines(log_lines):
       # We should ignore lines like sanitizer warnings, etc.
       ignored_lines_count += 1
       continue
-    elif LIBFUZZER_ANY_CRASH_TYPE_REGEX.match(line):
+
+    if LIBFUZZER_ANY_CRASH_TYPE_REGEX.match(line):
       # We should ignore whole block if a libfuzzer crash is found.
       # E.g. slow units.
       found_libfuzzer_crash = True

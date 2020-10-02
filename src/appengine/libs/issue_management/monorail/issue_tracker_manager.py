@@ -14,7 +14,6 @@
 """Issue tracker manager functions."""
 from __future__ import absolute_import
 
-from builtins import object
 import datetime
 
 from googleapiclient import discovery
@@ -40,10 +39,9 @@ def convert_entry_to_comment(entry):
   comment.id = entry['id']
 
   if 'updates' in entry and entry['updates']:
-    comment.cc = ChangeList([e for e in entry['updates'].get('cc', [])])
-    comment.components = ChangeList(
-        [e for e in entry['updates'].get('components', [])])
-    comment.labels = ChangeList([e for e in entry['updates'].get('labels', [])])
+    comment.cc = ChangeList(entry['updates'].get('cc', []))
+    comment.components = ChangeList(entry['updates'].get('components', []))
+    comment.labels = ChangeList(entry['updates'].get('labels', []))
     comment.owner = entry['updates'].get('owner', None)
     comment.status = entry['updates'].get('status', None)
     comment.summary = entry['updates'].get('summary', None)

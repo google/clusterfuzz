@@ -13,8 +13,6 @@
 # limitations under the License.
 """The superclass of all handlers."""
 
-from builtins import object
-from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 

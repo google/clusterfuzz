@@ -13,7 +13,6 @@
 # limitations under the License.
 """Authentication helpers."""
 
-from builtins import str
 import collections
 import jwt
 

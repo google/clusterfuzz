@@ -14,7 +14,6 @@
 """reproduce.py reproduces test cases locally."""
 
 from __future__ import print_function
-from builtins import object
 from future import standard_library
 standard_library.install_aliases()
 

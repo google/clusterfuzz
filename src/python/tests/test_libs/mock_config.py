@@ -14,8 +14,6 @@
 """Mock config."""
 from __future__ import absolute_import
 
-from builtins import object
-
 
 class MockConfig(object):
   """Mock config."""

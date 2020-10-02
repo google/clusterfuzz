@@ -13,7 +13,6 @@
 # limitations under the License.
 """Manage fuzzers types."""
 
-from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 

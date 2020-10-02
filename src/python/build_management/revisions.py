@@ -13,8 +13,6 @@
 # limitations under the License.
 """Revisions related helper functions."""
 
-from builtins import range
-from builtins import str
 from past.builtins import basestring
 
 from future import standard_library
