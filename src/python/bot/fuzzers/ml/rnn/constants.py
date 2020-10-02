@@ -59,7 +59,6 @@ TRAINING_SCRIPT_NAME = 'train.py'
 GENERATION_SCRIPT_NAME = 'generate.py'
 
 # Model files suffix.
-MODEL_META_SUFFIX = '.meta'
 MODEL_DATA_SUFFIX = '.data-00000-of-00001'
 MODEL_INDEX_SUFFIX = '.index'
 

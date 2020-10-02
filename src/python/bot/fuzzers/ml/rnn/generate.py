@@ -72,9 +72,11 @@ def main(args):
     print('\nusing model {} to generate {} inputs...'.format(model_path, count))
 
     # Restore the model.
-    new_saver = tf.compat.v1.train.import_meta_graph(
-        model_path + constants.MODEL_META_SUFFIX)
-    new_saver.restore(session, model_path)
+    # Build the RNN model.
+    model = utils.build_model(
+        constants.HIDDEN_STATE_SIZE * constants.HIDDEN_STATE_SIZE,
+        constants.DROPOUT_PKEEP, constants.BATCH_SIZE, False)
+    model.load_weights(model_path)
 
     corpus_files_info = utils.get_files_info(input_dir)
     if not corpus_files_info:
