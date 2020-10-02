@@ -1094,7 +1094,7 @@ def bot_run_timed_out():
   bot_name = environment.get_value('BOT_NAME')
   heartbeat = data_types.Heartbeat.query(
       data_types.Heartbeat.bot_name == bot_name).get()
-  if not heartbeat or not heartbeat.start_time:
+  if not heartbeat or not heartbeat.last_beat_time:
     return False
 
   # Actual run timeout takes off the duration for one task.
@@ -1102,7 +1102,7 @@ def bot_run_timed_out():
   actual_run_timeout = run_timeout - average_task_duration
 
   return dates.time_has_expired(
-      heartbeat.start_time, seconds=actual_run_timeout)
+      heartbeat.last_beat_time, seconds=actual_run_timeout)
 
 
 # ------------------------------------------------------------------------------
