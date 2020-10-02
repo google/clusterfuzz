@@ -41,43 +41,6 @@ from bot.fuzzers.ml.rnn import utils
 #     to use an insufficient amount of training data.
 
 
-def build_model(num_rnn_cells, dropout_pkeep, batch_size, debug):
-  """Build the RNN model.
-
-  Since we use the Keras sequential model and we use different batch sizes for
-  train, validation and demo output generation, we use this function to rebatch
-  the model.
-
-  Args:
-    num_rnn_cells: number of RNN cells to use.
-    dropout_pkeep: probability of keeping a node in dropout.
-    batch_size: batch size used by the model layer.
-    debug: if True, print a summary of the model.
-
-  Returns:
-    Keras Sequential RNN model.
-  """
-  dropout_pdrop = 1 - dropout_pkeep
-  model = tf.keras.Sequential([
-      tf.keras.layers.Embedding(
-          constants.ALPHA_SIZE,
-          constants.ALPHA_SIZE,
-          batch_input_shape=[batch_size, None]),
-      tf.keras.layers.GRU(
-          num_rnn_cells,
-          return_sequences=True,
-          stateful=True,
-          dropout=dropout_pdrop),
-      tf.keras.layers.Dense(constants.ALPHA_SIZE),
-  ])
-
-  # Display a summary of the model to debug shapes.
-  if debug:
-    model.summary()
-
-  return model
-
-
 @tf.function
 def train_step(model, optimizer, input_data, expected_data, train=False):
   """Train the model for one step.
@@ -169,8 +132,8 @@ def main(args):
   tf.random.set_seed(0)
 
   # Build the RNN model.
-  model = build_model(hidden_layer_size * hidden_state_size, dropout_pkeep,
-                      batch_size, debug)
+  model = utils.build_model(hidden_layer_size * hidden_state_size,
+                            dropout_pkeep, batch_size, debug)
 
   # Choose Adam optimizer to compute gradients.
   optimizer = tf.keras.optimizers.Adam(learning_rate)
@@ -241,9 +204,9 @@ def main(args):
           utils.rnn_minibatch_sequencer(validation_text, validation_batch_size,
                                         constants.VALIDATION_SEQLEN, 1))
 
-      validation_model = build_model(hidden_layer_size * hidden_state_size,
-                                     dropout_pkeep, validation_batch_size,
-                                     False)
+      validation_model = utils.build_model(
+          hidden_layer_size * hidden_state_size, dropout_pkeep,
+          validation_batch_size, False)
       last_weights = tf.train.latest_checkpoint(model_dir)
       if last_weights:
         validation_model.load_weights(tf.train.latest_checkpoint(model_dir))
@@ -271,8 +234,8 @@ def main(args):
       ry = np.array([[first_byte]])
       sample = [first_byte]
 
-      generation_model = build_model(hidden_layer_size * hidden_state_size,
-                                     dropout_pkeep, 1, False)
+      generation_model = utils.build_model(
+          hidden_layer_size * hidden_state_size, dropout_pkeep, 1, False)
       last_weights = tf.train.latest_checkpoint(model_dir)
       if last_weights:
         generation_model.load_weights(tf.train.latest_checkpoint(model_dir))
