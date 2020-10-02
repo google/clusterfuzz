@@ -287,7 +287,7 @@ def request_bisection(testcase_id):
 
 def _check_commits(testcase, bisect_type, old_commit, new_commit):
   """Check old and new commit validity."""
-  if old_commit != new_commit:
+  if old_commit != new_commit or build_manager.is_custom_binary():
     return old_commit, new_commit
 
   # Something went wrong during bisection for the same commit to be chosen for
