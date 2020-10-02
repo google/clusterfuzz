@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for task_creation."""
+import mock
 import unittest
 
 from bot.tasks import task_creation
@@ -27,6 +28,8 @@ class RequestBisectionTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'build_management.build_manager.get_primary_bucket_path',
+        'build_management.build_manager.get_revisions_list',
         'build_management.revisions.get_component_range_list',
         'config.local_config.ProjectConfig',
         'google_cloud_utils.blobs.read_key',
@@ -47,7 +50,9 @@ class RequestBisectionTest(unittest.TestCase):
         fuzzer_name='libFuzzer',
         overridden_fuzzer_name='libFuzzer_proj_target',
         regression='123:456',
-        fixed='123:456')
+        fixed='123:456',
+        crash_revision=3,
+        additional_metadata='{"last_tested_crash_revision": 4}')
     self.testcase.put()
 
     self.mock.read_key.return_value = b'reproducer'
@@ -63,7 +68,7 @@ class RequestBisectionTest(unittest.TestCase):
         }
     })
 
-  def _test(self, sanitizer):
+  def _test(self, sanitizer, old_commit='old', new_commit='new'):
     """Test task publication."""
     task_creation.request_bisection(self.testcase.key.id())
     publish_calls = self.mock.publish.call_args_list
@@ -79,8 +84,8 @@ class RequestBisectionTest(unittest.TestCase):
           'crash_type': 'crash-type',
           'security': 'True',
           'fuzz_target': 'target',
-          'new_commit': 'new',
-          'old_commit': 'old',
+          'new_commit': new_commit,
+          'old_commit': old_commit,
           'project_name': 'proj',
           'sanitizer': sanitizer,
           'testcase_id': '1',
@@ -159,3 +164,21 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.put()
     task_creation.request_bisection(self.testcase.key.id())
     self.assertEqual(0, self.mock.publish.call_count)
+
+  def test_request_single_commit_range(self):
+    """Request bisection with a single commit (invalid range)."""
+    self.mock.get_primary_bucket_path.return_value = 'bucket'
+    self.mock.get_revisions_list.return_value = list(range(6))
+    self.mock.get_component_range_list.return_value = [
+        {
+            'link_text': 'one',
+        },
+    ]
+    task_creation.request_bisection(self.testcase.key.id())
+    self._test('address', old_commit='one', new_commit='one')
+    self.mock.get_component_range_list.assert_has_calls([
+        mock.call(123, 456, 'libfuzzer_asan_proj'),
+        mock.call(0, 3, 'libfuzzer_asan_proj'),
+        mock.call(123, 456, 'libfuzzer_asan_proj'),
+        mock.call(4, 5, 'libfuzzer_asan_proj'),
+    ])
