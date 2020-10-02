@@ -15,7 +15,6 @@
   own file because we want to avoid importing too many modules; now it can be
   used in more places."""
 
-from builtins import range
 import functools
 import inspect
 import sys

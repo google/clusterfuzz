@@ -13,7 +13,6 @@
 # limitations under the License.
 """Handler for performing remote tasks on windows."""
 from __future__ import print_function
-from builtins import object
 import os
 import time
 

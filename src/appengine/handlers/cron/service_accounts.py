@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Service account creation/role helpers."""
-from builtins import next
 import logging
 
 import googleapiclient

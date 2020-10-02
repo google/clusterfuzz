@@ -14,7 +14,6 @@
 """Regression task.
    Find commit ranges where regressions were introduced."""
 
-from builtins import range
 import random
 import time
 

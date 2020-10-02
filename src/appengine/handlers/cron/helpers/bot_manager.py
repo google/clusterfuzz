@@ -13,8 +13,6 @@
 # limitations under the License.
 """Library to manage bots using GCE instance templates and groups."""
 
-from builtins import object
-from builtins import str
 import google_auth_httplib2
 import googleapiclient
 import httplib2
@@ -152,10 +150,10 @@ class Resource(object):
         raise RetryableError(str(e))
       if e.resp.status == 404:
         raise NotFoundError(str(e))
-      elif e.resp.status == 409:
+      if e.resp.status == 409:
         raise AlreadyExistsError(str(e))
-      else:
-        raise RequestError(str(e))
+
+      raise RequestError(str(e))
 
     return result_proc(response)
 

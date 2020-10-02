@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """crash_stats tests."""
-from builtins import range
 import unittest
 
 from datastore import data_types

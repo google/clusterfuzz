@@ -13,7 +13,6 @@
 # limitations under the License.
 """Report upload task."""
 
-from builtins import str
 import time
 
 from base import errors

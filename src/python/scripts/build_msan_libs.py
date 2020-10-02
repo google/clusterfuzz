@@ -20,8 +20,6 @@ from __future__ import print_function
 # 3. Once all builds have succeeded, run:
 #    build_msan_libs.py [--no-track-origins] merge
 
-from builtins import str
-
 import argparse
 import datetime
 
@@ -253,8 +251,8 @@ def main():
       build_body = get_build(build_steps(package, args.no_track_origins))
       print(start_build(cloudbuild, build_body))
   else:  # merge
-    print(start_build(cloudbuild,
-                      get_build(merge_steps(args.no_track_origins))))
+    print(
+        start_build(cloudbuild, get_build(merge_steps(args.no_track_origins))))
 
 
 if __name__ == '__main__':

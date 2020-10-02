@@ -14,7 +14,6 @@
 """Constants for ML RNN model."""
 
 # Model name.
-from builtins import object
 RNN_MODEL_NAME = 'rnn'
 
 # Num of chars to be trained in one batch.

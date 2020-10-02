@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """batcher tests."""
-from builtins import range
 import datetime
 import unittest
 

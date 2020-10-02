@@ -13,8 +13,6 @@
 # limitations under the License.
 """Query handles pagination and OR conditions with its best effort."""
 
-from builtins import object
-
 from google.cloud.ndb import exceptions
 
 from libs.query import base

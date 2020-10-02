@@ -13,8 +13,6 @@
 # limitations under the License.
 """Fuzzing engine interface."""
 
-from builtins import object
-
 _ENGINES = {}
 
 

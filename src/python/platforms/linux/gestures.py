@@ -13,10 +13,6 @@
 # limitations under the License.
 """Gestures related functions."""
 
-from builtins import chr
-from builtins import range
-from builtins import str
-
 import random
 import time
 
@@ -102,7 +98,7 @@ def get_random_gestures(gesture_count):
       gestures.append('mouseup,1')
       continue
 
-    elif 'Function' in random_gesture:
+    if 'Function' in random_gesture:
       random_gesture = (
           random_gesture.replace('Function', 'F%d' % random.randint(1, 12)))
 

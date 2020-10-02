@@ -13,8 +13,6 @@
 # limitations under the License.
 """Data handler functions."""
 
-from builtins import str
-
 import collections
 import datetime
 import os

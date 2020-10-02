@@ -14,8 +14,6 @@
 """Minimizer used for additional reduction on javascript test cases."""
 from __future__ import absolute_import
 
-from builtins import range
-
 from . import delta_minimizer
 from . import errors
 from . import minimizer

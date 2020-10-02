@@ -13,8 +13,6 @@
 # limitations under the License.
 """Process handling utilities."""
 
-from builtins import object
-
 from distutils import spawn
 import os
 import subprocess

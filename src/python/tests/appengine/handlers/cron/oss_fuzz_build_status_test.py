@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for oss_fuzz_build_status."""
 
-from builtins import object
 import datetime
 import json
 import mock

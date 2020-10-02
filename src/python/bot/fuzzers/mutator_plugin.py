@@ -13,7 +13,6 @@
 # limitations under the License.
 """Getting and using custom mutator plugins for libFuzzer."""
 
-from builtins import object
 import os
 
 from base import utils

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Cron job to get the latest code coverage stats and HTML reports."""
 
-from builtins import str
 import datetime
 import json
 import os

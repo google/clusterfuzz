@@ -13,9 +13,6 @@
 # limitations under the License.
 """Classes for objects stored in the datastore."""
 
-from builtins import next
-from builtins import object
-
 import re
 import six
 

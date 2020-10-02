@@ -15,7 +15,6 @@
 
 # pylint: disable=protected-access
 
-from builtins import object
 import datetime
 import mock
 import os

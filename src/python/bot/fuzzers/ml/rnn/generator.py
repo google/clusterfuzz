@@ -20,8 +20,6 @@ try:
 except ImportError:
   pass
 
-from builtins import str
-
 import os
 import sys
 

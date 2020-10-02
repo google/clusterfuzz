@@ -12,9 +12,6 @@
 # limitations under the License.
 """Issue tracker interface."""
 
-from builtins import next
-from builtins import object
-from builtins import str
 from future.utils import itervalues
 
 

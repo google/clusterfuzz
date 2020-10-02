@@ -13,8 +13,6 @@
 # limitations under the License.
 """Handler for performing remote tasks on linux."""
 from __future__ import print_function
-from builtins import object
-from builtins import range
 import os
 import re
 import time
@@ -98,8 +96,8 @@ class Handler(object):
       new_pids = self._get_run_bot_pids()
       if new_pids:
         break
-      else:
-        time.sleep(1)
+
+      time.sleep(1)
 
     if not new_pids:
       raise Exception('Failed to start run_bot.py after restarting.')

@@ -13,9 +13,6 @@
 # limitations under the License.
 """ML training task."""
 
-from builtins import filter
-from builtins import str
-
 import glob
 import os
 import sys

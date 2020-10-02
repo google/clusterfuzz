@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for local_config functions."""
 
-from builtins import range
 import os
 import unittest
 

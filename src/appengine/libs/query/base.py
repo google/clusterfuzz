@@ -17,8 +17,6 @@
 
   This must be compatible with libs.filters and libs.crash_access."""
 
-from builtins import object
-
 
 class Query(object):
   """Represent the interface for Query."""

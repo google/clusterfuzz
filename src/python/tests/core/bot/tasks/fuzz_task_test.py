@@ -14,11 +14,6 @@
 """fuzz_task tests."""
 # pylint: disable=protected-access
 
-from builtins import object
-from builtins import range
-from builtins import str
-from builtins import zip
-
 import datetime
 import mock
 import os

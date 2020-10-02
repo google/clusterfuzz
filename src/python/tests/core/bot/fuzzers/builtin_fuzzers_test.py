@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests builtin_fuzzers."""
 
-from builtins import range
 import functools
 import os
 import unittest

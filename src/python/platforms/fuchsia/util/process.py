@@ -13,8 +13,6 @@
 # limitations under the License.
 """Process runner."""
 
-from builtins import object
-
 import subprocess
 
 

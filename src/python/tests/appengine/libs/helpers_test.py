@@ -14,7 +14,6 @@
 """helpers tests."""
 # pylint: disable=protected-access
 
-from builtins import str
 import unittest
 
 from libs import auth

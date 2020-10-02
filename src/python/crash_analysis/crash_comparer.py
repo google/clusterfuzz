@@ -14,8 +14,6 @@
 """Functions for helping in crash comparison."""
 # pylint: disable=consider-using-enumerate
 from __future__ import division
-from builtins import object
-from builtins import range
 
 
 def _levenshtein_distance(string_1, string_2):

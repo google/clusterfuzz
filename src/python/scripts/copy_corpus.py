@@ -14,7 +14,6 @@
 """Copy corpus from one bucket to another, keeping project name in mind."""
 from __future__ import print_function
 
-from builtins import range
 import argparse
 import datetime
 import random

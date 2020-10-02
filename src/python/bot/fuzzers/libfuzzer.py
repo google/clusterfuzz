@@ -14,9 +14,6 @@
 """libFuzzer runners."""
 from __future__ import print_function
 
-from builtins import object
-from builtins import str
-
 import collections
 import contextlib
 import copy

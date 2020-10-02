@@ -13,10 +13,6 @@
 # limitations under the License.
 """Functions for testcase management."""
 
-from builtins import object
-from builtins import range
-from builtins import str
-
 import base64
 import collections
 import datetime

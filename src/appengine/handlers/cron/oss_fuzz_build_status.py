@@ -13,7 +13,6 @@
 # limitations under the License.
 """Cron for checking OSS-Fuzz builds status."""
 
-from builtins import str
 import datetime
 import json
 import re

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Handler for the crash stats page."""
 
-from builtins import str
 import json
 
 from flask import request

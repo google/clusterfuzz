@@ -13,7 +13,6 @@
 # limitations under the License.
 """Manage job types."""
 
-from builtins import str
 import six
 
 from flask import request

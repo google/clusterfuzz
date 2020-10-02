@@ -13,7 +13,6 @@
 # limitations under the License.
 """Handler for showing the testcase detail page."""
 
-from builtins import object
 import datetime
 import html
 import jinja2

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for process_handler."""
 
-from builtins import object
 import mock
 import unittest
 

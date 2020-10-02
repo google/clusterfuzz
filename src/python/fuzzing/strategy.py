@@ -13,7 +13,6 @@
 # limitations under the License.
 """Fuzzing strategies for fuzzing engines like libFuzzer, AFL, etc."""
 
-from builtins import str
 from collections import namedtuple
 
 # Named tuple for each strategy. The manually_enable field signifies whether a

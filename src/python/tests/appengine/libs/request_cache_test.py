@@ -13,7 +13,6 @@
 # limitations under the License.
 """request_cache tests."""
 
-from builtins import object
 import unittest
 
 from libs import request_cache

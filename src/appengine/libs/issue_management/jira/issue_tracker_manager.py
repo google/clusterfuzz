@@ -14,8 +14,6 @@
 """Issue tracker manager functions."""
 from __future__ import absolute_import
 
-from builtins import object
-from builtins import str
 import jira
 import json
 

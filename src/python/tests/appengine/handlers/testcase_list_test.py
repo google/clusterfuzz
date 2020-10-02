@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """testcase_list tests."""
-from builtins import range
-from builtins import str
 import datetime
 import flask
 import mock

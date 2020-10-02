@@ -13,8 +13,6 @@
 # limitations under the License.
 """NDB utilities. Provides utility functions for NDB."""
 
-from builtins import range
-
 from google.cloud import ndb
 
 _GET_BATCH_SIZE = 1000

@@ -14,8 +14,6 @@
 """Minimizer based on the delta debugging algorithm."""
 from __future__ import absolute_import
 
-from builtins import range
-
 from . import errors
 from . import minimizer
 from . import utils

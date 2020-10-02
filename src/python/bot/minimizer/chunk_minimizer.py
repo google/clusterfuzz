@@ -14,7 +14,6 @@
 """Fast minimizer that attempts to remove tokens grouped in chunks."""
 from __future__ import absolute_import
 
-from builtins import range
 import functools
 
 from . import errors

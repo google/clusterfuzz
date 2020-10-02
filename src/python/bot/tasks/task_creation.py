@@ -13,8 +13,6 @@
 # limitations under the License.
 """Common functions for task creation for test cases."""
 
-from builtins import str
-
 from base import tasks
 from base import utils
 from build_management import build_manager

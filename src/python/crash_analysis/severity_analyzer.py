@@ -15,7 +15,6 @@
 
 # TODO(ochang): Support other sanitizers.
 
-from builtins import object
 import re
 
 from datastore.data_types import MISSING_VALUE_STRING

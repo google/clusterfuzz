@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for download."""
 
-from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 import unittest

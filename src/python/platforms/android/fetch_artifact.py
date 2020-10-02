@@ -16,7 +16,6 @@ minor modifications, especially without any google3 specific library
 dependencies)."""
 from __future__ import division
 
-from builtins import range
 from future import standard_library
 standard_library.install_aliases()
 import apiclient

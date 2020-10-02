@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Console input functions for the reproduce tool."""
-from builtins import input
 
 
 def get_string(prompt):

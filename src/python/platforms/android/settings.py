@@ -13,8 +13,6 @@
 # limitations under the License.
 """Settings change related functions."""
 
-from builtins import str
-
 import re
 
 from . import adb
@@ -180,7 +178,8 @@ def is_google_device():
 
 
 def is_automotive():
-  """Returns if we are running in Android Automotive OS, currently only for Osprey."""
+  """Returns if we are running in Android Automotive OS, currently only for
+  Osprey."""
   product_model = get_product_model()
   return product_model == 'Osprey'
 
