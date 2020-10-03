@@ -108,7 +108,7 @@ def get_kernel_name():
 
 def get_kernel_hash_and_build_id():
   """Returns the build id  and hash of the kernel."""
-  version_string = settings.get_kernel_version_string
+  version_string = settings.get_kernel_version_string()
   match = re.match(LINUX_VERSION_REGEX, version_string)
   if match:
     return match.group(2), match.group(3)
