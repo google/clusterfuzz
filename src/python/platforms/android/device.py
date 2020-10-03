@@ -188,8 +188,8 @@ def configure_device_settings():
 def configure_system_build_properties():
   """Modifies system build properties in /system/build.prop for better boot
   speed and power use."""
-  if settings.get_sanitizer_tool_name() == 'hwasan':
-    # TODO(aarya): Debug why remount fails on HWAsan build.
+  if settings.get_sanitizer_tool_name() in ['hwasan', 'kasan']:
+    # TODO(aarya): Debug why remount fails.
     return
 
   adb.run_as_root()
