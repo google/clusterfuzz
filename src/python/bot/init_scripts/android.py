@@ -24,8 +24,14 @@ def run():
   # Check if we need to reflash device to latest build.
   android.flash.flash_to_latest_build_if_needed()
 
+  # Reboot to bring device in a good state.
+  android.device.reboot()
+
   # Make sure that device is in a good condition before we move forward.
   android.adb.wait_until_fully_booted()
 
   # Wait until battery charges to a minimum level and temperature threshold.
   android.battery.wait_until_good_state()
+
+  # Initialize environment settings.
+  android.device.initialize_environment()
