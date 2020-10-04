@@ -638,7 +638,7 @@ def is_engine_fuzzer_job(job_name=None):
 
 
 def is_kernel_fuzzer_job(job_name=None):
-  """Return true if the current job uses libFuzzer."""
+  """Return true if the current job uses syzkaller."""
   # Prefix matching is not sufficient.
   return _job_substring_match('syzkaller', job_name)
 
