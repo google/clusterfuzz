@@ -281,13 +281,13 @@ def get_environment_settings_as_string():
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
 
-    build_fingerprint = get_value('BUILD_FINGERPRINT',
-                                  android.settings.get_build_fingerprint())
+    build_fingerprint = get_value(
+        'BUILD_FINGERPRINT') or android.settings.get_build_fingerprint()
     environment_string += '[Environment] Build fingerprint: %s\n' % (
         build_fingerprint)
 
     security_patch_level = get_value(
-        'SECURITY_PATCH_LEVEL', android.settings.get_security_patch_level())
+        'SECURITY_PATCH_LEVEL') or android.settings.get_security_patch_level()
     environment_string += (
         '[Environment] Patch level: %s\n' % security_patch_level)
 
