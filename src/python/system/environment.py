@@ -281,11 +281,15 @@ def get_environment_settings_as_string():
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
 
+    build_fingerprint = get_value('BUILD_FINGERPRINT',
+                                  android.settings.get_build_fingerprint())
     environment_string += '[Environment] Build fingerprint: %s\n' % (
-        android.settings.get_build_fingerprint())
+        build_fingerprint)
 
-    environment_string += ('[Environment] Patch level: %s\n' %
-                           android.settings.get_security_patch_level())
+    security_patch_level = get_value(
+        'SECURITY_PATCH_LEVEL', android.settings.get_security_patch_level())
+    environment_string += (
+        '[Environment] Patch level: %s\n' % security_patch_level)
 
     environment_string += (
         '[Environment] Local properties file "%s" with contents:\n%s\n' %
@@ -631,6 +635,12 @@ def is_honggfuzz_job(job_name=None):
 def is_engine_fuzzer_job(job_name=None):
   """Return if true is this is an engine fuzzer."""
   return bool(get_engine_for_job(job_name))
+
+
+def is_kernel_fuzzer_job(job_name=None):
+  """Return true if the current job uses libFuzzer."""
+  # Prefix matching is not sufficient.
+  return _job_substring_match('syzkaller', job_name)
 
 
 def get_engine_for_job(job_name=None):

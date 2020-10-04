@@ -188,10 +188,6 @@ def configure_device_settings():
 def configure_system_build_properties():
   """Modifies system build properties in /system/build.prop for better boot
   speed and power use."""
-  if settings.get_sanitizer_tool_name() in ['hwasan', 'kasan']:
-    # TODO(aarya): Debug why remount fails.
-    return
-
   adb.run_as_root()
 
   # Check md5 checksum of build.prop to see if already updated,
@@ -304,6 +300,11 @@ def get_debug_props_and_values():
 
 def initialize_device():
   """Prepares android device for app install."""
+  if environment.is_engine_fuzzer_job() or environment.is_kernel_fuzzer_job():
+    # These steps are not applicable to libFuzzer and syzkaller jobs and can
+    # brick a device on trying to configure device build settings.
+    return
+
   adb.setup_adb()
 
   # General device configuration settings.
@@ -320,11 +321,6 @@ def initialize_device():
 
   # Make sure we are running as root after restart.
   adb.run_as_root()
-
-  # Setup helper environment for quick access to values like codename, etc.
-  # This must be done after the reboot so that we get values from device in
-  # a good state.
-  initialize_environment()
 
   # Other configuration tasks (only to done after reboot).
   wifi.configure()
@@ -347,6 +343,8 @@ def initialize_environment():
   environment.set_value('PRODUCT_BRAND', settings.get_product_brand())
   environment.set_value('SANITIZER_TOOL_NAME',
                         settings.get_sanitizer_tool_name())
+  environment.set_value('SECURITY_PATCH_LEVEL',
+                        settings.get_security_patch_level())
 
 
 def install_application_if_needed(apk_path, force_update):
