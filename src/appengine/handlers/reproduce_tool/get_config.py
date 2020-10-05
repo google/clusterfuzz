@@ -13,9 +13,6 @@
 # limitations under the License.
 """Allow users to configure the reproduce tool to point to this site."""
 
-from future import standard_library
-standard_library.install_aliases()
-
 import urllib.parse
 
 from config import db_config

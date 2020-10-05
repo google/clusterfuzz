@@ -13,9 +13,6 @@
 # limitations under the License.
 """Manage fuzzers types."""
 
-from future import standard_library
-standard_library.install_aliases()
-
 import datetime
 import io
 

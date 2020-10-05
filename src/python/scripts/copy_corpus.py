@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Copy corpus from one bucket to another, keeping project name in mind."""
-from __future__ import print_function
 
 import argparse
 import datetime

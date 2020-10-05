@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Base classes for other minimizers."""
-from __future__ import absolute_import
-
-from future import standard_library
-standard_library.install_aliases()
 
 from metrics import logs
 import copy

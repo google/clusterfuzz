@@ -13,7 +13,6 @@
 # limitations under the License.
 """run.py runs a one-off script (e.g. migration) with appropriate envs (e.g.
   datastore)."""
-from __future__ import print_function
 
 import importlib
 import os

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for crash uploader functions."""
 
-from future import standard_library
-standard_library.install_aliases()
 import mock
 import os
 import socket

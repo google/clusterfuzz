@@ -14,8 +14,6 @@
 """Tests for libFuzzer engine."""
 # pylint: disable=unused-argument
 
-from future import standard_library
-standard_library.install_aliases()
 import os
 import shutil
 import tempfile

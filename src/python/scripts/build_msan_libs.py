@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Build MSan instrumented libs on Google Container Builder."""
-from __future__ import print_function
 # Usage:
 # 1. build_msan_libs.py [--no-track-origins] build_packages
 # 2. Wait for builds to complete on

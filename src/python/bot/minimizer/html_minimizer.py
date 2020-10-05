@@ -13,7 +13,6 @@
 # limitations under the License.
 """Minimizer that attempts to use specialized minimizers on different parts of
    an HTML test case."""
-from __future__ import absolute_import
 
 import functools
 

@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fuzz task for handling fuzzing."""
-from __future__ import division
-
-from future import standard_library
-standard_library.install_aliases()
 
 import collections
 import datetime

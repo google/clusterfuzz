@@ -14,10 +14,7 @@
 """Fetch a build artifact (ported from google3 with
 minor modifications, especially without any google3 specific library
 dependencies)."""
-from __future__ import division
 
-from future import standard_library
-standard_library.install_aliases()
 import apiclient
 import io
 import json

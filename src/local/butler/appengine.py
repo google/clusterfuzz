@@ -13,8 +13,6 @@
 # limitations under the License.
 """App Engine helpers."""
 
-from __future__ import print_function
-
 from distutils import spawn
 import os
 import shutil

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utility functions for ml rnn model."""
-from __future__ import division
-from __future__ import print_function
 
 import numpy as np
 import os

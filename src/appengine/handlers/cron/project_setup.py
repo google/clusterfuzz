@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler used for setting up oss-fuzz jobs."""
-from __future__ import absolute_import
 
 from past.builtins import basestring
 

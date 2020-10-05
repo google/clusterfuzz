@@ -13,9 +13,6 @@
 # limitations under the License.
 """Handler that uploads a testcase"""
 
-from future import standard_library
-standard_library.install_aliases()
-
 import ast
 import datetime
 import io

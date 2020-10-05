@@ -13,10 +13,6 @@
 # limitations under the License.
 """reproduce.py reproduces test cases locally."""
 
-from __future__ import print_function
-from future import standard_library
-standard_library.install_aliases()
-
 from python.base import modules
 modules.fix_module_search_paths()
 

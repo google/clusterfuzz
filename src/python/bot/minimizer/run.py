@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Run minimizers with default configuration from the command line."""
-from __future__ import absolute_import
-from __future__ import print_function
 
 import argparse
 import os

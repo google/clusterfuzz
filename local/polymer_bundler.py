@@ -13,8 +13,6 @@
 # limitations under the License.
 """Uses polymer-bundler to combine resources to reduce number of requests."""
 
-from __future__ import print_function
-
 import multiprocessing
 import os
 import sys

@@ -14,9 +14,6 @@
 """Tests for libFuzzer script."""
 # pylint: disable=unused-argument
 
-from future import standard_library
-standard_library.install_aliases()
-
 import copy
 import os
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest

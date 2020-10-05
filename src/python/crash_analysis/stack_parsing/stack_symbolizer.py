@@ -1,4 +1,3 @@
-from __future__ import print_function
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

@@ -14,8 +14,6 @@
 """Tests for process."""
 # pylint: disable=unused-argument
 
-from future import standard_library
-standard_library.install_aliases()
 import mock
 import queue
 import time

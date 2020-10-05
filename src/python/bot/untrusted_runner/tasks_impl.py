@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tasks RPC implementations."""
-from __future__ import absolute_import
 
 from google.protobuf import wrappers_pb2
 from google.protobuf.any_pb2 import Any

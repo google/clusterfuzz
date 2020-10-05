@@ -13,9 +13,6 @@
 # limitations under the License.
 """Generic helper functions useful in tests."""
 
-from future import standard_library
-standard_library.install_aliases()
-
 import atexit
 import datetime
 import io
