@@ -26,9 +26,9 @@ from system import environment
 
 BATTERY_CHARGE_INTERVAL = 30 * 60  # 0.5 hour.
 BATTERY_CHECK_INTERVAL = 15 * 60  # 15 minutes.
-EXPECTED_BATTERY_LEVEL = 80  # A percentage.
+EXPECTED_BATTERY_LEVEL = 60  # A percentage.
 EXPECTED_BATTERY_TEMPERATURE = 35.0  # Degrees Celsius.
-LOW_BATTERY_LEVEL_THRESHOLD = 40  # A percentage.
+LOW_BATTERY_LEVEL_THRESHOLD = 30  # A percentage.
 MAX_BATTERY_TEMPERATURE_THRESHOLD = 37.0  # Don't change this or battery swells.
 
 LAST_BATTERY_CHECK_TIME_KEY = 'android_last_battery_check'
