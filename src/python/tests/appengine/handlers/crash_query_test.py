@@ -75,13 +75,14 @@ class CrashQueryTest(unittest.TestCase):
   def test_duplicate(self):
     """Test duplicate."""
     expected_crash_state = 'Foo\nBar\nMain\n'
-    data_types.Testcase(
+    t = data_types.Testcase(
         open=True,
         status='Processed',
         crash_state=expected_crash_state,
         crash_type='Heap-buffer-overflow\nWRITE 4',
         project_name='project',
-        security_flag=True).put()
+        security_flag=True)
+    t.put()
 
     response = self.app.post_json(
         '/', {
@@ -91,6 +92,41 @@ class CrashQueryTest(unittest.TestCase):
         })
     self.assertEqual({
         'result': 'duplicate',
+        'duplicate_id': 1,
+        'type': 'Heap-buffer-overflow\nWRITE 4',
+        'state': expected_crash_state,
+        'security': True,
+    }, response.json)
+
+    t.group_bug_information = 123
+    t.put()
+    response = self.app.post_json(
+        '/', {
+            'project': 'project',
+            'fuzz_target': 'target',
+            'stacktrace': TEST_STACKTRACE_OVERFLOW,
+        })
+    self.assertEqual({
+        'result': 'duplicate',
+        'duplicate_id': 1,
+        'bug_id': '123',
+        'type': 'Heap-buffer-overflow\nWRITE 4',
+        'state': expected_crash_state,
+        'security': True,
+    }, response.json)
+
+    t.bug_information = '1337'
+    t.put()
+    response = self.app.post_json(
+        '/', {
+            'project': 'project',
+            'fuzz_target': 'target',
+            'stacktrace': TEST_STACKTRACE_OVERFLOW,
+        })
+    self.assertEqual({
+        'result': 'duplicate',
+        'duplicate_id': 1,
+        'bug_id': '1337',
         'type': 'Heap-buffer-overflow\nWRITE 4',
         'state': expected_crash_state,
         'security': True,

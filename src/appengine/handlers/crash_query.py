@@ -47,15 +47,24 @@ class Handler(base_handler.Handler):
     security_flag = crash_analyzer.is_security_issue(
         state.crash_stacktrace, state.crash_type, state.crash_address)
 
-    if data_handler.find_testcase(project, state.crash_type, state.crash_state,
-                                  security_flag):
-      new_or_duplicate = 'duplicate'
-    else:
-      new_or_duplicate = 'new'
-
-    return self.render_json({
-        'result': new_or_duplicate,
+    result = {
         'state': state.crash_state,
         'type': state.crash_type,
         'security': security_flag,
-    })
+    }
+
+    duplicate_testcase = data_handler.find_testcase(
+        project, state.crash_type, state.crash_state, security_flag)
+    if duplicate_testcase:
+      result['result'] = 'duplicate'
+      result['duplicate_id'] = duplicate_testcase.key.id()
+
+      bug_id = (
+          duplicate_testcase.bug_information or
+          duplicate_testcase.group_bug_information)
+      if bug_id:
+        result['bug_id'] = str(bug_id)
+    else:
+      result['result'] = 'new'
+
+    return self.render_json(result)
