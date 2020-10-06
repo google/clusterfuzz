@@ -1,8 +1,15 @@
 Change Log
 ==========
 
+## Version 2.2.0
+- Replaced webapp2 usage with Flask.
+- Improved Syzkaller support.
+- Added support for generic blackbox fuzzers.
+- Removed remaining Python 2 compatibility code.
+- Various bug fixes.
+
 ## Version 2.1.0
-- Jobs page is now paginated. 
+- Jobs page is now paginated.
   - Next version requires new DB migrations due to addition of search keywords in Jobs.
   - To perform migrations, please use:
 ```
