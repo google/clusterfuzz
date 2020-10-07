@@ -13,8 +13,6 @@
 # limitations under the License.
 """Functions for process management."""
 
-from past.builtins import basestring
-
 import copy
 import datetime
 import os
@@ -602,7 +600,7 @@ def terminate_process(process_id, kill=False):
 
 def terminate_processes_matching_names(match_strings, kill=False):
   """Terminates processes matching particular names (case sensitive)."""
-  if isinstance(match_strings, basestring):
+  if isinstance(match_strings, str):
     match_strings = [match_strings]
 
   for process in psutil.process_iter():
@@ -627,7 +625,7 @@ def terminate_processes_matching_cmd_line(match_strings,
     # as paths to build directories.
     exclude_strings = ['butler.py', 'reproduce.sh']
 
-  if isinstance(match_strings, basestring):
+  if isinstance(match_strings, str):
     match_strings = [match_strings]
 
   for process in psutil.process_iter():

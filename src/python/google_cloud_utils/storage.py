@@ -13,8 +13,6 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
-from past.builtins import basestring
-
 import copy
 import datetime
 import json
@@ -235,7 +233,7 @@ class GcsProvider(StorageProvider):
       if metadata:
         blob.metadata = metadata
 
-      if isinstance(local_path_or_handle, basestring):
+      if isinstance(local_path_or_handle, str):
         blob.upload_from_filename(local_path_or_handle)
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
@@ -463,7 +461,7 @@ class FileSystemProvider(StorageProvider):
     """Copy file from a local path to a remote path."""
     fs_path = self.convert_path_for_write(remote_path)
 
-    if isinstance(local_path_or_handle, basestring):
+    if isinstance(local_path_or_handle, str):
       if not shell.copy_file(local_path_or_handle, fs_path):
         return False
     else:
@@ -775,7 +773,7 @@ def copy_file_to(local_file_path_or_handle,
                  cloud_storage_file_path,
                  metadata=None):
   """Copy local file to a cloud storage path."""
-  if (isinstance(local_file_path_or_handle, basestring) and
+  if (isinstance(local_file_path_or_handle, str) and
       not os.path.exists(local_file_path_or_handle)):
     logs.log_error('Local file %s not found.' % local_file_path_or_handle)
     return False
