@@ -14,8 +14,6 @@
 """common.py contains common methods and variables that are used by multiple
    commands."""
 
-from past.builtins import basestring
-
 import datetime
 import io
 import os
@@ -249,7 +247,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
 
   # Some platforms can specify multiple pip platforms (e.g. macOS has multiple
   # SDK versions).
-  if isinstance(pip_platform, basestring):
+  if isinstance(pip_platform, str):
     pip_platforms = (pip_platform,)
   else:
     assert isinstance(pip_platform, tuple)

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Blobs handling."""
 
-from past.builtins import basestring
-
 import os
 import re
 import uuid
@@ -151,7 +149,7 @@ def write_blob(file_handle_or_path):
   if storage.get(storage.get_cloud_storage_file_path(blobs_bucket, blob_name)):
     raise BlobsException('UUID collision found: %s' % blob_name)
 
-  if isinstance(file_handle_or_path, basestring):
+  if isinstance(file_handle_or_path, str):
     filename = os.path.basename(file_handle_or_path)
   else:
     filename = file_handle_or_path.name

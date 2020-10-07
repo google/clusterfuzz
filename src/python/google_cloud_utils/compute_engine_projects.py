@@ -13,8 +13,6 @@
 # limitations under the License.
 """Load project data."""
 
-from past.builtins import basestring
-
 import os
 import six
 
@@ -64,7 +62,7 @@ def _process_instance_template(instance_template):
     # If the item value is a relative file path specified using the file://
     # scheme, then subsitute it with the actual file content. This is needed
     # since compute engine instance manager cannot read files from our repo.
-    if (isinstance(item['value'], basestring) and
+    if (isinstance(item['value'], str) and
         item['value'].startswith(FILE_SCHEME)):
       file_path = item['value'][len(FILE_SCHEME):]
       with open(

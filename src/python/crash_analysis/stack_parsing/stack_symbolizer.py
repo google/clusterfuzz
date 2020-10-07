@@ -28,8 +28,6 @@
 # Disable all pylint warnings/errors as this is based on external code.
 # pylint: disable-all
 
-from past.builtins import cmp
-
 import os
 import re
 import six

@@ -13,8 +13,6 @@
 # limitations under the License.
 """Handler used for setting up oss-fuzz jobs."""
 
-from past.builtins import basestring
-
 import base64
 import copy
 import json
@@ -253,7 +251,7 @@ def _process_sanitizers_field(sanitizers):
   #   - address
   #   - memory
   for sanitizer in sanitizers:
-    if isinstance(sanitizer, basestring):
+    if isinstance(sanitizer, str):
       processed_sanitizers[sanitizer] = {}
     elif isinstance(sanitizer, dict):
       for key, value in six.iteritems(sanitizer):
@@ -411,7 +409,7 @@ def ccs_from_info(info):
     field_value = info.get(field_name)
     if allow_list and isinstance(field_value, list):
       return field_value
-    if isinstance(field_value, basestring):
+    if isinstance(field_value, str):
       return [field_value]
 
     raise ProjectSetupError(

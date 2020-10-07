@@ -13,8 +13,6 @@
 # limitations under the License.
 """Revisions related helper functions."""
 
-from past.builtins import basestring
-
 import ast
 import base64
 import bisect
@@ -56,7 +54,7 @@ def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
 
   for key, value in six.iteritems(deps_dict):
     url = rev = None
-    if isinstance(value, basestring):
+    if isinstance(value, str):
       url, _, rev = value.partition('@')
     elif isinstance(value, dict):
       if 'revision' in value:
