@@ -515,7 +515,7 @@ def reset_usb():
     return False
 
   # Wait for usb to recover.
-  wait_for_device()
+  wait_for_device(recover=False)
   return True
 
 
@@ -682,9 +682,9 @@ def time_since_last_reboot():
     return float('inf')
 
 
-def wait_for_device():
+def wait_for_device(recover=True):
   """Waits indefinitely for the device to come online."""
-  run_command('wait-for-device', timeout=RECOVERY_CMD_TIMEOUT)
+  run_command('wait-for-device', timeout=RECOVERY_CMD_TIMEOUT, recover=recover)
 
 
 def wait_until_fully_booted():
