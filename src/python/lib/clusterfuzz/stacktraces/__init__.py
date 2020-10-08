@@ -26,7 +26,7 @@ from .constants import *
 
 
 class CrashInfo:
-  """Base StackAnalyzer state."""
+  """Parsed crash information."""
 
   def __init__(self):
     self.crash_type = ''
