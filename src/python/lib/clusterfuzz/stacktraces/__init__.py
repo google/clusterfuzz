@@ -92,11 +92,12 @@ class StackParser:
   """Stack parser."""
 
   def __init__(self,
-               custom_stack_frame_ignore_regexes=None,
+               symbolized=True,
                detect_ooms_and_hangs=True,
                detect_v8_runtime_errors=False,
-               symbolized=True,
-               fuzz_target=None):
+               custom_stack_frame_ignore_regexes=None,
+               fuzz_target=None,
+               include_ubsan=True):
 
     if not custom_stack_frame_ignore_regexes:
       custom_stack_frame_ignore_regexes = []
@@ -112,6 +113,7 @@ class StackParser:
     self.detect_v8_runtime_errors = detect_v8_runtime_errors
     self.symbolized = symbolized
     self.fuzz_target = fuzz_target
+    self.include_ubsan = include_ubsan
 
   def ignore_stack_frame(self, stack_frame):
     """Return true if stack frame should not used in determining the
@@ -364,9 +366,6 @@ class StackParser:
     state.is_kasan = 'KASAN' in stacktrace
     state.is_golang = '.go:' in stacktrace
     state.is_python = '.py", line' in stacktrace
-    # TODO(ochang): Move this check out.
-    ubsan_disabled = 'halt_on_error=0' in environment.get_value(
-        'UBSAN_OPTIONS', '')
 
     split_crash_stacktrace = stacktrace.splitlines()
 
@@ -472,7 +471,7 @@ class StackParser:
             reset=True)
 
       # UndefinedBehavior Sanitizer VPTR (bad-cast) crash.
-      if not state.crash_type and not ubsan_disabled:
+      if not state.crash_type and self.include_ubsan:
         ubsan_vptr_match = self.update_state_on_match(
             UBSAN_VPTR_REGEX,
             line,
@@ -540,7 +539,7 @@ class StackParser:
 
       # Other UndefinedBehavior Sanitizer crash.
       ubsan_runtime_match = UBSAN_RUNTIME_ERROR_REGEX.match(line)
-      if ubsan_runtime_match and not state.crash_type and not ubsan_disabled:
+      if ubsan_runtime_match and not state.crash_type and self.include_ubsan:
         reason = ubsan_runtime_match.group(2)
         state.crash_type = 'UNKNOWN'
 

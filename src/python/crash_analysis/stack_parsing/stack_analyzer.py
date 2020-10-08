@@ -67,12 +67,16 @@ def get_crash_data(crash_data,
         (not redzone_size or
          redzone_size <= MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS))
 
+  include_ubsan = 'halt_on_error=0' not in environment.get_value(
+      'UBSAN_OPTIONS', '')
+
   stack_parser = stacktraces.StackParser(
-      custom_stack_frame_ignore_regexes=custom_stack_frame_ignore_regexes,
+      symbolized=symbolize_flag or already_symbolized,
       detect_ooms_and_hangs=detect_ooms_and_hangs,
       detect_v8_runtime_errors=detect_v8_runtime_errors,
+      custom_stack_frame_ignore_regexes=custom_stack_frame_ignore_regexes,
       fuzz_target=fuzz_target,
-      symbolized=symbolize_flag or already_symbolized)
+      include_ubsan=include_ubsan)
 
   result = stack_parser.parse(crash_stacktrace_without_inlines)
 
