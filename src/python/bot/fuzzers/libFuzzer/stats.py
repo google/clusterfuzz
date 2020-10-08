@@ -18,7 +18,7 @@ import re
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
-from crash_analysis.stack_parsing import stack_analyzer
+from lib.clusterfuzz.stacktraces import constants as stacktrace_constants
 from fuzzing import strategy
 from metrics import logs
 from system import environment
@@ -250,7 +250,7 @@ def parse_performance_features(log_lines, strategies, arguments):
       continue
 
     if (LIBFUZZER_OOM_TESTCASE_REGEX.match(line) or
-        stack_analyzer.OUT_OF_MEMORY_REGEX.match(line)):
+        stacktrace_constants.OUT_OF_MEMORY_REGEX.match(line)):
       stats['oom_count'] = 1
       continue
 
@@ -272,7 +272,7 @@ def parse_performance_features(log_lines, strategies, arguments):
       stats['edges_total'] = int(match.group(2))
 
     if (LIBFUZZER_TIMEOUT_TESTCASE_REGEX.match(line) or
-        stack_analyzer.LIBFUZZER_TIMEOUT_REGEX.match(line)):
+        stacktrace_constants.LIBFUZZER_TIMEOUT_REGEX.match(line)):
       stats['timeout_count'] = 1
       continue
 
