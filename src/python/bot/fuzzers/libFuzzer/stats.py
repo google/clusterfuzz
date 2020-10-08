@@ -18,8 +18,8 @@ import re
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
-from lib.clusterfuzz.stacktraces import constants as stacktrace_constants
 from fuzzing import strategy
+from lib.clusterfuzz.stacktraces import constants as stacktrace_constants
 from metrics import logs
 from system import environment
 
