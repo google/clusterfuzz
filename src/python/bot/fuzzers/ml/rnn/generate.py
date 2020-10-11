@@ -73,7 +73,7 @@ def main(args):
   # Restore the model.
   # Build the RNN model.
   model = utils.build_model(
-      constants.HIDDEN_LAYER_SIZE * constants.HIDDEN_STATE_SIZE,
+      hidden_layer_size * hidden_state_size,
       constants.DROPOUT_PKEEP, constants.BATCH_SIZE, False)
   model.load_weights(model_path)
   model.build(tf.TensorShape([constants.BATCH_SIZE, None]))
@@ -135,8 +135,7 @@ def main(args):
 
       # Use existing input length if possible, but make sure it is between
       # min_length and max_length.
-      new_file_length = max(min_length, min(corpus_files_length[i],
-                                            max_length))
+      new_file_length = max(min_length, min(corpus_files_length[i], max_length))
       new_file_byte_array = bytearray(new_files_bytes[i][:new_file_length])
 
       with open(new_file_path, 'wb') as new_file:
