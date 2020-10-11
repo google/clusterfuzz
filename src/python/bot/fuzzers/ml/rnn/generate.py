@@ -72,9 +72,9 @@ def main(args):
 
   # Restore the model.
   # Build the RNN model.
-  model = utils.build_model(
-      hidden_layer_size * hidden_state_size,
-      constants.DROPOUT_PKEEP, constants.BATCH_SIZE, False)
+  model = utils.build_model(hidden_layer_size * hidden_state_size,
+                            constants.DROPOUT_PKEEP, constants.BATCH_SIZE,
+                            False)
   model.load_weights(model_path)
   model.build(tf.TensorShape([constants.BATCH_SIZE, None]))
   model.reset_states()
