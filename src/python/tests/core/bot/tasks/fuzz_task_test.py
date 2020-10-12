@@ -35,10 +35,10 @@ from bot.tasks import fuzz_task
 from bot.untrusted_runner import file_host
 from build_management import build_manager
 from chrome import crash_uploader
-from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
 from datastore import data_types
 from google_cloud_utils import big_query
+from lib.clusterfuzz import stacktraces
 from metrics import monitor
 from metrics import monitoring_metrics
 from system import environment
@@ -284,7 +284,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     self.mock.get_command_line_for_application.return_value = 'cmd'
-    dummy_state = stack_analyzer.StackAnalyzerState()
+    dummy_state = stacktraces.CrashInfo()
     dummy_state.crash_type = 'type'
     dummy_state.crash_address = 'address'
     dummy_state.crash_state = 'state'
@@ -681,7 +681,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.mock.get_real_revision.return_value = 'this.is.fake.ver'
 
     self.mock.get_command_line_for_application.return_value = 'cmd'
-    dummy_state = stack_analyzer.StackAnalyzerState()
+    dummy_state = stacktraces.CrashInfo()
     dummy_state.crash_type = 'type'
     dummy_state.crash_address = 'address'
     dummy_state.crash_state = state

@@ -28,8 +28,8 @@ from bot.fuzzers.libFuzzer import engine as libfuzzer_engine
 from bot.untrusted_runner import file_host
 from build_management import build_manager
 from crash_analysis.crash_result import CrashResult
-from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_types
+from lib.clusterfuzz import stacktraces
 from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -347,13 +347,13 @@ class GetCrashOutputTest(unittest.TestCase):
 def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-argument
   """Mock get_crash_data."""
   if 'crash' in output:
-    stack_analyzer_state = stack_analyzer.StackAnalyzerState()
+    stack_analyzer_state = stacktraces.CrashInfo()
     stack_analyzer_state.crash_state = 'state'
     stack_analyzer_state.crash_type = 'Null-dereference'
     stack_analyzer_state.crash_stacktrace = output
     return stack_analyzer_state
 
-  return stack_analyzer.StackAnalyzerState()
+  return stacktraces.CrashInfo()
 
 
 @test_utils.with_cloud_emulators('datastore')
