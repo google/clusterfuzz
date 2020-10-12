@@ -300,13 +300,13 @@ class StackParser:
       state.crash_state = state.crash_state.replace(JNI_ERROR_STRING, 'JNI:')
 
     if self.symbolized:
-      # 1. Normalize addresses and numbers in crash_state.
+      # Normalize addresses and numbers in crash_state.
       # Skip normalization for V8 correctness failures, which use the crash
       # state to store metadata containing numbers.
       if state.crash_type not in ['V8 correctness failure']:
         state.crash_state = filter_addresses_and_numbers(state.crash_state)
 
-      # 2. Truncate each line in the crash state to avoid excessive length.
+      # Truncate each line in the crash state to avoid excessive length.
       original_crash_state = state.crash_state
       state.crash_state = ''
       for line in original_crash_state.splitlines():
@@ -317,19 +317,19 @@ class StackParser:
         else:
           state.crash_state += line[:LINE_LENGTH_CAP] + '\n'
 
-    # 3. Don't return an empty crash state if we have a crash type. Either set
+    # Don't return an empty crash state if we have a crash type. Either set
     # to NULL or use the crashing process name if available.
     if state.crash_type and not state.crash_state.strip():
       state.crash_state = state.process_name
 
-    # 4. For timeout, OOMs, const-input-overwrites in fuzz targets, force use of
+    # For timeout, OOMs, const-input-overwrites in fuzz targets, force use of
     # fuzz target name since stack itself is not usable for deduplication.
     if self.fuzz_target and state.crash_type in [
         'Out-of-memory', 'Timeout', 'Overwrites-const-input'
     ]:
       state.crash_state = self.fuzz_target
 
-    # 5. Add a trailing \n if it does not exist in crash state.
+    # Add a trailing \n if it does not exist in crash state.
     if (state.crash_state and state.crash_state != 'NULL' and
         state.crash_state[-1] != '\n'):
       state.crash_state += '\n'

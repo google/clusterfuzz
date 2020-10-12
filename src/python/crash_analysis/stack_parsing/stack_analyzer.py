@@ -21,6 +21,22 @@ from system import environment
 MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS = 64
 
 
+def linkify_android_stacktrace(crash_info):
+  """Linkify Android stacktrace."""
+  # Only get repo.prop if we have an Android kernel or KASAN crash
+  android_kernel_prefix, android_kernel_hash = \
+     android_kernel.get_kernel_prefix_and_full_hash()
+
+  # Linkify only if we are Android kernel.
+  if android_kernel_prefix and android_kernel_hash:
+    temp_crash_stacktrace = ''
+    for line in crash_info.crash_stacktrace.splitlines():
+      temp_crash_stacktrace += android_kernel.get_kernel_stack_frame_link(
+          line, android_kernel_prefix, android_kernel_hash) + '\n'
+
+    crash_info.crash_stacktrace = temp_crash_stacktrace
+
+
 def get_crash_data(crash_data,
                    symbolize_flag=True,
                    fuzz_target=None,
@@ -87,17 +103,6 @@ def get_crash_data(crash_data,
   # Linkify Android stacktrace.
   if environment.is_android() and (result.found_android_kernel_crash or
                                    result.is_kasan):
-    # Only get repo.prop if we have an Android kernel or KASAN crash
-    android_kernel_prefix, android_kernel_hash = \
-       android_kernel.get_kernel_prefix_and_full_hash()
-
-    # Linkify only if we are Android kernel.
-    if android_kernel_prefix and android_kernel_hash:
-      temp_crash_stacktrace = ''
-      for line in result.crash_stacktrace.splitlines():
-        temp_crash_stacktrace += android_kernel.get_kernel_stack_frame_link(
-            line, android_kernel_prefix, android_kernel_hash) + '\n'
-
-      result.crash_stacktrace = temp_crash_stacktrace
+    linkify_android_stacktrace(result)
 
   return result
