@@ -177,12 +177,20 @@ class IssueTrackerManager(object):
 
   def _create(self, issue, send_email=True):
     """Create an issue and optionally send update notification over email."""
+    # Some monorail projects requiry a priority label, and setting one is
+    # generally harmless for new issues. Include a default Pri-1 if nothing else
+    # is specified.
+    labels = issue.labels
+    if not any([label.lower().startswith('pri-') for label in labels]):
+      labels.append('Pri-1')
+
+    # Prepare the request.
     cc = [{'name': user} for user in issue.cc]
     body = {
         'cc': cc,
         'components': issue.components,
         'description': issue.body,
-        'labels': issue.labels,
+        'labels': labels,
         'projectId': self.project_name,
         'status': issue.status,
         'summary': issue.summary,
