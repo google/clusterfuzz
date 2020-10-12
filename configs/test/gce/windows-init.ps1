@@ -31,7 +31,7 @@ $nfsVolume = 'cfvolume'
 $nfsRoot = If (Test-Connection $nfsHost) {'X:\'} Else {''}
 
 $registrySetupFilePath = 'c:\registry.setup'
-$packageSetupFilePath = 'c:\package.setup'
+$packageSetupFilePath = 'c:\package.setup.1'
 
 # Create clusterfuzz admin account.
 $domain = 'CLUSTERFUZZ-WIN'
