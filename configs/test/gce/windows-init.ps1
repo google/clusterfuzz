@@ -31,7 +31,7 @@ $nfsVolume = 'cfvolume'
 $nfsRoot = If (Test-Connection $nfsHost) {'X:\'} Else {''}
 
 $registrySetupFilePath = 'c:\registry.setup'
-$packageSetupFilePath = 'c:\package.setup'
+$packageSetupFilePath = 'c:\package.setup.1'
 
 # Create clusterfuzz admin account.
 $domain = 'CLUSTERFUZZ-WIN'
@@ -63,7 +63,7 @@ setx /M PYTHONIOENCODING "UTF-8"
 setx /M RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR "0.9"
 
 # Set startup script contents.
-$s = "if not exist $registrySetupFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python37;c:\python27;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
+$s = "if not exist $registrySetupFilePath ( EXIT )`nw32tm /resync`nnetsh winhttp import proxy source=ie`nnfsadmin client config protocol=tcp+udp UseReservedPorts=yes`nnfsadmin client stop`nnfsadmin client start`nset NFS_HOST=$nfsHost`nset NFS_VOLUME=$nfsVolume`nset NFS_ROOT=$nfsRoot`nmount -o anon -o nolock -o retry=10 $nfsHost`:/$nfsVolume $nfsRoot`nnet start w32time`nw32tm /resync`nset PREEMPTIBLE=$preemptible`nset QUEUE_OVERRIDE=$queueOverride`nset USER=bot`nset BOT_TMPDIR=c:\tmp`nset PYTHONPATH=c:\clusterfuzz\src`nset ROOT_DIR=c:\clusterfuzz`nset PATH=c:\java\bin;c:\python37;c:\python27;c:\Windows\System32;c:\nodejs;c:\Program Files (x86)\Windows Kits\10\Debuggers\x64;c:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;%PATH%`nc: `ncd \ `ncd clusterfuzz\src\python\bot\startup `npython -W ignore run.py"
 Set-Content c:\startup.bat $s
 
 if (!(Test-Path ($packageSetupFilePath))) {
@@ -99,16 +99,30 @@ if (!(Test-Path ($fileName))) {
 }
 
 # Download Visual C++ 2013 redistributable package (64-bit).
-$fileName = "$tmp\vcredist_x64.exe"
+$fileName = "$tmp\vcredist_2013_x64.exe"
 if (!(Test-Path ($fileName))) {
-  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_x64.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_2013_x64.exe", $fileName)
   cmd /c $fileName /q
 }
 
 # Download Visual C++ 2013 redistributable package (32-bit).
-$fileName = "$tmp\vcredist_x86.exe"
+$fileName = "$tmp\vcredist_2013_x86.exe"
 if (!(Test-Path ($fileName))) {
-  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_x86.exe", $fileName)
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_2013_x86.exe", $fileName)
+  cmd /c $fileName /q
+}
+
+# Download Visual C++ 2015/2017/2019 redistributable package (64-bit).
+$fileName = "$tmp\vcredist_2015_x64.exe"
+if (!(Test-Path ($fileName))) {
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_2015_x64.exe", $fileName)
+  cmd /c $fileName /q
+}
+
+# Download Visual C++ 2015/2017/2019 redistributable package (32-bit).
+$fileName = "$tmp\vcredist_2015_x86.exe"
+if (!(Test-Path ($fileName))) {
+  $webClient.DownloadFile("https://commondatastorage.googleapis.com/clusterfuzz-data/vcredist_2015_x86.exe", $fileName)
   cmd /c $fileName /q
 }
 

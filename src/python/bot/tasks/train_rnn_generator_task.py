@@ -18,10 +18,9 @@ import os
 import sys
 
 from bot.fuzzers.ml.rnn import constants
-from fuzzing import corpus_manager
+from bot.tasks import ml_train_utils
 from google_cloud_utils import storage
 from metrics import logs
-from system import archive
 from system import environment
 from system import new_process
 from system import shell
@@ -85,47 +84,6 @@ def get_last_saved_model(model_directory):
   return model_paths
 
 
-def get_corpus(corpus_directory, fuzzer_name):
-  """Get corpus directory.
-
-  This function will download latest corpus backup file from GCS, unzip
-  the file and put them in corpus directory.
-
-  Args:
-    directory: The directory to place corpus.
-    fuzzer_name: Fuzzer name, e.g. libpng_read_fuzzer, xml_parser_fuzzer, etc.
-
-  Returns:
-    True if corpus can be acquired, False otherwise.
-  """
-  # e.g. clusterfuzz-libfuzzer-backup
-  backup_bucket_name = environment.get_value('BACKUP_BUCKET')
-
-  # e.g. libfuzzer
-  corpus_fuzzer_name = environment.get_value('CORPUS_FUZZER_NAME_OVERRIDE')
-
-  # Get GCS backup path.
-  gcs_backup_path = corpus_manager.gcs_url_for_backup_file(
-      backup_bucket_name, corpus_fuzzer_name, fuzzer_name,
-      corpus_manager.LATEST_BACKUP_TIMESTAMP)
-
-  # Get local backup path.
-  local_backup_name = os.path.basename(gcs_backup_path)
-  local_backup_path = os.path.join(corpus_directory, local_backup_name)
-
-  # Download latest backup.
-  if not storage.copy_file_from(gcs_backup_path, local_backup_path):
-    logs.log_error(
-        'Failed to download corpus from GCS bucket %s.' % gcs_backup_path)
-    return False
-
-  # Extract corpus from zip file.
-  archive.unpack(local_backup_path, corpus_directory)
-  shell.remove_file(local_backup_path)
-
-  return True
-
-
 def get_model_script_path():
   """Get model training script path."""
   return os.path.join(ML_RNN_SCRIPT_DIR, constants.TRAINING_SCRIPT_NAME)
@@ -144,19 +102,6 @@ def get_model_log_directory(directory, fuzzer_name):
 def get_model_files_directory(directory, fuzzer_name):
   """Get the directory to save model files."""
   return os.path.join(directory, fuzzer_name + MODEL_DIR_SUFFIX)
-
-
-def get_gcs_model_directory(fuzzer_name):
-  """Get gcs bucket path to store latest model."""
-  # e.g. clusterfuzz-corpus
-  model_bucket_name = environment.get_value('CORPUS_BUCKET')
-  if not model_bucket_name:
-    return None
-
-  gcs_model_directory = 'gs://%s/%s/%s' % (
-      model_bucket_name, constants.RNN_MODEL_NAME, fuzzer_name)
-
-  return gcs_model_directory
 
 
 def upload_model_to_gcs(model_directory, fuzzer_name):
@@ -179,7 +124,8 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
   latest_index_file = model_paths['index']
 
   # Get GCS model path.
-  gcs_model_directory = get_gcs_model_directory(fuzzer_name)
+  gcs_model_directory = ml_train_utils.get_gcs_model_directory(
+      constants.RNN_MODEL_NAME, fuzzer_name)
   if not gcs_model_directory:
     logs.log_error('Failed to upload model: cannot get GCS model bucket.')
     return
@@ -287,7 +233,7 @@ def execute_task(fuzzer_name, job_type):
 
   logs.log('Downloading corpus backup for %s.' % fuzzer_name)
 
-  if not get_corpus(corpus_directory, fuzzer_name):
+  if not ml_train_utils.get_corpus(corpus_directory, fuzzer_name):
     logs.log_error('Failed to download corpus backup for %s.' % fuzzer_name)
     return
 
