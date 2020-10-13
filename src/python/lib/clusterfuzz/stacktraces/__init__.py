@@ -56,6 +56,7 @@ class CrashInfo:
     self.fatal_error_occurred = False
 
     self.is_kasan = False
+    self.is_lkl = False
     self.is_golang = False
     self.is_python = False
     self.found_python_crash = False
@@ -359,13 +360,27 @@ class StackParser:
 
     return state
 
+  def remove_lkl_kernel_times(self, crash_data):
+    """Filter kernel time from crash_data if LKL."""
+    result = ''
+    for line in crash_data.splitlines():
+      result += ANDROID_KERNEL_TIME_REGEX.sub('', line) + '\n'
+    return result
+
   def parse(self, stacktrace: str) -> CrashInfo:
     """Parse a stacktrace."""
     state = CrashInfo()
     state.crash_stacktrace = stacktrace
     state.is_kasan = 'KASAN' in stacktrace
+    state.is_lkl = 'Linux Kernel Library Stack Trace:' in stacktrace
     state.is_golang = '.go:' in stacktrace
     state.is_python = '.py", line' in stacktrace
+
+    # For Android LKL (and potentially kernel output), the KASAN crash may start
+    # with the time since boot.  We need to remove this so that our regexes
+    # match.
+    if state.is_lkl:
+      stacktrace = self.remove_lkl_kernel_times(stacktrace)
 
     split_crash_stacktrace = stacktrace.splitlines()
 
@@ -389,10 +404,13 @@ class StackParser:
           continue
 
       # Assertions always come first, before the actual crash stacktrace.
-      self.match_assert(line, state, ASSERT_REGEX)
-      self.match_assert(line, state, ASSERT_REGEX_GOOGLE, group=2)
-      self.match_assert(line, state, ASSERT_REGEX_GLIBC)
-      self.match_assert(line, state, RUST_ASSERT_REGEX)
+      # However if we already have a kernel crash, we don't want to
+      # replace it with the ASSERT.
+      if state.crash_type.startswith('Kernel failure'):
+        self.match_assert(line, state, ASSERT_REGEX)
+        self.match_assert(line, state, ASSERT_REGEX_GOOGLE, group=2)
+        self.match_assert(line, state, ASSERT_REGEX_GLIBC)
+        self.match_assert(line, state, RUST_ASSERT_REGEX)
 
       # ASSERT_NOT_REACHED prints a single line error then triggers a crash. We
       # set the crash state here, but look for the stack after a crash on an
