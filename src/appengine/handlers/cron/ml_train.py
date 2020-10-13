@@ -14,11 +14,16 @@
 """Handler that schedules ML train jobs."""
 
 from base import tasks
-from base import utils
 from datastore import data_types
 from datastore import fuzz_target_utils
 from handlers import base_handler
 from libs import handler
+from metrics import logs
+
+MODEL_NAME_TO_TASK = {
+    'gradientfuzz': 'train_gradientfuzz',
+    'rnn_generator': 'train_rnn_generator',
+}
 
 
 class Handler(base_handler.Handler):
@@ -29,17 +34,18 @@ class Handler(base_handler.Handler):
     """Handle a GET request."""
     for job in data_types.Job.query():
 
-      if not utils.string_is_true(
-          job.get_environment().get('USE_CORPUS_FOR_ML')):
+      models = job.get_environment().get('ML_MODELS_TO_USE')
+      if not models:
         continue
 
       task_list = []
-      if utils.string_is_true(job.get_environment().get('USE_GRADIENTFUZZ')):
-        task_list.append('train_gradientfuzz')
-      if utils.string_is_true(job.get_environment().get('USE_RNN_GENERATOR')):
-        task_list.append('train_rnn_generator')
+      for model_name in models.split(','):
+        try:
+          task_list.append(MODEL_NAME_TO_TASK[model_name.strip()])
+        except KeyError:
+          logs.log_error(f'Invalid ML model {model_name} for job {job.name}.')
 
-      if len(task_list) == 0:
+      if not task_list:
         continue
 
       target_jobs = list(fuzz_target_utils.get_fuzz_target_jobs(job=job.name))
