@@ -14,7 +14,6 @@
 """Handler that schedules ML train jobs."""
 
 from base import tasks
-from base import utils
 from datastore import data_types
 from datastore import fuzz_target_utils
 from handlers import base_handler
