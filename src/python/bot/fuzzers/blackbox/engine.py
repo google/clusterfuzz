@@ -16,8 +16,8 @@
 import os
 
 from bot import testcase_manager
-from bot.fuzzers import engine
 from crash_analysis.stack_parsing import stack_analyzer
+from lib.clusterfuzz.fuzz import engine
 from system import environment
 from system import new_process
 from system import shell

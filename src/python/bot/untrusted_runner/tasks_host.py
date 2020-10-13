@@ -22,10 +22,10 @@ import six
 from . import host
 
 from bot import testcase_manager
-from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
 from bot.untrusted_runner import file_host
 from datastore import data_types
+from lib.clusterfuzz.fuzz import engine
 from protos import untrusted_runner_pb2
 
 

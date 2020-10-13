@@ -19,7 +19,6 @@ import tempfile
 
 from base import utils
 from bot.fuzzers import dictionary_manager
-from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import libfuzzer
 from bot.fuzzers import strategy_selection
@@ -29,6 +28,7 @@ from bot.fuzzers.libFuzzer import fuzzer
 from bot.fuzzers.libFuzzer import stats
 from datastore import data_types
 from fuzzing import strategy
+from lib.clusterfuzz.fuzz import engine
 from metrics import logs
 from metrics import profiler
 from system import environment

@@ -16,11 +16,11 @@
 import os
 import shutil
 
-from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import constants
 from bot.fuzzers.syzkaller import runner
+from lib.clusterfuzz.fuzz import engine
 from metrics import profiler
 from system import environment
 from system import shell

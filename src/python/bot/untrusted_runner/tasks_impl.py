@@ -18,11 +18,11 @@ from google.protobuf.any_pb2 import Any
 import six
 
 from bot import testcase_manager
-from bot.fuzzers import engine
 from bot.tasks import corpus_pruning_task
 from bot.tasks import fuzz_task
 from bot.tasks import minimize_task
 from datastore import data_types
+from lib.clusterfuzz.fuzz import engine
 from protos import untrusted_runner_pb2
 
 

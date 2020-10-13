@@ -25,7 +25,6 @@ from base import errors
 from base import tasks
 from base import utils
 from bot import testcase_manager
-from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers.libFuzzer.engine import LibFuzzerEngine
 from bot.minimizer import basic_minimizers
@@ -45,6 +44,7 @@ from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
 from google_cloud_utils import blobs
+from lib.clusterfuzz.fuzz import engine
 from metrics import logs
 from platforms import android
 from system import environment

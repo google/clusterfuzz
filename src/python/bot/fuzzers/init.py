@@ -13,11 +13,11 @@
 # limitations under the License.
 """Fuzzing engine initialization."""
 
-from bot.fuzzers import engine
 from bot.fuzzers.blackbox import engine as blackbox_engine
 from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
 from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 from bot.fuzzers.syzkaller import engine as syzkaller_engine
+from lib.clusterfuzz.fuzz import engine
 
 
 def run():

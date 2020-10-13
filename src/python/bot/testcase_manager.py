@@ -21,7 +21,6 @@ import re
 import zlib
 
 from base import utils
-from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from build_management import revisions
 from crash_analysis import crash_analyzer
@@ -30,6 +29,7 @@ from crash_analysis.crash_result import CrashResult
 from datastore import data_handler
 from datastore import data_types
 from datastore import ndb_init
+from lib.clusterfuzz.fuzz import engine
 from metrics import fuzzer_logs
 from metrics import fuzzer_stats
 from metrics import logs

@@ -30,7 +30,6 @@ from base import utils
 from bot import testcase_manager
 from bot.fuzzers import builtin
 from bot.fuzzers import builtin_fuzzers
-from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import stats as libfuzzer_stats
@@ -54,6 +53,7 @@ from fuzzing import leak_blacklist
 from google_cloud_utils import big_query
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
+from lib.clusterfuzz.fuzz import engine
 from metrics import fuzzer_logs
 from metrics import fuzzer_stats
 from metrics import logs

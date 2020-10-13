@@ -19,9 +19,9 @@ import re
 import tempfile
 
 from base import utils
-from bot.fuzzers import engine
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import config
+from lib.clusterfuzz.fuzz import engine
 from metrics import logs
 from system import environment
 from system import new_process

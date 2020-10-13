@@ -19,7 +19,7 @@ import re
 
 from base import utils
 from bot.fuzzers import dictionary_manager
-from bot.fuzzers import engine
+from lib.clusterfuzz.fuzz import engine
 from metrics import logs
 from system import environment
 from system import new_process

@@ -11,11 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Fuzzing functions."""
 
-# TODO(ochang): Remove these and package things in a better way.
-import os
-import sys
-os.environ['ROOT_DIR'] = '../../../'
-sys.path.append('../')
-sys.path.append('../../third_party')
-sys.path.append('../../')
+from . import engine
+
+_initialized = False
+
+
+def _initialize():
+  global _initialized
+
+  from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
+  from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
+
+  engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
+  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
+
+  _initialized = True
+
+
+def get_engine(name):
+  if not _initialized:
+    _initialize()
+
+  return engine.get(name)
