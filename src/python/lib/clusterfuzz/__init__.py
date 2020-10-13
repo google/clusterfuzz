@@ -11,11 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# TODO(ochang): Remove these and package things in a better way.
-import os
-import sys
-os.environ['ROOT_DIR'] = '../../../'
-sys.path.append('../')
-sys.path.append('../../third_party')
-sys.path.append('../../')

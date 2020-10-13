@@ -370,11 +370,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'bot.fuzzers.engine.get',
         'bot.fuzzers.engine_common.find_fuzzer_path',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
+        'lib.clusterfuzz.fuzz.engine.get',
         'metrics.logs.log',
     ])
 

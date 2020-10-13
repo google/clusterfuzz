@@ -89,9 +89,9 @@ class ReproduceTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.fuzzers.engine.get',
         'bot.testcase_manager.engine_reproduce',
         'config.local_config.ProjectConfig',
+        'lib.clusterfuzz.fuzz.engine.get',
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
         'local.butler.reproduce._setup_x',
