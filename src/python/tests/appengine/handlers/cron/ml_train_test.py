@@ -36,31 +36,28 @@ class HandlerTest(unittest.TestCase):
         view_func=ml_train.Handler.as_view('/schedule-ml-train-tasks'))
     self.app = webtest.TestApp(flaskapp)
 
-    test_helpers.patch(
-        self, ['base.tasks.add_task', 'handlers.base_handler.Handler.is_cron'])
+    test_helpers.patch(self, [
+        'base.tasks.add_task', 'handlers.base_handler.Handler.is_cron',
+        'metrics.logs.log_error'
+    ])
 
     # Create fake jobs.
     data_types.Job(
         name='libfuzzer_asan',
-        environment_string='USE_CORPUS_FOR_ML = True\n' +
-        'USE_RNN_GENERATOR = True\n').put()
-    data_types.Job(
-        name='libfuzzer_msan',
-        environment_string='USE_CORPUS_FOR_ML = True\n').put()
-    data_types.Job(
-        name='afl_asan',
-        environment_string='USE_CORPUS_FOR_ML = False\n').put()
+        environment_string='ML_MODELS_TO_USE = rnn_generator').put()
+    data_types.Job(name='libfuzzer_msan', environment_string='').put()
+    data_types.Job(name='afl_asan', environment_string='').put()
 
     data_types.Job(
         name='libfuzzer_asan_gradientfuzz',
-        environment_string='USE_CORPUS_FOR_ML = True\n' +
-        'USE_GRADIENTFUZZ = True\n').put()
-
+        environment_string='ML_MODELS_TO_USE = gradientfuzz\n').put()
     data_types.Job(
         name='libfuzzer_asan_all',
         environment_string=(
-            'USE_CORPUS_FOR_ML = True\n' + 'USE_GRADIENTFUZZ = True\n' +
-            'USE_RNN_GENERATOR = True')).put()
+            'ML_MODELS_TO_USE = gradientfuzz, rnn_generator')).put()
+    data_types.Job(
+        name='libfuzzer_asan_invalid',
+        environment_string='ML_MODELS_TO_USE = invalid_model\n').put()
 
     # Create fake fuzzers.
     data_types.Fuzzer(
@@ -118,3 +115,7 @@ class HandlerTest(unittest.TestCase):
         'fake_all_fuzzer',
         'libfuzzer_asan_all',
         queue='ml-jobs-linux')
+
+    # Ensure that we logged an error for the invalid model.
+    self.mock.log_error.assert_called_once_with(
+        'Invalid ML model invalid_model for job libfuzzer_asan_invalid.')
