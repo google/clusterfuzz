@@ -406,7 +406,7 @@ class StackParser:
       # Assertions always come first, before the actual crash stacktrace.
       # However if we already have a kernel crash, we don't want to
       # replace it with the ASSERT.
-      if state.crash_type.startswith('Kernel failure'):
+      if not state.crash_type.startswith('Kernel failure'):
         self.match_assert(line, state, ASSERT_REGEX)
         self.match_assert(line, state, ASSERT_REGEX_GOOGLE, group=2)
         self.match_assert(line, state, ASSERT_REGEX_GLIBC)
