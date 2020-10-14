@@ -17,12 +17,50 @@ import numpy as np
 import os
 import random
 import sys
+import tensorflow as tf
 
 from bot.fuzzers.ml.rnn import constants
 
 
+def build_model(num_rnn_cells, dropout_pkeep, batch_size, debug):
+  """Build the RNN model.
+
+  Since we use the Keras sequential model and we use different batch sizes for
+  train, validation and demo output generation, we use this function to rebatch
+  the model.
+
+  Args:
+    num_rnn_cells: number of RNN cells to use.
+    dropout_pkeep: probability of keeping a node in dropout.
+    batch_size: batch size used by the model layer.
+    debug: if True, print a summary of the model.
+
+  Returns:
+    Keras Sequential RNN model.
+  """
+  dropout_pdrop = 1 - dropout_pkeep
+  model = tf.keras.Sequential([
+      tf.keras.layers.Embedding(
+          constants.ALPHA_SIZE,
+          constants.ALPHA_SIZE,
+          batch_input_shape=[batch_size, None]),
+      tf.keras.layers.GRU(
+          num_rnn_cells,
+          return_sequences=True,
+          stateful=True,
+          dropout=dropout_pdrop),
+      tf.keras.layers.Dense(constants.ALPHA_SIZE),
+  ])
+
+  # Display a summary of the model to debug shapes.
+  if debug:
+    model.summary()
+
+  return model
+
+
 def validate_model_path(model_path):
-  """RNN model consists of three files. This validates if they all exist."""
+  """RNN model consists of two files. This validates if they all exist."""
   model_exists = (
       os.path.exists(model_path + constants.MODEL_DATA_SUFFIX) and
       os.path.exists(model_path + constants.MODEL_INDEX_SUFFIX))

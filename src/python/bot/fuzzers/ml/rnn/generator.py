@@ -53,31 +53,26 @@ def download_model_from_gcs(local_model_directory, fuzzer_name):
   logs.log('GCS model directory for fuzzer %s is %s.' % (fuzzer_name,
                                                          gcs_model_directory))
 
-  # RNN model consists of three files.
-  meta_filename = constants.RNN_MODEL_NAME + constants.MODEL_META_SUFFIX
+  # RNN model consists of two files.
   data_filename = constants.RNN_MODEL_NAME + constants.MODEL_DATA_SUFFIX
   index_filename = constants.RNN_MODEL_NAME + constants.MODEL_INDEX_SUFFIX
 
   # Cloud file paths.
-  gcs_meta_path = '%s/%s' % (gcs_model_directory, meta_filename)
   gcs_data_path = '%s/%s' % (gcs_model_directory, data_filename)
   gcs_index_path = '%s/%s' % (gcs_model_directory, index_filename)
 
   # Check if model exists.
-  if not (storage.exists(gcs_meta_path) and storage.exists(gcs_data_path) and
-          storage.exists(gcs_index_path)):
+  if not (storage.exists(gcs_data_path) and storage.exists(gcs_index_path)):
     logs.log('ML RNN model for fuzzer %s does not exist. Skip generation.' %
              fuzzer_name)
     return False
 
   # Local file paths.
-  local_meta_path = os.path.join(local_model_directory, meta_filename)
   local_data_path = os.path.join(local_model_directory, data_filename)
   local_index_path = os.path.join(local_model_directory, index_filename)
 
   # Download model files.
   result = (
-      storage.copy_file_from(gcs_meta_path, local_meta_path) and
       storage.copy_file_from(gcs_data_path, local_data_path) and
       storage.copy_file_from(gcs_index_path, local_index_path))
 
@@ -97,7 +92,7 @@ def prepare_model_directory(fuzzer_name):
 
   Returns:
     Model path. For example, if `/tmp/model` is the directory containing model
-    files(e.g. rnn.meta), the path should be '/tmp/model/rnn'.
+    files(e.g. rnn.index), the path should be '/tmp/model/rnn'.
   """
   # Get temporary directory.
   temp_directory = environment.get_value('BOT_TMPDIR')
