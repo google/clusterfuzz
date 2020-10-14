@@ -93,15 +93,8 @@ def get_issue_for_testcase(testcase):
   if not issue_tracker:
     return None
 
-  try:
-    issue_id = testcase.bug_information
-    issue = issue_tracker.get_original_issue(issue_id)
-  except:
-    logs.log_error(
-        'Error occurred when fetching issue %s.' % testcase.bug_information)
-    return None
-
-  return issue
+  issue_id = testcase.bug_information
+  return issue_tracker.get_original_issue(issue_id)
 
 
 def get_search_keywords(testcase):
