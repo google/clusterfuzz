@@ -34,9 +34,10 @@ ANDROID_KERNEL_ERROR_REGEX = re.compile(
     r'.*Internal error: (Oops)?( -|:) (BUG|[0-9a-fA-F]+)')
 ANDROID_KERNEL_STACK_FRAME_REGEX = re.compile(
     # e.g. "[ 1998.156940] [<c0667574>] "
-    r'[^(]*\[\<([0-9a-fA-F]+)\>\]\s+'
+    r'[^(]*\[\<([x0-9a-fA-F]+)\>\]\s+'
     # e.g. "(msm_vidc_prepare_buf+0xa0/0x124)"; function (3), offset (4)
     r'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
+ANDROID_KERNEL_TIME_REGEX = re.compile(r'^\[\s*\d+\.\d+\]\s')
 # Parentheses are optional.
 ANDROID_PROCESS_NAME_REGEX = re.compile(r'.*[(](.*)[)]$')
 ANDROID_SEGV_REGEX = re.compile(r'.*signal.*\(SIG.*fault addr ([^ ]*)(.*)')
@@ -370,6 +371,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\_\_hwasan\:\:',
     r'^\_\_hwasan\_',
     r'^\_\_interceptor\_',
+    r'^\_\_kasan\_',
     r'^\_\_libc\_',
     r'^\_\_lsan\:\:',
     r'^\_\_lsan\_',
@@ -511,6 +513,10 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^\<libclang\_rt.asan.so\>',
     r'^\_\_zx\_panic',
     r'^syslog\:\:LogMessage',
+
+    # Android kernel stack frame ignores.
+    r'^print_address_description$',
+    r'^_etext$',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [

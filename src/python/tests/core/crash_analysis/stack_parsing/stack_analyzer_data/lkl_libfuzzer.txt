@@ -1,0 +1,82 @@
+xuanxing@xuanxing:~/Source/Android/_kernels/android12-5.4-lkl/out/android12-5.4-lkl/dist/fuzzers/hid_fuzzer$ ./hid-fuzzer crash-73129fcd9fe8746903460f4b9f9dfdcd208e0fcb 
+[    0.000000] Linux version 5.4.58+ (build-user@build-host) (Android (6794702, based on r399163) clang version 11.0.4 (https://android.googlesource.com/toolchain/llvm-project 87f1315dfbea7c137aa2e6d362dbb457e388158d), GNU ld (GNU Binutils for Debian) 2.34) #1 2020-09-16 22:18:23
+[    0.000000] memblock address range: 0x7f2a8885a000 - 0x7f2a8ba5a000
+[    0.000000] KernelAddressSanitizer initialized
+...
+[    0.044856] Run /init as init process
+INFO: Seed: 3953251032
+INFO: Loaded 1 modules   (7670 inline 8-bit counters): 7670 [0xd825c8, 0xd843be), 
+INFO: Loaded 1 PC tables (7670 PCs): 7670 [0xd843c0,0xda2320), 
+./hid-fuzzer: Running 1 inputs 1 time(s) each.
+Running: crash-73129fcd9fe8746903460f4b9f9dfdcd208e0fcb
+Begin xxx
+VID=0D05, PID=0109, RDESC: 45 bytes, INPUT: 0 byetes
+RDESC::size=45
+00000000: A1 01 85 03 95 01 2A FF 02 82 75 5B 10 15 FF 02 ......*...u[....
+00000010: 19 01 2A FF 02 81 00 C0 05 01 09 80 A1 01 85 81 ..*.............
+00000020: 29 7A B3 81 00 75 06 81 03 C0 06 BC C0          )z...u.......   
+
+INPUT::size=0
+
+[    0.058130] hid-generic 0003:0D05:0109.0001: unknown main item tag 0x1
+[    0.058163] hid-generic 0003:0D05:0109.0001: unknown main item tag 0x0
+[    0.058322] hid-generic 0003:0D05:0109.0001: unsupported Resolution Multiplier 0
+[    0.058568] ==================================================================
+[    0.058593] BUG: KASAN: slab-out-of-bounds in _etext+0x26eda/0x3121c4
+[    0.058608] Write of size 4 at addr 00007f2a8ad06d18 by task kworker/0:1/11
+[    0.058619] 
+[    0.058661] Linux Kernel Library Stack Trace:
+[    0.058680] #0 [<0x000000000062a66a>] print_address_description+0x6a/0x5c0
+[    0.058703] #1 [<0x000000000062ae14>] __kasan_report+0x134/0x190
+[    0.058709] #2 [<0x000000000062a389>] kasan_report+0x9/0x10
+[    0.058719] #3 [<0x000000000062b55f>] __asan_store4+0x6f/0x80
+[    0.058730] #4 [<0x0000000000aa4266>] _etext+0x26eda/0x3121c4
+[    0.058741] #5 [<0x0000000000a8f10c>] _etext+0x11d80/0x3121c4
+[    0.058751] #6 [<0x0000000000a84530>] _etext+0x71a4/0x3121c4
+[    0.058765] #7 [<0x0000000000a85048>] _etext+0x7cbc/0x3121c4
+[    0.058779] #8 [<0x00000000008013f1>] hid_generic_probe+0xa1/0xd0
+[    0.058789] #9 [<0x0000000000a85e08>] _etext+0x8a7c/0x3121c4
+[    0.058802] #10 [<0x0000000000798e95>] really_probe+0x335/0x780
+[    0.058815] #11 [<0x000000000079a146>] __device_attach_driver+0x196/0x220
+[    0.058826] #12 [<0x0000000000795a2d>] bus_for_each_drv+0xfd/0x140
+[    0.058839] #13 [<0x0000000000799489>] __device_attach+0x149/0x1c0
+[    0.058853] #14 [<0x000000000079950e>] device_initial_probe+0xe/0x10
+[    0.058865] #15 [<0x0000000000795ccc>] bus_probe_device+0x5c/0x100
+[    0.058874] #16 [<0x00000000007905b5>] device_add+0xd25/0xfb0
+[    0.058887] #17 [<0x0000000000a869a4>] _etext+0x9618/0x3121c4
+[    0.058900] #18 [<0x0000000000aae488>] _etext+0x310fc/0x3121c4
+[    0.058920] #19 [<0x000000000058e96c>] .str.31+0x1c/0x40
+[    0.059002] #20 [<0x00000000005907d8>] .str.63+0x28/0x60
+[    0.059027] #21 [<0x0000000000596aca>] .str.31+0x1a/0x30
+[    0.059035] #22 [<0x000000000055eb0b>] .str+0x3b/0x40
+[    0.059052] #23 [<0x00007f2a8c591ea7>] 0x7f2a8c591ea7
+[    0.059061] 
+[    0.059068] 
+[    0.059077] 
+[    0.059085] Memory state around the buggy address:
+[    0.059094]  00007f2a8ad06c00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[    0.059106]  00007f2a8ad06c80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[    0.059115] >00007f2a8ad06d00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[    0.059125]                             ^
+[    0.059133]  00007f2a8ad06d80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[    0.059142]  00007f2a8ad06e00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[    0.059152] ==================================================================
+[    0.059166] Disabling lock debugging due to kernel taint
+[    0.059175] Kernel panic - not syncing: panic_on_warn set ...
+[    0.059187] ---[ end Kernel panic - not syncing: panic_on_warn set ... ]---
+hid-fuzzer: lib/posix-host.c:401: void panic(void): Assertion `0' failed.
+==872614== ERROR: libFuzzer: deadly signal
+    #0 0x554630  (/usr/local/google/home/xuanxing/Source/Android/_kernels/android12-5.4-lkl/out/android12-5.4-lkl/dist/fuzzers/hid_fuzzer/hid-fuzzer+0x554630)
+    #1 0x4fffc8  (/usr/local/google/home/xuanxing/Source/Android/_kernels/android12-5.4-lkl/out/android12-5.4-lkl/dist/fuzzers/hid_fuzzer/hid-fuzzer+0x4fffc8)
+    #2 0x4e53b3  (/usr/local/google/home/xuanxing/Source/Android/_kernels/android12-5.4-lkl/out/android12-5.4-lkl/dist/fuzzers/hid_fuzzer/hid-fuzzer+0x4e53b3)
+    #3 0x7f2a8c59d13f  (/lib/x86_64-linux-gnu/libpthread.so.0+0x1413f)
+    #4 0x7f2a8c299db0  (/lib/x86_64-linux-gnu/libc.so.6+0x3bdb0)
+    #5 0x7f2a8c283536  (/lib/x86_64-linux-gnu/libc.so.6+0x25536)
+    #6 0x7f2a8c28340e  (/lib/x86_64-linux-gnu/libc.so.6+0x2540e)
+    #7 0x7f2a8c2925b1  (/lib/x86_64-linux-gnu/libc.so.6+0x345b1)
+    #8 0x557fff  (/usr/local/google/home/xuanxing/Source/Android/_kernels/android12-5.4-lkl/out/android12-5.4-lkl/dist/fuzzers/hid_fuzzer/hid-fuzzer+0x557fff)
+    #9 0x55e560  (/usr/local/google/home/xuanxing/Source/Android/_kernels/android12-5.4-lkl/out/android12-5.4-lkl/dist/fuzzers/hid_fuzzer/hid-fuzzer+0x55e560)
+
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
