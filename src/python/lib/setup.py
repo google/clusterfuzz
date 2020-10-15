@@ -21,7 +21,7 @@ setuptools.setup(
     name='clusterfuzz',
     version='0.0.1',
     author='ClusterFuzz authors',
-    author_email='clusterfuzz-announce@googlegroups.com',
+    author_email='clusterfuzz-dev@googlegroups.com',
     description='ClusterFuzz',
     long_description=long_description,
     long_description_content_type='text/markdown',
