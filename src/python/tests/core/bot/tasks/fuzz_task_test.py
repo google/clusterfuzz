@@ -29,7 +29,6 @@ import six
 
 from base import utils
 from bot import testcase_manager
-from bot.fuzzers import engine
 from bot.fuzzers.libFuzzer import engine as libfuzzer_engine
 from bot.tasks import fuzz_task
 from bot.untrusted_runner import file_host
@@ -39,6 +38,7 @@ from datastore import data_handler
 from datastore import data_types
 from google_cloud_utils import big_query
 from lib.clusterfuzz import stacktraces
+from lib.clusterfuzz.fuzz import engine
 from metrics import monitor
 from metrics import monitoring_metrics
 from system import environment

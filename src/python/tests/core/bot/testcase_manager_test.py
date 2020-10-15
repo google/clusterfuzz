@@ -22,7 +22,6 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from bot import testcase_manager
-from bot.fuzzers import engine
 from bot.fuzzers.libFuzzer import constants as libfuzzer_constants
 from bot.fuzzers.libFuzzer import engine as libfuzzer_engine
 from bot.untrusted_runner import file_host
@@ -30,6 +29,7 @@ from build_management import build_manager
 from crash_analysis.crash_result import CrashResult
 from datastore import data_types
 from lib.clusterfuzz import stacktraces
+from lib.clusterfuzz.fuzz import engine
 from system import environment
 from tests.test_libs import helpers as test_helpers
 from tests.test_libs import test_utils
@@ -370,11 +370,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'bot.fuzzers.engine.get',
         'bot.fuzzers.engine_common.find_fuzzer_path',
         'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
         'system.process_handler.run_process',
         'system.process_handler.terminate_stale_application_instances',
+        'lib.clusterfuzz.fuzz.engine.get',
         'metrics.logs.log',
     ])
 

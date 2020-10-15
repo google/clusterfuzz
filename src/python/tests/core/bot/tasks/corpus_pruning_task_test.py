@@ -52,7 +52,6 @@ class BaseTest(object):
     """Setup."""
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'bot.fuzzers.engine.get',
         'bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'bot.tasks.corpus_pruning_task.choose_cross_pollination_strategy',
         'bot.tasks.task_creation.create_tasks',
@@ -62,6 +61,7 @@ class BaseTest(object):
         'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
         'google_cloud_utils.blobs.write_blob',
         'google_cloud_utils.storage.write_data',
+        'lib.clusterfuzz.fuzz.engine.get',
     ])
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
@@ -342,9 +342,10 @@ class CorpusPruningTestUntrusted(
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
-        'bot.fuzzers.engine.get', 'bot.tasks.setup.get_fuzzer_directory',
+        'bot.tasks.setup.get_fuzzer_directory',
         'base.tasks.add_task',
-        'bot.tasks.corpus_pruning_task._record_cross_pollination_stats'
+        'bot.tasks.corpus_pruning_task._record_cross_pollination_stats',
+        'lib.clusterfuzz.fuzz.engine.get',
     ])
 
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()

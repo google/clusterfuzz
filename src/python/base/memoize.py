@@ -18,7 +18,6 @@ import functools
 import json
 import threading
 
-import redis
 import six
 
 from base import persistent_cache
@@ -37,6 +36,8 @@ _DEFAULT_REDIS_PORT = 6379
 
 def _redis_client():
   """Get the redis client."""
+  import redis
+
   if hasattr(_local, 'redis'):
     return _local.redis
 
@@ -134,6 +135,7 @@ class Memcache(object):
   @bot_noop
   def put(self, key, value):
     """Put (key, value) into cache."""
+    import redis
     try:
       _redis_client().set(
           json.dumps(key), json.dumps(value), ex=self.ttl_in_seconds)
@@ -144,6 +146,7 @@ class Memcache(object):
   @bot_noop
   def get(self, key):
     """Get the value from cache."""
+    import redis
     try:
       value_raw = _redis_client().get(json.dumps(key))
     except redis.RedisError:

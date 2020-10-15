@@ -13,6 +13,7 @@
 # limitations under the License.
 """Corpus pruning task."""
 
+from enum import Enum
 import collections
 import datetime
 import os
@@ -22,7 +23,6 @@ import shutil
 from google.cloud import ndb
 
 from base import utils
-from bot.fuzzers import engine
 from bot.fuzzers import engine_common
 from bot.fuzzers import options
 from bot.fuzzers.libFuzzer import constants
@@ -36,12 +36,12 @@ from datastore import corpus_tagging
 from datastore import data_handler
 from datastore import data_types
 from datastore import fuzz_target_utils
-from enum import Enum
 from fuzzing import corpus_manager
 from fuzzing import leak_blacklist
 from google_cloud_utils import big_query
 from google_cloud_utils import blobs
 from google_cloud_utils import storage
+from lib.clusterfuzz.fuzz import engine
 from metrics import logs
 from system import archive
 from system import environment

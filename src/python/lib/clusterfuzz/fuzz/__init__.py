@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Fuzzing engine initialization."""
+"""Fuzzing functions."""
 
-from bot.fuzzers.blackbox import engine as blackbox_engine
-from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
-from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
-from bot.fuzzers.syzkaller import engine as syzkaller_engine
-from lib.clusterfuzz.fuzz import engine
+from . import engine
+
+_initialized = False
 
 
-def run():
-  """Initialise builtin fuzzing engines."""
-  engine.register('blackbox', blackbox_engine.BlackboxEngine)
+def _initialize():
+  global _initialized
+
+  from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
+  from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
+
   engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
   engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
-  engine.register('syzkaller', syzkaller_engine.SyzkallerEngine)
+
+  _initialized = True
+
+
+def get_engine(name):
+  if not _initialized:
+    _initialize()
+
+  return engine.get(name)
