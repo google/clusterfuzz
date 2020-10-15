@@ -78,8 +78,8 @@ def main(args):
   try:
     model.load_weights(model_path)
   except ValueError:
-      print('Incompatible model parameters.', file=sys.stderr)
-      return constants.ExitCode.TENSORFLOW_ERROR
+    print('Incompatible model parameters.', file=sys.stderr)
+    return constants.ExitCode.TENSORFLOW_ERROR
 
   model.build(tf.TensorShape([constants.BATCH_SIZE, None]))
   model.reset_states()
