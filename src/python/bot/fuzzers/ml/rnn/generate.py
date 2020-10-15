@@ -75,7 +75,12 @@ def main(args):
   model = utils.build_model(hidden_layer_size * hidden_state_size,
                             constants.DROPOUT_PKEEP, constants.BATCH_SIZE,
                             False)
-  model.load_weights(model_path)
+  try:
+    model.load_weights(model_path)
+  except ValueError:
+      print('Incompatible model parameters.', file=sys.stderr)
+      return constants.ExitCode.TENSORFLOW_ERROR
+
   model.build(tf.TensorShape([constants.BATCH_SIZE, None]))
   model.reset_states()
 
