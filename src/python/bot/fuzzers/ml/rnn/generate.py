@@ -25,7 +25,7 @@ from bot.fuzzers.ml.rnn import constants
 from bot.fuzzers.ml.rnn import utils
 
 # Reset batch_size for generation: generate multiple inputs in each run.
-BATCH_SIZE = 50
+BATCH_SIZE = 100
 
 # Pick one byte from topn bytes with highest probabilities.
 # It's recommended to use 10 for intermediate checkpoint models, since the
@@ -68,98 +68,92 @@ def main(args):
   # Use timestamp as part of identifier for each testcase generated.
   timestamp = str(math.trunc(time.time()))
 
-  with tf.compat.v1.Session() as session:
-    print('\nusing model {} to generate {} inputs...'.format(model_path, count))
+  print('\nusing model {} to generate {} inputs...'.format(model_path, count))
 
-    # Restore the model.
-    new_saver = tf.compat.v1.train.import_meta_graph(
-        model_path + constants.MODEL_META_SUFFIX)
-    new_saver.restore(session, model_path)
+  # Restore the RNN model by building it and loading the weights.
+  model = utils.build_model(hidden_layer_size * hidden_state_size,
+                            constants.DROPOUT_PKEEP, constants.BATCH_SIZE,
+                            False)
+  try:
+    model.load_weights(model_path)
+  except ValueError:
+    print('Incompatible model parameters.', file=sys.stderr)
+    return constants.ExitCode.TENSORFLOW_ERROR
 
-    corpus_files_info = utils.get_files_info(input_dir)
-    if not corpus_files_info:
-      return constants.ExitCode.CORPUS_TOO_SMALL
+  model.build(tf.TensorShape([constants.BATCH_SIZE, None]))
+  model.reset_states()
 
-    new_units_count = 0
-    while new_units_count < count:
-      # Reset hidden states each time to generate new inputs, so that
-      # different rounds will not interfere.
-      state = np.zeros(
-          [BATCH_SIZE, hidden_state_size * hidden_layer_size], dtype=np.float32)
+  corpus_files_info = utils.get_files_info(input_dir)
+  if not corpus_files_info:
+    return constants.ExitCode.CORPUS_TOO_SMALL
 
-      # Randomly select `BATCH_SIZE` number of inputs from corpus.
-      # Record their first byte and file length.
-      new_files_bytes = []
-      corpus_files_length = []
+  new_units_count = 0
+  while new_units_count < count:
+    # Reset hidden states each time to generate new inputs, so that
+    # different rounds will not interfere.
+    model.reset_states()
+
+    # Randomly select `BATCH_SIZE` number of inputs from corpus.
+    # Record their first byte and file length.
+    new_files_bytes = []
+    corpus_files_length = []
+    for i in range(BATCH_SIZE):
+      file_info = utils.random_element_from_list(corpus_files_info)
+      first_byte, file_size = file_info['first_byte'], file_info['file_size']
+      new_files_bytes.append([first_byte])
+      corpus_files_length.append(file_size)
+
+    # Use 1st and 3rd quartile values as lower and upper bound respectively.
+    # Also make sure they are within upper and lower bounds.
+    max_length = int(np.percentile(corpus_files_length, 75))
+    max_length = min(max_length, UPPER_LENGTH_LIMIT)
+
+    min_length = int(np.percentile(corpus_files_length, 25))
+    min_length = max(LOWER_LENGTH_LIMIT, min_length)
+
+    # Reset in special cases where min_length exceeds upper limit.
+    if min_length >= max_length:
+      min_length = LOWER_LENGTH_LIMIT
+
+    input_bytes = np.array(new_files_bytes)
+
+    for _ in range(max_length - 1):
+      try:
+        output = model(input_bytes).numpy()
+      except tf.errors.InvalidArgumentError:
+        print(
+            ('Failed to run TensorFlow operations since '
+             'model parameters do not match.'),
+            file=sys.stderr)
+        return constants.ExitCode.TENSORFLOW_ERROR
+
       for i in range(BATCH_SIZE):
-        file_info = utils.random_element_from_list(corpus_files_info)
-        first_byte, file_size = file_info['first_byte'], file_info['file_size']
-        new_files_bytes.append([first_byte])
-        corpus_files_length.append(file_size)
+        predicted_byte = utils.sample_from_probabilities(output[i], topn=TOPN)
+        new_files_bytes[i].append(predicted_byte)
+        input_bytes[i][0] = predicted_byte
 
-      # Use 1st and 3rd quartile values as lower and upper bound respectively.
-      # Also make sure they are within upper and lower bounds.
-      max_length = int(np.percentile(corpus_files_length, 75))
-      max_length = min(max_length, UPPER_LENGTH_LIMIT)
+    # Use timestamp as part of file name.
+    for i in range(BATCH_SIZE):
+      new_file_name = '{}_{:0>8}'.format(timestamp, new_units_count)
+      new_file_path = os.path.join(output_dir, new_file_name)
 
-      min_length = int(np.percentile(corpus_files_length, 25))
-      min_length = max(LOWER_LENGTH_LIMIT, min_length)
+      # Use existing input length if possible, but make sure it is between
+      # min_length and max_length.
+      new_file_length = max(min_length, min(corpus_files_length[i], max_length))
+      new_file_byte_array = bytearray(new_files_bytes[i][:new_file_length])
 
-      # Reset in special cases where min_length exceeds upper limit.
-      if min_length >= max_length:
-        min_length = LOWER_LENGTH_LIMIT
+      with open(new_file_path, 'wb') as new_file:
+        new_file.write(new_file_byte_array)
+      print('generate input: {}, feed byte: {}, input length: {}'.format(
+          new_file_path, new_files_bytes[i][0], new_file_length))
 
-      input_bytes = np.array(new_files_bytes)
+      # Have we got enough inputs?
+      new_units_count += 1
+      if new_units_count >= count:
+        break
 
-      for _ in range(max_length - 1):
-        feed_dict = {
-            'input_bytes:0': input_bytes,
-            'pkeep:0': 1.0,
-            'hidden_state:0': state,
-            'batchsize:0': BATCH_SIZE
-        }
-
-        try:
-          output, new_state = session.run(
-              ['output_onehot:0', 'next_state:0'], feed_dict=feed_dict)
-        except ValueError:
-          print(
-              ('Failed to run TensorFlow operations since '
-               'model parameters do not match.'),
-              file=sys.stderr)
-          return constants.ExitCode.TENSORFLOW_ERROR
-
-        for i in range(BATCH_SIZE):
-          predicted_byte = utils.sample_from_probabilities(output[i], topn=TOPN)
-          new_files_bytes[i].append(predicted_byte)
-          input_bytes[i][0] = predicted_byte
-
-        # Update state.
-        state = new_state
-
-      # Use timestamp as part of file name.
-      for i in range(BATCH_SIZE):
-        new_file_name = '{}_{:0>8}'.format(timestamp, new_units_count)
-        new_file_path = os.path.join(output_dir, new_file_name)
-
-        # Use existing input length if possible, but make sure it is between
-        # min_length and max_length.
-        new_file_length = max(min_length, min(corpus_files_length[i],
-                                              max_length))
-        new_file_byte_array = bytearray(new_files_bytes[i][:new_file_length])
-
-        with open(new_file_path, 'wb') as new_file:
-          new_file.write(new_file_byte_array)
-        print('generate input: {}, feed byte: {}, input length: {}'.format(
-            new_file_path, new_files_bytes[i][0], new_file_length))
-
-        # Have we got enough inputs?
-        new_units_count += 1
-        if new_units_count >= count:
-          break
-
-    print('Done.')
-    return constants.ExitCode.SUCCESS
+  print('Done.')
+  return constants.ExitCode.SUCCESS
 
 
 def validate_paths(args):
