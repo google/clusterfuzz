@@ -70,8 +70,7 @@ def main(args):
 
   print('\nusing model {} to generate {} inputs...'.format(model_path, count))
 
-  # Restore the model.
-  # Build the RNN model.
+  # Restore the RNN model by building it and loading the weights.
   model = utils.build_model(hidden_layer_size * hidden_state_size,
                             constants.DROPOUT_PKEEP, constants.BATCH_SIZE,
                             False)
