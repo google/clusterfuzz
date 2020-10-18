@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Delete existing symlinks.
 find clusterfuzz/ -type l | xargs rm
 
+# Symlink dependencies.
 ln -s $(pwd)/../base clusterfuzz/
 ln -s $(pwd)/../bot clusterfuzz/
 ln -s $(pwd)/../build_managerment clusterfuzz/
