@@ -25,7 +25,7 @@ RUN apt-get update && \
         google-cloud-sdk-app-engine-python \
         google-cloud-sdk-app-engine-python-extras \
         google-cloud-sdk-datastore-emulator \
-        google-cloud-sdk-pubsub-emulator=313.0.0-0 \
+        google-cloud-sdk-pubsub-emulator=312.0.0-0 \
         liblzma-dev \
         nodejs \
         openjdk-8-jdk
