@@ -34,8 +34,6 @@ setuptools.setup(
     ],
     install_requires=[
         # TODO(ochang): Minimize dependencies.
-        'antlr4-python3-runtime',
-        'configparser',
         'google-api-python-client',
         'google-auth>=1.22.1',
         'google-auth-oauthlib',
@@ -48,14 +46,10 @@ setuptools.setup(
         'google-cloud-storage',
         'grpcio',
         'httplib2',
-        'hyperlink',
-        'lxml',
         'mozprocess',
         'oauth2client',
         'protobuf',
         'psutil',
-        'python-dateutil',
-        'pytz',
         'PyYAML',
         'requests',
         'six',
