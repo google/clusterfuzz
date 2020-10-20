@@ -16,6 +16,7 @@
 import itertools
 import json
 import re
+import six
 
 from base import external_users
 from base import utils
