@@ -391,7 +391,7 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       executable_path: Path to the fuzzer executable.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(LibFuzzerRunner, self).__init__(
+    super().__init__(
         executable_path=executable_path, default_args=default_args)
 
   def fuzz(self,
@@ -469,7 +469,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # We always assume QEMU is running on __init__, since build_manager sets
     # it up initially. If this isn't the case, _test_ssh will detect and
     # restart QEMU anyway.
-    super(FuchsiaQemuLibFuzzerRunner, self).__init__(
+    super().__init__(
         executable_path=executable_path, default_args=default_args)
     self._setup_device_and_fuzzer()
 
@@ -812,7 +812,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
       chroot: A MinijailChroot.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(MinijailLibFuzzerRunner, self).__init__(
+    super().__init__(
         executable_path=executable_path,
         chroot=chroot,
         default_args=default_args)
@@ -1037,7 +1037,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       build_directory: A MinijailChroot.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(AndroidLibFuzzerRunner, self).__init__(
+    super().__init__(
         executable_path=android.adb.get_adb_path(),
         default_args=self._get_default_args(executable_path, default_args))
 
