@@ -971,7 +971,7 @@ def set_value(environment_variable, value):
   """Set an environment variable."""
   value_str = str(value)
   environment_variable_str = str(environment_variable)
-  value_str = value_str.replace('%ROOT_DIR%', os.environ['ROOT_DIR'])
+  value_str = value_str.replace('%ROOT_DIR%', os.getenv('ROOT_DIR', ''))
   os.environ[environment_variable_str] = value_str
 
   if is_trusted_host():
@@ -1042,3 +1042,8 @@ def is_ephemeral():
 def is_android(plt=None):
   """Return true if we are on android platform."""
   return 'ANDROID' in (plt or platform())
+
+
+def is_lib():
+  """Whether or not we're in libClusterFuzz."""
+  return get_value('ROOT_DIR') is None

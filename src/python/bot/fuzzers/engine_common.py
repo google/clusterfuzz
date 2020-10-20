@@ -88,7 +88,7 @@ class Generator(object):
 def select_generator(strategy_pool, fuzzer_path):
   """Pick a generator to generate new testcases before fuzzing or return
   Generator.NONE if no generator selected."""
-  if environment.platform() == 'FUCHSIA':
+  if environment.is_lib() or environment.platform() == 'FUCHSIA':
     # Unsupported.
     return Generator.NONE
 

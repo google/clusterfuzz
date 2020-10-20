@@ -1604,6 +1604,8 @@ def use_mutator_plugin(target_name, extra_env):
   """Decide whether to use a mutator plugin. If yes and there is a usable plugin
   available for |target_name|, then add it to LD_PRELOAD in |extra_env|, and
   return True."""
+  if not environment.get_value('MUTATOR_PLUGINS_DIR'):
+    return False
 
   # TODO(metzman): Support Windows.
   if environment.platform() == 'WINDOWS':
@@ -1629,11 +1631,10 @@ def is_linux_asan():
 def use_radamsa_mutator_plugin(extra_env):
   """Decide whether to use Radamsa in process. If yes, add the path to the
   radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
-
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if not is_linux_asan():
+  if environment.is_lib() or not is_linux_asan():
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
@@ -1649,7 +1650,7 @@ def use_peach_mutator(extra_env, grammar):
   environment variables necessary to do so."""
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if not is_linux_asan():
+  if environment.is_lib() or not is_linux_asan():
     return False
 
   if not grammar:

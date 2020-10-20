@@ -51,7 +51,7 @@ docstring-min-length=10
 #
 # There are exceptions to the basic rule (_?[a-z][a-z0-9_]*) to cover
 # requirements of Python's module system and of the presubmit framework.
-module-rgx=^(_?[a-z][a-z0-9_]*)|__init__|PRESUBMIT|PRESUBMIT_unittest$
+module-rgx=^(_?[a-z][a-z0-9_]*)|__init__|__main__|PRESUBMIT|PRESUBMIT_unittest$
 
 # Regular expression which should only match correct module level names.
 const-rgx=^(_?[A-Z][A-Z0-9_]*|__[a-z0-9_]+__|_?[a-z][a-z0-9_]*)$
