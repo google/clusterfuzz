@@ -72,7 +72,7 @@ class LibFuzzerOptions(engine.FuzzOptions):
 
   def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs,
                extra_env, use_dataflow_tracing, is_mutations_run):
-    super(LibFuzzerOptions, self).__init__(corpus_dir, arguments, strategies)
+    super().__init__(corpus_dir, arguments, strategies)
     self.fuzz_corpus_dirs = fuzz_corpus_dirs
     self.extra_env = extra_env
     self.use_dataflow_tracing = use_dataflow_tracing
