@@ -54,11 +54,12 @@ def main():
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
   elif args.sanitizer == 'memory':
     os.environ['JOB_NAME'] = 'libfuzzer_msan'
-  elif args.sanitizer == 'memory':
+  elif args.sanitizer == 'undefined':
     os.environ['JOB_NAME'] = 'libfuzzer_ubsan'
 
   engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
-  options = engine_impl.prepare(args.corpus, args.target, None)
+  options = engine_impl.prepare(args.corpus, args.target,
+                                os.path.dirname(args.target))
   result = engine_impl.fuzz(args.target, options, args.output,
                             args.max_duration)
   print(result.logs)

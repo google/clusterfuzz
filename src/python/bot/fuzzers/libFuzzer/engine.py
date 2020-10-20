@@ -86,7 +86,7 @@ class LibFuzzerEngine(engine.Engine):
   def name(self):
     return 'libFuzzer'
 
-  def prepare(self, corpus_dir, target_path, _):
+  def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -98,6 +98,7 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A FuzzOptions object.
     """
+    del build_dir
     arguments = fuzzer.get_arguments(target_path)
     grammar = fuzzer.get_grammar(target_path)
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(
