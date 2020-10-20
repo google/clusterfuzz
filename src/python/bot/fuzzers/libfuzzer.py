@@ -391,8 +391,7 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       executable_path: Path to the fuzzer executable.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super().__init__(
-        executable_path=executable_path, default_args=default_args)
+    super().__init__(executable_path=executable_path, default_args=default_args)
 
   def fuzz(self,
            corpus_directories,
@@ -469,8 +468,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # We always assume QEMU is running on __init__, since build_manager sets
     # it up initially. If this isn't the case, _test_ssh will detect and
     # restart QEMU anyway.
-    super().__init__(
-        executable_path=executable_path, default_args=default_args)
+    super().__init__(executable_path=executable_path, default_args=default_args)
     self._setup_device_and_fuzzer()
 
   def process_logs_and_crash(self, artifact_prefix):
