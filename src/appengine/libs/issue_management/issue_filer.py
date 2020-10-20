@@ -14,6 +14,7 @@
 """Helper functions to file issues."""
 
 import itertools
+import json
 import re
 
 from base import external_users
@@ -388,6 +389,11 @@ def file_issue(testcase,
     for result in apply_substitutions(policy, label, testcase,
                                       security_severity):
       issue.labels.add(result)
+
+  # Add additional body text from metadata.
+  additional_fields = json.loads(testcase.get_metadata('additional_fields', ''))
+  for key, value in six.iteritems(additional_fields):
+    issue.body += '\n\n%s: %s' % (key, value)
 
   issue.body += data_handler.format_issue_information(
       testcase, properties.issue_body_footer)

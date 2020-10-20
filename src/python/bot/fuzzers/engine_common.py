@@ -67,6 +67,9 @@ LABELS_FILE_EXTENSION = '.labels'
 # Extension for per-fuzz target components to be added to issue tracker.
 COMPONENTS_FILE_EXTENSION = '.components'
 
+# Extension for additional metadata to be added to issue descriptions.
+METADATA_FILE_EXTENSION = '.metadata'
+
 # Header format for logs.
 LOG_HEADER_FORMAT = (
     'Command: {command}\n' + 'Bot: {bot}\n' + 'Time ran: {time}\n')
@@ -436,6 +439,23 @@ def get_issue_components(fuzz_target_path):
   return get_issue_metadata(fuzz_target_path, COMPONENTS_FILE_EXTENSION)
 
 
+def get_additional_fields(fuzz_target_path):
+  """Return the additional metadata fields given a fuzz target path. The data
+  will be a JSON-formatted dictionary."""
+  metadata_file_path = fuzzer_utils.get_supporting_file(
+      fuzz_target_path, METADATA_FILE_EXTENSION)
+
+  if environment.is_trusted_host():
+    metadata_file_path = fuzzer_utils.get_file_from_untrusted_worker(
+        metadata_file_path)
+
+  if not os.path.exists(metadata_file_path):
+    return {}
+
+  with open(metadata_file_path) as handle:
+    return handle.read()
+
+
 def get_all_issue_metadata(fuzz_target_path):
   """Get issue related metadata for a target."""
   metadata = {}
@@ -451,6 +471,10 @@ def get_all_issue_metadata(fuzz_target_path):
   issue_owners = get_issue_owners(fuzz_target_path)
   if issue_owners:
     metadata['issue_owners'] = ','.join(issue_owners)
+
+  additional_fields = get_additional_fields(fuzz_target_path)
+  if additional_fields:
+    metadata['additional_fields'] = additional_fields
 
   return metadata
 
