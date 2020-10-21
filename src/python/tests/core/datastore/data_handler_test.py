@@ -357,12 +357,10 @@ class DataHandlerTest(unittest.TestCase):
     testcase.job_type = 'job_with_help_format'
     testcase.crash_revision = 1337
     testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
-    testcase.set_metadata(
-        'additional_issue_fields',
-        {
-                'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
-                'Answer': 42,
-        })
+    testcase.set_metadata('additional_issue_fields', {
+        'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
+        'Answer': 42,
+    })
     testcase.put()
 
     description = data_handler.get_issue_description(testcase)
@@ -380,8 +378,8 @@ class DataHandlerTest(unittest.TestCase):
         'job=linux_asan_chrome&revision=1337\n\n'
         'Reproducer Testcase: https://test-clusterfuzz.appspot.com/'
         'download?testcase_id=3\n\n'
-        'See help_url for instructions to reproduce this bug locally.\n\n',
-        'Acknowledgements: [\'Alice\', \'Bob\', \'Eve\', \'Mallory\']\n',
+        'See help_url for instructions to reproduce this bug locally.\n\n'
+        'Acknowledgements: [\'Alice\', \'Bob\', \'Eve\', \'Mallory\']\n'
         'Answer: 42')
 
   def test_get_issue_summary_with_no_prefix(self):
