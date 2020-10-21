@@ -350,6 +350,41 @@ class DataHandlerTest(unittest.TestCase):
         'download?testcase_id=3\n\n'
         'See help_url for instructions to reproduce this bug locally.')
 
+  def test_get_issue_description_additional_issue_fields(self):
+    """Test get_issue_description with a blackbox fuzzer testcase."""
+    testcase = data_types.Testcase()
+    testcase.fuzzer_name = 'simple_fuzzer'
+    testcase.job_type = 'job_with_help_format'
+    testcase.crash_revision = 1337
+    testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
+    testcase.set_metadata(
+    testcase.put()
+
+        'additional_issue_fields',
+        {
+                'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
+                'Answer': 42,
+        })
+
+    description = data_handler.get_issue_description(testcase)
+    self.assertEqual(
+        description, 'Detailed Report: https://test-clusterfuzz.appspot.com/'
+        'testcase?key=3\n\n'
+        'Project: project\n'
+        'Fuzzer: fuzzer1\n'
+        'Job Type: linux_asan_chrome\n'
+        'Crash Type: UNKNOWN\n'
+        'Crash Address: 0x1337\n'
+        'Crash State:\n  NULL\n'
+        'Sanitizer: address (ASAN)\n\n'
+        'Crash Revision: https://test-clusterfuzz.appspot.com/revisions?'
+        'job=linux_asan_chrome&revision=1337\n\n'
+        'Reproducer Testcase: https://test-clusterfuzz.appspot.com/'
+        'download?testcase_id=3\n\n'
+        'See help_url for instructions to reproduce this bug locally.\n\n',
+        'Acknowledgements: [\'Alice\', \'Bob\', \'Eve\', \'Mallory\']\n',
+        'Answer: 42')
+
   def test_get_issue_summary_with_no_prefix(self):
     """Test get_issue_description on jobs with no prefix."""
     self.job.environment_string = 'HELP_URL = help_url\n'

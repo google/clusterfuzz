@@ -472,9 +472,9 @@ def get_all_issue_metadata(fuzz_target_path):
   if issue_owners:
     metadata['issue_owners'] = ','.join(issue_owners)
 
-  additional_fields = get_additional_fields(fuzz_target_path)
-  if additional_fields:
-    metadata['additional_fields'] = additional_fields
+  additional_issue_fields = get_additional_fields(fuzz_target_path)
+  if additional_issue_fields:
+    metadata['additional_issue_fields'] = additional_issue_fields
 
   return metadata
 

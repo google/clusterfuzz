@@ -547,6 +547,16 @@ def get_issue_description(testcase,
   if not reporter and testcase.one_time_crasher_flag:
     content_string += '\n\n' + FILE_UNREPRODUCIBLE_TESTCASE_TEXT
 
+  # Add additional body text from metadata.
+  additional_issue_fields = json.loads(
+      testcase.get_metadata('additional_issue_fields', '{}'))
+  additional_issue_fields_strs = []
+  for key, value in additional_issue_fields.items():
+      additional_issue_fields_strs.append(f'{key}: {value}')
+  if additional_issue_fields_strs:
+      issue.body += '\n\n' + '\n'.join(additional_issue_fields_strs)
+
+
   return content_string
 
 
