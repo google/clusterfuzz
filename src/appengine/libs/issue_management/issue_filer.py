@@ -14,7 +14,6 @@
 """Helper functions to file issues."""
 
 import itertools
-import json
 import re
 
 from base import external_users
