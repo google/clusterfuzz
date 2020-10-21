@@ -358,13 +358,12 @@ class DataHandlerTest(unittest.TestCase):
     testcase.crash_revision = 1337
     testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
     testcase.set_metadata(
-    testcase.put()
-
         'additional_issue_fields',
         {
                 'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
                 'Answer': 42,
         })
+    testcase.put()
 
     description = data_handler.get_issue_description(testcase)
     self.assertEqual(
