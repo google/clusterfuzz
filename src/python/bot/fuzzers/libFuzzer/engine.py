@@ -72,7 +72,7 @@ class LibFuzzerOptions(engine.FuzzOptions):
 
   def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs,
                extra_env, use_dataflow_tracing, is_mutations_run):
-    super(LibFuzzerOptions, self).__init__(corpus_dir, arguments, strategies)
+    super().__init__(corpus_dir, arguments, strategies)
     self.fuzz_corpus_dirs = fuzz_corpus_dirs
     self.extra_env = extra_env
     self.use_dataflow_tracing = use_dataflow_tracing
@@ -86,7 +86,7 @@ class LibFuzzerEngine(engine.Engine):
   def name(self):
     return 'libFuzzer'
 
-  def prepare(self, corpus_dir, target_path, _):
+  def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -98,6 +98,7 @@ class LibFuzzerEngine(engine.Engine):
     Returns:
       A FuzzOptions object.
     """
+    del build_dir
     arguments = fuzzer.get_arguments(target_path)
     grammar = fuzzer.get_grammar(target_path)
     strategy_pool = strategy_selection.generate_weighted_strategy_pool(

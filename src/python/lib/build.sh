@@ -30,5 +30,6 @@ ln -s $(pwd)/../metrics clusterfuzz/
 ln -s $(pwd)/../platforms clusterfuzz/
 ln -s $(pwd)/../system clusterfuzz/
 ln -s $(pwd)/../../protos clusterfuzz/
+ln -s $(pwd)/../../../configs/test clusterfuzz/lib-config
 
 python setup.py sdist bdist_wheel

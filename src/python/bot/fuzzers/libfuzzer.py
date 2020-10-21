@@ -391,8 +391,7 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       executable_path: Path to the fuzzer executable.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(LibFuzzerRunner, self).__init__(
-        executable_path=executable_path, default_args=default_args)
+    super().__init__(executable_path=executable_path, default_args=default_args)
 
   def fuzz(self,
            corpus_directories,
@@ -469,8 +468,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # We always assume QEMU is running on __init__, since build_manager sets
     # it up initially. If this isn't the case, _test_ssh will detect and
     # restart QEMU anyway.
-    super(FuchsiaQemuLibFuzzerRunner, self).__init__(
-        executable_path=executable_path, default_args=default_args)
+    super().__init__(executable_path=executable_path, default_args=default_args)
     self._setup_device_and_fuzzer()
 
   def process_logs_and_crash(self, artifact_prefix):
@@ -812,7 +810,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
       chroot: A MinijailChroot.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(MinijailLibFuzzerRunner, self).__init__(
+    super().__init__(
         executable_path=executable_path,
         chroot=chroot,
         default_args=default_args)
@@ -1037,7 +1035,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       build_directory: A MinijailChroot.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(AndroidLibFuzzerRunner, self).__init__(
+    super().__init__(
         executable_path=android.adb.get_adb_path(),
         default_args=self._get_default_args(executable_path, default_args))
 
@@ -1604,6 +1602,8 @@ def use_mutator_plugin(target_name, extra_env):
   """Decide whether to use a mutator plugin. If yes and there is a usable plugin
   available for |target_name|, then add it to LD_PRELOAD in |extra_env|, and
   return True."""
+  if not environment.get_value('MUTATOR_PLUGINS_DIR'):
+    return False
 
   # TODO(metzman): Support Windows.
   if environment.platform() == 'WINDOWS':
@@ -1629,11 +1629,10 @@ def is_linux_asan():
 def use_radamsa_mutator_plugin(extra_env):
   """Decide whether to use Radamsa in process. If yes, add the path to the
   radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
-
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if not is_linux_asan():
+  if environment.is_lib() or not is_linux_asan():
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
@@ -1649,7 +1648,7 @@ def use_peach_mutator(extra_env, grammar):
   environment variables necessary to do so."""
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if not is_linux_asan():
+  if environment.is_lib() or not is_linux_asan():
     return False
 
   if not grammar:
