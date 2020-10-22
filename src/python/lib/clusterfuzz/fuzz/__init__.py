@@ -19,10 +19,17 @@ _initialized = False
 
 
 def _initialize():
+  """Initialize the engine implementations."""
   global _initialized
 
-  from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
-  from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
+  try:
+    from clusterfuzz._internal.bot.fuzzers.honggfuzz \
+        import engine as honggfuzz_engine
+    from clusterfuzz._internal.bot.fuzzers.libFuzzer \
+        import engine as libFuzzer_engine
+  except:
+    from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
+    from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 
   engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
   engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
@@ -31,6 +38,7 @@ def _initialize():
 
 
 def get_engine(name):
+  """Get the engine with the given name."""
   if not _initialized:
     _initialize()
 
