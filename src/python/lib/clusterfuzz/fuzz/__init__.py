@@ -27,7 +27,7 @@ def _initialize():
         import engine as honggfuzz_engine
     from clusterfuzz._internal.bot.fuzzers.libFuzzer \
         import engine as libFuzzer_engine
-  except:
+  except ImportError:
     from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
     from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
 
