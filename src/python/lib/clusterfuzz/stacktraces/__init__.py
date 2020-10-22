@@ -17,10 +17,16 @@ import re
 import string
 import subprocess
 
-from base import utils
-from crash_analysis import crash_analyzer
-from metrics import logs
-from system import environment
+try:
+  from clusterfuzz._internal.base import utils
+  from clusterfuzz._internal.crash_analysis import crash_analyzer
+  from clusterfuzz._internal.metrics import logs
+  from clusterfuzz._internal.system import environment
+except ImportError:
+  from base import utils
+  from crash_analysis import crash_analyzer
+  from metrics import logs
+  from system import environment
 
 from .constants import *
 

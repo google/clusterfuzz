@@ -55,7 +55,8 @@ setuptools.setup(
         'six',
     ],
     package_data={
-        'clusterfuzz': ['lib-config/**',],
+        'clusterfuzz': ['lib-config/*', 'lib-config/**/*'],
     },
     python_requires='>=3.7',
+    zip_safe=False,
 )

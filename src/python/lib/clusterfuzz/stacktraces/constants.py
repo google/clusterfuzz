@@ -15,7 +15,10 @@
 
 import re
 
-from crash_analysis.stack_parsing import stack_parser
+try:
+  from clusterfuzz._internal.crash_analysis.stack_parsing import stack_parser
+except ImportError:
+  from crash_analysis.stack_parsing import stack_parser
 
 C_CPP_EXTENSIONS = ['c', 'cc', 'cpp', 'cxx', 'h', 'hh', 'hpp', 'hxx']
 
