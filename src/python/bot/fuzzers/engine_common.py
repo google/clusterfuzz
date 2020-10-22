@@ -439,7 +439,7 @@ def get_issue_components(fuzz_target_path):
   return get_issue_metadata(fuzz_target_path, COMPONENTS_FILE_EXTENSION)
 
 
-def get_issue_metadata(fuzz_target_path):
+def get_additional_issue_metadata(fuzz_target_path):
   """Return the additional metadata fields given a fuzz target path. The data
   will be a JSON-formatted dictionary."""
   metadata_file_path = fuzzer_utils.get_supporting_file(
@@ -472,7 +472,7 @@ def get_all_issue_metadata(fuzz_target_path):
   if issue_owners:
     metadata['issue_owners'] = ','.join(issue_owners)
 
-  issue_metadata = get_issue_metadata(fuzz_target_path)
+  issue_metadata = get_addititional_issue_metadata(fuzz_target_path)
   if issue_metadata:
     metadata['issue_metadata'] = issue_metadata
 
