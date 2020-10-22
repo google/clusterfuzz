@@ -355,6 +355,9 @@ class DataHandlerTest(unittest.TestCase):
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
     testcase.crash_type = 'Timeout'
+    testcase.crash_stacktrace = (
+        'Line1\n'
+        'Command: /fuzzer -rss_limit_mb=2048 -timeout=25 -max_len=10 /testcase')
     testcase.job_type = 'job_with_help_format'
     testcase.crash_revision = 1337
     testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
