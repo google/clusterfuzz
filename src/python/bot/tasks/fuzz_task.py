@@ -1301,6 +1301,14 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
+  additional_processing_time = engine_impl.fuzz_additional_processing_timeout(
+      options)
+  fuzz_test_timeout -= additional_processing_time
+  if fuzz_test_timeout <= 0:
+    raise FuzzTaskException(
+        f'Invalid engine timeout: '
+        f'{fuzz_test_timeout} - {additional_processing_time}')
+
   result = engine_impl.fuzz(target_path, options, testcase_directory,
                             fuzz_test_timeout)
 

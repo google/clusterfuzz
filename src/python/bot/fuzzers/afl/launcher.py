@@ -64,6 +64,10 @@ MAX_OUTPUT_LEN = 1 * 1024 * 1024  # 1 MB
 # .options file option for the number of persistent executions.
 PERSISTENT_EXECUTIONS_OPTION = 'n'
 
+# Grace period for the launcher to complete any processing before it's killed.
+# This will no longer be needed when we migrate to the engine interface.
+POSTPROCESSING_TIMEOUT = 30
+
 
 class AflOptionType(object):
   ARG = 0
@@ -1440,7 +1444,7 @@ def get_first_stacktrace(stderr_data):
 
 def get_fuzz_timeout(is_mutations_run):
   """Get the maximum amount of time that should be spent fuzzing."""
-  hard_timeout = engine_common.get_hard_timeout()
+  hard_timeout = engine_common.get_hard_timeout() - POSTPROCESSING_TIMEOUT
   merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
   fuzz_timeout = hard_timeout - merge_timeout
   mutations_timeout = engine_common.get_new_testcase_mutations_timeout()

@@ -52,9 +52,6 @@ CORPUS_SUBSET_NUM_TESTCASES = [10, 20, 50, 75, 75, 100, 100, 100, 125, 125, 150]
 # file extension.
 SEED_CORPUS_ARCHIVE_SUFFIX = '_seed_corpus'
 
-# Number of seconds to allow for extra processing.
-POSTPROCESSING_TIME = 30.0
-
 # Maximum number of files in the corpus for which we will unpack the seed
 # corpus.
 MAX_FILES_FOR_UNPACK = 5
@@ -351,9 +348,7 @@ def get_hard_timeout(total_timeout=None):
   if total_timeout is None:
     total_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
 
-  # Give a small window of time to process (upload) the fuzzer output.
-  hard_timeout = total_timeout - POSTPROCESSING_TIME
-  return get_overridable_timeout(hard_timeout, 'HARD_TIMEOUT_OVERRIDE')
+  return get_overridable_timeout(total_timeout, 'HARD_TIMEOUT_OVERRIDE')
 
 
 def get_merge_timeout(default_merge_timeout):

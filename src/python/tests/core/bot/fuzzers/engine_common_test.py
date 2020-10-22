@@ -107,7 +107,6 @@ class GetTimeoutTestBase(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     self.valid_hard_timeout = 500
-    self.invalid_hard_timeout = engine_common.POSTPROCESSING_TIME - 1
     self.valid_merge_timeout = 15
 
   def _set_environment_values(self, environment_variable_values):
@@ -151,28 +150,19 @@ class GetHardTimeoutTest(GetTimeoutTestBase):
         'HARD_TIMEOUT_OVERRIDE': -1
     })
 
-  def test_fuzz_test_timeout_validation(self):
-    """Test that get_hard_timeout rejects invalid values of
-    FUZZ_TEST_TIMEOUT."""
-    self.validation_helper({
-        'FUZZ_TEST_TIMEOUT': engine_common.POSTPROCESSING_TIME - 1
-    })
-
   def test_hard_timeout_override_correctness(self):
     """Test that get_hard_timeout returns what we expect when we set
     HARD_TIMEOUT_OVERRIDE."""
-    self.call_helper(
-        self.valid_hard_timeout, {
-            'HARD_TIMEOUT_OVERRIDE': self.valid_hard_timeout,
-            'FUZZ_TEST_TIMEOUT': self.invalid_hard_timeout
-        })
+    self.call_helper(self.valid_hard_timeout, {
+        'HARD_TIMEOUT_OVERRIDE': self.valid_hard_timeout,
+        'FUZZ_TEST_TIMEOUT': -1
+    })
 
   def test_fuzz_test_timeout_correctness(self):
     """Test that get_hard_timeout returns what we expect when we set
     FUZZ_TEST_TIMEOUT."""
-    self.call_helper(
-        self.valid_hard_timeout - engine_common.POSTPROCESSING_TIME,
-        {'FUZZ_TEST_TIMEOUT': self.valid_hard_timeout})
+    self.call_helper(self.valid_hard_timeout,
+                     {'FUZZ_TEST_TIMEOUT': self.valid_hard_timeout})
 
 
 class GetMergeTimeoutTest(GetTimeoutTestBase):

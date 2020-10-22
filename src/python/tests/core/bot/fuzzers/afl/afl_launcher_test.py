@@ -831,7 +831,7 @@ class GetFuzzTimeoutTest(GetTimeoutTestBase):
   def test_correctness(self):
     """Test that get_fuzz_timeout returns what we expect."""
     expected_fuzz_timeout = (
-        self.valid_hard_timeout - engine_common.POSTPROCESSING_TIME -
+        self.valid_hard_timeout - launcher.POSTPROCESSING_TIME -
         self.valid_merge_timeout)
 
     self.call_helper(

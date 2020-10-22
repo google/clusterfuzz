@@ -86,6 +86,22 @@ class LibFuzzerEngine(engine.Engine):
   def name(self):
     return 'libFuzzer'
 
+  def fuzz_additional_processing_timeout(self, options):
+    """Return the maximum additional timeout in seconds for additional
+    operations in fuzz() (e.g. merging back new items).
+
+    Args:
+      options: A FuzzOptions object.
+
+    Returns:
+      An int representing the number of seconds required.
+    """
+    # Use a large value to compute the delta.
+    original_timeout = 100000
+    fuzz_timeout = libfuzzer.get_fuzz_timeout(
+        options.is_mutations_run, total_timeout=original_timeout)
+    return original_timeout - fuzz_timeout
+
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
@@ -245,11 +261,9 @@ class LibFuzzerEngine(engine.Engine):
     new_corpus_dir = self._create_temp_corpus_dir('new')
 
     corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
-    fuzz_timeout = libfuzzer.get_fuzz_timeout(
-        options.is_mutations_run, total_timeout=max_time)
     fuzz_result = runner.fuzz(
         corpus_directories,
-        fuzz_timeout=fuzz_timeout,
+        fuzz_timeout=max_time,
         additional_args=options.arguments,
         artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
@@ -299,7 +313,7 @@ class LibFuzzerEngine(engine.Engine):
     timeout_limit = fuzzer_utils.extract_argument(
         options.arguments, constants.TIMEOUT_FLAG, remove=False)
 
-    expected_duration = runner.get_max_total_time(fuzz_timeout)
+    expected_duration = runner.get_max_total_time(max_time)
     actual_duration = int(fuzz_result.time_executed)
     fuzzing_time_percent = 100 * actual_duration / float(expected_duration)
     parsed_stats.update({
