@@ -358,11 +358,13 @@ class DataHandlerTest(unittest.TestCase):
     testcase.job_type = 'job_with_help_format'
     testcase.crash_revision = 1337
     testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
-    testcase.set_metadata('issue_metadata', {
-        'additional_fields': {
-            'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
-            'Answer': 42,
-        }})
+    testcase.set_metadata(
+        'issue_metadata', {
+            'additional_fields': {
+                'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
+                'Answer': 42,
+            }
+        })
     testcase.put()
 
     description = data_handler.get_issue_description(testcase)
