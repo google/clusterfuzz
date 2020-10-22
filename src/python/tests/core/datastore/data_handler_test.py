@@ -354,13 +354,15 @@ class DataHandlerTest(unittest.TestCase):
     """Test get_issue_description with a blackbox fuzzer testcase."""
     testcase = data_types.Testcase()
     testcase.fuzzer_name = 'simple_fuzzer'
+    testcase.crash_type = 'Timeout'
     testcase.job_type = 'job_with_help_format'
     testcase.crash_revision = 1337
     testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
-    testcase.set_metadata('additional_issue_fields', {
-        'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
-        'Answer': 42,
-    })
+    testcase.set_metadata('issue_metadata', {
+        'additional_fields': {
+            'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
+            'Answer': 42,
+        }})
     testcase.put()
 
     description = data_handler.get_issue_description(testcase)
@@ -370,7 +372,7 @@ class DataHandlerTest(unittest.TestCase):
         'Project: project\n'
         'Fuzzer: fuzzer1\n'
         'Job Type: linux_asan_chrome\n'
-        'Crash Type: UNKNOWN\n'
+        'Crash Type: Timeout\n'
         'Crash Address: 0x1337\n'
         'Crash State:\n  NULL\n'
         'Sanitizer: address (ASAN)\n\n'

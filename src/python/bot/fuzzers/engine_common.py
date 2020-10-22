@@ -68,7 +68,7 @@ LABELS_FILE_EXTENSION = '.labels'
 COMPONENTS_FILE_EXTENSION = '.components'
 
 # Extension for additional metadata to be added to issue descriptions.
-METADATA_FILE_EXTENSION = '.metadata'
+METADATA_FILE_EXTENSION = '.issue_metadata'
 
 # Header format for logs.
 LOG_HEADER_FORMAT = (
@@ -439,7 +439,7 @@ def get_issue_components(fuzz_target_path):
   return get_issue_metadata(fuzz_target_path, COMPONENTS_FILE_EXTENSION)
 
 
-def get_additional_fields(fuzz_target_path):
+def get_issue_metadata(fuzz_target_path):
   """Return the additional metadata fields given a fuzz target path. The data
   will be a JSON-formatted dictionary."""
   metadata_file_path = fuzzer_utils.get_supporting_file(
@@ -472,9 +472,9 @@ def get_all_issue_metadata(fuzz_target_path):
   if issue_owners:
     metadata['issue_owners'] = ','.join(issue_owners)
 
-  additional_issue_fields = get_additional_fields(fuzz_target_path)
-  if additional_issue_fields:
-    metadata['additional_issue_fields'] = additional_issue_fields
+  issue_metadata = get_issue_metadata(fuzz_target_path)
+  if issue_metadata:
+    metadata['issue_metadata'] = issue_metadata
 
   return metadata
 
