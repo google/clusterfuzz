@@ -100,23 +100,23 @@ To create a job for libFuzzer or AFL:
 1. Navigate to the *Jobs* page.
 2. Go to the "ADD NEW JOB" form.
 3. Fill out the "Name" and "Platform" (LINUX).
-  1. If setting up an **AFL** job, use the templates **"afl"** and
-     **"engine_asan"**.
-  2. If setting up a **libFuzzer** job, use the templates **"libfuzzer"** and
-     **"engine_$SANITIZER"** depending on which sanitizer you are using (e.g.
-     **"engine_asan"**).
-4. Select your build (your zip containing the fuzz target binary) to upload as a
+4. Enable the desired fuzzer in the "Select/modify fuzzers" field, e.g. **libFuzzer** or **afl**.
+5. If setting up an **AFL** job, use the templates **"afl"** and
+   **"engine_asan"**.
+6. If setting up a **libFuzzer** job, use the templates **"libfuzzer"** and
+   **"engine_$SANITIZER"** depending on which sanitizer you are using (e.g.
+   **"engine_asan"**).
+7. Select your build (your zip containing the fuzz target binary) to upload as a
    "Custom Build". If you are running ClusterFuzz in production, it is
    recommended to set up a [build pipeline] and follow [these] instructions on
    providing continuous builds rather than using a "Custom Build".
-5. Use the "ADD" button to add the job to ClusterFuzz.
+8. Use the "ADD" button to add the job to ClusterFuzz.
 
-Next we must let ClusterFuzz know which fuzzer the job can be used with:
-1. Navigate to the *Fuzzers* page.
-2. Click "EDIT" for the desired fuzzer (afl or libFuzzer).
-3. Click "Select/modify jobs".
-4. Mark the desired job.
-5. Click "SUBMIT".
+You can also control which fuzzer the job can be used with using the *Fuzzers* page:
+1. Click "EDIT" for the desired fuzzer (afl or libFuzzer).
+2. Click "Select/modify jobs".
+3. Mark the desired job.
+4. Click "SUBMIT".
 
 [these]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/
 
