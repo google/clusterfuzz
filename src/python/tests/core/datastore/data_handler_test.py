@@ -351,16 +351,21 @@ class DataHandlerTest(unittest.TestCase):
         'See help_url for instructions to reproduce this bug locally.')
 
   def test_get_issue_description_additional_issue_fields(self):
-    """Test get_issue_description with a blackbox fuzzer testcase."""
-    testcase = data_types.Testcase()
-    testcase.fuzzer_name = 'simple_fuzzer'
-    testcase.crash_type = 'Timeout'
+    """Test get_issue_description with a additional fields set in metadata."""
+    testcase = data_types.Testcase(
+        job_type='linux_asan_chrome',
+        fuzzer_name='simple_fuzzer',
+        overridden_fuzzer_name='libfuzzer_binary_name',
+        crash_type='Timeout',
+        crash_address='0x1337',
+        crash_state='A\nB\nC\n',
+        crash_revision=1337)
+
     testcase.crash_stacktrace = (
         'Line1\n'
         'Command: /fuzzer -rss_limit_mb=2048 -timeout=25 -max_len=10 /testcase')
-    testcase.job_type = 'job_with_help_format'
-    testcase.crash_revision = 1337
-    testcase.minimized_arguments = '--disable-logging %TESTCASE_FILE_URL%'
+    testcase.set_metadata(
+        'fuzzer_binary_name', 'binary_name', update_testcase=False)
     testcase.set_metadata(
         'issue_metadata', {
             'additional_fields': {
@@ -375,11 +380,11 @@ class DataHandlerTest(unittest.TestCase):
         description, 'Detailed Report: https://test-clusterfuzz.appspot.com/'
         'testcase?key=3\n\n'
         'Project: project\n'
-        'Fuzzer: fuzzer1\n'
+        'Fuzzer: simple_fuzzer\n'
         'Job Type: linux_asan_chrome\n'
         'Crash Type: Timeout\n'
         'Crash Address: 0x1337\n'
-        'Crash State:\n  NULL\n'
+        'Crash State:\n  A\n  B\n  C\n  \n'
         'Sanitizer: address (ASAN)\n\n'
         'Crash Revision: https://test-clusterfuzz.appspot.com/revisions?'
         'job=linux_asan_chrome&revision=1337\n\n'
