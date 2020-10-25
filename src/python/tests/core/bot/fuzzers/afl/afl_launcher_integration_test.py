@@ -374,8 +374,8 @@ class TestLauncherMinijail(BaseLauncherTest):
 
   def setUp(self):
     super(TestLauncherMinijail, self).setUp()
-    launcher.USE_MINIJAIL = True
     test_helpers.patch(self, ['system.minijail.MinijailChroot._mknod'])
+    os.environ['USE_MINIJAIL'] = 'True'
 
     self.mock._mknod.side_effect = _mknod  # pylint: disable=protected-access
 

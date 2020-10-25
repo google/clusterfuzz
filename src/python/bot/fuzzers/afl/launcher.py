@@ -1531,9 +1531,7 @@ def main(argv):
   # FIXME: Remove this once AFL is migrated to the new engine impl and runs in
   # same python process.
   logs.configure('run_fuzzer')
-
   _verify_system_config()
-
   profiler.start_if_needed('afl_launcher')
 
   build_directory = environment.get_value('BUILD_DIR')
