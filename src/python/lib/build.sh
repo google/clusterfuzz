@@ -16,19 +16,27 @@
 # Delete existing symlinks.
 find clusterfuzz/ -type l | xargs rm
 
-# Symlink dependencies.
-ln -s $(pwd)/../base clusterfuzz/
-ln -s $(pwd)/../bot clusterfuzz/
-ln -s $(pwd)/../build_management clusterfuzz/
-ln -s $(pwd)/../config clusterfuzz/
-ln -s $(pwd)/../crash_analysis clusterfuzz/
-ln -s $(pwd)/../datastore clusterfuzz/
-ln -s $(pwd)/../fuzzer_utils clusterfuzz/
-ln -s $(pwd)/../fuzzing clusterfuzz/
-ln -s $(pwd)/../google_cloud_utils clusterfuzz/
-ln -s $(pwd)/../metrics clusterfuzz/
-ln -s $(pwd)/../platforms clusterfuzz/
-ln -s $(pwd)/../system clusterfuzz/
-ln -s $(pwd)/../../protos clusterfuzz/
+DEPENDENCIES=(
+    $(pwd)/../base
+    $(pwd)/../bot
+    $(pwd)/../build_management
+    $(pwd)/../config
+    $(pwd)/../crash_analysis
+    $(pwd)/../datastore
+    $(pwd)/../fuzzer_utils
+    $(pwd)/../fuzzing
+    $(pwd)/../google_cloud_utils
+    $(pwd)/../metrics
+    $(pwd)/../platforms
+    $(pwd)/../system
+    $(pwd)/../../protos
+)
+
+for dependency in ${DEPENDENCIES[@]}; do
+  ln -s "$dependency" clusterfuzz/_internal/
+done
+
+# Symlink config dir.
+ln -s $(pwd)/../../../configs/test clusterfuzz/lib-config
 
 python setup.py sdist bdist_wheel

@@ -232,6 +232,9 @@ class DictionaryManager(object):
     Returns:
       A boolean indicating whether downloading succeeded or not.
     """
+    if environment.is_lib():
+      return 0
+
     # When the fuzz target is initially created or when it has no new
     # coverage or dictionary recommendations, then we won't have a
     # recommended dictionary in GCS.
@@ -338,6 +341,9 @@ class DictionaryManager(object):
     Returns:
       A number of new elements actually added to the dictionary stored in GCS.
     """
+    if environment.is_lib():
+      return 0
+
     # If the dictionary does not already exist, then directly update it.
     if not storage.exists(self.gcs_path):
       storage.write_data('\n'.join(new_dictionary).encode('utf-8'),

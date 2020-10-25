@@ -1,0 +1,93 @@
+=================================================================
+==3216==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x0d37d6e0 at pc 0x013de06e bp 0xdeadbeef sp 0x00b6d550
+WRITE of size 16 at 0x0d37d6e0 thread T0
+==3216==*** WARNING: Failed to initialize DbgHelp!              ***
+==3216==*** Most likely this means that the app is already      ***
+==3216==*** using DbgHelp, possibly with incompatible flags.    ***
+==3216==*** Due to technical reasons, symbolization might crash ***
+==3216==*** or produce wrong results.                           ***
+    #0 0x13de084 in __asan_memset+0xe4 (C:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_a15986b6468dcac5c0ae9a2e0729fd95d8ce33c8\symbolized\release\asan-win32-release-367086\chrome.exe+0x6ae084)
+    #1 0x1ad13757 in blink::TimerBase::stop third_party/WebKit/Source/platform/Timer.cpp:73
+    #2 0x13792007 in blink::HTMLInputElement::onSearch third_party/WebKit/Source/core/html/HTMLInputElement.cpp:1487
+    #3 0x1ce8bdfd in blink::internal::CallClosureTask::performTask components/scheduler/child/webthread_base.cc:26
+    #4 0x13614ffc in blink::MainThreadTaskRunner::perform third_party/WebKit/Source/core/dom/MainThreadTaskRunner.cpp:105
+    #5 0x13614e02 in blink::MainThreadTask::run third_party/WebKit/Source/core/dom/MainThreadTaskRunner.cpp:61
+    #6 0x1ce88f9b in scheduler::WebTaskRunnerImpl::runTask components/scheduler/child/web_task_runner_impl.cc:49
+    #7 0x1ce89bac in base::internal::RunnableAdapter<void (__cdecl*)(scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> >)>::Run base/bind_internal.h:157
+    #8 0x1ce89a83 in base::internal::InvokeHelper<0,void,base::internal::RunnableAdapter<void (__cdecl*)(scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> >)>,base::internal::TypeList<scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> > > >::MakeItSo base/bind_internal.h:297
+    #9 0x1ce898c9 in base::internal::Invoker<base::IndexSequence<0>,base::internal::BindState<base::internal::RunnableAdapter<void (__cdecl*)(scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> >)>,void __cdecl(scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> >),base::internal::PassedWrapper<scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> > > >,base::internal::TypeList<base::internal::UnwrapTraits<base::internal::PassedWrapper<scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> > > > >,base::internal::InvokeHelper<0,void,base::internal::RunnableAdapter<void (__cdecl*)(scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> >)>,base::internal::TypeList<scoped_ptr<blink::WebTaskRunner::Task,std::default_delete<blink::WebTaskRunner::Task> > > >,void __cdecl(void)>::Run base/bind_internal.h:347
+    #10 0x1047ecd1 in base::debug::TaskAnnotator::RunTask base/callback.h:394
+    #11 0x1ced7fc4 in scheduler::TaskQueueManager::ProcessTaskFromWorkQueue components/scheduler/base/task_queue_manager.cc:264
+    #12 0x1ced265e in scheduler::TaskQueueManager::DoWork components/scheduler/base/task_queue_manager.cc:180
+    #13 0x1cededaa in base::internal::Invoker<base::IndexSequence<0,1,2>,base::internal::BindState<base::internal::RunnableAdapter<void (__thiscall scheduler::TaskQueueManager::*)(base::TimeTicks,bool)>,void __cdecl(scheduler::TaskQueueManager *,base::TimeTicks,bool),base::WeakPtr<scheduler::TaskQueueManager>,base::TimeTicks,bool>,base::internal::TypeList<base::internal::UnwrapTraits<base::WeakPtr<scheduler::TaskQueueManager> >,base::internal::UnwrapTraits<base::TimeTicks>,base::internal::UnwrapTraits<bool> >,base::internal::InvokeHelper<1,void,base::internal::RunnableAdapter<void (__thiscall scheduler::TaskQueueManager::*)(base::TimeTicks,bool)>,base::internal::TypeList<base::WeakPtr<scheduler::TaskQueueManager> const &,base::TimeTicks const &,bool const &> >,void __cdecl(void)>::Run base/bind_internal.h:178
+    #14 0x1047ecd1 in base::debug::TaskAnnotator::RunTask base/callback.h:394
+    #15 0x10375759 in base::MessageLoop::RunTask base/message_loop/message_loop.cc:488
+    #16 0x10376cf6 in base::MessageLoop::DoWork base/message_loop/message_loop.cc:497
+    #17 0x10486577 in base::MessagePumpDefault::Run base/message_loop/message_pump_default.cc:33
+    #18 0x10374693 in base::MessageLoop::RunHandler base/message_loop/message_loop.cc:452
+    #19 0x10486c66 in base::RunLoop::Run base/run_loop.cc:56
+    #20 0x10373635 in base::MessageLoop::Run base/message_loop/message_loop.cc:290
+    #21 0x169d1812 in content::RendererMain content/renderer/renderer_main.cc:232
+    #22 0x10262f5d in content::RunNamedProcessTypeMain content/app/content_main_runner.cc:383
+    #23 0x102650b2 in content::ContentMainRunnerImpl::Run content/app/content_main_runner.cc:795
+    #24 0x10262b2b in content::ContentMain content/app/content_main.cc:19
+    #25 0xfe7113b in ChromeMain chrome/app/chrome_main.cc:67
+    #26 0x113fe80 in MainDllLoader::Launch chrome/app/main_dll_loader_win.cc:285
+    #27 0x1133873 in main chrome/app/chrome_exe_main_win.cc:219
+    #28 0x13f9dfa in __tmainCRTStartup f:\dd\vctools\crt\crtw32\startup\crt0.c:255
+    #29 0x77157c03 in BaseThreadInitThunk+0x23 (C:\windows\SYSTEM32\KERNEL32.DLL+0x6b817c03)
+    #30 0x778aad5e in RtlInitializeExceptionChain+0x8e (C:\windows\SYSTEM32\ntdll.dll+0x6b2dad5e)
+    #31 0x778aad29 in RtlInitializeExceptionChain+0x59 (C:\windows\SYSTEM32\ntdll.dll+0x6b2dad29)
+
+0x0d37d6e0 is located 12 bytes to the right of 20-byte region [0x0d37d6c0,0x0d37d6d4)
+allocated by thread T0 here:
+    #0 0x13e3298 in malloc+0xb8 (C:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_a15986b6468dcac5c0ae9a2e0729fd95d8ce33c8\symbolized\release\asan-win32-release-367086\chrome.exe+0x6b3298)
+    #1 0x13b4bad3 in blink::PasswordInputType::create third_party/WebKit/Source/wtf/PartitionAlloc.h:736
+    #2 0x13993883 in blink::InputType::create third_party/WebKit/Source/core/html/forms/InputType.cpp:120
+    #3 0x1377dd48 in blink::HTMLInputElement::updateType third_party/WebKit/Source/core/html/HTMLInputElement.cpp:461
+    #4 0x1378614d in blink::HTMLInputElement::parseAttribute third_party/WebKit/Source/core/html/HTMLInputElement.cpp:689
+    #5 0x1342d2bc in blink::Element::attributeChanged third_party/WebKit/Source/core/dom/Element.cpp:1197
+    #6 0x13456147 in blink::Element::didModifyAttribute third_party/WebKit/Source/core/dom/Element.cpp:3136
+    #7 0x1342bb31 in blink::Element::setAttribute third_party/WebKit/Source/core/dom/Element.cpp:1180
+    #8 0x1622da4c in blink::V8IdleRequestCallback::`vector deleting destructor out/Release/gen/blink/bindings/core/v8/V8Element.cpp:1150
+    #9 0x1c2497aa in v8::internal::FunctionCallbackArguments::Call v8/src/arguments.cc:33
+    #10 0x1b2504de in v8::internal::Builtins::InvokeApiFunction v8/src/builtins.cc:2208
+    #11 0x1b277710 in v8::internal::Runtime_SetAllocationTimeout v8/src/builtins.cc:2232
+
+SUMMARY: AddressSanitizer: heap-buffer-overflow (C:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_a15986b6468dcac5c0ae9a2e0729fd95d8ce33c8\symbolized\release\asan-win32-release-367086\chrome.exe+0x6ae084) in __asan_memset+0xe4
+Shadow bytes around the buggy address:
+  0x31a6fa80: fa fa fa fa fa fa fa fa fd fd fd fd fa fa fa fa
+  0x31a6fa90: fa fa fa fa fa fa fa fa fa fa fa fa 00 00 00 00
+  0x31a6faa0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x31a6fab0: 00 00 04 fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x31a6fac0: fa fa fa fa fd fd fd fd fa fa fa fa fa fa fa fa
+=>0x31a6fad0: fa fa fa fa fa fa fa fa 00 00 04 fa[fa]fa fa fa
+  0x31a6fae0: fa fa fa fa fa fa fa fa fa fa fa fa fd fd fd fa
+  0x31a6faf0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x31a6fb00: fd fd fd fd fa fa fa fa fa fa fa fa fa fa fa fa
+  0x31a6fb10: fa fa fa fa fd fd fd fd fa fa fa fa fa fa fa fa
+  0x31a6fb20: fa fa fa fa fa fa fa fa 00 00 00 04 fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Heap right redzone:      fb
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack partial redzone:   f4
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==3216==ABORTING
+[1229/173339:ERROR:main_dll_loader_win.cc(299)] Could not find exported function RelaunchChromeBrowserWithNewCommandLineIfNeeded
+       
