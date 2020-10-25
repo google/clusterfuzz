@@ -1208,8 +1208,8 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                input_directory,
                afl_tools_path=None,
                strategy_dict=None):
-    super().__init__(target_path, config, testcase_file_path,
-                         input_directory, afl_tools_path, strategy_dict)
+    super().__init__(target_path, config, testcase_file_path, input_directory,
+                     afl_tools_path, strategy_dict)
 
     new_process.ProcessRunner.__init__(self, self.afl_fuzz_path)
 
@@ -1226,8 +1226,8 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
                input_directory,
                afl_tools_path=None,
                strategy_dict=None):
-    super().__init__(target_path, config, testcase_file_path,
-                         input_directory, afl_tools_path, strategy_dict)
+    super().__init__(target_path, config, testcase_file_path, input_directory,
+                     afl_tools_path, strategy_dict)
 
     minijail.MinijailProcessRunner.__init__(self, chroot, self.afl_fuzz_path)
 
@@ -1276,8 +1276,8 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
       minijail_afl_output = self._get_or_create_chroot_binding(
           self.afl_output.output_directory)
 
-    return super().generate_afl_args(
-        minijail_afl_input, minijail_afl_output, mem_limit)
+    return super().generate_afl_args(minijail_afl_input, minijail_afl_output,
+                                     mem_limit)
 
   @property
   def stderr_file_path(self):

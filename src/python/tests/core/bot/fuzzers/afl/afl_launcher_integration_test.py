@@ -373,7 +373,7 @@ class TestLauncherMinijail(BaseLauncherTest):
   """AFL launcher tests."""
 
   def setUp(self):
-    super(TestLauncherMinijail, self).setUp()
+    super().setUp()
     test_helpers.patch(self, ['system.minijail.MinijailChroot._mknod'])
     os.environ['USE_MINIJAIL'] = 'True'
 
