@@ -1208,8 +1208,7 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                input_directory,
                afl_tools_path=None,
                strategy_dict=None):
-    super(AflRunner,
-          self).__init__(target_path, config, testcase_file_path,
+    super().__init__(target_path, config, testcase_file_path,
                          input_directory, afl_tools_path, strategy_dict)
 
     new_process.ProcessRunner.__init__(self, self.afl_fuzz_path)
@@ -1227,8 +1226,7 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
                input_directory,
                afl_tools_path=None,
                strategy_dict=None):
-    super(MinijailAflRunner,
-          self).__init__(target_path, config, testcase_file_path,
+    super().__init__(target_path, config, testcase_file_path,
                          input_directory, afl_tools_path, strategy_dict)
 
     minijail.MinijailProcessRunner.__init__(self, chroot, self.afl_fuzz_path)
@@ -1259,8 +1257,7 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
 
   def run_single_testcase(self, testcase_path):
     with self._chroot_testcase(testcase_path) as chroot_testcase_path:
-      return super(MinijailAflRunner,
-                   self).run_single_testcase(chroot_testcase_path)
+      return super().run_single_testcase(chroot_testcase_path)
 
   def generate_afl_args(self,
                         afl_input=None,
@@ -1279,7 +1276,7 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
       minijail_afl_output = self._get_or_create_chroot_binding(
           self.afl_output.output_directory)
 
-    return super(MinijailAflRunner, self).generate_afl_args(
+    return super().generate_afl_args(
         minijail_afl_input, minijail_afl_output, mem_limit)
 
   @property
@@ -1289,7 +1286,7 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
 
   def set_environment_variables(self):
     """Overridden set_environment_variables."""
-    super(MinijailAflRunner, self).set_environment_variables()
+    super().set_environment_variables()
     environment.set_value(constants.STDERR_FILENAME_ENV_VAR,
                           '/' + STDERR_FILENAME)
 
