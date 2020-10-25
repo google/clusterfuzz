@@ -59,8 +59,12 @@ class AFLEngine(engine.Engine):
     config = launcher.AFLConfig.from_target_path(target_path)
     config.additional_afl_arguments = options.arguments
     input_path = None  # Not required for fuzzing.
-    runner = launcher.prepare_runner(target_path, config, input_path,
-                                     options.corpus_dir)
+    runner = launcher.prepare_runner(
+        target_path,
+        config,
+        input_path,
+        options.corpus_dir,
+        strategy_dict=options.strategies)
 
     # TODO(mbarbella): Use the runner to start a fuzzing session.
     raise NotImplementedError
