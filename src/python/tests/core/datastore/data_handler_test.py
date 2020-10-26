@@ -351,48 +351,44 @@ class DataHandlerTest(unittest.TestCase):
         'See help_url for instructions to reproduce this bug locally.')
 
   def test_get_issue_description_additional_issue_fields(self):
-    """Test get_issue_description with a additional fields set in metadata."""
-    testcase = data_types.Testcase(
-        job_type='linux_asan_chrome',
-        fuzzer_name='simple_fuzzer',
-        overridden_fuzzer_name='libfuzzer_binary_name',
-        crash_type='Timeout',
-        crash_address='0x1337',
-        crash_state='A\nB\nC\n',
-        crash_revision=1337)
+    """Test get_issue_description with additional fields set in metadata."""
+    self.mock.get().name = 'chromium'
 
-    testcase.crash_stacktrace = (
+    self.testcase.crash_type = 'Out-of-memory'
+    self.testcase.crash_stacktrace = (
         'Line1\n'
         'Command: /fuzzer -rss_limit_mb=2048 -timeout=25 -max_len=10 /testcase')
-    testcase.set_metadata(
-        'fuzzer_binary_name', 'binary_name', update_testcase=False)
-    testcase.set_metadata(
+    self.testcase.job_type = 'windows_asan_chrome'
+    self.testcase.one_time_crasher_flag = True
+    self.testcase.set_metadata(
         'issue_metadata', {
             'additional_fields': {
                 'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
                 'Answer': 42,
             }
         })
-    testcase.put()
+    self.testcase.put()
 
-    description = data_handler.get_issue_description(testcase)
+    description = data_handler.get_issue_description(self.testcase)
     self.assertEqual(
         description, 'Detailed Report: https://test-clusterfuzz.appspot.com/'
-        'testcase?key=3\n\n'
-        'Project: project\n'
-        'Fuzzer: simple_fuzzer\n'
-        'Job Type: linux_asan_chrome\n'
-        'Crash Type: Timeout\n'
+        'testcase?key=1\n\n'
+        'Fuzzing Engine: libFuzzer\n'
+        'Fuzz Target: binary_name\n'
+        'Job Type: windows_asan_chrome\n'
+        'Crash Type: Out-of-memory (exceeds 2048 MB)\n'
         'Crash Address: 0x1337\n'
         'Crash State:\n  A\n  B\n  C\n  \n'
         'Sanitizer: address (ASAN)\n\n'
         'Crash Revision: https://test-clusterfuzz.appspot.com/revisions?'
-        'job=linux_asan_chrome&revision=1337\n\n'
-        'Reproducer Testcase: https://test-clusterfuzz.appspot.com/'
-        'download?testcase_id=3\n\n'
+        'job=windows_asan_chrome&revision=1337\n\n'
+        'Reproducer Testcase: '
+        'https://test-clusterfuzz.appspot.com/download?testcase_id=1\n\n'
         'See help_url for instructions to reproduce this bug locally.\n\n'
+        '%s\n\n'
         'Acknowledgements: [\'Alice\', \'Bob\', \'Eve\', \'Mallory\']\n'
-        'Answer: 42')
+        'Answer: 42'
+        % data_handler.FILE_UNREPRODUCIBLE_TESTCASE_TEXT)
 
   def test_get_issue_summary_with_no_prefix(self):
     """Test get_issue_description on jobs with no prefix."""
