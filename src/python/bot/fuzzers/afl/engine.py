@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ class AFLEngine(engine.Engine):
     """
     afl_config = launcher.AFLConfig.from_target_path(target_path)
     arguments = afl_config.additional_afl_arguments
+    # TODO(mbarbella): Select all strategies here instead of deferring to fuzz.
     strategies = launcher.FuzzingStrategies(target_path).to_strategy_dict()
     return engine.FuzzOptions(corpus_dir, arguments, strategies)
 
