@@ -387,8 +387,7 @@ class DataHandlerTest(unittest.TestCase):
         'See help_url for instructions to reproduce this bug locally.\n\n'
         '%s\n\n'
         'Acknowledgements: [\'Alice\', \'Bob\', \'Eve\', \'Mallory\']\n'
-        'Answer: 42'
-        % data_handler.FILE_UNREPRODUCIBLE_TESTCASE_TEXT)
+        'Answer: 42' % data_handler.FILE_UNREPRODUCIBLE_TESTCASE_TEXT)
 
   def test_get_issue_summary_with_no_prefix(self):
     """Test get_issue_description on jobs with no prefix."""
