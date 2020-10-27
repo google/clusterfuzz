@@ -15,6 +15,7 @@
 
 import contextlib
 import glob
+import json
 import os
 import pipes
 import random
@@ -453,7 +454,11 @@ def get_additional_issue_metadata(fuzz_target_path):
     return {}
 
   with open(metadata_file_path) as handle:
-    return handle.read()
+    try:
+      return json.load(handle)
+    except (ValueError, TypeError):
+      logs.log_error('Invalid metadata file format.', path=metadata_file_path)
+      return {}
 
 
 def get_all_issue_metadata(fuzz_target_path):
