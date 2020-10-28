@@ -193,7 +193,7 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
 
   def setUp(self):
     self.temp_input_dir = os.path.join(self.TEMP_DIR, 'afl_input_dir')
-    super(AflFuzzInputDirectoryTest, self).setUp()
+    super().setUp()
     test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
     self.mock.is_lpm_fuzz_target.return_value = True
     self.strategies = launcher.FuzzingStrategies(None)
@@ -315,7 +315,7 @@ class AflFuzzOutputDirectoryTest(LauncherTestBase):
   QUEUE_TESTCASE_INO = 2
 
   def setUp(self):
-    super(AflFuzzOutputDirectoryTest, self).setUp()
+    super().setUp()
     # Creates self.OUTPUT_DIR.
     self.afl_output = launcher.AflFuzzOutputDirectory()
     os.mkdir(self.CRASHES_DIR)
@@ -462,7 +462,7 @@ class SetSanitizerOptionsTest(LauncherTestBase):
       self.assertIn(opt, sanitizer_options_value)
 
   def setUp(self):
-    super(SetSanitizerOptionsTest, self).setUp()
+    super().setUp()
     test_helpers.patch_environ(self)
 
   def test_left_unset(self):
@@ -515,7 +515,7 @@ class AflRunnerTest(LauncherTestBase):
   BAD_FILE_CONTENTS = 'bad'
 
   def setUp(self):
-    super(AflRunnerTest, self).setUp()
+    super().setUp()
     test_helpers.patch_environ(self)
     test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
     self.mock.is_lpm_fuzz_target.return_value = True
@@ -845,7 +845,7 @@ class AflConfigTest(LauncherTestBase):
   """Test AflConfig."""
 
   def setUp(self):
-    super(AflConfigTest, self).setUp()
+    super().setUp()
     self.target_path = '/build_dir/target'
     self.options_path = self.target_path + '.options'
 
@@ -927,7 +927,7 @@ class ListFullFilePathsTest(LauncherTestBase):
   DUMMY_3_FILENAME = 'dummyfile3'
 
   def setUp(self):
-    super(ListFullFilePathsTest, self).setUp()
+    super().setUp()
     self.dummy_file_path = os.path.join(self.INPUT_DIR, fuzzer.AFL_DUMMY_INPUT)
     self.dummy_3_file_path, _ = self._create_file(self.DUMMY_3_FILENAME)
 
