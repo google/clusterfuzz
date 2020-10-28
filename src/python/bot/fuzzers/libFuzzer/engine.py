@@ -97,7 +97,7 @@ class LibFuzzerEngine(engine.Engine):
       An int representing the number of seconds required.
     """
     # Use a large value to compute the delta.
-    original_timeout = 100000
+    original_timeout = 1000000
     fuzz_timeout = libfuzzer.get_fuzz_timeout(
         options.is_mutations_run, total_timeout=original_timeout)
     return original_timeout - fuzz_timeout
