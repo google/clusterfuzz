@@ -869,7 +869,7 @@ class UnshareIntegrationTests(IntegrationTests):
   """Unshare runner integration tests."""
 
   def setUp(self):
-    super(UnshareIntegrationTests, self).setUp()
+    super().setUp()
     os.environ['USE_UNSHARE'] = 'True'
 
   def compare_arguments(self, target_path, arguments, corpora_or_testcase,
