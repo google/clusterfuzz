@@ -144,6 +144,38 @@ class PrepareTest(fake_fs_unittest.TestCase):
     ], options.arguments)
 
 
+class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
+  """fuzz_additional_processing_timeout tests."""
+
+  def test_no_mutations(self):
+    """Test no mutations."""
+    engine_impl = engine.LibFuzzerEngine()
+    options = engine.LibFuzzerOptions(
+        '/corpus',
+        arguments=[],
+        strategies=[],
+        fuzz_corpus_dirs=[],
+        extra_env={},
+        use_dataflow_tracing=False,
+        is_mutations_run=False)
+    self.assertEqual(2100.0,
+                     engine_impl.fuzz_additional_processing_timeout(options))
+
+  def test_mutations(self):
+    """Test with mutations."""
+    engine_impl = engine.LibFuzzerEngine()
+    options = engine.LibFuzzerOptions(
+        '/corpus',
+        arguments=[],
+        strategies=[],
+        fuzz_corpus_dirs=[],
+        extra_env={},
+        use_dataflow_tracing=False,
+        is_mutations_run=True)
+    self.assertEqual(2700.0,
+                     engine_impl.fuzz_additional_processing_timeout(options))
+
+
 class PickStrategiesTest(fake_fs_unittest.TestCase):
   """pick_strategies tests."""
 
