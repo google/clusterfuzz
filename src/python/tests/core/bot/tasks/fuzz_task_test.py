@@ -1382,6 +1382,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
     os.environ['FUZZ_TARGET'] = 'test_target'
     os.environ['APP_REVISION'] = '1'
+    os.environ['FUZZ_TEST_TIMEOUT'] = '2000'
 
     expected_crashes = [engine.Crash('/input', 'stack', ['args'], 1.0)]
 
@@ -1394,8 +1395,13 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         })
     engine_impl.fuzz.side_effect = lambda *_: engine.FuzzResult(
         'logs', ['cmd'], expected_crashes, {'stat': 1}, 42.0)
+    engine_impl.fuzz_additional_processing_timeout.return_value = 1337
 
     crashes, fuzzer_metadata = session.do_engine_fuzzing(engine_impl)
+
+    engine_impl.fuzz.assert_called_with('/build_dir/test_target',
+                                        engine_impl.prepare.return_value,
+                                        '/fuzz-inputs', 663)
     self.assertDictEqual({
         'fuzzer_binary_name':
             'test_target',
