@@ -1457,7 +1457,7 @@ class UntrustedRunEngineFuzzerTest(
 
   def setUp(self):
     """Set up."""
-    super(UntrustedRunEngineFuzzerTest, self).setUp()
+    super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     job = data_types.Job(
@@ -1475,7 +1475,7 @@ class UntrustedRunEngineFuzzerTest(
     environment.set_value('USE_MINIJAIL', False)
 
   def tearDown(self):
-    super(UntrustedRunEngineFuzzerTest, self).tearDown()
+    super().tearDown()
     shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   def test_run_engine_fuzzer(self):
