@@ -537,6 +537,12 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
   if not issue or not issue.is_open:
     return
 
+  # Skip closing if flag is set.
+  skip_auto_close = data_handler.get_value_from_job_definition(
+      testcase.job_type, 'SKIP_AUTO_CLOSE_ISSUE')
+  if skip_auto_close:
+    return
+
   # Check if there are any reproducible open testcases are associated with
   # this bug. If yes, return.
   similar_testcase = data_types.Testcase.query(
