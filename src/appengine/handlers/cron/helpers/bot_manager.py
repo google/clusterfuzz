@@ -82,6 +82,8 @@ class BotManager(object):
 class Resource(object):
   """Represents a resource."""
 
+  _OPERATION_POLL_SECONDS = 5
+
   def __init__(self, name, manager):
     self.name = name
     self.manager = manager
@@ -118,7 +120,7 @@ class Resource(object):
 
         return operation
 
-      time.sleep(1)
+      time.sleep(self._OPERATION_POLL_SECONDS)
 
       if 'zone' in operation:
         operation = self.compute.zoneOperations().get(
@@ -146,7 +148,7 @@ class Resource(object):
     try:
       response = request.execute()
     except googleapiclient.errors.HttpError as e:
-      if e.resp.status in [400, 500, 503]:
+      if e.resp.status in [400, 403, 500, 503]:
         raise RetryableError(str(e))
       if e.resp.status == 404:
         raise NotFoundError(str(e))
