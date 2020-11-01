@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+## Version 3.0.0
+- Improved ML-based fuzzing.
+- Various bug fixes.
+
 ## Version 2.2.0
 - Replaced webapp2 usage with Flask.
 - Improved Syzkaller support.
