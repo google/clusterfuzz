@@ -70,6 +70,19 @@ class Engine(object):
     """Get the name of the engine."""
     raise NotImplementedError
 
+  def fuzz_additional_processing_timeout(self, options):
+    """Return the maximum additional timeout in seconds for additional
+    operations in fuzz() (e.g. merging back new items).
+
+    Args:
+      options: A FuzzOptions object.
+
+    Returns:
+      An int representing the number of seconds required.
+    """
+    del options
+    return 0
+
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
