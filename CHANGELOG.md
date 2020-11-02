@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-## Version 3.0.0
+## Version 2.3.0
 - Improved ML-based fuzzing.
 - Various bug fixes.
 
