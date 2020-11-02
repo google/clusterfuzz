@@ -39,4 +39,5 @@ done
 # Symlink config dir.
 ln -s $(pwd)/../../../configs/test clusterfuzz/lib-config
 
+pip3 install wheel
 python3 setup.py sdist bdist_wheel
