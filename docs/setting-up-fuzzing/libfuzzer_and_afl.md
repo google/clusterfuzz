@@ -45,6 +45,8 @@ greater which you can download from the [LLVM Snapshot Builds page].
 
 AFL is only supported on Linux.
 
+[LLVM Snapshot Builds page]: https://llvm.org/builds/
+
 ## Builds
 
 ### libFuzzer
