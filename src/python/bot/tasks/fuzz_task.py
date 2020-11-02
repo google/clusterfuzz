@@ -1590,6 +1590,9 @@ class FuzzingSession(object):
 
     # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
+    if not fuzz_target_name:
+      raise FuzzTaskException('No fuzz targets found.')
+
     self.fuzz_target = record_fuzz_target(engine_impl.name, fuzz_target_name,
                                           self.job_type)
     environment.set_value('FUZZER_NAME',
