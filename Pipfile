@@ -25,7 +25,7 @@ pylint = "~=2.4"
 selenium = "==3.141.0"
 WebTest = "==2.0.23"
 yapf = "==0.22.0"
-
+twine = "*"
 
 [requires]
 python_version = "3.7"
