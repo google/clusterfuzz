@@ -64,15 +64,11 @@ First we need to create a job:
 * Fill out a job with the following:
     * **"libfuzzer_asan_linux_openssl"** for the "Name".
     * **"LINUX"** for the "Platform".
+    * **"libFuzzer"** for the "Select/modify fuzzers".
     * **"libfuzzer"** and **"engine_asan"** for the "Templates".
     * `CORPUS_PRUNE = True` for the "Environment String".
 * Select openssl-fuzzer-build.zip to upload as a "Custom Build".
 * Use the "ADD" button to add the job to ClusterFuzz.
-
-Then enable the job by going to the *Fuzzer* page and editing libFuzzer:
-* Click "Select/modify jobs".
-* Mark "libfuzzer_asan_linux_openssl".
-* Press "SUBMIT".
 
 ## Fuzzing and seeing results
 If you follow this tutorial using [local ClusterFuzz] server and bot instances,
