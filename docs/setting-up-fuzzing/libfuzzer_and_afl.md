@@ -100,7 +100,8 @@ To create a job for libFuzzer or AFL:
 1. Navigate to the *Jobs* page.
 2. Go to the "ADD NEW JOB" form.
 3. Fill out the "Name" and "Platform" (LINUX).
-4. Enable the desired fuzzer in the "Select/modify fuzzers" field, e.g. **libFuzzer** or **afl**.
+4. Enable the desired fuzzer in the "Select/modify fuzzers" field, e.g.
+   **libFuzzer**, **honggfuzz**, or **afl**.
 5. If setting up an **AFL** job, use the templates **"afl"** and
    **"engine_asan"**.
 6. If setting up a **honggfuzz** job, use the templates **"honggfuzz"** and 
