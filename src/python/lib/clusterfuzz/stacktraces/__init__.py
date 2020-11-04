@@ -20,12 +20,15 @@ import subprocess
 try:
   from clusterfuzz._internal.base import utils
   from clusterfuzz._internal.crash_analysis import crash_analyzer
+  from clusterfuzz._internal.platforms.linux.lkl \
+    import constants as lkl_constants
   from clusterfuzz._internal.metrics import logs
   from clusterfuzz._internal.system import environment
 except ImportError:
   from base import utils
   from crash_analysis import crash_analyzer
   from metrics import logs
+  from platforms.linux.lkl import constants as lkl_constants
   from system import environment
 
 from .constants import *
@@ -60,6 +63,9 @@ class CrashInfo:
 
     # Additional tracking for fatal errors.
     self.fatal_error_occurred = False
+
+    # Additional tracking for lkl bugs.
+    self.lkl_kernel_build_id = None
 
     self.is_kasan = False
     self.is_lkl = False
@@ -366,11 +372,16 @@ class StackParser:
 
     return state
 
-  def remove_lkl_kernel_times(self, crash_data):
+  def remove_lkl_kernel_times_and_set_params(self, state, crash_data):
     """Filter kernel time from crash_data if LKL."""
     result = ''
     for line in crash_data.splitlines():
-      result += ANDROID_KERNEL_TIME_REGEX.sub('', line) + '\n'
+      clean_line = ANDROID_KERNEL_TIME_REGEX.sub('', line)
+      result += clean_line + '\n'
+      if not state.lkl_kernel_build_id:
+        match = lkl_constants.LINUX_VERSION_REGEX_LKL.match(clean_line)
+        if match:
+          state.lkl_kernel_build_id = match.group(2)
     return result
 
   def parse(self, stacktrace: str) -> CrashInfo:
@@ -378,15 +389,18 @@ class StackParser:
     state = CrashInfo()
     state.crash_stacktrace = stacktrace
     state.is_kasan = 'KASAN' in stacktrace
-    state.is_lkl = 'Linux Kernel Library Stack Trace:' in stacktrace
+    state.is_lkl = lkl_constants.LINUX_KERNEL_MODULE_STACK_TRACE in stacktrace
     state.is_golang = '.go:' in stacktrace
     state.is_python = '.py", line' in stacktrace
 
     # For Android LKL (and potentially kernel output), the KASAN crash may start
     # with the time since boot.  We need to remove this so that our regexes
     # match.
+    # We also want to set the kernel build id here since we are already walking
+    # line by line.
     if state.is_lkl:
-      stacktrace = self.remove_lkl_kernel_times(stacktrace)
+      stacktrace = self.remove_lkl_kernel_times_and_set_params(
+          state, stacktrace)
 
     split_crash_stacktrace = stacktrace.splitlines()
 

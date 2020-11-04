@@ -16,25 +16,39 @@
 from config import local_config
 from lib.clusterfuzz import stacktraces
 from platforms.android import kernel_utils as android_kernel
+from platforms.linux.lkl import kernel_utils as lkl_kernel
+
 from system import environment
 
 MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS = 64
 
 
-def linkify_android_stacktrace(crash_info):
-  """Linkify Android stacktrace."""
-  # Only get repo.prop if we have an Android kernel or KASAN crash
-  android_kernel_prefix, android_kernel_hash = \
-     android_kernel.get_kernel_prefix_and_full_hash()
+def linkify_kernel_or_lkl_stacktrace_if_needed(crash_info):
+  """Linkify Android Kernel or lkl stacktrace."""
+  kernel_prefix = ''
+  kernel_hash = ''
+  if environment.is_android() and (crash_info.found_android_kernel_crash or
+                                   crash_info.is_kasan):
+    kernel_prefix, kernel_hash = \
+      android_kernel.get_kernel_prefix_and_full_hash()
 
-  # Linkify only if we are Android kernel.
-  if android_kernel_prefix and android_kernel_hash:
-    temp_crash_stacktrace = ''
-    for line in crash_info.crash_stacktrace.splitlines():
-      temp_crash_stacktrace += android_kernel.get_kernel_stack_frame_link(
-          line, android_kernel_prefix, android_kernel_hash) + '\n'
+  elif (environment.is_lkl_job() and crash_info.is_lkl and
+        crash_info.lkl_kernel_build_id):
+    kernel_prefix, kernel_hash = \
+      lkl_kernel.get_kernel_prefix_and_full_hash(crash_info.lkl_kernel_build_id)
 
-    crash_info.crash_stacktrace = temp_crash_stacktrace
+  if kernel_prefix and kernel_hash:
+    _linkify_android_kernel_stacktrace(crash_info, kernel_prefix, kernel_hash)
+
+
+def _linkify_android_kernel_stacktrace(crash_info, kernel_prefix, kernel_hash):
+  """Linkify Android Kernel or lkl stacktrace."""
+  temp_crash_stacktrace = ''
+  for line in crash_info.crash_stacktrace.splitlines():
+    temp_crash_stacktrace += android_kernel.get_kernel_stack_frame_link(
+        line, kernel_prefix, kernel_hash) + '\n'
+
+  crash_info.crash_stacktrace = temp_crash_stacktrace
 
 
 def get_crash_data(crash_data,
@@ -100,9 +114,7 @@ def get_crash_data(crash_data,
   if result.crash_stacktrace:
     result.crash_stacktrace = crash_stacktrace_with_inlines
 
-  # Linkify Android stacktrace.
-  if environment.is_android() and (result.found_android_kernel_crash or
-                                   result.is_kasan):
-    linkify_android_stacktrace(result)
+  # Linkify Android Kernel or lkl stacktrace.
+  linkify_kernel_or_lkl_stacktrace_if_needed(result)
 
   return result

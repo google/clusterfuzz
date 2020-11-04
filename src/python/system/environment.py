@@ -615,6 +615,11 @@ def is_chromeos_job(job_name=None):
   return _job_substring_match('chromeos', job_name)
 
 
+def is_lkl_job(job_name=None):
+  """Return True if the current job is for ChromeOS."""
+  return _job_substring_match('lkl', job_name)
+
+
 def is_chromeos_system_job(job_name=None):
   """Return True if the current job is for ChromeOS system (i.e. not libFuzzer
   or entire Chrome browser for Chrome on ChromeOS)."""

@@ -518,8 +518,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^syslog\:\:LogMessage',
 
     # Android kernel stack frame ignores.
-    r'^print_address_description$',
-    r'^_etext$',
+    r'^print_address_description',
+    r'^_etext',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [

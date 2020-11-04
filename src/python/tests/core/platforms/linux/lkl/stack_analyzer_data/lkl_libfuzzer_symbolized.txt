@@ -1,0 +1,114 @@
+disk/temp-1028899/mutations /usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1028899/subset
+Bot: android-mspector-linuxworkstation.kir.corp.google.com-localhost:46191
+Time ran: 453.0651717185974
+
+[    0.000000] Linux version 5.4.58+-ab6926695 (build-user@build-host) (Android (6794702, based on r399163) clang version 11.0.4 (https://android.googlesource.com/toolchain/llvm-project 87f1315dfbea7c137aa2e6d362dbb457e388158d), GNU ld (GNU Binutils for Ubuntu) 2.24) #1 2020-10-16 23:03:14
+[    0.000000] memblock address range: 0x7f697c86b000 - 0x7f697fa6b000
+[    0.000000] KernelAddressSanitizer initialized
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 12625
+[    0.000000] Kernel command line: mem=50M
+[    0.000000] Dentry cache hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] Memory available: 50336k/51200k RAM
+[    0.000000] SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] NR_IRQS: 4096
+[    0.000000] lkl: irqs initialized
+[    0.000000] clocksource: lkl: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+[    0.000003] lkl: time and timers initialized (irq1)
+Done.
+Begin xxx
+VID=0104, PID=00C5, RDESC: 114 bytes, INPUT: 0 byetes
+RDESC::size=114
+00000000: 28 28 28 28 B1 28 28 28 28 28 28 B5 28 28 28 28 ((((.((((((.((((
+00000010: 28 28 28 28 28 28 28 28 28 28 28 01 2A 64 02 28 (((((((((((.*d.(
+00000020: 28 28 28 28 28 28 28 28 28 28 28 28 A8 28 28 28 ((((((((((((.(((
+00000030: 28 28 28 28 28 28 28 28 28 28 28 28 28 28 00 00 ((((((((((((((..
+00000040: 00 00 09 00 00 38 00 80 C0 01 09 00 09 02 00 75 .....8.........u
+00000050: 0A 31 02 81 00 5D C0 21 05 0C 09 47 81 06 95 81 .1...].!...G....
+00000060: 06 81 06 30 C0 05 28 0C 09 01 A1 01 D9 04 00 00 ...0..(.........
+00000070: 00 C0                                           ..
+
+INPUT::size=0
+
+Done.
+Begin xxx
+VID=3600, PID=8042, RDESC: 125 bytes, INPUT: 0 byetes
+RDESC::size=125
+00000000: 06 C0 C0 05 0C 09 [  126.008447] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.008497] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.008521] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.008536] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.008551] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x4
+[  126.008568] hid-generic 0003:3600:8042.81F8: ignoring exceeding usage max
+[  126.010925] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.010953] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x1
+[  126.010970] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.011047] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.011081] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.011108] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.011125] hid-generic 0003:3600:8042.81F8: unknown main item tag 0x0
+[  126.013085] ==================================================================
+[  126.013117] BUG: KASAN: slab-out-of-bounds in _etext+0x26eda/0x312104
+[  126.013128] Write of size 4 at addr 00007f5256480ddc by task kworker/0:1/11
+[  126.013133]
+[  126.013141] Linux Kernel Library Stack Trace:
+    #0 0x00000000005e6dda in print_address_description /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/mm/kasan/report.c:375:2
+    #1 0x00000000005e7584 in __kasan_report /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/mm/kasan/report.c:507:3
+    #2 0x00000000005e6af9 in kasan_report /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/mm/kasan/common.c:636:1
+    #3 0x00000000005e7ccf in __asan_store4 /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/mm/kasan/generic.c:250:1
+    #4 0x0000000000a60a36 in __hidinput_change_resolution_multipliers /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/hid-input.c:0:31
+    #5 0x0000000000a4b8dc in hidinput_connect /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/hid-input.c:1615:7
+    #6 0x0000000000a40d00 in hid_connect /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/hid-core.c:1931:48
+    #7 0x0000000000a41818 in hid_hw_start /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/hid-core.c:2035:11
+    #8 0x00000000007bdb81 in hid_generic_probe /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/hid-generic.c:67:9
+    #9 0x0000000000a425d8 in hid_device_probe /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/hid-core.c:2263:10
+    #10 0x0000000000755615 in really_probe /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/base/dd.c:566:13
+    #11 0x00000000007568c6 in __device_attach_driver /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/base/dd.c:745:9
+    #12 0x00000000007521ad in bus_for_each_drv /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/base/bus.c:430:11
+    #13 0x0000000000755c09 in __device_attach /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/base/dd.c:918:9
+    #14 0x0000000000755c8e in device_initial_probe /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/base/dd.c:966:1
+    #15 0x000000000075244c in bus_probe_device /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/base/bus.c:492:19
+    #16 0x000000000074cd35 in device_add /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/base/core.c:2820:6
+    #17 0x0000000000a43174 in hid_add_device /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/hid-core.c:2419:8
+    #18 0x0000000000a6ac58 in uhid_device_add_worker /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/drivers/hid/uhid.c:62:8
+[  126.013377] #19 [<0x000000000054b0cc>] .str.8+0x2c/0x60
+    #19 0x000000000054cf38 in worker_thread /buildbot/src/partner-android/android12-5.4-lkl/private/lkl/kernel/workqueue.c:2420:4
+[  126.013399] #21 [<0x000000000055322a>] .str.24+0x2a/0x40
+[  126.013418] #22 [<0x000000000051b21b>] .str.2+0x3b/0x50
+[  126.013428] #23 [<0x000000000051505a>] 0x51505a
+[  126.013434]
+[  126.013440]
+[  126.013446]
+[  126.013452] Memory state around the buggy address:
+[  126.013462]  00007f5256480c80: 00 00 00 00 00 00 00 04 fc fc fc fc fc fc fc fc
+[  126.013471]  00007f5256480d00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  126.013480] >00007f5256480d80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  126.013487]                                                     ^
+[  126.013496]  00007f5256480e00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  126.013505]  00007f5256480e80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  126.013511] ==================================================================
+[  126.013521] Disabling lock debugging due to kernel taint
+[  126.013533] Kernel panic - not syncing: panic_on_warn set ...
+[  126.013545] ---[ end Kernel panic - not syncing: panic_on_warn set ... ]---
+hid-fuzzer: lib/posix-host.c:191: void panic(void): Assertion `0' failed.
+==2434886== ERROR: libFuzzer: deadly signal
+    #0 0x510c60  (/usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x510c60)
+    #1 0x4bc5f8  (/usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x4bc5f8)
+    #2 0x4a19e3  (/usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x4a19e3)
+    #3 0x7f525812113f  (/lib/x86_64-linux-gnu/libpthread.so.0+0x1413f)
+    #4 0x7f5257e1ddb0  (/lib/x86_64-linux-gnu/libc.so.6+0x3bdb0)
+    #5 0x7f5257e07536  (/lib/x86_64-linux-gnu/libc.so.6+0x25536)
+    #6 0x7f5257e0740e  (/lib/x86_64-linux-gnu/libc.so.6+0x2540e)
+    #7 0x7f5257e165b1  (/lib/x86_64-linux-gnu/libc.so.6+0x345b1)
+    #8 0x5147ff  (/usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x5147ff)
+    #9 0x51ac70  (/usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x51ac70)
+
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
+MS: 1 ChangeBit-; base unit: 0f4f6db1f0a8dbaced22d98bef470b9fa32740b1
+0x94,0xa,0x0,0x6d,0x0,0x36,0x42,0x80,0x6,0xc0,0xc0,0x5,0xc,0x9,0x1,0xa1,0x1,0x85,0x81,0x3,0xac,0x6,0xbc,0x4e,0x4e,0x1,0x0,0x0,0x0,0x0,0x41,0x2d,0x4a,0x0,0x95,0x95,0x1,0x2a,0x1,0xf6,0xce,0x7f,0x5e,0xb1,0xb1,0xb1,0xb1,0x2a,0xff,0x2,0x81,0x0,0xc0,0x9,0x32,0x5,0x1,0x80,0xa1,0x1,0xa5,0x1,0xa1,0x4e,0x4e,0xe,0x4e,0x2a,0xff,0x2,0x81,0x0,0xc0,0x5,0x1,0x9,0x34,0x80,0xa1,0x1,0x1,0x0,0x13,0xec,0xf9,0x8,0x82,0x2,0x4f,0x4f,0x4f,0x4f,0x4f,0x4f,0x89,0x9,0x83,0x2a,0x81,0x0,0xb1,0x0,0x81,0x3,0xc0,0x6,0xbc,0x4e,0x4e,0x4e,0x2a,0x2,0x81,0x0,0xc0,0x5,0x27,0x1,0x9,0x34,0x80,0x3,0xc7,0x6,0xbc,0x4e,0x4e,0x4a,0x80,0x4e,0x4e,0x4e,0x0,
+\x94\x0a\x00m\x006B\x80\x06\xc0\xc0\x05\x0c\x09\x01\xa1\x01\x85\x81\x03\xac\x06\xbcNN\x01\x00\x00\x00\x00A-J\x00\x95\x95\x01*\x01\xf6\xce\x7f^\xb1\xb1\xb1\xb1*\xff\x02\x81\x00\xc0\x092\x05\x01\x80\xa1\x01\xa5\x01\xa1NN\x0eN*\xff\x02\x81\x00\xc0\x05\x01\x094\x80\xa1\x01\x01\x00\x13\xec\xf9\x08\x82\x02OOOOOO\x89\x09\x83*\x81\x00\xb1\x00\x81\x03\xc0\x06\xbcNNN*\x02\x81\x00\xc0\x05'\x01\x094\x80\x03\xc7\x06\xbcNNJ\x80NNN\x00
+artifact_prefix='/usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/inputs/fuzzer-testcases/'; Test unit written to /usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/inputs/fuzzer-testcases/crash-ba41547c2c098e2e6688b9e4330de3ab3a6891e1
+Base64: lAoAbQA2QoAGwMAFDAkBoQGFgQOsBrxOTgEAAAAAQS1KAJWVASoB9s5/XrGxsbEq/wKBAMAJMgUBgKEBpQGhTk4OTir/AoEAwAUBCTSAoQEBABPs+QiCAk9PT09PT4kJgyqBALEAgQPABrxOTk4qAoEAwAUnAQk0gAPHBrxOTkqATk5OAA==
