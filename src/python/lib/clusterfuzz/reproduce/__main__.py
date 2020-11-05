@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Fuzzing module."""
+"""Reproduction module."""
 
 import argparse
 import os
@@ -39,15 +39,15 @@ def main():
       help='Sanitizer.',
       choices=['address', 'memory', 'undefined'],
       default='address')
-  parser.add_argument('-c', '--corpus', help='Path to corpus.', required=True)
   parser.add_argument(
-      '-o', '--output', help='Path to crashers.', default=os.getcwd())
+      '-r', '--reproducer', help='Path to reproducer.', required=True)
   parser.add_argument(
       '-d',
       '--max_duration',
       help='Max time in seconds to run.',
       type=int,
-      default=3600)
+      default=25)
+  parser.add_argument('engine_args', nargs='*')
   args = parser.parse_args()
 
   # TODO(ochang): Find a cleaner way to propagate this.
@@ -59,12 +59,10 @@ def main():
     os.environ['JOB_NAME'] = 'libfuzzer_ubsan'
 
   engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
-  options = engine_impl.prepare(args.corpus, args.target,
-                                os.path.dirname(args.target))
-  result = engine_impl.fuzz(args.target, options, args.output,
-                            args.max_duration)
+  result = engine_impl.reproduce(args.target, args.reproducer, args.engine_args,
+                                 args.max_duration)
   print('Command: ', ' '.join([shlex.quote(part) for part in result.command]))
-  print(result.logs)
+  print(result.output)
 
 
 if __name__ == '__main__':
