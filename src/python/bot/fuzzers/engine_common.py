@@ -29,7 +29,6 @@ import six
 from base import utils
 from bot.fuzzers import options
 from bot.fuzzers import utils as fuzzer_utils
-from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
 from datastore import data_types
 from fuzzing import strategy
 from metrics import fuzzer_stats
@@ -214,6 +213,10 @@ def generate_new_testcase_mutations_using_ml_rnn(
     generation_timeout):
   """Generate new testcase mutations using ML RNN model."""
   # No return value for now. Will add later if this is necessary.
+  # Defer import to prevent issues with tensorflow causing hangs with
+  # multiprocessing.
+  # TODO(ochang): handle this is a better way.
+  from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
   ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
                            fuzzer_name, generation_timeout)
 

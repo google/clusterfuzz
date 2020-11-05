@@ -31,7 +31,6 @@ from base import tasks
 from base import untrusted
 from base import utils
 from bot.fuzzers import init as fuzzers_init
-from bot.tasks import commands
 from bot.tasks import update_task
 from datastore import data_handler
 from datastore import ndb_init
@@ -63,6 +62,9 @@ class _Monitor(object):
 
 def task_loop():
   """Executes tasks indefinitely."""
+  # Defer heavy task imports to prevent issues with multiprocessing.Process
+  from bot.tasks import commands
+
   clean_exit = False
   while True:
     stacktrace = ''
