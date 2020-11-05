@@ -12,13 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """AFL engine interface."""
+import os
 
+from bot.fuzzers import engine_common
 from bot.fuzzers.afl import launcher
+from bot.fuzzers.afl import stats_getter
 from lib.clusterfuzz.fuzz import engine
+from system import environment
 
 
-# TODO(mbarbella): Remove this check once this file is fully implemented.
-# pylint: disable=unused-variable
+def _get_command_from_fuzz_result(fuzz_result, runner):
+  """Get the command string without showing unnecessary minijail commands."""
+  command = fuzz_result.command
+  if environment.get_value('USE_MINIJAIL'):
+    command = engine_common.strip_minijail_command(command,
+                                                   runner.afl_fuzz_path)
+
+  return command
+
+
 class AFLEngine(engine.Engine):
   """AFL engine implementation."""
 
@@ -59,16 +71,41 @@ class AFLEngine(engine.Engine):
     """
     config = launcher.AFLConfig.from_target_path(target_path)
     config.additional_afl_arguments = options.arguments
-    input_path = None  # Not required for fuzzing.
+    testcase_file_path = os.path.join(reproducers_dir, 'testcase')
     runner = launcher.prepare_runner(
         target_path,
         config,
-        input_path,
+        testcase_file_path,
         options.corpus_dir,
         strategy_dict=options.strategies)
 
-    # TODO(mbarbella): Use the runner to start a fuzzing session.
-    raise NotImplementedError
+    fuzz_result = runner.fuzz()
+
+    command = _get_command_from_fuzz_result(fuzz_result, runner)
+    time_executed = fuzz_result.time_executed
+    logs = fuzz_result.output.splitlines() + runner.fuzzer_stderr.splitlines()
+
+    # Bail out if AFL returns a nonzero status code.
+    if fuzz_result.return_code:
+      return engine.FuzzResult(logs, command, [], {}, time_executed)
+
+    new_units_generated, new_units_added, corpus_size = (
+        runner.libfuzzerize_corpus())
+    stats_getter.set_stats(fuzz_result.time_executed, new_units_generated,
+                           new_units_added, corpus_size, runner.strategies,
+                           runner.fuzzer_stderr, fuzz_result.output)
+    stats = stats_getter.stats
+
+    # TODO(mbarbella): This will not continue fuzzing properly when a crash is
+    # found. Address this when refactoring the launcher to remove the old
+    # codepath.
+    crashes = []
+    if os.path.exists(testcase_file_path):
+      crash = engine.Crash(testcase_file_path, fuzz_result.output, [],
+                           fuzz_result.crash_time)
+      crashes.append(crash)
+
+    return engine.FuzzResult(logs, command, crashes, stats, time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
@@ -87,8 +124,15 @@ class AFLEngine(engine.Engine):
     runner = launcher.prepare_runner(target_path, config, input_path,
                                      input_directory)
 
-    # TODO(mbarbella): Use the runner to reproduce the test case.
-    raise NotImplementedError
+    launcher.load_testcase_if_exists(runner, input_path)
+    fuzz_result = runner.fuzz()
+
+    command = _get_command_from_fuzz_result(fuzz_result, runner)
+    return_code = fuzz_result.return_code
+    time_executed = fuzz_result.time_executed
+    output = '\n'.join([fuzz_result.output, runner.fuzzer_stderr])
+
+    return engine.ReproduceResult(command, return_code, time_executed, output)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
