@@ -28,12 +28,12 @@ while [ "$1" != "" ]; do
 done
 
 # Check that python 3.7 or 3.8 is installed.
-if python3.7 --help > /dev/null; then
-  PYTHON='python3.7'
-  PYTHON_VERSION='3.7'
-elif python3.8 --help > /dev/null; then
+if python3.8 --help > /dev/null; then
   PYTHON='python3.8'
   PYTHON_VERSION='3.8'
+elif python3.7 --help > /dev/null; then
+  PYTHON='python3.7'
+  PYTHON_VERSION='3.7'
 else
   echo "ERROR: The only supported python versions are 3.7 and 3.8"
   exit 1
