@@ -61,7 +61,7 @@ PROCESS_CLEANUP_WAIT_TIME = 5
 LSAN_ANALYSIS_TIME = 1
 
 # Time to wait for thread cleanup (e.g. dumping coverage, etc).
-THREAD_FINISH_WAIT_TIME = 2
+THREAD_FINISH_WAIT_TIME = 5
 
 
 class ProcessStatus(object):
