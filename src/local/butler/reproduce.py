@@ -262,7 +262,12 @@ def _update_environment_for_testcase(testcase, build_directory,
   if application_override:
     environment.set_value('APP_NAME', application_override)
 
-  fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
+  if testcase.fuzzer_name:
+    fuzzer_directory = setup.get_fuzzer_directory(testcase.fuzzer_name)
+  else:
+    fuzzer_directory = os.path.join(environment.get_value('ROOT_DIR'), 'fuzzer')
+    shell.create_directory(fuzzer_directory)
+
   environment.set_value('FUZZER_DIR', fuzzer_directory)
 
   task_name = environment.get_value('TASK_NAME')
