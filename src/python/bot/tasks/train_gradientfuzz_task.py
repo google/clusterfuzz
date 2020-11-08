@@ -18,10 +18,12 @@ import os
 import shutil
 import sys
 
+from base import utils
 from bot.fuzzers.ml.gradientfuzz import constants
 from bot.fuzzers.ml.gradientfuzz import run_constants
 from bot.tasks import ml_train_utils
 from build_management import build_manager
+from datastore import data_handler
 from google_cloud_utils import storage
 from metrics import logs
 from system import environment
@@ -165,7 +167,7 @@ def train_gradientfuzz(fuzzer_name, dataset_name, num_inputs):
       constants.NEUZZ_ONE_HIDDEN_LAYER_MODEL
   ]
 
-  logs.log('Launching training with the following arguments: "{args_list}".')
+  logs.log(f'Launching training with the following arguments: "{args_list}".')
 
   # Run process in gradientfuzz directory.
   gradientfuzz_trainer = new_process.ProcessRunner(sys.executable)
@@ -185,14 +187,17 @@ def get_model_dir(run_name):
   Returns:
       (str): Full path to model dir.
   """
-  for full_path in glob.glob(
-      os.path.join(GRADIENTFUZZ_SCRIPTS_DIR, constants.MODEL_DIR, '*', '*')):
-    if os.path.basename(full_path) == run_name:
-      return full_path
+  model_dir = os.path.join(GRADIENTFUZZ_SCRIPTS_DIR, constants.MODEL_DIR)
+  for root, _, filenames in os.walk(model_dir):
+    for filename in filenames:
+      full_path = os.path.join(root, filename)
+      if os.path.basename(full_path) == run_name:
+        return full_path
+
   return None
 
 
-def execute_task(fuzzer_name, job_type):
+def execute_task(full_fuzzer_name, job_type):
   """
   Performs GradientFuzz model training.
 
@@ -204,14 +209,24 @@ def execute_task(fuzzer_name, job_type):
     fuzzer_name (str): Name of fuzzer, e.g. libpng_read_fuzzer.
     job_type (str): Job type, e.g. libfuzzer_chrome_asan.
   """
-  if not job_type:
-    logs.log_error('job_type is not set when training GradientFuzz for ' +
-                   f'fuzzer {fuzzer_name}.')
-    return
+  del job_type
 
   # Sets up fuzzer binary build.
-  environment.set_value('FUZZ_TARGET', fuzzer_name)
+  fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
+  if not fuzz_target:
+    logs.log_warn(
+        f'Fuzzer not found: {full_fuzzer_name}, skip GradientFuzz training.')
+    return
+  fuzzer_name = fuzz_target.project_qualified_name()
+
+  environment.set_value('FUZZ_TARGET', fuzz_target.binary)
   build_manager.setup_build()
+  if not build_manager.check_app_path():
+    logs.log_error(
+        f'Build setup failed when running GradientFuzz training task for '
+        f'fuzzer {fuzzer_name}.')
+    return
+
   fuzzer_binary_path = environment.get_value('APP_PATH')
 
   # Directory to place corpus. |FUZZ_INPUTS_DISK| is not size constrained.
@@ -249,9 +264,12 @@ def execute_task(fuzzer_name, job_type):
       logs.log_error(
           f'GradientFuzz training task for fuzzer {fuzzer_name} failed with ' +
           f'ExitCode = {train_result.return_code}.',
-          output=train_result.output)
+          output=utils.decode_to_unicode(train_result.output))
     return
 
   model_directory = get_model_dir(run_name)
-  if model_directory:
-    upload_model_to_gcs(model_directory, fuzzer_name)
+  if not model_directory:
+    logs.log_error(f'No run file found for {run_name}, exiting.')
+    return
+
+  upload_model_to_gcs(model_directory, fuzzer_name)
