@@ -42,7 +42,7 @@ write_files:
     permissions: 0644
     owner: root
     content: |
-      NVIDIA_DRIVER_VERSION=418.152.00
+      NVIDIA_DRIVER_VERSION=418.165.02
       COS_NVIDIA_INSTALLER_CONTAINER=gcr.io/cos-cloud/cos-gpu-installer:latest
       NVIDIA_INSTALL_DIR_HOST=/var/lib/nvidia
       NVIDIA_INSTALL_DIR_CONTAINER=/usr/local/nvidia
