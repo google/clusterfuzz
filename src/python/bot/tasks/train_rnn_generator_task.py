@@ -224,8 +224,7 @@ def execute_task(full_fuzzer_name, job_type):
   # Sets up fuzzer binary build.
   fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
   if not fuzz_target:
-    logs.log_warn(
-        f'Fuzzer not found: {full_fuzzer_name}, skip RNN training.')
+    logs.log_warn(f'Fuzzer not found: {full_fuzzer_name}, skip RNN training.')
     return
   fuzzer_name = fuzz_target.project_qualified_name()
 
