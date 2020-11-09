@@ -27,15 +27,19 @@ while [ "$1" != "" ]; do
   shift
 done
 
-# Check that python 3.7 or 3.8 is installed.
-if python3.7 --help > /dev/null; then
+# The reproduce tool requires Python 3.8
+if [ ! $only_reproduce ] && python3.7 --help > /dev/null; then
   PYTHON='python3.7'
   PYTHON_VERSION='3.7'
 elif python3.8 --help > /dev/null; then
   PYTHON='python3.8'
   PYTHON_VERSION='3.8'
 else
-  echo "ERROR: The only supported python versions are 3.7 and 3.8"
+  if [ $only_reproduce ]; then
+    echo "ERROR: The reproduce tool requires Python 3.8"
+  else
+    echo "ERROR: The only supported Python versions are 3.7 and 3.8"
+  fi
   exit 1
 fi
 
