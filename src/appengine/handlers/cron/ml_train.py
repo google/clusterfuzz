@@ -56,6 +56,6 @@ class Handler(base_handler.Handler):
         for target in fuzz_targets:
           tasks.add_task(
               task_name,
-              target.project_qualified_name(),
+              target.fully_qualified_name(),
               job.name,
               queue=tasks.ML_JOBS_TASKQUEUE)

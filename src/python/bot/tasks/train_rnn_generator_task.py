@@ -19,6 +19,7 @@ import sys
 
 from bot.fuzzers.ml.rnn import constants
 from bot.tasks import ml_train_utils
+from datastore import data_handler
 from google_cloud_utils import storage
 from metrics import logs
 from system import environment
@@ -208,7 +209,7 @@ def train_rnn(input_directory,
       timeout=TRAINING_TIMEOUT)
 
 
-def execute_task(fuzzer_name, job_type):
+def execute_task(full_fuzzer_name, job_type):
   """Execute ML RNN training task.
 
   The task is training RNN model by default. If more models are developed,
@@ -218,10 +219,14 @@ def execute_task(fuzzer_name, job_type):
     fuzzer_name: Name of fuzzer, e.g. libpng_read_fuzzer.
     job_type: Job type, e.g. libfuzzer_chrome_asan.
   """
-  if not job_type:
-    logs.log_error(
-        'job_type is not set when training ML RNN for fuzzer %s.' % fuzzer_name)
+  del job_type
+
+  # Sets up fuzzer binary build.
+  fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
+  if not fuzz_target:
+    logs.log_warn(f'Fuzzer not found: {full_fuzzer_name}, skip RNN training.')
     return
+  fuzzer_name = fuzz_target.project_qualified_name()
 
   # Directory to place training files, such as logs, models, corpus.
   # Use |FUZZ_INPUTS_DISK| since it is not size constrained.

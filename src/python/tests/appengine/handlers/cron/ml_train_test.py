@@ -95,24 +95,24 @@ class HandlerTest(unittest.TestCase):
     self.app.get('/schedule-ml-train-tasks')
     self.mock.add_task.assert_any_call(
         'train_rnn_generator',
-        'fake_fuzzer',
+        'libFuzzer_fake_fuzzer',
         'libfuzzer_asan',
         queue='ml-jobs-linux')
     self.mock.add_task.assert_any_call(
         'train_gradientfuzz',
-        'fake_gradientfuzzer',
+        'libFuzzer_fake_gradientfuzzer',
         'libfuzzer_asan_gradientfuzz',
         queue='ml-jobs-linux')
 
     # Multiple tasks in one job.
     self.mock.add_task.assert_any_call(
         'train_rnn_generator',
-        'fake_all_fuzzer',
+        'libFuzzer_fake_all_fuzzer',
         'libfuzzer_asan_all',
         queue='ml-jobs-linux')
     self.mock.add_task.assert_any_call(
         'train_gradientfuzz',
-        'fake_all_fuzzer',
+        'libFuzzer_fake_all_fuzzer',
         'libfuzzer_asan_all',
         queue='ml-jobs-linux')
 

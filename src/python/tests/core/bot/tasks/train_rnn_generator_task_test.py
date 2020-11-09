@@ -21,6 +21,7 @@ import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
 from bot.fuzzers.ml.rnn import constants
 from bot.tasks import train_rnn_generator_task
+from datastore import data_types
 from system import new_process
 from system import shell
 from tests.test_libs import helpers as test_helpers
@@ -110,6 +111,7 @@ class GetLastSavedModelTest(fake_fs_unittest.TestCase):
     self.assertDictEqual(model_paths, expected)
 
 
+@test_utils.with_cloud_emulators('datastore')
 class ExecuteTaskTest(unittest.TestCase):
   """Execute training script test."""
 
@@ -117,8 +119,12 @@ class ExecuteTaskTest(unittest.TestCase):
     test_helpers.patch_environ(self)
 
     self.fuzzer_name = 'fake_fuzzer'
+    self.full_fuzzer_name = 'libFuzzer_fake_fuzzer'
     self.job_type = 'fake_job'
     self.temp_dir = tempfile.mkdtemp()
+
+    data_types.FuzzTarget(
+        engine='libFuzzer', binary='fake_fuzzer', project='test-project').put()
 
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
 
@@ -147,7 +153,7 @@ class ExecuteTaskTest(unittest.TestCase):
         self.temp_dir,
         self.fuzzer_name + train_rnn_generator_task.LOG_DIR_SUFFIX)
 
-    train_rnn_generator_task.execute_task(self.fuzzer_name, self.job_type)
+    train_rnn_generator_task.execute_task(self.full_fuzzer_name, self.job_type)
 
     self.mock.train_rnn.assert_called_once_with(input_directory,
                                                 model_directory, log_directory)
