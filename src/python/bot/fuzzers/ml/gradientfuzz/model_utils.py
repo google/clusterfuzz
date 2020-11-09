@@ -38,7 +38,7 @@ class BitmapAcc(keras.metrics.Metric):
     """
 
   def __init__(self, name='bitmap_acc', **kwargs):
-    super(BitmapAcc, self).__init__(name=name, **kwargs)
+    super().__init__(name=name, **kwargs)
     self.total_correct = self.add_weight(
         name='total_correct', initializer='zeros')
     self.total_branches = self.add_weight(
@@ -84,7 +84,7 @@ class NeuzzJaccardAcc(keras.metrics.Metric):
     """
 
   def __init__(self, name='neuzz_jaccard_acc', **kwargs):
-    super(NeuzzJaccardAcc, self).__init__(name=name, **kwargs)
+    super().__init__(name=name, **kwargs)
     self.true_positives = self.add_weight(
         name='true_positives', initializer='zeros')
     self.total_errors = self.add_weight(
