@@ -23,6 +23,7 @@ except ImportError:
 import os
 import sys
 
+from base import utils
 from bot.fuzzers.ml.rnn import constants
 from google_cloud_utils import storage
 from metrics import logs
@@ -222,7 +223,7 @@ def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
       logs.log_error(
           'ML RNN generation for fuzzer %s failed with ExitCode = %d.' %
           (fuzzer_name, result.return_code),
-          output=result.output)
+          output=utils.decode_to_unicode(result.output))
     return
 
   # Timeout is not error, if we have new units generated.
@@ -239,4 +240,4 @@ def execute(input_directory, output_directory, fuzzer_name, generation_timeout):
   else:
     logs.log_error(
         'ML RNN generator did not produce any inputs for %s' % fuzzer_name,
-        output=result.output)
+        output=utils.decode_to_unicode(result.output))

@@ -73,6 +73,7 @@ class ExecuteTaskTest(unittest.TestCase):
     os.environ['GRADIENTFUZZ_TESTING'] = str(True)
 
     test_helpers.patch(self, [
+        'bot.fuzzers.engine_common.find_fuzzer_path',
         'bot.tasks.ml_train_utils.get_corpus',
         'bot.tasks.train_gradientfuzz_task.gen_inputs_labels',
         'bot.tasks.train_gradientfuzz_task.train_gradientfuzz',
@@ -87,6 +88,7 @@ class ExecuteTaskTest(unittest.TestCase):
         return_code=0), self.run_name
     self.mock.upload_model_to_gcs.return_value = True
     self.mock.setup_build.side_effect = self.mock_build_manager
+    self.mock.find_fuzzer_path.return_value = self.binary_path
 
     # Fakes creating directory tree.
     self.fake_dataset_dir = os.path.join(self.data_dir, self.dataset_name)
@@ -96,10 +98,7 @@ class ExecuteTaskTest(unittest.TestCase):
     os.makedirs(self.fake_model_dir)
 
   def mock_build_manager(self):
-    """
-    Just sets the 'APP_PATH' environment variable.
-    """
-    os.environ['APP_PATH'] = self.binary_path
+    pass
 
   def tearDown(self):
     shell.remove_directory(self.temp_dir)
@@ -206,6 +205,7 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     os.environ['GRADIENTFUZZ_NUM_EPOCHS'] = str(run_constants.NUM_TEST_EPOCHS)
 
     test_helpers.patch(self, [
+        'bot.fuzzers.engine_common.find_fuzzer_path',
         'bot.tasks.ml_train_utils.get_corpus',
         'bot.tasks.train_gradientfuzz_task.upload_model_to_gcs',
         'build_management.build_manager.setup_build'
@@ -214,12 +214,10 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     self.mock.upload_model_to_gcs.return_value = True
     self.mock.get_corpus.side_effect = self.mock_get_corpus
     self.mock.setup_build.side_effect = self.mock_build_manager
+    self.mock.find_fuzzer_path.return_value = self.binary_path
 
   def mock_build_manager(self):
-    """
-    Just sets the 'APP_PATH' environment variable.
-    """
-    os.environ['APP_PATH'] = self.binary_path
+    pass
 
   def mock_get_corpus(self, corpus_directory, _):
     """
