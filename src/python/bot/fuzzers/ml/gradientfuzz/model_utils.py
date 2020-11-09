@@ -51,6 +51,9 @@ class BitmapAcc(keras.metrics.Metric):
       Computes (total matches) / (total branches).
       """
     y_true, y_pred = args
+    # TODO(mbarbella): Verify that this works properly and refactor this file
+    # for consistency between types if so.
+    y_true = tf.cast(tf.round(y_true), tf.bool)
     y_pred = tf.cast(tf.round(y_pred), tf.bool)
     total_correct_branches = tf.reduce_sum(
         tf.cast(tf.equal(y_true, y_pred), tf.float32))
