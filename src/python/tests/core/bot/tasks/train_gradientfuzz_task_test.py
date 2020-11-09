@@ -197,7 +197,8 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
 
     data_types.FuzzTarget(
-        engine='libFuzzer', binary='dummy_fuzzer', project='test-project').put()
+        engine='libFuzzer', binary='dummy_fuzzer',
+        project='test-project').put()
 
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
     os.environ['GRADIENTFUZZ_BATCH_SIZE'] = str(4)
