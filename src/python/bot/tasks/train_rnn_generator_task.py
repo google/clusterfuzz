@@ -17,6 +17,7 @@ import glob
 import os
 import sys
 
+from base import utils
 from bot.fuzzers.ml.rnn import constants
 from bot.tasks import ml_train_utils
 from datastore import data_handler
@@ -263,7 +264,7 @@ def execute_task(full_fuzzer_name, job_type):
       logs.log_error(
           'ML RNN training task for fuzzer %s failed with ExitCode = %d.' %
           (fuzzer_name, result.return_code),
-          output=result.output)
+          output=utils.decode_to_unicode(result.output))
     return
 
   # Timing out may be caused by large training corpus, but intermediate models
