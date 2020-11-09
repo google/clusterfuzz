@@ -38,7 +38,7 @@ class BitmapAcc(keras.metrics.Metric):
     """
 
   def __init__(self, name='bitmap_acc', **kwargs):
-    super(BitmapAcc, self).__init__(name=name, **kwargs)
+    super().__init__(name=name, **kwargs)
     self.total_correct = self.add_weight(
         name='total_correct', initializer='zeros')
     self.total_branches = self.add_weight(
@@ -51,7 +51,8 @@ class BitmapAcc(keras.metrics.Metric):
       Computes (total matches) / (total branches).
       """
     y_true, y_pred = args
-    y_pred = tf.cast(tf.round(y_pred), tf.bool)
+    y_true = tf.cast(y_true, tf.float32)
+    y_pred = tf.round(y_pred)
     total_correct_branches = tf.reduce_sum(
         tf.cast(tf.equal(y_true, y_pred), tf.float32))
     total_incorrect_branches = tf.reduce_sum(
@@ -83,7 +84,7 @@ class NeuzzJaccardAcc(keras.metrics.Metric):
     """
 
   def __init__(self, name='neuzz_jaccard_acc', **kwargs):
-    super(NeuzzJaccardAcc, self).__init__(name=name, **kwargs)
+    super().__init__(name=name, **kwargs)
     self.true_positives = self.add_weight(
         name='true_positives', initializer='zeros')
     self.total_errors = self.add_weight(
@@ -95,6 +96,7 @@ class NeuzzJaccardAcc(keras.metrics.Metric):
       Computes (true positives) / (true positives + errors).
       """
     y_true, y_pred = args
+    y_true = tf.cast(y_true, tf.bool)
     y_pred = tf.cast(tf.round(y_pred), tf.bool)
     self.true_positives.assign_add(
         tf.reduce_sum(tf.cast(tf.logical_and(y_true, y_pred), tf.float32)))
