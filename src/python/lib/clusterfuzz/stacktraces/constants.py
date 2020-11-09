@@ -73,7 +73,7 @@ CFI_FUNC_DEFINED_HERE_REGEX = re.compile(r'.*note: .* defined here$')
 CFI_NODEBUG_ERROR_MARKER_REGEX = re.compile(
     r'CFI: Most likely a control flow integrity violation;.*')
 CHROME_CHECK_FAILURE_REGEX = re.compile(
-    r'\s*[\[][^\]]*[:]([^\](]*).*[\]].*Check failed[:]\s*(.*)')
+    r'\s*\[[^\]]*[:]([^\](]*).*\].*Check failed[:]\s*(.*)')
 CHROME_STACK_FRAME_REGEX = re.compile(
     r'[ ]*(#(?P<frame_id>[0-9]+)[ ]'  # frame id (2)
     r'([xX0-9a-fA-F]+)[ ])'  # addr (3)
@@ -198,9 +198,9 @@ SAN_ADDR_REGEX = re.compile(r'.*(ERROR: [a-zA-Z]+Sanitizer)[: ]*(.*) on '
 SAN_SEGV_REGEX = re.compile(r'.*([a-zA-Z]+Sanitizer).*(SEGV|access-violation) '
                             r'on unknown address ([xX0-9a-fA-F]+)')
 SECURITY_CHECK_FAILURE_REGEX = re.compile(
-    r'.*[\[][^\]]*[:]([^\](]*).*[\]].*Security CHECK failed[:]\s*(.*)\.\s*')
+    r'.*\[[^\]]*[:]([^\](]*).*\].*Security CHECK failed[:]\s*(.*)\.\s*')
 SECURITY_DCHECK_FAILURE_REGEX = re.compile(
-    r'.*[\[][^\]]*[:]([^\](]*).*[\]].*Security DCHECK failed[:]\s*(.*)\.\s*')
+    r'.*\[[^\]]*[:]([^\](]*).*\].*Security DCHECK failed[:]\s*(.*)\.\s*')
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
 UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
