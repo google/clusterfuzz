@@ -187,12 +187,10 @@ def get_model_dir(run_name):
   Returns:
       (str): Full path to model dir.
   """
-  model_dir = os.path.join(GRADIENTFUZZ_SCRIPTS_DIR, constants.MODEL_DIR)
-  for root, _, filenames in os.walk(model_dir):
-    for filename in filenames:
-      full_path = os.path.join(root, filename)
-      if os.path.basename(full_path) == run_name:
-        return full_path
+  for full_path in glob.glob(
+      os.path.join(GRADIENTFUZZ_SCRIPTS_DIR, constants.MODEL_DIR, '*', '*')):
+    if os.path.basename(full_path) == run_name:
+      return full_path
 
   return None
 

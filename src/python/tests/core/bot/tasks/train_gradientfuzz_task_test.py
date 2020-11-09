@@ -26,6 +26,7 @@ from bot.fuzzers.ml.gradientfuzz import constants
 from bot.fuzzers.ml.gradientfuzz import models
 from bot.fuzzers.ml.gradientfuzz import run_constants
 from bot.tasks import train_gradientfuzz_task
+from datastore import data_types
 from system import new_process
 from system import shell
 from tests.test_libs import helpers as test_helpers
@@ -47,6 +48,7 @@ TESTING_CORPUS_DIR = 'sample_corpus'
 TEST_NUM_INPUTS = 75
 
 
+@test_utils.with_cloud_emulators('datastore')
 class ExecuteTaskTest(unittest.TestCase):
   """Execute training script test."""
 
@@ -54,6 +56,7 @@ class ExecuteTaskTest(unittest.TestCase):
     test_helpers.patch_environ(self)
 
     self.fuzzer_name = 'fake_fuzzer'
+    self.full_fuzzer_name = 'libFuzzer_fake_fuzzer'
     self.job_type = 'fake_job'
     self.dataset_name = 'fake_dataset'
     self.run_name = 'fake_run'
@@ -62,6 +65,9 @@ class ExecuteTaskTest(unittest.TestCase):
     self.data_dir = os.path.join(self.home_dir, constants.DATASET_DIR)
     self.temp_dir = tempfile.mkdtemp()
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
+
+    data_types.FuzzTarget(
+        engine='libFuzzer', binary='fake_fuzzer', project='test-project').put()
 
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
     os.environ['GRADIENTFUZZ_TESTING'] = str(True)
@@ -104,7 +110,8 @@ class ExecuteTaskTest(unittest.TestCase):
     """Test execute task."""
     corpus_dir = os.path.join(self.temp_dir, run_constants.CORPUS_DIR,
                               self.fuzzer_name + run_constants.CORPUS_SUFFIX)
-    train_gradientfuzz_task.execute_task(self.fuzzer_name, self.job_type)
+
+    train_gradientfuzz_task.execute_task(self.full_fuzzer_name, self.job_type)
 
     self.mock.gen_inputs_labels.assert_called_once_with(corpus_dir,
                                                         self.binary_path)
@@ -167,6 +174,7 @@ class GenerateInputsIntegration(unittest.TestCase):
 
 
 @test_utils.integration
+@test_utils.with_cloud_emulators('datastore')
 class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
   """
   Tests all of execute_task() except GCS functionality.
@@ -174,6 +182,7 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
 
   def setUp(self):
     self.fuzzer_name = 'dummy_fuzzer'
+    self.full_fuzzer_name = 'libFuzzer_dummy_fuzzer'
     self.job_type = 'dummy_job'
     self.home_dir = train_gradientfuzz_task.GRADIENTFUZZ_SCRIPTS_DIR
     self.corpus_dir = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_CORPUS_DIR)
@@ -186,6 +195,9 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
         self.fuzzer_name + run_constants.RUN_NAME_SUFFIX)
     self.temp_dir = tempfile.mkdtemp()
     self.binary_path = os.path.join(GRADIENTFUZZ_TESTING_DIR, TESTING_BINARY)
+
+    data_types.FuzzTarget(
+        engine='libFuzzer', binary='dummy_fuzzer', project='test-project').put()
 
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
     os.environ['GRADIENTFUZZ_BATCH_SIZE'] = str(4)
@@ -229,7 +241,7 @@ class GradientFuzzTrainTaskIntegrationTest(unittest.TestCase):
     Generate input/output pairs, then train GradientFuzz
     model on a simple corpus.
     """
-    train_gradientfuzz_task.execute_task(self.fuzzer_name, self.job_type)
+    train_gradientfuzz_task.execute_task(self.full_fuzzer_name, self.job_type)
 
     # Asserts that directories were created.
     inputs = os.path.join(self.dataset_dir, constants.STANDARD_INPUT_DIR)
