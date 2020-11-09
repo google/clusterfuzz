@@ -37,10 +37,11 @@ import sys
 from base import utils
 from google_cloud_utils import storage
 from metrics import logs
-from platforms.android import adb
 from platforms.android import fetch_artifact
 from platforms.android import settings
 from platforms.android import symbols_downloader
+from platforms.linux import lkl
+from platforms.linux.lkl import constants as lkl_constants
 from system import archive
 from system import environment
 from system import shell
@@ -56,6 +57,14 @@ stack_inlining = 'false'
 llvm_symbolizer_path = ''
 pipes = []
 symbolizers = {}
+
+# 0 0x7f6e35cf2e45  (/blah/foo.so+0x11fe45)
+STACK_TRACE_LINE_REGEX = re.compile(
+    '^( *#([0-9]+) *)(0x[0-9a-f]+) *\(([^+]*)\+(0x[0-9a-f]+)\)')
+# [    0.058680] #0 [<0x000000000062a66a>] print_address_description+0x6a/0x5c0
+STACK_TRACE_LINE_REGEX_LKL = re.compile(
+    r'^\[ *\d+\.\d+\]( *#([0-9]+) *)\[\<([x0-9a-fA-F]+)\>\] *'
+    r'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
 
 
 class LineBuffered(object):
@@ -439,6 +448,7 @@ class SymbolizationLoop(object):
     self.llvm_symbolizers = {}
     self.last_llvm_symbolizer = None
     self.dsym_hints = set([])
+    self.lkl_binary_name = None
 
   def symbolize_address(self, addr, binary, offset, arch):
     # On non-Darwin (i.e. on platforms without .dSYM debug info) always use
@@ -480,18 +490,10 @@ class SymbolizationLoop(object):
     assert result
     return result
 
-  def process_stacktrace(self, unsymbolized_crash_stacktrace):
-    self.frame_no = 0
-    symbolized_crash_stacktrace = u''
-    for line in unsymbolized_crash_stacktrace.splitlines():
-      self.current_line = utils.decode_to_unicode(line.rstrip())
-      # 0 0x7f6e35cf2e45  (/blah/foo.so+0x11fe45)
-      stack_trace_line_format = (
-          '^( *#([0-9]+) *)(0x[0-9a-f]+) *\(([^+]*)\+(0x[0-9a-f]+)\)')
-      match = re.match(stack_trace_line_format, line)
-      if not match:
-        symbolized_crash_stacktrace += u'%s\n' % self.current_line
-        continue
+  def _line_parser(self, line):
+    """Parses line for frameno_str, addr, binary, offset, arch."""
+    match = STACK_TRACE_LINE_REGEX.match(line)
+    if match:
       _, frameno_str, addr, binary, offset = match.groups()
       arch = ""
       # Arch can be embedded in the filename, e.g.: "libabc.dylib:x86_64h"
@@ -503,6 +505,48 @@ class SymbolizationLoop(object):
           binary = binary[0:colon_pos]
       if arch == "":
         arch = guess_arch(addr)
+
+      return frameno_str, addr, binary, offset, arch
+
+    return None, None, None, None, None
+
+  def _lkl_line_parser(self, line):
+    """Parses line for frameno_str, addr, binary, offset, arch."""
+    match = STACK_TRACE_LINE_REGEX_LKL.match(line)
+    if match:
+      # LKL is always ran on x86_64 host.
+      arch = 'x86_64'
+      _, frameno_str, addr, _, _, _ = match.groups()
+      # In LKL the offset from the base of kernel lib is the address.
+      offset = addr
+      binary = self.lkl_binary_name
+      return frameno_str, addr, binary, offset, arch
+
+    return None, None, None, None, None
+
+  def process_stacktrace(self, unsymbolized_crash_stacktrace):
+    self.frame_no = 0
+    symbolized_crash_stacktrace = u''
+    unsymbolized_crash_stacktrace_lines = \
+      unsymbolized_crash_stacktrace.splitlines()
+    if lkl.is_lkl_stack_trace(unsymbolized_crash_stacktrace_lines):
+      line_parser = self._lkl_line_parser
+      self.lkl_binary_name = lkl.get_lkl_binary_name(
+          unsymbolized_crash_stacktrace_lines)
+      # This should never happen but if it does, lets just return the unsymbolized stack.
+      # We can't symbolize anything anyways.
+      if not self.lkl_binary_name:
+        return unsymbolized_crash_stacktrace
+    else:
+      line_parser = self._line_parser
+
+    for line in unsymbolized_crash_stacktrace_lines:
+      self.current_line = utils.decode_to_unicode(line.rstrip())
+      frameno_str, addr, binary, offset, arch = line_parser(line)
+      if not binary or not offset:
+        symbolized_crash_stacktrace += u'%s\n' % self.current_line
+        continue
+
       if frameno_str == '0':
         # Assume that frame #0 is the first frame of new stack trace.
         self.frame_no = 0
@@ -534,38 +578,8 @@ class SymbolizationLoop(object):
 
 def filter_binary_path(binary_path):
   """Filters binary path to provide a local copy."""
-  if environment.is_android():
-    # Skip symbolization when running it on bad entries like [stack:XYZ].
-    if not binary_path.startswith('/') or '(deleted)' in binary_path:
-      return ''
-
-    # Initialize some helper variables.
-    binary_filename = os.path.basename(binary_path)
-    build_directory = environment.get_value('BUILD_DIR')
-    symbols_directory = environment.get_value('SYMBOLS_DIR')
-
-    # Try to find the library in the build directory first.
-    local_binary_path = utils.find_binary_path(build_directory, binary_path)
-    if local_binary_path:
-      return local_binary_path
-
-    # We didn't find the library locally in the build directory.
-    # Try finding the library in the local system library cache.
-    symbols_downloader.download_system_symbols_if_needed(symbols_directory)
-    local_binary_path = utils.find_binary_path(symbols_directory, binary_path)
-    if local_binary_path:
-      return local_binary_path
-
-    # Try pulling in the binary directly from the device into the
-    # system library cache directory.
-    local_binary_path = os.path.join(symbols_directory, binary_filename)
-    adb.run_command('pull %s %s' % (binary_path, local_binary_path))
-    if os.path.exists(local_binary_path):
-      return local_binary_path
-
-    # Unable to find library.
-    logs.log_error('Unable to find library %s for symbolization.' % binary_path)
-    return ''
+  if environment.is_android() or environment.is_lkl_job():
+    return symbols_downloader.filter_binary_path(binary_path)
 
   if environment.platform() == 'CHROMEOS':
     # FIXME: Add code to pull binaries from ChromeOS device.

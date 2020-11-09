@@ -30,6 +30,20 @@ LINUX_VERSION_REGEX = re.compile(
     r'Linux version .+-g([0-9a-f]+)[\s\-](ab([0-9a-f]+)\s)')
 
 
+def _get_clean_kernel_path(path):
+  """Sometimes kernel paths start with
+  /buildbot/src/partner-android/BRANCH/private/PROJ.  We want to remove all
+  of this."""
+  # Remove the stuff before 'private', since it is build-server dependant
+  # and not part of the final URL.
+  if '/private/' in path:
+    path_parts = path.split('/')
+    path_parts = path_parts[path_parts.index('private') + 2:]
+    return '/'.join(path_parts)
+
+  return path
+
+
 def get_kernel_stack_frame_link(stack_frame, kernel_prefix, kernel_hash):
   """Add source links data to kernel stack frames."""
   match = source_mapper.STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
@@ -37,7 +51,7 @@ def get_kernel_stack_frame_link(stack_frame, kernel_prefix, kernel_hash):
     # If this stack frame does not contain a path and line, bail out.
     return stack_frame
 
-  path = match.group(1)
+  path = _get_clean_kernel_path(match.group(1))
   line = match.group(3)
   kernel_prefix = utils.strip_from_left(kernel_prefix, 'kernel/private/')
   display_path = '/'.join([kernel_prefix, path])
@@ -66,27 +80,34 @@ def _get_prefix_and_full_hash(repo_data, kernel_partial_hash):
   return None, None
 
 
-def get_kernel_prefix_and_full_hash():
-  """Download repo.prop and return the full hash and prefix."""
+def _get_repo_prop_data(build_id, target):
+  """Downloads repo.prop and returns the data based on build_id and target."""
   symbols_directory = os.path.join(
       environment.get_value('SYMBOLS_DIR'), 'kernel')
+  repro_filename = symbols_downloader.get_repo_prop_archive_filename(
+      build_id, target)
+
+  # Grab repo.prop, it is not on the device nor in the build_dir.
+  symbols_downloader.download_kernel_repo_prop_if_needed(symbols_directory)
+  local_repo_path = utils.find_binary_path(symbols_directory, repro_filename)
+
+  if local_repo_path and os.path.exists(local_repo_path):
+    return utils.read_data_from_file(local_repo_path, eval_data=False).decode()
+
+  return None
+
+
+def get_kernel_prefix_and_full_hash():
+  """Download repo.prop and return the full hash and prefix."""
+
   kernel_partial_hash, build_id = get_kernel_hash_and_build_id()
   target = get_kernel_name()
   if not build_id or not target:
     logs.log_error('Could not get kernel parameters, exiting.')
     return None
 
-  repro_filename = symbols_downloader.get_symbols_archive_filename(
-      build_id, target)
-
-  # Grab repo.prop, it is not on the device nor in the build_dir.
-  symbols_downloader.download_system_symbols_if_needed(
-      symbols_directory, is_kernel=True)
-  local_repo_path = utils.find_binary_path(symbols_directory, repro_filename)
-
-  if local_repo_path and os.path.exists(local_repo_path):
-    android_kernel_repo_data = utils.read_data_from_file(
-        local_repo_path, eval_data=False).decode()
+  android_kernel_repo_data = _get_repo_prop_data(build_id, target)
+  if android_kernel_repo_data:
     return _get_prefix_and_full_hash(android_kernel_repo_data,
                                      kernel_partial_hash)
 
