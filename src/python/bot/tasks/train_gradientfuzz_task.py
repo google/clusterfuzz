@@ -19,6 +19,7 @@ import shutil
 import sys
 
 from base import utils
+from bot.fuzzers import engine_common
 from bot.fuzzers.ml.gradientfuzz import constants
 from bot.fuzzers.ml.gradientfuzz import run_constants
 from bot.tasks import ml_train_utils
@@ -94,13 +95,13 @@ def upload_model_to_gcs(model_directory, fuzzer_name):
                    f'for fuzzer {fuzzer_name}.')
 
 
-def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
+def gen_inputs_labels(corpus_directory, fuzz_target_path):
   """
   Generates inputs and labels from raw input corpus.
 
   Args:
     corpus_directory (str): Path to raw inputs.
-    fuzzer_binary_path (str): Path to compiled fuzz target binary.
+    fuzz_target_path (str): Path to compiled fuzz target binary.
 
   Returns:
     (new_process.ProcessResult): Result of `run_and_wait()`.
@@ -112,7 +113,7 @@ def gen_inputs_labels(corpus_directory, fuzzer_binary_path):
   args_list = [
       script_path,
       run_constants.FUZZ_TARGET_BINARY_FLAG,
-      fuzzer_binary_path,
+      fuzz_target_path,
       run_constants.INPUT_DIR_FLAG,
       corpus_directory,
       run_constants.DATASET_NAME_FLAG,
@@ -219,13 +220,14 @@ def execute_task(full_fuzzer_name, job_type):
 
   environment.set_value('FUZZ_TARGET', fuzz_target.binary)
   build_manager.setup_build()
-  if not build_manager.check_app_path():
+
+  fuzz_target_path = engine_common.find_fuzzer_path(
+      environment.get_value('BUILD_DIR'), fuzz_target.binary)
+  if not fuzz_target_path:
     logs.log_error(
         f'Build setup failed when running GradientFuzz training task for '
         f'fuzzer {fuzzer_name}.')
     return
-
-  fuzzer_binary_path = environment.get_value('APP_PATH')
 
   # Directory to place corpus. |FUZZ_INPUTS_DISK| is not size constrained.
   temp_directory = environment.get_value('FUZZ_INPUTS_DISK')
@@ -242,10 +244,15 @@ def execute_task(full_fuzzer_name, job_type):
 
   # First, generate input/label pairs for training.
   gen_inputs_labels_result, dataset_name = gen_inputs_labels(
-      corpus_directory, fuzzer_binary_path)
-
+      corpus_directory, fuzz_target_path)
   if gen_inputs_labels_result.timed_out:
     logs.log_warn(f'Data gen script for {fuzzer_name} timed out.')
+  elif gen_inputs_labels_result.return_code:
+    logs.log_error(
+        f'GradientFuzz input generator for fuzzer {fuzzer_name} failed with ' +
+        f'ExitCode = {gen_inputs_labels_result.return_code}.',
+        output=utils.decode_to_unicode(gen_inputs_labels_result.output))
+    return
 
   # Next, invoke training script.
   num_inputs = len(glob.glob(os.path.join(corpus_directory, '*')))
