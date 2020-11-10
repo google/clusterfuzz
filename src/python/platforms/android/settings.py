@@ -179,9 +179,9 @@ def is_google_device():
 
 def is_automotive():
   """Returns if we are running in Android Automotive OS, currently only for
-  Osprey."""
+  Osprey or Seahawk."""
   product_model = get_product_model()
-  return product_model == 'Osprey'
+  return product_model in ('Osprey', 'Seahawk')
 
 
 def set_content_setting(table, key, value):
