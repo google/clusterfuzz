@@ -14,6 +14,7 @@
 """System log manager related functions."""
 
 import re
+import time
 
 from . import adb
 
@@ -22,8 +23,10 @@ from metrics import logs
 
 def clear_log():
   """Clear log."""
+  adb.run_as_root()
   adb.run_shell_command(['stop', 'logd'])
   adb.run_shell_command(['start', 'logd'])
+  time.sleep(1)
   adb.run_command(['logcat', '-c'])
 
 
