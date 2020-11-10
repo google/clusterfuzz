@@ -26,7 +26,7 @@ def clear_log():
   adb.run_as_root()
   adb.run_shell_command(['stop', 'logd'])
   adb.run_shell_command(['start', 'logd'])
-  time.sleep(1)
+  time.sleep(0.1)
   adb.run_command(['logcat', '-c'])
 
 

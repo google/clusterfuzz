@@ -181,7 +181,7 @@ def is_automotive():
   """Returns if we are running in Android Automotive OS, currently only for
   Osprey or Seahawk."""
   product_model = get_product_model()
-  return product_model == 'Osprey' or product_model == 'Seahawk'
+  return product_model in ('Osprey', 'Seahawk')
 
 
 def set_content_setting(table, key, value):
