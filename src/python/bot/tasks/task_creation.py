@@ -355,6 +355,8 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
                   testcase.bug_information,
               'crash_type':
                   testcase.crash_type,
+              'crash_state':
+                  testcase.crash_state,
               'security':
                   str(testcase.security_flag),
           })
