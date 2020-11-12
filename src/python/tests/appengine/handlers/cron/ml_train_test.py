@@ -49,20 +49,10 @@ class HandlerTest(unittest.TestCase):
     data_types.Job(name='afl_asan', environment_string='').put()
 
     data_types.Job(
-        name='libfuzzer_asan_gradientfuzz',
-        environment_string='ML_MODELS_TO_USE = gradientfuzz\n').put()
-    data_types.Job(
-        name='libfuzzer_asan_all',
-        environment_string=(
-            'ML_MODELS_TO_USE = gradientfuzz, rnn_generator')).put()
-    data_types.Job(
         name='libfuzzer_asan_invalid',
         environment_string='ML_MODELS_TO_USE = invalid_model\n').put()
 
     # Create fake fuzzers.
-    data_types.Fuzzer(
-        name='libFuzzer',
-        jobs=['libfuzzer_asan', 'libfuzzer_asan_gradientfuzz']).put()
     data_types.Fuzzer(name='afl', jobs=['afl_asan']).put()
 
     # Create fake child fuzzers.
@@ -75,21 +65,6 @@ class HandlerTest(unittest.TestCase):
     data_types.FuzzTargetJob(
         fuzz_target_name='afl_fake_fuzzer', job='afl_asan').put()
 
-    data_types.FuzzTarget(
-        engine='libFuzzer',
-        binary='fake_gradientfuzzer',
-        project='test-project').put()
-    data_types.FuzzTargetJob(
-        fuzz_target_name='libFuzzer_fake_gradientfuzzer',
-        job='libfuzzer_asan_gradientfuzz').put()
-
-    data_types.FuzzTarget(
-        engine='libFuzzer', binary='fake_all_fuzzer',
-        project='test-project').put()
-    data_types.FuzzTargetJob(
-        fuzz_target_name='libFuzzer_fake_all_fuzzer',
-        job='libfuzzer_asan_all').put()
-
   def test_add_tasks(self):
     """Tests adding single and multiple tasks."""
     self.app.get('/schedule-ml-train-tasks')
@@ -97,23 +72,6 @@ class HandlerTest(unittest.TestCase):
         'train_rnn_generator',
         'libFuzzer_fake_fuzzer',
         'libfuzzer_asan',
-        queue='ml-jobs-linux')
-    self.mock.add_task.assert_any_call(
-        'train_gradientfuzz',
-        'libFuzzer_fake_gradientfuzzer',
-        'libfuzzer_asan_gradientfuzz',
-        queue='ml-jobs-linux')
-
-    # Multiple tasks in one job.
-    self.mock.add_task.assert_any_call(
-        'train_rnn_generator',
-        'libFuzzer_fake_all_fuzzer',
-        'libfuzzer_asan_all',
-        queue='ml-jobs-linux')
-    self.mock.add_task.assert_any_call(
-        'train_gradientfuzz',
-        'libFuzzer_fake_all_fuzzer',
-        'libfuzzer_asan_all',
         queue='ml-jobs-linux')
 
     # Ensure that we logged an error for the invalid model.

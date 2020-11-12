@@ -21,7 +21,6 @@ from libs import handler
 from metrics import logs
 
 MODEL_NAME_TO_TASK = {
-    'gradientfuzz': 'train_gradientfuzz',
     'rnn_generator': 'train_rnn_generator',
 }
 
