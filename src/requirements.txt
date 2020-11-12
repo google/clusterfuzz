@@ -12,7 +12,7 @@ google-cloud-storage==1.28.1
 grpcio==1.28.1
 httplib2==0.18.0
 lxml==4.5.0
-mozprocess==1.2.0
+mozprocess==1.2.1
 oauth2client==4.1.3
 protobuf==3.11.3
 PyYAML==5.1
