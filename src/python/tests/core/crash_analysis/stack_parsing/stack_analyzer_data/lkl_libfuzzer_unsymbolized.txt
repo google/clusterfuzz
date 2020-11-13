@@ -1,0 +1,283 @@
+[Environment] ASAN_OPTIONS="exitcode=77"
+[Environment] UBSAN_OPTIONS="handle_abort=1"
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command: /mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer -rss_limit_mb=2560 -timeout=90 -runs=100 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-bc8061c819522a21e84cce1268b8ca6b3636ae6b
+Bot: clusterfuzz-linux-h8r2
+Time ran: 0.8239428997039795
+[    0.000000] Linux version 5.4.58+-ab6966248 (build-user@build-host) (Android (6794702, based on r399163) clang version 11.0.4 (https://android.googlesource.com/toolchain/llvm-project 87f1315dfbea7c137aa2e6d362dbb457e388158d), GNU ld (GNU Binutils for Ubuntu) 2.24) #1 Thu Oct 29 03:05:33 UTC 2020
+[    0.000000] memblock address range: 0x7f58ace00000 - 0x7f58b0000000
+[    0.000000] KernelAddressSanitizer initialized
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/pages#12625;lkl/pages;
+[    0.000000] Kernel command line: mem=50M
+[    0.000000] Dentry cache hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] Memory available: 50336k/51200k RAM
+[    0.000000] SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/NR_IRQS#4096;lkl/NR_IRQS;
+[    0.000000] lkl: irqs initialized
+[    0.000000] clocksource: lkl: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+[    0.000002] lkl: time and timers initialized (irq1)
+[    0.000025] pid_max: default: 4096 http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/minimum#301;lkl/minimum;
+[    0.000101] Mount-cache hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.000108] Mountpoint-cache hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.017075] random: get_random_bytes called from _etext+0x726b6/0x31286a with crng_init=0
+[    0.017250] printk: console [lkl_console0] enabled
+[    0.017303] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.017465] NET: Registered protocol family 16
+[    0.017695] lkl_pci: probe of lkl_pci failed with error -1
+[    0.020112] vgaarb: loaded
+[    0.020486] clocksource: Switched to clocksource lkl
+[    0.020864] NET: Registered protocol family 2
+[    0.021176] tcp_listen_portaddr_hash hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.021196] TCP established hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.021210] TCP bind hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.021225] TCP: Hash tables configured (established 512 bind 512)
+[    0.021298] UDP hash table entries: 128 (order: 0, 4096 bytes, linear)
+[    0.021311] UDP-Lite hash table entries: 128 (order: 0, 4096 bytes, linear)
+[    0.021371] PCI: CLS 0 bytes, default 32
+[    0.023240] workingset: timestamp_bits=62 max_order=15 bucket_order=0
+[    0.027233] io scheduler mq-deadline registered
+[    0.027253] io scheduler kyber registered
+[    0.038634] hidraw: raw HID events driver (C) Jiri Kosina
+[    0.040318] NET: Registered protocol family 10
+[    0.041599] Segment Routing with IPv6
+[    0.041650] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    0.042070] Warning: unable to open an initial console.
+[    0.042109] This architecture does not have kernel memory protection.
+[    0.042115] Run /init as init process
+INFO: http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/Seed#3181469268;lkl/Seed;
+INFO: Loaded 1 modules   (7670 inline 8-bit counters): 7670 [0xdbadf8, 0xdbcbee),
+INFO: Loaded 1 PC tables (7670 PCs): 7670 [0xdbcbf0,0xddab50),
+/mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer: Running 1 inputs 100 time(s) each.
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-bc8061c819522a21e84cce1268b8ca6b3636ae6b
+[    0.064445] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064480] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064492] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064519] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064531] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064542] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064554] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064565] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064577] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064589] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064612] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064706] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.064718] hid-generic 0003:0405:C52B.0001: ignoring exceeding usage max
+[    0.065552] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.065589] hid-generic 0003:0405:C52B.0001: ignoring exceeding usage max
+[    0.070895] ==================================================================
+[    0.070933] BUG: KASAN: slab-out-of-bounds in _etext+0x26f10/0x31286a
+[    0.070941] Write of size 4 at addr 00007f58af2ac9ec by task kworker/0:1/11
+[    0.070945]
+[    0.070949] Linux Kernel Library Stack Trace:
+[    0.070964] #0 [<0x000000000063b2ea>] print_address_description+0x6a/0x5c0
+[    0.070972] #1 [<0x000000000063ba94>] __kasan_report+0x134/0x190
+[    0.070978] #2 [<0x000000000063afe9>] kasan_report+0x9/0x10
+[    0.070985] #3 [<0x000000000063c1df>] __asan_store4+0x6f/0x80
+[    0.070992] #4 [<0x0000000000ab4a86>] _etext+0x26f10/0x31286a
+[    0.071003] #5 [<0x0000000000a9f92c>] _etext+0x11db6/0x31286a
+[    0.071010] #6 [<0x0000000000a94d30>] _etext+0x71ba/0x31286a
+[    0.071016] #7 [<0x0000000000a95848>] _etext+0x7cd2/0x31286a
+[    0.071027] #8 [<0x0000000000811511>] hid_generic_probe+0xa1/0xd0
+[    0.071034] #9 [<0x0000000000a96608>] _etext+0x8a92/0x31286a
+[    0.071042] #10 [<0x00000000007a8e35>] really_probe+0x335/0x780
+[    0.071050] #11 [<0x00000000007aa0e6>] __device_attach_driver+0x196/0x220
+[    0.071056] #12 [<0x00000000007a59bd>] bus_for_each_drv+0xfd/0x140
+[    0.071063] #13 [<0x00000000007a9429>] .L___asan_gen_.2+0x38/0xaf
+[    0.071070] #14 [<0x00000000007a94ae>] device_initial_probe+0xe/0x10
+[    0.071077] #15 [<0x00000000007a5c5c>] bus_probe_device+0x5c/0x100
+[    0.071083] #16 [<0x00000000007a073f>] device_add+0xb5f/0xcb0
+[    0.071090] #17 [<0x0000000000a971ae>] _etext+0x9638/0x31286a
+[    0.071096] #18 [<0x0000000000abecc8>] _etext+0x31152/0x31286a
+[    0.071107] #19 [<0x000000000059fcdc>] .str.15+0x1c/0x40
+[    0.071113] #20 [<0x00000000005a11d8>] .str.54+0x18/0x40
+[    0.071121] #21 [<0x00000000005a74ca>] .str.2+0x2a/0x40
+[    0.071129] #22 [<0x000000000056f9ab>] .str.3+0x4b/0x60
+[    0.071134] #23 [<0x00000000005697d5>] 0x5697d5
+[    0.071138]
+[    0.071142]
+[    0.071146]
+[    0.071150] Memory state around the buggy address:
+[    0.071163]  00007f58af2ac880: 00 00 00 00 00 00 00 00 00 00 04 fe fe fe fe fe
+[    0.071169]  00007f58af2ac900: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.071174] >00007f58af2ac980: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.071179]                                                           ^
+[    0.071184]  00007f58af2aca00: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.071190]  00007f58af2aca80: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.071194] ==================================================================
+[    0.071199] Disabling lock debugging due to kernel taint
+[    0.071205] Kernel panic - not syncing: panic_on_warn set ...
+[    0.071211] ---[ end Kernel panic - not syncing: panic_on_warn set ... ]---
+hid-fuzzer: lib/posix-host.c:191: void panic(void): Assertion `0' failed.
+Begin xxx
+VID=0405, PID=C52B, RDESC: 75 bytes, INPUT: 0 byetes
+RDESC::size=75
+00000000: 05 01 09 02 24 00 00 00 09 01 A1 00 81 06 7E BA ....$.........~.
+00000010: BA BA BA BA BA BA B0 95 01 00 00 00 00 00 00 00 ................
+00000020: 85 BA 02 BA BA 36 15 01 BA BA BA B0 19 01 2A 04 .....6........*.
+00000030: 03 B0 95 85 02 15 01 2A 26 FF 02 19 01 2A FF B0 .......*&....*..
+00000040: 46 02 5C 05 08 06 80 FF 81 00 C0                F.\........
+INPUT::size=0
+UndefinedBehaviorSanitizer:DEADLYSIGNAL
+==2169144==ERROR: UndefinedBehaviorSanitizer: ABRT on unknown address 0x053900211938 (pc 0x7f58b7464438 bp 0x00000020f635 sp 0x7f58957f9128 T2169166)
+    #0 0x7f58b7464438 in gsignal http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/sysdeps/unix/sysv/linux/raise.c#54;lkl//build/glibc-e6zv40/glibc-2.23/sysdeps/unix/sysv/linux/raise.c;
+    #1 0x7f58b7466039 in abort http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/stdlib/abort.c#89;lkl//build/glibc-e6zv40/glibc-2.23/stdlib/abort.c;
+    #2 0x7f58b745cbe6 in __assert_fail_base http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/assert/assert.c#92;lkl//build/glibc-e6zv40/glibc-2.23/assert/assert.c;
+    #3 0x7f58b745cc91 in __assert_fail http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/assert/assert.c#101;lkl//build/glibc-e6zv40/glibc-2.23/assert/assert.c;
+    #4 0x568f3f in panic http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/tools/lkl/lib/posix-host.c#191;lkl/tools/lkl/lib/posix-host.c;:2
+    #5 0x56f3f0 in lkl_panic_blink http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/arch/lkl/kernel/setup.c#27;lkl/arch/lkl/kernel/setup.c;:2
+UndefinedBehaviorSanitizer can not provide additional info.
+SUMMARY: UndefinedBehaviorSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35438)
+==2169144==ABORTING
++----------------------------------------Release Build Unsymbolized Stacktrace (diff)----------------------------------------+
+UndefinedBehaviorSanitizer:DEADLYSIGNAL
+==2169144==ERROR: UndefinedBehaviorSanitizer: ABRT on unknown address 0x053900211938 (pc 0x7f58b7464438 bp 0x00000020f635 sp 0x7f58957f9128 T2169166)
+    #0 0x7f58b7464438  (/lib/x86_64-linux-gnu/libc.so.6+0x35438)
+    #1 0x7f58b7466039  (/lib/x86_64-linux-gnu/libc.so.6+0x37039)
+    #2 0x7f58b745cbe6  (/lib/x86_64-linux-gnu/libc.so.6+0x2dbe6)
+    #3 0x7f58b745cc91  (/lib/x86_64-linux-gnu/libc.so.6+0x2dc91)
+    #4 0x568f3f  (/mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x568f3f)
+    #5 0x56f3f0  (/mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x56f3f0)
+ORIGINAL STACKTRACE ON REVISION 6963696 (148 LINES)
+[Environment] ASAN_OPTIONS="dedup_token_length=3:exitcode=77:symbolize=1"
+[Environment] UBSAN_OPTIONS="handle_abort=1"
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command: /mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer -rss_limit_mb=2560 -timeout=90 -runs=100 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-bc8061c819522a21e84cce1268b8ca6b3636ae6b
+Bot: clusterfuzz-linux-k1gh
+Time ran: 0.12106442451477051
+[    0.000000] Linux version 5.4.58+-ab6963696 (build-user@build-host) (Android (6794702, based on r399163) clang version 11.0.4 (https://android.googlesource.com/toolchain/llvm-project 87f1315dfbea7c137aa2e6d362dbb457e388158d), GNU ld (GNU Binutils for Ubuntu) 2.24) #1 Thu Oct 29 03:05:33 UTC 2020
+[    0.000000] memblock address range: 0x7f9d04e00000 - 0x7f9d08000000
+[    0.000000] KernelAddressSanitizer initialized
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/pages#12625;lkl/pages;
+[    0.000000] Kernel command line: mem=50M
+[    0.000000] Dentry cache hash table entries: 8192 (order: 4, 65536 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] Memory available: 50336k/51200k RAM
+[    0.000000] SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+[    0.000000] http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/NR_IRQS#4096;lkl/NR_IRQS;
+[    0.000000] lkl: irqs initialized
+[    0.000000] clocksource: lkl: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
+[    0.000002] lkl: time and timers initialized (irq1)
+[    0.000025] pid_max: default: 4096 http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/minimum#301;lkl/minimum;
+[    0.000100] Mount-cache hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.000106] Mountpoint-cache hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.017345] random: get_random_bytes called from _etext+0x726b6/0x31286a with crng_init=0
+[    0.017524] printk: console [lkl_console0] enabled
+[    0.017579] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604462750000 ns
+[    0.017751] NET: Registered protocol family 16
+[    0.018010] lkl_pci: probe of lkl_pci failed with error -1
+[    0.021038] vgaarb: loaded
+[    0.021435] clocksource: Switched to clocksource lkl
+[    0.021802] NET: Registered protocol family 2
+[    0.022154] tcp_listen_portaddr_hash hash table entries: 256 (order: 0, 4096 bytes, linear)
+[    0.022174] TCP established hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.022188] TCP bind hash table entries: 512 (order: 0, 4096 bytes, linear)
+[    0.022203] TCP: Hash tables configured (established 512 bind 512)
+[    0.022276] UDP hash table entries: 128 (order: 0, 4096 bytes, linear)
+[    0.022289] UDP-Lite hash table entries: 128 (order: 0, 4096 bytes, linear)
+[    0.022356] PCI: CLS 0 bytes, default 32
+[    0.024371] workingset: timestamp_bits=62 max_order=15 bucket_order=0
+[    0.027573] io scheduler mq-deadline registered
+[    0.027596] io scheduler kyber registered
+[    0.040171] hidraw: raw HID events driver (C) Jiri Kosina
+[    0.041969] NET: Registered protocol family 10
+[    0.043250] Segment Routing with IPv6
+[    0.043304] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    0.043718] Warning: unable to open an initial console.
+[    0.043755] This architecture does not have kernel memory protection.
+[    0.043761] Run /init as init process
+INFO: http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/Seed#3871312762;lkl/Seed;
+INFO: Loaded 1 modules   (7670 inline 8-bit counters): 7670 [0xdbadf8, 0xdbcbee),
+INFO: Loaded 1 PC tables (7670 PCs): 7670 [0xdbcbf0,0xddab50),
+/mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer: Running 1 inputs 100 time(s) each.
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-bc8061c819522a21e84cce1268b8ca6b3636ae6b
+[    0.066768] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066800] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066813] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066839] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066851] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066863] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066875] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066886] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066898] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066909] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.066955] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.067055] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.067067] hid-generic 0003:0405:C52B.0001: ignoring exceeding usage max
+[    0.067768] hid-generic 0003:0405:C52B.0001: unknown main item tag 0x0
+[    0.067779] hid-generic 0003:0405:C52B.0001: ignoring exceeding usage max
+[    0.072770] ==================================================================
+[    0.072808] BUG: KASAN: slab-out-of-bounds in _etext+0x26f10/0x31286a
+[    0.072814] Write of size 4 at addr 00007f9d072ac9ec by task kworker/0:1/11
+[    0.072819]
+[    0.072823] Linux Kernel Library Stack Trace:
+[    0.072839] #0 [<0x000000000063b2ea>] print_address_description+0x6a/0x5c0
+[    0.072847] #1 [<0x000000000063ba94>] __kasan_report+0x134/0x190
+[    0.072853] #2 [<0x000000000063afe9>] kasan_report+0x9/0x10
+[    0.072860] #3 [<0x000000000063c1df>] __asan_store4+0x6f/0x80
+[    0.072867] #4 [<0x0000000000ab4a86>] _etext+0x26f10/0x31286a
+[    0.072874] #5 [<0x0000000000a9f92c>] _etext+0x11db6/0x31286a
+[    0.072881] #6 [<0x0000000000a94d30>] _etext+0x71ba/0x31286a
+[    0.072887] #7 [<0x0000000000a95848>] _etext+0x7cd2/0x31286a
+[    0.072900] #8 [<0x0000000000811511>] hid_generic_probe+0xa1/0xd0
+[    0.072906] #9 [<0x0000000000a96608>] _etext+0x8a92/0x31286a
+[    0.072924] #10 [<0x00000000007a8e35>] really_probe+0x335/0x780
+[    0.072934] #11 [<0x00000000007aa0e6>] __device_attach_driver+0x196/0x220
+[    0.072941] #12 [<0x00000000007a59bd>] bus_for_each_drv+0xfd/0x140
+[    0.072948] #13 [<0x00000000007a9429>] .L___asan_gen_.2+0x38/0xaf
+[    0.072955] #14 [<0x00000000007a94ae>] device_initial_probe+0xe/0x10
+[    0.072962] #15 [<0x00000000007a5c5c>] bus_probe_device+0x5c/0x100
+[    0.072969] #16 [<0x00000000007a073f>] device_add+0xb5f/0xcb0
+[    0.072976] #17 [<0x0000000000a971ae>] _etext+0x9638/0x31286a
+[    0.072982] #18 [<0x0000000000abecc8>] _etext+0x31152/0x31286a
+[    0.072998] #19 [<0x000000000059fcdc>] .str.15+0x1c/0x40
+[    0.073006] #20 [<0x00000000005a11d8>] .str.54+0x18/0x40
+[    0.073014] #21 [<0x00000000005a74ca>] .str.2+0x2a/0x40
+[    0.073023] #22 [<0x000000000056f9ab>] .str.3+0x4b/0x60
+[    0.073028] #23 [<0x00000000005697d5>] 0x5697d5
+[    0.073033]
+[    0.073036]
+[    0.073040]
+[    0.073044] Memory state around the buggy address:
+[    0.073055]  00007f9d072ac880: 00 00 00 00 00 00 00 00 00 00 04 fe fe fe fe fe
+[    0.073061]  00007f9d072ac900: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.073067] >00007f9d072ac980: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.073072]                                                           ^
+[    0.073077]  00007f9d072aca00: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.073083]  00007f9d072aca80: fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe fe
+[    0.073087] ==================================================================
+[    0.073093] Disabling lock debugging due to kernel taint
+[    0.073098] Kernel panic - not syncing: panic_on_warn set ...
+[    0.073105] ---[ end Kernel panic - not syncing: panic_on_warn set ... ]---
+hid-fuzzer: lib/posix-host.c:191: void panic(void): Assertion `0' failed.
+Begin xxx
+VID=0405, PID=C52B, RDESC: 75 bytes, INPUT: 0 byetes
+RDESC::size=75
+00000000: 05 01 09 02 24 00 00 00 09 01 A1 00 81 06 7E BA ....$.........~.
+00000010: BA BA BA BA BA BA B0 95 01 00 00 00 00 00 00 00 ................
+00000020: 85 BA 02 BA BA 36 15 01 BA BA BA B0 19 01 2A 04 .....6........*.
+00000030: 03 B0 95 85 02 15 01 2A 26 FF 02 19 01 2A FF B0 .......*&....*..
+00000040: 46 02 5C 05 08 06 80 FF 81 00 C0                F.\........
+INPUT::size=0
+UndefinedBehaviorSanitizer:DEADLYSIGNAL
+==3042094==ERROR: UndefinedBehaviorSanitizer: ABRT on unknown address 0x0539002e6b2e (pc 0x7f9d0d134438 bp 0x00000020f635 sp 0x7f9ce37fd128 T3042115)
+    #0 0x7f9d0d134438 in gsignal http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/sysdeps/unix/sysv/linux/raise.c#54;lkl//build/glibc-e6zv40/glibc-2.23/sysdeps/unix/sysv/linux/raise.c;
+    #1 0x7f9d0d136039 in abort http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/stdlib/abort.c#89;lkl//build/glibc-e6zv40/glibc-2.23/stdlib/abort.c;
+    #2 0x7f9d0d12cbe6 in __assert_fail_base http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/assert/assert.c#92;lkl//build/glibc-e6zv40/glibc-2.23/assert/assert.c;
+    #3 0x7f9d0d12cc91 in __assert_fail http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8//build/glibc-e6zv40/glibc-2.23/assert/assert.c#101;lkl//build/glibc-e6zv40/glibc-2.23/assert/assert.c;
+    #4 0x568f3f in panic http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/tools/lkl/lib/posix-host.c#191;lkl/tools/lkl/lib/posix-host.c;:2
+    #5 0x56f3f0 in lkl_panic_blink http://go/pakernel/lkl/+/1f26d55c741b80d2e99e529795a7f3ae34ac77a8/arch/lkl/kernel/setup.c#27;lkl/arch/lkl/kernel/setup.c;:2
+UndefinedBehaviorSanitizer can not provide additional info.
+SUMMARY: UndefinedBehaviorSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0x35438)
+==3042094==ABORTING
++----------------------------------------Release Build Unsymbolized Stacktrace (diff)----------------------------------------+
+UndefinedBehaviorSanitizer:DEADLYSIGNAL
+==3042094==ERROR: UndefinedBehaviorSanitizer: ABRT on unknown address 0x0539002e6b2e (pc 0x7f9d0d134438 bp 0x00000020f635 sp 0x7f9ce37fd128 T3042115)
+    #0 0x7f9d0d134438  (/lib/x86_64-linux-gnu/libc.so.6+0x35438)
+    #1 0x7f9d0d136039  (/lib/x86_64-linux-gnu/libc.so.6+0x37039)
+    #2 0x7f9d0d12cbe6  (/lib/x86_64-linux-gnu/libc.so.6+0x2dbe6)
+    #3 0x7f9d0d12cc91  (/lib/x86_64-linux-gnu/libc.so.6+0x2dc91)
+    #4 0x568f3f  (/mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x568f3f)
+    #5 0x56f3f0  (/mnt/scratch0/clusterfuzz/bot/builds/android-haiku_host-lkl-userdebug_hid-fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/hid-fuzzer+0x56f3f0)

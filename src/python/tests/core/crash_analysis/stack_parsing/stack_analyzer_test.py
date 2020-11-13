@@ -2965,13 +2965,27 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_linux_kernel_library_libfuzzer_symbolized(self):
-    """Test Linux Kernel Library fuzzed with libfuzzer symbolized(."""
+    """Test Linux Kernel Library fuzzed with libfuzzer symbolized."""
     data = self._read_test_data('lkl_libfuzzer_symbolized.txt')
     expected_type = 'Kernel failure\nSlab-out-of-bounds\nWRITE 4'
     expected_state = ('__hidinput_change_resolution_multipliers\n'
                       'hidinput_connect\n'
                       'hid_connect\n')
     expected_address = '0x7f5256480ddc'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_linux_kernel_library_libfuzzer_unsymbolized(self):
+    """Test Linux Kernel Library fuzzed with libfuzzer unsymbolized."""
+    data = self._read_test_data('lkl_libfuzzer_unsymbolized.txt')
+    expected_type = 'Kernel failure\nSlab-out-of-bounds\nWRITE 4'
+    expected_state = ('hid_generic_probe\n'
+                      'really_probe\n'
+                      '__device_attach_driver\n')
+    expected_address = '0x7f58af2ac9ec'
     expected_stacktrace = data
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,

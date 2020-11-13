@@ -673,7 +673,10 @@ class StackParser:
         continue
 
       # Sanitizer regular crash (includes ills, abrt, etc).
-      if not state.found_golang_crash and not state.found_python_crash:
+      # However if we have a Go, Python, or Kernel crash, don't replace
+      # this with sanitizer signal handler failure.
+      if (not state.crash_type.startswith('Kernel failure') and
+          not state.found_golang_crash and not state.found_python_crash):
         self.update_state_on_match(
             SAN_ADDR_REGEX,
             line,

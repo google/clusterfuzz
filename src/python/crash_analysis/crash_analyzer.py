@@ -344,11 +344,14 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type == 'Unexpected-exit':
     return False
 
+  # Kernel Failures are security bugs
+  if crash_type.startswith('Kernel failure'):
+    return True
+
   # No crash type, can't process.
   if not crash_type:
     return False
 
-  # Check signal types, some of them indicate not a security bug.
   if has_signal_for_non_security_bug_type(crash_stacktrace):
     return False
 
