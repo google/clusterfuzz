@@ -16,7 +16,7 @@ import os
 
 from bot.fuzzers import engine_common
 from bot.fuzzers.afl import launcher
-from bot.fuzzers.afl import stats_getter
+from bot.fuzzers.afl import stats
 from lib.clusterfuzz.fuzz import engine
 from system import environment
 
@@ -50,7 +50,7 @@ class AFLEngine(engine.Engine):
     Returns:
       A FuzzOptions object.
     """
-    afl_config = launcher.AFLConfig.from_target_path(target_path)
+    afl_config = launcher.AflConfig.from_target_path(target_path)
     arguments = afl_config.additional_afl_arguments
     # TODO(mbarbella): Select all strategies here instead of deferring to fuzz.
     strategies = launcher.FuzzingStrategies(target_path).to_strategy_dict()
@@ -69,7 +69,7 @@ class AFLEngine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    config = launcher.AFLConfig.from_target_path(target_path)
+    config = launcher.AflConfig.from_target_path(target_path)
     config.additional_afl_arguments = options.arguments
     testcase_file_path = os.path.join(reproducers_dir, 'testcase')
     runner = launcher.prepare_runner(
@@ -89,6 +89,8 @@ class AFLEngine(engine.Engine):
     if fuzz_result.return_code:
       return engine.FuzzResult(logs, command, [], {}, time_executed)
 
+    stats_getter = stats.StatsGetter(runner.afl_output.stats_path,
+                                     config.dict_path)
     new_units_generated, new_units_added, corpus_size = (
         runner.libfuzzerize_corpus())
     stats_getter.set_stats(fuzz_result.time_executed, new_units_generated,
@@ -119,7 +121,7 @@ class AFLEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    config = launcher.AFLConfig.from_target_path(target_path)
+    config = launcher.AflConfig.from_target_path(target_path)
     input_directory = None  # Not required for reproduction.
     runner = launcher.prepare_runner(target_path, config, input_path,
                                      input_directory)
