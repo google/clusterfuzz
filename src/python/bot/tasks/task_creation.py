@@ -18,6 +18,7 @@ from base import utils
 from build_management import build_manager
 from build_management import revisions
 from config import local_config
+from crash_analysis import severity_analyzer
 from datastore import data_handler
 from datastore import data_types
 from google_cloud_utils import blobs
@@ -359,6 +360,9 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
                   testcase.crash_state,
               'security':
                   str(testcase.security_flag),
+              'severity':
+                  severity_analyzer.severity_to_string(
+                      testcase.security_severity),
           })
   ])
   return True
