@@ -27,19 +27,18 @@ while [ "$1" != "" ]; do
   shift
 done
 
-# The reproduce tool requires Python 3.8
-if [ ! $only_reproduce ] && python3.7 --help > /dev/null; then
-  PYTHON='python3.7'
-  PYTHON_VERSION='3.7'
-elif python3.8 --help > /dev/null; then
-  PYTHON='python3.8'
-  PYTHON_VERSION='3.8'
-else
-  if [ $only_reproduce ]; then
-    echo "ERROR: The reproduce tool requires Python 3.8"
-  else
-    echo "ERROR: The only supported Python versions are 3.7 and 3.8"
-  fi
+if [ -z "$PYTHON" ]; then
+  PYTHON='python3'
+fi
+
+if ! which "$PYTHON" > /dev/null; then
+  echo "python $PYTHON not found"
+  exit 1
+fi
+
+version=$($PYTHON --version 2>&1 | cut -f2 -d' ')
+if [[ "$version" < "3.7" ]]; then
+  echo "You need at least Python 3.7"
   exit 1
 fi
 
@@ -160,7 +159,7 @@ fi
 
 # Setup pipenv and install python dependencies.
 $PYTHON -m pip install --user pipenv
-$PYTHON -m pipenv --python $PYTHON_VERSION
+$PYTHON -m pipenv --python $PYTHON
 $PYTHON -m pipenv sync --dev
 source "$(${PYTHON} -m pipenv --venv)/bin/activate"
 
