@@ -202,7 +202,7 @@ def severity_to_string(severity):
       SecuritySeverity.MISSING: MISSING_VALUE_STRING,
   }
 
-  return severity_map[severity]
+  return severity_map.get(severity, '')
 
 
 def string_to_severity(severity):
