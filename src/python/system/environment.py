@@ -22,11 +22,6 @@ import socket
 import sys
 import yaml
 
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
-
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
@@ -111,9 +106,7 @@ def _parse_memory_tool_options(options_str):
 def _quote_value_if_needed(value):
   """Quote environment value as needed for certain platforms like Windows."""
   result = value
-
-  bot_platform = platform()
-  if bot_platform == 'WINDOWS':
+  if ' ' in result or ':' in result:
     result = '"%s"' % result
 
   return result
@@ -329,9 +322,8 @@ def get_sanitizer_options_for_display():
     options_value = os.getenv(options_variable)
     if not options_value:
       continue
-
-    result.append('{options_variable}="{options_value}"'.format(
-        options_variable=options_variable, options_value=quote(options_value)))
+    result.append('{options_variable}={options_value}'.format(
+        options_variable=options_variable, options_value=options_value))
 
   return result
 
