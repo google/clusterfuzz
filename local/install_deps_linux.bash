@@ -77,6 +77,7 @@ sudo apt-get update
 sudo apt-get install -y \
     blackbox \
     curl \
+    python3-pip \
     unzip \
     xvfb
 
