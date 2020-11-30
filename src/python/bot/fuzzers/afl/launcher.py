@@ -1453,8 +1453,8 @@ def get_fuzz_timeout(is_mutations_run):
     fuzz_timeout -= mutations_timeout
 
   assert fuzz_timeout > 0, (
-      'hard_timeout: %d merge_timeout: %d mutations_timeout: %d') % (
-          hard_timeout, merge_timeout, mutations_timeout)
+      'hard_timeout: %d merge_timeout: %d mutations_timeout: %d fuzz_timeout: %d') % (
+          hard_timeout, merge_timeout, mutations_timeout, fuzz_timeout)
 
   return fuzz_timeout
 

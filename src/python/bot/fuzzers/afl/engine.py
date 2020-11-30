@@ -69,9 +69,12 @@ class AFLEngine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
+    environment.set_value('FUZZ_TEST_TIMEOUT', max_time)
+
     config = launcher.AflConfig.from_target_path(target_path)
     config.additional_afl_arguments = options.arguments
     testcase_file_path = os.path.join(reproducers_dir, 'testcase')
+
     runner = launcher.prepare_runner(
         target_path,
         config,
@@ -121,6 +124,8 @@ class AFLEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
+    environment.set_value('FUZZ_TEST_TIMEOUT', max_time)
+
     config = launcher.AflConfig.from_target_path(target_path)
     input_directory = None  # Not required for reproduction.
     runner = launcher.prepare_runner(target_path, config, input_path,
