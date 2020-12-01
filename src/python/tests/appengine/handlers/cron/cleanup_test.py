@@ -855,6 +855,89 @@ class CleanupTest(unittest.TestCase):
         policy=self.policy, testcase=testcase, issue=self.issue)
     self.assertIn(ISSUE_NEEDS_FEEDBACK_LABEL, self.issue.labels)
 
+  def test_mark_na_testcase_issues_as_wontfix(self):
+    """Test that issue for fixed == 'NA' testcases are closed."""
+    self.mock.get_crash_occurrence_platforms.return_value = []
+    testcase = test_utils.create_generic_testcase()
+    testcase.status = 'Processed'
+    testcase.open = False
+    testcase.fixed = 'NA'
+    testcase.bug_information = str(self.issue.id)
+    testcase.put()
+
+    cleanup.mark_na_testcase_issues_as_wontfix(
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertIn(
+        'ClusterFuzz testcase 1 is closed as invalid, so closing issue.',
+        self.issue._monorail_issue.comment)
+    self.assertEqual('WontFix', self.issue.status)
+
+  def test_mark_na_testcase_issues_as_wontfix_testcase_open(self):
+    """Test that valid open testcases don't get their issues closed."""
+    self.mock.get_crash_occurrence_platforms.return_value = []
+    testcase = test_utils.create_generic_testcase()
+    testcase.status = 'Processed'
+    testcase.bug_information = str(self.issue.id)
+    testcase.put()
+
+    cleanup.mark_na_testcase_issues_as_wontfix(
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertEqual('Assigned', self.issue.status)
+
+  def test_mark_na_testcase_issues_as_wontfix_still_occurring(self):
+    """Test that issue for fixed == 'NA' testcases are not closed if the crash
+    is still occurring."""
+    self.mock.get_crash_occurrence_platforms.return_value = ['Linux']
+    testcase = test_utils.create_generic_testcase()
+    testcase.status = 'Processed'
+    testcase.open = False
+    testcase.fixed = 'NA'
+    testcase.bug_information = str(self.issue.id)
+    testcase.put()
+
+    cleanup.mark_na_testcase_issues_as_wontfix(
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertEqual('Assigned', self.issue.status)
+
+  def test_mark_na_testcase_issues_as_wontfix_similar_testcase(self):
+    """Test that issue for fixed == 'NA' testcases are not closed if there is a
+    similar testcase attached to the same issue."""
+    self.mock.get_crash_occurrence_platforms.return_value = []
+    testcase = test_utils.create_generic_testcase()
+    testcase.status = 'Processed'
+    testcase.open = False
+    testcase.fixed = 'NA'
+    testcase.bug_information = str(self.issue.id)
+    testcase.put()
+
+    similar_testcase = test_utils.create_generic_testcase()
+    similar_testcase.bug_information = str(self.issue.id)
+    similar_testcase.one_time_crasher_flag = False
+    similar_testcase.put()
+
+    cleanup.mark_na_testcase_issues_as_wontfix(
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertEqual('Assigned', self.issue.status)
+
+  def test_mark_na_testcase_issues_as_wontfix_mistriaged(self):
+    """Test that issue for fixed == 'NA' testcases are not closed if the issue
+    was marked as being mistriaged."""
+    self.mock.get_crash_occurrence_platforms.return_value = []
+    self.issue._monorail_issue.comments += [
+        appengine_test_utils.create_generic_issue_comment(
+            labels=[ISSUE_MISTRIAGED_LABEL])
+    ]
+    testcase = test_utils.create_generic_testcase()
+    testcase.status = 'Processed'
+    testcase.open = False
+    testcase.fixed = 'NA'
+    testcase.bug_information = str(self.issue.id)
+    testcase.put()
+
+    cleanup.mark_na_testcase_issues_as_wontfix(
+        policy=self.policy, testcase=testcase, issue=self.issue)
+    self.assertEqual('Assigned', self.issue.status)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UpdateOsLabelsTest(unittest.TestCase):
