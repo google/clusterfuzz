@@ -269,7 +269,7 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
     """Tests that environment settings are added."""
     os.environ['ASAN_OPTIONS'] = 'setting1=value1:setting2=value_2'
     self.assertEqual(
-        '[Environment] ASAN_OPTIONS="setting1=value1:setting2=value_2"\n'
+        '[Environment] ASAN_OPTIONS=setting1=value1:setting2=value_2\n'
         '[Command line] cmd_line\n\n' + self.start_seperator +
         'Release Build Stacktrace' + self.end_seperator + '\nsym_stack',
         utils.get_crash_stacktrace_output('cmd_line', 'sym_stack'))

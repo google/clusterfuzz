@@ -147,6 +147,7 @@ def cleanup_testcases_and_issues():
       mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue)
       mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
           policy, testcase, issue)
+      mark_na_testcase_issues_as_wontfix(policy, testcase, issue)
 
       # Notification, to be done at end after testcase state is updated from
       # previous rules.
@@ -595,6 +596,43 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
 
   logs.log('Closed unreproducible testcase %d and associated issue.' %
            testcase.key.id())
+
+
+def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
+  """Mark issues for testcases with fixed == 'NA' as fixed."""
+  # Check for for closed, NA testcases.
+  if testcase.open or testcase.fixed != 'NA':
+    return
+
+  # Nothing to be done if no issue is attached, or if issue is already closed.
+  if not issue or not issue.is_open:
+    return
+
+  # Make sure that no other testcases associated with this issue are open.
+  similar_testcase = data_types.Testcase.query(
+      data_types.Testcase.bug_information == testcase.bug_information,
+      ndb_utils.is_true(data_types.Testcase.open),
+      ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag)).get()
+  if similar_testcase:
+    return
+
+  # Make that there is no crash seen in the deadline period.
+  if get_crash_occurrence_platforms(
+      testcase, data_types.UNREPRODUCIBLE_TESTCASE_WITH_BUG_DEADLINE):
+    return
+
+  # As a last check, do the expensive call of actually checking all issue
+  # comments to make sure we we didn't get called out on issue mistriage.
+  if issue_tracker_utils.was_label_added(issue, policy.label('wrong')):
+    return
+
+  comment = (f'ClusterFuzz testcase {testcase.key.id()} is closed as invalid, '
+             'so closing issue.')
+
+  issue.status = policy.status('wontfix')
+  issue.save(new_comment=comment, notify=True)
+  logs.log(
+      f'Closing issue {issue.id} for invalid testcase {testcase.key.id()}.')
 
 
 def mark_testcase_as_triaged_if_needed(testcase, issue):

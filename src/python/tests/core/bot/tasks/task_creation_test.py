@@ -44,6 +44,7 @@ class RequestBisectionTest(unittest.TestCase):
 
     self.testcase = data_types.Testcase(
         crash_type='crash-type',
+        crash_state='A\nB\nC',
         security_flag=True,
         bug_information='1337',
         job_type='libfuzzer_asan_proj',
@@ -52,6 +53,7 @@ class RequestBisectionTest(unittest.TestCase):
         regression='123:456',
         fixed='123:456',
         crash_revision=3,
+        security_severity=data_types.SecuritySeverity.MEDIUM,
         additional_metadata='{"last_tested_crash_revision": 4}')
     self.testcase.put()
 
@@ -81,8 +83,10 @@ class RequestBisectionTest(unittest.TestCase):
       self.assertEqual('/projects/project/topics/topic', topic)
       self.assertEqual(b'reproducer', message.data)
       self.assertDictEqual({
+          'crash_state': 'A\nB\nC',
           'crash_type': 'crash-type',
           'security': 'True',
+          'severity': 'Medium',
           'fuzz_target': 'target',
           'new_commit': new_commit,
           'old_commit': old_commit,
