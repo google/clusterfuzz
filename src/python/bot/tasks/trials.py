@@ -20,34 +20,38 @@ from datastore import data_types
 from system import environment
 
 
-def setup_additional_args_for_app():
-  """Select additional args for the specified app at random."""
-  if environment.is_engine_fuzzer_job():
-    # Not applicable to engine fuzzers.
-    return
+class Trials:
+  """Helper class for selecting app-specific extra flags."""
 
-  app_name = environment.get_value('APP_NAME')
-  if not app_name:
-    return
+  def __init__(self):
+    self.trials = []
 
-  # Convert the app_name to lowercase. Case may vary by platform.
-  app_name = app_name.lower()
+    app_name = environment.get_value('APP_NAME')
+    if not app_name:
+      return
 
-  # Hack: strip file extensions that may be appended on various platforms.
-  extensions_to_strip = ['.exe', '.apk']
-  for extension in extensions_to_strip:
-    app_name = utils.strip_from_right(app_name, extension)
+    # Convert the app_name to lowercase. Case may vary by platform.
+    app_name = app_name.lower()
 
-  trials = data_types.Trial.query(data_types.Trial.app_name == app_name)
-  trials = [trial for trial in trials if random.random() < trial.probability]
-  if not trials:
-    return
+    # Hack: strip file extensions that may be appended on various platforms.
+    extensions_to_strip = ['.exe', '.apk']
+    for extension in extensions_to_strip:
+      app_name = utils.strip_from_right(app_name, extension)
 
-  app_args = environment.get_value('APP_ARGS', '') + ' ' + trials[0].app_args
-  trial_app_args = trials[0].app_args
-  for trial in trials[1:]:
-    app_args += ' ' + trial.app_args
-    trial_app_args += ' ' + trial.app_args
+    self.trials = list(
+        data_types.Trial.query(data_types.Trial.app_name == app_name))
 
-  environment.set_value('APP_ARGS', app_args)
-  environment.set_value('TRIAL_APP_ARGS', trial_app_args)
+  def setup_additional_args_for_app(self, test_env):
+    """Select additional args for the specified app at random."""
+    trial_args = [
+        trial.app_args
+        for trial in self.trials
+        if random.random() < trial.probability
+    ]
+    if not trial_args:
+      return
+
+    trial_app_args = ' '.join(trial_args)
+    app_args = test_env.get('APP_ARGS', '')
+    test_env['APP_ARGS'] = '%s %s' % (app_args, trial_app_args)
+    test_env['TRIAL_APP_ARGS'] = trial_app_args
