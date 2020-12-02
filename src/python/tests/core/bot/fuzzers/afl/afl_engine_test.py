@@ -33,14 +33,18 @@ class AFLEngineTest(unittest.TestCase):
 
   def test_fuzz(self):
     """Test for fuzz."""
+    # TODO(mbarbella): Break up corpus and crash directories.
     engine_impl = engine.AFLEngine()
     _ = afl_launcher_integration_test.setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     options = engine_impl.prepare(TEMP_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
     timeout = afl_launcher_integration_test.get_fuzz_timeout(5.0)
     result = engine_impl.fuzz(fuzzer_path, options, TEMP_DIRECTORY, timeout)
+    self.assertEqual(
+        '{0}/afl-fuzz'.format(DATA_DIRECTORY),
+        result.command[0])
     self.assertIn(
-        '{0}/afl-fuzz -i{1}/corpus'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
+        '-i{0}'.format(TEMP_DIRECTORY),
         result.command)
     # TODO(mbarbella): Ensure new items are added to the corpus.
 
