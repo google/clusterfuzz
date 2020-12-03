@@ -51,8 +51,7 @@ class AFLEngine(engine.Engine):
   def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options.
 
-    Returns a
-    FuzzOptions object.
+    Returns a FuzzOptions object.
 
     Args:
       corpus_dir: The main corpus directory.

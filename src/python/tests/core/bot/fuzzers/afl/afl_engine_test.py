@@ -18,6 +18,7 @@ import shutil
 import unittest
 
 from bot.fuzzers.afl import engine
+from bot.fuzzers.afl import launcher
 from system import environment
 from tests.core.bot.fuzzers.afl import afl_launcher_integration_test
 from tests.test_libs import helpers as test_helpers
@@ -30,6 +31,9 @@ TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 CORPUS_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'corpus')
 CRASHES_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'crashes')
+
+FUZZ_TIMEOUT = (5 + launcher.AflRunnerCommon.SIGTERM_WAIT_TIME +
+                launcher.AflRunnerCommon.AFL_CLEAN_EXIT_TIME)
 
 
 def clear_temp_dir():
@@ -68,9 +72,9 @@ class AFLEngineTest(unittest.TestCase):
         'empty', 'corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
-    timeout = afl_launcher_integration_test.get_fuzz_timeout(5.0)
 
-    result = engine_impl.fuzz(fuzzer_path, options, CRASHES_DIRECTORY, timeout)
+    result = engine_impl.fuzz(fuzzer_path, options, CRASHES_DIRECTORY,
+                              FUZZ_TIMEOUT)
 
     self.assertEqual('{0}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
     self.assertIn('-i{0}'.format(CORPUS_DIRECTORY), result.command)
@@ -84,7 +88,7 @@ class AFLEngineTest(unittest.TestCase):
     target_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     testcase_path = afl_launcher_integration_test.setup_testcase_and_corpus(
         'crash', 'empty_corpus')
-    timeout = afl_launcher_integration_test.get_fuzz_timeout(5.0)
+    timeout = 5
     result = engine_impl.reproduce(target_path, testcase_path, [], timeout)
 
     self.assertIn(
