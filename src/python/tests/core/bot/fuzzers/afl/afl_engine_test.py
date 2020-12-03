@@ -14,6 +14,7 @@
 """Tests for AFL's engine implementation."""
 
 import os
+import shutil
 import unittest
 
 from bot.fuzzers.afl import engine
@@ -27,6 +28,21 @@ from tests.test_libs import helpers as test_helpers
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
+CORPUS_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'corpus')
+CRASHES_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'crashes')
+
+
+def clear_temp_dir():
+  """Clear temp directories."""
+  if os.path.exists(TEMP_DIRECTORY):
+    shutil.rmtree(TEMP_DIRECTORY)
+
+
+def create_temp_dir():
+  """Create temp directories."""
+  # Corpus directory will be created when preparing for fuzzing.
+  os.mkdir(TEMP_DIRECTORY)
+  os.mkdir(CRASHES_DIRECTORY)
 
 
 @unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
@@ -35,28 +51,32 @@ class AFLEngineTest(unittest.TestCase):
   """Tests for AFLEngine."""
 
   def setUp(self):
-    afl_launcher_integration_test.clear_temp_dir()
-    afl_launcher_integration_test.create_temp_dir()
+    clear_temp_dir()
+    create_temp_dir()
 
     test_helpers.patch_environ(self)
     afl_launcher_integration_test.dont_use_strategies(self)
 
   def tearDown(self):
-    afl_launcher_integration_test.clear_temp_dir()
+    clear_temp_dir()
 
   def test_fuzz(self):
     """Test for fuzz."""
-    # TODO(mbarbella): Break up corpus and crash directories.
     engine_impl = engine.AFLEngine()
+
     _ = afl_launcher_integration_test.setup_testcase_and_corpus(
         'empty', 'corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
-    options = engine_impl.prepare(TEMP_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
+    options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
     timeout = afl_launcher_integration_test.get_fuzz_timeout(5.0)
-    result = engine_impl.fuzz(fuzzer_path, options, TEMP_DIRECTORY, timeout)
+
+    result = engine_impl.fuzz(fuzzer_path, options, CRASHES_DIRECTORY, timeout)
+
     self.assertEqual('{0}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
-    self.assertIn('-i{0}'.format(TEMP_DIRECTORY), result.command)
-    # TODO(mbarbella): Ensure new items are added to the corpus.
+    self.assertIn('-i{0}'.format(CORPUS_DIRECTORY), result.command)
+
+    # Ensure that we've added something other than the dummy file to the corpus.
+    assert len(os.listdir(CORPUS_DIRECTORY)) > 1, os.listdir(CORPUS_DIRECTORY)
 
   def test_reproduce(self):
     """Test for reproduce."""
