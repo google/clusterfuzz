@@ -1442,20 +1442,27 @@ def get_first_stacktrace(stderr_data):
   return stderr_data[:match.end()]
 
 
+# TODO(mbarbella): After deleting the non-engine AFL code, remove this
+# function and replace it with a simple check based on the timeout set in
+# AFLEngine.fuzz. Mutations should also be moved to fuzz.
 def get_fuzz_timeout(is_mutations_run):
   """Get the maximum amount of time that should be spent fuzzing."""
-  hard_timeout = engine_common.get_hard_timeout() - POSTPROCESSING_TIMEOUT
-  merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
-  fuzz_timeout = hard_timeout - merge_timeout
-  mutations_timeout = engine_common.get_new_testcase_mutations_timeout()
+  # Add the total time we are able to allocate to fuzzing to the timeout.
+  afl_engine_timeout = environment.get_value('AFL_ENGINE_TIMEOUT')
+  if afl_engine_timeout:
+    fuzz_timeout = afl_engine_timeout
+  else:
+    fuzz_timeout = engine_common.get_hard_timeout() - POSTPROCESSING_TIMEOUT
 
+  # Subtract mutations timeout from the total timeout.
   if is_mutations_run:
-    fuzz_timeout -= mutations_timeout
+    fuzz_timeout -= engine_common.get_new_testcase_mutations_timeout()
 
-  assert fuzz_timeout > 0, (
-      'hard_timeout: %d merge_timeout: %d mutations_timeout: %d fuzz_timeout: %d') % (
-          hard_timeout, merge_timeout, mutations_timeout, fuzz_timeout)
+  # Subtract the merge timeout from the fuzz timeout in the non-engine case.
+  if not afl_engine_timeout:
+    fuzz_timeout -= engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
 
+  assert fuzz_timeout > 0
   return fuzz_timeout
 
 

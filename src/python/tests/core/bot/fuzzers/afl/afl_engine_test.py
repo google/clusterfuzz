@@ -1,3 +1,16 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for AFL's engine implementation."""
 
 import os
@@ -7,7 +20,6 @@ from bot.fuzzers.afl import engine
 from system import environment
 from tests.core.bot.fuzzers.afl import afl_launcher_integration_test
 from tests.test_libs import helpers as test_helpers
-from tests.test_libs import test_utils
 
 # TODO(mbarbella): Break dependency on afl_launcher_integration_test once
 # everything has been fully converted to the new pipeline.
@@ -15,6 +27,7 @@ from tests.test_libs import test_utils
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
+
 
 @unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
                  'AFL_INTEGRATION_TESTS=1 must be set')
@@ -35,17 +48,14 @@ class AFLEngineTest(unittest.TestCase):
     """Test for fuzz."""
     # TODO(mbarbella): Break up corpus and crash directories.
     engine_impl = engine.AFLEngine()
-    _ = afl_launcher_integration_test.setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
+    _ = afl_launcher_integration_test.setup_testcase_and_corpus(
+        'empty', 'corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     options = engine_impl.prepare(TEMP_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
     timeout = afl_launcher_integration_test.get_fuzz_timeout(5.0)
     result = engine_impl.fuzz(fuzzer_path, options, TEMP_DIRECTORY, timeout)
-    self.assertEqual(
-        '{0}/afl-fuzz'.format(DATA_DIRECTORY),
-        result.command[0])
-    self.assertIn(
-        '-i{0}'.format(TEMP_DIRECTORY),
-        result.command)
+    self.assertEqual('{0}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
+    self.assertIn('-i{0}'.format(TEMP_DIRECTORY), result.command)
     # TODO(mbarbella): Ensure new items are added to the corpus.
 
   def test_reproduce(self):
@@ -60,4 +70,3 @@ class AFLEngineTest(unittest.TestCase):
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
         result.output)
-
