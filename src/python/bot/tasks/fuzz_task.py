@@ -1732,6 +1732,9 @@ class FuzzingSession(object):
       testcases_metadata[testcase_file_path]['gestures'] = pick_gestures(
           test_timeout)
 
+    # Prepare selecting trials in main loop below.
+    trial_selector = trials.Trials()
+
     logs.log('Starting to process testcases.')
     logs.log('Redzone is %d bytes.' % self.redzone)
     logs.log('Timeout multiplier is %s.' % str(self.timeout_multiplier))
@@ -1755,6 +1758,11 @@ class FuzzingSession(object):
         gestures = testcases_metadata[testcase_file_path]['gestures']
 
         env_copy = environment.copy()
+
+        # For some binaries, we specify trials, which are sets of flags that we
+        # only apply some of the time. Adjust APP_ARGS for them if needed.
+        trial_selector.setup_additional_args_for_app(env_copy)
+
         thread = process_handler.get_process()(
             target=testcase_manager.run_testcase_and_return_result_in_queue,
             args=(temp_queue, thread_index, testcase_file_path, gestures,
@@ -1895,10 +1903,6 @@ class FuzzingSession(object):
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
       return
-
-    # For some binaries, we specify trials, which are sets of flags that we only
-    # apply some of the time. Adjust APP_ARGS for them if needed.
-    trials.setup_additional_args_for_app()
 
     # TODO(mbarbella): Remove the environment variable check when the old
     # blackbox pipeline has been converted to the engine interface.
