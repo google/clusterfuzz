@@ -30,7 +30,7 @@ TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 CORPUS_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'corpus')
-CRASHES_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'crashes')
+OUTPUT_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'output')
 
 FUZZ_TIMEOUT = (5 + launcher.AflRunnerCommon.SIGTERM_WAIT_TIME +
                 launcher.AflRunnerCommon.AFL_CLEAN_EXIT_TIME)
@@ -46,7 +46,7 @@ def create_temp_dir():
   """Create temp directories."""
   # Corpus directory will be created when preparing for fuzzing.
   os.mkdir(TEMP_DIRECTORY)
-  os.mkdir(CRASHES_DIRECTORY)
+  os.mkdir(OUTPUT_DIRECTORY)
 
 
 @unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
@@ -73,14 +73,14 @@ class AFLEngineTest(unittest.TestCase):
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
 
-    result = engine_impl.fuzz(fuzzer_path, options, CRASHES_DIRECTORY,
+    result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
                               FUZZ_TIMEOUT)
 
     self.assertEqual('{0}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
     self.assertIn('-i{0}'.format(CORPUS_DIRECTORY), result.command)
 
     # Ensure that we've added something other than the dummy file to the corpus.
-    assert len(os.listdir(CORPUS_DIRECTORY)) > 1, os.listdir(CORPUS_DIRECTORY)
+    self.assertTrue(os.listdir(CORPUS_DIRECTORY))
 
   def test_reproduce(self):
     """Test for reproduce."""
