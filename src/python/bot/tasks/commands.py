@@ -58,6 +58,8 @@ COMMAND_MAP = {
     'variant': variant_task,
 }
 
+TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
+
 
 class Error(Exception):
   """Base commands exceptions."""
@@ -300,7 +302,9 @@ def process_command(task):
           logs.log(
               'Testcase %d platform (%s) does not match with ours (%s), exiting'
               % (testcase.key.id(), testcase_platform_id, current_platform_id))
-          tasks.add_task(task_name, task_argument, job_name)
+          tasks.add_task(
+              task_name, task_argument, job_name,
+              wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
           return
 
     # Some fuzzers contain additional environment variables that should be
@@ -365,7 +369,9 @@ def process_command(task):
   if not is_supported_cpu_arch_for_job():
     logs.log(
         'Unsupported cpu architecture specified in job definition, exiting.')
-    tasks.add_task(task_name, task_argument, job_name)
+    tasks.add_task(
+        task_name, task_argument, job_name,
+        wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
     return
 
   # Initial cleanup.

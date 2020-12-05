@@ -16,6 +16,8 @@
 from bot.init_scripts import init_runner
 from platforms import android
 
+TIME_SINCE_REBOOT_MIN_THRESHOLD = 10 * 60  # 10 minutes.
+
 
 def run():
   """Run Android initialization."""
@@ -24,8 +26,9 @@ def run():
   # Check if we need to reflash device to latest build.
   android.flash.flash_to_latest_build_if_needed()
 
-  # Reboot to bring device in a good state.
-  android.device.reboot()
+  # Reboot to bring device in a good state if not done recently.
+  if android.adb.time_since_last_reboot() > TIME_SINCE_REBOOT_MIN_THRESHOLD:
+    android.device.reboot()
 
   # Make sure that device is in a good condition before we move forward.
   android.adb.wait_until_fully_booted()
