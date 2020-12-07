@@ -29,6 +29,7 @@
 <link rel="import" href="redo-dialog.html">
 <link rel="import" href="refresh-button.html">
 <link rel="import" href="testcase-variants.html">
+<link rel="import" href="set-security-dialog.html">
 <link rel="import" href="suspected-cls.html">
 <link rel="import" href="update-issue-dialog.html">
 
@@ -135,14 +136,18 @@
         opened="{{removeDuplicateDialogOpened}}"
         title="Remove duplicate"
         content="Please confirm that you want to remove the duplicate status of this testcase."></confirm-dialog>
-    <confirm-dialog
+    <set-security-dialog
         id="markSecurityDialog"
+        info="{{info}}"
+        opened="{{markSecurityDialogOpened}}"></set-security-dialog>
+    <confirm-dialog
+        id="markNotSecurityDialog"
         url="/testcase-detail/mark-security"
-        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]"}'
+        params$='{"testcaseId": "[[info.testcase.id]]", "csrf_token": "[[info.csrf_token]]", "security": false}'
         response="{{info}}"
-        opened="{{markSecurityDialogOpened}}"
-        title="Mark security"
-        content="Please confirm that you want to mark this testcase as security-related."></confirm-dialog>
+        opened="{{markNotSecurityDialogOpened}}"
+        title="Mark non-security"
+        content="Please confirm that you want to mark this testcase as not security-related."></confirm-dialog>
     <confirm-dialog
         id="markUnconfirmedDialog"
         url="/testcase-detail/mark-unconfirmed"
@@ -237,12 +242,13 @@
                 <td class="value">
                   <if-else condition="[[isStatusReady(info)]]">
                     <if-else slot="t" condition="[[info.testcase.security_flag]]">
-                      <strong slot="t">YES (<render-either main="[[info.security_severity]]" else="Unknown"></render-either>)</strong>
+                      <strong slot="t">
+                        YES (<render-either main="[[info.security_severity]]" else="Unknown"></render-either>)
+                        <paper-icon-button icon="create" toggles active="{{markNotSecurityDialogOpened}}" title="Mark as not a security-related crash."></paper-icon-button>
+                      </strong>
                       <span slot="f">
                         NO
-                        <template is="dom-if" if="[[info.is_admin]]">
-                          <paper-icon-button icon="create" toggles active="{{markSecurityDialogOpened}}" title="Mark as a security-related crash."></paper-icon-button>
-                        </template>
+                        <paper-icon-button icon="create" toggles active="{{markSecurityDialogOpened}}" title="Mark as a security-related crash."></paper-icon-button>
                       </span>
                     </if-else>
                     <span slot="f">NA</span>
