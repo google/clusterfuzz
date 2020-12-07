@@ -1332,6 +1332,113 @@ class RecordFuzzTargetTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
+class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
+  """do_blackbox_fuzzing tests."""
+
+  def setUp(self):
+    """Setup for blackbox fuzzing test."""
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'base.utils.random_element_from_list',
+        'base.utils.random_number',
+        'bot.fuzzers.engine_common.current_timestamp',
+        'bot.tasks.fuzz_task.pick_gestures',
+        'random.random',
+        'system.process_handler.close_queue',
+        'system.process_handler.get_process',
+        'system.process_handler.get_queue',
+        'system.process_handler.terminate_hung_threads',
+        'system.process_handler.terminate_stale_application_instances',
+    ])
+
+    os.environ['APP_ARGS'] = '-x'
+    os.environ['APP_NAME'] = 'app_1'
+    os.environ['JOB_NAME'] = 'asan_test'
+    os.environ['ENABLE_GESTURES'] = 'False'
+    os.environ['MAX_FUZZ_THREADS'] = '2'
+    os.environ['MAX_TESTCASES'] = '3'
+    os.environ['RANDOM_SEED'] = '-r'
+    os.environ['THREAD_ALIVE_CHECK_INTERVAL'] = '0.001'
+    os.environ['THREAD_DELAY'] = '0.001'
+
+    # Value picked as timeout multiplier.
+    self.mock.random_element_from_list.return_value = 2.0
+    # Choose window_arg, timeout multiplier, random seed.
+    self.mock.random_number.side_effect = [0, 0, 3]
+    # Different trial profile for for each test.
+    self.mock.random.side_effect = [0.1, 0.1, 0.3, 0.3, 0.9, 0.9]
+    self.mock.pick_gestures.return_value = []
+    self.mock.current_timestamp.return_value = 0.0
+
+    # Mock out threads with immedietely ending dummies.
+    self.process = mock.MagicMock()
+    self.mock.get_process.return_value = self.process
+    thread = mock.MagicMock()
+    self.process.return_value = thread
+    thread.is_alive.return_value = False
+
+  def test_trials(self):
+    """Test fuzzing session with trials."""
+    data_types.Trial(app_name='app_1', probability=0.5, app_args='-y').put()
+    data_types.Trial(app_name='app_1', probability=0.2, app_args='-z').put()
+
+    session = fuzz_task.FuzzingSession('fantasy_fuzz', 'asan_test', 10)
+    self.assertEqual(20, session.test_timeout)
+
+    # Mock out actual test-case generation for 3 tests.
+    session.generate_blackbox_testcases = mock.MagicMock()
+    expected_testcase_file_paths = ['/tests/0', '/tests/1', '/tests/2']
+    session.generate_blackbox_testcases.return_value = (
+        False, expected_testcase_file_paths, None, {
+            'fuzzer_binary_name': 'fantasy_fuzz'
+        })
+
+    fuzzer = data_types.Fuzzer()
+    fuzzer.name = 'fantasy_fuzz'
+
+    fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes = (
+        session.do_blackbox_fuzzing(fuzzer, '/fake-fuzz-dir', 'asan_test'))
+
+    self.assertEqual({'fuzzer_binary_name': 'fantasy_fuzz'}, fuzzer_metadata)
+    self.assertEqual(expected_testcase_file_paths, testcase_file_paths)
+    self.assertEqual(
+        dict((t, {
+            'gestures': []
+        }) for t in expected_testcase_file_paths), testcases_metadata)
+    self.assertEqual([], crashes)
+
+    def assert_exec(call, thread_index, testcase_file_path, app_args,
+                    window_arg):
+      args = call[1]['args']
+      self.assertEqual(thread_index, args[1])
+      self.assertEqual(testcase_file_path, args[2])
+      self.assertEqual([], args[3])
+      self.assertEqual(app_args, args[4]['APP_ARGS'])
+      self.assertEqual(window_arg, args[4]['WINDOW_ARG'])
+
+    # Three executions with different trial args.
+    self.assertEqual(3, len(self.process.call_args_list))
+    assert_exec(
+        self.process.call_args_list[0],
+        thread_index=0,
+        testcase_file_path='/tests/0',
+        app_args='-x -y -z',
+        window_arg='-r=3')
+    assert_exec(
+        self.process.call_args_list[1],
+        thread_index=1,
+        testcase_file_path='/tests/1',
+        app_args='-x -y',
+        window_arg='-r=3')
+    assert_exec(
+        self.process.call_args_list[2],
+        thread_index=0,
+        testcase_file_path='/tests/2',
+        app_args='-x',
+        window_arg='-r=3')
+
+
+@test_utils.with_cloud_emulators('datastore')
 class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
   """do_engine_fuzzing tests."""
 
