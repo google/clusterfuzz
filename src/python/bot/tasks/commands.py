@@ -303,7 +303,9 @@ def process_command(task):
               'Testcase %d platform (%s) does not match with ours (%s), exiting'
               % (testcase.key.id(), testcase_platform_id, current_platform_id))
           tasks.add_task(
-              task_name, task_argument, job_name,
+              task_name,
+              task_argument,
+              job_name,
               wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
           return
 
@@ -370,7 +372,9 @@ def process_command(task):
     logs.log(
         'Unsupported cpu architecture specified in job definition, exiting.')
     tasks.add_task(
-        task_name, task_argument, job_name,
+        task_name,
+        task_argument,
+        job_name,
         wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
     return
 
