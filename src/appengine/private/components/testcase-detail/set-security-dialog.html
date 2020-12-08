@@ -1,0 +1,101 @@
+<!--
+  Copyright 2020 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/ajax-dialog/ajax-dialog.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+
+<dom-module id="set-security-dialog">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      :host .explanation {
+        width: 400px;
+      }
+
+      :host ajax-dialog > * {
+        display: block;
+        margin: 8px 0px;
+      }
+    </style>
+    <ajax-dialog
+        id="dialog"
+        url="/testcase-detail/mark-security"
+        title="Mark security"
+        submit-button="Update"
+        params="[[computeParams(info, severity)]]"
+        response="{{response}}"
+        opened="{{opened}}"
+        on-response="handleResponse">
+      <div class="explanation">
+        This will mark the bug as a security bug.
+      </div>
+      <paper-dropdown-menu label="Security Severity" no-animations="true" noink>
+        <paper-listbox
+            slot="dropdown-content"
+            class="dropdown-content"
+            selected-item="{{severity}}"
+            attr-for-selected="value">
+          <template is="dom-repeat" items="[[info.security_severities]]">
+            <paper-item value="[[item.value]]">[[item.name]]</paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+    </ajax-dialog>
+  </template>
+  <script>
+    Polymer({
+      is: 'set-security-dialog',
+      properties: {
+        info: {
+          type: Object,
+          notify: true
+        },
+        response: Object,
+        opened: {
+          type: Boolean,
+          notify: true
+        },
+        severity: {
+          type: String,
+          notify: true,
+        },
+      },
+      computeParams(info, severity) {
+        if (!info) { return; }
+        params = {
+          'testcaseId': info.testcase.id,
+          'security': true,
+          'csrf_token': info.csrf_token,
+        };
+
+        if (severity) {
+          params['severity'] = severity.value;
+        }
+        return params;
+      },
+      handleResponse() {
+        this.info = this.response;
+        this.$.dialog.close();
+      }
+    });
+  </script>
+</dom-module>
+
