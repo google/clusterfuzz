@@ -72,8 +72,8 @@ class AFLEngine(engine.Engine):
     """
     config = launcher.AflConfig.from_target_path(target_path)
     config.additional_afl_arguments = options.arguments
-    testcase_file_path = os.path.join(reproducers_dir, 'testcase')
 
+    testcase_file_path = os.path.join(reproducers_dir, 'crash')
     runner = launcher.prepare_runner(
         target_path,
         config,
@@ -105,13 +105,10 @@ class AFLEngine(engine.Engine):
                            new_units_added, corpus_size, runner.strategies,
                            runner.fuzzer_stderr, fuzz_result.output)
 
-    # TODO(mbarbella): This will not continue fuzzing properly when a crash is
-    # found. Address this when refactoring the launcher to remove the old
-    # codepath.
     crashes = []
     if os.path.exists(testcase_file_path):
-      crash = engine.Crash(testcase_file_path, fuzz_result.output, [],
-                           fuzz_result.crash_time)
+      crash = engine.Crash(testcase_file_path, runner.fuzzer_stderr, [],
+                           fuzz_result.time_executed)
       crashes.append(crash)
 
     return engine.FuzzResult(fuzzing_logs, command, crashes, stats_getter.stats,

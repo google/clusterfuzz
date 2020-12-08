@@ -32,8 +32,11 @@ DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
 CORPUS_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'corpus')
 OUTPUT_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'output')
 
-FUZZ_TIMEOUT = (5 + launcher.AflRunnerCommon.SIGTERM_WAIT_TIME +
-                launcher.AflRunnerCommon.AFL_CLEAN_EXIT_TIME)
+BASE_FUZZ_TIMEOUT = (
+    launcher.AflRunnerCommon.SIGTERM_WAIT_TIME +
+    launcher.AflRunnerCommon.AFL_CLEAN_EXIT_TIME)
+FUZZ_TIMEOUT = 5 + BASE_FUZZ_TIMEOUT
+LONG_FUZZ_TIMEOUT = 90 + BASE_FUZZ_TIMEOUT
 
 
 def clear_temp_dir():
@@ -101,17 +104,30 @@ class AFLEngineTest(unittest.TestCase):
 
     afl_launcher_integration_test.setup_testcase_and_corpus(
         'empty', 'corpus', fuzz=True)
-    fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
+    fuzzer_path = os.path.join(DATA_DIRECTORY, 'easy_crash_fuzzer')
+    options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
+
+    result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
+                              LONG_FUZZ_TIMEOUT)
+
+    self.assertGreater(len(result.crashes), 0)
+    crash = result.crashes[0]
+    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
+                  crash.stacktrace)
+
+    # Testcase (non-zero size) should've been copied back.
+    self.assertNotEqual(os.path.getsize(crash.input_path), 0)
+
+  def test_startup_crash_not_reported(self):
+    """Ensures that we properly handle startup crashes."""
+    engine_impl = engine.AFLEngine()
+
+    afl_launcher_integration_test.setup_testcase_and_corpus(
+        'empty', 'corpus', fuzz=True)
+    fuzzer_path = os.path.join(DATA_DIRECTORY, 'always_crash_fuzzer')
     options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
 
     result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
                               FUZZ_TIMEOUT)
 
-    self.assertGreater(len(result.crashes), 0)
-    crash = result.crashes[0]
-    self.assertIn(
-        'ERROR: AddressSanitizer: SEGV on unknown address '
-        '0x000000000000', crash.stacktrace)
-
-    # Testcase (non-zero size) should've been copied back.
-    self.assertNotEqual(os.path.getsize(crash.input_path), 0)
+    self.assertFalse(result.crashes)
