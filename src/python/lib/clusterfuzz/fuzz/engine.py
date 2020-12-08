@@ -13,6 +13,8 @@
 # limitations under the License.
 """Fuzzing engine interface."""
 
+import os
+
 _ENGINES = {}
 
 
@@ -203,7 +205,7 @@ def get(name):
   if engine_class:
     # TODO(mbarbella): AFL is currently enabled on a trial basis. Once it's
     # stable, remove this check.
-    if name == 'afl' and not environment.get_value('USE_AFL_ENGINE'):
+    if name == 'afl' and not os.environ.get('USE_AFL_ENGINE'):
       return None
 
     return engine_class()
