@@ -503,6 +503,12 @@ def get_all_issue_metadata_for_testcase(testcase):
   return get_all_issue_metadata(target_path)
 
 
+def get_project_qualified_fuzzer_name(target_path):
+  """Return project qualified fuzzer name for a given target path."""
+  return data_types.fuzz_target_project_qualified_name(
+      utils.current_project(), os.path.basename(target_path))
+
+
 def format_fuzzing_strategies(fuzzing_strategies):
   """Format the strategies used for logging purposes."""
   if not fuzzing_strategies:

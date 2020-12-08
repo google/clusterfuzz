@@ -1904,9 +1904,10 @@ class FuzzingSession(object):
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
       return
 
+    engine_impl = engine.get(self.fuzzer.name)
+
     # TODO(mbarbella): Remove the environment variable check when the old
     # blackbox pipeline has been converted to the engine interface.
-    engine_impl = engine.get(self.fuzzer.name)
     if not engine_impl and environment.get_value('USE_BLACKBOX_ENGINE'):
       engine_impl = engine.get('blackbox')
 

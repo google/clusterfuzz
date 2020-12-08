@@ -26,7 +26,6 @@ from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.libFuzzer import constants
 from bot.fuzzers.libFuzzer import fuzzer
 from bot.fuzzers.libFuzzer import stats
-from datastore import data_types
 from fuzzing import strategy
 from lib.clusterfuzz.fuzz import engine
 from metrics import logs
@@ -38,12 +37,6 @@ ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(
     r'ParseDictionaryFile: error in line (\d+)')
 MULTISTEP_MERGE_SUPPORT_TOKEN = b'fuzz target overwrites its const input'
-
-
-def _project_qualified_fuzzer_name(target_path):
-  """Return project qualified fuzzer name for a given target path."""
-  return data_types.fuzz_target_project_qualified_name(
-      utils.current_project(), os.path.basename(target_path))
 
 
 def _is_multistep_merge_supported(target_path):
@@ -267,7 +260,8 @@ class LibFuzzerEngine(engine.Engine):
         artifact_prefix=reproducers_dir,
         extra_env=options.extra_env)
 
-    project_qualified_fuzzer_name = _project_qualified_fuzzer_name(target_path)
+    project_qualified_fuzzer_name = (
+        engine_common.get_project_qualified_fuzzer_name(target_path))
     dict_error_match = DICT_PARSING_FAILED_REGEX.search(fuzz_result.output)
     if dict_error_match:
       logs.log_error(
