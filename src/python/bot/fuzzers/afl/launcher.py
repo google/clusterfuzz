@@ -1023,7 +1023,8 @@ class AflRunnerCommon(object):
     self._executable_path = self.afl_fuzz_path
 
     self.initial_max_total_time = (
-        get_fuzz_timeout(self.timeout, self.strategies.is_mutations_run) -
+        get_fuzz_timeout(
+            self.strategies.is_mutations_run, full_timeout=self.timeout) -
         self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
     assert self.initial_max_total_time > 0
@@ -1449,7 +1450,7 @@ def get_first_stacktrace(stderr_data):
 # TODO(mbarbella): After deleting the non-engine AFL code, remove this
 # function and replace it with a simple check based on the timeout set in
 # AFLEngine.fuzz. Mutations should also be moved to fuzz.
-def get_fuzz_timeout(full_timeout, is_mutations_run):
+def get_fuzz_timeout(is_mutations_run, full_timeout=None):
   """Get the maximum amount of time that should be spent fuzzing."""
   fuzz_timeout = full_timeout
 
