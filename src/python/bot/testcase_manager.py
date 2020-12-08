@@ -579,7 +579,7 @@ class TestcaseRunner(object):
 
     # TODO(mbarbella): Remove this check once AFL is fully converted to the new
     # engine interface.
-    if (self.fuzzer.name == 'afl' and
+    if (fuzz_target and fuzz_target.engine == 'afl' and
         not environment.get_value('USE_AFL_ENGINE')):
       engine_impl = None
 
