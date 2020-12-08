@@ -577,12 +577,6 @@ class TestcaseRunner(object):
     else:
       engine_impl = None
 
-    # TODO(mbarbella): Remove this check once AFL is fully converted to the new
-    # engine interface.
-    if (fuzz_target and fuzz_target.engine == 'afl' and
-        not environment.get_value('USE_AFL_ENGINE')):
-      engine_impl = None
-
     # TODO(ochang): Make this hard fail once migration to new fuzzing pipeline
     # is complete.
     if fuzz_target and engine_impl:

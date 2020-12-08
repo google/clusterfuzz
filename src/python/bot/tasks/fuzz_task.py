@@ -1904,22 +1904,12 @@ class FuzzingSession(object):
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
       return
 
-    # For some binaries, we specify trials, which are sets of flags that we only
-    # apply some of the time. Adjust APP_ARGS for them if needed.
-    trials.setup_additional_args_for_app()
-
     engine_impl = engine.get(self.fuzzer.name)
 
     # TODO(mbarbella): Remove the environment variable check when the old
     # blackbox pipeline has been converted to the engine interface.
     if not engine_impl and environment.get_value('USE_BLACKBOX_ENGINE'):
       engine_impl = engine.get('blackbox')
-
-    # TODO(mbarbella): Remove this check once AFL is fully converted to the new
-    # engine interface.
-    if (self.fuzzer.name == 'afl' and
-        not environment.get_value('USE_AFL_ENGINE')):
-      engine_impl = None
 
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
