@@ -19,17 +19,7 @@ from bot.fuzzers import engine_common
 from bot.fuzzers.afl import launcher
 from bot.fuzzers.afl import stats
 from lib.clusterfuzz.fuzz import engine
-from system import environment
-
-
-def _get_command_from_fuzz_result(fuzz_result, runner):
-  """Get the command string without showing unnecessary minijail commands."""
-  command = fuzz_result.command
-  if environment.get_value('USE_MINIJAIL'):
-    command = engine_common.strip_minijail_command(command,
-                                                   runner.afl_fuzz_path)
-
-  return command
+from metrics import logs
 
 
 def _run_single_testcase(fuzzer_runner, testcase_file_path):
@@ -80,8 +70,6 @@ class AFLEngine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    environment.set_value('AFL_ENGINE_TIMEOUT', max_time)
-
     config = launcher.AflConfig.from_target_path(target_path)
     config.additional_afl_arguments = options.arguments
     testcase_file_path = os.path.join(reproducers_dir, 'testcase')
@@ -91,17 +79,23 @@ class AFLEngine(engine.Engine):
         config,
         testcase_file_path,
         options.corpus_dir,
+        max_time,
         strategy_dict=options.strategies)
 
     fuzz_result = runner.fuzz()
 
-    command = _get_command_from_fuzz_result(fuzz_result, runner)
+    command = fuzz_result.command
     time_executed = fuzz_result.time_executed
-    logs = fuzz_result.output.splitlines() + runner.fuzzer_stderr.splitlines()
+    fuzzing_logs = (
+        fuzz_result.output.splitlines() + runner.fuzzer_stderr.splitlines())
 
     # Bail out if AFL returns a nonzero status code.
     if fuzz_result.return_code:
-      return engine.FuzzResult(logs, command, [], {}, time_executed)
+      target = engine_common.get_project_qualified_fuzzer_name(target_path)
+      logs.log_error(
+          f'afl: engine encountered an error (target={target})',
+          engine_output=fuzz_result.output)
+      return engine.FuzzResult(fuzzing_logs, command, [], {}, time_executed)
 
     stats_getter = stats.StatsGetter(runner.afl_output.stats_path,
                                      config.dict_path)
@@ -120,7 +114,7 @@ class AFLEngine(engine.Engine):
                            fuzz_result.crash_time)
       crashes.append(crash)
 
-    return engine.FuzzResult(logs, command, crashes, stats_getter.stats,
+    return engine.FuzzResult(fuzzing_logs, command, crashes, stats_getter.stats,
                              time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
@@ -135,8 +129,6 @@ class AFLEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    environment.set_value('AFL_ENGINE_TIMEOUT', max_time)
-
     config = launcher.AflConfig.from_target_path(target_path)
     input_directory = None  # Not required for reproduction.
     runner = launcher.prepare_runner(target_path, config, input_path,
@@ -144,7 +136,7 @@ class AFLEngine(engine.Engine):
 
     reproduce_result = _run_single_testcase(runner, input_path)
 
-    command = _get_command_from_fuzz_result(reproduce_result, runner)
+    command = reproduce_result.command
     return_code = reproduce_result.return_code
     time_executed = reproduce_result.time_executed
     output = runner.fuzzer_stderr

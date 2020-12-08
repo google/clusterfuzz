@@ -68,7 +68,7 @@ class AFLEngineTest(unittest.TestCase):
     """Test for fuzz."""
     engine_impl = engine.AFLEngine()
 
-    _ = afl_launcher_integration_test.setup_testcase_and_corpus(
+    afl_launcher_integration_test.setup_testcase_and_corpus(
         'empty', 'corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
@@ -94,3 +94,24 @@ class AFLEngineTest(unittest.TestCase):
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000',
         result.output)
+
+  def test_fuzz_with_crash(self):
+    """Tests that we detect crashes when fuzzing."""
+    engine_impl = engine.AFLEngine()
+
+    afl_launcher_integration_test.setup_testcase_and_corpus(
+        'empty', 'corpus', fuzz=True)
+    fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
+    options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
+
+    result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
+                              FUZZ_TIMEOUT)
+
+    self.assertGreater(len(result.crashes), 0)
+    crash = result.crashes[0]
+    self.assertIn(
+        'ERROR: AddressSanitizer: SEGV on unknown address '
+        '0x000000000000', crash.stacktrace)
+
+    # Testcase (non-zero size) should've been copied back.
+    self.assertNotEqual(os.path.getsize(crash.input_path), 0)

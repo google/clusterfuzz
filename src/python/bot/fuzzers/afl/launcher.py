@@ -566,6 +566,7 @@ class AflRunnerCommon(object):
                config,
                testcase_file_path,
                input_directory,
+               timeout,
                afl_tools_path=None,
                strategy_dict=None):
     """Inits the AflRunner.
@@ -582,6 +583,7 @@ class AflRunnerCommon(object):
     self.config = config
     self.testcase_file_path = testcase_file_path
     self._input_directory = input_directory
+    self.timeout = timeout
 
     if afl_tools_path is None:
       afl_tools_path = os.path.dirname(target_path)
@@ -1021,7 +1023,7 @@ class AflRunnerCommon(object):
     self._executable_path = self.afl_fuzz_path
 
     self.initial_max_total_time = (
-        get_fuzz_timeout(self.strategies.is_mutations_run) -
+        get_fuzz_timeout(self.timeout, self.strategies.is_mutations_run) -
         self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
     assert self.initial_max_total_time > 0
@@ -1210,10 +1212,11 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                config,
                testcase_file_path,
                input_directory,
+               timeout,
                afl_tools_path=None,
                strategy_dict=None):
     super().__init__(target_path, config, testcase_file_path, input_directory,
-                     afl_tools_path, strategy_dict)
+                     timeout, afl_tools_path, strategy_dict)
 
     new_process.ProcessRunner.__init__(self, self.afl_fuzz_path)
 
@@ -1228,10 +1231,11 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
                config,
                testcase_file_path,
                input_directory,
+               timeout,
                afl_tools_path=None,
                strategy_dict=None):
     super().__init__(target_path, config, testcase_file_path, input_directory,
-                     afl_tools_path, strategy_dict)
+                     timeout, afl_tools_path, strategy_dict)
 
     minijail.MinijailProcessRunner.__init__(self, chroot, self.afl_fuzz_path)
 
@@ -1445,13 +1449,13 @@ def get_first_stacktrace(stderr_data):
 # TODO(mbarbella): After deleting the non-engine AFL code, remove this
 # function and replace it with a simple check based on the timeout set in
 # AFLEngine.fuzz. Mutations should also be moved to fuzz.
-def get_fuzz_timeout(is_mutations_run):
+def get_fuzz_timeout(full_timeout, is_mutations_run):
   """Get the maximum amount of time that should be spent fuzzing."""
-  # Add the total time we are able to allocate to fuzzing to the timeout.
-  afl_engine_timeout = environment.get_value('AFL_ENGINE_TIMEOUT')
-  if afl_engine_timeout:
-    fuzz_timeout = afl_engine_timeout
-  else:
+  fuzz_timeout = full_timeout
+
+  # TODO(mbarbella): Delete this check once non-engine support is removed. The
+  # engine pipeline always specifies a timeout.
+  if fuzz_timeout is None:
     fuzz_timeout = engine_common.get_hard_timeout() - POSTPROCESSING_TIMEOUT
 
   # Subtract mutations timeout from the total timeout.
@@ -1459,7 +1463,7 @@ def get_fuzz_timeout(is_mutations_run):
     fuzz_timeout -= engine_common.get_new_testcase_mutations_timeout()
 
   # Subtract the merge timeout from the fuzz timeout in the non-engine case.
-  if not afl_engine_timeout:
+  if not full_timeout:
     fuzz_timeout -= engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
 
   assert fuzz_timeout > 0
@@ -1470,6 +1474,7 @@ def prepare_runner(fuzzer_path,
                    config,
                    testcase_file_path,
                    input_directory,
+                   timeout=None,
                    strategy_dict=None):
   """Common initialization code shared by the new pipeline and main."""
   # Set up temp dir.
@@ -1511,6 +1516,7 @@ def prepare_runner(fuzzer_path,
         config,
         testcase_file_path,
         input_directory,
+        timeout,
         strategy_dict=strategy_dict)
 
   else:
@@ -1519,6 +1525,7 @@ def prepare_runner(fuzzer_path,
         config,
         testcase_file_path,
         input_directory,
+        timeout,
         strategy_dict=strategy_dict)
 
   # Make sure afl won't exit because of bad sanitizer options.
