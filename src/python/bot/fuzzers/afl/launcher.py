@@ -566,7 +566,7 @@ class AflRunnerCommon(object):
                config,
                testcase_file_path,
                input_directory,
-               timeout,
+               timeout=None,
                afl_tools_path=None,
                strategy_dict=None):
     """Inits the AflRunner.
@@ -1213,7 +1213,7 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                config,
                testcase_file_path,
                input_directory,
-               timeout,
+               timeout=None,
                afl_tools_path=None,
                strategy_dict=None):
     super().__init__(target_path, config, testcase_file_path, input_directory,
@@ -1232,7 +1232,7 @@ class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
                config,
                testcase_file_path,
                input_directory,
-               timeout,
+               timeout=None,
                afl_tools_path=None,
                strategy_dict=None):
     super().__init__(target_path, config, testcase_file_path, input_directory,
@@ -1517,7 +1517,7 @@ def prepare_runner(fuzzer_path,
         config,
         testcase_file_path,
         input_directory,
-        timeout,
+        timeout=timeout,
         strategy_dict=strategy_dict)
 
   else:
@@ -1526,7 +1526,7 @@ def prepare_runner(fuzzer_path,
         config,
         testcase_file_path,
         input_directory,
-        timeout,
+        timeout=timeout,
         strategy_dict=strategy_dict)
 
   # Make sure afl won't exit because of bad sanitizer options.
