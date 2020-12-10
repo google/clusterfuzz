@@ -13,8 +13,6 @@
 # limitations under the License.
 """Fuzzing engine interface."""
 
-import os
-
 _ENGINES = {}
 
 
@@ -203,11 +201,6 @@ def get(name):
   """Get an implemntation of a fuzzing engine, or None if one does not exist."""
   engine_class = _ENGINES.get(name)
   if engine_class:
-    # TODO(mbarbella): AFL is currently enabled on a trial basis. Once it's
-    # stable, remove this check.
-    if name == 'afl' and not os.environ.get('USE_AFL_ENGINE'):
-      return None
-
     return engine_class()
 
   return None

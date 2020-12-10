@@ -293,8 +293,8 @@ class TestLauncher(BaseLauncherTest):
         'ERROR: AddressSanitizer: SEGV on unknown address '
         '0x000000000000', output)
 
-    # Testcase (non-zero) should've been copied back.
-    self.assertNotEqual(os.path.getsize(testcase_path), 0)
+    # No testcase should have been copied back.
+    self.assertEqual(os.path.getsize(testcase_path), 0)
 
   @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
   def test_fuzz_crash(self, mock_get_timeout):

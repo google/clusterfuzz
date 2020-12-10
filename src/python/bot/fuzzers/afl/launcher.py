@@ -669,7 +669,7 @@ class AflRunnerCommon(object):
     self.afl_setup()
     result = self.run_and_wait(additional_args=[testcase_path])
     print('Running command:', engine_common.get_command_quoted(result.command))
-    if result.return_code not in [0, 1]:
+    if result.return_code not in [0, 1, -6]:
       logs.log_error(
           'AFL target exited with abnormal exit code: %s.' % result.return_code,
           output=result.output)
@@ -680,6 +680,7 @@ class AflRunnerCommon(object):
     """Sets environment variables needed by afl."""
     # Tell afl_driver to duplicate stderr to STDERR_FILENAME.
     # Environment variable names and values that must be set before running afl.
+    environment.set_value(constants.SKIP_CRASHES_ENV_VAR, 1)
     environment.set_value(constants.SKIP_CPUFREQ_ENV_VAR, 1)
     environment.set_value(constants.BENCH_UNTIL_CRASH_ENV_VAR, 1)
     environment.set_value(constants.STDERR_FILENAME_ENV_VAR,
