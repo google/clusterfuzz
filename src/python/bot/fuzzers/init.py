@@ -13,6 +13,7 @@
 # limitations under the License.
 """Fuzzing engine initialization."""
 
+from bot.fuzzers.afl import engine as afl_engine
 from bot.fuzzers.blackbox import engine as blackbox_engine
 from bot.fuzzers.honggfuzz import engine as honggfuzz_engine
 from bot.fuzzers.libFuzzer import engine as libFuzzer_engine
@@ -22,6 +23,7 @@ from lib.clusterfuzz.fuzz import engine
 
 def run():
   """Initialise builtin fuzzing engines."""
+  engine.register('afl', afl_engine.AFLEngine)
   engine.register('blackbox', blackbox_engine.BlackboxEngine)
   engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
   engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
