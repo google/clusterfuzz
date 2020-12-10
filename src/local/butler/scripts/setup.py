@@ -47,8 +47,7 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
-AFL_TEMPLATE = """APP_NAME = launcher.py
-MAX_FUZZ_THREADS = 1
+AFL_TEMPLATE = """MAX_FUZZ_THREADS = 1
 MAX_TESTCASES = 4
 FUZZ_TEST_TIMEOUT = 4800
 TEST_TIMEOUT = 30
@@ -157,7 +156,7 @@ class LibFuzzerDefaults(BaseBuiltinFuzzerDefaults):
   """Default values for libFuzzer."""
 
   def __init__(self):
-    super(LibFuzzerDefaults, self).__init__()
+    super().__init__()
     # Override empty values from parent.
     self.name = 'libFuzzer'
     self.key_id = 1337
@@ -209,7 +208,7 @@ class AflDefaults(BaseBuiltinFuzzerDefaults):
   """Default values for AFL."""
 
   def __init__(self):
-    super(AflDefaults, self).__init__()
+    super().__init__()
     # Override empty values from parent.
     self.name = 'afl'
     self.key_id = 1338
@@ -251,7 +250,7 @@ class HonggfuzzDefaults(BaseBuiltinFuzzerDefaults):
   """Default values for honggfuzz."""
 
   def __init__(self):
-    super(HonggfuzzDefaults, self).__init__()
+    super().__init__()
     self.name = 'honggfuzz'
     self.key_id = 1339
 
@@ -260,7 +259,7 @@ class SyzkallerDefaults(BaseBuiltinFuzzerDefaults):
   """Default values for syzkaller."""
 
   def __init__(self):
-    super(SyzkallerDefaults, self).__init__()
+    super().__init__()
     # Override empty values from parent.
     self.name = 'syzkaller'
     self.key_id = 1340
