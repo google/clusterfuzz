@@ -86,8 +86,7 @@ class AFLEngine(engine.Engine):
 
     command = fuzz_result.command
     time_executed = fuzz_result.time_executed
-    fuzzing_logs = (
-        fuzz_result.output.splitlines() + runner.fuzzer_stderr.splitlines())
+    fuzzing_logs = fuzz_result.output + runner.fuzzer_stderr
 
     # Bail out if AFL returns a nonzero status code.
     if fuzz_result.return_code:
