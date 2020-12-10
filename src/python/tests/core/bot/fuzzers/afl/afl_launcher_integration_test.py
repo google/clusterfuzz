@@ -278,25 +278,6 @@ class TestLauncher(BaseLauncherTest):
     self.assertNotEqual(len(os.listdir(os.environ['FUZZ_CORPUS_DIR'])), 0)
 
   @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
-  def test_fuzz_input_crash(self, mock_get_timeout):
-    """Tests fuzzing (crash in input)."""
-    mock_get_timeout.return_value = get_fuzz_timeout(5.0)
-    testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
-    output = run_launcher(testcase_path, 'always_crash_fuzzer')
-    self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
-        '-o{1}/temp-1337/afl_output_dir -mnone '
-        '{0}/always_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
-                                                    TEMP_DIRECTORY), output)
-
-    self.assertIn(
-        'ERROR: AddressSanitizer: SEGV on unknown address '
-        '0x000000000000', output)
-
-    # Testcase (non-zero) should've been copied back.
-    self.assertNotEqual(os.path.getsize(testcase_path), 0)
-
-  @mock.patch('bot.fuzzers.afl.launcher.get_fuzz_timeout')
   def test_fuzz_crash(self, mock_get_timeout):
     """Tests fuzzing (crash)."""
     # *WARNING* Do not lower the fuzz timeout unless you really know what you
