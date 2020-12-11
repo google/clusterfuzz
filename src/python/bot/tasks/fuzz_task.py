@@ -770,17 +770,20 @@ def pick_window_argument():
       window_argument = window_argument.replace('$LEFT', str(left))
       window_argument = window_argument.replace('$TOP', str(top))
 
-  # FIXME: Random seed is currently passed along to the next job
-  # via WINDOW_ARG. Rename it without breaking existing tests.
-  random_seed_argument = environment.get_value('RANDOM_SEED')
-  if random_seed_argument:
-    if window_argument:
-      window_argument += ' '
-    seed = utils.random_number(-2147483648, 2147483647)
-    window_argument += '%s=%d' % (random_seed_argument.strip(), seed)
-
   environment.set_value('WINDOW_ARG', window_argument)
   return window_argument
+
+
+def pick_seed_argument(env_dict):
+  """Prepend a random-seed argument to the additional flags in the copied
+  environment.
+  """
+  random_seed_argument = environment.get_value('RANDOM_SEED')
+  if random_seed_argument:
+    flags = env_dict.get('ADDITIONAL_COMMAND_LINE_FLAGS', '')
+    seed = utils.random_number(-2147483648, 2147483647)
+    flags = '%s=%d %s' % (random_seed_argument.strip(), seed, flags)
+    env_dict['ADDITIONAL_COMMAND_LINE_FLAGS'] = flags.strip()
 
 
 @retry.wrap(
@@ -1762,6 +1765,9 @@ class FuzzingSession(object):
         # For some binaries, we specify trials, which are sets of flags that we
         # only apply some of the time. Adjust APP_ARGS for them if needed.
         trial_selector.setup_additional_args_for_app(env_copy)
+
+        # Pick a run-specific random-seed if specified.
+        pick_seed_argument(env_copy)
 
         thread = process_handler.get_process()(
             target=testcase_manager.run_testcase_and_return_result_in_queue,

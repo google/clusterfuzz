@@ -1351,6 +1351,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         'system.process_handler.terminate_stale_application_instances',
     ])
 
+    os.environ['ADDITIONAL_COMMAND_LINE_FLAGS'] = '-a'
     os.environ['APP_ARGS'] = '-x'
     os.environ['APP_NAME'] = 'app_1'
     os.environ['JOB_NAME'] = 'asan_test'
@@ -1363,14 +1364,14 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
 
     # Value picked as timeout multiplier.
     self.mock.random_element_from_list.return_value = 2.0
-    # Choose window_arg, timeout multiplier, random seed.
-    self.mock.random_number.side_effect = [0, 0, 3]
+    # Choose window_arg, timeout multiplier and 3x random seed.
+    self.mock.random_number.side_effect = [0, 0, 3, 4, 5]
     # Different trial profile for for each test.
     self.mock.random.side_effect = [0.1, 0.1, 0.3, 0.3, 0.9, 0.9]
     self.mock.pick_gestures.return_value = []
     self.mock.current_timestamp.return_value = 0.0
 
-    # Mock out threads with immedietely ending dummies.
+    # Mock out threads with immediately ending dummies.
     self.process = mock.MagicMock()
     self.mock.get_process.return_value = self.process
     thread = mock.MagicMock()
@@ -1407,14 +1408,14 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         }) for t in expected_testcase_file_paths), testcases_metadata)
     self.assertEqual([], crashes)
 
-    def assert_exec(call, thread_index, testcase_file_path, app_args,
-                    window_arg):
+    def assert_exec(call, thread_index, testcase_file_path, app_args, flags):
       args = call[1]['args']
       self.assertEqual(thread_index, args[1])
       self.assertEqual(testcase_file_path, args[2])
       self.assertEqual([], args[3])
       self.assertEqual(app_args, args[4]['APP_ARGS'])
-      self.assertEqual(window_arg, args[4]['WINDOW_ARG'])
+      self.assertEqual('', args[4]['WINDOW_ARG'])
+      self.assertEqual(flags, args[4]['ADDITIONAL_COMMAND_LINE_FLAGS'])
 
     # Three executions with different trial args.
     self.assertEqual(3, len(self.process.call_args_list))
@@ -1423,19 +1424,19 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         thread_index=0,
         testcase_file_path='/tests/0',
         app_args='-x -y -z',
-        window_arg='-r=3')
+        flags='-r=3 -a')
     assert_exec(
         self.process.call_args_list[1],
         thread_index=1,
         testcase_file_path='/tests/1',
         app_args='-x -y',
-        window_arg='-r=3')
+        flags='-r=4 -a')
     assert_exec(
         self.process.call_args_list[2],
         thread_index=0,
         testcase_file_path='/tests/2',
         app_args='-x',
-        window_arg='-r=3')
+        flags='-r=5 -a')
 
 
 @test_utils.with_cloud_emulators('datastore')
