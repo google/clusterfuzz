@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## Version 2.4.0
+- Various improvements for libClusterFuzz.
+- Local development improvements.
+- Add AFL support to the fuzzing engine pipeline.
+- Various bug fixes.
+
 ## Version 2.3.0
 - Improved ML-based fuzzing.
 - Various bug fixes.
