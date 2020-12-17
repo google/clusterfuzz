@@ -1365,8 +1365,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.mock.random_element_from_list.return_value = 2.0
     # Choose window_arg, timeout multiplier, random seed.
     self.mock.random_number.side_effect = [0, 0, 3]
-    # Different trial profile for for each test.
-    self.mock.random.side_effect = [0.1, 0.1, 0.3, 0.3, 0.9, 0.9]
+    # One trial profile for the session.
+    self.mock.random.side_effect = [0.3, 0.3]
     self.mock.pick_gestures.return_value = []
     self.mock.current_timestamp.return_value = 0.0
 
@@ -1422,7 +1422,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         self.process.call_args_list[0],
         thread_index=0,
         testcase_file_path='/tests/0',
-        app_args='-x -y -z',
+        app_args='-x -y',
         window_arg='-r=3')
     assert_exec(
         self.process.call_args_list[1],
@@ -1434,7 +1434,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         self.process.call_args_list[2],
         thread_index=0,
         testcase_file_path='/tests/2',
-        app_args='-x',
+        app_args='-x -y',
         window_arg='-r=3')
 
 

@@ -1735,6 +1735,12 @@ class FuzzingSession(object):
     # Prepare selecting trials in main loop below.
     trial_selector = trials.Trials()
 
+    # TODO(machenbach): Move this back to the main loop and make it test-case
+    # specific in a way that get's persistet on crashes.
+    # For some binaries, we specify trials, which are sets of flags that we
+    # only apply some of the time. Adjust APP_ARGS for them if needed.
+    trial_selector.setup_additional_args_for_app()
+
     logs.log('Starting to process testcases.')
     logs.log('Redzone is %d bytes.' % self.redzone)
     logs.log('Timeout multiplier is %s.' % str(self.timeout_multiplier))
@@ -1758,10 +1764,6 @@ class FuzzingSession(object):
         gestures = testcases_metadata[testcase_file_path]['gestures']
 
         env_copy = environment.copy()
-
-        # For some binaries, we specify trials, which are sets of flags that we
-        # only apply some of the time. Adjust APP_ARGS for them if needed.
-        trial_selector.setup_additional_args_for_app(env_copy)
 
         thread = process_handler.get_process()(
             target=testcase_manager.run_testcase_and_return_result_in_queue,
