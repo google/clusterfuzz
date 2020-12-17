@@ -41,7 +41,7 @@ class Trials:
     self.trials = list(
         data_types.Trial.query(data_types.Trial.app_name == app_name))
 
-  def setup_additional_args_for_app(self, test_env):
+  def setup_additional_args_for_app(self):
     """Select additional args for the specified app at random."""
     trial_args = [
         trial.app_args
@@ -52,6 +52,6 @@ class Trials:
       return
 
     trial_app_args = ' '.join(trial_args)
-    app_args = test_env.get('APP_ARGS', '')
-    test_env['APP_ARGS'] = '%s %s' % (app_args, trial_app_args)
-    test_env['TRIAL_APP_ARGS'] = trial_app_args
+    app_args = environment.get_value('APP_ARGS', '')
+    environment.set_value('APP_ARGS', '%s %s' % (app_args, trial_app_args))
+    environment.set_value('TRIAL_APP_ARGS', trial_app_args)
