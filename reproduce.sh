@@ -60,12 +60,28 @@ if [ "$dependencies_installed" != "true" ]; then
   echo -n $current_version > $version_file
 fi
 
+# Need to get python to use pipenv.
+if [ -z "$PYTHON" ]; then
+  PYTHON='python3'
+fi
+
+if ! which "$PYTHON" > /dev/null; then
+  echo "python $PYTHON not found"
+  exit 1
+fi
+
+version=$($PYTHON --version 2>&1 | cut -f2 -d' ')
+if [[ "$version" < "3.7" ]]; then
+  echo "You need at least Python 3.7"
+  exit 1
+fi
+
 # Only sync if necessary.
 pip_sync_file=$CLUSTERFUZZ_CONFIG_DIR/pip_sync
 if [ ! -e $pip_sync_file ] || [ $ROOT_DIRECTORY/Pipfile.lock -nt $pip_sync_file ]; then
-  pipenv sync --dev
+  $PYTHON -m pipenv sync --dev
   echo 1 > $pip_sync_file
 fi
 
-source "$(pipenv --venv)/bin/activate"
+source "$($PYTHON -m pipenv --venv)/bin/activate"
 python $ROOT_DIRECTORY/butler.py reproduce $original_args
