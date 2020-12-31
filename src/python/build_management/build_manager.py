@@ -14,6 +14,7 @@
 """Build manager."""
 
 import os
+import random
 import re
 import subprocess
 import time
@@ -738,8 +739,21 @@ class FuchsiaBuild(RegularBuild):
   FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
   FUCHSIA_DIR_REL_PATH = 'build'
 
+  def __init__(self, *args, **kwargs):
+    super(FuchsiaBuild, self).__init__(*args, **kwargs)
+
+    # Decide per-build whether to use undercoat, based on rollout level
+    rollout_level = environment.get_value('FUCHSIA_UNDERCOAT_ROLLOUT_LEVEL', 0)
+    self.use_undercoat = random.random() < rollout_level
+    logs.log('Undercoat enabled: %s' % self.use_undercoat)
+
   def _get_fuzz_targets_from_dir(self, build_dir):
     """Overridden to get targets list from fuchsia."""
+    if self.use_undercoat:
+      # list_fuzzers requires a running instance, so we can't list these until
+      # later in setup() below
+      return []
+
     # Prevent App Engine import issues.
     from platforms.fuchsia.util.fuzzer import Fuzzer
     from platforms.fuchsia.util.host import Host
@@ -759,8 +773,11 @@ class FuchsiaBuild(RegularBuild):
     new_setup = not self.exists()
 
     # Need to be set before fuchsia utils is called in setup().
-    environment.set_value(
-        'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
+    if not self.use_undercoat:
+      environment.set_value(
+          'FUCHSIA_DIR', os.path.join(self.build_dir,
+                                      self.FUCHSIA_DIR_REL_PATH))
+
     environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
 
     assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES'), \
@@ -768,6 +785,20 @@ class FuchsiaBuild(RegularBuild):
     result = super(FuchsiaBuild, self).setup()
     if not result:
       return result
+
+    if self.use_undercoat:
+      # Kill any stale undercoat instances (currently, this is in fact the only
+      # path through which instances are shut down)
+      fuchsia.undercoat.stop_all()
+
+      logs.log('Starting Fuchsia instance.')
+      handle = fuchsia.undercoat.start_instance()
+      environment.set_value('FUCHSIA_INSTANCE_HANDLE', handle)
+      environment.set_value('FUCHSIA_USE_UNDERCOAT', self.use_undercoat)
+      # Select a fuzzer, now that a list is available
+      _set_random_fuzz_target_for_fuzzing_if_needed(
+          fuchsia.undercoat.list_fuzzers(handle), self.target_weights)
+      return True
 
     # We set these values here, rather than in initial_qemu_setup, since
     # SYMBOLIZE_REL_PATH and LLVM_SYMBOLIZER_REL_PATH are properties of the

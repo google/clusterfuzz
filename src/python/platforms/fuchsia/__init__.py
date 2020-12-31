@@ -14,4 +14,5 @@
 """Fuchsia initialization."""
 
 from . import device
+from . import undercoat
 from . import errors

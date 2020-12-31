@@ -36,6 +36,7 @@ from metrics import logs
 from platforms import android
 from system import environment
 from system import new_process
+from system import process_handler
 from system import shell
 from tests.test_libs import android_helpers
 from tests.test_libs import helpers as test_helpers
@@ -1059,25 +1060,35 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # log_warn to plain log to avoid creating a loop)
     self.mock.log_warn.side_effect = logs.log
 
-    environment.set_value('FUZZ_TARGET', 'example-fuzzers/overflow_fuzzer')
+    environment.set_value('FUZZ_TARGET', 'example-fuzzers/crash_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
     build_manager.setup_build()
     testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
                                                  'empty_corpus')
 
-    runner = libfuzzer.FuchsiaQemuLibFuzzerRunner('fake/fuzzer')
-    # Check that it's up properly
-    self.assertEqual(runner.device.ssh(['echo', 'hello']), 0)
-    # Force shutdown
-    runner.device.ssh(['dm', 'shutdown'])
-
-    # Try to fuzz against the dead qemu to trigger automatic recovery behavior
     engine_impl = engine.LibFuzzerEngine()
-    engine_impl.reproduce('example-fuzzers/overflow_fuzzer', testcase_path,
-                          ['-timeout=25', '-rss_limit_mb=2560'], 30)
 
-    # Check the logs for the shutdown sequence
-    self.assertIn('Shutting down', self.mock.log_warn.call_args[0][0])
+    # Check that it's up properly
+    results = engine_impl.reproduce('example-fuzzers/overflow_fuzzer',
+                                    testcase_path,
+                                    ['-timeout=25', '-rss_limit_mb=2560'], 30)
+    self.assertEqual(0, results.return_code)
+
+    # Force termination
+    process_handler.terminate_processes_matching_names('qemu-system-x86_64')
+
+    # Try to fuzz against the dead qemu to trigger log dump (and automatic
+    # recovery behavior, when undercoat is disabled)
+    try:
+      engine_impl.reproduce('example-fuzzers/overflow_fuzzer', testcase_path,
+                            ['-timeout=25', '-rss_limit_mb=2560'], 30)
+    except:
+      # With undercoat, this is expected to dump logs but ultimately fail to run
+      if not environment.get_value('FUCHSIA_USE_UNDERCOAT'):
+        raise
+
+    # Check the logs for syslog presence
+    self.assertIn('{{{reset}}}', self.mock.log_warn.call_args[0][0])
 
   @unittest.skipIf(
       not environment.get_value('FUCHSIA_TESTS'),
