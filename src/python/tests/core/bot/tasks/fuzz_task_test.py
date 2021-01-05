@@ -18,8 +18,10 @@ import datetime
 import mock
 import os
 import parameterized
+import queue
 import shutil
 import tempfile
+import threading
 import time
 import unittest
 
@@ -1343,23 +1345,45 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         'base.utils.random_number',
         'bot.fuzzers.engine_common.current_timestamp',
         'bot.tasks.fuzz_task.pick_gestures',
+        'bot.testcase_manager.upload_log',
+        'bot.testcase_manager.upload_testcase',
+        'build_management.revisions.get_component_list',
+        'crash_analysis.crash_analyzer.is_crash',
+        'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
+        'datastore.ndb_init.context',
+        'metrics.fuzzer_stats.upload_stats',
         'random.random',
         'system.process_handler.close_queue',
         'system.process_handler.get_process',
         'system.process_handler.get_queue',
+        'system.process_handler.run_process',
         'system.process_handler.terminate_hung_threads',
         'system.process_handler.terminate_stale_application_instances',
     ])
 
     os.environ['APP_ARGS'] = '-x'
+    os.environ['APP_ARGS_APPEND_TESTCASE'] = 'True'
+    os.environ['APP_DIR'] = '/app'
     os.environ['APP_NAME'] = 'app_1'
-    os.environ['JOB_NAME'] = 'asan_test'
+    os.environ['APP_PATH'] = '/app/app_1'
+    os.environ['BOT_TMPDIR'] = '/tmp'
+    os.environ['CRASH_STACKTRACES_DIR'] = '/crash'
     os.environ['ENABLE_GESTURES'] = 'False'
+    os.environ['FAIL_RETRIES'] = '1'
+    os.environ['FUZZER_DIR'] = '/fuzzer'
+    os.environ['INPUT_DIR'] = '/input'
+    os.environ['JOB_NAME'] = 'asan_test'
     os.environ['MAX_FUZZ_THREADS'] = '2'
     os.environ['MAX_TESTCASES'] = '3'
     os.environ['RANDOM_SEED'] = '-r'
+    os.environ['ROOT_DIR'] = '/root'
     os.environ['THREAD_ALIVE_CHECK_INTERVAL'] = '0.001'
     os.environ['THREAD_DELAY'] = '0.001'
+    os.environ['USER_PROFILE_IN_MEMORY'] = 'True'
+
+    test_utils.set_up_pyfakefs(self)
+    self.fs.create_dir('/crash')
+    self.fs.create_dir('/root/bot/logs')
 
     # Value picked as timeout multiplier.
     self.mock.random_element_from_list.return_value = 2.0
@@ -1368,14 +1392,20 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     # One trial profile for the session.
     self.mock.random.side_effect = [0.3, 0.3]
     self.mock.pick_gestures.return_value = []
+    self.mock.get_component_list.return_value = [{
+        'component': 'component',
+        'link_text': 'rev',
+    }]
     self.mock.current_timestamp.return_value = 0.0
 
-    # Mock out threads with immedietely ending dummies.
-    self.process = mock.MagicMock()
-    self.mock.get_process.return_value = self.process
-    thread = mock.MagicMock()
-    self.process.return_value = thread
-    thread.is_alive.return_value = False
+    # Dummy output when running tests. E.g. exit code 0 and no output.
+    self.mock.run_process.return_value = (0, 0, '')
+
+    # Treat first and third run as crashed.
+    self.mock.is_crash.side_effect = [True, False, True]
+
+    self.mock.get_queue.return_value = queue.Queue()
+    self.mock.get_process.return_value = threading.Thread
 
   def test_trials(self):
     """Test fuzzing session with trials."""
@@ -1405,37 +1435,22 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         dict((t, {
             'gestures': []
         }) for t in expected_testcase_file_paths), testcases_metadata)
-    self.assertEqual([], crashes)
 
-    def assert_exec(call, thread_index, testcase_file_path, app_args,
-                    window_arg):
-      args = call[1]['args']
-      self.assertEqual(thread_index, args[1])
-      self.assertEqual(testcase_file_path, args[2])
-      self.assertEqual([], args[3])
-      self.assertEqual(app_args, args[4]['APP_ARGS'])
-      self.assertEqual(window_arg, args[4]['WINDOW_ARG'])
+    self.assertEqual(3, len(self.mock.is_crash.call_args_list))
 
-    # Three executions with different trial args.
-    self.assertEqual(3, len(self.process.call_args_list))
-    assert_exec(
-        self.process.call_args_list[0],
-        thread_index=0,
-        testcase_file_path='/tests/0',
-        app_args='-x -y',
-        window_arg='-r=3')
-    assert_exec(
-        self.process.call_args_list[1],
-        thread_index=1,
-        testcase_file_path='/tests/1',
-        app_args='-x -y',
-        window_arg='-r=3')
-    assert_exec(
-        self.process.call_args_list[2],
-        thread_index=0,
-        testcase_file_path='/tests/2',
-        app_args='-x -y',
-        window_arg='-r=3')
+    # Verify the three test runs are called with the correct arguments.
+    calls = self.mock.run_process.call_args_list
+    self.assertEqual(3, len(calls))
+    self.assertEqual('/app/app_1 -r=3 -x -y /tests/0', calls[0][0][0])
+    self.assertEqual('/app/app_1 -r=3 -x -y /tests/1', calls[1][0][0])
+    self.assertEqual('/app/app_1 -r=3 -x -y /tests/2', calls[2][0][0])
+
+    # Verify the two crashes store the correct arguments.
+    self.assertEqual(2, len(crashes))
+    self.assertEqual('/app/app_1 -r=3 -x -y /tests/0',
+                     crashes[0].application_command_line)
+    self.assertEqual('/app/app_1 -r=3 -x -y /tests/2',
+                     crashes[1].application_command_line)
 
 
 @test_utils.with_cloud_emulators('datastore')
