@@ -14,9 +14,10 @@
 """Module containing fuzzer utils."""
 
 try:
-    from clusterfuzz._internal.bot.fuzzers import utils
+  from clusterfuzz._internal.bot.fuzzers import utils
 except ImportError:
-    from bot.fuzzers import utils
+  from bot.fuzzers import utils
+
 
 def is_fuzz_target(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target."""
@@ -24,5 +25,5 @@ def is_fuzz_target(file_path, file_handle=None):
 
 
 def get_fuzz_targets(directory):
-    """Returns the list of fuzz targets in |directory|."""
-    return utils.get_fuzz_targets_local(directory)
+  """Returns the list of fuzz targets in |directory|."""
+  return utils.get_fuzz_targets_local(directory)
