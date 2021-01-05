@@ -20,7 +20,7 @@ except ImportError:
 
 def is_fuzz_target(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target."""
-  return utils.is_fuzz_target_local(directory)
+  return utils.is_fuzz_target_local(file_path, file_handle)
 
 
 def get_fuzz_targets(directory):
