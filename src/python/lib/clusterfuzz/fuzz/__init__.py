@@ -13,6 +13,11 @@
 # limitations under the License.
 """Fuzzing functions."""
 
+try:
+    from clusterfuzz._internal.bot.fuzzers import utils
+except ImportError:
+    from bot.fuzzers import utils
+
 from . import engine
 
 _initialized = False
@@ -47,3 +52,13 @@ def get_engine(name):
     _initialize()
 
   return engine.get(name)
+
+
+def is_fuzz_target(file_path, file_handle=None):
+  """Returns whether |file_path| is a fuzz target."""
+  return utils.is_fuzz_target_local(file_path, file_handle)
+
+
+def get_fuzz_targets(directory):
+    """Returns the list of fuzz targets in |directory|."""
+    return utils.get_fuzz_targets_local(directory)
