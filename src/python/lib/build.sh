@@ -39,4 +39,5 @@ done
 # Symlink config dir.
 ln -s $(pwd)/../../../configs/test clusterfuzz/lib-config
 
+rm -rf dist
 python setup.py sdist bdist_wheel
