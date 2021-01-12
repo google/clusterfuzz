@@ -363,6 +363,8 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
               'severity':
                   severity_analyzer.severity_to_string(
                       testcase.security_severity),
+              'timestamp':
+                  testcase.timestamp.isoformat(),
           })
   ])
   return True
