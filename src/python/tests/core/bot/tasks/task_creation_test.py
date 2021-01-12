@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for task_creation."""
+import datetime
 import mock
 import unittest
 
@@ -43,6 +44,7 @@ class RequestBisectionTest(unittest.TestCase):
         binary='target').put()
 
     self.testcase = data_types.Testcase(
+        timestamp=datetime.datetime(2021, 1, 1),
         crash_type='crash-type',
         crash_state='A\nB\nC',
         security_flag=True,
@@ -95,6 +97,7 @@ class RequestBisectionTest(unittest.TestCase):
           'testcase_id': '1',
           'issue_id': '1337',
           'type': bisect_type,
+          'timestamp': '2021-01-01T00:00:00',
       }, message.attributes)
 
     testcase = self.testcase.key.get()
