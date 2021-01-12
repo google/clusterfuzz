@@ -91,7 +91,7 @@ class CopyingMock(mock.MagicMock):
   def __call__(self, *args, **kwargs):
     args = copy.deepcopy(args)
     kwargs = copy.deepcopy(kwargs)
-    return super(CopyingMock, self).__call__(*args, **kwargs)
+    return super().__call__(*args, **kwargs)
 
 
 def mock_set_iam_policy(bucket=None, body=None):  # pylint: disable=unused-argument
@@ -1543,7 +1543,7 @@ def mock_get_url(url):
 class MockRequestsGet(object):
   """Mock requests.get."""
 
-  def __init__(self, url, params):  # pylint: disable=unused-argument
+  def __init__(self, url, params=None, auth=None):  # pylint: disable=unused-argument
     if url in URL_RESULTS:
       self.text = URL_RESULTS[url]
       self.status_code = 200
