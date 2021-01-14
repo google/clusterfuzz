@@ -161,7 +161,19 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.fixed = 'NA'
     self.testcase.put()
     task_creation.request_bisection(self.testcase.key.id())
-    self.assertEqual(0, self.mock.publish.call_count)
+
+    publish_calls = self.mock.publish.call_args_list
+    self.assertEqual(1, len(publish_calls))
+
+    publish_call = publish_calls[0]
+    topic = publish_call[0][1]
+    message = publish_call[0][2][0]
+    self.assertEqual('/projects/project/topics/topic', topic)
+    self.assertEqual(b'', message.data)
+    self.assertDictEqual({
+        'testcase_id': '1',
+        'type': 'invalid',
+    }, message.attributes)
 
   def test_request_bisection_once_only(self):
     """Test request bisection for testcases isn't repeated if already
