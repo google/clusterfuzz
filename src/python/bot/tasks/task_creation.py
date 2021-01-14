@@ -69,6 +69,9 @@ def mark_unreproducible_if_flaky(testcase, potentially_flaky):
   # information from blame task.
   create_blame_task_if_needed(testcase)
 
+  # Let bisection service know about flakiness.
+  request_bisection(testcase.key.id())
+
 
 def create_blame_task_if_needed(testcase):
   """Creates a blame task if needed."""
@@ -264,6 +267,11 @@ def request_bisection(testcase_id):
   if not testcase.security_flag:
     return
 
+  if testcase.fixed == 'NA':
+    # Testcase got into an invalid state.
+    _notify_bisection_invalid(pubsub_topic, testcase)
+    return
+
   if testcase.one_time_crasher_flag:
     return
 
@@ -368,3 +376,15 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
           })
   ])
   return True
+
+
+def _notify_bisection_invalid(pubsub_topic, testcase):
+  """Notify the bisection infrastructure of a testcase getting into invalid
+  state."""
+  pubsub_client = pubsub.PubSubClient()
+  pubsub_client.publish(pubsub_topic, [
+      pubsub.Message(b'', {
+          'type': 'invalid',
+          'testcase_id': str(testcase.key.id()),
+      })
+  ])

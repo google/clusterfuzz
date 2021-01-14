@@ -401,6 +401,9 @@ def find_fixed_range(testcase_id, job_type):
       message = ('Fixed testing errored out (min and max revisions '
                  'are both %d)' % min_revision)
       _update_completion_metadata(testcase, max_revision, message=message)
+
+      # Let the bisection service know about the NA status.
+      task_creation.request_bisection(testcase_id)
       return
 
     # Test the middle revision of our range.
