@@ -167,6 +167,7 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
 
 def parse_performance_features(log_lines, strategies, arguments):
   """Extract stats for performance analysis."""
+
   # Initialize stats with default values.
   stats = {
       'bad_instrumentation': 0,
