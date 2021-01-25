@@ -269,7 +269,7 @@ class TestLauncher(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
+        'Command: {0}/afl-fuzz -Sdefault -i{1}/corpus '
         '-o{1}/temp-1337/afl_output_dir -mnone '
         '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
         output)
@@ -284,7 +284,7 @@ class TestLauncher(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'always_crash_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
+        'Command: {0}/afl-fuzz -Sdefault -i{1}/corpus '
         '-o{1}/temp-1337/afl_output_dir -mnone '
         '{0}/always_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
                                                     TEMP_DIRECTORY), output)
@@ -307,7 +307,7 @@ class TestLauncher(BaseLauncherTest):
 
     output = run_launcher(testcase_path, 'easy_crash_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i{1}/corpus '
+        'Command: {0}/afl-fuzz -Sdefault -i{1}/corpus '
         '-o{1}/temp-1337/afl_output_dir -mnone '
         '{0}/easy_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
                                                   TEMP_DIRECTORY), output)
@@ -334,7 +334,7 @@ class TestLauncher(BaseLauncherTest):
         f.write('A' * 256)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -d -i{1}/redundant_corpus '
+        'Command: {0}/afl-fuzz -d -Sdefault -i{1}/redundant_corpus '
         '-o{1}/temp-1337/afl_output_dir -mnone '
         '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
         output)
@@ -400,7 +400,7 @@ class TestLauncherMinijail(BaseLauncherTest):
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i/corpus '
+        'Command: {0}/afl-fuzz -Sdefault -i/corpus '
         '-o/afl_output_dir -mnone {0}/test_fuzzer '
         '2147483647'.format(DATA_DIRECTORY), output)
 
@@ -419,7 +419,7 @@ class TestLauncherMinijail(BaseLauncherTest):
 
     output = run_launcher(testcase_path, 'easy_crash_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -i/corpus '
+        'Command: {0}/afl-fuzz -Sdefault -i/corpus '
         '-o/afl_output_dir -mnone '
         '{0}/easy_crash_fuzzer 2147483647'.format(DATA_DIRECTORY), output)
 
@@ -445,7 +445,7 @@ class TestLauncherMinijail(BaseLauncherTest):
 
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -d -i/redundant_corpus '
+        'Command: {0}/afl-fuzz -d -Sdefault -i/redundant_corpus '
         '-o/afl_output_dir -mnone '
         '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY), output)
 

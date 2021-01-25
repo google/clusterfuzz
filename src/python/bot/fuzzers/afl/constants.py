@@ -28,6 +28,8 @@ SKIP_DETERMINISTIC_FLAG = '-d'
 
 TIMEOUT_FLAG = '-t'
 
+INSTANCE_ID_FLAG = '-S'
+
 # AFL environment variables.
 SKIP_CRASHES_ENV_VAR = 'AFL_SKIP_CRASHES'
 
@@ -61,3 +63,5 @@ RESUME_INPUT = '-'
 MAX_MEMORY_LIMIT = 'none'
 
 CORE_PATTERN_FILE_PATH = '/proc/sys/kernel/core_pattern'
+
+DEFAULT_INSTANCE_ID = 'default'

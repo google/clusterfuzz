@@ -181,9 +181,14 @@ class AflFuzzOutputDirectory(object):
             bool(re.match(cls.TESTCASE_REGEX, os.path.basename(path))))
 
   @property
+  def instance_directory(self):
+    """Returns afl-fuzz's instance directory."""
+    return os.path.join(self.output_directory, constants.DEFAULT_INSTANCE_ID)
+
+  @property
   def queue(self):
     """Returns afl-fuzz's queue directory."""
-    return os.path.join(self.output_directory, 'queue')
+    return os.path.join(self.instance_directory, 'queue')
 
   def is_new_testcase(self, path):
     """Determine if |path| is a new unit."""
@@ -207,7 +212,7 @@ class AflFuzzOutputDirectory(object):
     created by run.py).
     """
     crash_paths = list_full_file_paths(
-        os.path.join(self.output_directory, 'crashes'))
+        os.path.join(self.instance_directory, 'crashes'))
 
     for crash_path in crash_paths:
       # AFL puts a README.txt file in the crashes directory. Just ignore it.
@@ -232,7 +237,7 @@ class AflFuzzOutputDirectory(object):
   @property
   def stats_path(self):
     """Returns the path of AFL's stats file: "fuzzer_stats"."""
-    return os.path.join(self.output_directory, 'fuzzer_stats')
+    return os.path.join(self.instance_directory, 'fuzzer_stats')
 
 
 class FuzzingStrategies(object):
@@ -799,6 +804,7 @@ class AflRunnerCommon(object):
       afl_output = self.afl_output.output_directory
 
     afl_args = [
+        constants.INSTANCE_ID_FLAG + constants.DEFAULT_INSTANCE_ID,
         constants.INPUT_FLAG + afl_input, constants.OUTPUT_FLAG + afl_output,
         constants.MEMORY_LIMIT_FLAG + str(mem_limit)
     ]
