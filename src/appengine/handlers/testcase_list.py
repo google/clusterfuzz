@@ -15,11 +15,11 @@
 
 from flask import request
 
-from base import errors
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import blobs
+from internal.base import errors
+from internal.base import utils
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.google_cloud_utils import blobs
 from handlers import base_handler
 from libs import crash_access
 from libs import filters

@@ -160,7 +160,7 @@ def yaml_validate(file_path):
 def is_auto_generated_file(filepath):
   """Check if file is auto-generated so we dont lint it"""
   return filepath.endswith('_pb2.py') or filepath.endswith('pb2_grpc.py') or \
-         os.path.dirname(filepath) == os.path.join('src', 'python', 'bot',
+         os.path.dirname(filepath) == os.path.join('src', 'internal', 'bot',
                                                    'tokenizer', 'grammars')
 
 

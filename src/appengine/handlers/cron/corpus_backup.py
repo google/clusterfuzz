@@ -16,15 +16,15 @@
 import datetime
 import os
 
-from base import utils
-from datastore import data_types
-from datastore import fuzz_target_utils
-from datastore import ndb_utils
-from fuzzing import corpus_manager
-from google_cloud_utils import storage
+from internal.base import utils
+from internal.datastore import data_types
+from internal.datastore import fuzz_target_utils
+from internal.datastore import ndb_utils
+from internal.fuzzing import corpus_manager
+from internal.google_cloud_utils import storage
 from handlers import base_handler
 from libs import handler
-from metrics import logs
+from internal.metrics import logs
 
 
 def _set_public_acl_if_needed(url):

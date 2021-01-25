@@ -13,7 +13,7 @@
 # limitations under the License.
 """A cron handler that batches FuzzerJobs."""
 
-from datastore import data_types
+from internal.datastore import data_types
 from handlers import base_handler
 from libs import handler
 

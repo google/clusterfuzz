@@ -16,8 +16,8 @@
 import collections
 import flask
 
-from base import memoize
-from metrics import logs
+from internal.base import memoize
+from internal.metrics import logs
 
 
 def get_current_request():

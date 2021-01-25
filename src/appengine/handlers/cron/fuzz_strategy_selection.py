@@ -22,13 +22,13 @@ metric to be for edges, crash, features, or units. Currently based on new
 edges."""
 
 from collections import namedtuple
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import strategy
-from google_cloud_utils import big_query
+from internal.datastore import data_types
+from internal.datastore import ndb_utils
+from internal.fuzzing import strategy
+from internal.google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
-from metrics import logs
+from internal.metrics import logs
 
 # After experimentation with high, low, and medium temperature parameters, we
 # decided on .15.

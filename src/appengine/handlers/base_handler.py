@@ -31,14 +31,14 @@ from flask.views import MethodView
 from google.cloud import ndb
 import jinja2
 
-from base import utils
-from config import db_config
-from config import local_config
-from google_cloud_utils import storage
+from internal.base import utils
+from internal.config import db_config
+from internal.config import local_config
+from internal.google_cloud_utils import storage
 from libs import auth
 from libs import form
 from libs import helpers
-from system import environment
+from internal.system import environment
 
 # Pattern from
 # https://github.com/google/closure-library/blob/

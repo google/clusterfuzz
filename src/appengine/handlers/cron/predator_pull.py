@@ -15,13 +15,13 @@
 
 import json
 
-from base import errors
-from config import db_config
-from datastore import data_handler
-from google_cloud_utils import pubsub
+from internal.base import errors
+from internal.config import db_config
+from internal.datastore import data_handler
+from internal.google_cloud_utils import pubsub
 from handlers import base_handler
 from libs import handler
-from metrics import logs
+from internal.metrics import logs
 
 
 class Handler(base_handler.Handler):

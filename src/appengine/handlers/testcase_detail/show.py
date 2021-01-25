@@ -20,15 +20,15 @@ import re
 
 from flask import request
 
-from base import utils
-from build_management import revisions
-from build_management import source_mapper
-from config import db_config
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from fuzzing import leak_blacklist
-from google_cloud_utils import blobs
+from internal.base import utils
+from internal.build_management import revisions
+from internal.build_management import source_mapper
+from internal.config import db_config
+from internal.crash_analysis import severity_analyzer
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.fuzzing import leak_blacklist
+from internal.google_cloud_utils import blobs
 from handlers import base_handler
 from libs import access
 from libs import auth
@@ -36,8 +36,8 @@ from libs import form
 from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from system import environment
+from internal.metrics import crash_stats
+from internal.system import environment
 
 FIND_SIMILAR_ISSUES_OPTIONS = [{
     'type': 'open',

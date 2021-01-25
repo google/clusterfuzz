@@ -17,14 +17,14 @@ import datetime
 import json
 import os
 
-from config import local_config
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from google_cloud_utils import storage
+from internal.config import local_config
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.datastore import ndb_utils
+from internal.google_cloud_utils import storage
 from handlers import base_handler
 from libs import handler
-from metrics import logs
+from internal.metrics import logs
 
 
 def _latest_report_info_dir(bucket):

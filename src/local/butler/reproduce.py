@@ -13,7 +13,7 @@
 # limitations under the License.
 """reproduce.py reproduces test cases locally."""
 
-from python.base import modules
+from internal.base import modules
 modules.fix_module_search_paths()
 
 import os
@@ -211,7 +211,7 @@ def _prepare_initial_environment(build_directory, iterations, verbose):
           os.path.join(root_dir, 'src', 'bazel-genfiles'),
           os.path.join(root_dir, 'src', 'bazel-out'),
           os.path.join(root_dir, 'src', 'bazel-src'),
-          os.path.join(root_dir, 'src', 'python', 'tests'),
+          os.path.join(root_dir, 'src', 'internal', 'tests'),
       ])
 
   environment.set_value('CONFIG_DIR_OVERRIDE',

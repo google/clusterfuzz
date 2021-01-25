@@ -18,7 +18,7 @@ from flask import request
 from handlers import base_handler
 from libs import handler
 from libs import helpers
-from metrics import logs
+from internal.metrics import logs
 
 
 class ReportCspFailureHandler(base_handler.Handler):

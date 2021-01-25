@@ -16,7 +16,7 @@ import logging
 
 import googleapiclient
 
-from base import utils
+from internal.base import utils
 
 
 def _create_client(service_name, version='v1'):

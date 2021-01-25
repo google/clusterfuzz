@@ -23,21 +23,21 @@ import yaml
 
 from google.cloud import ndb
 
-from base import tasks
-from base import untrusted
-from base import utils
-from config import db_config
-from config import local_config
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import fuzzer_selection
-from google_cloud_utils import pubsub
-from google_cloud_utils import storage
+from internal.base import tasks
+from internal.base import untrusted
+from internal.base import utils
+from internal.config import db_config
+from internal.config import local_config
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.datastore import ndb_utils
+from internal.fuzzing import fuzzer_selection
+from internal.google_cloud_utils import pubsub
+from internal.google_cloud_utils import storage
 from handlers import base_handler
 from libs import handler
-from metrics import logs
-from system import environment
+from internal.metrics import logs
+from internal.system import environment
 
 from . import service_accounts
 

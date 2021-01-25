@@ -13,12 +13,12 @@
 # limitations under the License.
 """access.py contains static methods around access permissions."""
 
-from base import errors
-from base import external_users
-from base import utils
-from config import db_config
-from config import local_config
-from datastore import data_handler
+from internal.base import errors
+from internal.base import external_users
+from internal.base import utils
+from internal.config import db_config
+from internal.config import local_config
+from internal.datastore import data_handler
 from libs import auth
 from libs import helpers
 from libs.issue_management import issue_tracker_utils

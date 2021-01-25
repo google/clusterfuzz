@@ -23,15 +23,15 @@ from flask import g
 from flask import make_response
 from flask import request
 
-from base import utils
-from config import db_config
-from config import local_config
-from datastore import data_types
+from internal.base import utils
+from internal.config import db_config
+from internal.config import local_config
+from internal.datastore import data_types
 from libs import access
 from libs import auth
 from libs import csp
 from libs import helpers
-from system import environment
+from internal.system import environment
 
 JSON = 'json'
 FORM = 'form'

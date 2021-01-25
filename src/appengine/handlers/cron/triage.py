@@ -19,19 +19,19 @@ import json
 
 from . import grouper
 
-from base import dates
-from base import errors
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
+from internal.base import dates
+from internal.base import errors
+from internal.base import utils
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.datastore import ndb_utils
 from handlers import base_handler
 from libs import handler
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from metrics import logs
+from internal.metrics import crash_stats
+from internal.metrics import logs
 
 UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
     'Out-of-memory', 'Stack-overflow', 'Timeout'

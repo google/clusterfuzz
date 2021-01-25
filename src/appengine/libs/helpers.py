@@ -18,8 +18,8 @@ import logging
 import sys
 import traceback
 
-from base import errors
-from datastore import data_handler
+from internal.base import errors
+from internal.datastore import data_handler
 from libs import auth
 from libs.issue_management import issue_tracker_utils
 

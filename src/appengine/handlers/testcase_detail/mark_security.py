@@ -15,7 +15,7 @@
 
 from flask import request
 
-from crash_analysis import severity_analyzer
+from internal.crash_analysis import severity_analyzer
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import access

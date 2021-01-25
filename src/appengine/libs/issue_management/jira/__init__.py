@@ -16,7 +16,7 @@
 from libs.issue_management import issue_tracker
 from libs.issue_management.jira.issue_tracker_manager import (
     IssueTrackerManager)
-from config import db_config
+from internal.config import db_config
 
 from dateutil import parser
 

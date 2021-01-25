@@ -18,8 +18,8 @@ import importlib
 import os
 
 from local.butler import constants
-from src.python.config import local_config
-from src.python.datastore import ndb_init
+from src.internal.config import local_config
+from src.internal.datastore import ndb_init
 
 
 def execute(args):

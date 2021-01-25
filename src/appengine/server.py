@@ -18,8 +18,8 @@ from flask import redirect
 from flask import request
 from google.cloud import ndb
 
-from base import utils
-from config import local_config
+from internal.base import utils
+from internal.config import local_config
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range
@@ -82,8 +82,8 @@ from handlers.testcase_detail import remove_issue
 from handlers.testcase_detail import testcase_variants
 from handlers.testcase_detail import update_from_trunk
 from handlers.testcase_detail import update_issue
-from metrics import logs
-from system import environment
+from internal.metrics import logs
+from internal.system import environment
 
 ndb_client = ndb.Client()
 

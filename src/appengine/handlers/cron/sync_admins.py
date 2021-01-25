@@ -15,12 +15,12 @@
 
 import googleapiclient
 
-from base import utils
-from datastore import data_types
-from datastore import ndb_utils
+from internal.base import utils
+from internal.datastore import data_types
+from internal.datastore import ndb_utils
 from handlers import base_handler
 from libs import handler
-from metrics import logs
+from internal.metrics import logs
 
 
 def admins_from_iam_policy(iam_policy):

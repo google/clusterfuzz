@@ -28,7 +28,7 @@ def _add_env_vars_if_needed(yaml_path, additional_env_vars):
   """Add environment variables to yaml file if necessary."""
   # Defer imports since our python paths have to be set up first.
   import yaml
-  from src.python.config import local_config
+  from src.internal.config import local_config
 
   env_values = local_config.ProjectConfig().get('env')
   if additional_env_vars:
@@ -99,8 +99,8 @@ def symlink_dirs():
       src=os.path.join('src', 'protos'),
       target=os.path.join(SRC_DIR_PY, 'protos'))
   common.symlink(
-      src=os.path.join('src', 'python'),
-      target=os.path.join(SRC_DIR_PY, 'python'))
+      src=os.path.join('src', 'internal'),
+      target=os.path.join(SRC_DIR_PY, 'internal'))
 
   # Remove existing local_gcs symlink (if any). This is important, as otherwise
   # we will try deploying the directory in production. This is only needed for

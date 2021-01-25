@@ -156,7 +156,7 @@ OS_OVERRIDE="ANDROID" \
   GSUTIL_PATH="$GSUTIL_PATH" \
   NFS_ROOT="$NFS_ROOT" \
   DEVICE_MEMORY_MB="$DEVICE_MEMORY_MB" \
-  python $ROOT_DIR/src/python/bot/startup/run.py &
+  python $ROOT_DIR/src/internal/bot/startup/run.py &
 
 echo "Success!"
 eof

@@ -20,25 +20,25 @@ import random
 
 from googleapiclient.errors import HttpError
 
-from base import dates
-from base import errors
-from base import memoize
-from base import utils
-from chrome import build_info
-from crash_analysis import crash_comparer
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import leak_blacklist
+from internal.base import dates
+from internal.base import errors
+from internal.base import memoize
+from internal.base import utils
+from internal.chrome import build_info
+from internal.crash_analysis import crash_comparer
+from internal.crash_analysis import severity_analyzer
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.datastore import ndb_utils
+from internal.fuzzing import leak_blacklist
 from handlers import base_handler
 from libs import handler
 from libs import mail
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from metrics import logs
+from internal.metrics import crash_stats
+from internal.metrics import logs
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')

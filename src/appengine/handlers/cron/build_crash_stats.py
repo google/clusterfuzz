@@ -31,12 +31,12 @@ import json
 import logging
 import time
 
-from base import utils
-from datastore import data_types
-from google_cloud_utils import big_query
+from internal.base import utils
+from internal.datastore import data_types
+from internal.google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
-from metrics import crash_stats
+from internal.metrics import crash_stats
 
 # After insertion, it takes a few seconds for a record to show up.
 # We give it a few minutes.

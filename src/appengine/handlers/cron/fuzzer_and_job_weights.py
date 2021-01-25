@@ -19,16 +19,16 @@ import six
 
 from google.cloud import ndb
 
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from google_cloud_utils import big_query
+from internal.base import utils
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.datastore import ndb_utils
+from internal.google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
-from metrics import fuzzer_stats
-from metrics import logs
-from system import environment
+from internal.metrics import fuzzer_stats
+from internal.metrics import logs
+from internal.system import environment
 
 QuerySpecification = collections.namedtuple(
     'QuerySpecification', ['query_format', 'formatter', 'reason'])

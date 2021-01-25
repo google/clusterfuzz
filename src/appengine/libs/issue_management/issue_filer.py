@@ -16,16 +16,16 @@
 import itertools
 import re
 
-from base import external_users
-from base import utils
-from config import local_config
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import pubsub
+from internal.base import external_users
+from internal.base import utils
+from internal.config import local_config
+from internal.crash_analysis import severity_analyzer
+from internal.datastore import data_handler
+from internal.datastore import data_types
+from internal.google_cloud_utils import pubsub
 from libs.issue_management import issue_tracker_policy
-from metrics import logs
-from system import environment
+from internal.metrics import logs
+from internal.system import environment
 
 NON_CRASH_TYPES = [
     'Data race',

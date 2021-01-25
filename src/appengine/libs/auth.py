@@ -21,13 +21,13 @@ from google.cloud import ndb
 from googleapiclient.discovery import build
 import requests
 
-from base import memoize
-from base import utils
-from config import local_config
-from datastore import data_types
+from internal.base import memoize
+from internal.base import utils
+from internal.config import local_config
+from internal.datastore import data_types
 from libs import request_cache
-from metrics import logs
-from system import environment
+from internal.metrics import logs
+from internal.system import environment
 
 User = collections.namedtuple('User', ['email'])
 

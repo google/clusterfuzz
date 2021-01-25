@@ -20,8 +20,8 @@ import time
 
 from googleapiclient.discovery import build
 
-from base import retry
-from google_cloud_utils import credentials
+from internal.base import retry
+from internal.google_cloud_utils import credentials
 
 RETRY_COUNT = 8
 RETRY_DELAY = 4

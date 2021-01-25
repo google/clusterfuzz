@@ -44,8 +44,8 @@ def _setup_bot_directory(args):
       os.path.join(src_root_dir, 'src', 'protos'),
       os.path.join(bot_src_dir, 'protos'))
   common.update_dir(
-      os.path.join(src_root_dir, 'src', 'python'),
-      os.path.join(bot_src_dir, 'python'))
+      os.path.join(src_root_dir, 'src', 'internal'),
+      os.path.join(bot_src_dir, 'internal'))
   common.update_dir(
       os.path.join(src_root_dir, 'src', 'third_party'),
       os.path.join(bot_src_dir, 'third_party'))
@@ -73,7 +73,7 @@ def _setup_environment_and_configs(args, appengine_path):
     os.environ['BOT_NAME'] = args.name
 
   os.environ['LD_LIBRARY_PATH'] = '{0}:{1}'.format(
-      os.path.join(clusterfuzz_dir, 'src', 'python', 'scripts'),
+      os.path.join(clusterfuzz_dir, 'src', 'internal', 'scripts'),
       os.getenv('LD_LIBRARY_PATH', ''))
 
   tmpdir = os.path.join(clusterfuzz_dir, 'bot_tmpdir')
@@ -111,7 +111,7 @@ def execute(args):
 
   try:
     os.chdir(os.path.join(args.directory, 'clusterfuzz'))
-    proc = common.execute_async('python src/python/bot/startup/run_bot.py')
+    proc = common.execute_async('python src/internal/bot/startup/run_bot.py')
 
     def _stop_handler(*_):
       print('Bot has been stopped. Exit.')

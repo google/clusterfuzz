@@ -2,7 +2,7 @@
 branch = True
 
 omit =
-    src/python/tests/*
+    src/internal/tests/*
     src/third_party/*
 
 source = src

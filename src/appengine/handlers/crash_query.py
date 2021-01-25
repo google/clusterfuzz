@@ -15,9 +15,9 @@
 
 from flask import request
 
-from crash_analysis import crash_analyzer
-from crash_analysis.stack_parsing import stack_analyzer
-from datastore import data_handler
+from internal.crash_analysis import crash_analyzer
+from internal.crash_analysis.stack_parsing import stack_analyzer
+from internal.datastore import data_handler
 from handlers import base_handler
 from libs import auth
 from libs import handler
