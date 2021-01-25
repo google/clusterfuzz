@@ -38,7 +38,7 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
   TARGET_OPTIONS_PATH = TARGET_PATH + '.options'
   TEMP_DIR = '/tmp'
   OUTPUT_DIR = '/tmp/afl_output_dir'
-  CRASHES_DIR = '/tmp/afl_output_dir/crashes'
+  CRASHES_DIR = '/tmp/afl_output_dir/default/crashes'
   DEFAULT_INPUT_DIR_CONTENTS = [fuzzer.AFL_DUMMY_INPUT]
   DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -212,31 +212,6 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
     file_contents = 'a' * (1024 * 1024)
     self._create_file(filename, directory=directory, contents=file_contents)
 
-  def test__decide_skip_deterministic(self):
-    """Test the AflFuzzInputDirectory._decide_skip_deterministic() method."""
-
-    # Test that skip_deterministic is set to False when there is no real
-    # corpus.
-    afl_input = self._new_afl_input()
-    self.assertFalse(afl_input.skip_deterministic)
-
-    # Test that skip_deterministic is set to False when there are a small number
-    # of files in the corpus.
-    num_files = 3
-    for file_num in range(num_files):
-      self._create_file('file' + str(file_num))
-
-    afl_input = self._new_afl_input()
-    self.assertFalse(afl_input.skip_deterministic)
-
-    # Test that skip_deterministic is set to False when the "small number" of
-    # files permitted for determnisitic steps is exceeded.
-    for file_num in range(num_files, afl_input.MIN_INPUTS_FOR_SKIP):
-      self._create_file('file' + str(file_num))
-
-    afl_input = self._new_afl_input()
-    self.assertTrue(afl_input.skip_deterministic)
-
   def test_create_new_if_needed(self):
     """Test that the AflFuzzInputDirectory.create_new_if_needed() method works
     as expected for oversized inputs and normal sized inputs."""
@@ -303,7 +278,7 @@ class AflFuzzInputDirectoryTest(LauncherTestBase):
 
 class AflFuzzOutputDirectoryTest(LauncherTestBase):
   """Test the launcher.AflFuzzOutputDirectory class."""
-  QUEUE_DIR = '/tmp/afl_output_dir/queue'
+  QUEUE_DIR = '/tmp/afl_output_dir/default/queue'
 
   # Note that this is just a file that is part of the input corpus.
   # It isn't an AFL testcase.
@@ -318,8 +293,8 @@ class AflFuzzOutputDirectoryTest(LauncherTestBase):
     super().setUp()
     # Creates self.OUTPUT_DIR.
     self.afl_output = launcher.AflFuzzOutputDirectory()
-    os.mkdir(self.CRASHES_DIR)
-    os.mkdir(self.QUEUE_DIR)
+    os.makedirs(self.CRASHES_DIR)
+    os.makedirs(self.QUEUE_DIR)
 
     self.input_testcase_path, input_testcase_obj = self._create_file(
         self.INPUT_TESTCASE_FILENAME)

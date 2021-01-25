@@ -426,10 +426,6 @@ class AflFuzzInputDirectory(object):
     # Make a new corpus without oversized inputs if needed.
     self.create_new_if_needed()
 
-    # Decide if we should skip AFL's deterministic steps.
-    self.skip_deterministic = True
-    self._decide_skip_deterministic()
-
   def restore_if_needed(self):
     """Restore the original input directory if self.original_input_directory is
     set. Used to by merge() to get rid of the temporary input directory if it
@@ -442,20 +438,6 @@ class AflFuzzInputDirectory(object):
     remove_path(self.input_directory)
     self.input_directory = self.original_input_directory
     self.original_input_directory = None
-
-  def _decide_skip_deterministic(self):
-    """AFL typically uses deterministic steps to mutate files in the input
-    directory. It is only useful to do these steps once on a corpus. Thus skip
-    the deterministic steps if there are more than a trivial number of inputs
-    in the initial corpus."""
-    # Don't get tricked into thinking we have a new corpus when subsetting.
-    if (self.strategies.use_corpus_subset and
-        self.strategies.corpus_subset_size < self.MIN_INPUTS_FOR_SKIP):
-      return
-    inputs = os.listdir(self.input_directory)
-    # If the corpus is small, don't worry about skipping.
-    if len(inputs) < self.MIN_INPUTS_FOR_SKIP:
-      self.skip_deterministic = False
 
   def create_new_if_needed(self):
     """Checks if any inputs are too large for AFL. If not then does nothing.
@@ -1038,17 +1020,6 @@ class AflRunnerCommon(object):
 
     self._fuzz_args = self.generate_afl_args()
 
-    # Enable AFL's 'quick & dirty mode' which disable deterministic steps if
-    # we have already done them. See
-    # https://github.com/mcarpenter/afl/blob/master/docs/README for more
-    # details.
-    # TODO(metzman): Decide if we want to ensure that the deterministic stage
-    # finishes before terminating if we don't skip since it will never get a
-    # chance to run again if terminated early. This is only conceivable for
-    # fuzzers with large seed corpora and short timeouts.
-    if self.afl_input.skip_deterministic:
-      self._fuzz_args.insert(0, constants.SKIP_DETERMINISTIC_FLAG)
-
     self.do_offline_mutations()
 
     # Decide if we want to use fast cal based on the size of the input
@@ -1117,7 +1088,7 @@ class AflRunnerCommon(object):
     # Remove arguments for afl-fuzz.
     self.remove_arg(showmap_args, constants.INPUT_FLAG)
     self.remove_arg(showmap_args, constants.DICT_FLAG)
-    self.remove_arg(showmap_args, constants.SKIP_DETERMINISTIC_FLAG)
+    self.remove_arg(showmap_args, constants.INSTANCE_ID_FLAG)
 
     # Replace -o argument.
     if environment.get_value('USE_MINIJAIL'):

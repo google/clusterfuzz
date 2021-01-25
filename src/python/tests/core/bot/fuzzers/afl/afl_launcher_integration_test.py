@@ -334,7 +334,7 @@ class TestLauncher(BaseLauncherTest):
         f.write('A' * 256)
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -d -Sdefault -i{1}/redundant_corpus '
+        'Command: {0}/afl-fuzz -Sdefault -i{1}/redundant_corpus '
         '-o{1}/temp-1337/afl_output_dir -mnone '
         '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY, TEMP_DIRECTORY),
         output)
@@ -445,7 +445,7 @@ class TestLauncherMinijail(BaseLauncherTest):
 
     output = run_launcher(testcase_path, 'test_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -d -Sdefault -i/redundant_corpus '
+        'Command: {0}/afl-fuzz -Sdefault -i/redundant_corpus '
         '-o/afl_output_dir -mnone '
         '{0}/test_fuzzer 2147483647'.format(DATA_DIRECTORY), output)
 
