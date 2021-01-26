@@ -1073,10 +1073,8 @@ class AflRunnerCommon(object):
     if showmap_result.timed_out or self.merge_timeout <= 0:
       return None, True
 
-    showmap_output = engine_common.read_data_from_file(self.showmap_output_path)
-
     # Log an error if showmap didn't write any coverage.
-    if showmap_output is None:
+    if not os.path.exists(self.showmap_output_path):
       if not self.showmap_no_output_logged:
         self.showmap_no_output_logged = True
         logs.log_error(
@@ -1088,6 +1086,8 @@ class AflRunnerCommon(object):
                  showmap_result.time_executed, showmap_result.output))
 
       return None, True
+
+    showmap_output = engine_common.read_data_from_file(self.showmap_output_path)
 
     features = set()
     for match in re.finditer(self.SHOWMAP_REGEX, showmap_output):
