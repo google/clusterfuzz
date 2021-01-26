@@ -1076,8 +1076,8 @@ class AflRunnerCommon(object):
       d = match.groupdict()
       features.add((int(d['guard']), int(d['hit_count'])))
       logs.log('afl-showmap succeedded for '
-              'file {file_path}: {features} features'.format(
-                 file_path=input_file_path, features=len(features)))
+               'file {file_path}: {features} features'.format(
+                  file_path=input_file_path, features=len(features)))
     return frozenset(features), False
 
   def merge_corpus(self):
