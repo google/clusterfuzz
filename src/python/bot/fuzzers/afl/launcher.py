@@ -1056,12 +1056,18 @@ class AflRunnerCommon(object):
       if not self.showmap_no_output_logged:
         self.showmap_no_output_logged = True
         logs.log_error(
-            ('afl-showmap didn\'t output any coverage. Command: {0}\n'
-             'Return code: {1}\n'
-             'Time executed: {2}\n'
-             'Output: {3}').format(
-                 showmap_result.command, showmap_result.return_code,
-                 showmap_result.time_executed, showmap_result.output))
+            ('afl-showmap didn\'t output any coverage for '
+             'file {file_path} ({file_size} bytes).\n'
+             'Command: {command}\n'
+             'Return code: {return_code}\n'
+             'Time executed: {time_executed}\n'
+             'Output: {output}').format(
+                file_path=input_file_path,
+                file_size=os.path.getsize(input_file_path),
+                command=showmap_result.command,
+                return_code=showmap_result.return_code,
+                time_executed=showmap_result.time_executed,
+                output=showmap_result.output))
 
       return None, True
 
@@ -1071,6 +1077,11 @@ class AflRunnerCommon(object):
     for match in re.finditer(self.SHOWMAP_REGEX, showmap_output):
       d = match.groupdict()
       features.add((int(d['guard']), int(d['hit_count'])))
+    logs.log(
+        'afl-showmap succeedded for '
+        'file {file_path}: {features} features'.format(
+            file_path=input_file_path,
+            features=len(features)))
     return frozenset(features), False
 
   def merge_corpus(self):
