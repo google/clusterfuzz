@@ -273,12 +273,14 @@ class FuzzingStrategies(object):
     # If we have already generated a strategy dict, use that in favor of
     # creating a new pool and picking randomly.
     if strategy_dict:
-      self.candidate_generator = strategy_dict['candidate_generator']
-
-      self.use_corpus_subset = 'corpus_subset_size' in strategy_dict
+      self.use_corpus_subset = 'corpus_subset' in strategy_dict
       if self.use_corpus_subset:
-        self.corpus_subset_size = strategy_dict['corpus_subset_size']
+        self.corpus_subset_size = strategy_dict['corpus_subset']
 
+      if strategy_dict.get(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name) == 1:
+        self.candidate_strategy = engine_common.Generator.RADAMSA
+      elif strategy_dict.get(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name) == 1:
+        self.candidate_strategy = engine_common.Generator.ML_RNN
     else:
       strategy_pool = strategy_selection.generate_weighted_strategy_pool(
           strategy_list=strategy.AFL_STRATEGY_LIST,
