@@ -279,7 +279,8 @@ class FuzzingStrategies(object):
 
       if strategy_dict.get(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name) == 1:
         self.candidate_strategy = engine_common.Generator.RADAMSA
-      elif strategy_dict.get(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name) == 1:
+      elif strategy_dict.get(
+          strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name) == 1:
         self.candidate_strategy = engine_common.Generator.ML_RNN
     else:
       strategy_pool = strategy_selection.generate_weighted_strategy_pool(
