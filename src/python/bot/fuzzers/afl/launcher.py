@@ -269,6 +269,7 @@ class FuzzingStrategies(object):
   # between both cases while still adhering to the new pipeline's API.
   def __init__(self, target_path, strategy_dict=None):
     self.corpus_subset_size = None
+    self.candidate_generator = engine_common.Generator.NONE
 
     # If we have already generated a strategy dict, use that in favor of
     # creating a new pool and picking randomly.
