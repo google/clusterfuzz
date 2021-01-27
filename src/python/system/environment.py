@@ -19,6 +19,7 @@ import os
 import re
 import six
 import socket
+import subprocess
 import sys
 import yaml
 
@@ -332,13 +333,25 @@ def get_llvm_symbolizer_path():
   """Get the path of the llvm-symbolizer binary."""
   llvm_symbolizer_path = get_value('LLVM_SYMBOLIZER_PATH')
 
-  # Use default llvm symbolizer for the following:
-  # 1. If we don't have |LLVM_SYMBOLIZER_PATH| env variable set.
-  # 2. If this build is deleted, then our own llvm symbolizer.
-  if not llvm_symbolizer_path or not os.path.exists(llvm_symbolizer_path):
-    llvm_symbolizer_path = get_default_tool_path('llvm-symbolizer')
+  if llvm_symbolizer_path and os.path.exists(llvm_symbolizer_path):
+    # Make sure that llvm symbolizer binary is executable.
+    os.chmod(llvm_symbolizer_path, 0o750)
 
-  # Make sure that llvm symbolizer binary exists.
+    return_code = subprocess.call(
+        [llvm_symbolizer_path, '--help'],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL)
+    if return_code == 0:
+      # llvm-symbolize works, return it.
+      return llvm_symbolizer_path
+
+  # Either
+  # 1. llvm-symbolizer was not found in build archive. OR
+  # 2. llvm-symbolizer fails due to dependency issue, clang regression, etc.
+  # So, use our own version of llvm-symbolizer.
+  llvm_symbolizer_path = get_default_tool_path('llvm-symbolizer')
+
+  # Make sure that we have a default llvm-symbolizer for this platform.
   if not os.path.exists(llvm_symbolizer_path):
     return None
 
