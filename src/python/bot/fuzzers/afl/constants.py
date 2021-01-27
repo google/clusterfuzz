@@ -47,6 +47,8 @@ CLOSE_FD_MASK_ENV_VAR = 'AFL_DRIVER_CLOSE_FD_MASK'
 
 EXPAND_HAVOC_NOW_VAR = 'AFL_EXPAND_HAVOC_NOW'
 
+DEBUG_VAR = 'AFL_DEBUG'
+
 MAX_FILE_BYTES = 2**20  # 1 MB
 
 # This should be as high as possible, otherwise AFL will restart the binary too
