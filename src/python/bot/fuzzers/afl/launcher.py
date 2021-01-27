@@ -1029,7 +1029,8 @@ class AflRunnerCommon(object):
         input_data=engine_common.read_data_from_file(input_file_path),
         # TODO(metzman): Set a more reasonable per-file timeout. This is a must
         # to make timeouts smarter for afl-fuzz.
-        timeout=self.merge_timeout)
+        timeout=self.merge_timeout,
+        extra_env={constants.DEBUG_VAR: '1'})
 
     self.merge_timeout -= showmap_result.time_executed
 
