@@ -310,12 +310,16 @@ class FuzzingStrategies(object):
     # The decision on whether or not fast cal should be used is made during
     # fuzzing. This function is expected to be called whe preparing for fuzzing.
     assert self.fast_cal == strategies.FastCal.NOT_SET
+    strategies_dict = {}
 
-    strategies_dict = {
-        'candidate_generator': self.candidate_generator,
-    }
+    if self.generator_strategy == engine_common.Generator.RADAMSA:
+      strategies_dict[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
+    elif self.generator_strategy == engine_common.Generator.ML_RNN:
+      strategies_dict[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = 1
+
     if self.use_corpus_subset:
-      strategies_dict['corpus_subset_size'] = self.corpus_subset_size
+      strategies_dict['corpus_subset'] = self.corpus_subset_size
+
     return strategies_dict
 
   @property
@@ -364,27 +368,6 @@ class FuzzingStrategies(object):
         return
 
     assert None, 'This should not be reached'
-
-  def print_strategies(self):
-    """Print the strategies used for logging purposes."""
-    fuzzing_strategies = []
-
-    if self.generator_strategy == engine_common.Generator.RADAMSA:
-      fuzzing_strategies.append('strategy_' +
-                                strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
-    elif self.generator_strategy == engine_common.Generator.ML_RNN:
-      fuzzing_strategies.append('strategy_' +
-                                strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
-    if self.fast_cal == strategies.FastCal.RANDOM:
-      fuzzing_strategies.append(self.FAST_CAL_RANDOM_STRATEGY)
-    elif self.fast_cal == strategies.FastCal.MANUAL:
-      fuzzing_strategies.append(self.FAST_CAL_MANUAL_STRATEGY)
-
-    if self.use_corpus_subset:
-      fuzzing_strategies.append('strategy_{}_{}'.format(
-          strategy.CORPUS_SUBSET_STRATEGY.name, str(self.corpus_subset_size)))
-
-    print(engine_common.format_fuzzing_strategies(fuzzing_strategies))
 
 
 class AflFuzzInputDirectory(object):
@@ -1569,7 +1552,6 @@ def main(argv):
                                    fuzz_result.time_executed))
 
   print(fuzz_result.output)
-  runner.strategies.print_strategies()
 
   if fuzz_result.return_code:
     # If AFL returned a non-zero return code quit now without getting stats,
