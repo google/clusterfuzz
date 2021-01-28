@@ -435,7 +435,7 @@ def update_fuzzer_jobs(fuzzer_entities, project_names):
     if job_project in project_names:
       continue
 
-    logs.log('Deleting job', job.name)
+    logs.log('Deleting job %s', job.name)
     to_delete.append(job.key)
     for fuzzer_entity in fuzzer_entities:
       try:
@@ -457,7 +457,7 @@ def cleanup_old_projects_settings(project_names):
 
   for project in data_types.OssFuzzProject.query():
     if project.name not in project_names:
-      logs.log('Deleting project', project.name)
+      logs.log('Deleting project %s', project.name)
       to_delete.append(project.key)
 
   if to_delete:
