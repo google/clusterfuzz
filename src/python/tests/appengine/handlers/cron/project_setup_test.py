@@ -1568,11 +1568,9 @@ def _mock_read_data(path):
   if 'dbg' in path:
     return json.dumps({
         'projects': [{
-            'build_path':
-                'gs://bucket-dbg/a-b/%ENGINE%/%SANITIZER%/'
-                '%TARGET%/([0-9]+).zip',
-            'name':
-                '//a/b',
+            'build_path': 'gs://bucket-dbg/a-b/%ENGINE%/%SANITIZER%/'
+                          '%TARGET%/([0-9]+).zip',
+            'name': '//a/b',
             'fuzzing_engines': ['libfuzzer', 'honggfuzz'],
             'sanitizers': ['address']
         }]
