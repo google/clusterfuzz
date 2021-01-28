@@ -1,18 +1,18 @@
 disk/temp-1028899/mutations /usr/local/google/home/mspector/DEBUG/localhost-46191/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-1028899/subset
-Bot: http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/android-mspector-linuxworkstation.kir.corp.google.com-localhost#46191;lkl/android-mspector-linuxworkstation.kir.corp.google.com-localhost;
+Bot: http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/android-mspector-linuxworkstation.kir.corp.google.com-localhost#46191;lkl/android-mspector-linuxworkstation.kir.corp.google.com-localhost:46191;
 Time ran: 453.0651717185974
 
 [    0.000000] Linux version 5.4.58+-ab6926695 (build-user@build-host) (Android (6794702, based on r399163) clang version 11.0.4 (https://android.googlesource.com/toolchain/llvm-project 87f1315dfbea7c137aa2e6d362dbb457e388158d), GNU ld (GNU Binutils for Ubuntu) 2.24) #1 2020-10-16 23:03:14
 [    0.000000] memblock address range: 0x7f697c86b000 - 0x7f697fa6b000
 [    0.000000] KernelAddressSanitizer initialized
-[    0.000000] Built 1 zonelists, mobility grouping on.  Total http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/pages#12625;lkl/pages;
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/pages#12625;lkl/pages:12625;
 [    0.000000] Kernel command line: mem=50M
 [    0.000000] Dentry cache hash table entries: 8192 (order: 4, 65536 bytes, linear)
 [    0.000000] Inode-cache hash table entries: 4096 (order: 3, 32768 bytes, linear)
 [    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
 [    0.000000] Memory available: 50336k/51200k RAM
 [    0.000000] SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
-[    0.000000] http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/NR_IRQS#4096;lkl/NR_IRQS;
+[    0.000000] http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/NR_IRQS#4096;lkl/NR_IRQS:4096;
 [    0.000000] lkl: irqs initialized
 [    0.000000] clocksource: lkl: mask: 0xffffffffffffffff max_cycles: 0x1cd42e4dffb, max_idle_ns: 881590591483 ns
 [    0.000003] lkl: time and timers initialized (irq1)
@@ -53,27 +53,27 @@ RDESC::size=125
 [  126.013128] Write of size 4 at addr 00007f5256480ddc by task kworker/0:1/11
 [  126.013133]
 [  126.013141] Linux Kernel Library Stack Trace:
-    #0 0x00000000005e6dda in print_address_description http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/report.c#375;lkl/mm/kasan/report.c;:2
-    #1 0x00000000005e7584 in __kasan_report http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/report.c#507;lkl/mm/kasan/report.c;:3
-    #2 0x00000000005e6af9 in kasan_report http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/common.c#636;lkl/mm/kasan/common.c;:1
-    #3 0x00000000005e7ccf in __asan_store4 http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/generic.c#250;lkl/mm/kasan/generic.c;:1
-    #4 0x0000000000a60a36 in __hidinput_change_resolution_multipliers http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-input.c#0;lkl/drivers/hid/hid-input.c;:31
-    #5 0x0000000000a4b8dc in hidinput_connect http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-input.c#1615;lkl/drivers/hid/hid-input.c;:7
-    #6 0x0000000000a40d00 in hid_connect http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#1931;lkl/drivers/hid/hid-core.c;:48
-    #7 0x0000000000a41818 in hid_hw_start http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#2035;lkl/drivers/hid/hid-core.c;:11
-    #8 0x00000000007bdb81 in hid_generic_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-generic.c#67;lkl/drivers/hid/hid-generic.c;:9
-    #9 0x0000000000a425d8 in hid_device_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#2263;lkl/drivers/hid/hid-core.c;:10
-    #10 0x0000000000755615 in really_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#566;lkl/drivers/base/dd.c;:13
-    #11 0x00000000007568c6 in __device_attach_driver http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#745;lkl/drivers/base/dd.c;:9
-    #12 0x00000000007521ad in bus_for_each_drv http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/bus.c#430;lkl/drivers/base/bus.c;:11
-    #13 0x0000000000755c09 in __device_attach http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#918;lkl/drivers/base/dd.c;:9
-    #14 0x0000000000755c8e in device_initial_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#966;lkl/drivers/base/dd.c;:1
-    #15 0x000000000075244c in bus_probe_device http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/bus.c#492;lkl/drivers/base/bus.c;:19
-    #16 0x000000000074cd35 in device_add http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/core.c#2820;lkl/drivers/base/core.c;:6
-    #17 0x0000000000a43174 in hid_add_device http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#2419;lkl/drivers/hid/hid-core.c;:8
-    #18 0x0000000000a6ac58 in uhid_device_add_worker http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/uhid.c#62;lkl/drivers/hid/uhid.c;:8
+    #0 0x00000000005e6dda in print_address_description http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/report.c#375;lkl/mm/kasan/report.c:375:2;
+    #1 0x00000000005e7584 in __kasan_report http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/report.c#507;lkl/mm/kasan/report.c:507:3;
+    #2 0x00000000005e6af9 in kasan_report http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/common.c#636;lkl/mm/kasan/common.c:636:1;
+    #3 0x00000000005e7ccf in __asan_store4 http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/mm/kasan/generic.c#250;lkl/mm/kasan/generic.c:250:1;
+    #4 0x0000000000a60a36 in __hidinput_change_resolution_multipliers http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-input.c#0;lkl/drivers/hid/hid-input.c:0:31;
+    #5 0x0000000000a4b8dc in hidinput_connect http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-input.c#1615;lkl/drivers/hid/hid-input.c:1615:7;
+    #6 0x0000000000a40d00 in hid_connect http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#1931;lkl/drivers/hid/hid-core.c:1931:48;
+    #7 0x0000000000a41818 in hid_hw_start http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#2035;lkl/drivers/hid/hid-core.c:2035:11;
+    #8 0x00000000007bdb81 in hid_generic_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-generic.c#67;lkl/drivers/hid/hid-generic.c:67:9;
+    #9 0x0000000000a425d8 in hid_device_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#2263;lkl/drivers/hid/hid-core.c:2263:10;
+    #10 0x0000000000755615 in really_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#566;lkl/drivers/base/dd.c:566:13;
+    #11 0x00000000007568c6 in __device_attach_driver http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#745;lkl/drivers/base/dd.c:745:9;
+    #12 0x00000000007521ad in bus_for_each_drv http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/bus.c#430;lkl/drivers/base/bus.c:430:11;
+    #13 0x0000000000755c09 in __device_attach http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#918;lkl/drivers/base/dd.c:918:9;
+    #14 0x0000000000755c8e in device_initial_probe http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/dd.c#966;lkl/drivers/base/dd.c:966:1;
+    #15 0x000000000075244c in bus_probe_device http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/bus.c#492;lkl/drivers/base/bus.c:492:19;
+    #16 0x000000000074cd35 in device_add http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/base/core.c#2820;lkl/drivers/base/core.c:2820:6;
+    #17 0x0000000000a43174 in hid_add_device http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/hid-core.c#2419;lkl/drivers/hid/hid-core.c:2419:8;
+    #18 0x0000000000a6ac58 in uhid_device_add_worker http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/drivers/hid/uhid.c#62;lkl/drivers/hid/uhid.c:62:8;
 [  126.013377] #19 [<0x000000000054b0cc>] .str.8+0x2c/0x60
-    #19 0x000000000054cf38 in worker_thread http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/kernel/workqueue.c#2420;lkl/kernel/workqueue.c;:4
+    #19 0x000000000054cf38 in worker_thread http://go/pakernel/lkl/+/d0fcd2ee3504f53bba1227805a8ba3828e9279aa/kernel/workqueue.c#2420;lkl/kernel/workqueue.c:2420:4;
 [  126.013399] #21 [<0x000000000055322a>] .str.24+0x2a/0x40
 [  126.013418] #22 [<0x000000000051b21b>] .str.2+0x3b/0x50
 [  126.013428] #23 [<0x000000000051505a>] 0x51505a

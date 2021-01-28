@@ -116,5 +116,4 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
     expected_stack = self._read_test_data(
         'kasan_syzkaller_android_linkified.txt')
     actual_state = stack_analyzer.get_crash_data(data)
-
     self.assertEqual(actual_state.crash_stacktrace, expected_stack)
