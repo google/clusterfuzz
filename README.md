@@ -12,13 +12,13 @@ backend for [OSS-Fuzz].
 
 ClusterFuzz provides many features which help seamlessly integrate fuzzing into
 a software project's development process:
-- Highly scalable. Can run on any size cluster (e.g. Google's instance runs on
-  30,000 VMs).
+- Highly scalable. Can run on any size cluster (e.g. OSS-Fuzz instance runs on
+  100,000 VMs).
 - Accurate deduplication of crashes.
 - Fully automatic bug filing, triage and closing for various issue trackers
   (e.g. [Monorail], [Jira]).
 - Supports multiple [coverage guided fuzzing engines]
-  ([libFuzzer], [AFL] and [Honggfuzz])
+  ([libFuzzer], [AFL], [AFL++] and [Honggfuzz])
   for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
 - Support for [blackbox fuzzing].
 - Testcase minimization.
@@ -37,8 +37,8 @@ a software project's development process:
 You can find detailed documentation [here](https://google.github.io/clusterfuzz).
 
 ## Trophies
-As of September 2020, ClusterFuzz has found 25,000+ bugs in Google (e.g. [Chrome])
-and [~22,500] bugs in over [340] open source projects integrated with [OSS-Fuzz].
+As of Febraury 2021, ClusterFuzz has found 25,000+ bugs in Google (e.g. [Chrome])
+and [26,000] bugs in over [400] open source projects integrated with [OSS-Fuzz].
 
 ## Getting Help
 You can [file an issue](https://github.com/google/clusterfuzz/issues/new) to ask
@@ -48,8 +48,8 @@ questions, request features, or ask for help.
 We will use [clusterfuzz-announce(#)googlegroups.com](https://groups.google.com/forum/#!forum/clusterfuzz-announce) to make announcements about ClusterFuzz.
 
 [Chrome]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
-[~22,500]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=-status%3AWontFix%2CDuplicate%20-component%3AInfra&can=1
-[340]: https://github.com/google/oss-fuzz/tree/master/projects
+[26,000]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=-status%3AWontFix%2CDuplicate%20-component%3AInfra&can=1
+[400]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
 [Monorail]: https://opensource.google.com/projects/monorail
 [Jira]: https://www.atlassian.com/software/jira
@@ -57,6 +57,7 @@ We will use [clusterfuzz-announce(#)googlegroups.com](https://groups.google.com/
 [Firebase]: https://firebase.google.com/docs/auth
 [libFuzzer]: http://llvm.org/docs/LibFuzzer.html
 [AFL]: https://github.com/google/AFL
+[AFL++]: https://github.com/AFLplusplus/AFLplusplus
 [Honggfuzz]: https://github.com/google/honggfuzz
 [blackbox fuzzing]: https://google.github.io/clusterfuzz/setting-up-fuzzing/blackbox-fuzzing/
 [coverage guided fuzzing engines]: https://google.github.io/clusterfuzz/setting-up-fuzzing/libfuzzer-and-afl/
