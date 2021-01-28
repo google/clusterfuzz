@@ -435,6 +435,7 @@ def update_fuzzer_jobs(fuzzer_entities, project_names):
     if job_project in project_names:
       continue
 
+    logs.log('Deleting job', job.name)
     to_delete.append(job.key)
     for fuzzer_entity in fuzzer_entities:
       try:
@@ -456,6 +457,7 @@ def cleanup_old_projects_settings(project_names):
 
   for project in data_types.OssFuzzProject.query():
     if project.name not in project_names:
+      logs.log('Deleting project', project.name)
       to_delete.append(project.key)
 
   if to_delete:
@@ -848,7 +850,8 @@ class ProjectSetup(object):
             auto_cc=data_types.AutoCCType.ALL).put()
 
   def set_up(self, projects):
-    """Do project setup."""
+    """Do project setup. Return a list of all the project names that were set
+    up."""
     for project, info in projects:
       logs.log('Syncing configs for %s.' % project)
 
@@ -877,20 +880,21 @@ class ProjectSetup(object):
         if not info.get('disabled', False):
           create_project_settings(project, info, service_account)
 
-    # Delete old jobs.
-    project_names = [project[0] for project in projects]
-    update_fuzzer_jobs(list(self._fuzzer_entities.values()), project_names)
-
-    if self._segregate_projects:
-      # Delete old pubsub topics.
-      cleanup_pubsub_topics(project_names)
-
     # Delete old/disabled project settings.
     enabled_projects = [
         project for project, info in projects
         if not info.get('disabled', False)
     ]
-    cleanup_old_projects_settings(enabled_projects)
+    return enabled_projects
+
+
+def cleanup_stale_projects(fuzzer_entities, project_names, segregate_projects):
+  """Clean up stale projects."""
+  update_fuzzer_jobs(fuzzer_entities, project_names)
+  cleanup_old_projects_settings(project_names)
+
+  if segregate_projects:
+    cleanup_pubsub_topics(project_names)
 
 
 class Handler(base_handler.Handler):
@@ -916,7 +920,11 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get honggfuzz Fuzzer entity.')
       return
 
-    project_setup_configs = local_config.ProjectConfig().get('project_setup')
+    project_config = local_config.ProjectConfig()
+    segregate_projects = project_config.get('segregate_projects')
+    project_setup_configs = project_config.get('project_setup')
+    project_names = set()
+
     for setup_config in project_setup_configs:
       bucket_config = setup_config.get('build_buckets')
 
@@ -928,7 +936,7 @@ class Handler(base_handler.Handler):
           REVISION_URL,
           setup_config.get('build_type'),
           config_suffix=setup_config.get('job_suffix', ''),
-          segregate_projects=setup_config.get('segregate_projects', False),
+          segregate_projects=segregate_projects,
           engine_build_buckets={
               'libfuzzer': bucket_config.get('libfuzzer'),
               'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
@@ -958,4 +966,7 @@ class Handler(base_handler.Handler):
       if not projects:
         raise ProjectSetupError('Missing projects list.')
 
-      config.set_up(projects)
+      project_names.update(config.set_up(projects))
+
+    cleanup_stale_projects([libfuzzer, afl, honggfuzz], project_names,
+                           segregate_projects)
