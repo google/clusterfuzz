@@ -18,8 +18,8 @@ import flask
 import googleapiclient
 import json
 import mock
-import posixpath
 import os
+import posixpath
 import unittest
 import webtest
 
