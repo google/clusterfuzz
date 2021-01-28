@@ -16,8 +16,10 @@ import ast
 import copy
 import flask
 import googleapiclient
+import json
 import mock
 import os
+import posixpath
 import unittest
 import webtest
 
@@ -190,10 +192,11 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         _mock_get_or_create_service_account)
 
     self.mock.ProjectConfig.return_value = mock_config.MockConfig({
+        'segregate_projects':
+            True,
         'project_setup': [{
             'source': 'oss-fuzz',
             'build_type': 'RELEASE_BUILD_BUCKET_PATH',
-            'segregate_projects': True,
             'add_info_labels': True,
             'add_revision_mappings': True,
             'build_buckets': {
@@ -317,24 +320,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib2').get()
-    self.assertIsNotNone(job)
-    self.assertEqual(job.project, 'lib2')
-    self.assertEqual(job.platform, 'LIB2_LINUX')
-    six.assertCountEqual(self, job.templates,
-                         ['engine_asan', 'libfuzzer', 'prune'])
-    self.assertEqual(
-        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
-        'gs://clusterfuzz-builds/lib2/lib2-address-([0-9]+).zip\n'
-        'PROJECT_NAME = lib2\n'
-        'SUMMARY_PREFIX = lib2\n'
-        'MANAGED = True\n'
-        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib2/lib2-address-%s.srcmap.json\n'
-        'FUZZ_LOGS_BUCKET = lib2-logs.clusterfuzz-external.appspot.com\n'
-        'CORPUS_BUCKET = lib2-corpus.clusterfuzz-external.appspot.com\n'
-        'QUARANTINE_BUCKET = lib2-quarantine.clusterfuzz-external.appspot.com\n'
-        'BACKUP_BUCKET = lib2-backup.clusterfuzz-external.appspot.com\n'
-        'AUTOMATIC_LABELS = Proj-lib2,Engine-libfuzzer\n')
+    self.assertIsNone(job)
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib3').get()
@@ -1508,7 +1494,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-linux',
         'projects/clusterfuzz-external/topics/other',
         'projects/clusterfuzz-external/topics/jobs-lib1-linux',
-        'projects/clusterfuzz-external/topics/jobs-lib2-linux',
         'projects/clusterfuzz-external/topics/jobs-lib3-linux',
         'projects/clusterfuzz-external/topics/jobs-lib4-linux',
         'projects/clusterfuzz-external/topics/jobs-lib5-linux',
@@ -1517,10 +1502,11 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     six.assertCountEqual(self, expected_topics,
                          list(pubsub_client.list_topics('projects/' + app_id)))
 
-    for i, topic in enumerate(expected_topics[2:]):
+    for topic in expected_topics[2:]:
+      lib = posixpath.basename(topic).split('-')[1]
       six.assertCountEqual(self, [
           'projects/clusterfuzz-external/subscriptions/'
-          'jobs-lib{}-linux'.format(i + 1),
+          'jobs-{}-linux'.format(lib),
       ], pubsub_client.list_topic_subscriptions(topic))
 
     self.assertIsNotNone(pubsub_client.get_topic(unmanaged_topic_name))
@@ -1580,17 +1566,36 @@ class GetLibrariesTest(unittest.TestCase):
 def _mock_read_data(path):
   """Mock read_data."""
   if 'dbg' in path:
-    return (b'{"projects": [{"build_path": '
-            b'"gs://bucket-dbg/a-b/%ENGINE%/%SANITIZER%/'
-            b'%TARGET%/([0-9]+).zip", '
-            b'"name": "//a/b", "fuzzing_engines": ["libfuzzer", "honggfuzz"], '
-            b'"sanitizers": ["address"]}]}')
+    return json.dumps({
+        'projects': [{
+            'build_path': 'gs://bucket-dbg/a-b/%ENGINE%/%SANITIZER%/'
+                          '%TARGET%/([0-9]+).zip',
+            'name': '//a/b',
+            'fuzzing_engines': ['libfuzzer', 'honggfuzz'],
+            'sanitizers': ['address']
+        }]
+    })
 
-  return (b'{"projects": [{"build_path": '
-          b'"gs://bucket/a-b/%ENGINE%/%SANITIZER%/'
-          b'%TARGET%/([0-9]+).zip", '
-          b'"name": "//a/b", "fuzzing_engines": ["libfuzzer", "honggfuzz"], '
-          b'"sanitizers": ["address"]}]}')
+  return json.dumps({
+      'projects': [
+          {
+              'build_path':
+                  'gs://bucket/a-b/%ENGINE%/%SANITIZER%/%TARGET%/([0-9]+).zip',
+              'name':
+                  '//a/b',
+              'fuzzing_engines': ['libfuzzer', 'honggfuzz'],
+              'sanitizers': ['address']
+          },
+          {
+              'build_path':
+                  'gs://bucket/c-d/%ENGINE%/%SANITIZER%/%TARGET%/([0-9]+).zip',
+              'name':
+                  '//c/d',
+              'fuzzing_engines': ['libfuzzer'],
+              'sanitizers': ['address']
+          },
+      ]
+  })
 
 
 @test_utils.with_cloud_emulators('datastore', 'pubsub')
@@ -1708,6 +1713,19 @@ class GenericProjectSetupTest(unittest.TestCase):
                          job.templates)
 
     job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_c-d').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket/c-d/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'ASAN_VAR = VAL\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL\n', job.environment_string)
+    six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
+                         job.templates)
+
+    job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b_dbg').get()
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
@@ -1748,6 +1766,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         data_types.Fuzzer.name == 'libFuzzer').get()
     six.assertCountEqual(self, [
         'libfuzzer_asan_a-b',
+        'libfuzzer_asan_c-d',
         'libfuzzer_asan_a-b_dbg',
         'old_unmanaged',
     ], libfuzzer.jobs)
