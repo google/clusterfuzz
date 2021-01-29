@@ -147,6 +147,7 @@ OUT_OF_MEMORY_REGEX = re.compile(
     r'Sanitizer: calloc-overflow|'
     r'Sanitizer: calloc parameters overflow|'
     r'Sanitizer: requested allocation size.*exceeds maximum supported size|'
+    r'TerminateBecauseOutOfMemory|'
     r'allocator is out of memory trying to allocate|'
     r'blinkGCOutOfMemory|'
     r'couldnt allocate.*Out of memory|'
