@@ -298,6 +298,9 @@ def update_matches_for_specification(specification, client, engine, matches,
     job = result['job']
     new_weight = result['new_weight']
 
+    if new_weight is None:
+      continue
+
     run_set.add((fuzzer, job))
     if new_weight != 1.0:
       match = SpecificationMatch(
