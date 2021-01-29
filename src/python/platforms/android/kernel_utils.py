@@ -17,7 +17,6 @@ import os
 import re
 
 from base import utils
-from build_management import source_mapper
 from metrics import logs
 from platforms.android import constants
 from platforms.android import settings
@@ -28,6 +27,12 @@ from system import environment
 # 1234567 optional is the kernel build id.
 LINUX_VERSION_REGEX = re.compile(
     r'Linux version .+-g([0-9a-f]+)[\s\-](ab([0-9a-f]+)\s)')
+
+# Similar to source_mapper.STACK_FRAME_PATH_LINE_REGEX but also matches column
+# number.
+LLVM_SYMBOLIZER_STACK_FRAME_PATH_LINE_REGEX = re.compile(
+    r'(?<=\[|\(|\s)([a-zA-Z/.][^\s]*?)\s*(:|@)\s*(\d+)(?=\]$|\)$|:\d+$|$)'
+    r'(:\d+)?')
 
 
 def _get_clean_kernel_path(path):
@@ -46,7 +51,7 @@ def _get_clean_kernel_path(path):
 
 def get_kernel_stack_frame_link(stack_frame, kernel_prefix, kernel_hash):
   """Add source links data to kernel stack frames."""
-  match = source_mapper.STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
+  match = LLVM_SYMBOLIZER_STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
   if not match:
     # If this stack frame does not contain a path and line, bail out.
     return stack_frame
@@ -54,7 +59,12 @@ def get_kernel_stack_frame_link(stack_frame, kernel_prefix, kernel_hash):
   path = _get_clean_kernel_path(match.group(1))
   line = match.group(3)
   kernel_prefix = utils.strip_from_left(kernel_prefix, 'kernel/private/')
-  display_path = '/'.join([kernel_prefix, path])
+  display_path = f'{kernel_prefix}/{path}:{line}'
+
+  # If we have a column number, lets add it to the display path.
+  if match.group(4):
+    display_path += match.group(4)
+
   kernel_url_info = (r'http://go/pakernel/{prefix}/+/{hash}/{path}#{line};'
                      r'{display_path};').format(
                          prefix=kernel_prefix,
@@ -63,7 +73,7 @@ def get_kernel_stack_frame_link(stack_frame, kernel_prefix, kernel_hash):
                          line=line,
                          display_path=display_path)
 
-  link_added_stack_frame = source_mapper.STACK_FRAME_PATH_LINE_REGEX.sub(
+  link_added_stack_frame = LLVM_SYMBOLIZER_STACK_FRAME_PATH_LINE_REGEX.sub(
       kernel_url_info, stack_frame)
 
   return link_added_stack_frame

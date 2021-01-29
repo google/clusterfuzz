@@ -170,7 +170,8 @@ def _linkify_android_kernel_stack_frame_if_needed(line):
   return line
 
 
-def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform):
+def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
+                      job_type):
   """Clean up and format a stack trace for display."""
   if not crash_stacktrace:
     return ''
@@ -181,7 +182,7 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform):
     line = html.escape(line, quote=True)
     line = source_mapper.linkify_stack_frame(line, revisions_dict)
 
-    if 'android' in platform:
+    if 'android' in platform or environment.is_lkl_job(job_type):
       line = _linkify_android_kernel_stack_frame_if_needed(line)
 
     filtered_crash_lines.append(line)
@@ -402,7 +403,8 @@ def get_testcase_detail(testcase):
       crash_revision, testcase.job_type)
   crash_stacktrace = data_handler.get_stacktrace(testcase)
   crash_stacktrace = filter_stacktrace(crash_stacktrace, testcase.crash_type,
-                                       crash_revisions_dict, testcase.platform)
+                                       crash_revisions_dict, testcase.platform,
+                                       testcase.job_type)
   crash_stacktrace = convert_to_lines(crash_stacktrace, crash_state_lines,
                                       crash_type)
 
@@ -413,7 +415,7 @@ def get_testcase_detail(testcase):
       testcase, stack_attribute='last_tested_crash_stacktrace')
   last_tested_crash_stacktrace = filter_stacktrace(
       last_tested_crash_stacktrace, testcase.crash_type,
-      last_tested_crash_revisions_dict, testcase.platform)
+      last_tested_crash_revisions_dict, testcase.platform, testcase.job_type)
   last_tested_crash_stacktrace = convert_to_lines(last_tested_crash_stacktrace,
                                                   crash_state_lines, crash_type)
 

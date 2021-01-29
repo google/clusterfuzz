@@ -529,7 +529,7 @@ class SymbolizationLoop(object):
     symbolized_crash_stacktrace = u''
     unsymbolized_crash_stacktrace_lines = \
       unsymbolized_crash_stacktrace.splitlines()
-    if lkl.is_lkl_stack_trace(unsymbolized_crash_stacktrace_lines):
+    if lkl.is_lkl_stack_trace(unsymbolized_crash_stacktrace):
       line_parser = self._lkl_line_parser
       self.lkl_binary_name = lkl.get_lkl_binary_name(
           unsymbolized_crash_stacktrace_lines)

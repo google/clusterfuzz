@@ -22,7 +22,7 @@ from . import constants
 
 
 def _should_download_symbols():
-  """Return Ture if we should continue to download symbols."""
+  """Return True if we should continue to download symbols."""
   # For local testing or when running the reproduce tool locally, we do not
   # have access to the cloud storage bucket with the symbols. In this case,
   # just bail out.
