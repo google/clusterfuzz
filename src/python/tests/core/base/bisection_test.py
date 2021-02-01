@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,12 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for task_creation."""
+"""Tests for bisection."""
 import datetime
 import mock
 import unittest
 
-from bot.tasks import task_creation
+from base import bisection
 from datastore import data_types
 from tests.test_libs import helpers
 from tests.test_libs import mock_config
@@ -74,7 +74,7 @@ class RequestBisectionTest(unittest.TestCase):
 
   def _test(self, sanitizer, old_commit='old', new_commit='new'):
     """Test task publication."""
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
     publish_calls = self.mock.publish.call_args_list
     bisect_types = ('regressed', 'fixed')
 
@@ -127,7 +127,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.job_type = 'blackbox'
     self.testcase.overridden_fuzzer_name = None
     self.testcase.put()
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_non_security(self):
@@ -135,7 +135,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.security_flag = False
     self.testcase.put()
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_flaky(self):
@@ -143,7 +143,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.one_time_crasher_flag = True
     self.testcase.put()
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_no_bug(self):
@@ -151,7 +151,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.bug_information = ''
     self.testcase.put()
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_bisection_invalid_range(self):
@@ -160,7 +160,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.regression = 'NA'
     self.testcase.fixed = 'NA'
     self.testcase.put()
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
 
     publish_calls = self.mock.publish.call_args_list
     self.assertEqual(1, len(publish_calls))
@@ -181,7 +181,7 @@ class RequestBisectionTest(unittest.TestCase):
     self.testcase.set_metadata('requested_regressed_bisect', True)
     self.testcase.set_metadata('requested_fixed_bisect', True)
     self.testcase.put()
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
     self.assertEqual(0, self.mock.publish.call_count)
 
   def test_request_single_commit_range(self):
@@ -193,7 +193,7 @@ class RequestBisectionTest(unittest.TestCase):
             'link_text': 'one',
         },
     ]
-    task_creation.request_bisection(self.testcase.key.id())
+    bisection.request_bisection(self.testcase)
     self._test('address', old_commit='one', new_commit='one')
     self.mock.get_component_range_list.assert_has_calls([
         mock.call(123, 456, 'libfuzzer_asan_proj'),

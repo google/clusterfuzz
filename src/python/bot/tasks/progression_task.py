@@ -17,6 +17,7 @@ import os
 import six
 import time
 
+from base import bisection
 from base import errors
 from base import tasks
 from base import utils
@@ -403,7 +404,7 @@ def find_fixed_range(testcase_id, job_type):
       _update_completion_metadata(testcase, max_revision, message=message)
 
       # Let the bisection service know about the NA status.
-      task_creation.request_bisection(testcase_id)
+      bisection.request_bisection(testcase)
       return
 
     # Test the middle revision of our range.
@@ -470,4 +471,5 @@ def execute_task(testcase_id, job_type):
   # regression and fixed ranges are requested once. Regression is also requested
   # here as the bisection service may require details that are not yet available
   # (e.g. issue ID) at the time regress_task completes.
-  task_creation.request_bisection(testcase_id)
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  bisection.request_bisection(testcase)
