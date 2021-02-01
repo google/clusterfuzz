@@ -28,6 +28,8 @@ class RequestBisectionTest(unittest.TestCase):
   """Tests request_bisection."""
 
   def setUp(self):
+    helpers.patch_environ(self)
+
     helpers.patch(self, [
         'build_management.build_manager.get_primary_bucket_path',
         'build_management.build_manager.get_revisions_list',
