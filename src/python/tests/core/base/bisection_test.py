@@ -38,6 +38,14 @@ class RequestBisectionTest(unittest.TestCase):
         'google_cloud_utils.blobs.read_key',
         'google_cloud_utils.pubsub.PubSubClient.publish',
     ])
+    self.mock.ProjectConfig.return_value = mock_config.MockConfig({
+        'env': {
+            'PROJECT_NAME': 'test-project',
+        },
+        'bisect_service': {
+            'pubsub_topic': '/projects/project/topics/topic',
+        }
+    })
 
     data_types.FuzzTarget(
         id='libFuzzer_proj_target',
@@ -67,12 +75,6 @@ class RequestBisectionTest(unittest.TestCase):
             'link_text': 'old:new',
         },
     ]
-
-    self.mock.ProjectConfig.return_value = mock_config.MockConfig({
-        'bisect_service': {
-            'pubsub_topic': '/projects/project/topics/topic',
-        }
-    })
 
   def _test(self, sanitizer, old_commit='old', new_commit='new'):
     """Test task publication."""
