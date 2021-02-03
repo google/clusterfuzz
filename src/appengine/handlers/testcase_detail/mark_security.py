@@ -15,6 +15,7 @@
 
 from flask import request
 
+from base import bisection
 from crash_analysis import severity_analyzer
 from handlers import base_handler
 from handlers.testcase_detail import show
@@ -27,12 +28,17 @@ def mark(testcase, security, severity):
   """Mark the testcase as security-related."""
   testcase.security_flag = security
   if security:
+    # TODO(ochang): Notify bisection infra.
     if not severity:
       severity = severity_analyzer.get_security_severity(
           testcase.crash_type, testcase.crash_stacktrace, testcase.job_type,
           bool(testcase.gestures))
 
     testcase.security_severity = severity
+  else:
+    # The bisection infrastructure only cares about security bugs. If this was
+    # marked as non-security, mark it as invalid.
+    bisection.notify_bisection_invalid(testcase)
 
   testcase.put()
   helpers.log(
