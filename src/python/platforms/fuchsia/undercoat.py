@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Helper functions for managing and interacting with Fuchsia devices via undercoat."""
+"""Helper functions for managing and interacting with Fuchsia devices
+via undercoat."""
 
 import os
 import sys
@@ -43,10 +44,12 @@ class UndercoatError(Exception):
 
 
 def undercoat_api_command(*args):
+  """Make an API call to the undercoat binary."""
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
   undercoat_path = os.path.join(bundle_dir, 'undercoat/undercoat')
   undercoat = new_process.ProcessRunner(undercoat_path, args)
-  # TODO(eep): Is there a more useful way to connect stderr to the logging system?
+  # TODO(eep): Is there a more useful way to connect stderr to the
+  # logging system?
   result = undercoat.run_and_wait(stderr=sys.stderr)
   result.output = result.output.decode('utf-8')
 
@@ -81,7 +84,8 @@ def start_instance():
   handle = undercoat_api_command('start_instance').output.strip()
   logs.log('Started undercoat instance with handle %s' % handle)
 
-  # Immediately save the handle in case we crash before stop_instance() is called
+  # Immediately save the handle in case we crash before stop_instance()
+  # is called
   shell.create_directory(UNDERCOAT_HANDLE_DIR)
   with tempfile.NamedTemporaryFile(
       dir=UNDERCOAT_HANDLE_DIR, mode='w', delete=False) as f:
@@ -91,18 +95,20 @@ def start_instance():
 
 
 def stop_all():
-  """Attempt to stop any running undercoat instances that may have not been cleanly shut down."""
+  """Attempt to stop any running undercoat instances that may have not been
+  cleanly shut down."""
   for handle_file, handle in get_all_handles():
     try:
       undercoat_instance_command('stop_instance', handle)
     except UndercoatError:
       pass
 
-    # Even if we failed to stop_instance above, there's no point in trying again later
+    # Even if we failed to stop_instance above, there's no point in trying
+    # again later
     shell.remove_file(handle_file)
 
 
-def stop_instance(handle, handle_error=True):
+def stop_instance(handle):
   """Stop a running undercoat instance."""
   # Avoids using undercoat_instance_command in order to avoid recursion on error
   result = undercoat_api_command('stop_instance', '-handle', handle)

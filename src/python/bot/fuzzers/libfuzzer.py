@@ -37,10 +37,10 @@ from fuzzing import strategy
 from metrics import logs
 from platforms import android
 from platforms import fuchsia
+from platforms.fuchsia import undercoat
 from platforms.fuchsia.device import QemuProcess
 from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.device import stop_qemu
-from platforms.fuchsia import undercoat
 from platforms.fuchsia.util.device import Device
 from platforms.fuchsia.util.fuzzer import Fuzzer
 from platforms.fuchsia.util.host import Host
@@ -416,7 +416,8 @@ class UnshareLibFuzzerRunner(new_process.UnshareProcessRunnerMixin,
 
 class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                                       LibFuzzerCommon):
-  """libFuzzer runner (when Fuchsia is the target platform, and undercoat is used)."""
+  """libFuzzer runner (when Fuchsia is the target platform, and undercoat
+  is used)."""
 
   def __init__(self, executable_path, default_args=None):
     # We always assume QEMU is running on __init__, since build_manager sets
