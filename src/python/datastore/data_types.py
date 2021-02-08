@@ -888,6 +888,19 @@ class Job(Model):
   # Keywords is used for searching.
   keywords = ndb.StringProperty(repeated=True)
 
+  # If this is set, this Job is for an external reproduction infrastructure. The
+  # value here is the topic used for reproduction requests.
+  external_reproduction_topic = ndb.StringProperty()
+
+  # If this is set, this Job is for an external reproduction infrastructure. The
+  # value here is the subscription used for receiving reproduction updates.
+  external_updates_subscription = ndb.StringProperty()
+
+  def is_external(self):
+    """Whether this job is external."""
+    return (bool(self.external_reproduction_topic) or
+            bool(self.external_updates_subscription))
+
   def get_environment(self):
     """Get the environment as a dict for this job, including any environment
     variables in its template."""

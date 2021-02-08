@@ -559,6 +559,7 @@ class ProjectSetup(object):
                revision_url_template,
                build_type,
                config_suffix='',
+               external_config=None,
                segregate_projects=False,
                engine_build_buckets=None,
                fuzzer_entities=None,
@@ -567,6 +568,7 @@ class ProjectSetup(object):
                additional_vars=None):
     self._build_type = build_type
     self._config_suffix = config_suffix
+    self._external_config = external_config
     self._build_bucket_path_template = build_bucket_path_template
     self._revision_url_template = revision_url_template
     self._segregate_projects = segregate_projects
@@ -698,7 +700,18 @@ class ProjectSetup(object):
       if not job:
         job = data_types.Job()
 
-      if job_name not in fuzzer_entity.jobs and not info.get('disabled', False):
+      if self._external_config:
+        if ('reproduction_topic' not in self._external_config or
+            'updates_subscription' not in self._external_config):
+          raise ProjectSetupError('Invalid external_config.')
+
+        job.external_reproduction_topic = self._external_config[
+            'reproduction_topic']
+        job.external_updates_subscription = self._external_config[
+            'updates_subscription']
+
+      if (job_name not in fuzzer_entity.jobs and
+          not info.get('disabled', False) and not job.is_external()):
         # Enable new job.
         fuzzer_entity.jobs.append(job_name)
 
@@ -936,6 +949,7 @@ class Handler(base_handler.Handler):
           REVISION_URL,
           setup_config.get('build_type'),
           config_suffix=setup_config.get('job_suffix', ''),
+          external_config=setup_config.get('external_config', ''),
           segregate_projects=segregate_projects,
           engine_build_buckets={
               'libfuzzer': bucket_config.get('libfuzzer'),
