@@ -1668,6 +1668,12 @@ class GenericProjectSetupTest(unittest.TestCase):
             {
                 'source': 'gs://bucket-dbg/projects.json',
                 'job_suffix': '_dbg',
+                'external_config': {
+                    'reproduction_topic':
+                        'projects/proj/topics/reproduction',
+                    'updates_subscription':
+                        'projects/proj/subscriptions/updates',
+                },
                 'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl-dbg',
@@ -1711,6 +1717,9 @@ class GenericProjectSetupTest(unittest.TestCase):
         'STRING_VAR = VAL\n', job.environment_string)
     six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
                          job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_c-d').get()
@@ -1724,6 +1733,9 @@ class GenericProjectSetupTest(unittest.TestCase):
         'STRING_VAR = VAL\n', job.environment_string)
     six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
                          job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b_dbg').get()
@@ -1737,6 +1749,11 @@ class GenericProjectSetupTest(unittest.TestCase):
         'STRING_VAR = VAL-dbg\n', job.environment_string)
     six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
                          job.templates)
+    self.assertEqual('projects/proj/topics/reproduction',
+                     job.external_reproduction_topic)
+    self.assertEqual('projects/proj/subscriptions/updates',
+                     job.external_updates_subscription)
+    self.assertTrue(job.is_external())
 
     job = data_types.Job.query(
         data_types.Job.name == 'honggfuzz_asan_a-b').get()
@@ -1749,6 +1766,9 @@ class GenericProjectSetupTest(unittest.TestCase):
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
     six.assertCountEqual(self, ['engine_asan', 'honggfuzz'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
 
     job = data_types.Job.query(
         data_types.Job.name == 'honggfuzz_asan_a-b_dbg').get()
@@ -1761,13 +1781,17 @@ class GenericProjectSetupTest(unittest.TestCase):
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-dbg\n', job.environment_string)
     six.assertCountEqual(self, ['engine_asan', 'honggfuzz'], job.templates)
+    self.assertEqual('projects/proj/topics/reproduction',
+                     job.external_reproduction_topic)
+    self.assertEqual('projects/proj/subscriptions/updates',
+                     job.external_updates_subscription)
+    self.assertTrue(job.is_external())
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
     six.assertCountEqual(self, [
         'libfuzzer_asan_a-b',
         'libfuzzer_asan_c-d',
-        'libfuzzer_asan_a-b_dbg',
         'old_unmanaged',
     ], libfuzzer.jobs)
 
@@ -1778,5 +1802,4 @@ class GenericProjectSetupTest(unittest.TestCase):
         data_types.Fuzzer.name == 'honggfuzz').get()
     six.assertCountEqual(self, [
         'honggfuzz_asan_a-b',
-        'honggfuzz_asan_a-b_dbg',
     ], honggfuzz.jobs)
