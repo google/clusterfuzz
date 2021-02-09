@@ -63,6 +63,7 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
     # TODO(ochang): Fix circular import.
     from crash_analysis.crash_result import CrashResult
 
+    data_types.Job(name='libfuzzer_asan_job').put()
     testcase = data_types.Testcase(
         minimized_keys='',
         fuzzed_keys='FUZZED_KEY',
