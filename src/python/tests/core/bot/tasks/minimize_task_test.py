@@ -102,7 +102,7 @@ class MinimizeTaskTestUntrusted(
 
   def setUp(self):
     """Set up."""
-    super(MinimizeTaskTestUntrusted, self).setUp()
+    super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     patcher = mock.patch(
@@ -145,7 +145,7 @@ class MinimizeTaskTestUntrusted(
     self.temp_dir = tempfile.mkdtemp(dir=environment.get_value('FUZZ_INPUTS'))
 
   def tearDown(self):
-    super(MinimizeTaskTestUntrusted, self).tearDown()
+    super().tearDown()
     shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   def test_minimize(self):
