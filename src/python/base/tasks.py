@@ -367,7 +367,7 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
 
   job = data_types.Job.query(data_types.Job.name == job_type).get()
   if not job:
-    raise Error('Job {} not found.'.format(job_type))
+    raise Error(f'Job {job_type} not found.')
 
   if job.is_external():
     external_tasks.add_external_task(command, argument, job)
