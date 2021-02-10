@@ -36,6 +36,9 @@ def add_external_task(command, testcase_id, job):
   memory_tool_name = environment.get_memory_tool_name(job.name)
   sanitizer = environment.SANITIZER_NAME_MAP.get(memory_tool_name)
   job_environment = job.get_environment()
+  if job_environment.get('CUSTOM_BINARY'):
+    raise RuntimeError('External jobs should never have custom binaries.')
+
   build_path = (
       job_environment.get('RELEASE_BUILD_BUCKET_PATH') or
       job_environment.get('FUZZ_TARGET_BUILD_BUCKET_PATH'))
