@@ -63,6 +63,7 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
     # TODO(ochang): Fix circular import.
     from crash_analysis.crash_result import CrashResult
 
+    data_types.Job(name='libfuzzer_asan_job').put()
     testcase = data_types.Testcase(
         minimized_keys='',
         fuzzed_keys='FUZZED_KEY',
@@ -101,7 +102,7 @@ class MinimizeTaskTestUntrusted(
 
   def setUp(self):
     """Set up."""
-    super(MinimizeTaskTestUntrusted, self).setUp()
+    super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     patcher = mock.patch(
@@ -144,7 +145,7 @@ class MinimizeTaskTestUntrusted(
     self.temp_dir = tempfile.mkdtemp(dir=environment.get_value('FUZZ_INPUTS'))
 
   def tearDown(self):
-    super(MinimizeTaskTestUntrusted, self).tearDown()
+    super().tearDown()
     shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   def test_minimize(self):

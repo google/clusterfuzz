@@ -55,6 +55,7 @@ class GetTaskTest(unittest.TestCase):
 
     self.mock.get_value.return_value = None
     self.mock.sleep.return_value = None
+    data_types.Job(name='job').put()
 
     client = pubsub.PubSubClient()
     topic = pubsub.topic_name('test-clusterfuzz', 'jobs-linux')
@@ -266,3 +267,113 @@ class QueueForTestcaseTest(unittest.TestCase):
     t = data_types.Testcase(job_type='job_project', queue='high-end-jobs')
     self.assertEqual('high-end-jobs-project-linux-lib',
                      tasks.queue_for_testcase(t))
+
+
+@test_utils.with_cloud_emulators('datastore', 'pubsub')
+class ExternalTasksTest(unittest.TestCase):
+  """Tests for adding external tasks."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'google_cloud_utils.blobs.read_key',
+    ])
+
+    self.mock.read_key.return_value = b'reproducer'
+
+    self.client = pubsub.PubSubClient()
+    self.topic = pubsub.topic_name('proj', 'repro')
+    self.client.create_topic(self.topic)
+    self.subscription = pubsub.subscription_name('proj', 'repro')
+    self.client.create_subscription(self.subscription, self.topic)
+
+    data_types.Job(
+        name='libfuzzer_asan_blah_external',
+        platform='LINUX',
+        environment_string=(
+            'RELEASE_BUILD_BUCKET_PATH = gs://bucket/a/b/release-([0-9]+).zip\n'
+            'PROJECT_NAME = proj\n'),
+        external_reproduction_topic=self.topic,
+        external_updates_subscription='projects/proj/subscriptions/updates'
+    ).put()
+
+    data_types.Job(
+        name='libfuzzer_msan_blah_external',
+        platform='LINUX',
+        environment_string=('FUZZ_TARGET_BUILD_BUCKET_PATH = '
+                            'gs://bucket/a/b/%TARGET%/release-([0-9]+).zip\n'
+                            'PROJECT_NAME = proj\n'),
+        external_reproduction_topic=self.topic,
+        external_updates_subscription='projects/proj/subscriptions/updates'
+    ).put()
+
+    data_types.FuzzTarget(
+        id='libFuzzer_abc', engine='libFuzzer', binary='abc').put()
+
+    self.testcase_0 = data_types.Testcase(
+        fuzzer_name='libFuzzer',
+        overridden_fuzzer_name='libFuzzer_abc',
+        crash_revision=1336,
+        minimized_keys='key')
+    self.testcase_0.set_metadata('last_tested_revision', 1337)
+    self.testcase_0.put()
+
+    self.testcase_1 = data_types.Testcase(
+        fuzzer_name='libFuzzer',
+        overridden_fuzzer_name='libFuzzer_abc',
+        crash_revision=1336,
+        fuzzed_keys='key')
+    self.testcase_1.put()
+
+  def test_progression_0(self):
+    """Test adding a ASAN progression (reproduction) task."""
+    tasks.add_task('progression', self.testcase_0.key.id(),
+                   'libfuzzer_asan_blah_external')
+
+    messages = self.client.pull_from_subscription(
+        self.subscription, max_messages=1)
+    self.assertEqual(1, len(messages))
+
+    message = messages[0]
+    self.assertEqual(b'reproducer', message.data)
+    self.assertDictEqual({
+        'buildPath': 'gs://bucket/a/b/release-([0-9]+).zip',
+        'fuzzer': 'libFuzzer',
+        'job': 'libfuzzer_asan_blah_external',
+        'minRevisionAbove': '1337',
+        'project': 'proj',
+        'sanitizer': 'address',
+        'target': 'abc',
+        'testcaseId': str(self.testcase_0.key.id()),
+    }, message.attributes)
+
+  def test_progression_1(self):
+    """Test adding an MSAN progression (reproduction) task."""
+    tasks.add_task('progression', self.testcase_1.key.id(),
+                   'libfuzzer_msan_blah_external')
+
+    messages = self.client.pull_from_subscription(
+        self.subscription, max_messages=1)
+    self.assertEqual(1, len(messages))
+
+    message = messages[0]
+    self.assertEqual(b'reproducer', message.data)
+    self.assertDictEqual({
+        'buildPath': 'gs://bucket/a/b/%TARGET%/release-([0-9]+).zip',
+        'fuzzer': 'libFuzzer',
+        'job': 'libfuzzer_msan_blah_external',
+        'minRevisionAbove': '1336',
+        'project': 'proj',
+        'sanitizer': 'memory',
+        'target': 'abc',
+        'testcaseId': str(self.testcase_1.key.id()),
+    }, message.attributes)
+
+  def test_not_progression(self):
+    """Test trying to add a task that isn't progression."""
+    tasks.add_task('impact', self.testcase_1.key.id(),
+                   'libfuzzer_msan_blah_external')
+
+    messages = self.client.pull_from_subscription(
+        self.subscription, max_messages=1)
+    self.assertEqual(0, len(messages))
