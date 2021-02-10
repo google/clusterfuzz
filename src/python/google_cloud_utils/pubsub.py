@@ -47,7 +47,7 @@ class ReceivedMessage(Message):
 
   def __init__(self, client, subscription, data, attributes, message_id,
                publish_time, ack_id):
-    super(ReceivedMessage, self).__init__(data, attributes)
+    super().__init__(data, attributes)
     self._client = client
     self.ack_id = ack_id
     self.message_id = message_id
@@ -169,7 +169,7 @@ class PubSubClient(object):
       self.ack(subscription, ack_ids)
 
     return [
-        _raw_message_to_message(self, subscription, message)
+        _raw_message_to_received_message(self, subscription, message)
         for message in received_messages
     ]
 
@@ -295,12 +295,23 @@ def parse_name(name):
   return project, name
 
 
-def _raw_message_to_message(client, subscription, raw_message_response):
+def _decode_data(raw_message):
+  """Decode Pub/Sub data."""
+  return (base64.b64decode(raw_message['data'])
+          if 'data' in raw_message else None)
+
+
+def raw_message_to_message(raw_message_response):
   """Convert a raw message response to a Message."""
   raw_message = raw_message_response['message']
-  data = (
-      base64.b64decode(raw_message['data']) if 'data' in raw_message else None)
-  return ReceivedMessage(client, subscription, data,
+  return Message(_decode_data(raw_message), raw_message.get('attributes'))
+
+
+def _raw_message_to_received_message(client, subscription,
+                                     raw_message_response):
+  """Convert a raw message response to a Message."""
+  raw_message = raw_message_response['message']
+  return ReceivedMessage(client, subscription, _decode_data(raw_message),
                          raw_message.get('attributes'),
                          raw_message['messageId'], raw_message['publishTime'],
                          raw_message_response['ackId'])

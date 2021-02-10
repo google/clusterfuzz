@@ -22,11 +22,15 @@ import requests
 from flask import g
 from flask import make_response
 from flask import request
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+import google.auth
 
 from base import utils
 from config import db_config
 from config import local_config
 from datastore import data_types
+from google_cloud_utils import pubsub
 from libs import access
 from libs import auth
 from libs import csp
@@ -74,9 +78,9 @@ def extend_json_request(req):
   """Extends a request to support JSON."""
   try:
     params = json.loads(req.data)
-  except ValueError:
+  except ValueError as e:
     raise helpers.EarlyExitException(
-        'Parsing the JSON request body failed: %s' % req.data, 400)
+        'Parsing the JSON request body failed: %s' % req.data, 400) from e
 
   extend_request(req, params)
 
@@ -189,9 +193,9 @@ def get_access_token(verification_code):
   try:
     data = json.loads(response.text)
     return data['access_token']
-  except (KeyError, ValueError):
+  except (KeyError, ValueError) as e:
     raise helpers.EarlyExitException(
-        'Parsing the JSON response body failed: %s' % response.text, 500)
+        'Parsing the JSON response body failed: %s' % response.text, 500) from e
 
 
 def get_email_and_access_token(authorization):
@@ -245,9 +249,9 @@ def get_email_and_access_token(authorization):
                                           % (data.get('email'), response.text))
 
     return data['email'], authorization
-  except (KeyError, ValueError):
+  except (KeyError, ValueError) as e:
     raise helpers.EarlyExitException(
-        'Parsing the JSON response body failed: %s' % response.text, 500)
+        'Parsing the JSON response body failed: %s' % response.text, 500) from e
 
 
 def oauth(func):
@@ -270,6 +274,32 @@ def oauth(func):
       return response
 
     return func(self)
+
+  return wrapper
+
+
+def pubsub_push(func):
+  """Wrap a handler with pubsub push authentication."""
+
+  @functools.wraps(func)
+  def wrapper(self):
+    """Wrapper."""
+    try:
+      bearer_token = request.headers.get('Authorization', '')
+      if not bearer_token.startswith(BEARER_PREFIX):
+        raise helpers.UnauthorizedException('Missing or invalid bearer token.')
+
+      token = bearer_token.split(' ')[1]
+      claim = id_token.verify_oauth2_token(token, google_requests.Request())
+    except google.auth.exceptions.GoogleAuthError as e:
+      raise helpers.UnauthorizedException('Invalid ID token.') from e
+
+    if (not claim.get('email_verified') or
+        claim.get('email') != utils.service_account_email()):
+      raise helpers.UnauthorizedException('Invalid ID token.')
+
+    message = pubsub.raw_message_to_message(json.loads(request.data.decode()))
+    return func(self, message)
 
   return wrapper
 
