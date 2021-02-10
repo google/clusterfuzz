@@ -55,6 +55,7 @@ class GetTaskTest(unittest.TestCase):
 
     self.mock.get_value.return_value = None
     self.mock.sleep.return_value = None
+    data_types.Job(name='job').put()
 
     client = pubsub.PubSubClient()
     topic = pubsub.topic_name('test-clusterfuzz', 'jobs-linux')
