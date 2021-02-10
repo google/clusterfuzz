@@ -365,13 +365,14 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
-  job = data_types.Job.query(data_types.Job.name == job_type).get()
-  if not job:
-    raise Error(f'Job {job_type} not found.')
+  if job_type != 'none':
+    job = data_types.Job.query(data_types.Job.name == job_type).get()
+    if not job:
+      raise Error(f'Job {job_type} not found.')
 
-  if job.is_external():
-    external_tasks.add_external_task(command, argument, job)
-    return
+    if job.is_external():
+      external_tasks.add_external_task(command, argument, job)
+      return
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
