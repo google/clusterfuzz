@@ -29,7 +29,7 @@ from tests.test_libs import test_utils
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'external_update_data')
 
 
-@test_utils.with_cloud_emulators('datastore', 'pubsub')
+@test_utils.with_cloud_emulators('datastore')
 class ExternalUpdatesTest(unittest.TestCase):
   """Test external updates."""
 
