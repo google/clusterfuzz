@@ -130,6 +130,26 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.assertIsNone(
         updated_testcase.get_metadata('last_tested_crash_revision'))
 
+  def test_update_older_revision(self):
+    """Test an update that is for an older revision."""
+    self.app.post(
+        '/external-update',
+        params=self._make_message(b'', {
+            'testcaseId': self.testcase_0.key.id(),
+            'revision': '1335'
+        }),
+        headers={'Authorization': 'Bearer fake'},
+        content_type='application/octet-stream')
+
+    updated_testcase = self.testcase_0.key.get()
+    self.assertTrue(updated_testcase.open)
+    self.assertEqual('', updated_testcase.fixed)
+    self.assertEqual('last_tested',
+                     updated_testcase.last_tested_crash_stacktrace)
+    self.assertIsNone(updated_testcase.get_metadata('last_tested_revision'))
+    self.assertIsNone(
+        updated_testcase.get_metadata('last_tested_crash_revision'))
+
   def test_update_fixed(self):
     """Test an update that is no longer crashing."""
     self.app.post(

@@ -52,6 +52,14 @@ def handle_update(testcase, revision, stacktrace, error):
     _mark_errored(testcase, revision, error)
     return
 
+  last_tested_revision = (
+      testcase.get_metadata('last_tested_revision') or testcase.crash_revision)
+
+  if revision <= last_tested_revision:
+    logs.log_warn(f'Revision {revision} less than previously tested '
+                  f'revision {last_tested_revision}.')
+    return
+
   state = stack_analyzer.get_crash_data(
       stacktrace, symbolize_flag=False, already_symbolized=True)
   crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
