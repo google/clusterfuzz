@@ -105,8 +105,11 @@ class Handler(base_handler.Handler):
     if not job or not job.is_external():
       raise helpers.EarlyExitException('Invalid job.', 400)
 
-    error = message.attributes.get('error')
+    if message.data:
+      stacktrace = message.data.decode()
+    else:
+      stacktrace = ''
 
-    stacktrace = message.data.decode()
+    error = message.attributes.get('error')
     handle_update(testcase, revision, stacktrace, error)
     return 'OK'
