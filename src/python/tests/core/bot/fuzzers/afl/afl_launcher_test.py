@@ -91,190 +91,6 @@ class FuzzingStrategiesTest(fake_filesystem_unittest.TestCase):
     self.mock.is_lpm_fuzz_target.return_value = True
     self.strategies = launcher.FuzzingStrategies(None)
 
-  def _decide_fast_cal_random(self):
-    """Helper method that calls self.strategies.decide_fast_cal_random with a
-    default value."""
-    self.strategies.fast_cal = strategies.FastCal.NOT_SET
-    return self.strategies.decide_fast_cal_random(self.INPUT_DIR)
-
-  def test_decide_fast_cal_random_finds_correct_prob(self):
-    """Tests that FuzzingStrategies.decide_fast_cal finds the correct
-    probability to use based on decide_fast_cal"""
-    test_helpers.patch(self, [
-        'bot.fuzzers.engine_common.decide_with_probability',
-    ])
-
-    def asserts_called_with_point_5(prob):
-      self.assertEqual(prob, .5)
-      return False
-
-    self.mock.decide_with_probability.side_effect = asserts_called_with_point_5
-    self._decide_fast_cal_random()
-
-    def asserts_called_with_point_9(prob):
-      self.assertEqual(prob, .9)
-      return False
-
-    self.mock.decide_with_probability.side_effect = asserts_called_with_point_9
-    self.strategies.decide_fast_cal_random(100000)
-
-  def test_decide_fast_cal_random_correctness(self):
-    """Tests that FuzzingStrategies.decide_fast_cal works as intended."""
-    test_helpers.patch(self, [
-        'bot.fuzzers.engine_common.decide_with_probability',
-    ])
-
-    def decide_with_probability_1(prob):  # pylint: disable=unused-argument
-      return True
-
-    self.mock.decide_with_probability.side_effect = decide_with_probability_1
-    self._decide_fast_cal_random()
-    self.assertEqual(self.strategies.fast_cal, strategies.FastCal.RANDOM)
-
-    def decide_with_probability_0(prob):  # pylint: disable=unused-argument
-      return False
-
-    self.mock.decide_with_probability.side_effect = decide_with_probability_0
-    self._decide_fast_cal_random()
-    self.assertEqual(self.strategies.fast_cal, strategies.FastCal.OFF)
-
-  def test_decide_fast_cal_manual_validation(self):
-    """Tests that FuzzingStrategies.decide_fast_cal_manual throws an
-    assertion error if fast_cal is NOT_SET ."""
-    with self.assertRaises(AssertionError):
-      self.strategies.decide_fast_cal_manual(0)
-
-  def test_decide_fast_cal_manual(self):
-    """Test that decide_fast_cal_manual works as intended."""
-    # Test that it doesn't change anything if we are alreay using fast cal.
-    time_spent = 0
-    self.strategies.fast_cal = strategies.FastCal.RANDOM
-    self.strategies.decide_fast_cal_manual(time_spent)
-    self.assertEqual(self.strategies.fast_cal, strategies.FastCal.RANDOM)
-    self.strategies.fast_cal = strategies.FastCal.MANUAL
-    self.strategies.decide_fast_cal_manual(time_spent)
-    self.assertEqual(self.strategies.fast_cal, strategies.FastCal.MANUAL)
-
-    # Test that it doesn't do anything if we haven't spent much time fuzzing.
-    self.strategies.fast_cal = strategies.FastCal.OFF
-    self.strategies.decide_fast_cal_manual(time_spent)
-    self.assertEqual(self.strategies.fast_cal, strategies.FastCal.OFF)
-
-    # Test that it returns True if we have already spent long enough fuzzing.
-    time_spent += self.strategies.TIME_WITHOUT_FAST_CAL + 1
-    self.strategies.decide_fast_cal_manual(time_spent)
-    self.assertEqual(self.strategies.fast_cal, strategies.FastCal.MANUAL)
-
-  def test_use_fast_cal(self):
-    """Tests that use_fast_cal works correctly and validates correctly."""
-    self.strategies.fast_cal = strategies.FastCal.NOT_SET
-    # Test that use_fast_cal cannot be called if we haven't decided whether to
-    # randomly use it or not.
-    with self.assertRaises(AssertionError):
-      self.strategies.use_fast_cal  # pylint: disable=pointless-statement
-
-    # Test that it works properly.
-    self.strategies.fast_cal = strategies.FastCal.OFF
-    self.assertFalse(self.strategies.use_fast_cal)
-
-    self.strategies.fast_cal = strategies.FastCal.MANUAL
-    self.assertTrue(self.strategies.use_fast_cal)
-
-    self.strategies.fast_cal = strategies.FastCal.RANDOM
-    self.assertTrue(self.strategies.use_fast_cal)
-
-
-class AflFuzzInputDirectoryTest(LauncherTestBase):
-  """Test the launcher.AflFuzzInputDirectory class. Note that most of the
-  methods tested are called from AflFuzzInputDirectory.__init__, so we will
-  create the object rather than call them directly in these cases."""
-
-  LARGE_FILENAME = 'large-file'
-
-  def setUp(self):
-    self.temp_input_dir = os.path.join(self.TEMP_DIR, 'afl_input_dir')
-    super().setUp()
-    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
-    self.mock.is_lpm_fuzz_target.return_value = True
-    self.strategies = launcher.FuzzingStrategies(None)
-
-  def _new_afl_input(self):
-    """Create a new AflFuzzInputDirectory object."""
-    return launcher.AflFuzzInputDirectory(self.INPUT_DIR, self.TARGET_PATH,
-                                          self.strategies)
-
-  def _create_oversized_file(self, directory=None, filename=None):
-    """Create a 1 MB (1024*1024 byte) file. This file is too large for afl-fuzz
-    to use if it is in the input directory."""
-    if filename is None:
-      filename = self.LARGE_FILENAME
-
-    file_contents = 'a' * (1024 * 1024)
-    self._create_file(filename, directory=directory, contents=file_contents)
-
-  def test_create_new_if_needed(self):
-    """Test that the AflFuzzInputDirectory.create_new_if_needed() method works
-    as expected for oversized inputs and normal sized inputs."""
-
-    # Test that no new input directory is created when it isn't necessary
-    # because none of the files in the input corpus are too large.
-    afl_input = self._new_afl_input()
-    self.assertIsNone(afl_input.original_input_directory)
-    # Make sure the temporary input directory wasn't created on disk.
-    self.assertEqual(os.listdir(self.TEMP_DIR), [])
-
-    # Test that a new input directory is created when oversized files are in the
-    # corpus.
-    self._create_oversized_file()
-    afl_input = self._new_afl_input()
-    self.assertEqual(afl_input.original_input_directory, self.INPUT_DIR)
-    self.assertNotIn(self.LARGE_FILENAME, os.listdir(afl_input.input_directory))
-
-  def test_create_new_if_needed_subdirs(self):
-    """Test AflFuzzInputDirectory.create_new_if_needed on an input directory
-    with subdirectories."""
-    self._create_file('small_1')
-    self._create_oversized_file(filename='too_big_1')
-    subdirectory = os.path.join(self.INPUT_DIR, 'subdir')
-    self.fs.create_dir(subdirectory)
-    self._create_file('small_2', directory=subdirectory)
-    self._create_oversized_file(directory=subdirectory, filename='too_big_2')
-    afl_input = self._new_afl_input()
-    expected_files = [fuzzer.AFL_DUMMY_INPUT, 'small_1', 'small_2']
-    self._assert_elements_equal(
-        os.listdir(afl_input.input_directory), expected_files)
-
-  def test_corpus_subset_too_large(self):
-    """Tests that create_new_if_needed doesn't do anything when the subset
-    number is larger than the number of files."""
-    self.strategies.use_corpus_subset = True
-    self.strategies.corpus_subset_size = 75
-    for file_num in range(self.strategies.corpus_subset_size - 10):
-      self._create_file(str(file_num))
-
-    afl_input = self._new_afl_input()
-    self.assertFalse(self.strategies.use_corpus_subset)
-    self.assertEqual(
-        len(os.listdir(afl_input.input_directory)),
-        self.strategies.corpus_subset_size - 10 + 1)
-
-  def test_corpus_subset(self):
-    """Tests that create_new_if_needed works as intended when told to use a 75
-    file corpus subset."""
-    self.strategies.use_corpus_subset = True
-    self.strategies.corpus_subset_size = 75
-    # Now test create_new_if_needed obeys corpus_subset.
-    self.strategies.use_corpus_subset = True
-    for file_num in range(self.strategies.corpus_subset_size):
-      self._create_file(str(file_num))
-
-    afl_input = self._new_afl_input()
-    self.assertEqual(
-        len(os.listdir(afl_input.input_directory)),
-        self.strategies.corpus_subset_size)
-
-    self.assertTrue(self.strategies.use_corpus_subset)
-
 
 class AflFuzzOutputDirectoryTest(LauncherTestBase):
   """Test the launcher.AflFuzzOutputDirectory class."""
@@ -365,36 +181,6 @@ class AflFuzzOutputDirectoryTest(LauncherTestBase):
     # Test that non-testcases aren't counted as new units.
     self._create_file('README.txt', directory=self.afl_output.queue)
     self.assertEqual(self.afl_output.count_new_units(self.afl_output.queue), 1)
-
-  def test_copy_crashes_if_needed(self):
-    """Test that copy_crashes_if_needed works as expected."""
-
-    # Test that does copy_crashes_if_needed does nothing when there is nothing
-    # in the crashes directory.
-    testcase_path = '/testcase'
-    self.assertFalse(os.path.exists(testcase_path))
-    self.afl_output.copy_crash_if_needed(testcase_path)
-    self.assertFalse(os.path.exists(testcase_path))
-
-    # Test that it copies the first crash from the crashes directory.
-    crash_path_1 = os.path.join(self.CRASHES_DIR,
-                                'id:000012,src:000000,op:flip1,pos:1,+cov')
-
-    crash_contents_1 = 'I\'m a crashing file'
-    with open(crash_path_1, 'w+') as file_handle:
-      file_handle.write(crash_contents_1)
-
-    crash_path_2 = os.path.join(self.CRASHES_DIR,
-                                'id:000031,src:000000,op:arith8,pos:0,val:+7')
-
-    crash_contents_2 = 'I\'m also a crashing file'
-    with open(crash_path_2, 'w+') as file_handle:
-      file_handle.write(crash_contents_2)
-
-    self.afl_output.copy_crash_if_needed(testcase_path)
-    self.assertTrue(os.path.exists(testcase_path))
-    with open(testcase_path) as file_handle:
-      self.assertEqual(file_handle.read(), crash_contents_1)
 
   def test_remove_hang_in_queue(self):
     """Test that remove_hang_in_queue works as expected."""
@@ -692,8 +478,6 @@ class AflRunnerTest(LauncherTestBase):
     self.mock.run_and_wait.side_effect = (
         lambda *args, **kwargs: self._process_result())
 
-    self.runner.strategies.decide_fast_cal_random(
-        self.runner.afl_input.input_directory)
     self._write_bad_input()
 
   def test_do_offline_mutations_small_testcase(self):
@@ -768,25 +552,6 @@ class AflRunnerTest(LauncherTestBase):
   def _write_bad_input(self):
     """Writes a "bad" file into the input directory."""
     self._create_file(self.BAD_FILENAME, contents=self.BAD_FILE_CONTENTS)
-
-  def test_run_afl_fuzz_crashing_input(self):
-    """Test AflRunner.run_afl_fuzz_and_handle_error works as intended when there
-    is an input testcase that causes a crash."""
-    queue_filename = 'id:000000,orig:' + self.BAD_FILENAME
-    crashing_output = "Test case '" + queue_filename + "' results in a crash"
-
-    def crashing_input(*args, **kwargs):  # pylint: disable=unused-argument
-      return self._process_result(
-          output=crashing_output, return_code=self.ARBITRARY_RET_CODE)
-
-    self._initialization_for_run_afl()
-    self.mock.run_and_wait.side_effect = crashing_input
-    self.assertEqual(
-        self.runner.run_afl_fuzz(self.args).return_code,
-        self.ARBITRARY_RET_CODE)
-
-    with open(self.TESTCASE_FILE_PATH) as file_handle:
-      self.assertEqual(file_handle.read(), self.BAD_FILE_CONTENTS)
 
 
 class GetFuzzTimeoutTest(GetTimeoutTestBase):
@@ -1012,13 +777,6 @@ def dont_use_strategies(obj):
   """Helper function to prevent using fuzzing strategies, unless asked for."""
   test_helpers.patch(obj, [
       'bot.fuzzers.engine_common.decide_with_probability',
-      'bot.fuzzers.afl.launcher.FuzzingStrategies.decide_fast_cal_manual',
-      'bot.fuzzers.afl.launcher.FuzzingStrategies.decide_fast_cal_random',
   ])
   obj.mock.decide_with_probability.return_value = False
-  obj.mock.decide_fast_cal_manual.return_value = False
 
-  def mocked_decide_random(self, num_files):  # pylint: disable=unused-argument
-    self.fast_cal = strategies.FastCal.OFF
-
-  obj.mock.decide_fast_cal_random.side_effect = mocked_decide_random

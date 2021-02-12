@@ -273,12 +273,6 @@ class StatsGetterTests(unittest.TestCase):
         actual_stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name], 75)
     self.assertEqual(actual_stats[self.strategies.FAST_CAL_MANUAL_STRATEGY], 1)
 
-    # Test that stats for random fast cal strategy are correct.
-    self.strategies.fast_cal = strategies.FastCal.RANDOM
-    self.strategies.fast_cal_random_num_files = 50
-    actual_stats = self._set_stats()
-    self.assertEqual(actual_stats[self.strategies.FAST_CAL_RANDOM_STRATEGY], 1)
-
     # Test that stats for generator strategies are correct.
     self.strategies.generator_strategy = engine_common.Generator.RADAMSA
     actual_stats = self._set_stats()

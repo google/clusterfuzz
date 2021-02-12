@@ -45,10 +45,6 @@ _COMMON_COLUMNS = [{
 
 _AFL_SCHEMA = [{
     'mode': 'NULLABLE',
-    'name': 'strategy_fast_cal_random',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'dict_used',
     'type': 'INTEGER'
 }, {
@@ -94,10 +90,6 @@ _AFL_SCHEMA = [{
 }, {
     'mode': 'NULLABLE',
     'name': 'average_exec_per_sec',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'strategy_fast_cal_manual',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',

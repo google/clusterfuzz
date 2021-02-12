@@ -242,8 +242,6 @@ class StatsGetter(object):
 
     if fuzzing_strategies.fast_cal == strategies.FastCal.MANUAL:
       self.stats[fuzzing_strategies.FAST_CAL_MANUAL_STRATEGY] = 1
-    elif fuzzing_strategies.fast_cal == strategies.FastCal.RANDOM:
-      self.stats[fuzzing_strategies.FAST_CAL_RANDOM_STRATEGY] = 1
 
     if (fuzzing_strategies.generator_strategy == engine_common.Generator.RADAMSA
        ):
