@@ -761,7 +761,7 @@ class AflRunnerCommon(object):
 
       build_directory = environment.get_value('BUILD_DIR')
       if build_directory:
-        cmplog_build_file = os.path.join(build_directory, 'afl_cmplog')
+        cmplog_build_file = os.path.join(build_directory, 'afl_cmplog.txt')
         if os.path.exists(cmplog_build_file):
           if target_path:
             self.set_arg(fuzz_args, constants.CMPLOG_FLAG, target_path)
