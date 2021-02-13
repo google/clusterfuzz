@@ -759,12 +759,18 @@ class AflRunnerCommon(object):
 
       self.afl_setup()
 
+      # If the target was compiled for CMPLOG we need to set this.
       build_directory = environment.get_value('BUILD_DIR')
       if build_directory:
         cmplog_build_file = os.path.join(build_directory, 'afl_cmplog.txt')
         if os.path.exists(cmplog_build_file):
           if target_path:
             self.set_arg(fuzz_args, constants.CMPLOG_FLAG, target_path)
+
+      # If a compile time dictionary was created - load it.
+      aflpp_dict_file = os.path.join(build_directory, 'afl++.dict')
+      if os.path.exists(cmplog_build_file):
+        self.set_arg(fuzz_args, constants.DICT_FLAG, aflpp_dict_file)
 
       # In the following section we randomly select different strategies.
 
