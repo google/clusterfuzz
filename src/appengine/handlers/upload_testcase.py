@@ -389,8 +389,8 @@ class UploadHandlerCommon(object):
     platform_id = request.get('platform')
     issue_labels = request.get('issue_labels')
     gestures = request.get('gestures') or '[]'
-
     stacktrace = request.get('stacktrace')
+
     crash_data = None
     if job.is_external():
       if not stacktrace:
