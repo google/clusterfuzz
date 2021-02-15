@@ -1472,7 +1472,7 @@ FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 @retry.wrap(
     retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
     delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
-    function='tasks.fuzz_task.record_fuzz_target')
+    function='datastore.data_handler.record_fuzz_target')
 def record_fuzz_target(engine_name, binary_name, job_type):
   """Record existence of fuzz target."""
   if not binary_name:
