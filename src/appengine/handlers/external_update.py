@@ -60,6 +60,7 @@ def handle_update(testcase, revision, stacktrace, error):
                   f'revision {last_tested_revision}.')
     return
 
+  # TODO(ochang): Record fuzz target.
   fuzz_target = testcase.get_fuzz_target()
   if fuzz_target:
     fuzz_target_name = fuzz_target.binary
@@ -70,7 +71,8 @@ def handle_update(testcase, revision, stacktrace, error):
       stacktrace,
       fuzz_target=fuzz_target_name,
       symbolize_flag=False,
-      already_symbolized=True)
+      already_symbolized=True,
+      detect_ooms_and_hangs=True)
   crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
   if not crash_comparer.is_similar():
     logs.log(

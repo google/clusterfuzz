@@ -59,7 +59,7 @@ class ExternalUpdatesTest(unittest.TestCase):
         external_updates_subscription='subscription').put()
     data_types.Job(name='job').put()
 
-    self.testcase_0 = data_types.Testcase(
+    self.testcase = data_types.Testcase(
         open=True,
         status='Processed',
         job_type='external_job',
@@ -71,7 +71,7 @@ class ExternalUpdatesTest(unittest.TestCase):
         last_tested_crash_stacktrace='last_tested',
         crash_type='',
         security_flag=True)
-    self.testcase_0.put()
+    self.testcase.put()
 
   def _make_message(self, data, attributes):
     """Make a message."""
@@ -88,13 +88,13 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.app.post(
         '/external-update',
         params=self._make_message(stacktrace, {
-            'testcaseId': self.testcase_0.key.id(),
+            'testcaseId': self.testcase.key.id(),
             'revision': '1337'
         }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
 
-    updated_testcase = self.testcase_0.key.get()
+    updated_testcase = self.testcase.key.get()
     self.assertTrue(updated_testcase.open)
     self.assertEqual('', updated_testcase.fixed)
     self.assertEqual(stacktrace.decode(),
@@ -107,20 +107,20 @@ class ExternalUpdatesTest(unittest.TestCase):
   def test_update_changed_security(self):
     """Test an update that is still crashing, but with a different security
     flag."""
-    self.testcase_0.security_flag = False
-    self.testcase_0.put()
+    self.testcase.security_flag = False
+    self.testcase.put()
 
     stacktrace = self._read_test_data('asan_uaf.txt')
     self.app.post(
         '/external-update',
         params=self._make_message(stacktrace, {
-            'testcaseId': self.testcase_0.key.id(),
+            'testcaseId': self.testcase.key.id(),
             'revision': '1337'
         }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
 
-    updated_testcase = self.testcase_0.key.get()
+    updated_testcase = self.testcase.key.get()
     self.assertFalse(updated_testcase.open)
     self.assertEqual('1336:1337', updated_testcase.fixed)
     self.assertEqual('last_tested',
@@ -135,13 +135,13 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.app.post(
         '/external-update',
         params=self._make_message(b'', {
-            'testcaseId': self.testcase_0.key.id(),
+            'testcaseId': self.testcase.key.id(),
             'revision': '1335'
         }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
 
-    updated_testcase = self.testcase_0.key.get()
+    updated_testcase = self.testcase.key.get()
     self.assertTrue(updated_testcase.open)
     self.assertEqual('', updated_testcase.fixed)
     self.assertEqual('last_tested',
@@ -155,13 +155,13 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.app.post(
         '/external-update',
         params=self._make_message(b'', {
-            'testcaseId': self.testcase_0.key.id(),
+            'testcaseId': self.testcase.key.id(),
             'revision': '1337'
         }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
 
-    updated_testcase = self.testcase_0.key.get()
+    updated_testcase = self.testcase.key.get()
     self.assertFalse(updated_testcase.open)
     self.assertEqual('1336:1337', updated_testcase.fixed)
     self.assertEqual('last_tested',
@@ -177,14 +177,14 @@ class ExternalUpdatesTest(unittest.TestCase):
         '/external-update',
         params=self._make_message(
             b'', {
-                'testcaseId': self.testcase_0.key.id(),
+                'testcaseId': self.testcase.key.id(),
                 'revision': '1337',
                 'error': 'error'
             }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
 
-    updated_testcase = self.testcase_0.key.get()
+    updated_testcase = self.testcase.key.get()
     self.assertFalse(updated_testcase.open)
     self.assertEqual('NA', updated_testcase.fixed)
     self.assertEqual('last_tested',
@@ -196,13 +196,13 @@ class ExternalUpdatesTest(unittest.TestCase):
 
   def test_update_not_external(self):
     """Test trying to update a testcase that isn't external."""
-    self.testcase_0.job_type = 'job'
-    self.testcase_0.put()
+    self.testcase.job_type = 'job'
+    self.testcase.put()
     stacktrace = self._read_test_data('asan_uaf.txt')
     resp = self.app.post(
         '/external-update',
         params=self._make_message(stacktrace, {
-            'testcaseId': self.testcase_0.key.id(),
+            'testcaseId': self.testcase.key.id(),
             'revision': '1337'
         }),
         headers={'Authorization': 'Bearer fake'},
