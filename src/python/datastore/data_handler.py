@@ -1544,3 +1544,28 @@ def close_testcase_with_error(testcase_id, error_message):
   testcase.fixed = 'NA'
   testcase.open = False
   testcase.put()
+
+
+def clear_progression_pending(testcase):
+  """If we marked progression as pending for this testcase, clear that state."""
+  if not testcase.get_metadata('progression_pending'):
+    return
+
+  testcase.delete_metadata('progression_pending', update_testcase=False)
+
+
+def update_progression_completion_metadata(testcase,
+                                           revision,
+                                           is_crash=False,
+                                           message=None):
+  """Update metadata the progression task completes."""
+  clear_progression_pending(testcase)
+  testcase.set_metadata('last_tested_revision', revision, update_testcase=False)
+  if is_crash:
+    testcase.set_metadata(
+        'last_tested_crash_revision', revision, update_testcase=False)
+    testcase.set_metadata(
+        'last_tested_crash_time', utils.utcnow(), update_testcase=False)
+  if not testcase.open:
+    testcase.set_metadata('closed_time', utils.utcnow(), update_testcase=False)
+  update_testcase_comment(testcase, data_types.TaskState.FINISHED, message)
