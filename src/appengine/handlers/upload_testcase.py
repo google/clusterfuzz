@@ -328,7 +328,7 @@ class UploadHandlerCommon(object):
       raise helpers.EarlyExitException('Missing job name.', 400)
 
     job = data_types.Job.query(data_types.Job.name == job_type).get()
-    if not data_types.Job.VALID_NAME_REGEX.match(job_type) or not job:
+    if not job:
       raise helpers.EarlyExitException('Invalid job name.', 400)
 
     fuzzer_name = request.get('fuzzer')
