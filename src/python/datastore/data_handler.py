@@ -37,6 +37,7 @@ from base import tasks
 from base import utils
 from config import db_config
 from config import local_config
+from crash_analysis import crash_analyzer
 from crash_analysis import severity_analyzer
 from datastore import data_types
 from datastore import ndb_utils
@@ -1252,29 +1253,42 @@ def create_user_uploaded_testcase(key,
                                   retries,
                                   bug_summary_update_flag,
                                   quiet_flag,
-                                  additional_metadata=None):
+                                  additional_metadata=None,
+                                  crash_data=None):
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
-  testcase.crash_type = ''
-  testcase.crash_state = 'Pending'
-  testcase.crash_address = ''
-  testcase.crash_stacktrace = ''
+  if crash_data:
+    testcase.crash_type = crash_data.crash_type
+    testcase.crash_state = crash_data.crash_state
+    testcase.crash_address = crash_data.crash_address
+    testcase.crash_stacktrace = crash_data.crash_stacktrace
+    testcase.status = 'Processed'
+    testcase.security_flag = crash_analyzer.is_security_issue(
+        testcase.crash_stacktrace, testcase.crash_type, testcase.crash_address)
+    testcase.comments = '[%s] %s: External testcase upload.\n' % (
+        utils.current_date_time(), uploader_email)
+  else:
+    testcase.crash_type = ''
+    testcase.crash_state = 'Pending'
+    testcase.crash_address = ''
+    testcase.crash_stacktrace = ''
+    testcase.status = 'Pending'
+    testcase.security_flag = False
+    testcase.comments = '[%s] %s: Analyze task.\n' % (utils.current_date_time(),
+                                                      uploader_email)
+
   testcase.fuzzed_keys = key
   testcase.minimized_keys = ''
   testcase.bug_information = ''
   testcase.regression = ''
   testcase.fixed = ''
-  testcase.security_flag = False
   testcase.one_time_crasher_flag = False
   testcase.crash_revision = crash_revision
-  testcase.comments = '[%s] %s: Analyze task.\n' % (utils.current_date_time(),
-                                                    uploader_email)
   testcase.fuzzer_name = fuzzer_name
   testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name or fuzzer_name
   testcase.job_type = job_type
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
-  testcase.status = 'Pending'
   testcase.project_name = get_project_name(job_type)
 
   if archive_state or bundled:
@@ -1301,7 +1315,7 @@ def create_user_uploaded_testcase(key,
     for metadata_key, metadata_value in six.iteritems(additional_metadata):
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
-  testcase.timestamp = datetime.datetime.utcnow()
+  testcase.timestamp = utils.utcnow()
   testcase.uploader_email = uploader_email
   testcase.put()
 
@@ -1450,6 +1464,50 @@ def get_testcase_variant(testcase_id, job_type):
 # ------------------------------------------------------------------------------
 # Fuzz target related functions
 # ------------------------------------------------------------------------------
+
+FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
+FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
+
+
+@retry.wrap(
+    retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
+    delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
+    function='tasks.fuzz_task.record_fuzz_target')
+def record_fuzz_target(engine_name, binary_name, job_type):
+  """Record existence of fuzz target."""
+  if not binary_name:
+    logs.log_error('Expected binary_name.')
+    return None
+
+  project = get_project_name(job_type)
+  key_name = data_types.fuzz_target_fully_qualified_name(
+      engine_name, project, binary_name)
+
+  fuzz_target = ndb.Key(data_types.FuzzTarget, key_name).get()
+  if not fuzz_target:
+    fuzz_target = data_types.FuzzTarget(
+        engine=engine_name, project=project, binary=binary_name)
+    fuzz_target.put()
+
+  job_mapping_key = data_types.fuzz_target_job_key(key_name, job_type)
+  job_mapping = ndb.Key(data_types.FuzzTargetJob, job_mapping_key).get()
+  if job_mapping:
+    job_mapping.last_run = utils.utcnow()
+  else:
+    job_mapping = data_types.FuzzTargetJob(
+        fuzz_target_name=key_name,
+        job=job_type,
+        engine=engine_name,
+        last_run=utils.utcnow())
+  job_mapping.put()
+
+  logs.log(
+      'Recorded use of fuzz target %s.' % key_name,
+      project=project,
+      engine=engine_name,
+      binary_name=binary_name,
+      job_type=job_type)
+  return fuzz_target
 
 
 def get_fuzz_target(name):
