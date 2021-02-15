@@ -60,8 +60,17 @@ def handle_update(testcase, revision, stacktrace, error):
                   f'revision {last_tested_revision}.')
     return
 
+  fuzz_target = testcase.get_fuzz_target()
+  if fuzz_target:
+    fuzz_target_name = fuzz_target.binary
+  else:
+    fuzz_target_name = None
+
   state = stack_analyzer.get_crash_data(
-      stacktrace, symbolize_flag=False, already_symbolized=True)
+      stacktrace,
+      fuzz_target=fuzz_target_name,
+      symbolize_flag=False,
+      already_symbolized=True)
   crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
   if not crash_comparer.is_similar():
     logs.log(
