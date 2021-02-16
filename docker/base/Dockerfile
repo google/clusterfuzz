@@ -58,6 +58,7 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
     make install
 
 # Install OpenJDK 15 for Jazzer (Java fuzzer).
+# Copied from gcr.io/oss-fuzz-base/base-runner.
 ENV JAVA_HOME=/usr/lib/jvm/java-15-openjdk-amd64
 ENV JVM_LD_LIBRARY_PATH=$JAVA_HOME/lib/server
 ENV PATH=$PATH:$JAVA_HOME/bin
