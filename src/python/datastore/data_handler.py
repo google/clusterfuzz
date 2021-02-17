@@ -1262,6 +1262,7 @@ def create_user_uploaded_testcase(key,
     testcase.crash_state = crash_data.crash_state
     testcase.crash_address = crash_data.crash_address
     testcase.crash_stacktrace = crash_data.crash_stacktrace
+
     testcase.status = 'Processed'
     testcase.security_flag = crash_analyzer.is_security_issue(
         testcase.crash_stacktrace, testcase.crash_type, testcase.crash_address)
@@ -1322,9 +1323,13 @@ def create_user_uploaded_testcase(key,
   # Store the testcase upload metadata.
   testcase_id = testcase.key.id()
   metadata = data_types.TestcaseUploadMetadata()
-  metadata.security_flag = False
+  metadata.security_flag = testcase.security_flag
   metadata.filename = filename
-  metadata.status = 'Pending'
+  if testcase.status == 'Processed':
+    metadata.status = 'Confirmed'
+  else:
+    metadata.status = 'Pending'
+
   metadata.uploader_email = uploader_email
   metadata.testcase_id = testcase_id
   metadata.blobstore_key = key
@@ -1337,12 +1342,64 @@ def create_user_uploaded_testcase(key,
   metadata.timestamp = testcase.timestamp
   metadata.bug_summary_update_flag = bug_summary_update_flag
   metadata.quiet_flag = quiet_flag
+
+  if crash_data:
+    if crash_analyzer.ignore_stacktrace(testcase.crash_stacktrace):
+      close_invalid_uploaded_testcase(testcase, metadata, 'Irrelevant')
+      return testcase.key.id()
+
+    if check_uploaded_testcase_duplicate(testcase, metadata):
+      close_invalid_uploaded_testcase(testcase, metadata, 'Duplicate')
+      return testcase.key.id()
+
   metadata.put()
 
   # Create the job to analyze the testcase.
   tasks.add_task('analyze', testcase_id, job_type, queue)
-
   return testcase.key.id()
+
+
+def check_uploaded_testcase_duplicate(testcase, metadata):
+  """Check if the uploaded testcase is a duplicate."""
+  existing_testcase = find_testcase(testcase.project_name, testcase.crash_type,
+                                    testcase.crash_state,
+                                    testcase.security_flag)
+
+  if not existing_testcase or existing_testcase.key.id() == testcase.key.id():
+    return False
+
+  # If the existing test case is unreproducible and we are, replace the
+  # existing test case with this one.
+  if (existing_testcase.one_time_crasher_flag and
+      not testcase.one_time_crasher_flag):
+    duplicate_testcase = existing_testcase
+    original_testcase = testcase
+  else:
+    duplicate_testcase = testcase
+    original_testcase = existing_testcase
+    metadata.status = 'Duplicate'
+    metadata.duplicate_of = existing_testcase.key.id()
+
+  duplicate_testcase.status = 'Duplicate'
+  duplicate_testcase.duplicate_of = original_testcase.key.id()
+  duplicate_testcase.put()
+
+  return duplicate_testcase.key.id() == testcase.key.id()
+
+
+def close_invalid_uploaded_testcase(testcase, metadata, status):
+  """Closes an invalid testcase and updates metadata."""
+  testcase.status = status
+  testcase.open = False
+  testcase.minimized_keys = 'NA'
+  testcase.regression = 'NA'
+  testcase.set_impacts_as_na()
+  testcase.fixed = 'NA'
+  testcase.triaged = True
+  testcase.put()
+
+  metadata.status = status
+  metadata.put()
 
 
 # ------------------------------------------------------------------------------
