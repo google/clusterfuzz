@@ -69,14 +69,16 @@ FUZZ_TARGET_EXCLUDED_EXTENSIONS = [
     'exe', 'options', 'txt', 'zip', 'exe.pdb', 'par'
 ]
 
-# Binaries to explicitly include when unarchiving a fuzz target.
-FUZZ_TARGET_WHITELISTED_BINARIES = [
+# File prefixes to explicitly include when unarchiving a fuzz target.
+FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-cmin',
     'afl-fuzz',
     'afl-showmap',
     'afl-tmin',
     'honggfuzz',
     'llvm-symbolizer',
+    'jazzer_driver',
+    'jazzer_agent_deploy.jar',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
@@ -203,25 +205,25 @@ def _get_file_match_callback():
 
   logs.log('Extracting only files for target %s.' % fuzz_target)
 
-  whitelisted_names = tuple([fuzz_target] + FUZZ_TARGET_WHITELISTED_BINARIES)
-  blacklisted_extensions = tuple(
+  allowlisted_names = tuple([fuzz_target] + FUZZ_TARGET_ALLOWLISTED_PREFIXES)
+  blocklisted_extensions = tuple(
       '.' + extension for extension in FUZZ_TARGET_EXCLUDED_EXTENSIONS)
 
   def file_match_callback(filepath):
     """Returns True if any part (ie: directory or file) of the |filepath| starts
-     with one of the |whitelisted_names| or has an extension but does not end
-     with one of the |blacklisted_extensions|.
+     with one of the |allowlisted_names| or has an extension but does not end
+     with one of the |blocklisted_extensions|.
     """
     path_components = os.path.normpath(filepath).split(os.sep)
-    # Is it a whitelisted binary?
+    # Is it an allowlisted binary?
     if any(
-        component.startswith(whitelisted_names)
+        component.startswith(allowlisted_names)
         for component in path_components):
       return True
 
     basename = os.path.basename(filepath)
-    # Does it have a blacklisted extension?
-    if basename.endswith(blacklisted_extensions):
+    # Does it have a blocklisted extension?
+    if basename.endswith(blocklisted_extensions):
       return False
 
     # Does it have an extension?
