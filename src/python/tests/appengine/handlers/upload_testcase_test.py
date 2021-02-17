@@ -190,7 +190,7 @@ class UploadOAuthTest(unittest.TestCase):
         'project_name': 'proj',
         'queue': None,
         'redzone': 128,
-        'regression': '',
+        'regression': 'NA',
         'security_flag': False,
         'security_severity': None,
         'status': 'Processed',
@@ -335,7 +335,7 @@ class UploadOAuthTest(unittest.TestCase):
         'redzone':
             128,
         'regression':
-            '',
+            'NA',
         'security_flag':
             True,
         'security_severity':

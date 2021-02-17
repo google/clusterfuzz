@@ -1258,6 +1258,7 @@ def create_user_uploaded_testcase(key,
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
   if crash_data:
+    # External job with provided stacktrace.
     testcase.crash_type = crash_data.crash_type
     testcase.crash_state = crash_data.crash_state
     testcase.crash_address = crash_data.crash_address
@@ -1266,6 +1267,7 @@ def create_user_uploaded_testcase(key,
     testcase.status = 'Processed'
     testcase.security_flag = crash_analyzer.is_security_issue(
         testcase.crash_stacktrace, testcase.crash_type, testcase.crash_address)
+    testcase.regression = 'NA'
     testcase.comments = '[%s] %s: External testcase upload.\n' % (
         utils.current_date_time(), uploader_email)
   else:
@@ -1275,13 +1277,13 @@ def create_user_uploaded_testcase(key,
     testcase.crash_stacktrace = ''
     testcase.status = 'Pending'
     testcase.security_flag = False
+    testcase.regression = ''
     testcase.comments = '[%s] %s: Analyze task.\n' % (utils.current_date_time(),
                                                       uploader_email)
 
   testcase.fuzzed_keys = key
   testcase.minimized_keys = ''
   testcase.bug_information = ''
-  testcase.regression = ''
   testcase.fixed = ''
   testcase.one_time_crasher_flag = False
   testcase.crash_revision = crash_revision
