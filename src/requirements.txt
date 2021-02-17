@@ -19,5 +19,5 @@ PyYAML==5.1
 redis==3.3.11
 requests==2.21.0
 six==1.14.0
-tlslite-ng==0.7.5
+tlslite-ng==0.7.6
 twisted==20.3.0
