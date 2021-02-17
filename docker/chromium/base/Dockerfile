@@ -41,7 +41,7 @@ RUN apt-get update && \
     # 16.04's pyOpenSSL (installed by install-build-deps.sh) is too old for
     # Google Cloud SDK.
     sudo apt-get remove -y python-openssl && \
-    sudo pip2 install pyOpenSSL==19.0.0
+    sudo pip2 install cryptography==3.3.2 pyOpenSSL==19.0.0
 
 # Needed for older versions of Chrome.
 RUN ln -s /usr/lib/x86_64-linux-gnu/libudev.so /usr/lib/x86_64-linux-gnu/libudev.so.0
