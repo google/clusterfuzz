@@ -40,11 +40,11 @@ class IsFuzzTargetLocalTest(unittest.TestCase):
 
     return path
 
-  def test_not_a_fuzzer_not_valid_name(self):
+  def test_not_a_fuzzer_invalid_name(self):
     path = self._create_file('abc$_fuzzer', contents=b'LLVMFuzzerTestOneInput')
     self.assertFalse(utils.is_fuzz_target_local(path))
 
-  def test_not_a_fuzzer_jazzer_driver(self):
+  def test_not_a_fuzzer_blocklisted_name(self):
     path = self._create_file('jazzer_driver',
                              contents=b'LLVMFuzzerTestOneInput')
     self.assertFalse(utils.is_fuzz_target_local(path))
