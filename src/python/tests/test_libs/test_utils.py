@@ -327,7 +327,7 @@ def with_cloud_emulators(*emulator_names):
         for emulator in six.itervalues(_emulators):
           emulator.reset()
 
-        super(Wrapped, self).setUp()
+        super().setUp()
 
     Wrapped.__module__ = cls.__module__
     Wrapped.__name__ = cls.__name__
