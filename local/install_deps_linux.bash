@@ -51,12 +51,11 @@ fi
 # Check if the distro is supported.
 distro_codename=$(lsb_release --codename --short)
 distro_id=$(lsb_release --id --short)
-supported_codenames="(trusty|xenial|artful|bionic|cosmic|focal)"
+supported_codenames="(xenial|artful|bionic|cosmic|focal)"
 supported_ids="(Debian)"
 if [[ ! $distro_codename =~ $supported_codenames &&
       ! $distro_id =~ $supported_ids ]]; then
   echo -e "ERROR: The only supported distros are\n" \
-    "\tUbuntu 14.04 LTS (trusty)\n" \
     "\tUbuntu 16.04 LTS (xenial)\n" \
     "\tUbuntu 17.10 (artful)\n" \
     "\tUbuntu 18.04 LTS (bionic)\n" \
@@ -77,6 +76,7 @@ sudo apt-get update
 sudo apt-get install -y \
     blackbox \
     curl \
+    libpython3-all-dev \
     python3-pip \
     unzip \
     xvfb
@@ -103,27 +103,19 @@ if [ ! $only_reproduce ]; then
         sudo apt-key add -
   fi
 
-  # Set java_package so we know which to install.
-  if [ "$distro_codename" == "trusty" ]; then
-    sudo add-apt-repository -y ppa:webupd8team/java
-    java_package=oracle-java8-installer
-  else
-    java_package=openjdk-8-jdk
-  fi
-
   # Install apt-get packages.
   sudo apt-get update
   sudo apt-get install -y \
       docker-ce \
       google-cloud-sdk \
-      $java_package    \
+      openjdk-8-jdk \
       liblzma-dev
 
   # Install patchelf - latest version not available on some older distros so we
   # compile from source.
   # Needed for MemorySanitizer to patch instrumented system libraries into the
   # target binary (using RPATH).
-  unsupported_codenames="(trusty|xenial|jessie)"
+  unsupported_codenames="(xenial|jessie)"
   if [[ $distro_codename =~ $unsupported_codenames ]]; then
       (cd /tmp && \
           curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
