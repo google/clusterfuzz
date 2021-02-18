@@ -28,6 +28,7 @@ FUZZ_TARGET_SEARCH_BYTES = b'LLVMFuzzerTestOneInput'
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
 BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
 
+
 def is_fuzz_target_local(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
   # TODO(hzawawy): Handle syzkaller case.

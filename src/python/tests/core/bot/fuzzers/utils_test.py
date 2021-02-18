@@ -45,8 +45,8 @@ class IsFuzzTargetLocalTest(unittest.TestCase):
     self.assertFalse(utils.is_fuzz_target_local(path))
 
   def test_not_a_fuzzer_blocklisted_name(self):
-    path = self._create_file('jazzer_driver',
-                             contents=b'LLVMFuzzerTestOneInput')
+    path = self._create_file(
+        'jazzer_driver', contents=b'LLVMFuzzerTestOneInput')
     self.assertFalse(utils.is_fuzz_target_local(path))
 
   def test_not_a_fuzzer_without_extension(self):
@@ -58,8 +58,8 @@ class IsFuzzTargetLocalTest(unittest.TestCase):
     self.assertFalse(utils.is_fuzz_target_local(path))
 
   def test_not_a_fuzzer_with_extension_and_suffix(self):
-    path = self._create_file('abc_fuzzer.dict',
-                             contents=b'LLVMFuzzerTestOneInput')
+    path = self._create_file(
+        'abc_fuzzer.dict', contents=b'LLVMFuzzerTestOneInput')
     self.assertFalse(utils.is_fuzz_target_local(path))
 
   def test_fuzzer_posix(self):

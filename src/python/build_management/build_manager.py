@@ -360,7 +360,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
                                 llvm_symbolizer_path)
 
 
-class BaseBuild(object):
+class BaseBuild:
   """Represents a build."""
 
   def __init__(self, base_build_dir):
@@ -382,7 +382,7 @@ class Build(BaseBuild):
   """Repesents a build type at a particular revision."""
 
   def __init__(self, base_build_dir, revision, build_prefix=''):
-    super(Build, self).__init__(base_build_dir)
+    super().__init__(base_build_dir)
     self.revision = revision
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
@@ -688,7 +688,7 @@ class RegularBuild(Build):
                build_url,
                target_weights=None,
                build_prefix=''):
-    super(RegularBuild, self).__init__(base_build_dir, revision, build_prefix)
+    super().__init__(base_build_dir, revision, build_prefix)
     self.build_url = build_url
 
     if build_prefix:
@@ -767,7 +767,7 @@ class FuchsiaBuild(RegularBuild):
 
     assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES'), \
         'Fuchsia does not support partial unpacks'
-    result = super(FuchsiaBuild, self).setup()
+    result = super().setup()
     if not result:
       return result
 
@@ -796,7 +796,7 @@ class SymbolizedBuild(Build):
 
   def __init__(self, base_build_dir, revision, release_build_url,
                debug_build_url):
-    super(SymbolizedBuild, self).__init__(base_build_dir, revision)
+    super().__init__(base_build_dir, revision)
     self._build_dir = os.path.join(self.base_build_dir, 'symbolized')
     self.release_build_dir = os.path.join(self.build_dir, 'release')
     self.debug_build_dir = os.path.join(self.build_dir, 'debug')
@@ -862,7 +862,7 @@ class ProductionBuild(Build):
   """Production build."""
 
   def __init__(self, base_build_dir, version, build_url, build_type):
-    super(ProductionBuild, self).__init__(base_build_dir, version)
+    super().__init__(base_build_dir, version)
     self.build_url = build_url
     self.build_type = build_type
     self._build_dir = os.path.join(self.base_build_dir, self.build_type)
@@ -906,7 +906,7 @@ class CustomBuild(Build):
                custom_binary_filename,
                custom_binary_revision,
                target_weights=None):
-    super(CustomBuild, self).__init__(base_build_dir, custom_binary_revision)
+    super().__init__(base_build_dir, custom_binary_revision)
     self.custom_binary_key = custom_binary_key
     self.custom_binary_filename = custom_binary_filename
     self._build_dir = os.path.join(self.base_build_dir, 'custom')
@@ -984,7 +984,7 @@ class SystemBuild(Build):
   """System binary."""
 
   def __init__(self, system_binary_directory):
-    super(SystemBuild, self).__init__(None, 1)
+    super().__init__(None, 1)
     self._build_dir = system_binary_directory
 
   @property
