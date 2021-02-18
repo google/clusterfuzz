@@ -51,6 +51,9 @@ STOP_CVD_WAIT = 20
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
 LSUSB_SERIAL_RE = re.compile(r'\s+iSerial\s+\d\s+(.*)')
 
+# Output pattners to parse "adb devices" output.
+DEVICE_LINE_RE = re.compile(r'([\w-]+)\s+device')
+
 # This is a constant value defined in usbdevice_fs.h in Linux system.
 USBDEVFS_RESET = ord('U') << 8 | 20
 
@@ -191,6 +194,16 @@ def get_adb_path():
     return adb_path
 
   return os.path.join(environment.get_platform_resources_directory(), 'adb')
+
+def get_devices():
+  adb_cmd_line = '%s devices' % get_adb_path()
+  result = execute_command(adb_cmd_line)
+  out = set()
+  for line in result.splitlines():
+    match = DEVICE_LINE_RE.match(line)
+    if match:
+      out.add(match.group(1))
+  return out
 
 
 def get_device_state():
@@ -571,7 +584,7 @@ def run_command(cmd,
   if (output in [
       DEVICE_HANG_STRING, DEVICE_OFFLINE_STRING,
       device_not_found_string_with_serial
-  ]):
+  ]) and environment.platform() != 'EMULATED_ANDROID':
     logs.log_warn('Unable to query device, resetting device connection.')
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.

@@ -200,7 +200,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
 def get_cpu_arch():
   """Return cpu architecture."""
-  if is_android():
+  if is_android() and platform() != 'EMULATED_ANDROID':
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
     return android.settings.get_cpu_arch()
@@ -471,6 +471,8 @@ def get_platform_id():
   """Return a platform id as a lowercase string."""
   bot_platform = platform()
   if is_android(bot_platform):
+    if platform() == 'EMULATED_ANDROID':
+      return bot_platform.lower()
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
 

@@ -37,6 +37,8 @@ from fuzzing import strategy
 from metrics import logs
 from platforms import android
 from platforms import fuchsia
+from platforms.android.emulator import start_emulator
+from platforms.android.emulator import stop_emulator
 from platforms.fuchsia.device import QemuProcess
 from platforms.fuchsia.device import start_qemu
 from platforms.fuchsia.device import stop_qemu
@@ -1296,6 +1298,26 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
       return result
 
+class EmulatedAndroidLibFuzzerRunner(AndroidLibFuzzerRunner):
+  """Android libFuzzer runner."""
+
+  def __init__(self, executable_path, build_directory, default_args=None):
+    """Inits the EmulatedAndroidLibFuzzerRunner.
+
+    Args:
+      executable_path: Path to the fuzzer executable.
+      build_directory: A MinijailChroot.
+      default_args: Default arguments to always pass to the fuzzer.
+    """
+    start_emulator()
+
+    super().__init__(
+        executable_path=executable_path, build_directory=build_directory,
+        default_args=default_args)
+
+  def __del__(self):
+    stop_emulator()
+
 
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
   """Get a libfuzzer runner."""
@@ -1366,7 +1388,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
   elif is_fuchsia:
     runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   elif is_android:
-    runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
+    if environment.platform() == 'EMULATED_ANDROID':
+      runner = EmulatedAndroidLibFuzzerRunner(fuzzer_path, build_dir)
+    else:
+      runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   elif use_unshare:
     runner = UnshareLibFuzzerRunner(fuzzer_path)  # pylint: disable=too-many-function-args
   else:
