@@ -64,8 +64,8 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
     self.fs.create_file(
         os.path.join('/input', 'valid.txt'), contents='valid file')
     self.fs.create_file(
-        os.path.join('/input', 'unreadable.txt'), contents='unreadable file')
-    os.chmod(os.path.join('/input', 'unreadable.txt'), 0)
+        os.path.join('/input', 'unreadable.txt'), contents='unreadable file',
+        st_mode=0)  # Make file unreadable. Chmod doesn't seem to work.
 
   def test_nonexistent_file(self):
     """Ensure that we respond with 404 for a nonexistent file."""
