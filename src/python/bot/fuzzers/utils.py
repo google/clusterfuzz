@@ -26,7 +26,7 @@ from system import shell
 ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
 FUZZ_TARGET_SEARCH_BYTES = b'LLVMFuzzerTestOneInput'
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
-INVALID_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
+BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
 
 def is_fuzz_target_local(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
@@ -36,8 +36,8 @@ def is_fuzz_target_local(file_path, file_handle=None):
     # Check fuzz target has a valid name (without any special chars).
     return False
 
-  if INVALID_TARGET_NAME_REGEX.match(filename):
-    # Check fuzz target an explicitly disallowd name (e.g. binaries used for
+  if BLOCKLISTED_TARGET_NAME_REGEX.match(filename):
+    # Check fuzz target an explicitly disallowed name (e.g. binaries used for
     # jazzer-based targets).
     return False
 
