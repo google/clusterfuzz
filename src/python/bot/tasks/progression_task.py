@@ -48,32 +48,6 @@ def _write_to_bigquery(testcase, progression_range_start,
       end=progression_range_end)
 
 
-def _clear_progression_pending(testcase):
-  """If we marked progression as pending for this testcase, clear that state."""
-  if not testcase.get_metadata('progression_pending'):
-    return
-
-  testcase.delete_metadata('progression_pending', update_testcase=False)
-
-
-def _update_completion_metadata(testcase,
-                                revision,
-                                is_crash=False,
-                                message=None):
-  """Update metadata the progression task completes."""
-  _clear_progression_pending(testcase)
-  testcase.set_metadata('last_tested_revision', revision, update_testcase=False)
-  if is_crash:
-    testcase.set_metadata(
-        'last_tested_crash_revision', revision, update_testcase=False)
-    testcase.set_metadata(
-        'last_tested_crash_time', utils.utcnow(), update_testcase=False)
-  if not testcase.open:
-    testcase.set_metadata('closed_time', utils.utcnow(), update_testcase=False)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
-                                       message)
-
-
 def _log_output(revision, crash_result):
   """Log process output."""
   logs.log(
@@ -122,7 +96,7 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
     testcase.last_tested_crash_stacktrace = data_handler.filter_stacktrace(
         stacktrace)
-    _update_completion_metadata(
+    data_handler.update_progression_completion_metadata(
         testcase,
         revision,
         is_crash=True,
@@ -133,13 +107,13 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
   # a bad state which we didn't catch through our usual means.
   if data_handler.is_first_retry_for_task(testcase, reset_after_retry=True):
     tasks.add_task('progression', testcase_id, job_type)
-    _update_completion_metadata(testcase, revision)
+    data_handler.update_progression_completion_metadata(testcase, revision)
     return
 
   # The bug is fixed.
   testcase.fixed = 'Yes'
   testcase.open = False
-  _update_completion_metadata(
+  data_handler.update_progression_completion_metadata(
       testcase, revision, message='fixed on latest custom build')
 
 
@@ -207,7 +181,7 @@ def _save_fixed_range(testcase_id, min_revision, max_revision,
   testcase.fixed = '%d:%d' % (min_revision, max_revision)
   testcase.open = False
 
-  _update_completion_metadata(
+  data_handler.update_progression_completion_metadata(
       testcase, max_revision, message='fixed in range r%s' % testcase.fixed)
   _write_to_bigquery(testcase, min_revision, max_revision)
 
@@ -333,7 +307,7 @@ def find_fixed_range(testcase_id, job_type):
     testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.last_tested_crash_stacktrace = data_handler.filter_stacktrace(
         stacktrace)
-    _update_completion_metadata(
+    data_handler.update_progression_completion_metadata(
         testcase,
         max_revision,
         is_crash=True,
@@ -369,10 +343,11 @@ def find_fixed_range(testcase_id, job_type):
           'confirm result' % known_crash_revision)
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      _update_completion_metadata(testcase, max_revision)
+      data_handler.update_progression_completion_metadata(
+          testcase, max_revision)
       return
 
-    _clear_progression_pending(testcase)
+    data_handler.clear_progression_pending(testcase)
     error_message = (
         'Known crash revision %d did not crash' % known_crash_revision)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
@@ -401,7 +376,8 @@ def find_fixed_range(testcase_id, job_type):
       testcase.open = False
       message = ('Fixed testing errored out (min and max revisions '
                  'are both %d)' % min_revision)
-      _update_completion_metadata(testcase, max_revision, message=message)
+      data_handler.update_progression_completion_metadata(
+          testcase, max_revision, message=message)
 
       # Let the bisection service know about the NA status.
       bisection.request_bisection(testcase)

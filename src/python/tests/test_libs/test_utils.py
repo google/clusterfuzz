@@ -327,7 +327,7 @@ def with_cloud_emulators(*emulator_names):
         for emulator in six.itervalues(_emulators):
           emulator.reset()
 
-        super(Wrapped, self).setUp()
+        super().setUp()
 
     Wrapped.__module__ = cls.__module__
     Wrapped.__name__ = cls.__name__
@@ -336,11 +336,11 @@ def with_cloud_emulators(*emulator_names):
   return decorator
 
 
-def set_up_pyfakefs(test_self):
+def set_up_pyfakefs(test_self, allow_root_user=True):
   """Helper to set up Pyfakefs."""
   real_cwd = os.path.realpath(os.getcwd())
   config_dir = os.path.realpath(environment.get_config_directory())
-  test_self.setUpPyfakefs()
+  test_self.setUpPyfakefs(allow_root_user=allow_root_user)
   test_self.fs.add_real_directory(config_dir, lazy_read=False)
   os.chdir(real_cwd)
 

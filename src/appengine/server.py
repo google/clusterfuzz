@@ -30,6 +30,7 @@ from handlers import crash_query
 from handlers import crash_stats
 from handlers import domain_verifier
 from handlers import download
+from handlers import external_update
 from handlers import fuzzer_stats
 from handlers import fuzzers
 from handlers import gcs_redirector
@@ -133,6 +134,7 @@ cron_routes = [
     ('/build-crash-stats', build_crash_stats.Handler),
     ('/cleanup', cleanup.Handler),
     ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),
+    ('/external-update', external_update.Handler),
     ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
     ('/fuzzer-coverage', fuzzer_coverage.Handler),
     ('/fuzzer-stats/cache', fuzzer_stats.RefreshCacheHandler),

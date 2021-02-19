@@ -55,7 +55,7 @@ class RequestHandlerTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     """Setup for request handler test."""
-    test_utils.set_up_pyfakefs(self)
+    test_utils.set_up_pyfakefs(self, allow_root_user=False)
     helpers.patch_environ(self)
 
     os.environ['FUZZ_DATA'] = '/data'

@@ -41,7 +41,7 @@ RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula selec
 # 16.04's pyOpenSSL (installed by install-build-deps.sh) is too old for
 # Google Cloud SDK.
 RUN sudo apt-get remove -y python-openssl && \
-    sudo pip2 install pyOpenSSL==19.0.0
+    sudo pip2 install cryptography==3.3.2 pyOpenSSL==19.0.0
 
 RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git \
     /data/depot_tools
