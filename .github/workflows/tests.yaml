@@ -29,6 +29,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
+          
+      - name: Lint Python code
+        run: |
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Run basic tests
         run: ./local/tests/ci_tests.bash
