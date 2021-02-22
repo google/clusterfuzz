@@ -14,6 +14,7 @@
 """Tests for external_update."""
 
 import base64
+import datetime
 import json
 import os
 import unittest
@@ -45,6 +46,7 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.app = webtest.TestApp(flaskapp)
 
     test_helpers.patch(self, [
+        'base.utils.utcnow',
         'google.oauth2.id_token.verify_oauth2_token',
     ])
 
@@ -52,17 +54,22 @@ class ExternalUpdatesTest(unittest.TestCase):
         'email_verified': True,
         'email': 'test-clusterfuzz@appspot.gserviceaccount.com',
     }
+    self.mock.utcnow.return_value = datetime.datetime(2021, 1, 1)
 
     data_types.Job(
-        name='external_job',
+        name='libfuzzer_external_job',
         external_reproduction_topic='topic',
         external_updates_subscription='subscription').put()
     data_types.Job(name='job').put()
 
+    data_types.FuzzTarget(engine='libFuzzer', binary='fuzzer').put()
+
     self.testcase = data_types.Testcase(
         open=True,
         status='Processed',
-        job_type='external_job',
+        fuzzer_name='libFuzzer',
+        overridden_fuzzer_name='libFuzzer_fuzzer',
+        job_type='libfuzzer_external_job',
         crash_state=('blink::InputTypeView::element\n'
                      'blink::TextFieldInputType::didSetValueByUserEdit\n'
                      'blink::TextFieldInputType::subtreeHasChanged\n'),
@@ -209,3 +216,20 @@ class ExternalUpdatesTest(unittest.TestCase):
         content_type='application/octet-stream',
         expect_errors=True)
     self.assertEqual(400, resp.status_int)
+
+  def test_update_records_fuzz_target(self):
+    """Test that updating records the fuzz target."""
+    stacktrace = self._read_test_data('asan_uaf.txt')
+    self.app.post(
+        '/external-update',
+        params=self._make_message(stacktrace, {
+            'testcaseId': self.testcase.key.id(),
+            'revision': '1337'
+        }),
+        headers={'Authorization': 'Bearer fake'},
+        content_type='application/octet-stream')
+
+    fuzz_target_job = data_types.FuzzTargetJob.get_by_id(
+        'libFuzzer_fuzzer/libfuzzer_external_job')
+    self.assertIsNotNone(fuzz_target_job)
+    self.assertEqual(datetime.datetime(2021, 1, 1), fuzz_target_job.last_run)
