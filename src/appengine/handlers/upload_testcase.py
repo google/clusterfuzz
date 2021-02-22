@@ -409,7 +409,7 @@ class UploadHandlerCommon(object):
           detect_ooms_and_hangs=True)
     elif stacktrace:
       raise helpers.EarlyExitException(
-          'Unable to specify stacktrace for non-external jobs.', 400)
+          'Should not specify stacktrace for non-external jobs.', 400)
 
     testcase_metadata = request.get('metadata', {})
     if testcase_metadata:
