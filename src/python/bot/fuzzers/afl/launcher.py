@@ -516,7 +516,7 @@ class AflRunnerCommon(object):
 
   # The timeout we will use if autocalibrating results in too many hangs. This
   # is the maximum autocalibrated timeout afl-fuzz can set.
-  MANUAL_TIMEOUT_MILLISECONDS = 1000
+  MANUAL_TIMEOUT_MILLISECONDS = 5000
 
   # Regexes used to determine which file caused AFL to quit.
   CRASH_REGEX = re.compile(
