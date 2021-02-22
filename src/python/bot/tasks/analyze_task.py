@@ -65,21 +65,6 @@ def _add_default_issue_metadata(testcase):
     testcase.set_metadata(key, new_value)
 
 
-def close_invalid_testcase_and_update_status(testcase, metadata, status):
-  """Closes an invalid testcase and updates metadata."""
-  testcase.status = status
-  testcase.open = False
-  testcase.minimized_keys = 'NA'
-  testcase.regression = 'NA'
-  testcase.set_impacts_as_na()
-  testcase.fixed = 'NA'
-  testcase.triaged = True
-  testcase.put()
-
-  metadata.status = status
-  metadata.put()
-
-
 def setup_build(testcase):
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
@@ -163,8 +148,8 @@ def execute_task(testcase_id, job_type):
       tasks.add_task(
           'analyze', testcase_id, job_type, wait_time=build_fail_wait)
     else:
-      close_invalid_testcase_and_update_status(testcase, metadata,
-                                               'Build setup failed')
+      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                   'Build setup failed')
     return
 
   # Update initial testcase information.
@@ -271,8 +256,8 @@ def execute_task(testcase_id, job_type):
       tasks.add_task('analyze', testcase_id, job_type)
       return
 
-    close_invalid_testcase_and_update_status(testcase, metadata,
-                                             'Unreproducible')
+    data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                 'Unreproducible')
 
     # A non-reproducing testcase might still impact production branches.
     # Add the impact task to get that information.
@@ -307,7 +292,8 @@ def execute_task(testcase_id, job_type):
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
-    close_invalid_testcase_and_update_status(testcase, metadata, 'Irrelavant')
+    data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                 'Irrelavant')
     return
 
   # Test for reproducibility.
@@ -317,31 +303,15 @@ def execute_task(testcase_id, job_type):
   testcase.one_time_crasher_flag = one_time_crasher_flag
 
   # Check to see if this is a duplicate.
-  project_name = data_handler.get_project_name(job_type)
-  existing_testcase = data_handler.find_testcase(
-      project_name, state.crash_type, state.crash_state, security_flag)
-  if existing_testcase:
-    # If the existing test case is unreproducible and we are, replace the
-    # existing test case with this one.
-    if existing_testcase.one_time_crasher_flag and not one_time_crasher_flag:
-      duplicate_testcase = existing_testcase
-      original_testcase = testcase
-    else:
-      duplicate_testcase = testcase
-      original_testcase = existing_testcase
-      metadata.status = 'Duplicate'
-      metadata.duplicate_of = existing_testcase.key.id()
-
-    duplicate_testcase.status = 'Duplicate'
-    duplicate_testcase.duplicate_of = original_testcase.key.id()
-    duplicate_testcase.put()
+  data_handler.check_uploaded_testcase_duplicate(testcase, metadata)
 
   # Set testcase and metadata status if not set already.
   if testcase.status == 'Duplicate':
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
     if metadata.quiet_flag:
-      close_invalid_testcase_and_update_status(testcase, metadata, 'Duplicate')
+      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                   'Duplicate')
       return
   else:
     # New testcase.
