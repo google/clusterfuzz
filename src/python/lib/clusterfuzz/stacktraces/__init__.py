@@ -52,7 +52,7 @@ class CrashInfo:
     self.last_frame_id = -1
     self.raw_frames = []
 
-    # Additional tracking for Android bugs.
+    # Additional tracking for Java bugs.
     self.found_java_exception = False
 
     # Additional tracking for bad casts.
@@ -168,6 +168,7 @@ class StackParser:
                             type_filter=lambda s: s,
                             reset=False):
     """Update the specified parts of the state if we have a match."""
+
     match = compiled_regex.match(line)
     if not match:
       return None
@@ -864,6 +865,13 @@ class StackParser:
             state,
             address_from_group=1)
 
+        if self.update_state_on_match(
+            JAZZER_JAVA_EXCEPTION_REGEX,
+            line,
+            state,
+            new_type='Uncaught exception'):
+          state.found_java_exception = True
+
         # Android fatal exceptions.
         if self.update_state_on_match(
             ANDROID_FATAL_EXCEPTION_REGEX,
@@ -1106,12 +1114,13 @@ class StackParser:
           frame_spec=CHROME_WIN_STACK_FRAME_SPEC):
         continue
 
-      # Android java exception stack frames.
-      if (state.found_java_exception and
-          state.crash_type in ['CHECK failure', 'Fatal Exception'] and
+      if state.found_java_exception:
+        if (state.crash_type in [
+            'CHECK failure', 'Fatal Exception', 'Uncaught exception'
+        ]):
           self.add_frame_on_match(
-              JAVA_EXCEPTION_CRASH_STATE_REGEX, line, state, group=1)):
-        continue
+              JAVA_EXCEPTION_CRASH_STATE_REGEX, line, state, group=1)
+          continue
 
       # Android kernel stack frame.
       android_kernel_match = self.add_frame_on_match(
