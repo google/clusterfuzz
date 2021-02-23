@@ -1,0 +1,94 @@
+Component revisions (build r202102230627):
+Aflplusplus: a252943236b12c080248747bee06c9c5084b871e
+
+Return code: 1
+
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_java-example_ca0c2183f04969f980c82599d6a9432269cc0a5a/revisions/ExampleValueProfileFuzzer -timeout=25 -rss_limit_mb=2560 -fork=2 -artifact_prefix=/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/ -max_total_time=5580 -print_final_stats=1 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-429/new /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/temp-429/mutations /mnt/scratch0/clusterfuzz/bot/inputs/data-bundles/java-example_ExampleValueProfileFuzzer
+Bot: oss-fuzz-linux-zone4-worker-java-example-dp56
+Time ran: 285.50702118873596
+
+INFO: Loaded 8562 no-throw method signatures
+INFO: Instrumented ExampleValueProfileFuzzer (took 159 ms, size +94%)
+INFO: libFuzzer ignores flags that start with '--'
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3763507734
+INFO: Loaded 1 modules   (512 inline 8-bit counters): 512 [0x7f372f8f9010, 0x7f372f8f9210),
+INFO: Loaded 1 PC tables (512 PCs): 512 [0x7f372e4f7010,0x7f372e4f9010),
+INFO: -fork=2: fuzzing in separate process(s)
+INFO: -fork=2: 4 seed inputs, starting to fuzz in /tmp/libFuzzerTemp.FuzzWithFork5818.dir
+#500176: cov: 12 ft: 13 corp: 4 exec/s 250088 oom/timeout/crash: 0/0/0 time: 3s job: 1 dft_time: 0
+#1256522: cov: 12 ft: 13 corp: 4 exec/s 252115 oom/timeout/crash: 0/0/0 time: 4s job: 2 dft_time: 0
+#2281770: cov: 12 ft: 13 corp: 4 exec/s 256312 oom/timeout/crash: 0/0/0 time: 8s job: 3 dft_time: 0
+#3527922: cov: 12 ft: 13 corp: 4 exec/s 249230 oom/timeout/crash: 0/0/0 time: 10s job: 4 dft_time: 0
+#5063398: cov: 12 ft: 13 corp: 4 exec/s 255912 oom/timeout/crash: 0/0/0 time: 15s job: 5 dft_time: 0
+#6851619: cov: 12 ft: 13 corp: 4 exec/s 255460 oom/timeout/crash: 0/0/0 time: 18s job: 6 dft_time: 0
+#8899229: cov: 12 ft: 13 corp: 4 exec/s 255951 oom/timeout/crash: 0/0/0 time: 24s job: 7 dft_time: 0
+#11257374: cov: 12 ft: 13 corp: 4 exec/s 262016 oom/timeout/crash: 0/0/0 time: 28s job: 8 dft_time: 0
+#13861955: cov: 12 ft: 13 corp: 4 exec/s 260458 oom/timeout/crash: 0/0/0 time: 35s job: 9 dft_time: 0
+#16698475: cov: 12 ft: 13 corp: 4 exec/s 257865 oom/timeout/crash: 0/0/0 time: 40s job: 10 dft_time: 0
+#19909131: cov: 12 ft: 13 corp: 4 exec/s 267554 oom/timeout/crash: 0/0/0 time: 48s job: 11 dft_time: 0
+#23276890: cov: 12 ft: 13 corp: 4 exec/s 259058 oom/timeout/crash: 0/0/0 time: 54s job: 12 dft_time: 0
+#26973732: cov: 12 ft: 13 corp: 4 exec/s 264060 oom/timeout/crash: 0/0/0 time: 63s job: 13 dft_time: 0
+#30871660: cov: 12 ft: 13 corp: 4 exec/s 259861 oom/timeout/crash: 0/0/0 time: 70s job: 14 dft_time: 0
+#35129770: cov: 12 ft: 13 corp: 4 exec/s 266131 oom/timeout/crash: 0/0/0 time: 79s job: 15 dft_time: 0
+#39598114: cov: 12 ft: 13 corp: 4 exec/s 262843 oom/timeout/crash: 0/0/0 time: 87s job: 16 dft_time: 0
+#44327295: cov: 12 ft: 13 corp: 4 exec/s 262732 oom/timeout/crash: 0/0/0 time: 98s job: 17 dft_time: 0
+#49396412: cov: 12 ft: 13 corp: 4 exec/s 266795 oom/timeout/crash: 0/0/0 time: 107s job: 18 dft_time: 0
+#54736272: cov: 12 ft: 13 corp: 4 exec/s 266993 oom/timeout/crash: 0/0/0 time: 119s job: 19 dft_time: 0
+#60274836: cov: 12 ft: 13 corp: 4 exec/s 263741 oom/timeout/crash: 0/0/0 time: 129s job: 20 dft_time: 0
+#66196640: cov: 12 ft: 13 corp: 4 exec/s 269172 oom/timeout/crash: 0/0/0 time: 142s job: 21 dft_time: 0
+#72342843: cov: 12 ft: 13 corp: 4 exec/s 267226 oom/timeout/crash: 0/0/0 time: 153s job: 22 dft_time: 0
+#78649103: cov: 12 ft: 13 corp: 4 exec/s 262760 oom/timeout/crash: 0/0/0 time: 167s job: 23 dft_time: 0
+#85208486: cov: 12 ft: 13 corp: 4 exec/s 262375 oom/timeout/crash: 0/0/0 time: 179s job: 24 dft_time: 0
+#92167527: cov: 12 ft: 13 corp: 4 exec/s 267655 oom/timeout/crash: 0/0/0 time: 194s job: 25 dft_time: 0
+#99557760: cov: 12 ft: 13 corp: 4 exec/s 273712 oom/timeout/crash: 0/0/0 time: 207s job: 26 dft_time: 0
+#107133236: cov: 12 ft: 13 corp: 4 exec/s 270552 oom/timeout/crash: 0/0/0 time: 222s job: 27 dft_time: 0
+#114994328: cov: 12 ft: 13 corp: 4 exec/s 271072 oom/timeout/crash: 0/0/0 time: 236s job: 28 dft_time: 0
+#123103372: cov: 12 ft: 13 corp: 4 exec/s 270301 oom/timeout/crash: 0/0/0 time: 253s job: 29 dft_time: 0
+#131445512: cov: 12 ft: 13 corp: 4 exec/s 269101 oom/timeout/crash: 0/0/0 time: 268s job: 30 dft_time: 0
+#139436041: cov: 12 ft: 13 corp: 4 exec/s 266350 oom/timeout/crash: 0/0/0 time: 284s job: 31 dft_time: 0
+INFO: log from the inner process:
+INFO: Loaded 8562 no-throw method signatures
+INFO: Instrumented ExampleValueProfileFuzzer (took 261 ms, size +94%)
+INFO: libFuzzer ignores flags that start with '--'
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 4018147058
+INFO: Loaded 1 modules   (512 inline 8-bit counters): 512 [0x7f609eb5d010, 0x7f609eb5d210),
+INFO: Loaded 1 PC tables (512 PCs): 512 [0x7f609d75b010,0x7f609d75d010),
+INFO:        0 files found in /tmp/libFuzzerTemp.FuzzWithFork5818.dir/C31
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 2 min: 1b max: 22b total: 23b rss: 102Mb
+#3	INITED cov: 10 ft: 10 corp: 2/23b exec/s: 0 rss: 102Mb
+#4	NEW    cov: 11 ft: 12 corp: 3/45b lim: 22 exec/s: 0 rss: 102Mb L: 22/22 MS: 1 ChangeBit-
+#51	NEW    cov: 12 ft: 13 corp: 4/65b lim: 22 exec/s: 0 rss: 102Mb L: 20/22 MS: 2 ShuffleBytes-EraseBytes-
+#77	REDUCE cov: 12 ft: 13 corp: 4/64b lim: 22 exec/s: 0 rss: 102Mb L: 19/22 MS: 1 EraseBytes-
+#120	REDUCE cov: 12 ft: 13 corp: 4/62b lim: 22 exec/s: 0 rss: 102Mb L: 17/22 MS: 3 InsertByte-CMP-EraseBytes- DE: "\x00\x00\x00\x00"-
+#546	REDUCE cov: 12 ft: 13 corp: 4/60b lim: 26 exec/s: 0 rss: 102Mb L: 15/22 MS: 1 EraseBytes-
+#608	REDUCE cov: 12 ft: 13 corp: 4/56b lim: 26 exec/s: 0 rss: 102Mb L: 11/22 MS: 2 ChangeBit-EraseBytes-
+#721	REDUCE cov: 12 ft: 13 corp: 4/55b lim: 26 exec/s: 0 rss: 102Mb L: 10/22 MS: 3 CopyPart-EraseBytes-EraseBytes-
+#1065	REDUCE cov: 12 ft: 13 corp: 4/54b lim: 26 exec/s: 0 rss: 102Mb L: 9/22 MS: 4 ChangeByte-CrossOver-InsertByte-EraseBytes-
+#2416	REDUCE cov: 12 ft: 13 corp: 4/52b lim: 39 exec/s: 0 rss: 102Mb L: 7/22 MS: 1 EraseBytes-
+#4212	REDUCE cov: 12 ft: 13 corp: 4/51b lim: 54 exec/s: 0 rss: 102Mb L: 6/22 MS: 1 EraseBytes-
+#524288	pulse  cov: 12 ft: 13 corp: 4/51b lim: 4096 exec/s: 262144 rss: 130Mb
+#1048576	pulse  cov: 12 ft: 13 corp: 4/51b lim: 4096 exec/s: 262144 rss: 130Mb
+#2097152	pulse  cov: 12 ft: 13 corp: 4/51b lim: 4096 exec/s: 262144 rss: 140Mb
+#4194304	pulse  cov: 12 ft: 13 corp: 4/51b lim: 4096 exec/s: 279620 rss: 140Mb
+
+== Java Exception: java.lang.IllegalStateException: mustNeverBeCalled has been called
+	at ExampleValueProfileFuzzer.mustNeverBeCalled(ExampleValueProfileFuzzer.java:51)
+	at ExampleValueProfileFuzzer.fuzzerTestOneInput(ExampleValueProfileFuzzer.java:43)
+DEDUP_TOKEN: b67dcd8309cda923
+== libFuzzer crashing input ==
+MS: 2 ChangeBit-CMP- DE: "rofiling"-; base unit: 0255fd8c09de12d6ad52395ba1eb286fac984e79
+0x4a,0x61,0x7a,0x7a,0x65,0x72,0x20,0x76,0x61,0x6c,0x75,0x65,0x20,0x70,0x72,0x6f,0x66,0x69,0x6c,0x69,0x6e,0x67,0x9b,0x54,0xb1,0x91,0x91,0x91,0x3b,0x91,
+Jazzer value profiling\x9bT\xb1\x91\x91\x91;\x91
+artifact_prefix='/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/'; Test unit written to /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-4f48d3556a89484bef11c713724d80dbb181d213
+Base64: SmF6emVyIHZhbHVlIHByb2ZpbGluZ5tUsZGRkTuR
+stat::number_of_executed_units: 7990529
+stat::average_exec_per_sec:     266350
+stat::new_units_added:          10
+stat::slowest_unit_time_sec:    0
+stat::peak_rss_mb:              141
+reproducer_path='.'; Java reproducer written to ./Crash_4f48d3556a89484bef11c713724d80dbb181d213.java
+INFO: exiting: 77 time: 284s
+cf::fuzzing_strategies: fork:2

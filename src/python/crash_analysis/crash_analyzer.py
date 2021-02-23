@@ -26,14 +26,9 @@ ASSERT_CRASH_ADDRESSES = [
     0x00009f7537dd,
 ]
 GENERIC_CRASH_TYPES = [
-    'Null-dereference',
-    'Null-dereference READ',
-    'Null-dereference WRITE',
-    'READ',
-    'UNKNOWN',
-    'UNKNOWN READ',
-    'UNKNOWN WRITE',
-    'WRITE',
+    'Null-dereference', 'Null-dereference READ', 'Null-dereference WRITE',
+    'READ', 'UNKNOWN', 'UNKNOWN READ', 'UNKNOWN WRITE', 'WRITE',
+    'Uncaught exception'
 ]
 SIGNAL_SIGNATURES_NOT_SECURITY = [
     'Sanitizer: ABRT',
