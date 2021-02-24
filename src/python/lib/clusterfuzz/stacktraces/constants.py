@@ -105,6 +105,7 @@ GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
 HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
+JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*: .*')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
 KASAN_ACCESS_TYPE_ADDRESS_REGEX = re.compile(
@@ -405,6 +406,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^android\.os\.Parcel\.',
     r'^art::Thread::CreateNativeThread',
     r'^asan_',
+    r'^asan\.module_ctor',
+    r'^asan\.module_dtor',
     r'^calloc',
     r'^check_memory_region',
     r'^common_exit',
@@ -437,6 +440,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^std::panic',
     r'^std::process::abort',
     r'^std::sys::unix::abort',
+    r'^__scrt_common_main_seh',
 
     # Functions names (contains).
     r'.*ASAN_OnSIGSEGV',
@@ -503,7 +507,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Others (uncategorized).
     r'.*\+Unknown',
     r'.*<unknown module>',
-    r'.*Inline Function \@',
+    r'.*Inline Function @',
     r'^<unknown>$',
     r'^\[vdso\]$',
 

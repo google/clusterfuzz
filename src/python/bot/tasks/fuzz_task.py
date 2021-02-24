@@ -25,7 +25,6 @@ import time
 from google.cloud import ndb
 
 from base import dates
-from base import retry
 from base import utils
 from bot import testcase_manager
 from bot.fuzzers import builtin
@@ -65,8 +64,6 @@ from system import shell
 
 SelectionMethod = namedtuple('SelectionMethod', 'method_name probability')
 
-FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
-FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
 FUZZER_FAILURE_THRESHOLD = 0.33
@@ -781,47 +778,6 @@ def pick_window_argument():
 
   environment.set_value('WINDOW_ARG', window_argument)
   return window_argument
-
-
-@retry.wrap(
-    retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
-    delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
-    function='tasks.fuzz_task.record_fuzz_target')
-def record_fuzz_target(engine_name, binary_name, job_type):
-  """Record existence of fuzz target."""
-  if not binary_name:
-    logs.log_error('Expected binary_name.')
-    return None
-
-  project = data_handler.get_project_name(job_type)
-  key_name = data_types.fuzz_target_fully_qualified_name(
-      engine_name, project, binary_name)
-
-  fuzz_target = ndb.Key(data_types.FuzzTarget, key_name).get()
-  if not fuzz_target:
-    fuzz_target = data_types.FuzzTarget(
-        engine=engine_name, project=project, binary=binary_name)
-    fuzz_target.put()
-
-  job_mapping_key = data_types.fuzz_target_job_key(key_name, job_type)
-  job_mapping = ndb.Key(data_types.FuzzTargetJob, job_mapping_key).get()
-  if job_mapping:
-    job_mapping.last_run = utils.utcnow()
-  else:
-    job_mapping = data_types.FuzzTargetJob(
-        fuzz_target_name=key_name,
-        job=job_type,
-        engine=engine_name,
-        last_run=utils.utcnow())
-  job_mapping.put()
-
-  logs.log(
-      'Recorded use of fuzz target %s.' % key_name,
-      project=project,
-      engine=engine_name,
-      binary_name=binary_name,
-      job_type=job_type)
-  return fuzz_target
 
 
 def truncate_fuzzer_output(output, limit):
@@ -1593,8 +1549,8 @@ class FuzzingSession(object):
     if not fuzz_target_name:
       raise FuzzTaskException('No fuzz targets found.')
 
-    self.fuzz_target = record_fuzz_target(engine_impl.name, fuzz_target_name,
-                                          self.job_type)
+    self.fuzz_target = data_handler.record_fuzz_target(
+        engine_impl.name, fuzz_target_name, self.job_type)
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
 
@@ -1685,8 +1641,8 @@ class FuzzingSession(object):
 
     fuzzer_binary_name = fuzzer_metadata.get('fuzzer_binary_name')
     if fuzzer_binary_name:
-      self.fuzz_target = record_fuzz_target(fuzzer.name, fuzzer_binary_name,
-                                            job_type)
+      self.fuzz_target = data_handler.record_fuzz_target(
+          fuzzer.name, fuzzer_binary_name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 

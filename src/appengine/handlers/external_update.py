@@ -60,12 +60,16 @@ def handle_update(testcase, revision, stacktrace, error):
                   f'revision {last_tested_revision}.')
     return
 
-  # TODO(ochang): Record fuzz target.
   fuzz_target = testcase.get_fuzz_target()
   if fuzz_target:
     fuzz_target_name = fuzz_target.binary
   else:
     fuzz_target_name = None
+
+  # Record use of fuzz target to avoid garbage collection (since fuzz_task does
+  # not run).
+  data_handler.record_fuzz_target(fuzz_target.engine, fuzz_target.binary,
+                                  testcase.job_type)
 
   state = stack_analyzer.get_crash_data(
       stacktrace,

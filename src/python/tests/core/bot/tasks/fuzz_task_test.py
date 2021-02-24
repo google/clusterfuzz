@@ -25,7 +25,6 @@ import threading
 import time
 import unittest
 
-from google.cloud import ndb
 from pyfakefs import fake_filesystem_unittest
 import six
 
@@ -1226,111 +1225,6 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     self.mock.last_updated.return_value = None
     self.assertTrue(corpus.sync_from_gcs())
     self.assertEqual(1, self.mock.rsync_to_disk.call_count)
-
-
-@test_utils.with_cloud_emulators('datastore')
-class RecordFuzzTargetTest(unittest.TestCase):
-  """Tests for record_fuzz_target."""
-
-  def setUp(self):
-    helpers.patch_environ(self)
-    helpers.patch(self, [
-        'base.utils.is_oss_fuzz',
-        'base.utils.utcnow',
-    ])
-
-    self.mock.is_oss_fuzz.return_value = False
-    self.mock.utcnow.return_value = datetime.datetime(2018, 1, 1)
-
-  def test_record_fuzz_target(self):
-    """Test that record_fuzz_target works."""
-    fuzz_task.record_fuzz_target('libFuzzer', 'child', 'job')
-    fuzz_target = ndb.Key(data_types.FuzzTarget, 'libFuzzer_child').get()
-    self.assertDictEqual({
-        'binary': 'child',
-        'engine': 'libFuzzer',
-        'project': 'test-project',
-    }, fuzz_target.to_dict())
-
-    job_mapping = ndb.Key(data_types.FuzzTargetJob, 'libFuzzer_child/job').get()
-    self.assertDictEqual({
-        'fuzz_target_name': 'libFuzzer_child',
-        'job': 'job',
-        'engine': 'libFuzzer',
-        'last_run': datetime.datetime(2018, 1, 1, 0, 0),
-        'weight': 1.0,
-    }, job_mapping.to_dict())
-
-    self.assertEqual('libFuzzer_child', fuzz_target.fully_qualified_name())
-    self.assertEqual('child', fuzz_target.project_qualified_name())
-
-  def test_record_fuzz_target_existing(self):
-    """Test that record_fuzz_target works when updating an existing entity."""
-    data_types.FuzzTarget(
-        binary='child', engine='libFuzzer', project='test-project').put()
-    data_types.FuzzTargetJob(
-        fuzz_target_name='libFuzzer_child',
-        job='job',
-        engine='libFuzzer',
-        last_run=datetime.datetime(2017, 12, 31, 0, 0)).put()
-
-    fuzz_task.record_fuzz_target('libFuzzer', 'child', 'job')
-    fuzz_target = ndb.Key(data_types.FuzzTarget, 'libFuzzer_child').get()
-    self.assertDictEqual({
-        'binary': 'child',
-        'engine': 'libFuzzer',
-        'project': 'test-project',
-    }, fuzz_target.to_dict())
-
-    job_mapping = ndb.Key(data_types.FuzzTargetJob, 'libFuzzer_child/job').get()
-    self.assertDictEqual({
-        'fuzz_target_name': 'libFuzzer_child',
-        'job': 'job',
-        'engine': 'libFuzzer',
-        'last_run': datetime.datetime(2018, 1, 1, 0, 0),
-        'weight': 1.0,
-    }, job_mapping.to_dict())
-
-    self.assertEqual('libFuzzer_child', fuzz_target.fully_qualified_name())
-    self.assertEqual('child', fuzz_target.project_qualified_name())
-
-  def test_record_fuzz_target_no_binary_name(self):
-    """Test recording fuzz target with no binary."""
-    # Passing None to binary_name is an error. We shouldn't create any
-    # FuzzTargets as a result.
-    fuzz_task.record_fuzz_target('libFuzzer', None, 'job')
-    fuzz_target = ndb.Key(data_types.FuzzTarget, 'libFuzzer_child').get()
-    self.assertIsNone(fuzz_target)
-
-    job_mapping = ndb.Key(data_types.FuzzTargetJob, 'libFuzzer_child/job').get()
-    self.assertIsNone(job_mapping)
-
-  @parameterized.parameterized.expand(['child', 'proj_child'])
-  def test_record_fuzz_target_ossfuzz(self, binary_name):
-    """Test that record_fuzz_target works with OSS-Fuzz projects."""
-    self.mock.is_oss_fuzz.return_value = True
-    data_types.Job(name='job', environment_string='PROJECT_NAME = proj\n').put()
-
-    fuzz_task.record_fuzz_target('libFuzzer', binary_name, 'job')
-    fuzz_target = ndb.Key(data_types.FuzzTarget, 'libFuzzer_proj_child').get()
-    self.assertDictEqual({
-        'binary': binary_name,
-        'engine': 'libFuzzer',
-        'project': 'proj',
-    }, fuzz_target.to_dict())
-
-    job_mapping = ndb.Key(data_types.FuzzTargetJob,
-                          'libFuzzer_proj_child/job').get()
-    self.assertDictEqual({
-        'fuzz_target_name': 'libFuzzer_proj_child',
-        'job': 'job',
-        'engine': 'libFuzzer',
-        'last_run': datetime.datetime(2018, 1, 1, 0, 0),
-        'weight': 1.0,
-    }, job_mapping.to_dict())
-
-    self.assertEqual('libFuzzer_proj_child', fuzz_target.fully_qualified_name())
-    self.assertEqual('proj_child', fuzz_target.project_qualified_name())
 
 
 @test_utils.with_cloud_emulators('datastore')
