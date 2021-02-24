@@ -406,6 +406,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^android\.os\.Parcel\.',
     r'^art::Thread::CreateNativeThread',
     r'^asan_',
+    r'^asan\.module_ctor',
+    r'^asan\.module_dtor',
     r'^calloc',
     r'^check_memory_region',
     r'^common_exit',
