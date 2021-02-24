@@ -778,7 +778,7 @@ class AflRunnerCommon(object):
 
       # If the target was compiled for CMPLOG we need to set this.
       build_directory = environment.get_value('BUILD_DIR')
-      if not build_directory: # required for unittest pass
+      if not build_directory:  # Required for passing the unit tests.
         build_directory = '/out'
       cmplog_build_file = os.path.join(build_directory, 'afl_cmplog.txt')
       if os.path.exists(cmplog_build_file):
