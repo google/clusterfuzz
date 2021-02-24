@@ -240,9 +240,6 @@ class StatsGetter(object):
       self.stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name] = (
           fuzzing_strategies.corpus_subset_size)
 
-    if fuzzing_strategies.fast_cal == strategies.FastCal.MANUAL:
-      self.stats[fuzzing_strategies.FAST_CAL_MANUAL_STRATEGY] = 1
-
     if (fuzzing_strategies.generator_strategy == engine_common.Generator.RADAMSA
        ):
       self.stats['strategy_' +

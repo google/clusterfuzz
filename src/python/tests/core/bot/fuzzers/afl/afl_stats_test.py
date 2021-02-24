@@ -149,7 +149,7 @@ class StatsGetterTests(unittest.TestCase):
         'manual_dict_size': 3,
         'new_units_added': 1,
         'new_units_generated': 2,
-        'stability': 100,
+        'stability': 100.0,
         'startup_crash_count': 0,
         'strategy_selection_method': 'default',
         'timeout_count': 1,
@@ -266,12 +266,10 @@ class StatsGetterTests(unittest.TestCase):
     """Tests that set_strategy_stats works as intended."""
     self.strategies.use_corpus_subset = True
     self.strategies.corpus_subset_size = 75
-    self.strategies.fast_cal = strategies.FastCal.MANUAL
     # Implicitly calls set_strategy_stats
     actual_stats = self._set_stats()
     self.assertEqual(
         actual_stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name], 75)
-    self.assertEqual(actual_stats[self.strategies.FAST_CAL_MANUAL_STRATEGY], 1)
 
     # Test that stats for generator strategies are correct.
     self.strategies.generator_strategy = engine_common.Generator.RADAMSA
