@@ -806,8 +806,8 @@ class AflRunnerCommon(object):
         environment.set_value(constants.CMPLOG_ONLY_NEW_ENV_VAR, 1)
 
       # Randomly set new vs. old queue selection mechanism.
-      if self.strategies.QUEUE_OLD_STRATEGY_PROB < engine_common.get_probability(
-      ):
+      if self.strategies.QUEUE_OLD_STRATEGY_PROB < \
+      engine_common.get_probability():
         self.set_arg(fuzz_args, constants.QUEUE_OLD_STRATEGY_FLAG, None)
 
       # Randomly select the MOpt mutator.
