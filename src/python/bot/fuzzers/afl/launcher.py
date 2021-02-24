@@ -778,6 +778,8 @@ class AflRunnerCommon(object):
 
       # If the target was compiled for CMPLOG we need to set this.
       build_directory = environment.get_value('BUILD_DIR')
+      if not build_directory: # required for unittest pass
+        build_directory = '/out'
       cmplog_build_file = os.path.join(build_directory, 'afl_cmplog.txt')
       if os.path.exists(cmplog_build_file):
         self.set_arg(fuzz_args, constants.CMPLOG_FLAG, self.target_path)
@@ -790,7 +792,7 @@ class AflRunnerCommon(object):
       # In the following section we randomly select different strategies.
 
       # Randomly select a scheduler.
-      self.set_arg(fuzz_args, constants.SCHEDULER_FLAG, self.rand_schedule())
+      self.set_arg(fuzz_args, constants.SCHEDULER_FLAG, rand_schedule())
 
       # Randomly set trimming vs no trimming.
       if self.strategies.DISABLE_TRIM_PROB < engine_common.get_probability():
