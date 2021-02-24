@@ -40,7 +40,6 @@ from bot.fuzzers import strategy_selection
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.afl import constants
 from bot.fuzzers.afl import stats
-from bot.fuzzers.afl import strategies
 from bot.fuzzers.afl.fuzzer import write_dummy_file
 from datastore import data_types
 from fuzzing import strategy
@@ -246,9 +245,9 @@ class FuzzingStrategies(object):
 
   # Probability for the level of CMPLOG to set. (-l X)
   CMPLOG_LEVEL_PROBS = [
-      ('1', 0.3), # Level 1
-      ('2', 0.6), # Level 2
-      ('3', 0.1), # Level 3
+      ('1', 0.3),  # Level 1
+      ('2', 0.6),  # Level 2
+      ('3', 0.1),  # Level 3
   ]
 
   # Probability to only CMPLOG new found paths. (AFL_CMPLOG_ONLY_NEW=1)
@@ -338,6 +337,7 @@ class FuzzingStrategies(object):
 
     return strategies_dict
 
+
 class AflFuzzInputDirectory(object):
   """Helper class used by AflRunner to deal with the input directory passed to
   afl-fuzz as the -i argument.
@@ -373,7 +373,6 @@ class AflFuzzInputDirectory(object):
     # always in the input directory, which prevents AFL from running.
     if not list_full_file_paths(self.input_directory):
       write_dummy_file(self.input_directory)
-
 
   def restore_if_needed(self):
     """Restore the original input directory if self.original_input_directory is
@@ -591,9 +590,9 @@ class AflRunnerCommon(object):
     """
     idx = cls.get_arg_index(afl_args, flag)
     if value:
-        new_arg = flag + str(value)
+      new_arg = flag + str(value)
     else:
-        new_arg = flag
+      new_arg = flag
 
     # Arg is not already in afl_args, add it.
     if idx == -1:
@@ -732,22 +731,22 @@ class AflRunnerCommon(object):
       schedule = 'fast'
       rnd = engine_common.get_probability()
       for schedule_opt, prob in self.strategies.SCHEDULER_PROBS:
-        if rnd <= prob:
+        if rnd > prob:
+          rnd -= prob
+        else:
           schedule = schedule_opt
           break
-        else:
-          rnd -= prob
       return schedule
 
     def rand_cmplog_level():
       cmplog_level = '2'
       rnd = engine_common.get_probability()
       for cmplog_level_opt, prob in self.strategies.CMPLOG_LEVEL_PROBS:
-        if rnd <= prob:
-          cmplog_level = cmplog_level_opt
-          break;
-        else:
+        if rnd > prob:
           rnd -= prob
+        else:
+          cmplog_level = cmplog_level_opt
+          break
       return cmplog_level
 
     def check_error_and_log(error_regex, log_message_format):
@@ -807,7 +806,8 @@ class AflRunnerCommon(object):
         environment.set_value(constants.CMPLOG_ONLY_NEW_ENV_VAR, 1)
 
       # Randomly set new vs. old queue selection mechanism.
-      if self.strategies.QUEUE_OLD_STRATEGY_PROB < engine_common.get_probability():
+      if self.strategies.QUEUE_OLD_STRATEGY_PROB < engine_common.get_probability(
+      ):
         self.set_arg(fuzz_args, constants.QUEUE_OLD_STRATEGY_FLAG, None)
 
       # Randomly select the MOpt mutator.
@@ -819,10 +819,10 @@ class AflRunnerCommon(object):
 
       # Attempt to start the fuzzer.
       fuzz_result = self.run_and_wait(
-        additional_args=fuzz_args,
-        timeout=max_total_time,
-        terminate_before_kill=True,
-        terminate_wait_time=self.SIGTERM_WAIT_TIME)
+          additional_args=fuzz_args,
+          timeout=max_total_time,
+          terminate_before_kill=True,
+          terminate_wait_time=self.SIGTERM_WAIT_TIME)
 
       # Reduce max_total_time by the amount of time the last attempt took.
       max_total_time -= fuzz_result.time_executed

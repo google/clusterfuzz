@@ -19,7 +19,6 @@ import six
 
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
-from bot.fuzzers.afl import strategies
 from fuzzing import strategy
 from metrics import logs
 from system import environment

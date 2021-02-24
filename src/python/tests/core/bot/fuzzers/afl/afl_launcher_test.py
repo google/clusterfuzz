@@ -22,7 +22,6 @@ from pyfakefs import fake_filesystem_unittest
 from bot.fuzzers import engine_common
 from bot.fuzzers.afl import fuzzer
 from bot.fuzzers.afl import launcher
-from bot.fuzzers.afl import strategies
 from functools import partial
 from system import environment
 from system import new_process
@@ -779,4 +778,3 @@ def dont_use_strategies(obj):
       'bot.fuzzers.engine_common.decide_with_probability',
   ])
   obj.mock.decide_with_probability.return_value = False
-
