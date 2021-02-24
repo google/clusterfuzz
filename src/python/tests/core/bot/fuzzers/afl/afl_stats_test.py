@@ -22,7 +22,6 @@ import unittest
 from bot.fuzzers import engine_common
 from bot.fuzzers.afl import launcher
 from bot.fuzzers.afl import stats
-from bot.fuzzers.afl import strategies
 from fuzzing import strategy
 from tests.core.bot.fuzzers.afl.afl_launcher_test import dont_use_strategies
 from tests.test_libs import helpers as test_helpers
