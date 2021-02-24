@@ -504,7 +504,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Others (uncategorized).
     r'.*\+Unknown',
     r'.*<unknown module>',
-    r'.*Inline Function \@',
+    r'.*Inline Function @',
     r'^<unknown>$',
     r'^\[vdso\]$',
 
