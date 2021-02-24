@@ -438,6 +438,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^std::panic',
     r'^std::process::abort',
     r'^std::sys::unix::abort',
+    r'^__scrt_common_main_seh',
 
     # Functions names (contains).
     r'.*ASAN_OnSIGSEGV',
