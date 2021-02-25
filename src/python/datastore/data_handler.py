@@ -1282,9 +1282,9 @@ def create_user_uploaded_testcase(key,
     testcase.regression = ''
     testcase.comments = '[%s] %s: Analyze task.\n' % (utils.current_date_time(),
                                                       uploader_email)
+    testcase.minimized_keys = ''
 
   testcase.fuzzed_keys = key
-  testcase.minimized_keys = ''
   testcase.bug_information = ''
   testcase.fixed = ''
   testcase.one_time_crasher_flag = False
