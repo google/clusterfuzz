@@ -908,7 +908,9 @@ def notify_uploader_when_testcase_is_processed(policy, testcase, issue):
     return
 
   notify = not upload_metadata.quiet_flag
-  if issue and not testcase.duplicate_of:
+  # If the same issue was specified at time of upload, update it.
+  if (issue and str(issue.id) == upload_metadata.bug_information and
+      not testcase.duplicate_of):
     issue_description = data_handler.get_issue_description(testcase)
     _update_issue_when_uploaded_testcase_is_processed(
         policy, testcase, issue, issue_description,
