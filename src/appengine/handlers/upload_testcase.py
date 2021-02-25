@@ -552,6 +552,7 @@ class UploadHandlerCommon(object):
           upload_metadata.quiet_flag = quiet_flag
           upload_metadata.additional_metadata_string = json.dumps(
               testcase_metadata)
+          upload_metadata.bug_information = bug_information
           upload_metadata.put()
 
           helpers.log('Uploaded multiple testcases.', helpers.VIEW_OPERATION)

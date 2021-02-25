@@ -1348,6 +1348,7 @@ def create_user_uploaded_testcase(key,
   metadata.timestamp = testcase.timestamp
   metadata.bug_summary_update_flag = bug_summary_update_flag
   metadata.quiet_flag = quiet_flag
+  metadata.bug_information = testcase.bug_information
 
   if crash_data:
     if crash_analyzer.ignore_stacktrace(testcase.crash_stacktrace):
