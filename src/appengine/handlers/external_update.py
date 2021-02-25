@@ -55,7 +55,7 @@ def handle_update(testcase, revision, stacktrace, error):
   last_tested_revision = (
       testcase.get_metadata('last_tested_revision') or testcase.crash_revision)
 
-  if revision <= last_tested_revision:
+  if revision < last_tested_revision:
     logs.log_warn(f'Revision {revision} less than previously tested '
                   f'revision {last_tested_revision}.')
     return
