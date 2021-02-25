@@ -60,6 +60,6 @@ def add_external_task(command, testcase_id, job):
       'minRevisionAbove': str(min_revision),
   }
 
-  reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
+  reproducer = blobs.read_key(testcase.fuzzed_keys)
   message = pubsub.Message(data=reproducer, attributes=attributes)
   pubsub_client.publish(topic_name, [message])
