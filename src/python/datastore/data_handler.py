@@ -1236,7 +1236,7 @@ def create_user_uploaded_testcase(key,
                                   filename,
                                   file_path_input,
                                   timeout,
-                                  job_type,
+                                  job,
                                   queue,
                                   http_flag,
                                   gestures,
@@ -1270,6 +1270,8 @@ def create_user_uploaded_testcase(key,
     testcase.regression = 'NA'
     testcase.comments = '[%s] %s: External testcase upload.\n' % (
         utils.current_date_time(), uploader_email)
+    # External jobs never get minimized.
+    testcase.minimized_keys = 'NA'
   else:
     testcase.crash_type = ''
     testcase.crash_state = 'Pending'
@@ -1280,19 +1282,21 @@ def create_user_uploaded_testcase(key,
     testcase.regression = ''
     testcase.comments = '[%s] %s: Analyze task.\n' % (utils.current_date_time(),
                                                       uploader_email)
+    testcase.minimized_keys = ''
 
   testcase.fuzzed_keys = key
-  testcase.minimized_keys = ''
   testcase.bug_information = ''
   testcase.fixed = ''
   testcase.one_time_crasher_flag = False
   testcase.crash_revision = crash_revision
   testcase.fuzzer_name = fuzzer_name
   testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name or fuzzer_name
-  testcase.job_type = job_type
+  testcase.job_type = job.name
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
-  testcase.project_name = get_project_name(job_type)
+  testcase.project_name = get_project_name(job.name)
+  testcase.platform = job.platform.lower()
+  testcase.platform_id = testcase.platform
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input
@@ -1357,7 +1361,7 @@ def create_user_uploaded_testcase(key,
   metadata.put()
 
   # Create the job to analyze the testcase.
-  tasks.add_task('analyze', testcase_id, job_type, queue)
+  tasks.add_task('analyze', testcase_id, job.name, queue)
   return testcase.key.id()
 
 
