@@ -405,8 +405,7 @@ def queue_for_platform(platform, is_high_end=False):
 def queue_for_testcase(testcase):
   """Return the right queue for the testcase."""
   is_high_end = (
-      testcase.queue and
-      testcase.queue.startswith(HIGH_END_JOBS_PREFIX))
+      testcase.queue and testcase.queue.startswith(HIGH_END_JOBS_PREFIX))
   return queue_for_job(testcase.job_type, is_high_end=is_high_end)
 
 
