@@ -387,6 +387,7 @@ class UploadOAuthTest(unittest.TestCase):
         crash_state='target\n',
         crash_type='Out-of-memory',
         project_name='proj',
+        minimized_keys='NA',
         security_flag=False)
     existing.put()
 
