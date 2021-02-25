@@ -1270,6 +1270,8 @@ def create_user_uploaded_testcase(key,
     testcase.regression = 'NA'
     testcase.comments = '[%s] %s: External testcase upload.\n' % (
         utils.current_date_time(), uploader_email)
+    # External jobs never get minimized.
+    testcase.minimized_keys = 'NA'
   else:
     testcase.crash_type = ''
     testcase.crash_state = 'Pending'

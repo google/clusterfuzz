@@ -181,7 +181,7 @@ class UploadOAuthTest(unittest.TestCase):
         'last_tested_crash_stacktrace': None,
         'minidump_keys': None,
         'minimized_arguments': '',
-        'minimized_keys': '',
+        'minimized_keys': 'NA',
         'one_time_crasher_flag': False,
         'open': True,
         'overridden_fuzzer_name': 'libFuzzer_proj_target',
@@ -317,7 +317,7 @@ class UploadOAuthTest(unittest.TestCase):
         'minimized_arguments':
             '',
         'minimized_keys':
-            '',
+            'NA',
         'one_time_crasher_flag':
             False,
         'open':
