@@ -1236,7 +1236,7 @@ def create_user_uploaded_testcase(key,
                                   filename,
                                   file_path_input,
                                   timeout,
-                                  job_type,
+                                  job,
                                   queue,
                                   http_flag,
                                   gestures,
@@ -1289,10 +1289,12 @@ def create_user_uploaded_testcase(key,
   testcase.crash_revision = crash_revision
   testcase.fuzzer_name = fuzzer_name
   testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name or fuzzer_name
-  testcase.job_type = job_type
+  testcase.job_type = job.name
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
-  testcase.project_name = get_project_name(job_type)
+  testcase.project_name = get_project_name(job.name)
+  testcase.platform = job.platform.lower()
+  testcase.platform_id = testcase.platform
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input
@@ -1357,7 +1359,7 @@ def create_user_uploaded_testcase(key,
   metadata.put()
 
   # Create the job to analyze the testcase.
-  tasks.add_task('analyze', testcase_id, job_type, queue)
+  tasks.add_task('analyze', testcase_id, job.name, queue)
   return testcase.key.id()
 
 

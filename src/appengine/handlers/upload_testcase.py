@@ -573,7 +573,7 @@ class UploadHandlerCommon(object):
         filename,
         file_path_input,
         timeout,
-        job_type,
+        job,
         job_queue,
         http_flag,
         gestures,

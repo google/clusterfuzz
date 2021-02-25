@@ -185,8 +185,8 @@ class UploadOAuthTest(unittest.TestCase):
         'one_time_crasher_flag': False,
         'open': True,
         'overridden_fuzzer_name': 'libFuzzer_proj_target',
-        'platform': None,
-        'platform_id': None,
+        'platform': 'linux',
+        'platform_id': 'linux',
         'project_name': 'proj',
         'queue': None,
         'redzone': 128,
@@ -325,9 +325,9 @@ class UploadOAuthTest(unittest.TestCase):
         'overridden_fuzzer_name':
             'libFuzzer_proj_target',
         'platform':
-            None,
+            'linux',
         'platform_id':
-            None,
+            'linux',
         'project_name':
             'proj',
         'queue':
@@ -448,8 +448,8 @@ class UploadOAuthTest(unittest.TestCase):
         'one_time_crasher_flag': False,
         'open': False,
         'overridden_fuzzer_name': 'libFuzzer_proj_target',
-        'platform': None,
-        'platform_id': None,
+        'platform': 'linux',
+        'platform_id': 'linux',
         'project_name': 'proj',
         'queue': None,
         'redzone': 128,
