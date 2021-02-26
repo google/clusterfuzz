@@ -137,7 +137,7 @@ def execute_command(cmd, timeout=None, log_error=True):
   thread = threading.Thread(target=run)
   thread.start()
   thread.join(timeout)
-  if thread.isAlive():
+  if thread.is_alive():
     try:
       pipe.kill()
     except OSError:
@@ -194,6 +194,7 @@ def get_adb_path():
     return adb_path
 
   return os.path.join(environment.get_platform_resources_directory(), 'adb')
+
 
 def get_devices():
   adb_cmd_line = '%s devices' % get_adb_path()

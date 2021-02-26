@@ -1298,6 +1298,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
       return result
 
+
 class EmulatedAndroidLibFuzzerRunner(AndroidLibFuzzerRunner):
   """Android libFuzzer runner."""
 
@@ -1312,7 +1313,8 @@ class EmulatedAndroidLibFuzzerRunner(AndroidLibFuzzerRunner):
     start_emulator()
 
     super().__init__(
-        executable_path=executable_path, build_directory=build_directory,
+        executable_path=executable_path,
+        build_directory=build_directory,
         default_args=default_args)
 
   def __del__(self):
