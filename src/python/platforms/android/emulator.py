@@ -64,8 +64,8 @@ class EmulatorProcess(object):
     os.remove(archive_dst_path)
 
     # Run emulator
-    script_path = os.path.join(self.emu_path,
-            environment.get_value('ANDROID_EMULATOR_SCRIPT_PATH'))
+    script_path = os.path.join(
+        self.emu_path, environment.get_value('ANDROID_EMULATOR_SCRIPT_PATH'))
 
     self.process_runner = new_process.ProcessRunner(script_path, [])
 
