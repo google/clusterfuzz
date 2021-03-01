@@ -199,12 +199,12 @@ def get_adb_path():
 def get_devices():
   adb_cmd_line = '%s devices' % get_adb_path()
   result = execute_command(adb_cmd_line)
-  out = set()
+  devices = set()
   for line in result.splitlines():
     match = DEVICE_LINE_RE.match(line)
     if match:
-      out.add(match.group(1))
-  return out
+      devices.add(match.group(1))
+  return devices
 
 
 def get_device_state():
@@ -585,7 +585,7 @@ def run_command(cmd,
   if (output in [
       DEVICE_HANG_STRING, DEVICE_OFFLINE_STRING,
       device_not_found_string_with_serial
-  ]) and environment.platform() != 'EMULATED_ANDROID':
+  ]) and not environment.is_android_emulator():
     logs.log_warn('Unable to query device, resetting device connection.')
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.

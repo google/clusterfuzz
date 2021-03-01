@@ -14,7 +14,6 @@
 """Helper functions for running commands on emulated Android devices."""
 
 import os
-import shutil
 import subprocess
 import tempfile
 import time
@@ -25,6 +24,7 @@ from platforms.android import adb
 from system import archive
 from system import environment
 from system import new_process
+from system import shell
 
 _WAIT_SECONDS = 10
 
@@ -45,29 +45,28 @@ class EmulatorProcess(object):
     self.popen = None
     self.logfile = None
 
-    log_path = os.path.join(tempfile.gettempdir(), 'android-emulator-log')
+    log_path = os.path.join(tempfile.gettempdir(), 'android-emulator.log')
     self.logfile = open(log_path, 'wb')
 
   def create(self):
     """Configures a emulator process which can subsequently be `run`."""
-    # Download emulator image
+    # Download emulator image.
+    if not environment.get_value('BOT_TMPDIR'):
+      logs.log_error('BOT_TMPDIR is not set.')
+      return
     temp_directory = environment.get_value('BOT_TMPDIR')
-
     archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
     archive_dst_path = os.path.join(temp_directory, 'emulator_bundle.zip')
-
     storage.copy_file_from(archive_src_path, archive_dst_path)
 
     # Extract emulator image.
-    self.emu_path = os.path.join(temp_directory, 'emulator')
-    archive.unpack(archive_dst_path, self.emu_path)
-    os.remove(archive_dst_path)
+    self.emulator_path = os.path.join(temp_directory, 'emulator')
+    archive.unpack(archive_dst_path, self.emulator_path)
+    shell.remove_file(archive_dst_path)
 
-    # Run emulator
-    script_path = os.path.join(
-        self.emu_path, environment.get_value('ANDROID_EMULATOR_SCRIPT_PATH'))
-
-    self.process_runner = new_process.ProcessRunner(script_path, [])
+    # Run emulator.
+    script_path = os.path.join(self.emulator_path, 'run')
+    self.process_runner = new_process.ProcessRunner(script_path)
 
   def run(self):
     """Actually runs a emulator, assuming `create` has already been called."""
@@ -101,20 +100,20 @@ class EmulatorProcess(object):
       self.logfile.close()
       self.logfile = None
 
-    if self.emu_path:
-      shutil.rmtree(self.emu_path)
+    if self.emulator_path:
+      shell.remove_directory(self.emulator_path)
 
 
 def start_emulator():
   """Start emulator."""
   global _emu_proc
   global _emu_users
-  if _emu_users == 0:
+  _emu_users += 1
+  if _emu_users == 1:
     _emu_proc = EmulatorProcess()
     _emu_proc.create()
     _emu_proc.run()
     adb.run_as_root()
-  _emu_users += 1
 
 
 def stop_emulator():

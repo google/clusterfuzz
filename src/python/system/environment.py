@@ -200,7 +200,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
 def get_cpu_arch():
   """Return cpu architecture."""
-  if is_android() and platform() != 'EMULATED_ANDROID':
+  if is_android() and not is_android_emulator():
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
     return android.settings.get_cpu_arch()
@@ -471,7 +471,7 @@ def get_platform_id():
   """Return a platform id as a lowercase string."""
   bot_platform = platform()
   if is_android(bot_platform):
-    if platform() == 'EMULATED_ANDROID':
+    if is_android_emulator():
       return bot_platform.lower()
     # FIXME: Handle this import in a cleaner way.
     from platforms import android
@@ -1054,6 +1054,11 @@ def is_ephemeral():
 def is_android(plt=None):
   """Return true if we are on android platform."""
   return 'ANDROID' in (plt or platform())
+
+
+def is_android_emulator(plt=None):
+  """Return true if we are on android emulator platform."""
+  return 'ANDROID_EMULATOR' == (plt or platform())
 
 
 def is_lib():

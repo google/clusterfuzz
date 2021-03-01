@@ -171,7 +171,7 @@ def run_platform_init_scripts():
 
   plt = environment.platform()
   if environment.is_android():
-    if plt != 'EMULATED_ANDROID':
+    if not environment.is_android_emulator():
       android_init.run()
   elif plt == 'CHROMEOS':
     chromeos_init.run()

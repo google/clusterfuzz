@@ -44,7 +44,7 @@ resources:
     type: queue.jinja
   - name: jobs-android-x86
     type: queue.jinja
-  - name: jobs-emulated-android
+  - name: jobs-android-emulator
     type: queue.jinja
   - name: high-end-jobs-android-x86
     type: queue.jinja

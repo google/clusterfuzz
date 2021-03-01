@@ -1390,7 +1390,7 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
   elif is_fuchsia:
     runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   elif is_android:
-    if environment.platform() == 'EMULATED_ANDROID':
+    if environment.is_android_emulator():
       runner = EmulatedAndroidLibFuzzerRunner(fuzzer_path, build_dir)
     else:
       runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
