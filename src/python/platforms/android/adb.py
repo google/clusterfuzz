@@ -197,8 +197,7 @@ def get_adb_path():
 
 
 def get_devices():
-  adb_cmd_line = '%s devices' % get_adb_path()
-  result = execute_command(adb_cmd_line)
+  result = run_command('devices')
   devices = set()
   for line in result.splitlines():
     match = DEVICE_LINE_RE.match(line)
