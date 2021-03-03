@@ -31,6 +31,15 @@ class SeverityAnalyzerTest(unittest.TestCase):
     with open(os.path.join(DATA_DIRECTORY, name)) as handle:
       return handle.read()
 
+  def test_manual_severity_marker(self):
+    """Tests that manual severity markers in uncaught exceptions are
+    recognized."""
+    self.assertEqual(
+        severity_analyzer.get_analyzer('sanitizer_generic').analyze(
+            'Uncaught exception',
+            self._read_test_data('java_severity_medium_exception.txt'), False),
+        SecuritySeverity.MEDIUM)
+
   def test_asan_uaf(self):
     """Tests severity analysis of a use after free report."""
     self.assertEqual(
