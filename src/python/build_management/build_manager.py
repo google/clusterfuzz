@@ -791,6 +791,19 @@ class FuchsiaBuild(RegularBuild):
     return result
 
 
+class AndroidEmulatorBuild(RegularBuild):
+  """Represents an Android Emulator build."""
+
+  def setup(self):
+    """Android Emulator build setup."""
+    emu_proc = android.emulator.EmulatorProcess()
+    emu_proc.create()
+    emu_proc.run()
+    android.adb.run_as_root()
+
+    return super().setup()
+
+
 class SymbolizedBuild(Build):
   """Symbolized build."""
 
@@ -1252,6 +1265,8 @@ def setup_regular_build(revision,
     build_class = build_setup_host.RemoteRegularBuild
   elif environment.platform() == 'FUCHSIA':
     build_class = FuchsiaBuild
+  elif environment.is_android_emulator():
+    build_class = AndroidEmulatorBuild
 
   build = build_class(
       base_build_dir,

@@ -51,9 +51,6 @@ STOP_CVD_WAIT = 20
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
 LSUSB_SERIAL_RE = re.compile(r'\s+iSerial\s+\d\s+(.*)')
 
-# Output pattners to parse "adb devices" output.
-DEVICE_LINE_RE = re.compile(r'([\w-]+)\s+device')
-
 # This is a constant value defined in usbdevice_fs.h in Linux system.
 USBDEVFS_RESET = ord('U') << 8 | 20
 
@@ -194,16 +191,6 @@ def get_adb_path():
     return adb_path
 
   return os.path.join(environment.get_platform_resources_directory(), 'adb')
-
-
-def get_devices():
-  result = run_command('devices')
-  devices = set()
-  for line in result.splitlines():
-    match = DEVICE_LINE_RE.match(line)
-    if match:
-      devices.add(match.group(1))
-  return devices
 
 
 def get_device_state():

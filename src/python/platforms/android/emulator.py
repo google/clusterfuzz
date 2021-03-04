@@ -14,6 +14,7 @@
 """Helper functions for running commands on emulated Android devices."""
 
 import os
+import re
 import subprocess
 import tempfile
 import time
@@ -28,8 +29,8 @@ from system import shell
 
 _WAIT_SECONDS = 10
 
-_emu_proc = None
-_emu_users = 0
+# Output pattern to parse stdout for serial number
+DEVICE_SERIAL_RE = re.compile(r'DEVICE_SERIAL: (.+)')
 
 
 class EmulatorError(Exception):
@@ -42,7 +43,7 @@ class EmulatorProcess(object):
 
   def __init__(self):
     self.process_runner = None
-    self.popen = None
+    self.process = None
     self.logfile = None
 
     log_path = os.path.join(tempfile.gettempdir(), 'android-emulator.log')
@@ -73,28 +74,26 @@ class EmulatorProcess(object):
     if not self.process_runner:
       raise EmulatorError('Attempted to `run` emulator before calling `create`')
 
-    devices_before = adb.get_devices()
-    new_device = False
-
     logs.log('Starting emulator.')
-    self.popen = self.process_runner.run(
-        stdout=self.logfile, stderr=subprocess.PIPE)
+    self.process = self.process_runner.run(
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    logs.log('Waiting for emulated device to come online.')
-    while not new_device:
-      time.sleep(_WAIT_SECONDS)
-      for device in adb.get_devices():
-        if device not in devices_before:
-          environment.set_value('ANDROID_SERIAL', device)
-          new_device = True
-          logs.log('New device online with serial %s' % device)
+    device_serial = None
+    while not device_serial:
+      line = self.process.popen.stdout.readline().decode()
+      match = DEVICE_SERIAL_RE.match(line)
+      if match:
+        device_serial = match.group(1)
+
+    logs.log('Found serial ID: %s.' % device_serial)
+    environment.set_value('ANDROID_SERIAL', device_serial)
 
   def kill(self):
     """ Kills the currently-running emulator, if there is one. """
-    if self.popen:
+    if self.process:
       logs.log('Stopping emulator.')
-      self.popen.kill()
-      self.popen = None
+      self.process.kill()
+      self.process = None
 
     if self.logfile:
       self.logfile.close()
@@ -102,24 +101,3 @@ class EmulatorProcess(object):
 
     if self.emulator_path:
       shell.remove_directory(self.emulator_path)
-
-
-def start_emulator():
-  """Start emulator."""
-  global _emu_proc
-  global _emu_users
-  _emu_users += 1
-  if _emu_users == 1:
-    _emu_proc = EmulatorProcess()
-    _emu_proc.create()
-    _emu_proc.run()
-    adb.run_as_root()
-
-
-def stop_emulator():
-  """Stop emulator."""
-  global _emu_proc
-  global _emu_users
-  _emu_users -= 1
-  if _emu_users == 0:
-    _emu_proc.kill()
