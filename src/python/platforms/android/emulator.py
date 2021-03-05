@@ -17,11 +17,9 @@ import os
 import re
 import subprocess
 import tempfile
-import time
 
 from google_cloud_utils import storage
 from metrics import logs
-from platforms.android import adb
 from system import archive
 from system import environment
 from system import new_process
