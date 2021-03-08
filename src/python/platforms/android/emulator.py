@@ -17,15 +17,17 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 
 from google_cloud_utils import storage
 from metrics import logs
+from platforms.android import adb
 from system import archive
 from system import environment
 from system import new_process
 from system import shell
 
-_WAIT_SECONDS = 10
+_WAIT_SECONDS = 30
 
 # Output pattern to parse stdout for serial number
 DEVICE_SERIAL_RE = re.compile(r'DEVICE_SERIAL: (.+)')
@@ -85,6 +87,13 @@ class EmulatorProcess(object):
 
     logs.log('Found serial ID: %s.' % device_serial)
     environment.set_value('ANDROID_SERIAL', device_serial)
+
+    logs.log('Waiting on device')
+    while adb.get_device_state() != 'device':
+      time.sleep(_WAIT_SECONDS)
+    logs.log('Device is online')
+
+    adb.run_as_root()
 
   def kill(self):
     """ Kills the currently-running emulator, if there is one. """

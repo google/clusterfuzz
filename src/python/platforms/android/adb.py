@@ -580,7 +580,7 @@ def run_command(cmd,
     else:
       output = DEVICE_HANG_STRING
 
-  if output is DEVICE_HANG_STRING:
+  if output is DEVICE_HANG_STRING and not environment.is_android_emulator():
     # Handle the case where our command execution hung. This is usually when
     # device goes into a bad state and only way to recover is to restart it.
     logs.log_warn('Unable to query device, restarting device to recover.')
