@@ -27,8 +27,6 @@ from system import environment
 from system import new_process
 from system import shell
 
-_WAIT_SECONDS = 30
-
 # Output pattern to parse stdout for serial number
 DEVICE_SERIAL_RE = re.compile(r'DEVICE_SERIAL: (.+)')
 
@@ -89,8 +87,7 @@ class EmulatorProcess(object):
     environment.set_value('ANDROID_SERIAL', device_serial)
 
     logs.log('Waiting on device')
-    while adb.get_device_state() != 'device':
-      time.sleep(_WAIT_SECONDS)
+    adb.wait_until_fully_booted()
     logs.log('Device is online')
 
   def kill(self):

@@ -216,7 +216,7 @@ def clear_testcase_directories():
   remove_directory(environment.get_value('FUZZ_INPUTS'), recreate=True)
   remove_directory(environment.get_value('FUZZ_INPUTS_DISK'), recreate=True)
 
-  if environment.is_android() and not environment.is_android_emulator():
+  if environment.is_android() and environment.get_value('ANDROID_SERIAL'):
     from platforms import android
     android.device.clear_testcase_directory()
   if environment.platform() == 'FUCHSIA':

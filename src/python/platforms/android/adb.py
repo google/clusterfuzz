@@ -734,6 +734,11 @@ def wait_until_fully_booted():
     if is_drive_ready and is_package_manager_ready and is_boot_completed:
       return True
 
+    # is_boot_completed and is_package_manager_ready may never happen on
+    # emulated devices.
+    if is_drive_ready and environment.is_android_emulator():
+      return True
+
     time.sleep(BOOT_WAIT_INTERVAL)
 
   factory_reset()
