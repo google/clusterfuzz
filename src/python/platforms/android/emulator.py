@@ -49,8 +49,8 @@ class EmulatorProcess(object):
   def create(self):
     """Configures a emulator process which can subsequently be `run`."""
     # Download emulator image.
-    if not environment.get_value('BOT_TMPDIR'):
-      logs.log_error('BOT_TMPDIR is not set.')
+    if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
+      logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set.')
       return
     temp_directory = environment.get_value('BOT_TMPDIR')
     archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
