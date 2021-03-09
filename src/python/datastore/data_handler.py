@@ -37,6 +37,7 @@ from base import tasks
 from base import utils
 from config import db_config
 from config import local_config
+from crash_analysis import crash_analyzer
 from crash_analysis import severity_analyzer
 from datastore import data_types
 from datastore import ndb_utils
@@ -1235,7 +1236,7 @@ def create_user_uploaded_testcase(key,
                                   filename,
                                   file_path_input,
                                   timeout,
-                                  job_type,
+                                  job,
                                   queue,
                                   http_flag,
                                   gestures,
@@ -1252,30 +1253,50 @@ def create_user_uploaded_testcase(key,
                                   retries,
                                   bug_summary_update_flag,
                                   quiet_flag,
-                                  additional_metadata=None):
+                                  additional_metadata=None,
+                                  crash_data=None):
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
-  testcase.crash_type = ''
-  testcase.crash_state = 'Pending'
-  testcase.crash_address = ''
-  testcase.crash_stacktrace = ''
+  if crash_data:
+    # External job with provided stacktrace.
+    testcase.crash_type = crash_data.crash_type
+    testcase.crash_state = crash_data.crash_state
+    testcase.crash_address = crash_data.crash_address
+    testcase.crash_stacktrace = crash_data.crash_stacktrace
+
+    testcase.status = 'Processed'
+    testcase.security_flag = crash_analyzer.is_security_issue(
+        testcase.crash_stacktrace, testcase.crash_type, testcase.crash_address)
+    testcase.regression = 'NA'
+    testcase.comments = '[%s] %s: External testcase upload.\n' % (
+        utils.current_date_time(), uploader_email)
+    # External jobs never get minimized.
+    testcase.minimized_keys = 'NA'
+  else:
+    testcase.crash_type = ''
+    testcase.crash_state = 'Pending'
+    testcase.crash_address = ''
+    testcase.crash_stacktrace = ''
+    testcase.status = 'Pending'
+    testcase.security_flag = False
+    testcase.regression = ''
+    testcase.comments = '[%s] %s: Analyze task.\n' % (utils.current_date_time(),
+                                                      uploader_email)
+    testcase.minimized_keys = ''
+
   testcase.fuzzed_keys = key
-  testcase.minimized_keys = ''
   testcase.bug_information = ''
-  testcase.regression = ''
   testcase.fixed = ''
-  testcase.security_flag = False
   testcase.one_time_crasher_flag = False
   testcase.crash_revision = crash_revision
-  testcase.comments = '[%s] %s: Analyze task.\n' % (utils.current_date_time(),
-                                                    uploader_email)
   testcase.fuzzer_name = fuzzer_name
   testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name or fuzzer_name
-  testcase.job_type = job_type
+  testcase.job_type = job.name
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
-  testcase.status = 'Pending'
-  testcase.project_name = get_project_name(job_type)
+  testcase.project_name = get_project_name(job.name)
+  testcase.platform = job.platform.lower()
+  testcase.platform_id = testcase.platform
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input
@@ -1301,16 +1322,20 @@ def create_user_uploaded_testcase(key,
     for metadata_key, metadata_value in six.iteritems(additional_metadata):
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
-  testcase.timestamp = datetime.datetime.utcnow()
+  testcase.timestamp = utils.utcnow()
   testcase.uploader_email = uploader_email
   testcase.put()
 
   # Store the testcase upload metadata.
   testcase_id = testcase.key.id()
   metadata = data_types.TestcaseUploadMetadata()
-  metadata.security_flag = False
+  metadata.security_flag = testcase.security_flag
   metadata.filename = filename
-  metadata.status = 'Pending'
+  if testcase.status == 'Processed':
+    metadata.status = 'Confirmed'
+  else:
+    metadata.status = 'Pending'
+
   metadata.uploader_email = uploader_email
   metadata.testcase_id = testcase_id
   metadata.blobstore_key = key
@@ -1323,12 +1348,65 @@ def create_user_uploaded_testcase(key,
   metadata.timestamp = testcase.timestamp
   metadata.bug_summary_update_flag = bug_summary_update_flag
   metadata.quiet_flag = quiet_flag
+  metadata.bug_information = testcase.bug_information
+
+  if crash_data:
+    if crash_analyzer.ignore_stacktrace(testcase.crash_stacktrace):
+      close_invalid_uploaded_testcase(testcase, metadata, 'Irrelevant')
+      return testcase.key.id()
+
+    if check_uploaded_testcase_duplicate(testcase, metadata):
+      close_invalid_uploaded_testcase(testcase, metadata, 'Duplicate')
+      return testcase.key.id()
+
   metadata.put()
 
   # Create the job to analyze the testcase.
-  tasks.add_task('analyze', testcase_id, job_type, queue)
-
+  tasks.add_task('analyze', testcase_id, job.name, queue)
   return testcase.key.id()
+
+
+def check_uploaded_testcase_duplicate(testcase, metadata):
+  """Check if the uploaded testcase is a duplicate."""
+  existing_testcase = find_testcase(testcase.project_name, testcase.crash_type,
+                                    testcase.crash_state,
+                                    testcase.security_flag)
+
+  if not existing_testcase or existing_testcase.key.id() == testcase.key.id():
+    return False
+
+  # If the existing test case is unreproducible and we are, replace the
+  # existing test case with this one.
+  if (existing_testcase.one_time_crasher_flag and
+      not testcase.one_time_crasher_flag):
+    duplicate_testcase = existing_testcase
+    original_testcase = testcase
+  else:
+    duplicate_testcase = testcase
+    original_testcase = existing_testcase
+    metadata.status = 'Duplicate'
+    metadata.duplicate_of = existing_testcase.key.id()
+
+  duplicate_testcase.status = 'Duplicate'
+  duplicate_testcase.duplicate_of = original_testcase.key.id()
+  duplicate_testcase.put()
+
+  return duplicate_testcase.key.id() == testcase.key.id()
+
+
+def close_invalid_uploaded_testcase(testcase, metadata, status):
+  """Closes an invalid testcase and updates metadata."""
+  testcase.status = status
+  testcase.open = False
+  testcase.minimized_keys = 'NA'
+  testcase.regression = 'NA'
+  testcase.set_impacts_as_na()
+  testcase.fixed = 'NA'
+  testcase.triaged = True
+  testcase.put()
+
+  metadata.status = status
+  metadata.put()
 
 
 # ------------------------------------------------------------------------------
@@ -1451,6 +1529,50 @@ def get_testcase_variant(testcase_id, job_type):
 # Fuzz target related functions
 # ------------------------------------------------------------------------------
 
+FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
+FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
+
+
+@retry.wrap(
+    retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
+    delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
+    function='datastore.data_handler.record_fuzz_target')
+def record_fuzz_target(engine_name, binary_name, job_type):
+  """Record existence of fuzz target."""
+  if not binary_name:
+    logs.log_error('Expected binary_name.')
+    return None
+
+  project = get_project_name(job_type)
+  key_name = data_types.fuzz_target_fully_qualified_name(
+      engine_name, project, binary_name)
+
+  fuzz_target = ndb.Key(data_types.FuzzTarget, key_name).get()
+  if not fuzz_target:
+    fuzz_target = data_types.FuzzTarget(
+        engine=engine_name, project=project, binary=binary_name)
+    fuzz_target.put()
+
+  job_mapping_key = data_types.fuzz_target_job_key(key_name, job_type)
+  job_mapping = ndb.Key(data_types.FuzzTargetJob, job_mapping_key).get()
+  if job_mapping:
+    job_mapping.last_run = utils.utcnow()
+  else:
+    job_mapping = data_types.FuzzTargetJob(
+        fuzz_target_name=key_name,
+        job=job_type,
+        engine=engine_name,
+        last_run=utils.utcnow())
+  job_mapping.put()
+
+  logs.log(
+      'Recorded use of fuzz target %s.' % key_name,
+      project=project,
+      engine=engine_name,
+      binary_name=binary_name,
+      job_type=job_type)
+  return fuzz_target
+
 
 def get_fuzz_target(name):
   """Get FuzzTarget by fully qualified name."""
@@ -1544,3 +1666,28 @@ def close_testcase_with_error(testcase_id, error_message):
   testcase.fixed = 'NA'
   testcase.open = False
   testcase.put()
+
+
+def clear_progression_pending(testcase):
+  """If we marked progression as pending for this testcase, clear that state."""
+  if not testcase.get_metadata('progression_pending'):
+    return
+
+  testcase.delete_metadata('progression_pending', update_testcase=False)
+
+
+def update_progression_completion_metadata(testcase,
+                                           revision,
+                                           is_crash=False,
+                                           message=None):
+  """Update metadata the progression task completes."""
+  clear_progression_pending(testcase)
+  testcase.set_metadata('last_tested_revision', revision, update_testcase=False)
+  if is_crash:
+    testcase.set_metadata(
+        'last_tested_crash_revision', revision, update_testcase=False)
+    testcase.set_metadata(
+        'last_tested_crash_time', utils.utcnow(), update_testcase=False)
+  if not testcase.open:
+    testcase.set_metadata('closed_time', utils.utcnow(), update_testcase=False)
+  update_testcase_comment(testcase, data_types.TaskState.FINISHED, message)

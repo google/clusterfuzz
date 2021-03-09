@@ -519,6 +519,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_java_exception(self):
+    """Tests for Java exceptions found by Jazzer."""
+    data = self._read_test_data('java_IllegalStateException.txt')
+    expected_type = 'Uncaught exception'
+    expected_address = ''
+    expected_state = ('ExampleValueProfileFuzzer.mustNeverBeCalled\n'
+                      'ExampleValueProfileFuzzer.fuzzerTestOneInput\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_java_fatal_exception(self):
     """Test for the java fatal exception format."""
     data = self._read_test_data('java_fatal_exception.txt')

@@ -26,6 +26,7 @@ from base import external_users
 from base import memoize
 from base import tasks
 from base import utils
+from crash_analysis.stack_parsing import stack_analyzer
 from datastore import data_handler
 from datastore import data_types
 from google_cloud_utils import blobs
@@ -326,8 +327,8 @@ class UploadHandlerCommon(object):
     if not job_type:
       raise helpers.EarlyExitException('Missing job name.', 400)
 
-    if (not data_types.Job.VALID_NAME_REGEX.match(job_type) or
-        not job_type in data_handler.get_all_job_type_names()):
+    job = data_types.Job.query(data_types.Job.name == job_type).get()
+    if not job:
       raise helpers.EarlyExitException('Invalid job name.', 400)
 
     fuzzer_name = request.get('fuzzer')
@@ -356,8 +357,16 @@ class UploadHandlerCommon(object):
 
     fully_qualified_fuzzer_name = ''
     if is_engine_job and target_name:
-      fully_qualified_fuzzer_name, target_name = find_fuzz_target(
-          fuzzer_name, target_name, job_type)
+      if job.is_external():
+        # External jobs don't run and set FuzzTarget entities as part of
+        # fuzz_task. Set it here instead.
+        fuzz_target = (
+            data_handler.record_fuzz_target(fuzzer_name, target_name, job_type))
+        fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
+        target_name = fuzz_target.binary
+      else:
+        fully_qualified_fuzzer_name, target_name = find_fuzz_target(
+            fuzzer_name, target_name, job_type)
 
     if (not access.has_access(
         need_privileged_access=False,
@@ -380,13 +389,34 @@ class UploadHandlerCommon(object):
     platform_id = request.get('platform')
     issue_labels = request.get('issue_labels')
     gestures = request.get('gestures') or '[]'
+    stacktrace = request.get('stacktrace')
+
+    crash_data = None
+    if job.is_external():
+      if not stacktrace:
+        raise helpers.EarlyExitException(
+            'Stacktrace required for external jobs.', 400)
+
+      if not crash_revision:
+        raise helpers.EarlyExitException('Revision required for external jobs.',
+                                         400)
+
+      crash_data = stack_analyzer.get_crash_data(
+          stacktrace,
+          fuzz_target=target_name,
+          symbolize_flag=False,
+          already_symbolized=True,
+          detect_ooms_and_hangs=True)
+    elif stacktrace:
+      raise helpers.EarlyExitException(
+          'Should not specify stacktrace for non-external jobs.', 400)
 
     testcase_metadata = request.get('metadata', {})
     if testcase_metadata:
       try:
         testcase_metadata = json.loads(testcase_metadata)
-      except Exception:
-        raise helpers.EarlyExitException('Invalid metadata JSON.', 400)
+      except Exception as e:
+        raise helpers.EarlyExitException('Invalid metadata JSON.', 400) from e
       if not isinstance(testcase_metadata, dict):
         raise helpers.EarlyExitException('Metadata is not a JSON object.', 400)
     if issue_labels:
@@ -394,8 +424,8 @@ class UploadHandlerCommon(object):
 
     try:
       gestures = ast.literal_eval(gestures)
-    except Exception:
-      raise helpers.EarlyExitException('Failed to parse gestures.', 400)
+    except Exception as e:
+      raise helpers.EarlyExitException('Failed to parse gestures.', 400) from e
 
     archive_state = 0
     bundled = False
@@ -522,6 +552,7 @@ class UploadHandlerCommon(object):
           upload_metadata.quiet_flag = quiet_flag
           upload_metadata.additional_metadata_string = json.dumps(
               testcase_metadata)
+          upload_metadata.bug_information = bug_information
           upload_metadata.put()
 
           helpers.log('Uploaded multiple testcases.', helpers.VIEW_OPERATION)
@@ -543,7 +574,7 @@ class UploadHandlerCommon(object):
         filename,
         file_path_input,
         timeout,
-        job_type,
+        job,
         job_queue,
         http_flag,
         gestures,
@@ -560,7 +591,8 @@ class UploadHandlerCommon(object):
         retries,
         bug_summary_update_flag,
         quiet_flag,
-        additional_metadata=testcase_metadata)
+        additional_metadata=testcase_metadata,
+        crash_data=crash_data)
 
     if not quiet_flag:
       testcase = data_handler.get_testcase_by_id(testcase_id)

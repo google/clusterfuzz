@@ -19,6 +19,7 @@ import random
 import threading
 import time
 
+from base import external_tasks
 from base import persistent_cache
 from base import utils
 from datastore import data_types
@@ -85,7 +86,7 @@ class Error(Exception):
 class InvalidRedoTask(Error):
 
   def __init__(self, task):
-    super(InvalidRedoTask, self).__init__("The task '%s' is invalid." % task)
+    super().__init__("The task '%s' is invalid." % task)
 
 
 def queue_suffix_for_platform(platform):
@@ -262,7 +263,7 @@ class PubSubTask(Task):
 
   def __init__(self, pubsub_message):
     self._pubsub_message = pubsub_message
-    super(PubSubTask, self).__init__(
+    super().__init__(
         self.attribute('command'), self.attribute('argument'),
         self.attribute('job'))
 
@@ -317,7 +318,7 @@ class _PubSubLeaserThread(threading.Thread):
   EXTENSION_TIME_SECONDS = 10 * 60  # 10 minutes.
 
   def __init__(self, message, done_event, max_lease_seconds):
-    super(_PubSubLeaserThread, self).__init__()
+    super().__init__()
 
     self.daemon = True
     self._message = message
@@ -364,6 +365,15 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
   if wait_time is None:
     wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
 
+  if job_type != 'none':
+    job = data_types.Job.query(data_types.Job.name == job_type).get()
+    if not job:
+      raise Error(f'Job {job_type} not found.')
+
+    if job.is_external():
+      external_tasks.add_external_task(command, argument, job)
+      return
+
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
   task = Task(command, argument, job_type, eta=eta)
@@ -394,7 +404,8 @@ def queue_for_platform(platform, is_high_end=False):
 
 def queue_for_testcase(testcase):
   """Return the right queue for the testcase."""
-  is_high_end = testcase.queue.startswith(HIGH_END_JOBS_PREFIX)
+  is_high_end = (
+      testcase.queue and testcase.queue.startswith(HIGH_END_JOBS_PREFIX))
   return queue_for_job(testcase.job_type, is_high_end=is_high_end)
 
 

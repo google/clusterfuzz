@@ -102,7 +102,7 @@ sed -i 's/flush_interval 5s/flush_interval 60s/' \
 sudo service google-fluentd restart
 
 echo "Installing ClusterFuzz package dependencies."
-pip install crcmod==1.7 psutil==5.6.6 pyOpenSSL==19.0.0
+pip install crcmod==1.7 psutil==5.6.6 cryptography==3.3.2 pyOpenSSL==19.0.0
 
 if [ -z "$NFS_CLUSTER_NAME" ]; then
   NFS_ROOT=

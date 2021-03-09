@@ -1,0 +1,5 @@
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_openexr_253836c3726a4f68bf261f249b2656e2ecba6386/revisions/openexr_exrcheck_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /f5f373aaf25e0c8d219f578e1772ac99130f9260b9c4fa85bfb461c3f1988972
+==1== ERROR: libFuzzer: out-of-memory (used: 2847Mb; limit: 2560Mb)
+   To change the out-of-memory limit use -rss_limit_mb=<N>
+SUMMARY: libFuzzer: out-of-memory
