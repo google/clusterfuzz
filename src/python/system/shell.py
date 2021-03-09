@@ -144,7 +144,7 @@ def clear_data_directories_on_low_disk_space():
 
 def clear_device_temp_directories():
   """Clear device specific temp directories."""
-  if environment.is_android() and not environment.is_android_emulator():
+  if environment.is_android() and environment.get_value('ANDROID_SERIAL'):
     from platforms import android
     android.device.clear_temp_directories()
 

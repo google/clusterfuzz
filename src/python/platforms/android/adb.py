@@ -149,7 +149,7 @@ def execute_command(cmd, timeout=None, log_error=True):
 
 def factory_reset():
   """Reset device to factory state."""
-  if is_gce():
+  if is_gce() or environment.is_android_emulator():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
     # for reimage in next iteration.
@@ -561,7 +561,7 @@ def run_command(cmd,
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
-  if not recover:
+  if not recover or environment.is_android_emulator():
     if log_output:
       logs.log('Output: (%s)' % output)
     return output
@@ -571,7 +571,7 @@ def run_command(cmd,
   if (output in [
       DEVICE_HANG_STRING, DEVICE_OFFLINE_STRING,
       device_not_found_string_with_serial
-  ]) and not environment.is_android_emulator():
+  ]):
     logs.log_warn('Unable to query device, resetting device connection.')
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.
@@ -580,7 +580,7 @@ def run_command(cmd,
     else:
       output = DEVICE_HANG_STRING
 
-  if output is DEVICE_HANG_STRING and not environment.is_android_emulator():
+  if output is DEVICE_HANG_STRING:
     # Handle the case where our command execution hung. This is usually when
     # device goes into a bad state and only way to recover is to restart it.
     logs.log_warn('Unable to query device, restarting device to recover.')

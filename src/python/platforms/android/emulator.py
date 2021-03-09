@@ -93,8 +93,6 @@ class EmulatorProcess(object):
       time.sleep(_WAIT_SECONDS)
     logs.log('Device is online')
 
-    adb.run_as_root()
-
   def kill(self):
     """ Kills the currently-running emulator, if there is one. """
     if self.process:
