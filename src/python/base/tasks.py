@@ -63,6 +63,7 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'ANDROID_KERNEL': 'Android Kernel',
     'ANDROID_AUTO': 'Android Auto',
     'ANDROID_X86': 'Android (x86)',
+    'ANDROID_EMULATOR': 'Android (Emulated)',
     'CHROMEOS': 'Chrome OS',
     'FUCHSIA': 'Fuchsia OS',
     'MAC': 'Mac',

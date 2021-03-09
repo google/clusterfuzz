@@ -27,8 +27,8 @@ def linkify_kernel_or_lkl_stacktrace_if_needed(crash_info):
   """Linkify Android Kernel or lkl stacktrace."""
   kernel_prefix = ''
   kernel_hash = ''
-  if environment.is_android() and (crash_info.found_android_kernel_crash or
-                                   crash_info.is_kasan):
+  if (environment.is_android() and not environment.is_android_emulator() and
+      (crash_info.found_android_kernel_crash or crash_info.is_kasan)):
     kernel_prefix, kernel_hash = \
       android_kernel.get_kernel_prefix_and_full_hash()
 
