@@ -21,8 +21,11 @@ import tempfile
 from base import utils
 from bot.fuzzers import utils as fuzzer_utils
 from bot.fuzzers.syzkaller import config
+from config import local_config
+from google_cloud_utils import storage
 from lib.clusterfuzz.fuzz import engine
 from metrics import logs
+from platforms.android import kernel_utils
 from system import environment
 from system import new_process
 
@@ -73,6 +76,22 @@ def get_runner(fuzzer_path):
   return AndroidSyzkallerRunner(fuzzer_path)
 
 
+def _upload_kernel_coverage_data(kcov_path, kernel_bid):
+  """Upload kcov data to a cloud storage bucket."""
+  bucket_name = local_config.ProjectConfig().get('coverage.reports.bucket')
+  if not bucket_name:
+    return
+
+  formatted_date = str(utils.utcnow().date().isoformat())
+  identifier = environment.get_value('BOT_NAME') + str(
+      utils.utcnow().isoformat())
+
+  gcs_url = (f'gs://{bucket_name}/syzkaller/{formatted_date}/{kernel_bid}/'
+             f'{identifier}')
+  if storage.copy_file_to(kcov_path, gcs_url):
+    logs.log(f'Copied kcov data to {gcs_url}.')
+
+
 class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
   """Syzkaller runner."""
 
@@ -83,13 +102,11 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       executable_path: Path to the fuzzer executable.
       default_args: Default arguments to always pass to the fuzzer.
     """
-    super(AndroidSyzkallerRunner,
-          self).__init__(executable_path=executable_path)
+    super().__init__(executable_path=executable_path)
 
   def get_command(self, additional_args=None):
     """Process.get_command override."""
-    base_command = super(AndroidSyzkallerRunner,
-                         self).get_command(additional_args=additional_args)
+    base_command = super().get_command(additional_args=additional_args)
 
     return base_command
 
@@ -149,6 +166,10 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
     logs.log('Running Syzkaller.')
     additional_args = copy.copy(additional_args)
+
+    # Save kernel_bid for later in case the device is down.
+    _, kernel_bid = kernel_utils.get_kernel_hash_and_build_id()
+
     fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
     logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(
         fuzz_result.time_executed))
@@ -189,5 +210,6 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
                 engine.Crash(crash_testcase_file_path, log_content,
                              reproduce_arguments, actual_duration))
 
+    _upload_kernel_coverage_data(get_cover_file_path(), kernel_bid)
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed)

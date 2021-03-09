@@ -44,6 +44,11 @@ def execute_task(metadata_id, job_type):
     logs.log_error('Invalid upload metadata key %s.' % metadata.blobstore_key)
     return
 
+  job = data_types.Job.query(data_types.Job.name == metadata.job_type).get()
+  if not job:
+    logs.log_error('Invalid job_type %s.' % metadata.job_type)
+    return
+
   # Update the upload metadata with this bot name.
   upload_metadata.bot_name = bot_name
   upload_metadata.put()
@@ -97,11 +102,10 @@ def execute_task(metadata_id, job_type):
 
     data_handler.create_user_uploaded_testcase(
         blob_key, metadata.blobstore_key, archive_state,
-        metadata.archive_filename, filename, metadata.timeout,
-        metadata.job_type, metadata.job_queue, metadata.http_flag,
-        metadata.gestures, metadata.additional_arguments,
-        metadata.bug_information, metadata.crash_revision,
-        metadata.uploader_email, metadata.platform_id,
+        metadata.archive_filename, filename, metadata.timeout, job,
+        metadata.job_queue, metadata.http_flag, metadata.gestures,
+        metadata.additional_arguments, metadata.bug_information,
+        metadata.crash_revision, metadata.uploader_email, metadata.platform_id,
         metadata.app_launch_command, metadata.fuzzer_name,
         metadata.overridden_fuzzer_name, metadata.fuzzer_binary_name, bundled,
         upload_metadata.retries, upload_metadata.bug_summary_update_flag,

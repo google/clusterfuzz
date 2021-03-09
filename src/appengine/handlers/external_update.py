@@ -55,7 +55,7 @@ def handle_update(testcase, revision, stacktrace, error):
   last_tested_revision = (
       testcase.get_metadata('last_tested_revision') or testcase.crash_revision)
 
-  if revision <= last_tested_revision:
+  if revision < last_tested_revision:
     logs.log_warn(f'Revision {revision} less than previously tested '
                   f'revision {last_tested_revision}.')
     return
@@ -79,22 +79,21 @@ def handle_update(testcase, revision, stacktrace, error):
       detect_ooms_and_hangs=True)
   crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
   if not crash_comparer.is_similar():
-    logs.log(
-        'State no longer similar.',
-        testcase_id=testcase.key.id(),
-        old_state=testcase.crash_state,
-        new_state=state.crash_state)
+    logs.log(f'State no longer similar ('
+             f'testcase_id={testcase.key.id()}, '
+             f'old_state={testcase.crash_state}, '
+             f'new_state={state.crash_state})')
     _mark_as_fixed(testcase, revision)
     return
 
   is_security = crash_analyzer.is_security_issue(
       state.crash_stacktrace, state.crash_type, state.crash_address)
   if is_security != testcase.security_flag:
-    logs.log('Security flag no longer matches.', testcase_id=testcase.key.id())
+    logs.log(f'Security flag for {testcase.key.id()} no longer matches.')
     _mark_as_fixed(testcase, revision)
     return
 
-  logs.log('Still crashes.', testcase_id=testcase.key.id())
+  logs.log(f'{testcase.key.id()} still crashes.')
   testcase.last_tested_crash_stacktrace = stacktrace
   data_handler.update_progression_completion_metadata(
       testcase, revision, is_crash=True)
@@ -123,6 +122,7 @@ class Handler(base_handler.Handler):
     if message.data:
       stacktrace = message.data.decode()
     else:
+      logs.log(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
     error = message.attributes.get('error')

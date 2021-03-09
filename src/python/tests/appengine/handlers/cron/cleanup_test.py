@@ -2079,6 +2079,7 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
         testcase_id=self.testcase_id,
         uploader_email=self.uploader_email,
         bundled=False,
+        bug_information=str(self.issue.id),
         quiet_flag=True).put()
     self.testcase.status = 'Processed'
     self.testcase.minimized_keys = 'some-key'

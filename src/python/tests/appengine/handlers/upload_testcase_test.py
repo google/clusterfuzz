@@ -181,12 +181,12 @@ class UploadOAuthTest(unittest.TestCase):
         'last_tested_crash_stacktrace': None,
         'minidump_keys': None,
         'minimized_arguments': '',
-        'minimized_keys': '',
+        'minimized_keys': 'NA',
         'one_time_crasher_flag': False,
         'open': True,
         'overridden_fuzzer_name': 'libFuzzer_proj_target',
-        'platform': None,
-        'platform_id': None,
+        'platform': 'linux',
+        'platform_id': 'linux',
         'project_name': 'proj',
         'queue': None,
         'redzone': 128,
@@ -210,6 +210,7 @@ class UploadOAuthTest(unittest.TestCase):
         'additional_metadata_string': None,
         'blobstore_key': 'blob_key',
         'bot_name': None,
+        'bug_information': '',
         'bug_summary_update_flag': False,
         'bundled': False,
         'duplicate_of': None,
@@ -317,7 +318,7 @@ class UploadOAuthTest(unittest.TestCase):
         'minimized_arguments':
             '',
         'minimized_keys':
-            '',
+            'NA',
         'one_time_crasher_flag':
             False,
         'open':
@@ -325,9 +326,9 @@ class UploadOAuthTest(unittest.TestCase):
         'overridden_fuzzer_name':
             'libFuzzer_proj_target',
         'platform':
-            None,
+            'linux',
         'platform_id':
-            None,
+            'linux',
         'project_name':
             'proj',
         'queue':
@@ -364,6 +365,7 @@ class UploadOAuthTest(unittest.TestCase):
         'additional_metadata_string': None,
         'blobstore_key': 'blob_key',
         'bot_name': None,
+        'bug_information': '',
         'bug_summary_update_flag': False,
         'bundled': False,
         'duplicate_of': None,
@@ -387,6 +389,7 @@ class UploadOAuthTest(unittest.TestCase):
         crash_state='target\n',
         crash_type='Out-of-memory',
         project_name='proj',
+        minimized_keys='NA',
         security_flag=False)
     existing.put()
 
@@ -448,8 +451,8 @@ class UploadOAuthTest(unittest.TestCase):
         'one_time_crasher_flag': False,
         'open': False,
         'overridden_fuzzer_name': 'libFuzzer_proj_target',
-        'platform': None,
-        'platform_id': None,
+        'platform': 'linux',
+        'platform_id': 'linux',
         'project_name': 'proj',
         'queue': None,
         'redzone': 128,
@@ -473,6 +476,7 @@ class UploadOAuthTest(unittest.TestCase):
         'additional_metadata_string': None,
         'blobstore_key': 'blob_key',
         'bot_name': None,
+        'bug_information': '',
         'bug_summary_update_flag': False,
         'bundled': False,
         'duplicate_of': 2,

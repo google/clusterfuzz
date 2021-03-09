@@ -844,6 +844,9 @@ class TestcaseUploadMetadata(Model):
   # Additional testcase metadata dict stored as a string.
   additional_metadata_string = ndb.TextProperty(indexed=False)
 
+  # Specified issue id.
+  bug_information = ndb.StringProperty()
+
 
 class JobTemplate(Model):
   # Job template name.
