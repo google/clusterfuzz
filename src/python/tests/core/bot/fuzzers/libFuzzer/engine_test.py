@@ -467,6 +467,7 @@ class BaseIntegrationTest(unittest.TestCase):
     os.environ['TEST_TIMEOUT'] = '65'
     os.environ['JOB_NAME'] = 'libfuzzer_asan'
     os.environ['INPUT_DIR'] = TEMP_DIR
+    os.environ['CACHE_DIR'] = TEMP_DIR
 
     test_helpers.patch(self, [
         'bot.fuzzers.dictionary_manager.DictionaryManager.'

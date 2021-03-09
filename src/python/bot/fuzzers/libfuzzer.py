@@ -419,12 +419,12 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
   """libFuzzer runner (when Fuchsia is the target platform, and undercoat
   is used)."""
 
-  def __init__(self, executable_path, default_args=None):
-    # We always assume QEMU is running on __init__, since build_manager sets
-    # it up initially.
+  def __init__(self, executable_path, instance_handle, default_args=None):
+    # An instance_handle from undercoat is required, and should be set up by the
+    # build_manager.
     # Note: In this case executable_path is simply `package/fuzzer`
     super().__init__(executable_path=executable_path, default_args=default_args)
-    self.handle = environment.get_value('FUCHSIA_INSTANCE_HANDLE')
+    self.handle = instance_handle
 
   def _corpus_directories_libfuzzer(self, corpus_directories):
     """ Returns the corpus directory paths expected by libfuzzer itself. """
@@ -451,8 +451,6 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     self._clear_all_target_corpora()
     logs.log('Push corpora from host to target.')
     for corpus_dir in corpus_directories:
-      # TODO(eep): Was the previous implementation's behavior of merging all the
-      # corpus_directories like this intentional?
       undercoat.put_data(self.handle, self.executable_path, corpus_dir,
                          'data/corpus')
 
@@ -462,7 +460,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # directory, rather than the directory itself.
     logs.log('Fuzzer ran; pulling down corpus')
     new_corpus_files_target = self._new_corpus_dir_target(
-        corpus_directories) + "/*"
+        corpus_directories) + '/*'
     undercoat.get_data(self.handle, self.executable_path,
                        new_corpus_files_target,
                        self._new_corpus_dir_host(corpus_directories))
@@ -493,7 +491,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     assert max_total_time > 0
 
     additional_args.extend([
-        '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, max_total_time),
+        constants.MAX_TOTAL_TIME_FLAG + str(max_total_time),
         constants.PRINT_FINAL_STATS_ARGUMENT,
     ])
 
@@ -1561,7 +1559,10 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
     runner = MinijailLibFuzzerRunner(fuzzer_path, minijail_chroot)
   elif is_fuchsia:
     if environment.get_value('FUCHSIA_USE_UNDERCOAT'):
-      runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path)
+      instance_handle = environment.get_value('FUCHSIA_INSTANCE_HANDLE')
+      if not instance_handle:
+        raise undercoat.UndercoatError('Instance handle not provided.')
+      runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
     else:
       runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   elif is_android:

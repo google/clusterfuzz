@@ -88,11 +88,16 @@ def _fetch_qemu_vars():
 
 def initial_qemu_setup():
   """Performs one-time setup necessary to subsequently run Fuchsia QEMU VMs.
-  Only call this *once*, immediately after downloading a Fuchsia build.
-  (Calling it more than once per download will cause errors.)
+  This only needs to be called once per build setup, and will do nothing if
+  called multiple times.
   This function does not run a VM, merely performs setup for a VM.
   """
   qemu_vars = _fetch_qemu_vars()
+
+  # Exit early if it appears we've already been called for this build
+  if os.path.exists(qemu_vars['initrd_path']):
+    return
+
   extend_fvm(qemu_vars['fuchsia_resources_dir'], qemu_vars['drive_path'])
   add_keys_to_zbi(qemu_vars['fuchsia_resources_dir'], qemu_vars['initrd_path'],
                   qemu_vars['fuchsia_zbi'])

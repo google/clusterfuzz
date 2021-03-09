@@ -15,28 +15,37 @@
 via undercoat."""
 
 import os
-import sys
 import tempfile
 
+from base import persistent_cache
+from base import utils
 from metrics import logs
 from system import environment
 from system import new_process
-from system import shell
 
-# In order to properly clean up any stale instances, we need to keep track of
-# handles in a way that persists between runs
-UNDERCOAT_HANDLE_DIR = os.path.join(tempfile.gettempdir(), 'undercoat-handles')
+# In order to properly clean up any stale instances, we keep track of handles in
+# the persistent cache. We assume that only one instance of a bot will be
+# accessing this cache at a time.
+HANDLE_CACHE_KEY = 'undercoat-handles'
 
 
-def get_all_handles():
-  """Returns pairs of (filename, handle) for instances that have been started
-  but not yet shut down. The filenames themselves hold no meaning, but are
-  needed to delete the handle references."""
+def add_running_handle(handle):
+  """Record a handle as potentially needing to be cleaned up on restart."""
+  new_handle_list = list(set(get_running_handles()) | set([handle]))
+  persistent_cache.set_value(
+      HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
 
-  for handle_file in shell.get_files_list(UNDERCOAT_HANDLE_DIR):
-    with open(handle_file, 'r') as f:
-      handle = f.read().strip()
-    yield handle_file, handle
+
+def remove_running_handle(handle):
+  """Remove a handle from the tracked set."""
+  new_handle_list = list(set(get_running_handles()) - set([handle]))
+  persistent_cache.set_value(
+      HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
+
+
+def get_running_handles():
+  """Get a list of potentially stale handles from previous runs."""
+  return persistent_cache.get_value(HANDLE_CACHE_KEY, default_value=[])
 
 
 class UndercoatError(Exception):
@@ -46,14 +55,14 @@ class UndercoatError(Exception):
 def undercoat_api_command(*args):
   """Make an API call to the undercoat binary."""
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
-  undercoat_path = os.path.join(bundle_dir, 'undercoat/undercoat')
+  undercoat_path = os.path.join(bundle_dir, 'undercoat', 'undercoat')
   undercoat = new_process.ProcessRunner(undercoat_path, args)
-  # TODO(eep): Is there a more useful way to connect stderr to the
-  # logging system?
-  result = undercoat.run_and_wait(stderr=sys.stderr)
+  error_log = tempfile.TemporaryFile()
+  result = undercoat.run_and_wait(stderr=error_log)
   result.output = result.output.decode('utf-8')
 
   if result.return_code != 0:
+    logs.log_warn(utils.read_from_handle_truncated(error_log, 1024 * 1024))
     raise UndercoatError(
         'Error running undercoat command %s: %s' % (args, result.output))
 
@@ -72,6 +81,32 @@ def undercoat_instance_command(command, handle, *args):
     raise
 
 
+def get_version():
+  """Get undercoat API version as (major, minor, patch) tuple."""
+  version = undercoat_api_command('version').output
+
+  if not version.startswith('v'):
+    raise UndercoatError('Invalid version reported: %s' % version)
+
+  parts = version[1:].split('.')
+  if len(parts) != 3:
+    raise UndercoatError('Invalid version reported: %s' % version)
+
+  try:
+    return tuple(int(part) for part in parts)
+  except ValueError as e:
+    raise UndercoatError('Invalid version reported: %s' % version) from e
+
+
+def validate_api_version():
+  """Check that the undercoat API version is supported. Raises an error if it is
+  not."""
+  major, minor, patch = get_version()
+  if major > 0:
+    raise UndercoatError(
+        'Unsupported API version: %d.%d.%d' % (major, minor, patch))
+
+
 def dump_instance_logs(handle):
   """Dump logs from an undercoat instance."""
   # Avoids using undercoat_instance_command in order to avoid recursion on error
@@ -86,10 +121,7 @@ def start_instance():
 
   # Immediately save the handle in case we crash before stop_instance()
   # is called
-  shell.create_directory(UNDERCOAT_HANDLE_DIR)
-  with tempfile.NamedTemporaryFile(
-      dir=UNDERCOAT_HANDLE_DIR, mode='w', delete=False) as f:
-    f.write(handle)
+  add_running_handle(handle)
 
   return handle
 
@@ -97,7 +129,7 @@ def start_instance():
 def stop_all():
   """Attempt to stop any running undercoat instances that may have not been
   cleanly shut down."""
-  for handle_file, handle in get_all_handles():
+  for handle in get_running_handles():
     try:
       undercoat_instance_command('stop_instance', handle)
     except UndercoatError:
@@ -105,7 +137,7 @@ def stop_all():
 
     # Even if we failed to stop_instance above, there's no point in trying
     # again later
-    shell.remove_file(handle_file)
+    remove_running_handle(handle)
 
 
 def stop_instance(handle):
@@ -113,10 +145,8 @@ def stop_instance(handle):
   # Avoids using undercoat_instance_command in order to avoid recursion on error
   result = undercoat_api_command('stop_instance', '-handle', handle)
 
-  # Remove the corresponding handle file now that we've cleanly shut down
-  handle_file = next((f for f, h in get_all_handles() if h == handle), None)
-  if handle_file:
-    shell.remove_file(handle_file)
+  # Mark the corresponding handle as having been cleanly shut down
+  remove_running_handle(handle)
 
   return result
 
@@ -142,12 +172,16 @@ def run_fuzzer(handle, fuzzer, outdir, args):
 
 
 def put_data(handle, fuzzer, src, dst):
-  """Put files for a fuzzer onto an instance, via undercoat."""
+  """Put files for a fuzzer onto an instance, via undercoat.
+  If src is a directory, it will be copied recursively. Standard globs are
+  supported."""
   return undercoat_instance_command('put_data', handle, '-fuzzer', fuzzer,
                                     '-src', src, '-dst', dst).output
 
 
 def get_data(handle, fuzzer, src, dst):
-  """Get files from a fuzzer on an instance, via undercoat."""
+  """Get files from a fuzzer on an instance, via undercoat.
+  If src is a directory, it will be copied recursively. Standard globs are
+  supported."""
   return undercoat_instance_command('get_data', handle, '-fuzzer', fuzzer,
                                     '-src', src, '-dst', dst).output
