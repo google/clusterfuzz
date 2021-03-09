@@ -23,8 +23,13 @@ from metrics import logs
 from platforms.android import adb
 from system import archive
 from system import environment
-from system import new_process
 from system import shell
+
+try:
+  from system import new_process
+except ImportError:
+  # On App Engine.
+  new_process = None
 
 # Output pattern to parse stdout for serial number
 DEVICE_SERIAL_RE = re.compile(r'DEVICE_SERIAL: (.+)')
