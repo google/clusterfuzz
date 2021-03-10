@@ -1,0 +1,81 @@
+INFO: Loaded 8562 no-throw method signatures
+INFO: Instrumented com.example.JsonSanitizerFuzzer (took 87 ms, size +86%)
+INFO: libFuzzer ignores flags that start with '--'
+INFO: Seed: 2735196724
+INFO: Loaded 1 modules   (512 inline 8-bit counters): 512 [0x7f586fafa010, 0x7f586fafa210),
+INFO: Loaded 1 PC tables (512 PCs): 512 [0x7f586e6f8010,0x7f586e6fa010),
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: New number of inline 8-bit counters: 1024
+INFO: Instrumented com.google.json.JsonSanitizer (took 66 ms, size +123%)
+INFO: New number of inline 8-bit counters: 8192
+INFO: Instrumented com.google.gson.internal.bind.TypeAdapterRuntimeTypeWrapper (took 2 ms, size +31%)
+INFO: Instrumented com.google.gson.internal.bind.ArrayTypeAdapter$1 (took 4 ms, size +33%)
+INFO: Instrumented com.google.gson.internal.bind.CollectionTypeAdapterFactory (took 1 ms, size +21%)
+INFO: Instrumented com.google.gson.internal.bind.CollectionTypeAdapterFactory$Adapter (took 1 ms, size +28%)
+INFO: Instrumented com.google.gson.internal.bind.MapTypeAdapterFactory (took 1 ms, size +23%)
+INFO: Instrumented com.google.gson.internal.bind.MapTypeAdapterFactory$Adapter (took 3 ms, size +39%)
+INFO: Instrumented com.google.gson.internal.bind.JsonAdapterAnnotationTypeAdapterFactory (took 1 ms, size +27%)
+INFO: Instrumented com.google.gson.internal.bind.TreeTypeAdapter (took 1 ms, size +22%)
+INFO: Instrumented com.google.gson.internal.bind.ReflectiveTypeAdapterFactory (took 3 ms, size +28%)
+INFO: Instrumented com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$BoundField (took 1 ms, size +21%)
+INFO: Instrumented com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$1 (took 1 ms, size +29%)
+INFO: Instrumented com.google.gson.internal.bind.ReflectiveTypeAdapterFactory$Adapter (took 1 ms, size +32%)
+INFO: Instrumented com.google.gson.internal.JsonReaderInternalAccess (took 0 ms, size +44%)
+INFO: Instrumented com.google.gson.stream.JsonReader$1 (took 1 ms, size +53%)
+INFO: Instrumented com.google.gson.stream.JsonToken (took 1 ms, size +40%)
+INFO: Instrumented com.google.gson.internal.bind.TypeAdapters$36 (took 1 ms, size +81%)
+INFO: Instrumented com.google.gson.internal.Primitives (took 1 ms, size +80%)
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 282 ft: 282 corp: 1/1b exec/s: 0 rss: 178Mb
+#4	NEW    cov: 289 ft: 295 corp: 2/3b lim: 4 exec/s: 0 rss: 178Mb L: 2/2 MS: 2 ChangeBit-CopyPart-
+#9	NEW    cov: 292 ft: 308 corp: 3/7b lim: 4 exec/s: 0 rss: 178Mb L: 4/4 MS: 5 EraseBytes-InsertByte-ChangeByte-CopyPart-CrossOver-
+#307	NEW    cov: 534 ft: 661 corp: 40/139b lim: 4 exec/s: 0 rss: 179Mb L: 4/4 MS: 2 CopyPart-ChangeBinInt-
+#308	REDUCE cov: 534 ft: 661 corp: 40/138b lim: 4 exec/s: 0 rss: 179Mb L: 3/4 MS: 1 EraseBytes-
+#340	NEW    cov: 537 ft: 667 corp: 41/142b lim: 4 exec/s: 0 rss: 179Mb L: 4/4 MS: 2 ChangeASCIIInt-ShuffleBytes-
+#350	NEW    cov: 538 ft: 668 corp: 42/146b lim: 4 exec/s: 0 rss: 179Mb L: 4/4 MS: 5 CopyPart-ShuffleBytes-ChangeASCIIInt-CopyPart-ChangeBinInt-
+#387	NEW    cov: 543 ft: 673 corp: 43/150b lim: 4 exec/s: 0 rss: 179Mb L: 4/4 MS: 2 ShuffleBytes-CrossOver-
+#405	REDUCE cov: 543 ft: 673 corp: 43/148b lim: 4 exec/s: 0 rss: 179Mb L: 2/4 MS: 3 ChangeBinInt-ChangeASCIIInt-EraseBytes-
+#421	REDUCE cov: 543 ft: 673 corp: 43/147b lim: 4 exec/s: 0 rss: 179Mb L: 3/4 MS: 1 EraseBytes-
+#432	NEW    cov: 546 ft: 684 corp: 44/151b lim: 4 exec/s: 0 rss: 179Mb L: 4/4 MS: 1 CopyPart-
+#437	NEW    cov: 548 ft: 686 corp: 45/155b lim: 4 exec/s: 0 rss: 179Mb L: 4/4 MS: 5 ShuffleBytes-ShuffleBytes-ChangeByte-ShuffleBytes-ShuffleBytes-
+#476	NEW    cov: 548 ft: 691 corp: 46/158b lim: 4 exec/s: 0 rss: 179Mb L: 3/4 MS: 4 CrossOver-ChangeASCIIInt-EraseBytes-CopyPart-
+INFO: Instrumented com.google.gson.internal.LinkedTreeMap (took 6 ms, size +50%)
+INFO: Instrumented com.google.gson.internal.LinkedTreeMap$1 (took 1 ms, size +35%)
+INFO: Instrumented com.google.gson.internal.LinkedTreeMap$Node (took 2 ms, size +35%)
+#533	NEW    cov: 656 ft: 828 corp: 47/162b lim: 4 exec/s: 0 rss: 180Mb L: 4/4 MS: 2 ChangeByte-InsertByte-
+#536	REDUCE cov: 656 ft: 829 corp: 48/166b lim: 4 exec/s: 0 rss: 180Mb L: 4/4 MS: 3 ShuffleBytes-InsertByte-CopyPart-
+#562	NEW    cov: 658 ft: 842 corp: 49/170b lim: 4 exec/s: 0 rss: 180Mb L: 4/4 MS: 1 CopyPart-
+#578	NEW    cov: 658 ft: 843 corp: 50/174b lim: 4 exec/s: 0 rss: 180Mb L: 4/4 MS: 1 ChangeBit-
+#584	REDUCE cov: 658 ft: 843 corp: 50/173b lim: 4 exec/s: 0 rss: 180Mb L: 3/4 MS: 1 EraseBytes-
+#599	NEW    cov: 661 ft: 846 corp: 51/175b lim: 4 exec/s: 0 rss: 180Mb L: 2/4 MS: 5 ChangeASCIIInt-ChangeByte-ChangeBit-EraseBytes-ChangeBit-
+#610	NEW    cov: 662 ft: 849 corp: 52/179b lim: 4 exec/s: 0 rss: 180Mb L: 4/4 MS: 1 ChangeBinInt-
+#626	REDUCE cov: 662 ft: 851 corp: 53/182b lim: 4 exec/s: 0 rss: 180Mb L: 3/4 MS: 1 CopyPart-
+#6537	NEW    cov: 870 ft: 1862 corp: 189/751b lim: 6 exec/s: 0 rss: 204Mb L: 6/6 MS: 4 ChangeBinInt-InsertByte-ChangeBit-CopyPart-
+#6558	NEW    cov: 870 ft: 1864 corp: 190/757b lim: 6 exec/s: 0 rss: 204Mb L: 6/6 MS: 1 CopyPart-
+
+== Java Exception: com.code_intelligence.jazzer.api.FuzzerSecurityIssueMedium: com.google.gson.JsonSyntaxException: com.google.gson.stream.MalformedJsonException: Invalid escape sequence at line 1 column 8 path $
+	at com.example.JsonSanitizerFuzzer.fuzzerTestOneInput(JsonSanitizerFuzzer.java:49)
+Caused by: com.google.gson.JsonSyntaxException: com.google.gson.stream.MalformedJsonException: Invalid escape sequence at line 1 column 8 path $
+	at com.google.gson.Gson.fromJson(Gson.java:947)
+	at com.google.gson.Gson.fromJson(Gson.java:897)
+	at com.google.gson.Gson.fromJson(Gson.java:846)
+	at com.google.gson.Gson.fromJson(Gson.java:817)
+	at com.example.JsonSanitizerFuzzer.fuzzerTestOneInput(JsonSanitizerFuzzer.java:47)
+Caused by: com.google.gson.stream.MalformedJsonException: Invalid escape sequence at line 1 column 8 path $
+	at com.google.gson.stream.JsonReader.syntaxError(JsonReader.java:1564)
+	at com.google.gson.stream.JsonReader.readEscapeCharacter(JsonReader.java:1555)
+	at com.google.gson.stream.JsonReader.nextQuotedValue(JsonReader.java:1015)
+	at com.google.gson.stream.JsonReader.nextString(JsonReader.java:816)
+	at com.google.gson.internal.bind.TypeAdapters$29.read(TypeAdapters.java:702)
+	at com.google.gson.internal.bind.TypeAdapters$29.read(TypeAdapters.java:698)
+	at com.google.gson.internal.bind.TypeAdapters$35$1.read(TypeAdapters.java:894)
+	at com.google.gson.Gson.fromJson(Gson.java:932)
+	... 4 more
+DEDUP_TOKEN: 2484535967ef85e3
+== libFuzzer crashing input ==
+MS: 5 CMP-ChangeByte-ShuffleBytes-CrossOver-ChangeByte- DE: "<!--"-; base unit: 2b750103ec532963e8ee4c78418304a4cda3627a
+0x68,0x5c,0x5c,0x3e,0x5c,0x30,
+h\\\\>\\0
+artifact_prefix='/tmp/'; Test unit written to /tmp/crash-35fa43b1285e2bbec2ecfd0bb936065e50d5bc14
+Base64: aFxcPlww
+reproducer_path='/tmp'; Java reproducer written to /tmp/Crash_35fa43b1285e2bbec2ecfd0bb936065e50d5bc14.java

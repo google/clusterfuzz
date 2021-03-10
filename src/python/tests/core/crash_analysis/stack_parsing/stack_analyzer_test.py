@@ -533,6 +533,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_java_manual_security_exception(self):
+    """Tests for Java exceptions manually marked as security issues."""
+    data = self._read_test_data('java_severity_medium_exception.txt')
+    expected_type = 'Uncaught exception'
+    expected_address = ''
+    expected_state = ('com.example.JsonSanitizerFuzzer.fuzzerTestOneInput\n'
+                      'com.google.gson.Gson.fromJson\n'
+                      'com.google.gson.Gson.fromJson\n')
+
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_java_fatal_exception(self):
     """Test for the java fatal exception format."""
     data = self._read_test_data('java_fatal_exception.txt')
