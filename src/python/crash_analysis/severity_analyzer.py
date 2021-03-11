@@ -104,8 +104,15 @@ def get_security_severity(crash_type, crash_output, job_name,
 class SeverityAnalyzerSanitizer(object):
   """Generic ASan severity analyzer."""
 
-  def analyze(self, crash_type, _, requires_gestures):
+  def analyze(self, crash_type, crash_output, requires_gestures):
     """Return a security severity based on the ASan crash output."""
+
+    manual_severity_match = re.search(
+        r'FuzzerSecurityIssue(Critical|High|Medium|Low)', crash_output)
+    if manual_severity_match:
+      manual_severity = manual_severity_match.group(1)
+      return string_to_severity(manual_severity)
+
     crash_category = crash_type.split()[0]
     if crash_category in HIGH_SEVERITY_CRASH_TYPES:
       severity = SecuritySeverity.HIGH

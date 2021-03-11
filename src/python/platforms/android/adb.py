@@ -134,7 +134,7 @@ def execute_command(cmd, timeout=None, log_error=True):
   thread = threading.Thread(target=run)
   thread.start()
   thread.join(timeout)
-  if thread.isAlive():
+  if thread.is_alive():
     try:
       pipe.kill()
     except OSError:
@@ -149,7 +149,7 @@ def execute_command(cmd, timeout=None, log_error=True):
 
 def factory_reset():
   """Reset device to factory state."""
-  if is_gce():
+  if is_gce() or environment.is_android_emulator():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
     # for reimage in next iteration.
@@ -561,7 +561,7 @@ def run_command(cmd,
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
-  if not recover:
+  if not recover or environment.is_android_emulator():
     if log_output:
       logs.log('Output: (%s)' % output)
     return output
@@ -732,6 +732,11 @@ def wait_until_fully_booted():
       is_boot_completed = boot_completed()
 
     if is_drive_ready and is_package_manager_ready and is_boot_completed:
+      return True
+
+    # is_boot_completed and is_package_manager_ready may never happen on
+    # emulated devices.
+    if is_drive_ready and environment.is_android_emulator():
       return True
 
     time.sleep(BOOT_WAIT_INTERVAL)

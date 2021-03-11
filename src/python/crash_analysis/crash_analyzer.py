@@ -240,6 +240,11 @@ def has_signal_for_non_security_bug_type(stacktrace):
 def is_security_issue(crash_stacktrace, crash_type, crash_address):
   """Based on unsymbolized crash parameters, determine whether it has security
   consequences or not."""
+  # Stack traces of any type can be manually labelled as a security issue.
+  if re.search('FuzzerSecurityIssue(Critical|High|Medium|Low)',
+               crash_stacktrace):
+    return True
+
   # eip == 0.
   if 'pc (nil) ' in crash_stacktrace:
     return True
