@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Remove ClusterFuzz imports from PYTHONPATH to avoid conflicting
+# dependencies.
+unset PYTHONPATH
+
 # Environment variables needed during building.
 export NO_BREAKPAD=1
 export G_SLICE=always-malloc
