@@ -13,6 +13,8 @@
 # limitations under the License.
 FROM ubuntu:16.04
 
+RUN echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+
 RUN mkdir /data
 WORKDIR /data
 
