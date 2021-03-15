@@ -62,7 +62,8 @@ def undercoat_api_command(*args):
   result.output = result.output.decode('utf-8')
 
   if result.return_code != 0:
-    logs.log_warn(utils.read_from_handle_truncated(error_log, 1024 * 1024))
+    log_data = utils.read_from_handle_truncated(error_log, 1024 * 1024)
+    logs.log_warn('Log output from undercoat: ' + log_data)
     raise UndercoatError(
         'Error running undercoat command %s: %s' % (args, result.output))
 
