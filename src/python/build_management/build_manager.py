@@ -14,6 +14,7 @@
 """Build manager."""
 
 import os
+import random
 import re
 import subprocess
 import time
@@ -512,7 +513,7 @@ class Build(BaseBuild):
       # save us anything in this case and can be really expensive for large
       # builds (such as Chrome OS). Defer setting it until after the build has
       # been unpacked.
-      _set_random_fuzz_target_for_fuzzing_if_needed(
+      self._pick_fuzz_target(
           self._get_fuzz_targets_from_archive(build_local_archive),
           target_weights)
 
@@ -545,7 +546,7 @@ class Build(BaseBuild):
       # Set a random fuzz target now that the build has been unpacked, if we
       # didn't set one earlier. For an auxiliary build, fuzz target is already
       # specified during main build unpacking.
-      _set_random_fuzz_target_for_fuzzing_if_needed(
+      self._pick_fuzz_target(
           self._get_fuzz_targets_from_dir(build_dir), target_weights)
 
     # If this is partial build due to selected build files, then mark it as such
@@ -582,6 +583,11 @@ class Build(BaseBuild):
 
     for path in fuzzer_utils.get_fuzz_targets(build_dir):
       yield os.path.splitext(os.path.basename(path))[0]
+
+  def _pick_fuzz_target(self, fuzz_targets, target_weights):
+    """Selects a fuzz target for fuzzing."""
+    return _set_random_fuzz_target_for_fuzzing_if_needed(
+        fuzz_targets, target_weights)
 
   def setup(self):
     """Set up the build on disk, and set all the necessary environment
@@ -717,7 +723,7 @@ class RegularBuild(Build):
 
       logs.log('Retrieved build r%d.' % self.revision)
     else:
-      _set_random_fuzz_target_for_fuzzing_if_needed(
+      self._pick_fuzz_target(
           self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
       # We have the revision required locally, no more work to do, other than
@@ -740,8 +746,19 @@ class FuchsiaBuild(RegularBuild):
   FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
   FUCHSIA_DIR_REL_PATH = 'build'
 
+  def _pick_fuzz_target(self, fuzz_targets, target_weights):
+    """No-op, since Fuchsia builds pick targets later than other build types
+    and we aren't ready at the point that this is called by the superclass's
+    setup()."""
+
   def _get_fuzz_targets_from_dir(self, build_dir):
-    """Overridden to get targets list from fuchsia."""
+    """Returns a list of fuzz targets in a legacy Fuchsia build. For
+    undercoat-driven Fuchsia builds, a running instance is required to
+    enumerate targets so this is a no-op."""
+
+    if self.use_undercoat:
+      return []
+
     # Prevent App Engine import issues.
     from platforms.fuchsia.util.fuzzer import Fuzzer
     from platforms.fuchsia.util.host import Host
@@ -754,22 +771,14 @@ class FuchsiaBuild(RegularBuild):
             host.fuzzers, '', sanitizer, example_fuzzers=False)
     ]
 
-  def setup(self):
-    """Fuchsia build setup."""
+  def _setup_legacy_build(self):
+    """setup() for builds that don't use undercoat."""
     # Prevent App Engine import issues.
     from platforms import fuchsia
-    new_setup = not self.exists()
 
-    # Need to be set before fuchsia utils is called in setup().
-    environment.set_value(
-        'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
-    environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
-
-    assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES'), \
-        'Fuchsia does not support partial unpacks'
-    result = super().setup()
-    if not result:
-      return result
+    # Select a fuzzer, as we skipped doing so in the superclass's setup()
+    _set_random_fuzz_target_for_fuzzing_if_needed(
+        self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
     # We set these values here, rather than in initial_qemu_setup, since
     # SYMBOLIZE_REL_PATH and LLVM_SYMBOLIZER_REL_PATH are properties of the
@@ -784,11 +793,70 @@ class FuchsiaBuild(RegularBuild):
 
     # Kill any stale processes that may be left over from previous build.
     fuchsia.device.stop_qemu()
-    if new_setup:
-      fuchsia.device.initial_qemu_setup()
+
+    fuchsia.device.initial_qemu_setup()
 
     fuchsia.device.start_qemu()
-    return result
+
+  def _setup_undercoat_build(self):
+    """setup() for builds that do use undercoat."""
+    # Prevent App Engine import issues.
+    from platforms import fuchsia
+
+    # Kill any stale undercoat instances (currently, this is in fact the only
+    # path through which instances are shut down)
+    fuchsia.undercoat.stop_all()
+
+    logs.log('Starting Fuchsia instance.')
+    handle = fuchsia.undercoat.start_instance()
+    environment.set_value('FUCHSIA_INSTANCE_HANDLE', handle)
+
+    # Select a fuzzer, now that a list is available
+    fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
+    _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
+                                                  self.target_weights)
+
+  def setup(self):
+    """Fuchsia build setup."""
+    # Prevent App Engine import issues.
+    from platforms import fuchsia
+
+    # Decide per-build whether to use undercoat, based on rollout level
+    rollout_level = environment.get_value('FUCHSIA_UNDERCOAT_ROLLOUT_LEVEL', 0)
+    self.use_undercoat = random.random() < rollout_level
+
+    # Used by platforms.fuchsia.util
+    environment.set_value(
+        'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
+
+    environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
+
+    # Allow superclass's setup() to unpack the build
+    assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES'), \
+        'Fuchsia does not support partial unpacks'
+    result = super().setup()
+    if not result:
+      return result
+
+    # If selected, verify that undercoat is available in this build
+    if self.use_undercoat:
+      try:
+        fuchsia.undercoat.validate_api_version()
+      except (OSError, fuchsia.undercoat.UndercoatError) as e:
+        # Log an error and fall back to the legacy implementation
+        logs.log_warn('Undercoat selected but cannot be used: %s' % e)
+        self.use_undercoat = False
+
+    logs.log('Undercoat enabled: %s' % self.use_undercoat)
+    environment.set_value('FUCHSIA_USE_UNDERCOAT', self.use_undercoat)
+
+    # Finally, delegate to appropriate setup method
+    if self.use_undercoat:
+      self._setup_undercoat_build()
+    else:
+      self._setup_legacy_build()
+
+    return True
 
 
 class AndroidEmulatorBuild(RegularBuild):
@@ -960,7 +1028,7 @@ class CustomBuild(Build):
       # Remove the archive.
       shell.remove_file(build_local_archive)
 
-    _set_random_fuzz_target_for_fuzzing_if_needed(
+    self._pick_fuzz_target(
         self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
     return True
 
@@ -985,7 +1053,7 @@ class CustomBuild(Build):
     else:
       logs.log('Build already exists.')
 
-      _set_random_fuzz_target_for_fuzzing_if_needed(
+      self._pick_fuzz_target(
           self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
     self._setup_application_path(build_update=build_update)
