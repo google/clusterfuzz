@@ -1272,6 +1272,10 @@ def create_user_uploaded_testcase(key,
         utils.current_date_time(), uploader_email)
     # External jobs never get minimized.
     testcase.minimized_keys = 'NA'
+
+    # analyze_task sets this for non-external reproductions.
+    testcase.platform = job.platform.lower()
+    testcase.platform_id = testcase.platform
   else:
     testcase.crash_type = ''
     testcase.crash_state = 'Pending'
@@ -1295,8 +1299,6 @@ def create_user_uploaded_testcase(key,
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
   testcase.project_name = get_project_name(job.name)
-  testcase.platform = job.platform.lower()
-  testcase.platform_id = testcase.platform
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input
