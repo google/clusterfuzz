@@ -105,7 +105,7 @@ GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
 HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
-JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*: .*')
+JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
 KASAN_ACCESS_TYPE_ADDRESS_REGEX = re.compile(
