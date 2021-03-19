@@ -14,6 +14,7 @@
 """Handler used for setting up oss-fuzz jobs."""
 
 import base64
+import collections
 import copy
 import json
 import re
@@ -70,6 +71,8 @@ PUBSUB_PLATFORMS = ['linux']
 MEMORY_SAFE_LANGUAGES = {'go', 'java', 'python', 'rust'}
 OSS_FUZZ_DEFAULT_PROJECT_CPU_WEIGHT = 1.0
 OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT = 0.2
+
+SetupResult = collections.namedtuple('SetupResult', 'project_names job_names')
 
 
 class ProjectSetupError(Exception):
@@ -419,7 +422,7 @@ def ccs_from_info(info):
   return [utils.normalize_email(cc) for cc in ccs]
 
 
-def update_fuzzer_jobs(fuzzer_entities, project_names):
+def update_fuzzer_jobs(fuzzer_entities, job_names):
   """Update fuzzer job mappings."""
   to_delete = []
 
@@ -431,8 +434,7 @@ def update_fuzzer_jobs(fuzzer_entities, project_names):
     if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
       continue
 
-    job_project = job_environment['PROJECT_NAME']
-    if job_project in project_names:
+    if job.name in job_names:
       continue
 
     logs.log('Deleting job %s' % job.name)
@@ -686,6 +688,8 @@ class ProjectSetup(object):
                 logs_bucket_name, backup_bucket_name):
     """Sync the config with ClusterFuzz."""
     # Create/update ClusterFuzz jobs.
+    job_names = []
+
     for template in get_jobs_for_project(project, info):
       if template.engine == 'none':
         # Engine-less jobs are not automatically managed.
@@ -710,10 +714,11 @@ class ProjectSetup(object):
         job.external_updates_subscription = self._external_config[
             'updates_subscription']
 
-      if (job_name not in fuzzer_entity.jobs and
-          not info.get('disabled', False) and not job.is_external()):
-        # Enable new job.
-        fuzzer_entity.jobs.append(job_name)
+      if not info.get('disabled', False):
+        job_names.append(job_name)
+        if job_name not in fuzzer_entity.jobs and not job.is_external():
+          # Enable new job.
+          fuzzer_entity.jobs.append(job_name)
 
       job.name = job_name
       if self._segregate_projects:
@@ -826,6 +831,8 @@ class ProjectSetup(object):
 
       job.put()
 
+    return job_names
+
   def sync_user_permissions(self, project, info):
     """Sync permissions of project based on project.yaml."""
     ccs = ccs_from_info(info)
@@ -865,6 +872,7 @@ class ProjectSetup(object):
   def set_up(self, projects):
     """Do project setup. Return a list of all the project names that were set
     up."""
+    job_names = []
     for project, info in projects:
       logs.log('Syncing configs for %s.' % project)
 
@@ -880,8 +888,10 @@ class ProjectSetup(object):
              self._create_service_accounts_and_buckets(project, info))
 
       # Create CF jobs for project.
-      self._sync_job(project, info, corpus_bucket_name, quarantine_bucket_name,
-                     logs_bucket_name, backup_bucket_name)
+      current_job_names = self._sync_job(project, info, corpus_bucket_name,
+                                         quarantine_bucket_name,
+                                         logs_bucket_name, backup_bucket_name)
+      job_names.extend(current_job_names)
 
       if self._segregate_projects:
         self.sync_user_permissions(project, info)
@@ -898,12 +908,13 @@ class ProjectSetup(object):
         project for project, info in projects
         if not info.get('disabled', False)
     ]
-    return enabled_projects
+    return SetupResult(enabled_projects, job_names)
 
 
-def cleanup_stale_projects(fuzzer_entities, project_names, segregate_projects):
+def cleanup_stale_projects(fuzzer_entities, project_names, job_names,
+                           segregate_projects):
   """Clean up stale projects."""
-  update_fuzzer_jobs(fuzzer_entities, project_names)
+  update_fuzzer_jobs(fuzzer_entities, job_names)
   cleanup_old_projects_settings(project_names)
 
   if segregate_projects:
@@ -937,6 +948,7 @@ class Handler(base_handler.Handler):
     segregate_projects = project_config.get('segregate_projects')
     project_setup_configs = project_config.get('project_setup')
     project_names = set()
+    job_names = set()
 
     for setup_config in project_setup_configs:
       bucket_config = setup_config.get('build_buckets')
@@ -980,7 +992,9 @@ class Handler(base_handler.Handler):
       if not projects:
         raise ProjectSetupError('Missing projects list.')
 
-      project_names.update(config.set_up(projects))
+      result = config.set_up(projects)
+      project_names.update(result.project_names)
+      job_names.update(result.job_names)
 
     cleanup_stale_projects([libfuzzer, afl, honggfuzz], project_names,
-                           segregate_projects)
+                           job_names, segregate_projects)

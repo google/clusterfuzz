@@ -1702,6 +1702,11 @@ class GenericProjectSetupTest(unittest.TestCase):
         ],
     })
 
+    # Should be deleted.
+    job = data_types.Job(
+        name='libfuzzer_asan_c-d_dbg', environment_string='MANAGED = True')
+    job.put()
+
   def test_execute(self):
     """Tests executing of cron job."""
     self.app.get('/setup')
@@ -1736,6 +1741,10 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_c-d_dbg').get()
+    self.assertIsNone(job)
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b_dbg').get()
