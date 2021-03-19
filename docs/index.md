@@ -26,7 +26,7 @@ a software project's development process:
 - Fully automatic bug filing, triage and closing for various issue trackers
   (e.g. [Monorail], [Jira]).
 - Supports multiple [coverage guided fuzzing engines]
-  ([libFuzzer], [AFL++] and [Honggfuzz])
+  ([libFuzzer], [AFL], [AFL++] and [Honggfuzz])
   for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
 - Support for [blackbox fuzzing].
 - Testcase minimization.
