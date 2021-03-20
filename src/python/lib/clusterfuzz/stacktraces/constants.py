@@ -334,6 +334,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^pthread_kill$',
     r'^raise$',
     r'^tgkill$',
+    r'^__chk_fail$',
+    r'^__fortify_fail$',
 
     # Function names (startswith).
     r'^(|__)aeabi_',
