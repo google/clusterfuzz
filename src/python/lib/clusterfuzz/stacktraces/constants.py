@@ -534,6 +534,7 @@ STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
     r'.*libc\+\+\.so',
     r'.*libc\+\+_shared\.so',
     r'.*libstdc\+\+\.so',
+    r'.*libc-\d+\.\d+(?:\.\d+)?\.so',
 ]
 
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
