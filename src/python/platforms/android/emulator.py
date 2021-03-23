@@ -63,6 +63,7 @@ class EmulatorProcess(object):
 
     # Extract emulator image.
     self.emulator_path = os.path.join(work_dir, 'emulator')
+    shell.remove_directory(self.emulator_path)
     archive.unpack(archive_dst_path, self.emulator_path)
     shell.remove_file(archive_dst_path)
 
