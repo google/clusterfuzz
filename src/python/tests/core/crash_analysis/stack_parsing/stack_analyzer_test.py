@@ -1588,7 +1588,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('sanitizer_signal_abrt.txt')
     expected_type = 'Abrt'
     expected_address = ''
-    expected_state = ('/tmp/coredump\n')
+    expected_state = ('/tmp/coredump\n/tmp/coredump\n')
     expected_stacktrace = data
     expected_security_flag = False
 
