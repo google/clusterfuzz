@@ -51,19 +51,18 @@ class EmulatorProcess(object):
     log_path = os.path.join(tempfile.gettempdir(), 'android-emulator.log')
     self.logfile = open(log_path, 'wb')
 
-  def create(self):
+  def create(self, work_dir):
     """Configures a emulator process which can subsequently be `run`."""
     # Download emulator image.
     if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
       logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set.')
       return
-    temp_directory = environment.get_value('BOT_TMPDIR')
     archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
-    archive_dst_path = os.path.join(temp_directory, 'emulator_bundle.zip')
+    archive_dst_path = os.path.join(work_dir, 'emulator_bundle.zip')
     storage.copy_file_from(archive_src_path, archive_dst_path)
 
     # Extract emulator image.
-    self.emulator_path = os.path.join(temp_directory, 'emulator')
+    self.emulator_path = os.path.join(work_dir, 'emulator')
     archive.unpack(archive_dst_path, self.emulator_path)
     shell.remove_file(archive_dst_path)
 
