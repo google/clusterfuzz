@@ -1,4 +1,4 @@
-# Copyright 2021 Google LLC
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -552,7 +552,6 @@ class AflRunnerCommon(object):
     """Sets environment variables needed by afl."""
     # Tell afl_driver to duplicate stderr to STDERR_FILENAME.
     # Environment variable names and values that must be set before running afl.
-    environment.set_value(constants.AFL_MAP_SIZE_ENV_VAR, 8000000)
     environment.set_value(constants.FAST_CAL_ENV_VAR, 1)
     environment.set_value(constants.IGNORE_UNKNOWN_ENVS_ENV_VAR, 1)
     environment.set_value(constants.SKIP_CRASHES_ENV_VAR, 1)
