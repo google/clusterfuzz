@@ -69,7 +69,7 @@ class EmulatorProcess(object):
     # Stop any stale emulator instances.
     stop_script_path = os.path.join(self.emulator_path, 'stop')
     stop_proc = new_process.ProcessRunner(stop_script_path)
-    stop_proc.run()
+    stop_proc.run_and_wait()
 
     # Run emulator.
     run_script_path = os.path.join(self.emulator_path, 'run')
