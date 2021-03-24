@@ -63,12 +63,18 @@ class EmulatorProcess(object):
 
     # Extract emulator image.
     self.emulator_path = os.path.join(work_dir, 'emulator')
+    shell.remove_directory(self.emulator_path)
     archive.unpack(archive_dst_path, self.emulator_path)
     shell.remove_file(archive_dst_path)
 
+    # Stop any stale emulator instances.
+    stop_script_path = os.path.join(self.emulator_path, 'stop')
+    stop_proc = new_process.ProcessRunner(stop_script_path)
+    stop_proc.run_and_wait()
+
     # Run emulator.
-    script_path = os.path.join(self.emulator_path, 'run')
-    self.process_runner = new_process.ProcessRunner(script_path)
+    run_script_path = os.path.join(self.emulator_path, 'run')
+    self.process_runner = new_process.ProcessRunner(run_script_path)
 
   def run(self):
     """Actually runs a emulator, assuming `create` has already been called."""

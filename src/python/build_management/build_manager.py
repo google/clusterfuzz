@@ -866,7 +866,7 @@ class AndroidEmulatorBuild(RegularBuild):
     """Android Emulator build setup."""
     self._pre_setup()
     emu_proc = android.emulator.EmulatorProcess()
-    emu_proc.create(self.build_dir)
+    emu_proc.create(self.base_build_dir)
     emu_proc.run()
     android.adb.run_as_root()
 
