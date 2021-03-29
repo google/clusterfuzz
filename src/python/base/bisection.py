@@ -17,6 +17,7 @@ from build_management import build_manager
 from build_management import revisions
 from config import local_config
 from crash_analysis import severity_analyzer
+from datastore import data_handler
 from google_cloud_utils import blobs
 from google_cloud_utils import pubsub
 from system import environment
@@ -87,9 +88,11 @@ def _check_commits(testcase, bisect_type, old_commit, new_commit):
   # Something went wrong during bisection for the same commit to be chosen for
   # both the start and end range.
   # Get the bisection infrastructure to re-bisect.
-  # TODO(ochang): Untie this from bot environment and read from datastore job
-  # instead.
-  bucket_path = build_manager.get_primary_bucket_path()
+  if environment.is_running_on_app_engine():
+    bucket_path = data_handler.get_value_from_job_definition(
+        testcase.job_type, 'RELEASE_BUILD_BUCKET_PATH')
+  else:
+    bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(bucket_path)
 
   last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
