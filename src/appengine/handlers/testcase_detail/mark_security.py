@@ -28,13 +28,13 @@ def mark(testcase, security, severity):
   """Mark the testcase as security-related."""
   testcase.security_flag = security
   if security:
-    # TODO(ochang): Notify bisection infra.
     if not severity:
       severity = severity_analyzer.get_security_severity(
           testcase.crash_type, testcase.crash_stacktrace, testcase.job_type,
           bool(testcase.gestures))
 
     testcase.security_severity = severity
+    bisection.request_bisection(testcase)
   else:
     # The bisection infrastructure only cares about security bugs. If this was
     # marked as non-security, mark it as invalid.
