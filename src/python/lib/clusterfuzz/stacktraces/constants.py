@@ -435,6 +435,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^print_trailer',
     r'^realloc',
     r'^rust_begin_unwind',
+    r'^rust_fuzzer_test_input',
     r'^rust_oom',
     r'^scanf',
     r'^show_stack',
@@ -486,6 +487,7 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # File paths.
     r'.* base/callback',
+    r'.* /rust(|c)/',
     r'.*/AOSP\-toolchain/',
     r'.*/bindings/ToV8\.h',
     r'.*/crosstool/',

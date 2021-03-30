@@ -1,0 +1,43 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 3597413507
+INFO: Loaded 1 modules   (619877 inline 8-bit counters): 619877 [0x55575a64b74a, 0x55575a6e2caf),
+INFO: Loaded 1 PC tables (619877 PCs): 619877 [0x55575a6e2cb0,0x55575b058300),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_wasmtime_9d7f296cb3c934976ab46f0ee760a3a07ef3344a/revisions/spectests: Running 1 inputs 100 time(s) each.
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/c176653beef72c715138c432ebcf9db9819c383ddba3f64de5a9ba5ed7caec4f
+thread '<unnamed>' panicked at 'called `Result::unwrap()` on an `Err` value: failed directive on wasmtime/crates/fuzzing/../../tests/spec_testsuite/table.wast:11:1
+Caused by:
+    expected module to fail to build', wasmtime/crates/fuzzing/src/oracles.rs:427:10
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+==147652== ERROR: libFuzzer: deadly signal
+    #0 0x55575517a9a1 in __sanitizer_print_stack_trace /rustc/llvm/src/llvm-project/compiler-rt/lib/asan/asan_stack.cpp:86:3
+    #1 0x5557592e76d8 in fuzzer::PrintStackTrace() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerUtil.cpp:210:5
+    #2 0x5557592cad53 in fuzzer::Fuzzer::CrashCallback() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:233:3
+    #3 0x7f24f76cd38f in libpthread.so.0
+    #4 0x7f24f6e1a437 in raise /build/glibc-e6zv40/glibc-2.23/sysdeps/unix/sysv/linux/raise.c:54
+    #5 0x7f24f6e1c039 in abort /build/glibc-e6zv40/glibc-2.23/stdlib/abort.c:89
+    #6 0x555759384a49 in std::sys::unix::abort_internal::h411dc3861a5cb281 /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/std/src/sys/unix/mod.rs:205:14
+    #7 0x5557550f30b8 in std::process::abort::hd257d0bc0ddb140c /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/std/src/process.rs:1814:5
+    #8 0x55575931d25e in libfuzzer_sys::initialize::_$u7b$$u7b$closure$u7d$$u7d$::h8a22640c22e97ee8 /rust/registry/src/github.com-1ecc6299db9ec823/libfuzzer-sys-0.4.0/src/lib.rs:51:9
+    #9 0x555759374acf in std::panicking::rust_panic_with_hook::h70db735e3a6e70cb /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/std/src/panicking.rs:595:17
+    #10 0x5557593746a6 in std::panicking::begin_panic_handler::_$u7b$$u7b$closure$u7d$$u7d$::h777c71c8e5a7e25c /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/std/src/panicking.rs:497:13
+    #11 0x555759370b2b in std::sys_common::backtrace::__rust_end_short_backtrace::h3e9bf30168899554 /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/std/src/sys_common/backtrace.rs:141:18
+    #12 0x555759374608 in rust_begin_unwind /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/std/src/panicking.rs:493:5
+    #13 0x5557550f5250 in core::panicking::panic_fmt::h5322a082d19786c3 /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/core/src/panicking.rs:92:14
+    #14 0x5557550f5142 in core::result::unwrap_failed::hbee7d9f7831678f0 /rustc/673d0db5e393e9c64897005b470bfeb6d5aec61b/library/core/src/option.rs:1329:5
+    #15 0x55575538c673 in core::result::Result$LT$T$C$E$GT$::unwrap::hca82303565f74395 /rust/rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/result.rs:1037:23
+    #16 0x55575538c673 in wasmtime_fuzzing::oracles::spectest::ha380505b8ea313d4 wasmtime/crates/fuzzing/src/oracles.rs:425:5
+    #17 0x5557551ae1d2 in rust_fuzzer_test_input wasmtime/fuzz/fuzz_targets/spectests.rs:8:5
+    #18 0x55575931d2a0 in __rust_try
+    #19 0x55575931ceff in std::panicking::try::h88270102441d9383 /rust/rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:343:19
+    #20 0x55575931ceff in std::panic::catch_unwind::h3f9fd73d7e24a8da /rust/rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panic.rs:431:14
+    #21 0x55575931ceff in LLVMFuzzerTestOneInput /rust/registry/src/github.com-1ecc6299db9ec823/libfuzzer-sys-0.4.0/src/lib.rs:25:22
+    #22 0x5557592cc4f3 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:599:15
+    #23 0x5557592b6352 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:323:6
+    #24 0x5557592bc19a in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:856:9
+    #25 0x5557592e7eb2 in main /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #26 0x7f24f6e0583f in __libc_start_main /build/glibc-e6zv40/glibc-2.23/csu/libc-start.c:291
+    #27 0x5557550f65c8 in _start
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
+
