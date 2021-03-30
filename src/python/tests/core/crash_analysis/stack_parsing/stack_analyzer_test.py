@@ -2978,6 +2978,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_rust_ignores(self):
+    """Test that uninteresting frames are ignored for Rust."""
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_ignores.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'called `Result::unwrap()` on an `Err` value: failed directive on '
+        'wasmtime/crates\n'
+        'wasmtime_fuzzing::oracles::spectest::ha380505b8ea313d4\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_linux_kernel_library_libfuzzer(self):
     """Test Linux Kernel Library fuzzed with libfuzzer."""
     data = self._read_test_data('lkl_libfuzzer.txt')
