@@ -36,7 +36,7 @@ dependencies_installed="true"
 
 # Create the config directory if needed and check the ClusterFuzz version.
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-current_version=3
+current_version=4
 version_file=$CLUSTERFUZZ_CONFIG_DIR/version
 if [ ! -e $version_file ] || [ "$(cat $version_file)" != "$current_version" ]; then
   dependencies_installed="false"
@@ -62,7 +62,13 @@ fi
 
 # Need to get python to use pipenv.
 if [ -z "$PYTHON" ]; then
-  PYTHON='python3'
+  if which python3.8 > /dev/null; then
+    PYTHON='python3.8'
+  elif which python3.7 > /dev/null; then
+    PYTHON='python3.7'
+  else
+    PYTHON='python3'
+  fi
 fi
 
 if ! which "$PYTHON" > /dev/null; then
@@ -71,8 +77,8 @@ if ! which "$PYTHON" > /dev/null; then
 fi
 
 version=$($PYTHON --version 2>&1 | cut -f2 -d' ')
-if [[ "$version" < "3.7" ]]; then
-  echo "You need at least Python 3.7"
+if [[ "$version" < "3.7" || ! "$version" < "3.9" ]]; then
+  echo "You need Python 3.8 or 3.7. Try \`export PYTHON=python3.8\` (or 3.7)."
   exit 1
 fi
 
