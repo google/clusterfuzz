@@ -93,7 +93,6 @@ class FuzzingStrategiesTest(fake_filesystem_unittest.TestCase):
     self.strategies = launcher.FuzzingStrategies(None)
 
 
-
 class AflFuzzInputDirectoryTest(LauncherTestBase):
   """Test the launcher.AflFuzzInputDirectory class. Note that most of the
   methods tested are called from AflFuzzInputDirectory.__init__, so we will

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Launcher script for afl-based fuzzers."""
+"""Launcher script for afl++ based fuzzers."""
 
 # pylint: disable=g-statement-before-imports
 try:
@@ -728,30 +728,6 @@ class AflRunnerCommon(object):
       """Gets the amount of time spent running afl-fuzz so far."""
       return self.initial_max_total_time - max_total_time
 
-    # Select a random queue scheduler.
-    def rand_schedule():
-      schedule = 'fast'
-      rnd = engine_common.get_probability()
-      for schedule_opt, prob in self.strategies.SCHEDULER_PROBS:
-        if rnd > prob:
-          rnd -= prob
-        else:
-          schedule = schedule_opt
-          break
-      return schedule
-
-    # Select a random CMPLOG intensity level.
-    def rand_cmplog_level():
-      cmplog_level = '2'
-      rnd = engine_common.get_probability()
-      for cmplog_level_opt, prob in self.strategies.CMPLOG_LEVEL_PROBS:
-        if rnd > prob:
-          rnd -= prob
-        else:
-          cmplog_level = cmplog_level_opt
-          break
-      return cmplog_level
-
     def check_error_and_log(error_regex, log_message_format):
       """See if error_regex can match in fuzz_result.output. If it can, then it
       uses the match to format and print log_message and return the match.
@@ -792,7 +768,8 @@ class AflRunnerCommon(object):
       # In the following section we randomly select different strategies.
 
       # Randomly select a scheduler.
-      self.set_arg(fuzz_args, constants.SCHEDULER_FLAG, rand_schedule())
+      self.set_arg(fuzz_args, constants.SCHEDULER_FLAG,
+                   rand_schedule(self.strategies.SCHEDULER_PROBS))
 
       # Randomly set trimming vs no trimming.
       if engine_common.decide_with_probability(
@@ -819,7 +796,8 @@ class AflRunnerCommon(object):
         self.set_arg(fuzz_args, constants.MOPT_FLAG, '0')
 
       # Select the CMPLOG level (even if no cmplog is used, it does not hurt).
-      self.set_arg(fuzz_args, constants.CMPLOG_LEVEL_FLAG, rand_cmplog_level())
+      self.set_arg(fuzz_args, constants.CMPLOG_LEVEL_FLAG,
+                   rand_cmplog_level(self.strategies.CMPLOG_LEVEL_PROBS))
 
       # Attempt to start the fuzzer.
       fuzz_result = self.run_and_wait(
@@ -1470,6 +1448,32 @@ def prepare_runner(fuzzer_path,
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
 
   return runner
+
+
+def rand_schedule(scheduler_probs):
+  """Returns a random queue scheduler."""
+  schedule = 'fast'
+  rnd = engine_common.get_probability()
+  for schedule_opt, prob in scheduler_probs:
+    if rnd > prob:
+      rnd -= prob
+    else:
+      schedule = schedule_opt
+      break
+  return schedule
+
+
+def rand_cmplog_level(cmplog_level_probs):
+  """Returns a random CMPLOG intensity level."""
+  cmplog_level = '2'
+  rnd = engine_common.get_probability()
+  for cmplog_level_opt, prob in cmplog_level_probs:
+    if rnd > prob:
+      rnd -= prob
+    else:
+      cmplog_level = cmplog_level_opt
+      break
+  return cmplog_level
 
 
 def main(argv):
