@@ -36,6 +36,7 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
   TARGET_PATH = '/target'
   TARGET_OPTIONS_PATH = TARGET_PATH + '.options'
   TEMP_DIR = '/tmp'
+  BUILD_DIR = '/build'
   OUTPUT_DIR = '/tmp/afl_output_dir'
   CRASHES_DIR = '/tmp/afl_output_dir/default/crashes'
   DEFAULT_INPUT_DIR_CONTENTS = [fuzzer.AFL_DUMMY_INPUT]
@@ -45,6 +46,7 @@ class LauncherTestBase(fake_filesystem_unittest.TestCase):
     """Setup for launcher test base."""
     test_helpers.patch_environ(self)
     os.environ['FAIL_RETRIES'] = '1'
+    os.environ['BUILD_DIR'] = self.BUILD_DIR
 
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir(self.INPUT_DIR)
