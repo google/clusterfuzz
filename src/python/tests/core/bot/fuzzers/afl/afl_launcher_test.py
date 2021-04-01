@@ -93,6 +93,43 @@ class FuzzingStrategiesTest(fake_filesystem_unittest.TestCase):
     self.strategies = launcher.FuzzingStrategies(None)
 
 
+
+class AflFuzzInputDirectoryTest(LauncherTestBase):
+  """Test the launcher.AflFuzzInputDirectory class. Note that most of the
+  methods tested are called from AflFuzzInputDirectory.__init__, so we will
+  create the object rather than call them directly in these cases."""
+
+  def setUp(self):
+    super().setUp()
+    self.temp_input_dir = os.path.join(self.TEMP_DIR, 'afl_input_dir')
+    self.fs.create_dir(self.temp_input_dir)
+    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
+    self.mock.is_lpm_fuzz_target.return_value = True
+    self.strategies = launcher.FuzzingStrategies(None)
+
+  def _new_afl_input(self):
+    """Create a new AflFuzzInputDirectory object."""
+    return launcher.AflFuzzInputDirectory(self.temp_input_dir, self.TARGET_PATH,
+                                          self.strategies)
+
+  def test_corpus_subset(self):
+    """Tests that create_new_if_needed works as intended when told to use a 75
+    file corpus subset."""
+    self.strategies.use_corpus_subset = True
+    self.strategies.corpus_subset_size = 75
+    # Now test create_new_if_needed obeys corpus_subset.
+    self.strategies.use_corpus_subset = True
+    for file_num in range(self.strategies.corpus_subset_size):
+      self._create_file(str(file_num), directory=self.temp_input_dir)
+
+    afl_input = self._new_afl_input()
+    self.assertEqual(
+        len(os.listdir(afl_input.input_directory)),
+        self.strategies.corpus_subset_size)
+
+    self.assertTrue(self.strategies.use_corpus_subset)
+
+
 class AflFuzzOutputDirectoryTest(LauncherTestBase):
   """Test the launcher.AflFuzzOutputDirectory class."""
   QUEUE_DIR = '/tmp/afl_output_dir/default/queue'
