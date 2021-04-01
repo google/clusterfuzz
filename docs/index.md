@@ -26,7 +26,7 @@ a software project's development process:
 - Fully automatic bug filing, triage and closing for various issue trackers
   (e.g. [Monorail], [Jira]).
 - Supports multiple [coverage guided fuzzing engines]
-  ([libFuzzer], [AFL] and [Honggfuzz])
+  ([libFuzzer], [AFL++] and [Honggfuzz])
   for optimal results (with [ensemble fuzzing] and [fuzzing strategies]).
 - Support for [blackbox fuzzing].
 - Testcase minimization.
@@ -50,7 +50,7 @@ and [~22,500] bugs in over [340] open source projects integrated with [OSS-Fuzz]
 [bisection]: https://en.wikipedia.org/wiki/Bisection_(software_engineering)
 [Firebase]: https://firebase.google.com/docs/auth
 [libFuzzer]: http://llvm.org/docs/LibFuzzer.html
-[AFL]: https://github.com/google/AFL
+[AFL++]: https://github.com/AFLplusplus/AFLplusplus
 [Honggfuzz]: https://github.com/google/honggfuzz
 [blackbox fuzzing]: {{ site.baseurl }}/setting-up-fuzzing/blackbox-fuzzing/
 [coverage guided fuzzing engines]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/

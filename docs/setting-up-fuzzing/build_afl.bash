@@ -20,34 +20,12 @@ CC=${CC:-clang}
 CXX=${CXX:-clang++}
 
 # Make sure we don't clobber anything in the current directory.
-mkdir -p afl-build
+rm -rf afl-build
+git clone --depth=1 https://github.com/AFLplusplus/AFLplusplus afl-build
 cd afl-build
 
-# Download AFL from Github Google/AFL repo
-declare -a afl_sources=(
-  "afl-fuzz.c"
-  "afl-showmap.c"
-  "android-ashmem.h"
-  "config.h"
-  "types.h"
-  "debug.h"
-  "alloc-inl.h"
-  "hash.h"
-  "Makefile"
-)
-for source_file in "${afl_sources[@]}"
-do
-  curl -O "https://raw.githubusercontent.com/google/AFL/master/$source_file"
-done
-make afl-fuzz afl-showmap
-
-# Build AFL runtime sources needed to link against the fuzz target.
-mkdir -p llvm_mode
-curl "https://raw.githubusercontent.com/google/AFL/master/llvm_mode/afl-llvm-rt.o.c" > "llvm_mode/afl-llvm-rt.o.c"
-$CC -c llvm_mode/afl-llvm-rt.o.c -Wno-pointer-sign -O3
-curl -O "https://raw.githubusercontent.com/llvm/llvm-project/main/compiler-rt/lib/fuzzer/afl/afl_driver.cpp"
-$CXX -c afl_driver.cpp -fsanitize=address -O3
-ar r FuzzingEngine.a afl-llvm-rt.o.o afl_driver.o
+make source-only
+cp -f libAFLDriver.a FuzzingEngine.a
 
 mv FuzzingEngine.a afl-fuzz afl-showmap ../
 echo "Success: link fuzz target against FuzzingEngine.a!"

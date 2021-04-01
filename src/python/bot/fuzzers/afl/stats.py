@@ -19,7 +19,6 @@ import six
 
 from bot.fuzzers import dictionary_manager
 from bot.fuzzers import engine_common
-from bot.fuzzers.afl import strategies
 from fuzzing import strategy
 from metrics import logs
 from system import environment
@@ -239,11 +238,6 @@ class StatsGetter(object):
     if fuzzing_strategies.use_corpus_subset:
       self.stats['strategy_' + strategy.CORPUS_SUBSET_STRATEGY.name] = (
           fuzzing_strategies.corpus_subset_size)
-
-    if fuzzing_strategies.fast_cal == strategies.FastCal.MANUAL:
-      self.stats[fuzzing_strategies.FAST_CAL_MANUAL_STRATEGY] = 1
-    elif fuzzing_strategies.fast_cal == strategies.FastCal.RANDOM:
-      self.stats[fuzzing_strategies.FAST_CAL_RANDOM_STRATEGY] = 1
 
     if (fuzzing_strategies.generator_strategy == engine_common.Generator.RADAMSA
        ):

@@ -482,8 +482,8 @@ class GetComponentsListTest(unittest.TestCase):
     revisions_dict = {
         '/src/afl': {
             'type': 'git',
-            'url': 'https://github.com/google/AFL.git',
-            'rev': '82b5e359463238d790cadbe2dd494d6a4928bff3'
+            'url': 'https://github.com/AFLplusplus/AFLplusplus.git',
+            'rev': '7cfa690d1c677e04e0935d6ac3c6b94b5fed50ad'
         },
         '/src/PHP-src': {
             'type': 'git',
@@ -507,8 +507,8 @@ class GetComponentsListTest(unittest.TestCase):
     revisions_dict = {
         '/src/afl': {
             'type': 'git',
-            'url': 'https://github.com/google/AFL.git',
-            'rev': '82b5e359463238d790cadbe2dd494d6a4928bff3'
+            'url': 'https://github.com/AFLplusplus/AFLplusplus.git',
+            'rev': '7cfa690d1c677e04e0935d6ac3c6b94b5fed50ad'
         },
         '/src/php-src': {
             'type': 'git',

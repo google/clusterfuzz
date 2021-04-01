@@ -262,6 +262,11 @@ def decide_with_probability(probability):
   return random.SystemRandom().random() < probability
 
 
+def get_probability():
+  """Obtain a random number."""
+  return random.SystemRandom().random()
+
+
 def get_testcase_run(stats, fuzzer_command):
   """Get testcase run for stats."""
   build_revision = fuzzer_utils.get_build_revision()
