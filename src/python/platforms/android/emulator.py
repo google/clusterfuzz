@@ -16,7 +16,6 @@
 import os
 import re
 import subprocess
-import tempfile
 
 from google_cloud_utils import storage
 from metrics import logs
