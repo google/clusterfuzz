@@ -39,6 +39,7 @@ RUN apt-get update && \
         locales \
         lsb-release \
         net-tools \
+        psmisc \
         python \
         python-dbg \
         python-dev \
