@@ -77,7 +77,8 @@ class EmulatorProcess(object):
       raise EmulatorError('Attempted to `run` emulator before calling `create`')
 
     logs.log('Starting emulator.')
-    self.process = self.process_runner.run(stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    self.process = self.process_runner.run(stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL)
 
     device_serial = None
     while not device_serial:
