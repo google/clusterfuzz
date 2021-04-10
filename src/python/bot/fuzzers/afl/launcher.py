@@ -250,6 +250,12 @@ class FuzzingStrategies(object):
       ('3', 0.1),  # Level 3
   ]
 
+  # Probabilty for arithmetic CMPLOG calculations.
+  CMPLOG_ARITH_PROB = 0.3
+
+  # Probability for transforming CMPLOG solving.
+  CMPLOG_TRANS_PROB = 0.3
+
   # Probability to only CMPLOG new found paths. (AFL_CMPLOG_ONLY_NEW=1)
   CMPLOG_ONLY_NEW_PROB = 0.5
 
@@ -1473,6 +1479,10 @@ def rand_cmplog_level(cmplog_level_probs):
     else:
       cmplog_level = cmplog_level_opt
       break
+  if engine_common.decide_with_probability(self.strategies.CMPLOG_ARITH_PROB):
+    cmplog_level += CMPLOG_ARITH
+  if engine_common.decide_with_probability(self.strategies.CMPLOG_TRANS_PROB):
+    cmplog_level += CMPLOG_TRANS
   return cmplog_level
 
 
