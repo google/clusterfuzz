@@ -38,12 +38,10 @@ SCHEDULER_FLAG = '-p'
 
 CMPLOG_FLAG = '-c'
 
-
 # AFL CMPLOG suboptions.
 CMPLOG_ARITH = 'A'
 
 CMPLOG_TRANS = 'T'
-
 
 # AFL environment variables.
 AFL_MAP_SIZE_ENV_VAR = 'AFL_MAP_SIZE'
