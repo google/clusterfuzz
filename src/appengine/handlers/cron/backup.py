@@ -47,7 +47,7 @@ class Handler(base_handler.Handler):
         local_config.PROJECT_PATH).get('backup.bucket')
     if not backup_bucket:
       logs.log('No backup bucket is set, skipping.')
-      return 'OK'
+      return
 
     kinds = [
         kind for kind in ndb.Model._kind_map  # pylint: disable=protected-access
@@ -55,28 +55,23 @@ class Handler(base_handler.Handler):
     ]
 
     app_id = utils.get_application_id()
-    timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
-    output_url_prefix = (
-        'gs://{backup_bucket}/datastore-backups/{timestamp}'.format(
-            backup_bucket=backup_bucket, timestamp=timestamp))
-    body = {
-        'output_url_prefix': output_url_prefix,
-        'entity_filter': {
-            'kinds': kinds
-        }
-    }
+    timestamps = [
+        datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S'),
+        'latest',
+    ]
 
-    try:
+    for timestamp in timestamps:
+      output_url_prefix = (
+          'gs://{backup_bucket}/datastore-backups/{timestamp}'.format(
+              backup_bucket=backup_bucket, timestamp=timestamp))
+      body = {
+          'output_url_prefix': output_url_prefix,
+          'entity_filter': {
+              'kinds': kinds
+          }
+      }
+
       request = _datastore_client().projects().export(
           projectId=app_id, body=body)
       response = request.execute()
-
-      message = 'Datastore export succeeded.'
-      status_code = 200
-      logs.log(message, response=response)
-    except googleapiclient.errors.HttpError as e:
-      message = 'Datastore export failed.'
-      status_code = e.resp.status
-      logs.log_error(message, error=str(e))
-
-    return (message, status_code, {'Content-Type': 'text/plain'})
+      logs.log('Datastore export succeeded.', response=response)
