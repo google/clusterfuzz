@@ -529,6 +529,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Android kernel stack frame ignores.
     r'^print_address_description',
     r'^_etext',
+
+    # Swift specific.
+    r'^_swift_stdlib_'
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
