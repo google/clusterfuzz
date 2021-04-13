@@ -1025,10 +1025,15 @@ class AflRunnerCommon(object):
     # Hack around minijail.
     showmap_args = self._fuzz_args
     showmap_args[-1] = '1'
-    # Remove arguments for afl-fuzz.
-    self.remove_arg(showmap_args, constants.INPUT_FLAG)
+    # Remove arguments that are just for afl-fuzz.
     self.remove_arg(showmap_args, constants.DICT_FLAG)
+    self.remove_arg(showmap_args, constants.INPUT_FLAG)
     self.remove_arg(showmap_args, constants.INSTANCE_ID_FLAG)
+    self.remove_arg(showmap_args, constants.MOPT_FLAG)
+    self.remove_arg(showmap_args, constants.CMPLOG_LEVEL_FLAG)
+    self.remove_arg(showmap_args, constants.QUEUE_OLD_STRATEGY_FLAG)
+    self.remove_arg(showmap_args, constants.SCHEDULER_FLAG)
+    self.remove_arg(showmap_args, constants.CMPLOG_FLAG)
 
     # Replace -o argument.
     if environment.get_value('USE_MINIJAIL'):

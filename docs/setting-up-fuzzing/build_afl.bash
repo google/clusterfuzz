@@ -25,7 +25,7 @@ git clone --depth=1 https://github.com/AFLplusplus/AFLplusplus afl-build
 cd afl-build
 
 make source-only
-cp -f libAFLDriver.a FuzzingEngine.a
+ar ru FuzzingEngine.a afl-compiler-rt.o utils/aflpp_driver/aflpp_driver.o
 
-mv FuzzingEngine.a afl-fuzz afl-showmap ../
+cp -f FuzzingEngine.a afl-fuzz afl-showmap ../
 echo "Success: link fuzz target against FuzzingEngine.a!"
