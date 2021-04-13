@@ -1,0 +1,114 @@
+#119317	REDUCE cov: 1886 ft: 6101 corp: 488/10448b lim: 122 exec/s: 7954 rss: 159Mb L: 23/122 MS: 1 EraseBytes-
+Assertion failed: file SwiftProtobuf/BinaryDecoder.swift, line 953
+Current stack trace:
+0    swift-protobuf-fuzz                0x0000555f6035db52 <unavailable> + 32258898
+1    swift-protobuf-fuzz                0x0000555f603b53a3 <unavailable> + 32617379
+2    swift-protobuf-fuzz                0x0000555f600b6be5 <unavailable> + 29477861
+3    swift-protobuf-fuzz                0x0000555f600b6827 <unavailable> + 29476903
+4    swift-protobuf-fuzz                0x0000555f600b6e12 <unavailable> + 29478418
+5    swift-protobuf-fuzz                0x0000555f600b5465 <unavailable> + 29471845
+6    swift-protobuf-fuzz                0x0000555f5ee33780 <unavailable> + 10065792
+7    swift-protobuf-fuzz                0x0000555f5ee31df0 BinaryDecoder.decodeSingularGroupField<A>(value:) + 2648
+8    swift-protobuf-fuzz                0x0000555f5ee5020e <unavailable> + 10183182
+9    swift-protobuf-fuzz                0x0000555f5fa6a7ac <unavailable> + 22874028
+10   swift-protobuf-fuzz                0x0000555f5fa62a93 <unavailable> + 22842003
+11   swift-protobuf-fuzz                0x0000555f5fabb562 <unavailable> + 23205218
+12   swift-protobuf-fuzz                0x0000555f5fa83369 <unavailable> + 22975337
+13   swift-protobuf-fuzz                0x0000555f5fabb5e7 <unavailable> + 23205351
+14   swift-protobuf-fuzz                0x0000555f6019539c <unavailable> + 30389148
+15   swift-protobuf-fuzz                0x0000555f5fa613b0 ProtobufUnittest_TestAllTypes.decodeMessage<A>(decoder:) + 1797
+16   swift-protobuf-fuzz                0x0000555f5fabc2ce <unavailable> + 23208654
+17   swift-protobuf-fuzz                0x0000555f5ee303e0 BinaryDecoder.decodeFullMessage<A>(message:) + 1090
+18   swift-protobuf-fuzz                0x0000555f5ee2f210 BinaryDecoder.decodeSingularMessageField<A>(value:) + 3835
+19   swift-protobuf-fuzz                0x0000555f5ee5008e <unavailable> + 10182798
+20   swift-protobuf-fuzz                0x0000555f5fad9f2c <unavailable> + 23330604
+21   swift-protobuf-fuzz                0x0000555f5fad93c5 <unavailable> + 23327685
+22   swift-protobuf-fuzz                0x0000555f5fad9622 <unavailable> + 23328290
+23   swift-protobuf-fuzz                0x0000555f5fada6d9 <unavailable> + 23332569
+24   swift-protobuf-fuzz                0x0000555f5fada7a7 <unavailable> + 23332775
+25   swift-protobuf-fuzz                0x0000555f6019539c <unavailable> + 30389148
+26   swift-protobuf-fuzz                0x0000555f5fad8490 ProtobufUnittest_NestedTestAllTypes.decodeMessage<A>(decoder:) + 1797
+27   swift-protobuf-fuzz                0x0000555f5fadfa7e <unavailable> + 23353982
+28   swift-protobuf-fuzz                0x0000555f5ee303e0 BinaryDecoder.decodeFullMessage<A>(message:) + 1090
+29   swift-protobuf-fuzz                0x0000555f5f0d9480 Message._merge(rawBuffer:extensions:partial:options:) + 2647
+30   swift-protobuf-fuzz                0x0000555f5f0d921b <unavailable> + 12841499
+31   swift-protobuf-fuzz                0x0000555f5f0d9468 <unavailable> + 12842088
+32   swift-protobuf-fuzz                0x0000555f5edc89d9 <unavailable> + 9628121
+33   swift-protobuf-fuzz                0x0000555f5f0da4bf <unavailable> + 12846271
+34   swift-protobuf-fuzz                0x0000555f5fe7f6b9 <unavailable> + 27154105
+35   swift-protobuf-fuzz                0x0000555f5fe8584b <unavailable> + 27179083
+36   swift-protobuf-fuzz                0x0000555f5fe89a39 <unavailable> + 27195961
+37   swift-protobuf-fuzz                0x0000555f5fe8f984 <unavailable> + 27220356
+38   swift-protobuf-fuzz                0x0000555f5f0d5d90 Message.merge<A>(contiguousBytes:extensions:partial:options:) + 3291
+39   swift-protobuf-fuzz                0x0000555f5f0d4f40 Message.init(serializedData:extensions:partial:options:) + 2737
+40   swift-protobuf-fuzz                0x0000555f5f58df00 test(_:_:) + 2066
+41   swift-protobuf-fuzz                0x0000555f5f58dea0 LLVMFuzzerTestOneInput + 81
+42   swift-protobuf-fuzz                0x0000555f5eca5ef2 <unavailable> + 8437490
+43   swift-protobuf-fuzz                0x0000555f5eca5636 <unavailable> + 8435254
+44   swift-protobuf-fuzz                0x0000555f5eca73a8 <unavailable> + 8442792
+45   swift-protobuf-fuzz                0x0000555f5eca80b6 <unavailable> + 8446134
+46   swift-protobuf-fuzz                0x0000555f5ec9de5f <unavailable> + 8404575
+47   swift-protobuf-fuzz                0x0000555f5ecb7d53 <unavailable> + 8510803
+48   libc.so.6                          0x00007f87e963b750 __libc_start_main + 240
+49   swift-protobuf-fuzz                0x0000555f5ec94e40 _start + 41
+=================================================================
+==2598==ERROR: AddressSanitizer: attempting free on address which was not malloc()-ed: 0x555f65177ff0 in thread T0
+    #0 0x555f5ed935cd in __interceptor_free /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/asan/asan_malloc_linux.cpp:123:3
+    #1 0x555f603b53ac in _swift_stdlib_reportFatalErrorInFile (/out/swift-protobuf-fuzz+0x1f1b3ac)
+    #2 0x555f600b6be4 in closure #1 (Swift.UnsafeBufferPointer<Swift.UInt8>) -> () in closure #1 (Swift.UnsafeBufferPointer<Swift.UInt8>) -> () in closure #1 (Swift.UnsafeBufferPointer<Swift.UInt8>) -> () in Swift._assertionFailure(_: Swift.StaticString, _: Swift.String, file: Swift.StaticString, line: Swift.UInt, flags: Swift.UInt32) -> Swift.Never Swift.o
+    #3 0x555f600b6826 in closure #1 (Swift.UnsafeBufferPointer<Swift.UInt8>) -> () in closure #1 (Swift.UnsafeBufferPointer<Swift.UInt8>) -> () in Swift._assertionFailure(_: Swift.StaticString, _: Swift.String, file: Swift.StaticString, line: Swift.UInt, flags: Swift.UInt32) -> Swift.Never Swift.o
+    #4 0x555f600b6e11 in function signature specialization <Arg[1] = [Closure Propagated : closure #1 (Swift.UnsafeBufferPointer<Swift.UInt8>) -> () in closure #1 (Swift.UnsafeBufferPointer<Swift.UInt8>) -> () in Swift._assertionFailure(_: Swift.StaticString, _: Swift.String, file: Swift.StaticString, line: Swift.UInt, flags: Swift.UInt32) -> Swift.Never, Argument Types : [Swift.StaticStringSwift.UnsafeBufferPointer<Swift.UInt8>Swift.UIntSwift.UInt32]> of generic specialization <()> of Swift.String.withUTF8<A>((Swift.UnsafeBufferPointer<Swift.UInt8>) throws -> A) throws -> A (/out/swift-protobuf-fuzz+0x1c1ce11)
+    #5 0x555f600b5464 in Swift._assertionFailure(_: Swift.StaticString, _: Swift.String, file: Swift.StaticString, line: Swift.UInt, flags: Swift.UInt32) -> Swift.Never (/out/swift-protobuf-fuzz+0x1c1b464)
+    #6 0x555f5ee3377f in SwiftProtobuf.BinaryDecoder.(decodeFullGroup in _5FB1CFBCD94CAF2E3EDFB98EFEFF52A1)<A where A: SwiftProtobuf.Message>(group: inout A, fieldNumber: Swift.Int) throws -> Swift.Bool /src/swift-protobuf/Sources/SwiftProtobuf/BinaryDecoder.swift:953:9
+    #7 0x555f5ee32847 in SwiftProtobuf.BinaryDecoder.decodeSingularGroupField<A where A: SwiftProtobuf.Message>(value: inout Swift.Optional<A>) throws -> () /src/swift-protobuf/Sources/SwiftProtobuf/BinaryDecoder.swift:935:16
+    #8 0x555f5ee5020d in protocol witness for SwiftProtobuf.Decoder.decodeSingularGroupField<A where A1: SwiftProtobuf.Message>(value: inout Swift.Optional<A1>) throws -> () in conformance SwiftProtobuf.BinaryDecoder : SwiftProtobuf.Decoder in SwiftProtobuf /src/swift-protobuf-fuzz/<compiler-generated>
+    #9 0x555f5fa6a7ab in closure #16 () throws -> () in closure #1 (swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) throws -> () in swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/Sources/swift-protobuf-fuzz/unittest.pb.swift:7591:36
+    #10 0x555f5fa62a92 in closure #1 (swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) throws -> () in swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/Sources/swift-protobuf-fuzz/unittest.pb.swift:7591:22
+    #11 0x555f5fabb561 in partial apply forwarder for closure #1 (swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) throws -> () in swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/<compiler-generated>
+    #12 0x555f5fa83368 in reabstraction thunk helper from @callee_guaranteed (@guaranteed swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@error @owned Swift.Error) to @escaping @callee_guaranteed (@in_guaranteed swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@out (), @error @owned Swift.Error) /src/swift-protobuf-fuzz/<compiler-generated>
+    #13 0x555f5fabb5e6 in partial apply forwarder for reabstraction thunk helper from @callee_guaranteed (@guaranteed swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@error @owned Swift.Error) to @escaping @callee_guaranteed (@in_guaranteed swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@out (), @error @owned Swift.Error) /src/swift-protobuf-fuzz/<compiler-generated>
+    #14 0x555f6019539b in Swift.withExtendedLifetime<A, B>(A, (A) throws -> B) throws -> B (/out/swift-protobuf-fuzz+0x1cfb39b)
+    #15 0x555f5fa61ab4 in swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/Sources/swift-protobuf-fuzz/unittest.pb.swift:7570:9
+    #16 0x555f5fabc2cd in protocol witness for SwiftProtobuf.Message.decodeMessage<A where A1: SwiftProtobuf.Decoder>(decoder: inout A1) throws -> () in conformance swift_protobuf_fuzz.ProtobufUnittest_TestAllTypes : SwiftProtobuf.Message in swift_protobuf_fuzz /src/swift-protobuf-fuzz/<compiler-generated>
+    #17 0x555f5ee30821 in SwiftProtobuf.BinaryDecoder.decodeFullMessage<A where A: SwiftProtobuf.Message>(message: inout A) throws -> () /src/swift-protobuf/Sources/SwiftProtobuf/BinaryDecoder.swift:923:19
+    #18 0x555f5ee3010a in SwiftProtobuf.BinaryDecoder.decodeSingularMessageField<A where A: SwiftProtobuf.Message>(value: inout Swift.Optional<A>) throws -> () /src/swift-protobuf/Sources/SwiftProtobuf/BinaryDecoder.swift:904:24
+    #19 0x555f5ee5008d in protocol witness for SwiftProtobuf.Decoder.decodeSingularMessageField<A where A1: SwiftProtobuf.Message>(value: inout Swift.Optional<A1>) throws -> () in conformance SwiftProtobuf.BinaryDecoder : SwiftProtobuf.Decoder in SwiftProtobuf /src/swift-protobuf-fuzz/<compiler-generated>
+    #20 0x555f5fad9f2b in closure #2 () throws -> () in closure #1 (swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) throws -> () in swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/Sources/swift-protobuf-fuzz/unittest.pb.swift:8152:35
+    #21 0x555f5fad93c4 in closure #1 (swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) throws -> () in swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/Sources/swift-protobuf-fuzz/unittest.pb.swift:8152:21
+    #22 0x555f5fad9621 in partial apply forwarder for closure #1 (swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) throws -> () in swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/<compiler-generated>
+    #23 0x555f5fada6d8 in reabstraction thunk helper from @callee_guaranteed (@guaranteed swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@error @owned Swift.Error) to @escaping @callee_guaranteed (@in_guaranteed swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@out (), @error @owned Swift.Error) /src/swift-protobuf-fuzz/<compiler-generated>
+    #24 0x555f5fada7a6 in partial apply forwarder for reabstraction thunk helper from @callee_guaranteed (@guaranteed swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@error @owned Swift.Error) to @escaping @callee_guaranteed (@in_guaranteed swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.(_StorageClass in _D89A7C8F8C53F0C35EBE7D10D835683C)) -> (@out (), @error @owned Swift.Error) /src/swift-protobuf-fuzz/<compiler-generated>
+    #25 0x555f6019539b in Swift.withExtendedLifetime<A, B>(A, (A) throws -> B) throws -> B (/out/swift-protobuf-fuzz+0x1cfb39b)
+    #26 0x555f5fad8b94 in swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes.decodeMessage<A where A: SwiftProtobuf.Decoder>(decoder: inout A) throws -> () /src/swift-protobuf-fuzz/Sources/swift-protobuf-fuzz/unittest.pb.swift:8145:9
+    #27 0x555f5fadfa7d in protocol witness for SwiftProtobuf.Message.decodeMessage<A where A1: SwiftProtobuf.Decoder>(decoder: inout A1) throws -> () in conformance swift_protobuf_fuzz.ProtobufUnittest_NestedTestAllTypes : SwiftProtobuf.Message in swift_protobuf_fuzz /src/swift-protobuf-fuzz/<compiler-generated>
+    #28 0x555f5ee30821 in SwiftProtobuf.BinaryDecoder.decodeFullMessage<A where A: SwiftProtobuf.Message>(message: inout A) throws -> () /src/swift-protobuf/Sources/SwiftProtobuf/BinaryDecoder.swift:923:19
+    #29 0x555f5f0d9ed6 in (extension in SwiftProtobuf):SwiftProtobuf.Message._merge(rawBuffer: Swift.UnsafeRawBufferPointer, extensions: Swift.Optional<SwiftProtobuf.ExtensionMap>, partial: Swift.Bool, options: SwiftProtobuf.BinaryDecodingOptions) throws -> () /src/swift-protobuf/Sources/SwiftProtobuf/Message+BinaryAdditions.swift:198:19
+    #30 0x555f5f0d921a in closure #1 (Swift.UnsafeRawBufferPointer) throws -> () in (extension in SwiftProtobuf):SwiftProtobuf.Message.merge<A where A1: Foundation.ContiguousBytes>(contiguousBytes: A1, extensions: Swift.Optional<SwiftProtobuf.ExtensionMap>, partial: Swift.Bool, options: SwiftProtobuf.BinaryDecodingOptions) throws -> () /src/swift-protobuf/Sources/SwiftProtobuf/Message+BinaryAdditions.swift:178:11
+    #31 0x555f5f0d9467 in partial apply forwarder for closure #1 (Swift.UnsafeRawBufferPointer) throws -> () in (extension in SwiftProtobuf):SwiftProtobuf.Message.merge<A where A1: Foundation.ContiguousBytes>(contiguousBytes: A1, extensions: Swift.Optional<SwiftProtobuf.ExtensionMap>, partial: Swift.Bool, options: SwiftProtobuf.BinaryDecodingOptions) throws -> () /src/swift-protobuf-fuzz/<compiler-generated>
+    #32 0x555f5edc89d8 in reabstraction thunk helper from @callee_guaranteed (@unowned Swift.UnsafeRawBufferPointer) -> (@error @owned Swift.Error) to @escaping @callee_guaranteed (@unowned Swift.UnsafeRawBufferPointer) -> (@out (), @error @owned Swift.Error) /src/swift-protobuf-fuzz/<compiler-generated>
+    #33 0x555f5f0da4be in partial apply forwarder for reabstraction thunk helper from @callee_guaranteed (@unowned Swift.UnsafeRawBufferPointer) -> (@error @owned Swift.Error) to @escaping @callee_guaranteed (@unowned Swift.UnsafeRawBufferPointer) -> (@out (), @error @owned Swift.Error) /src/swift-protobuf-fuzz/<compiler-generated>
+    #34 0x555f5fe7f6b8 in Foundation.__DataStorage.withUnsafeBytes<A>(in: Swift.Range<Swift.Int>, apply: (Swift.UnsafeRawBufferPointer) throws -> A) throws -> A (/out/swift-protobuf-fuzz+0x19e56b8)
+    #35 0x555f5fe8584a in Foundation.Data._Representation.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A) throws -> A (/out/swift-protobuf-fuzz+0x19eb84a)
+    #36 0x555f5fe89a38 in Foundation.Data.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A) throws -> A (/out/swift-protobuf-fuzz+0x19efa38)
+    #37 0x555f5fe8f983 in protocol witness for Foundation.ContiguousBytes.withUnsafeBytes<A>((Swift.UnsafeRawBufferPointer) throws -> A1) throws -> A1 in conformance Foundation.Data : Foundation.ContiguousBytes in Foundation (/out/swift-protobuf-fuzz+0x19f5983)
+    #38 0x555f5f0d6a6a in (extension in SwiftProtobuf):SwiftProtobuf.Message.merge<A where A1: Foundation.ContiguousBytes>(contiguousBytes: A1, extensions: Swift.Optional<SwiftProtobuf.ExtensionMap>, partial: Swift.Bool, options: SwiftProtobuf.BinaryDecodingOptions) throws -> () /src/swift-protobuf/Sources/SwiftProtobuf/Message+BinaryAdditions.swift:177:15
+    #39 0x555f5f0d59f0 in (extension in SwiftProtobuf):SwiftProtobuf.Message.init(serializedData: Foundation.Data, extensions: Swift.Optional<SwiftProtobuf.ExtensionMap>, partial: Swift.Bool, options: SwiftProtobuf.BinaryDecodingOptions) throws -> A /src/swift-protobuf/Sources/SwiftProtobuf/Message+BinaryAdditions.swift:83:9
+    #40 0x555f5f58e711 in swift_protobuf_fuzz.test(Swift.UnsafeRawPointer, Swift.Int) -> Swift.Int32 /src/swift-protobuf-fuzz/Sources/swift-protobuf-fuzz/main.swift:10:17
+    #41 0x555f5f58def0 in LLVMFuzzerTestOneInput /src/swift-protobuf-fuzz/<compiler-generated>
+    #42 0x555f5eca5ef1 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:556:15
+    #43 0x555f5eca5635 in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool*) /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:470:3
+    #44 0x555f5eca73a7 in fuzzer::Fuzzer::MutateAndTestOne() /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:698:19
+    #45 0x555f5eca80b5 in fuzzer::Fuzzer::Loop(std::__Fuzzer::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:830:5
+    #46 0x555f5ec9de5e in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:829:6
+    #47 0x555f5ecb7d52 in main /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:19:10
+    #48 0x7f87e963b83f in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2083f)
+    #49 0x555f5ec94e68 in _start (/out/swift-protobuf-fuzz+0x7fae68)
+
+Address 0x555f65177ff0 is a wild pointer.
+SUMMARY: AddressSanitizer: bad-free /home/buildnode/jenkins/workspace/oss-swift-5.3-package-linux-ubuntu-16_04/llvm-project/compiler-rt/lib/asan/asan_malloc_linux.cpp:123:3 in __interceptor_free
+==2598==ABORTING
+MS: 3 ChangeBinInt-CrossOver-CrossOver-; base unit: 9010ccd6f9cc64a0de93e8508bd91abcb008ba20
+0x12,0x8,0x80,0x1,0x35,0x80,0x12,0x8,0x83,0x1,0xf8,0xf1,0xf1,0xea,0xe,0x1,0x63,0x64,0x64,0x95,0x95,0x0,0x0,0xd5,0xff,0xff,0x0,0x95,0x95,0x0,0x0,0xd5,0x63,0x64,0x30,0x28,0x63,0x63,0x63,0x64,0x64,0x50,0x50,0x50,0x50,0x1,0x2,0x0,0xb3,0xfd,0xff,0xff,0xa,0x0,0xa,0x1,0xa,0xb3,0x0,0x50,0x50,0x2f,0x70,0x8,0x6b,0x50,0x50,0x23,0x23,0x23,0x23,0x23,0x23,0x12,0x8,0x83,0x1,0xf8,0xf1,0xf1,0xea,0xe,0x1,0x23,0x23,0x2b,0x6b,0x23,0x23,0x23,0x23,0x23,0x23,0x23,0xc9,0xc9,0xc9,0xc9,0x80,0xc9,0xc9,0xc9,0xc9,0xc9,0xc9,0xc9,0xc9,0xc9,0xc9,0xc9,0x8,0x3d,0x6b,0x0,0x0,0x3,0xb0,0x1,0x5d,0x70,0x70,0x18,
+\x12\x08\x80\x015\x80\x12\x08\x83\x01\xf8\xf1\xf1\xea\x0e\x01cdd\x95\x95\x00\x00\xd5\xff\xff\x00\x95\x95\x00\x00\xd5cd0(cccddPPPP\x01\x02\x00\xb3\xfd\xff\xff\x0a\x00\x0a\x01\x0a\xb3\x00PP/p\x08kPP######\x12\x08\x83\x01\xf8\xf1\xf1\xea\x0e\x01##+k#######\xc9\xc9\xc9\xc9\x80\xc9\xc9\xc9\xc9\xc9\xc9\xc9\xc9\xc9\xc9\xc9\x08=k\x00\x00\x03\xb0\x01]pp\x18
+artifact_prefix='./'; Test unit written to ./crash-3c5fa15796018785509fe79c69ccd95c44d6d974
+Base64: EgiAATWAEgiDAfjx8eoOAWNkZJWVAADV//8AlZUAANVjZDAoY2NjZGRQUFBQAQIAs/3//woACgEKswBQUC9wCGtQUCMjIyMjIxIIgwH48fHqDgEjIytrIyMjIyMjI8nJycmAycnJycnJycnJyckIPWsAAAOwAV1wcBg=
