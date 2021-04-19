@@ -141,6 +141,7 @@ OUT_OF_MEMORY_REGEX = re.compile(
     r'::OnNoMemory|'
     r'ERROR.*Sanitizer failed to allocate|'
     r'FatalProcessOutOfMemory|'
+    r'Fatal JavaScript invalid size error|'
     r'FX_OutOfMemoryTerminate|'
     r'Out of memory\. Dying.|'
     r'Out of memory\. size=|'
