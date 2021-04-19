@@ -138,8 +138,6 @@ def set_service_account_roles(service_account):
   policy_changed |= _add_service_account_role(policy, 'roles/logging.logWriter',
                                               service_account['email'])
   policy_changed |= _add_service_account_role(
-      policy, 'roles/prodx.metricPublisher', service_account['email'])
-  policy_changed |= _add_service_account_role(
       policy, 'roles/monitoring.metricWriter', service_account['email'])
 
   if not policy_changed:
