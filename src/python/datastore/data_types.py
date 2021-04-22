@@ -190,6 +190,7 @@ class SecurityImpact(object):
   HEAD = 2
   NONE = 3
   MISSING = 4
+  EXTENDED_STABLE = 5
 
 
 # Archive state enums.
@@ -517,6 +518,16 @@ class Testcase(Model):
 
   # The impacted version indices (including both beta and stable).
   impact_version_indices = ndb.StringProperty(repeated=True)
+
+  # The impacted extended stable version.
+  impact_extended_stable_version = ndb.StringProperty()
+
+  # The impacted extended stable version indices.
+  impact_extended_stable_version_indices = ndb.StringProperty(repeated=True)
+
+  # The impacted extended stable version is merely probable (not definite).
+  # See the comment on impact_stable_version_likely.
+  impact_extended_stable_version_likely = ndb.BooleanProperty()
 
   # The impacted stable version.
   impact_stable_version = ndb.StringProperty()
