@@ -185,12 +185,12 @@ class SecuritySeverity(object):
 
 # Impact values for security issues.
 class SecurityImpact(object):
-  STABLE = 0
-  BETA = 1
-  HEAD = 2
-  NONE = 3
-  MISSING = 4
-  EXTENDED_STABLE = 5
+  EXTENDED_STABLE = 0
+  STABLE = 1
+  BETA = 2
+  HEAD = 3
+  NONE = 4
+  MISSING = 5
 
 
 # Archive state enums.
