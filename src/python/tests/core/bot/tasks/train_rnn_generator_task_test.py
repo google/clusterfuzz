@@ -159,6 +159,7 @@ class ExecuteTaskTest(unittest.TestCase):
                                                 model_directory, log_directory)
 
 
+@unittest.skipIf(not os.getenv('ML_TESTS'), 'ML_TESTS=1 must be set')
 @test_utils.integration
 class MLRnnTrainTaskIntegrationTest(unittest.TestCase):
   """ML RNN training integration tests."""
