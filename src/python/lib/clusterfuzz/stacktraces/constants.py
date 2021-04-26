@@ -169,6 +169,7 @@ SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
 SAN_DEADLYSIGNAL_REGEX = re.compile(r'.*:DEADLYSIGNAL')
 SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
 SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
+SAN_TRAP_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: TRAP ')
 SAN_SEGV_CRASH_TYPE_REGEX = re.compile(
     r'.*The signal is caused by a ([A-Z]+) memory access.')
 # FIXME: Replace when better ways to check signal crashes are available.
