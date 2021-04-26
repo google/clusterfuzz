@@ -215,8 +215,12 @@ def generate_new_testcase_mutations_using_ml_rnn(
   # No return value for now. Will add later if this is necessary.
   # Defer import to prevent issues with tensorflow causing hangs with
   # multiprocessing.
-  # TODO(ochang): handle this is a better way.
-  from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
+  try:
+    from bot.fuzzers.ml.rnn import generator as ml_rnn_generator
+  except Exception:
+    logs.log_warn('Failed to import ml_rnn generator, skipping.')
+    return
+
   ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
                            fuzzer_name, generation_timeout)
 
