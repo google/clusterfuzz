@@ -46,8 +46,10 @@ if sys.version_info.major == 3 and sys.version_info.minor == 7:
   ABIS = {'linux': 'cp37m', 'windows': 'cp37m', 'macos': 'cp37m'}
 elif sys.version_info.major == 3 and sys.version_info.minor == 8:
   ABIS = {'linux': 'cp38', 'windows': 'cp38', 'macos': 'cp38'}
+elif sys.version_info.major == 3 and sys.version_info.minor == 9:
+  ABIS = {'linux': 'cp39', 'windows': 'cp39', 'macos': 'cp39'}
 else:
-  raise Exception('Only python 3.7 and 3.8 are supported.')
+  raise Exception('Only python versions 3.7-3.9 are supported.')
 
 # Config directory to use for tests.
 TEST_CONFIG_DIR = os.path.join('configs', 'test')
