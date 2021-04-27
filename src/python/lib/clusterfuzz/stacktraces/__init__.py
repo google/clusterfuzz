@@ -1006,7 +1006,7 @@ class StackParser:
           continue
 
         if state.check_failure_source_file:
-          # Generic fatal errors should be replaced by CHECK failures.
+          # Generic fatal errors should be replaced by (D)CHECK failures.
           check_failure_match = self.update_state_on_match(
               FATAL_ERROR_DCHECK_FAILURE,
               line,
@@ -1015,15 +1015,16 @@ class StackParser:
               reset=True)
 
           if not check_failure_match:
-            new_type = state.crash_type
-            if state.crash_type == 'Fatal error':
-              new_type = 'CHECK failure'
             check_failure_match = self.update_state_on_match(
                 FATAL_ERROR_CHECK_FAILURE,
                 line,
                 state,
-                new_type=new_type,
+                new_type='CHECK failure',
                 reset=True)
+
+          if not check_failure_match:
+            check_failure_match = self.update_state_on_match(
+                FATAL_ERROR_GENERIC_FAILURE, line, state, reset=True)
 
           if check_failure_match and check_failure_match.group(2).strip():
             failure_string = fix_check_failure_string(

@@ -91,8 +91,9 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
+FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
-    r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)?(.*)')
+    r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
 FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
