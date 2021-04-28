@@ -127,11 +127,15 @@ def get_component_impacts_from_url(component_name,
   if not end_revision:
     return Impacts()
 
+  build_revision_mappings = revisions.get_build_to_revision_mappings(platform)
+  if not build_revision_mappings:
+    return Impacts()
+
   found_impacts = dict()
-  for build in ['stable', 'beta', 'extended_stable']:
-    build_revision_mappings = revisions.get_build_to_revision_mappings(platform)
-    if not build_revision_mappings:
-      return Impacts()
+  for build in ['extended_stable', 'stable', 'beta']:
+    # build_revision_mappings = revisions.get_build_to_revision_mappings(platform)
+    # if not build_revision_mappings:
+    #   return Impacts()
     mapping = build_revision_mappings.get(build)
     # TODO(yuanjunh): bypass for now but remove it after ES is enabled.
     if build == 'extended_stable' and not mapping:

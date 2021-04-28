@@ -48,7 +48,7 @@ REVISION_FILE_NAME = 'REVISION'
 
 # Various build type mapping strings.
 BUILD_TYPE_SUBSTRINGS = [
-    '-beta', '-stable', '-debug', '-release', '-symbolized'
+    '-beta', '-stable', '-debug', '-release', '-symbolized', '-extended_stable'
 ]
 
 # Build eviction constants.
@@ -1518,7 +1518,7 @@ def is_custom_binary():
 
 def has_production_builds():
   """Return a bool on if job type has build urls for stable and beta builds."""
-  # TODO(yuanjunh): change if after ES exists.
+  # TODO(yuanjunh): change it if after ES exists.
   return (environment.get_value('STABLE_BUILD_BUCKET_PATH') and
           environment.get_value('BETA_BUILD_BUCKET_PATH'))
 
