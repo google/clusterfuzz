@@ -16,7 +16,6 @@
 import os
 import re
 import subprocess
-import tempfile
 
 from google_cloud_utils import storage
 from metrics import logs
@@ -46,10 +45,6 @@ class EmulatorProcess(object):
   def __init__(self):
     self.process_runner = None
     self.process = None
-    self.logfile = None
-
-    log_path = os.path.join(tempfile.gettempdir(), 'android-emulator.log')
-    self.logfile = open(log_path, 'wb')
 
   def create(self, work_dir):
     """Configures a emulator process which can subsequently be `run`."""
@@ -83,7 +78,7 @@ class EmulatorProcess(object):
 
     logs.log('Starting emulator.')
     self.process = self.process_runner.run(
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     device_serial = None
     while not device_serial:
@@ -91,6 +86,9 @@ class EmulatorProcess(object):
       match = DEVICE_SERIAL_RE.match(line)
       if match:
         device_serial = match.group(1)
+
+    # Close the pipe so we don't hang.
+    self.process.popen.stdout.close()
 
     logs.log('Found serial ID: %s.' % device_serial)
     environment.set_value('ANDROID_SERIAL', device_serial)
@@ -105,10 +103,6 @@ class EmulatorProcess(object):
       logs.log('Stopping emulator.')
       self.process.kill()
       self.process = None
-
-    if self.logfile:
-      self.logfile.close()
-      self.logfile = None
 
     if self.emulator_path:
       shell.remove_directory(self.emulator_path)

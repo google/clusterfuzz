@@ -250,6 +250,12 @@ class FuzzingStrategies(object):
       ('3', 0.1),  # Level 3
   ]
 
+  # Probabilty for arithmetic CMPLOG calculations.
+  CMPLOG_ARITH_PROB = 0.3
+
+  # Probability for transforming CMPLOG solving.
+  CMPLOG_TRANS_PROB = 0.3
+
   # Probability to only CMPLOG new found paths. (AFL_CMPLOG_ONLY_NEW=1)
   CMPLOG_ONLY_NEW_PROB = 0.5
 
@@ -797,7 +803,7 @@ class AflRunnerCommon(object):
 
       # Select the CMPLOG level (even if no cmplog is used, it does not hurt).
       self.set_arg(fuzz_args, constants.CMPLOG_LEVEL_FLAG,
-                   rand_cmplog_level(self.strategies.CMPLOG_LEVEL_PROBS))
+                   rand_cmplog_level(self.strategies))
 
       # Attempt to start the fuzzer.
       fuzz_result = self.run_and_wait(
@@ -1019,10 +1025,15 @@ class AflRunnerCommon(object):
     # Hack around minijail.
     showmap_args = self._fuzz_args
     showmap_args[-1] = '1'
-    # Remove arguments for afl-fuzz.
-    self.remove_arg(showmap_args, constants.INPUT_FLAG)
+    # Remove arguments that are just for afl-fuzz.
     self.remove_arg(showmap_args, constants.DICT_FLAG)
+    self.remove_arg(showmap_args, constants.INPUT_FLAG)
     self.remove_arg(showmap_args, constants.INSTANCE_ID_FLAG)
+    self.remove_arg(showmap_args, constants.MOPT_FLAG)
+    self.remove_arg(showmap_args, constants.CMPLOG_LEVEL_FLAG)
+    self.remove_arg(showmap_args, constants.QUEUE_OLD_STRATEGY_FLAG)
+    self.remove_arg(showmap_args, constants.SCHEDULER_FLAG)
+    self.remove_arg(showmap_args, constants.CMPLOG_FLAG)
 
     # Replace -o argument.
     if environment.get_value('USE_MINIJAIL'):
@@ -1463,16 +1474,20 @@ def rand_schedule(scheduler_probs):
   return schedule
 
 
-def rand_cmplog_level(cmplog_level_probs):
+def rand_cmplog_level(strategies):
   """Returns a random CMPLOG intensity level."""
   cmplog_level = '2'
   rnd = engine_common.get_probability()
-  for cmplog_level_opt, prob in cmplog_level_probs:
+  for cmplog_level_opt, prob in strategies.CMPLOG_LEVEL_PROBS:
     if rnd > prob:
       rnd -= prob
     else:
       cmplog_level = cmplog_level_opt
       break
+  if engine_common.decide_with_probability(strategies.CMPLOG_ARITH_PROB):
+    cmplog_level += constants.CMPLOG_ARITH
+  if engine_common.decide_with_probability(strategies.CMPLOG_TRANS_PROB):
+    cmplog_level += constants.CMPLOG_TRANS
   return cmplog_level
 
 

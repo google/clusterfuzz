@@ -1,0 +1,63 @@
+[Environment] ASAN_OPTIONS=allow_user_segv_handler=1:exitcode=77:handle_sigtrap=1
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command: /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer -rss_limit_mb=2560 -timeout=60 -runs=100 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/66c8ed48ba584a9a4278bd8765b22420776a4ec59483586a2b1a93e844f2f87f
+Bot: clusterfuzz-linux-bbs1
+Time ran: 0.13105463981628418
+INFO: Seed:726009147
+INFO: Loaded 8 modules   (604875 inline 8-bit counters): 26071 [0x7ff8767a7130, 0x7ff8767ad707), 3277 [0x7ff87c6085e6, 0x7ff87c6092b3), 45551 [0x7ff876eb7776, 0x7ff876ec2965), 68591 [0x7ff87792cc86, 0x7ff87793d875), 2250 [0x7ff87c68f016, 0x7ff87c68f8e0), 2143 [0x7ff87c6e8876, 0x7ff87c6e90d5), 447367 [0x7ff87bd45d16, 0x7ff87bdb309d), 9625 [0x562e18e531e8, 0x562e18e55781),
+INFO: Loaded 8 PC tables (604875 PCs): 26071 [0x7ff8767ad708,0x7ff876813478), 3277 [0x7ff87c6092b8,0x7ff87c615f88), 45551 [0x7ff876ec2968,0x7ff876f74858), 68591 [0x7ff87793d878,0x7ff877a49768), 2250 [0x7ff87c68f8e0,0x7ff87c698580), 2143 [0x7ff87c6e90d8,0x7ff87c6f16c8), 447367 [0x7ff87bdb30a0,0x7ff87c486910), 9625 [0x562e18e55788,0x562e18e7b118),
+/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer: Running 1 inputs 100 time(s) each.
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/66c8ed48ba584a9a4278bd8765b22420776a4ec59483586a2b1a93e844f2f87f
+#
+# Fatal error in foo.cc, line 13
+# Check failed: interpreter_result.result() == result_compiled.
+#
+#
+#
+#FailureMessage Object: 0x7ff8722f7460
+==== C stack trace ===============================
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(backtrace+0x5b) [0x562e18b9cbcb]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/libv8_libbase.so(v8::base::debug::StackTrace::StackTrace()+0x2e) [0x7ff87c68489e]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/libv8_libplatform.so(+0x305c2) [0x7ff87c6cb5c2]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/libv8_libbase.so(V8_Fatal(char const*, ...)+0x29e) [0x7ff87c66e1de]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(+0x2dcd6d) [0x562e18d4cd6d]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(+0x2e059b) [0x562e18d5059b]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(+0x19d360) [0x562e18c0d360]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(+0x2a6238) [0x562e18d16238]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(+0x274160) [0x562e18ce4160]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(+0x2813ee) [0x562e18cf13ee]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(main+0xed) [0x562e18d2329d]
+    /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf0) [0x7ff875535830]
+    /mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer(_start+0x2a) [0x562e18b6632a]
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1450490==ERROR: AddressSanitizer: TRAP on unknown address 0x000000000000 (pc 0x7ff87c68081b bp 0x7ffd59cb1bf0 sp 0x7ffd59cb1be0 T0)
+==1450490==WARNING: invalid path to external symbolizer!
+==1450490==WARNING: Failed to use and restart external symbolizer!
+    #0 0x7ff87c68081b in operator() v8/src/base/platform/platform-posix.cc:502:5
+    #1 0x7ff87c68081b in v8::base::OS::Abort() v8/src/base/platform/platform-posix.cc:502:5
+    #2 0x7ff87c66e200 in V8_Fatal(char const*, ...) v8/src/base/logging.cc:167:3
+    #3 0x562e18d4cd6c in v8::internal::wasm::fuzzer::InterpretAndExecuteModule(v8::internal::Isolate*, v8::internal::Handle<v8::internal::WasmModuleObject>) v8/test/fuzzer/wasm-fuzzer-common.cc:101:5
+    #4 0x562e18d5059a in v8::internal::wasm::fuzzer::WasmExecutionFuzzer::FuzzWasmModule(v8::internal::Vector<unsigned char const>, bool) v8/test/fuzzer/wasm-fuzzer-common.cc:401:3
+    #5 0x562e18c0d35f in LLVMFuzzerTestOneInput v8/test/fuzzer/wasm-compile.cc:1710:23
+    #6 0x562e18d16237 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:556:15
+    #7 0x562e18ce415f in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:292:6
+    #8 0x562e18cf13ed in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:774:9
+    #9 0x562e18d2329c in main third_party/libFuzzer/src/FuzzerMain.cpp:19:10
+    #10 0x7ff87553582f in __libc_start_main /build/glibc-LK5gWL/glibc-2.23/csu/libc-start.c:291
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: TRAP (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/libv8_libbase.so+0x4d81b)
+==1450490==ABORTING
++----------------------------------------Release Build Unsymbolized Stacktrace (diff)----------------------------------------+
+==1450490==WARNING: invalid path to external symbolizer!
+==1450490==WARNING: Failed to use and restart external symbolizer!
+    #0 0x7ff87c68081b  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/libv8_libbase.so+0x4d81b)
+    #1 0x7ff87c66e200  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/libv8_libbase.so+0x3b200)
+    #2 0x562e18d4cd6c  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer+0x2dcd6c)
+    #3 0x562e18d5059a  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer+0x2e059a)
+    #4 0x562e18c0d35f  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer+0x19d35f)
+    #5 0x562e18d16237  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer+0x2a6237)
+    #6 0x562e18ce415f  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer+0x27415f)
+    #7 0x562e18cf13ed  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer+0x2813ed)
+    #8 0x562e18d2329c  (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux-release-asan_ae530a86793cd6b8b56ce9af9159ac101396e802/revisions/libfuzzer-linux-release-873677/v8_wasm_compile_fuzzer+0x2b329c)
+    #9 0x7ff87553582f  (/lib/x86_64-linux-gnu/libc.so.6+0x2082f)

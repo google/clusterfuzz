@@ -820,6 +820,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_check_trap(self):
+    """Test v8 CHECK failures that trigger SIGTRAP."""
+    data = self._read_test_data('v8_check_trap.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'interpreter_result.result() == result_compiled in foo.cc\n'
+        'v8::internal::wasm::fuzzer::InterpretAndExecuteModule\n'
+        'v8::internal::wasm::fuzzer::WasmExecutionFuzzer::FuzzWasmModule\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_v8_dcheck(self):
     """Test the v8 DCHECK failure."""
     data = self._read_test_data('v8_dcheck_symbolized.txt')
@@ -3030,6 +3047,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'really_probe\n'
                       '__device_attach_driver\n')
     expected_address = '0x7f58af2ac9ec'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_swift(self):
+    """Test swift stacktrace."""
+    data = self._read_test_data('swift_invalid_free.txt')
+    expected_type = 'Invalid-free'
+    expected_state = ('SwiftProtobuf.BinaryDecoder.\n'
+                      'SwiftProtobuf.BinaryDecoder.decodeSingularGroupField'
+                      '<A where A: SwiftProtobuf.Me\n'
+                      'protocol witness for SwiftProtobuf.Decoder.'
+                      'decodeSingularGroupField<A where A1: \n')
+    expected_address = '0x555f65177ff0'
     expected_stacktrace = data
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,

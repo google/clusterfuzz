@@ -141,6 +141,7 @@ OUT_OF_MEMORY_REGEX = re.compile(
     r'::OnNoMemory|'
     r'ERROR.*Sanitizer failed to allocate|'
     r'FatalProcessOutOfMemory|'
+    r'Fatal JavaScript invalid size error|'
     r'FX_OutOfMemoryTerminate|'
     r'Out of memory\. Dying.|'
     r'Out of memory\. size=|'
@@ -168,6 +169,7 @@ SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
 SAN_DEADLYSIGNAL_REGEX = re.compile(r'.*:DEADLYSIGNAL')
 SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
 SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
+SAN_TRAP_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: TRAP ')
 SAN_SEGV_CRASH_TYPE_REGEX = re.compile(
     r'.*The signal is caused by a ([A-Z]+) memory access.')
 # FIXME: Replace when better ways to check signal crashes are available.
@@ -529,6 +531,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Android kernel stack frame ignores.
     r'^print_address_description',
     r'^_etext',
+
+    # Swift specific.
+    r'^_swift_stdlib_'
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [

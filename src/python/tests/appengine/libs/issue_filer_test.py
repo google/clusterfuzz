@@ -650,6 +650,18 @@ class UpdateImpactTest(unittest.TestCase):
                          mock_issue.labels.added)
     six.assertCountEqual(self, [], mock_issue.labels.removed)
 
+  def test_update_impact_extended_stable(self):
+    """Tests updating impact to ExtendedStable."""
+    self.testcase.is_impact_set_flag = True
+    self.testcase.impact_extended_stable_version = '99.1024.11.42'
+
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    six.assertCountEqual(self, ['Security_Impact-ExtendedStable', 'FoundIn-99'],
+                         mock_issue.labels.added)
+    six.assertCountEqual(self, [], mock_issue.labels.removed)
+
   def test_update_impact_stable(self):
     """Tests updating impact to Stable."""
     self.testcase.is_impact_set_flag = True
@@ -734,6 +746,7 @@ class UpdateImpactTest(unittest.TestCase):
   def test_component_add_label(self):
     """Test that we set labels for component builds."""
     self.testcase.job_type = 'job'
+    self.testcase.impact_extended_stable_version = '1.2.3.4'
     self.testcase.impact_stable_version = '2.3.4.5'
     self.testcase.impact_beta_version = '3.4.5.6'
     self.testcase.put()
@@ -747,9 +760,9 @@ class UpdateImpactTest(unittest.TestCase):
     self.testcase.is_impact_set_flag = True
     mock_issue = self._make_mock_issue()
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self,
-                         ['Security_Impact-Stable', 'FoundIn-2', 'FoundIn-3'],
-                         mock_issue.labels.added)
+    six.assertCountEqual(self, [
+        'Security_Impact-ExtendedStable', 'FoundIn-1', 'FoundIn-2', 'FoundIn-3'
+    ], mock_issue.labels.added)
     six.assertCountEqual(self, [], mock_issue.labels.removed)
 
 

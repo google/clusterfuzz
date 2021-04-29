@@ -1,6 +1,6 @@
 ---
 layout: default
-title: libFuzzer and AFL
+title: libFuzzer and AFL++
 parent: Setting up fuzzing
 nav_order: 1
 permalink: /setting-up-fuzzing/libfuzzer-and-afl/
@@ -69,11 +69,16 @@ their dependencies.
 
 ### AFL
 ClusterFuzz supports fuzzing libFuzzer harness functions
-(`LLVMFuzzerTestOneInput`) with AFL. AFL must be used with [AddressSanitizer].
+(`LLVMFuzzerTestOneInput`) with AFL++. AFL++ must be used with [AddressSanitizer].
 To build a fuzz target for AFL, run our [script] which downloads and builds AFL
 and `FuzzingEngine.a`, a library you can link the target against to make it AFL
 compatible. Then compile and link your target using
 `-fsanitize-coverage=trace-pc-guard` and `-fsanitize=address`.
+
+Note: This will not use AFL++ to it's full potential as advanced fuzzing
+features like CMPLOG and COMPCOV will not be enabled.
+It is therefore recommended to use oss-fuzz to create (multiple) fuzzing
+packages instead, as each package is instrumented with random options.
 
 
 ```bash
@@ -92,7 +97,7 @@ dependencies, and AFL's dependencies: `afl-fuzz` and `afl-showmap` (both built
 by the [script]).
 
 ## Creating a job type
-LibFuzzer jobs **must** contain the string **"libfuzzer"** in their name, AFL
+LibFuzzer jobs **must** contain the string **"libfuzzer"** in their name, AFL++
 jobs **must** contain the string **"afl"** in their name. Jobs must also contain
 the name of the sanitizer they are using (e.g. "asan", "msan",  or "ubsan").
 **"libfuzzer_asan_my_project"** and **"afl_asan_my_project"** are examples of
@@ -159,7 +164,7 @@ Though ClusterFuzz supports fuzzing with AFL, it doesn't support using it for
 [corpus pruning] and [crash minimization]. Therefore, if you use AFL, you should
 also use libFuzzer which supports these tasks.
 
-[AFL]: http://lcamtuf.coredump.cx/afl/
+[AFL++]: https://github.com/AFLplusplus/AFLplusplus
 [AddressSanitizer]: https://clang.llvm.org/docs/AddressSanitizer.html
 [afl_driver.cpp]: https://raw.githubusercontent.com/llvm-mirror/compiler-rt/master/lib/fuzzer/afl/afl_driver.cpp
 [bot logs]: {{ site.baseurl }}/getting-started/local-instance/#viewing-logs

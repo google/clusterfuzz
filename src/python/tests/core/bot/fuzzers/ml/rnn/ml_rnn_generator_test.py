@@ -32,6 +32,7 @@ MODEL_LAYER_SIZE = 1
 MODEL_STATE_SIZE = 2
 
 
+@unittest.skipIf(not os.getenv('ML_TESTS'), 'ML_TESTS=1 must be set')
 @test_utils.integration
 class MLRnnGeneratorIntegrationTest(unittest.TestCase):
   """ML RNN generator tests."""
