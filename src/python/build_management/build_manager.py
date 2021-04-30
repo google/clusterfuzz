@@ -1427,7 +1427,8 @@ def setup_production_build(build_type):
   """Sets up build with a particular revision."""
   # Bail out if there are not stable and beta build urls.
   if build_type == 'extended_stable':
-    build_bucket_path = environment.get_value('EXTENDED_STABLE_BUILD_BUCKET_PATH')
+    build_bucket_path = environment.get_value(
+        'EXTENDED_STABLE_BUILD_BUCKET_PATH')
   elif build_type == 'stable':
     build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
   elif build_type == 'beta':

@@ -753,15 +753,16 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
     self.mock.get_build_urls_list.side_effect = self._mock_get_build_urls_list
 
   def _mock_get_build_urls_list(self, bucket_path):
+    """Mock get_build_urls_list()"""
     if not bucket_path:
       return []
 
     if 'extended_stable' in bucket_path:
       return [
-        'gs://path/file-extended_stable-45.0.1824.2.zip',
-        'gs://path/file-extended_stable-44.0.1824.1.zip',
-        'gs://path/file-extended_stable-44.0.1822.2.zip',
-        ]
+          'gs://path/file-extended_stable-45.0.1824.2.zip',
+          'gs://path/file-extended_stable-44.0.1824.1.zip',
+          'gs://path/file-extended_stable-44.0.1822.2.zip',
+      ]
 
     if 'stable' in bucket_path:
       return [
@@ -848,32 +849,33 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(self.mock._unpack_build.call_count, 1)
 
   def test_setup_extended_stable(self):
-        """Test setting up an extended stable build."""
-        os.environ['EXTENDED_STABLE_BUILD_BUCKET_PATH'] = (
-            'gs://path/file-extended_stable-([0-9.]+).zip')
+    """Test setting up an extended stable build."""
+    os.environ['EXTENDED_STABLE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-extended_stable-([0-9.]+).zip')
 
-        self.mock.time.return_value = 1000.0
-        build = build_manager.setup_production_build('extended_stable')
-        self.assertIsInstance(build, build_manager.ProductionBuild)
-        self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_production_build('extended_stable')
+    self.assertIsInstance(build, build_manager.ProductionBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
 
-        self.assertEqual(build.revision, '45.0.1824.2')
-        self.assertEqual(os.environ['APP_REVISION'], '45.0.1824.2')
-        self._assert_env_vars('extended_stable')
+    self.assertEqual(build.revision, '45.0.1824.2')
+    self.assertEqual(os.environ['APP_REVISION'], '45.0.1824.2')
+    self._assert_env_vars('extended_stable')
 
-        self.mock._unpack_build.assert_called_once_with(
-            mock.ANY, '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
-            '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/extended_stable',
-            'gs://path/file-extended_stable-45.0.1824.2.zip')
+    self.mock._unpack_build.assert_called_once_with(
+        mock.ANY, '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
+        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/extended_stable',
+        'gs://path/file-extended_stable-45.0.1824.2.zip')
 
-        self.mock.time.return_value = 1005.0
-        self.assertEqual(
-            build_manager.setup_production_build('extended_stable').revision, '45.0.1824.2')
-        self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
-        self._assert_env_vars('extended_stable')
-        self.assertEqual(self.mock._unpack_build.call_count, 1)
+    self.mock.time.return_value = 1005.0
+    self.assertEqual(
+        build_manager.setup_production_build('extended_stable').revision,
+        '45.0.1824.2')
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+    self._assert_env_vars('extended_stable')
+    self.assertEqual(self.mock._unpack_build.call_count, 1)
 
-        self.assertIsNone(build_manager.setup_production_build('wrong'))
+    self.assertIsNone(build_manager.setup_production_build('wrong'))
 
   def test_delete(self):
     """Test deleting this build."""
