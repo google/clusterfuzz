@@ -603,12 +603,11 @@ class Build(BaseBuild):
     """Check if build already exists."""
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     if os.path.exists(revision_file):
-      file_handle = open(revision_file, 'r')
-      try:
-        current_revision = int(file_handle.read())
-      except ValueError:
-        current_revision = -1
-      file_handle.close()
+      with open(revision_file, 'r') as file_handle:
+        try:
+          current_revision = int(file_handle.read())
+        except ValueError:
+          current_revision = -1
 
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
