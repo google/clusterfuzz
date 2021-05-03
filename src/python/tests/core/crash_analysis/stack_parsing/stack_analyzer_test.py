@@ -968,7 +968,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_v8_unknown_fatal_error(self):
     """Test a generic fatal error."""
     data = self._read_test_data('v8_unknown_fatal_error.txt')
-    expected_type = 'CHECK failure'
+    expected_type = 'Fatal error'
     expected_address = ''
     expected_state = ('something that isn\'t supported yet in '
                       'simulator-arm.cc\n')
