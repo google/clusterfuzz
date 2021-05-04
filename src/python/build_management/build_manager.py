@@ -1428,6 +1428,9 @@ def setup_production_build(build_type):
   if build_type == 'extended_stable':
     build_bucket_path = environment.get_value(
         'EXTENDED_STABLE_BUILD_BUCKET_PATH')
+    # TODO(yuanjunh): remove it after ES exists.
+    if not build_bucket_path:
+      return None
   elif build_type == 'stable':
     build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
   elif build_type == 'beta':
