@@ -72,7 +72,7 @@ INTERNAL_SANDBOXED_JOB_TYPES = [
 MIN_ELAPSED_TIME_SINCE_FIXED = 2 * 24
 
 # Time to wait for grouping task to finish, before filing the report (hours).
-MIN_ELAPSED_TIME_SINCE_REPORT = 3
+MIN_ELAPSED_TIME_SINCE_REPORT = 4
 
 # Valid name check for fuzzer, job, etc.
 NAME_CHECK_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
