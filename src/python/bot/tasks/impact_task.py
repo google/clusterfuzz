@@ -54,7 +54,7 @@ class Impact(object):
 
 
 class Impacts(object):
-  """Represents both stable and beta impacts."""
+  """Represents extended stable, stable and beta impacts."""
 
   def __init__(self, stable=None, beta=None, extended_stable=None):
     self.stable = stable or Impact()
