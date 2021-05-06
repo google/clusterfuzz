@@ -563,8 +563,8 @@ class Testcase(Model):
     return self.project_name == 'chromium' and not self.one_time_crasher_flag
 
   def impacts_production(self):
-    return (bool(self.impact_beta_version) or bool(self.impact_stable_version)
-            or bool(self.impact_beta_version))
+    return (bool(self.impact_beta_version) or
+            bool(self.impact_stable_version) or bool(self.impact_beta_version))
 
   def is_status_unreproducible(self):
     return self.status and self.status.startswith('Unreproducible')
