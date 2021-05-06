@@ -48,7 +48,7 @@ REVISION_FILE_NAME = 'REVISION'
 
 # Various build type mapping strings.
 BUILD_TYPE_SUBSTRINGS = [
-    '-beta', '-stable', '-debug', '-release', '-symbolized'
+    '-beta', '-stable', '-debug', '-release', '-symbolized', '-extended_stable'
 ]
 
 # Build eviction constants.
@@ -603,12 +603,11 @@ class Build(BaseBuild):
     """Check if build already exists."""
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     if os.path.exists(revision_file):
-      file_handle = open(revision_file, 'r')
-      try:
-        current_revision = int(file_handle.read())
-      except ValueError:
-        current_revision = -1
-      file_handle.close()
+      with open(revision_file, 'r') as file_handle:
+        try:
+          current_revision = int(file_handle.read())
+        except ValueError:
+          current_revision = -1
 
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
@@ -1426,7 +1425,13 @@ def setup_custom_binary(target_weights=None):
 def setup_production_build(build_type):
   """Sets up build with a particular revision."""
   # Bail out if there are not stable and beta build urls.
-  if build_type == 'stable':
+  if build_type == 'extended_stable':
+    build_bucket_path = environment.get_value(
+        'EXTENDED_STABLE_BUILD_BUCKET_PATH')
+    # TODO(yuanjunh): remove it after ES exists.
+    if not build_bucket_path:
+      return None
+  elif build_type == 'stable':
     build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
   elif build_type == 'beta':
     build_bucket_path = environment.get_value('BETA_BUILD_BUCKET_PATH')
@@ -1516,6 +1521,7 @@ def is_custom_binary():
 
 def has_production_builds():
   """Return a bool on if job type has build urls for stable and beta builds."""
+  # TODO(yuanjunh): change it if after ES exists.
   return (environment.get_value('STABLE_BUILD_BUCKET_PATH') and
           environment.get_value('BETA_BUILD_BUCKET_PATH'))
 

@@ -293,8 +293,12 @@ class Handler(base_handler.Handler):
       if not data_handler.critical_tasks_completed(testcase):
         continue
 
-      # For testcases that are not part of a group, wait an additional time till
-      # group task completes.
+      # For testcases that are not part of a group, wait an additional time to
+      # make sure it is grouped.
+      # The grouper runs prior to this step in the same cron, but there is a
+      # window of time where new testcases can come in after the grouper starts.
+      # This delay needs to be longer than the maximum time the grouper can take
+      # to account for that.
       # FIXME: In future, grouping might be dependent on regression range, so we
       # would have to add an additional wait time.
       if not testcase.group_id and not dates.time_has_expired(

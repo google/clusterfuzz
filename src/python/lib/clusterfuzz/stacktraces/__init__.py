@@ -1005,41 +1005,46 @@ class StackParser:
           state.crash_state = '%s\n' % state.check_failure_source_file
           continue
 
-        if state.check_failure_source_file:
-          # Generic fatal errors should be replaced by CHECK failures.
+        # Generic fatal errors should be replaced by (D)CHECK failures.
+        check_failure_match = self.update_state_on_match(
+            FATAL_ERROR_DCHECK_FAILURE,
+            line,
+            state,
+            new_type='DCHECK failure',
+            reset=True)
+
+        if not check_failure_match:
           check_failure_match = self.update_state_on_match(
-              FATAL_ERROR_DCHECK_FAILURE,
+              FATAL_ERROR_CHECK_FAILURE,
               line,
               state,
-              new_type='DCHECK failure',
+              new_type='CHECK failure',
               reset=True)
 
-          if not check_failure_match:
-            new_type = state.crash_type
-            if state.crash_type == 'Fatal error':
-              new_type = 'CHECK failure'
-            check_failure_match = self.update_state_on_match(
-                FATAL_ERROR_CHECK_FAILURE,
-                line,
-                state,
-                new_type=new_type,
-                reset=True)
+        if not check_failure_match:
+          check_failure_match = self.update_state_on_match(
+              FATAL_ERROR_GENERIC_FAILURE, line, state, reset=True)
 
-          if check_failure_match and check_failure_match.group(2).strip():
-            failure_string = fix_check_failure_string(
-                check_failure_match.group(2))
+        if check_failure_match and check_failure_match.group(2).strip():
+          failure_string = fix_check_failure_string(
+              check_failure_match.group(2))
+          if state.check_failure_source_file:
             state.crash_state = '%s in %s\n' % (failure_string,
                                                 state.check_failure_source_file)
-            state.frame_count = 1
+          else:
+            state.crash_state = '%s\n' % failure_string
+          state.frame_count = 1
 
+        new_state = None
+        if state.check_failure_source_file:
           new_state = '%s\n' % state.check_failure_source_file
-          self.update_state_on_match(
-              FATAL_ERROR_UNREACHABLE,
-              line,
-              state,
-              new_state=new_state,
-              new_type='Unreachable code',
-              reset=True)
+        self.update_state_on_match(
+            FATAL_ERROR_UNREACHABLE,
+            line,
+            state,
+            new_state=new_state,
+            new_type='Unreachable code',
+            reset=True)
 
       # Check cases with unusual stack start markers.
       self.update_state_on_match(
