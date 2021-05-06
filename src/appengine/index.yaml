@@ -332,6 +332,7 @@ indexes:
   - name: project_name
   - name: platform
   - name: is_impact_set_flag
+  - name: impact_extended_stable_version
   - name: impact_stable_version
   - name: impact_beta_version
   - name: timestamp
@@ -348,6 +349,7 @@ indexes:
   - name: group_id
   - name: impact_beta_version
   - name: impact_stable_version
+  - name: impact_extended_stable_version
   - name: is_impact_set_flag
   - name: job_type
   - name: one_time_crasher_flag
@@ -437,6 +439,12 @@ indexes:
 - kind: Testcase
   properties:
   - name: impact_version_indices
+  - name: timestamp
+    direction: desc
+
+- kind: Testcase
+  properties:
+  - name: impact_extended_stable_version_indices
   - name: timestamp
     direction: desc
 
