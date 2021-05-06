@@ -34,6 +34,7 @@ from metrics import logs
 from platforms import android
 from system import archive
 from system import environment
+from system import new_process
 from system import shell
 
 # The default environment variables for specifying build bucket paths.
@@ -864,10 +865,25 @@ class AndroidEmulatorBuild(RegularBuild):
   def setup(self):
     """Android Emulator build setup."""
     self._pre_setup()
-    emu_proc = android.emulator.EmulatorProcess()
-    emu_proc.create(self.base_build_dir)
-    emu_proc.run()
-    android.adb.run_as_root()
+
+    # Download emulator image.
+    if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
+      logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set.')
+      return False
+    archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
+    archive_dst_path = os.path.join(self.base_build_dir, 'emulator_bundle.zip')
+    storage.copy_file_from(archive_src_path, archive_dst_path)
+
+    # Extract emulator image.
+    self.emulator_path = os.path.join(self.base_build_dir, 'emulator')
+    shell.remove_directory(self.emulator_path)
+    archive.unpack(archive_dst_path, self.emulator_path)
+    shell.remove_file(archive_dst_path)
+
+    # Stop any stale emulator instances.
+    stop_script_path = os.path.join(self.emulator_path, 'stop')
+    stop_proc = new_process.ProcessRunner(stop_script_path)
+    stop_proc.run_and_wait()
 
     return super().setup()
 

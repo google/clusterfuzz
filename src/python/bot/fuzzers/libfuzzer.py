@@ -1491,6 +1491,117 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
+class AndroidEmulatorLibFuzzerRunner(AndroidLibFuzzerRunner):
+  """Android emulator libFuzzer runner."""
+
+  # pylint: disable=super-init-not-called
+  def __init__(self, executable_path, build_directory, default_args=None):
+    """Inits the AndroidEmulatorLibFuzzerRunner.
+
+    Args:
+      executable_path: Path to the fuzzer executable.
+      build_directory: A MinijailChroot.
+      default_args: Default arguments to always pass to the fuzzer.
+    """
+    self.exec_path = executable_path
+    self.build_dir = build_directory
+    self.def_args = default_args
+    # We don't call super().__init__() here since we need to wait until
+    # the emulator is started. It's called in _start_emulator().
+
+  def _start_emulator(self):
+    self.emu_proc = android.emulator.EmulatorProcess()
+    self.emu_proc.create(self.build_dir)
+    self.emu_proc.run()
+    android.adb.run_as_root()
+    super().__init__(
+        executable_path=self.exec_path,
+        build_directory=self.build_dir,
+        default_args=self.def_args)
+
+  def _stop_emulator(self):
+    self.emu_proc.kill()
+
+  def analyze_dictionary(self,
+                         dictionary_path,
+                         corpus_directory,
+                         analyze_timeout,
+                         artifact_prefix=None,
+                         additional_args=None):
+    """AndroidLibFuzzerRunner.analyze_dictionary override."""
+    self._start_emulator()
+    result = super().analyze_dictionary(dictionary_path, corpus_directory,
+                                        analyze_timeout, artifact_prefix,
+                                        additional_args)
+    self._stop_emulator()
+    return result
+
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
+    """AndroidLibFuzzerRunner.fuzz override."""
+    self._start_emulator()
+
+    result = super().fuzz(corpus_directories, fuzz_timeout, artifact_prefix,
+                          additional_args, extra_env)
+    self._stop_emulator()
+    return result
+
+  def merge(self,
+            corpus_directories,
+            merge_timeout,
+            artifact_prefix=None,
+            tmp_dir=None,
+            additional_args=None,
+            merge_control_file=None):
+    """AndroidLibFuzzerRunner.merge override."""
+    self._start_emulator()
+    result = super().merge(corpus_directories, merge_timeout, artifact_prefix,
+                           tmp_dir, additional_args, merge_control_file)
+    self._stop_emulator()
+    return result
+
+  def run_single_testcase(self,
+                          testcase_path,
+                          timeout=None,
+                          additional_args=None):
+    """AndroidLibFuzzerRunner.run_single_testcase override."""
+    self._start_emulator()
+    result = super().run_single_testcase(testcase_path, timeout,
+                                         additional_args)
+    self._stop_emulator()
+    return result
+
+  def minimize_crash(self,
+                     testcase_path,
+                     output_path,
+                     timeout,
+                     artifact_prefix=None,
+                     additional_args=None):
+    """AndroidLibFuzzerRunner.minimize_crash override."""
+    self._start_emulator()
+    result = super().minimize_crash(testcase_path, output_path, timeout,
+                                    artifact_prefix, additional_args)
+    self._stop_emulator()
+    return result
+
+  def cleanse_crash(self,
+                    testcase_path,
+                    output_path,
+                    timeout,
+                    artifact_prefix=None,
+                    additional_args=None):
+    """AndroidLibFuzzerRunner.cleanse_crash override."""
+    self._start_emulator()
+    result = super().cleanse_crash(testcase_path, output_path, timeout,
+                                   artifact_prefix, additional_args)
+    self._stop_emulator()
+    return result
+
+
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
@@ -1565,6 +1676,8 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
       runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
     else:
       runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
+  elif environment.is_android_emulator():
+    runner = AndroidEmulatorLibFuzzerRunner(fuzzer_path, build_dir)
   elif is_android:
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   elif use_unshare:
