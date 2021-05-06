@@ -563,7 +563,7 @@ class Testcase(Model):
     return self.project_name == 'chromium' and not self.one_time_crasher_flag
 
   def impacts_production(self):
-    return (bool(self.impact_beta_version) or
+    return (bool(self.impact_extended_stable_version) or
             bool(self.impact_stable_version) or bool(self.impact_beta_version))
 
   def is_status_unreproducible(self):
@@ -630,11 +630,10 @@ class Testcase(Model):
                                                 self.bug_information or '-'))
 
   def set_impacts_as_na(self):
-    self.impact_extended_stable_version = self.impact_stable_version = \
-        self.impact_beta_version = None
-    self.impact_extended_stable_version_likely = \
-        self.impact_stable_version_likely = \
-        self.impact_beta_version_likely = False
+    self.impact_stable_version = self.impact_beta_version = None
+    self.impact_extended_stable_version = None
+    self.impact_stable_version_likely = self.impact_beta_version_likely = False
+    self.impact_extended_stable_version_likely = False
     self.is_impact_set_flag = False
 
   def _ensure_metadata_is_cached(self):
