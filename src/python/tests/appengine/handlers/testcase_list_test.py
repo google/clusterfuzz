@@ -58,8 +58,8 @@ class AddFiltersTest(unittest.TestCase):
 
   def test_both_fields(self):
     """Test filter field and keyword field."""
-    self.params['q'] = ('hello group:456 issue:123 platform:windows'
-                        ' stable:s.1 beta:b.2 fuzzer:2 job:3')
+    self.params['q'] = ('hello group:456 issue:123 platform:windows stable:s.1'
+                        ' beta:b.2 extended_stable:es.1 fuzzer:2 job:3')
     self.params['fuzzer'] = 'fuzz'
     self.params['issue'] = 'yes'
     self.params['job'] = 'somejob'
@@ -80,6 +80,7 @@ class AddFiltersTest(unittest.TestCase):
         mock.call('group_id', 456),
         mock.call('bug_indices', '123'),
         mock.call('platform', 'windows'),
+        mock.call('impact_extended_stable_version_indices', 'es.1'),
         mock.call('impact_stable_version_indices', 's.1'),
         mock.call('impact_beta_version_indices', 'b.2'),
         mock.call('fuzzer_name_indices', '2'),

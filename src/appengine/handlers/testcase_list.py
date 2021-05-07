@@ -43,6 +43,7 @@ FIELDS = [
     'group_id',
     'project_name',
     'platform',
+    'impact_extended_stable_version',
     'impact_stable_version',
     'impact_beta_version',
     'is_impact_set_flag',
@@ -68,6 +69,7 @@ KEYWORD_FILTERS = [
     GroupFilter(),
     filters.String('bug_indices', 'issue'),
     filters.String('platform', 'platform'),
+    filters.String('impact_extended_stable_version_indices', 'extended_stable'),
     filters.String('impact_stable_version_indices', 'stable'),
     filters.String('impact_beta_version_indices', 'beta'),
     filters.String('fuzzer_name_indices', 'fuzzer'),
@@ -140,6 +142,7 @@ def get_result():
         'isSecurity': testcase.security_flag,
         'isImpactSet': testcase.is_impact_set_flag,
         'impacts': {
+            'extendedStable': testcase.impact_extended_stable_version,
             'stable': testcase.impact_stable_version,
             'beta': testcase.impact_beta_version,
         },

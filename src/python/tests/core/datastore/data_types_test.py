@@ -33,6 +33,7 @@ class TestcaseTest(unittest.TestCase):
     testcase.bug_information = '333'
     testcase.group_id = 1234
     testcase.group_bug_information = 999
+    testcase.impact_extended_stable_version = 'es.1'
     testcase.impact_stable_version = 's.1'
     testcase.impact_beta_version = 'b.3'
     testcase.platform_id = 'windows'
@@ -55,12 +56,18 @@ class TestcaseTest(unittest.TestCase):
     self.assertSetEqual(
         set(['b', 'b.3']), set(testcase.impact_beta_version_indices))
     self.assertSetEqual(
-        set(['s', 's.1', 'b', 'b.3', 'stable', 'beta']),
-        set(testcase.impact_version_indices))
+        set(['es', 'es.1']),
+        set(testcase.impact_extended_stable_version_indices))
+    self.assertSetEqual(
+        set([
+            'es', 'es.1', 's', 's.1', 'b', 'b.3', 'stable', 'beta',
+            'extended_stable'
+        ]), set(testcase.impact_version_indices))
 
   def test_put_head(self):
     """Tests put() when the impact is head."""
     testcase = data_types.Testcase()
+    testcase.impact_extended_stable_version = ''
     testcase.impact_stable_version = ''
     testcase.impact_beta_version = ''
     testcase.project_name = 'chromium'
@@ -71,6 +78,26 @@ class TestcaseTest(unittest.TestCase):
     testcase = testcase.key.get()
 
     self.assertSetEqual(set(['head']), set(testcase.impact_version_indices))
+
+  def test_chromium_extended_stable(self):
+    """Test put() when only impact_extended_stable_version is set."""
+    testcase = data_types.Testcase()
+    testcase.impact_extended_stable_version = 'es.1'
+    testcase.impact_stable_version = ''
+    testcase.impact_beta_version = ''
+    testcase.project_name = 'chromium'
+    testcase.one_time_crasher_flag = False
+    testcase.is_impact_set_flag = True
+    testcase.put()
+
+    testcase = testcase.key.get()
+
+    self.assertSetEqual(
+        set(['es', 'es.1']),
+        set(testcase.impact_extended_stable_version_indices))
+    self.assertSetEqual(
+        set(['es', 'es.1', 'extended_stable']),
+        set(testcase.impact_version_indices))
 
   def test_non_chromium(self):
     """Test put(). It should tokenize certain fields."""
