@@ -36,7 +36,7 @@ dependencies_installed="true"
 
 # Create the config directory if needed and check the ClusterFuzz version.
 mkdir -p $CLUSTERFUZZ_CONFIG_DIR
-current_version=4
+current_version=5
 version_file=$CLUSTERFUZZ_CONFIG_DIR/version
 if [ ! -e $version_file ] || [ "$(cat $version_file)" != "$current_version" ]; then
   dependencies_installed="false"
