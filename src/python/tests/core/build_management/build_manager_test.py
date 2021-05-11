@@ -877,6 +877,43 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
 
     self.assertIsNone(build_manager.setup_production_build('wrong'))
 
+  def test_setup_es_enabled(self):
+    """Test setting up an extended stable build with es_enabled flag."""
+    # TODO(yuanjunh): remove it after testing is done.
+    self.mock.time.return_value = 1000.0
+    es_build_urls = [
+        'gs://chromium-es-testing/linux-release'
+        '/asan-linux-extended_stable-45.0.1824.2.zip',
+        'gs://chromium-es-testing/linux-release'
+        '/asan-linux-extended_stable-44.0.1824.1.zip',
+        'gs://chromium-es-testing/linux-release'
+        '/asan-linux-extended_stable-44.0.1822.2.zip',
+    ]
+    self.mock.get_build_urls_list.side_effect = [es_build_urls, es_build_urls]
+    build = build_manager.setup_production_build('extended_stable', True)
+    self.assertIsInstance(build, build_manager.ProductionBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.assertEqual(build.revision, '45.0.1824.2')
+    self.assertEqual(os.environ['APP_REVISION'], '45.0.1824.2')
+
+    self.mock._unpack_build.assert_called_once_with(
+        mock.ANY, '/builds/chromium-es-testing_linux-release'
+        '_eb660d5ee526c9c1c1608a71fcbe7a713c490533',
+        '/builds/chromium-es-testing_linux-release'
+        '_eb660d5ee526c9c1c1608a71fcbe7a713c490533/extended_stable',
+        'gs://chromium-es-testing/linux-release'
+        '/asan-linux-extended_stable-45.0.1824.2.zip')
+
+    self.mock.time.return_value = 1005.0
+    self.assertEqual(
+        build_manager.setup_production_build('extended_stable', True).revision,
+        '45.0.1824.2')
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+    self.assertEqual(self.mock._unpack_build.call_count, 1)
+
+    self.assertIsNone(build_manager.setup_production_build('wrong'))
+
   def test_delete(self):
     """Test deleting this build."""
     build = build_manager.setup_production_build('stable')
