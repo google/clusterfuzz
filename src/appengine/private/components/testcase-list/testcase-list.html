@@ -388,6 +388,14 @@
                       <if-else condition="[[item.isImpactSet]]">
                         <if-else slot="t" condition="[[item.impactsProduction]]">
                           <span slot="t">
+                            <template is="dom-if" if="[[item.impacts.extendedStable]]">
+                              <impact-button
+                                  title="The crash impacts the extended stable build."
+                                  class="label impact"
+                                  release="Extended_Stable"
+                                  version="[[item.impacts.extendedStable]]"
+                                  on-tap="impactButtonTapped"></impact-button>
+                            </template>
                             <template is="dom-if" if="[[item.impacts.stable]]">
                               <impact-button
                                   title="The crash impacts the stable build."
