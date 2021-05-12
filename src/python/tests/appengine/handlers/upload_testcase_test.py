@@ -125,6 +125,7 @@ class UploadOAuthTest(unittest.TestCase):
     for key, value in expected.items():
       self.assertEqual(value, actual[key], msg=f'For attribute {key}')
 
+  @unittest.skip('flaky test')
   def test_external_upload_oom(self):
     """Test external upload (oom)."""
     stacktrace = self._read_test_data('oom.txt')
@@ -227,6 +228,7 @@ class UploadOAuthTest(unittest.TestCase):
         'uploader_email': 'uploader@email'
     }, metadata._to_dict())
 
+  @unittest.skip('flaky test')
   def test_external_upload_uaf(self):
     """Test external upload (uaf)."""
     stacktrace = self._read_test_data('uaf.txt')
@@ -382,6 +384,7 @@ class UploadOAuthTest(unittest.TestCase):
         'uploader_email': 'uploader@email'
     }, metadata._to_dict())
 
+  @unittest.skip('flaky test')
   def test_external_duplicate(self):
     """Test uploading a duplicate."""
     existing = data_types.Testcase(

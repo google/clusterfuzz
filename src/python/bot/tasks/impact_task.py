@@ -243,11 +243,13 @@ def get_impact_on_build(build_type, current_version, testcase,
                         testcase_file_path):
   """Return impact and additional trace on a prod build given build_type."""
   # TODO(yuanjunh): remove es_enabled var after testing is done.
+  es_enabled = testcase.get_metadata('es_enabled', False)
+  if build_type == 'extended_stable' and not es_enabled:
+    return Impact()
   try:
-    es_enabled = testcase.get_metadata("es_enabled", False)
-    build = build_manager.setup_production_build(build_type, es_enabled)
+    build = build_manager.setup_production_build(build_type)
   except Exception as e:
-    logs.log_warn("Setup build failure for testcase %d, error: %s" %
+    logs.log_warn('Setup build failure for testcase %d, error: %s' %
                   (testcase.key.id(), e))
 
   if not build:

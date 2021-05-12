@@ -1438,7 +1438,7 @@ def setup_custom_binary(target_weights=None):
   return None
 
 
-def setup_production_build(build_type, es_enabled=False):
+def setup_production_build(build_type):
   """Sets up build with a particular revision."""
   # Bail out if there are not stable and beta build urls.
   if build_type == 'extended_stable':
@@ -1446,12 +1446,7 @@ def setup_production_build(build_type, es_enabled=False):
         'EXTENDED_STABLE_BUILD_BUCKET_PATH')
     # TODO(yuanjunh): remove it after ES exists.
     if not build_bucket_path:
-      if es_enabled:
-        logs.log('Setting up production build for chromium extended stable...')
-        build_bucket_path = ('gs://chromium-es-testing/linux-release'
-                             '/asan-linux-extended_stable-([0-9.]+).zip')
-      else:
-        return None
+      return None
   elif build_type == 'stable':
     build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
   elif build_type == 'beta':
