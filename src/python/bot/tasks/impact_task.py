@@ -246,12 +246,7 @@ def get_impact_on_build(build_type, current_version, testcase,
   es_enabled = testcase.get_metadata('es_enabled', False)
   if build_type == 'extended_stable' and not es_enabled:
     return Impact()
-  try:
-    build = build_manager.setup_production_build(build_type)
-  except Exception as e:
-    logs.log_warn('Setup build failure for testcase %d, error: %s' %
-                  (testcase.key.id(), e))
-
+  build = build_manager.setup_production_build(build_type)
   if not build:
     raise BuildFailedException(
         'Build setup failed for %s' % build_type.capitalize())
