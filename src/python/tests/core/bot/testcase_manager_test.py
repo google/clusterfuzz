@@ -638,6 +638,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace is similar to original stacktrace.')
     ])
 
+  @unittest.skip('flaky test')
   def test_test_for_reproducibility_blackbox_succeed(self):
     """Test test_for_reproducibility with success on all runs (blackbox)."""
     self.mock.run_process.return_value = (1, 1, 'crash')
@@ -664,6 +665,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash is reproducible.'),
     ])
 
+  @unittest.skip('flaky test')
   def test_test_for_reproducibility_blackbox_succeed_after_multiple_tries(self):
     """Test test_for_reproducibility with failure on first run and then succeed
     on remaining runs (blackbox)."""
