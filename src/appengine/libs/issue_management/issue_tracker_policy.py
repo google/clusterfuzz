@@ -89,8 +89,13 @@ class IssueTrackerPolicy(object):
 
   @property
   def deadline_policy_message(self):
-    """Get the deadline policy message, if if exists."""
+    """Get the deadline policy message, if it exists."""
     return self._data.get('deadline_policy_message')
+
+  @property
+  def unreproducible_component(self):
+    """Get the component for unreproducible bugs, if it exists."""
+    return self._data.get('unreproducible_component')
 
   def get_new_issue_properties(self, is_security, is_crash):
     """Get the properties to apply to a new issue."""

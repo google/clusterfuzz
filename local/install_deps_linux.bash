@@ -28,7 +28,7 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$PYTHON" ]; then
-  if which python3.8 > /dev/null; then
+  if which python3.9 > /dev/null; then
     PYTHON='python3.9'
   elif which python3.8 > /dev/null; then
     PYTHON='python3.8'

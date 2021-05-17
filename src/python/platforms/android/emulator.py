@@ -17,12 +17,9 @@ import os
 import re
 import subprocess
 
-from google_cloud_utils import storage
 from metrics import logs
 from platforms.android import adb
-from system import archive
 from system import environment
-from system import shell
 
 try:
   from system import new_process
@@ -48,28 +45,8 @@ class EmulatorProcess(object):
 
   def create(self, work_dir):
     """Configures a emulator process which can subsequently be `run`."""
-    # Download emulator image.
-    if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
-      logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set.')
-      return
-    archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
-    archive_dst_path = os.path.join(work_dir, 'emulator_bundle.zip')
-    storage.copy_file_from(archive_src_path, archive_dst_path)
-
-    # Extract emulator image.
-    self.emulator_path = os.path.join(work_dir, 'emulator')
-    shell.remove_directory(self.emulator_path)
-    archive.unpack(archive_dst_path, self.emulator_path)
-    shell.remove_file(archive_dst_path)
-
-    # Stop any stale emulator instances.
-    stop_script_path = os.path.join(self.emulator_path, 'stop')
-    stop_proc = new_process.ProcessRunner(stop_script_path)
-    stop_proc.run_and_wait()
-
-    # Run emulator.
-    run_script_path = os.path.join(self.emulator_path, 'run')
-    self.process_runner = new_process.ProcessRunner(run_script_path)
+    self.process_runner = new_process.ProcessRunner(
+        os.path.join(work_dir, '../emulator/run'))
 
   def run(self):
     """Actually runs a emulator, assuming `create` has already been called."""
@@ -103,6 +80,3 @@ class EmulatorProcess(object):
       logs.log('Stopping emulator.')
       self.process.kill()
       self.process = None
-
-    if self.emulator_path:
-      shell.remove_directory(self.emulator_path)

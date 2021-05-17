@@ -16,6 +16,7 @@
 import collections
 import contextlib
 import copy
+import functools
 import os
 import random
 import re
@@ -1234,7 +1235,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         default_args=self._get_default_args(executable_path, default_args))
 
     android.adb.create_directory_if_needed(self.LIBFUZZER_TEMP_DIR)
-    self._copy_local_directory_to_device(build_directory)
+    self.copy_local_directory_to_device(build_directory)
 
   def _get_default_args(self, executable_path, extra_args):
     """Return a set of default arguments to pass to adb binary."""
@@ -1280,9 +1281,9 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   def _copy_local_directories_to_device(self, local_directories):
     """Copies local directories to device."""
     for local_directory in sorted(set(local_directories)):
-      self._copy_local_directory_to_device(local_directory)
+      self.copy_local_directory_to_device(local_directory)
 
-  def _copy_local_directory_to_device(self, local_directory):
+  def copy_local_directory_to_device(self, local_directory):
     """Copy local directory to device."""
     device_directory = self._get_device_path(local_directory)
     android.adb.remove_directory(device_directory, recreate=True)
@@ -1491,6 +1492,49 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return result
 
 
+def wrap_emulator(func):
+  """Wrap a function with calls to start and stop the emulator."""
+
+  @functools.wraps(func)
+  def wrapper(self, *args, **kwargs):
+    emu_proc = android.emulator.EmulatorProcess()
+    emu_proc.create(self.build_dir)
+    emu_proc.run()
+
+    android.adb.run_as_root()
+    android.adb.create_directory_if_needed(self.LIBFUZZER_TEMP_DIR)
+    self.copy_local_directory_to_device(self.build_dir)
+
+    result = func(self, *args, **kwargs)
+    emu_proc.kill()
+    return result
+
+  return wrapper
+
+
+class AndroidEmulatorLibFuzzerRunner(AndroidLibFuzzerRunner):
+  """Android emulator libFuzzer runner."""
+
+  def __init__(self, executable_path, build_directory, default_args=None):
+    """Inits the AndroidEmulatorLibFuzzerRunner.
+
+    Args:
+      executable_path: Path to the fuzzer executable.
+      build_directory: A MinijailChroot.
+      default_args: Default arguments to always pass to the fuzzer.
+    """
+    self.build_dir = build_directory
+    super().__init__(executable_path, build_directory, default_args)
+
+  analyze_dictionary = wrap_emulator(AndroidLibFuzzerRunner.analyze_dictionary)
+  fuzz = wrap_emulator(AndroidLibFuzzerRunner.fuzz)
+  merge = wrap_emulator(AndroidLibFuzzerRunner.merge)
+  run_single_testcase = wrap_emulator(
+      AndroidLibFuzzerRunner.run_single_testcase)
+  minimize_crash = wrap_emulator(AndroidLibFuzzerRunner.minimize_crash)
+  cleanse_crash = wrap_emulator(AndroidLibFuzzerRunner.cleanse_crash)
+
+
 def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
@@ -1565,6 +1609,8 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
       runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
     else:
       runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
+  elif environment.is_android_emulator():
+    runner = AndroidEmulatorLibFuzzerRunner(fuzzer_path, build_dir)
   elif is_android:
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
   elif use_unshare:

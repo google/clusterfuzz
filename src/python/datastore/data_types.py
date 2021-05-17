@@ -516,7 +516,7 @@ class Testcase(Model):
   # Fuzzer name indices
   fuzzer_name_indices = ndb.StringProperty(repeated=True)
 
-  # The impacted version indices (including both beta and stable).
+  # The impacted version indices (including beta, stable and extended_stable).
   impact_version_indices = ndb.StringProperty(repeated=True)
 
   # The impacted extended stable version.
@@ -563,7 +563,8 @@ class Testcase(Model):
     return self.project_name == 'chromium' and not self.one_time_crasher_flag
 
   def impacts_production(self):
-    return bool(self.impact_stable_version) or bool(self.impact_beta_version)
+    return (bool(self.impact_extended_stable_version) or
+            bool(self.impact_stable_version) or bool(self.impact_beta_version))
 
   def is_status_unreproducible(self):
     return self.status and self.status.startswith('Unreproducible')
@@ -592,14 +593,19 @@ class Testcase(Model):
     # if impact isn't applicable (aka has_impacts() is False), we wipe all
     # the impact fields' indices.
     if self.has_impacts() and self.is_impact_set_flag:
+      self.impact_extended_stable_version_indices = (
+          search_tokenizer.tokenize_impact_version(
+              self.impact_extended_stable_version))
       self.impact_stable_version_indices = (
           search_tokenizer.tokenize_impact_version(self.impact_stable_version))
       self.impact_beta_version_indices = (
           search_tokenizer.tokenize_impact_version(self.impact_beta_version))
       self.impact_version_indices = list(
-          set(self.impact_stable_version_indices +
+          set(self.impact_extended_stable_version_indices +
+              self.impact_stable_version_indices +
               self.impact_beta_version_indices))
-
+      if self.impact_extended_stable_version:
+        self.impact_version_indices.append('extended_stable')
       if self.impact_beta_version:
         self.impact_version_indices.append('beta')
       if self.impact_stable_version:
@@ -608,6 +614,7 @@ class Testcase(Model):
         self.impact_version_indices.append('head')
     else:
       self.impact_version_indices = []
+      self.impact_extended_stable_version_indices = []
       self.impact_stable_version_indices = []
       self.impact_beta_version_indices = []
 
@@ -624,7 +631,9 @@ class Testcase(Model):
 
   def set_impacts_as_na(self):
     self.impact_stable_version = self.impact_beta_version = None
+    self.impact_extended_stable_version = None
     self.impact_stable_version_likely = self.impact_beta_version_likely = False
+    self.impact_extended_stable_version_likely = False
     self.is_impact_set_flag = False
 
   def _ensure_metadata_is_cached(self):

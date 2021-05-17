@@ -58,18 +58,18 @@ def undercoat_api_command(*args):
   undercoat_path = os.path.join(bundle_dir, 'undercoat', 'undercoat')
   undercoat = new_process.ProcessRunner(undercoat_path, args)
   # The undercoat log is sent to stderr, which we capture to a tempfile
-  undercoat_log = tempfile.TemporaryFile()
-  result = undercoat.run_and_wait(stderr=undercoat_log)
-  result.output = result.output.decode('utf-8')
+  with tempfile.TemporaryFile() as undercoat_log:
+    result = undercoat.run_and_wait(stderr=undercoat_log)
+    result.output = result.output.decode('utf-8')
 
-  if result.return_code != 0:
-    # Dump the undercoat log to assist in debugging
-    log_data = utils.read_from_handle_truncated(undercoat_log, 1024 * 1024)
-    logs.log_warn('Log output from undercoat: ' + log_data)
+    if result.return_code != 0:
+      # Dump the undercoat log to assist in debugging
+      log_data = utils.read_from_handle_truncated(undercoat_log, 1024 * 1024)
+      logs.log_warn('Log output from undercoat: ' + log_data.decode('utf-8'))
 
-    # The API error message is returned on stdout
-    raise UndercoatError(
-        'Error running undercoat command %s: %s' % (args, result.output))
+      # The API error message is returned on stdout
+      raise UndercoatError(
+          'Error running undercoat command %s: %s' % (args, result.output))
 
   return result
 

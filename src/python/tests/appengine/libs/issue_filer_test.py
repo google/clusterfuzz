@@ -73,7 +73,8 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     },
     'existing': {
         'labels': ['Stability-%SANITIZER%']
-    }
+    },
+    'unreproducible_component': 'Unreproducible>Component'
 })
 
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
@@ -489,6 +490,8 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase1.put()
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Unreproducible', issue_tracker._itm.last_issue.labels)
+    self.assertCountEqual(['Unreproducible>Component'],
+                          issue_tracker._itm.last_issue.components)
 
     self.testcase1.one_time_crasher_flag = False
     self.testcase1.put()
