@@ -136,27 +136,28 @@ LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
 LSAN_INDIRECT_LEAK_REGEX = re.compile(r'Indirect leak of ')
 MAC_GDB_CRASH_ADDRESS_REGEX = re.compile(
     r'Reason:.*at address[^0-9]*([0-9a-zA-Z]+)')
-OUT_OF_MEMORY_REGEX = re.compile(
-    r'.*('
-    r'# Allocation failed.*out of memory|'
-    r'::OnNoMemory|'
-    r'ERROR.*Sanitizer failed to allocate|'
-    r'FatalProcessOutOfMemory|'
-    r'Fatal JavaScript invalid size error|'
-    r'FX_OutOfMemoryTerminate|'
-    r'Out of memory\. Dying.|'
-    r'Out of memory\. size=|'
-    r'Sanitizer: allocation-size-too-big|'
-    r'Sanitizer: calloc-overflow|'
-    r'Sanitizer: calloc parameters overflow|'
-    r'Sanitizer: requested allocation size.*exceeds maximum supported size|'
-    r'TerminateBecauseOutOfMemory|'
-    r'allocator is out of memory trying to allocate|'
-    r'blinkGCOutOfMemory|'
-    r'couldnt allocate.*Out of memory|'
-    r'libFuzzer: out-of-memory \(|'
-    r'rss limit exhausted|'
-    r'in rust_oom).*')
+OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
+    r'# Allocation failed.*out of memory',
+    r'::OnNoMemory',
+    r'ERROR.*Sanitizer failed to allocate',
+    r'FatalProcessOutOfMemory',  # V8
+    r'Fatal (?:process|JavaScript) out of memory:',  # V8
+    r'Fatal JavaScript invalid size error',  # V8
+    r'FX_OutOfMemoryTerminate',
+    r'Out of memory\. Dying.',
+    r'Out of memory\. size=',
+    r'Sanitizer: allocation-size-too-big',
+    r'Sanitizer: calloc-overflow',
+    r'Sanitizer: calloc parameters overflow',
+    r'Sanitizer: requested allocation size.*exceeds maximum supported size',
+    r'TerminateBecauseOutOfMemory',
+    r'allocator is out of memory trying to allocate',
+    r'blinkGCOutOfMemory',
+    r'couldnt allocate.*Out of memory',
+    r'libFuzzer: out-of-memory \(',
+    r'rss limit exhausted',
+    r'in rust_oom'
+]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
 RUST_ASSERT_REGEX = re.compile(r'thread\s.*\spanicked at \'([^\']*)',

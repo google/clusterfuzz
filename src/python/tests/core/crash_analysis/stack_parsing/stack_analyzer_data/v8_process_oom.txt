@@ -1,0 +1,68 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allow_user_segv_handler=1:check_malloc_usable_size=0:detect_leaks=1:detect_odr_violation=0:detect_stack_use_after_return=1:external_symbolizer_path=/mnt/scratch0/clusterfuzz/resources/platform/linux/llvm-symbolizer:fast_unwind_on_fatal=1:handle_abort=1:handle_segv=1:handle_sigbus=1:handle_sigfpe=1:handle_sigill=1:handle_sigtrap=1:max_uar_stack_size_log=16:print_scariness=1:print_summary=1:print_suppressions=0:redzone=32:strict_memcmp=0:symbolize=1:symbolize_inline_frames=false:use_sigaltstack=1
+[Command line] /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/d8 --random-seed=-1614433762 --fuzzing --fuzzing --disable-abortjs --disable-in-process-stack-traces --future --no-untrusted-code-mitigations --stress-scavenge=100 --no-enable-sse4_1 --no-wasm-generic-wrapper --turbo-stress-instruction-scheduling --fuzzing /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases-disk/fuzz-27.js
++----------------------------------------Debug Build Stacktrace----------------------------------------+
+#
+# Fatal error in ../../src/base/small-vector.h, line 162
+# Fatal process out of memory: base::SmallVector::Grow
+#
+#
+#
+#FailureMessage Object: 0xedd6f820
+==== C stack trace ===============================
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/d8(backtrace+0x59) [0x56668d69]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8_libbase.so(v8::base::debug::StackTrace::StackTrace()+0x27) [0xf0613df7]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8_libplatform.so(+0x4667e) [0xf057667e]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8_libbase.so(V8_Fatal(char const*, int, char const*, ...)+0x200) [0xf05e2790]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x4e8bb5a) [0xf54aeb5a]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::Grow()+0x1e) [0xf54ae92e]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(bool v8::internal::CompiledReplacement::ParseReplacementPattern<unsigned char const>(v8::internal::Vector<unsigned char const>, v8::internal::FixedArray, int, int)+0x10b4) [0xf5443234]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(v8::internal::CompiledReplacement::Compile(v8::internal::Isolate*, v8::internal::Handle<v8::internal::JSRegExp>, v8::internal::Handle<v8::internal::String>, int, int)+0x667) [0xf5440e27]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x4e71641) [0xf5494641]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x4e5c7c0) [0xf547f7c0]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(v8::internal::Runtime_RegExpReplaceRT(int, unsigned int*, v8::internal::Isolate*)+0x1ef) [0xf547dd8f]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x179e863) [0xf1dc1863]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x19c9632) [0xf1fec632]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x175ab61) [0xf1d7db61]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x14df2e2) [0xf1b022e2]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x14d7f58) [0xf1afaf58]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x14d7d85) [0xf1afad85]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(+0x29e775b) [0xf300a75b]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*)+0x27a) [0xf3007afa]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so(v8::Script::Run(v8::Local<v8::Context>)+0xbf2) [0xf22fcb52]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/d8(v8::Shell::ExecuteString(v8::Isolate*, v8::Local<v8::String>, v8::Local<v8::Value>, v8::Shell::PrintResult, v8::Shell::ReportExceptions, v8::Shell::ProcessMessageQueue)+0xdf1) [0x5670fa01]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/d8(v8::SourceGroup::Execute(v8::Isolate*)+0x67a) [0x5676d22a]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/d8(v8::Shell::RunMain(v8::Isolate*, bool)+0x444) [0x56779904]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/d8(v8::Shell::Main(int, char**)+0x2cd1) [0x56782001]
+    /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/d8(main+0x1f) [0x56783bbf]
+    /lib/i386-linux-gnu/libc.so.6(__libc_start_main+0xf7) [0xef032637]
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==1939064==ERROR: AddressSanitizer: TRAP on unknown address 0x00000000 (pc 0xf060e8f5 bp 0xff948ff8 sp 0xff948ff0 T0)
+SCARINESS: 10 (signal)
+    #0 0xf060e8f5 in v8::base::OS::Abort() src/base/platform/platform-posix.cc:502:5
+    #1 0xf05e27b7 in V8_Fatal(char const*, int, char const*, ...) src/base/logging.cc:167:3
+    #2 0xf54aeb59 in v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::Grow(unsigned int) src/base/small-vector.h:162:7
+    #3 0xf54ae92d in v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::Grow() src/base/small-vector.h:148:34
+    #4 0xf5443233 in bool v8::internal::CompiledReplacement::ParseReplacementPattern<unsigned char const>(v8::internal::Vector<unsigned char const>, v8::internal::FixedArray, int, int) src/base/small-vector.h:112:52
+    #5 0xf5440e26 in v8::internal::CompiledReplacement::Compile(v8::internal::Isolate*, v8::internal::Handle<v8::internal::JSRegExp>, v8::internal::Handle<v8::internal::String>, int, int) src/runtime/runtime-regexp.cc:345:11
+    #6 0xf5494640 in v8::internal::(anonymous namespace)::RegExpReplace(v8::internal::Isolate*, v8::internal::Handle<v8::internal::JSRegExp>, v8::internal::Handle<v8::internal::String>, v8::internal::Handle<v8::internal::String>) src/runtime/runtime-regexp.cc:632:52
+    #7 0xf547f7bf in v8::internal::__RT_impl_Runtime_RegExpReplaceRT(v8::internal::Arguments<(v8::internal::ArgumentsType)0>, v8::internal::Isolate*) src/runtime/runtime-regexp.cc:1812:5
+    #8 0xf547dd8e in v8::internal::Runtime_RegExpReplaceRT(int, unsigned int*, v8::internal::Isolate*) src/runtime/runtime-regexp.cc:1786:1
+    #9 0xf1dc1862 in Builtins_CEntry_Return1_DontSaveFPRegs_ArgvOnStack_NoBuiltinExit (/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so+0x179e862)
+    #10 0xf1fec631 in Builtins_RegExpReplace (/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so+0x19c9631)
+    #11 0xf1d7db60 in Builtins_StringPrototypeReplace (/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so+0x175ab60)
+    #12 0xf1b022e1 in Builtins_InterpreterEntryTrampoline (/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so+0x14df2e1)
+    #13 0xf1afaf57 in Builtins_JSEntryTrampoline (/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so+0x14d7f57)
+    #14 0xf1afad84 in Builtins_JSEntry (/mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux32-debug_4b8d2476f1dfb5046c7aba7b6c92fb41b8ab7e80/revisions/d8-asan-linux32-debug-v8-component-74452/libv8.so+0x14d7d84)
+    #15 0xf300a75a in v8::internal::(anonymous namespace)::Invoke(v8::internal::Isolate*, v8::internal::(anonymous namespace)::InvokeParams const&) src/execution/simulator.h:144:12
+    #16 0xf3007af9 in v8::internal::Execution::Call(v8::internal::Isolate*, v8::internal::Handle<v8::internal::Object>, v8::internal::Handle<v8::internal::Object>, int, v8::internal::Handle<v8::internal::Object>*) src/execution/execution.cc:466:10
+    #17 0xf22fcb51 in v8::Script::Run(v8::Local<v8::Context>) src/api/api.cc:1947:7
+    #18 0x5670fa00 in v8::Shell::ExecuteString(v8::Isolate*, v8::Local<v8::String>, v8::Local<v8::Value>, v8::Shell::PrintResult, v8::Shell::ReportExceptions, v8::Shell::ProcessMessageQueue) src/d8/d8.cc:717:28
+    #19 0x5676d229 in v8::SourceGroup::Execute(v8::Isolate*) src/d8/d8.cc:3592:10
+    #20 0x56779903 in v8::Shell::RunMain(v8::Isolate*, bool) src/d8/d8.cc:4245:39
+    #21 0x56782000 in v8::Shell::Main(int, char**) src/d8/d8.cc:4967:18
+    #22 0x56783bbe in main src/d8/d8.cc:5052:43
+    #23 0xef032636 in __libc_start_main (/lib/i386-linux-gnu/libc.so.6+0x18636)
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: TRAP src/base/platform/platform-posix.cc:502:5 in v8::base::OS::Abort()
+==1939064==ABORTING

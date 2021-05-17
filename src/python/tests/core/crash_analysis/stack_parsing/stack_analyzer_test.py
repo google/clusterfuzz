@@ -931,8 +931,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_v8_oom(self):
-    """Test a v8 out of memory condition."""
+    """Test a v8 JavaScript out of memory condition."""
     data = self._read_test_data('v8_oom.txt')
+    expected_type = ''
+    expected_address = ''
+    expected_state = ''
+    expected_stacktrace = ''
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom(self):
+    """Test a v8 process out of memory condition."""
+    data = self._read_test_data('v8_process_oom.txt')
     expected_type = ''
     expected_address = ''
     expected_state = ''
