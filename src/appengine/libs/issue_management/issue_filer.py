@@ -415,6 +415,9 @@ def file_issue(testcase,
   for component in metadata_components:
     issue.components.add(component)
 
+  if testcase.one_time_crasher_flag and policy.unreproducible_component:
+    issue.components.add(policy.unreproducible_component)
+
   issue.reporter = user_email
   issue.save()
 
