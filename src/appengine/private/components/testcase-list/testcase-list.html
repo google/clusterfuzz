@@ -615,13 +615,13 @@
 
       filterImpact(ev) {
         this.set('params.impact', ev.target.dataset.impact);
-        this.set('params.q', this.clearStableBetaFilter(this.params.q));
+        this.set('params.q', this.clearChannelFilter(this.params.q));
         this.resetPageAndSearch();
       }
 
-      clearStableBetaFilter(q) {
+      clearChannelFilter(q) {
         return (q || '').replace(
-            new RegExp(`(^| )(stable|beta):[^ ]+`, 'gi'), '');
+            new RegExp(`(^| )(extended_stable|stable|beta):[^ ]+`, 'gi'), '');
       }
 
       impactButtonTapped(ev) {
@@ -631,7 +631,7 @@
         if (!ev.detail.release) { return; }
 
 
-        let q = this.clearStableBetaFilter(this.params.q);
+        let q = this.clearChannelFilter(this.params.q);
         if (ev.detail.version) {
           this.set('params.impact', '');
           q = `${q} ${ev.detail.release}:${ev.detail.version}`.trim();
