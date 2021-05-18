@@ -60,7 +60,8 @@ def undercoat_api_command(*args):
   undercoat = new_process.ProcessRunner(undercoat_path, args)
   # The undercoat log is sent to stderr, which we capture to a tempfile
   with tempfile.TemporaryFile() as undercoat_log:
-    result = undercoat.run_and_wait(stderr=undercoat_log, extra_env={"TMPDIR": "/tmp"})
+    result = undercoat.run_and_wait(
+        stderr=undercoat_log, extra_env={"TMPDIR": "/tmp"})
     result.output = result.output.decode('utf-8')
 
     if result.return_code != 0:
@@ -116,7 +117,8 @@ def validate_api_version():
 
 def dump_instance_logs(handle):
   """Dump logs from an undercoat instance."""
-  qemu_log = undercoat_instance_command('get_logs', handle, abort_on_error=False).output
+  qemu_log = undercoat_instance_command(
+      'get_logs', handle, abort_on_error=False).output
   logs.log_warn(qemu_log)
 
 
@@ -148,7 +150,8 @@ def stop_all():
 
 def stop_instance(handle):
   """Stop a running undercoat instance."""
-  result = undercoat_instance_command('stop_instance', handle, abort_on_error=False)
+  result = undercoat_instance_command(
+      'stop_instance', handle, abort_on_error=False)
 
   # Mark the corresponding handle as having been cleanly shut down
   remove_running_handle(handle)
@@ -189,7 +192,15 @@ def get_data(handle, fuzzer, src, dst):
   If src is a directory, it will be copied recursively. Standard globs are
   supported."""
   try:
-    return undercoat_instance_command('get_data', handle, '-fuzzer', fuzzer,
-                                      '-src', src, '-dst', dst, abort_on_error=False).output
+    return undercoat_instance_command(
+        'get_data',
+        handle,
+        '-fuzzer',
+        fuzzer,
+        '-src',
+        src,
+        '-dst',
+        dst,
+        abort_on_error=False).output
   except UndercoatError:
     return None

@@ -208,6 +208,7 @@ class QemuProcess(object):
     if not self.process_runner:
       raise QemuError('Attempted to `run` QEMU VM before calling `create`')
 
+    # pylint: disable=consider-using-with
     self.logfile = open(QemuProcess.LOG_PATH, 'wb')
     self.popen = self.process_runner.run(
         stdout=self.logfile, stderr=subprocess.PIPE)
