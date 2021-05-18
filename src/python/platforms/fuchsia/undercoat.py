@@ -188,5 +188,8 @@ def get_data(handle, fuzzer, src, dst):
   """Get files from a fuzzer on an instance, via undercoat.
   If src is a directory, it will be copied recursively. Standard globs are
   supported."""
-  return undercoat_instance_command('get_data', handle, '-fuzzer', fuzzer,
-                                    '-src', src, '-dst', dst).output
+  try:
+    return undercoat_instance_command('get_data', handle, '-fuzzer', fuzzer,
+                                      '-src', src, '-dst', dst, abort_on_error=False).output
+  except UndercoatError:
+    return None
