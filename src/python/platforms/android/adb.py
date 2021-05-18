@@ -18,6 +18,7 @@ import glob
 import os
 import re
 import signal
+import socket
 import subprocess
 import tempfile
 import threading
@@ -149,7 +150,7 @@ def execute_command(cmd, timeout=None, log_error=True):
 
 def factory_reset():
   """Reset device to factory state."""
-  if is_gce() or environment.is_android_emulator():
+  if environment.is_android_gce() or environment.is_android_emulator():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
     # for reimage in next iteration.
@@ -294,7 +295,7 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  if is_gce():
+  if environment.is_android_gce():
     # There is no recovery step at this point for a gce bot, so just exit
     # and wait for reimage on next iteration.
     bad_state_reached()
@@ -308,12 +309,6 @@ def hard_reset():
   # Try soft-reset now (does not require root).
   soft_reset_cmd = get_adb_command_line('reboot')
   execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
-
-
-def is_gce():
-  """Returns if we are running in GCE environment."""
-  android_serial = environment.get_value('ANDROID_SERIAL')
-  return android_serial.startswith('127.0.0.1:')
 
 
 def kill_processes_and_children_matching_name(process_name):
@@ -344,12 +339,15 @@ def start_gce_device():
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   launch_cvd_path = os.path.join(cvd_bin_dir, 'launch_cvd')
+  cvd_address = get_gce_address()
 
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
   launch_cvd_command_line = (
       '{launch_cvd_path} -daemon -memory_mb {device_memory_mb}'.format(
           launch_cvd_path=launch_cvd_path, device_memory_mb=device_memory_mb))
+  if cvd_address:
+    launch_cvd_command_line = 'ssh %s %s' % (cvd_address, launch_cvd_command_line)
   execute_command(launch_cvd_command_line)
 
 
@@ -357,9 +355,12 @@ def stop_gce_device():
   """Stops the gce device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
-  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
+  stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
+  cvd_address = get_gce_address()
 
-  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
+  if cvd_address:
+    stop_cvd_cmd = 'ssh %s %s' % (cvd_address, stop_cvd_cmd)
+  execute_command(stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT)
   time.sleep(STOP_CVD_WAIT)
 
 
@@ -371,16 +372,33 @@ def recreate_gce_device():
   stop_gce_device()
 
   # Delete all existing images.
-  image_dir = cvd_dir
-  for image_file_path in glob.glob(os.path.join(image_dir, '*.img')):
-    shell.remove_file(image_file_path)
+  cvd_address = get_gce_address()
+  rm_cmd = 'rm -rf {cvd_dir}/*'.format(cvd_dir=cvd_dir)
+  if cvd_address:
+    rm_cmd = 'ssh %s %s' % (cvd_address, rm_cmd)
+  execute_command(rm_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
-  # Restore images from backup.
-  backup_image_dir = os.path.join(cvd_dir, 'backup')
-  for image_filename in os.listdir(backup_image_dir):
-    image_src = os.path.join(backup_image_dir, image_filename)
-    image_dest = os.path.join(image_dir, image_filename)
-    shell.copy_file(image_src, image_dest)
+  # Copy and Combine cvd host package and OTA images.
+  image_directory = environment.get_value('IMAGES_DIR')
+  for image_filename in os.listdir(image_directory):
+    image_src = os.path.join(image_directory, image_filename)
+    if cvd_address:
+      if image_src.endswith('.tar.gz'):
+        tar_cmd = 'ssh {cvd_address} tar xzvf - < {image_src}'.format(
+          cvd_address=cvd_address, image_src=image_src)
+        execute_command(tar_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+        continue
+      scp_cmd = 'scp {image_src} {cvd_address}:{cvd_dir}'.format(
+        image_src=image_src, cvd_address=cvd_address, cvd_dir=cvd_dir)
+      execute_command(scp_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+    else:
+      if image_src.endswith('.tar.gz'):
+        tar_cmd = 'tar xvf {image_src} -C {cvd_dir}'.format(
+          image_src=image_src, cvd_dir=cvd_dir)
+        execute_command(tar_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+        continue
+      image_dest = os.path.join(cvd_dir, image_filename)
+      shell.copy_file(image_src, image_dest)
 
   start_gce_device()
 
@@ -408,7 +426,7 @@ def remove_file(file_path):
 def reset_device_connection():
   """Reset the connection to the physical device through USB. Returns whether
   or not the reset succeeded."""
-  if is_gce():
+  if environment.is_android_gce():
     stop_gce_device()
     start_gce_device()
   else:
@@ -423,6 +441,25 @@ def reset_device_connection():
     return False
 
   return True
+
+def get_gce_device_ip():
+  try:
+    return socket.gethostbyname('cuttlefish')
+  except socket.gaierror as _:
+    logs.log_warn('Failed to get cuttlefish ip address, use localhost instead')
+    return '127.0.0.1'
+
+
+def set_gce_device_serial():
+  device_serial = '%s:6520' % get_gce_device_ip()
+  environment.set_value('ANDROID_SERIAL', device_serial)
+
+
+def get_gce_address():
+  ip = get_gce_device_ip()
+  if ip == '127.0.0.1':
+    return ''
+  return 'vsoc-01@%s' % ip
 
 
 def get_device_path():
@@ -473,7 +510,7 @@ def get_device_path():
         open('/sys/bus/usb/devices/%s/devnum' % device_id).read().strip())
     return '/dev/bus/usb/%03d/%03d' % (bus_number, device_number)
 
-  if is_gce():
+  if environment.is_android_gce():
     return None
 
   device_serial = environment.get_value('ANDROID_SERIAL')
@@ -485,7 +522,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if is_gce():
+  if environment.is_android_gce():
     # Nothing to do here.
     return True
 
@@ -631,7 +668,7 @@ def run_shell_command(cmd,
 
 def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   """Run a command in fastboot shell."""
-  if is_gce():
+  if environment.is_android_gce():
     # We can't run fastboot commands on Android GCE instances.
     return None
 

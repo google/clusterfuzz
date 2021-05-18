@@ -81,7 +81,7 @@ def configure(force_enable=False):
     app.install(wifi_util_apk_path)
 
   # Get ssid and password from admin configuration.
-  if adb.is_gce():
+  if environment.is_android_gce():
     wifi_ssid = 'VirtWifi'
     wifi_password = ''
   else:
