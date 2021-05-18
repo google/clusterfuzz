@@ -60,7 +60,7 @@ def undercoat_api_command(*args):
   undercoat = new_process.ProcessRunner(undercoat_path, args)
   # The undercoat log is sent to stderr, which we capture to a tempfile
   with tempfile.TemporaryFile() as undercoat_log:
-    result = undercoat.run_and_wait(stderr=undercoat_log)
+    result = undercoat.run_and_wait(stderr=undercoat_log, extra_env={"TMPDIR": "/tmp"})
     result.output = result.output.decode('utf-8')
 
     if result.return_code != 0:
