@@ -697,6 +697,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash is reproducible.'),
     ])
 
+  @unittest.skip('flaky test')
   def test_test_for_reproducibility_greybox_succeed(self):
     """Test test_for_reproducibility with success on all runs (greybox)."""
     mock_engine = mock.Mock()
