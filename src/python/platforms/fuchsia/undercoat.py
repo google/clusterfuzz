@@ -54,6 +54,7 @@ class UndercoatError(Exception):
 
 def undercoat_api_command(*args):
   """Make an API call to the undercoat binary."""
+  logs.log('Running undercoat command %s' % (args,))
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
   undercoat_path = os.path.join(bundle_dir, 'undercoat', 'undercoat')
   undercoat = new_process.ProcessRunner(undercoat_path, args)
@@ -74,15 +75,16 @@ def undercoat_api_command(*args):
   return result
 
 
-def undercoat_instance_command(command, handle, *args):
+def undercoat_instance_command(command, handle, *args, abort_on_error=True):
   """Helper for the subset of undercoat commands that operate on an instance."""
   try:
     return undercoat_api_command(command, '-handle', handle, *args)
   except UndercoatError:
-    # Try to print extra logs and shut down
-    # TODO(eep): Should we be attempting to automatically restart?
-    dump_instance_logs(handle)
-    stop_instance(handle)
+    if abort_on_error:
+      # Try to print extra logs and shut down
+      # TODO(eep): Should we be attempting to automatically restart?
+      dump_instance_logs(handle)
+      stop_instance(handle)
     raise
 
 
@@ -114,8 +116,7 @@ def validate_api_version():
 
 def dump_instance_logs(handle):
   """Dump logs from an undercoat instance."""
-  # Avoids using undercoat_instance_command in order to avoid recursion on error
-  qemu_log = undercoat_api_command('get_logs', '-handle', handle).output
+  qemu_log = undercoat_instance_command('get_logs', handle, abort_on_error=False).output
   logs.log_warn(qemu_log)
 
 
@@ -136,7 +137,7 @@ def stop_all():
   cleanly shut down."""
   for handle in get_running_handles():
     try:
-      undercoat_instance_command('stop_instance', handle)
+      undercoat_instance_command('stop_instance', handle, abort_on_error=False)
     except UndercoatError:
       pass
 
@@ -147,8 +148,7 @@ def stop_all():
 
 def stop_instance(handle):
   """Stop a running undercoat instance."""
-  # Avoids using undercoat_instance_command in order to avoid recursion on error
-  result = undercoat_api_command('stop_instance', '-handle', handle)
+  result = undercoat_instance_command('stop_instance', handle, abort_on_error=False)
 
   # Mark the corresponding handle as having been cleanly shut down
   remove_running_handle(handle)
