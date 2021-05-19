@@ -54,11 +54,10 @@ def get_temp_dir():
 
   This tempdir needs to be of a scope that persists across invocations of the
   bot, to ensure proper cleanup of stale handles/data."""
-  tmpdir = os.path.join(environment.get_value('ROOT_DIR'), 'bot', 'undercoat')
-  if not os.path.exists(tmpdir):
-    os.mkdir(tmpdir)
+  temp_dir = os.path.join(environment.get_value('ROOT_DIR'), 'bot', 'undercoat')
+  os.makedirs(temp_dir, exist_ok=True)
 
-  return tmpdir
+  return temp_dir
 
 
 class UndercoatError(Exception):
@@ -67,7 +66,7 @@ class UndercoatError(Exception):
 
 def undercoat_api_command(*args):
   """Make an API call to the undercoat binary."""
-  logs.log('Running undercoat command %s' % (args,))
+  logs.log(f'Running undercoat command {args}')
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
   undercoat_path = os.path.join(bundle_dir, 'undercoat', 'undercoat')
   undercoat = new_process.ProcessRunner(undercoat_path, args)
