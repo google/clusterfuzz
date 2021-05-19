@@ -15,6 +15,7 @@
 via undercoat."""
 
 import os
+import shutil
 import tempfile
 
 from base import persistent_cache
@@ -48,6 +49,18 @@ def get_running_handles():
   return persistent_cache.get_value(HANDLE_CACHE_KEY, default_value=[])
 
 
+def get_temp_dir():
+  """Define a tempdir for undercoat to store its data in.
+
+  This tempdir needs to be of a scope that persists across invocations of the
+  bot, to ensure proper cleanup of stale handles/data."""
+  tmpdir = os.path.join(environment.get_value('ROOT_DIR'), 'bot', 'undercoat')
+  if not os.path.exists(tmpdir):
+    os.mkdir(tmpdir)
+
+  return tmpdir
+
+
 class UndercoatError(Exception):
   """Error for errors while running undercoat."""
 
@@ -61,7 +74,7 @@ def undercoat_api_command(*args):
   # The undercoat log is sent to stderr, which we capture to a tempfile
   with tempfile.TemporaryFile() as undercoat_log:
     result = undercoat.run_and_wait(
-        stderr=undercoat_log, extra_env={"TMPDIR": "/tmp"})
+        stderr=undercoat_log, extra_env={'TMPDIR': get_temp_dir()})
     result.output = result.output.decode('utf-8')
 
     if result.return_code != 0:
@@ -146,6 +159,10 @@ def stop_all():
     # Even if we failed to stop_instance above, there's no point in trying
     # again later
     remove_running_handle(handle)
+
+  # At this point, all handles/data should have been cleaned up, but if any is
+  # remaining then we clear it out here
+  shutil.rmtree(get_temp_dir())
 
 
 def stop_instance(handle):
