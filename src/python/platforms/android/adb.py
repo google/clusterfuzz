@@ -103,8 +103,9 @@ def directory_exists(directory_path):
 def execute_command(cmd, timeout=None, log_error=True):
   """Spawns a subprocess to run the given shell command."""
   so = []
+  # pylint: disable=consider-using-with
   output_dest = tempfile.TemporaryFile()
-  # pylint: disable=subprocess-popen-preexec-fn
+  # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
   pipe = subprocess.Popen(
       cmd,
       executable='/bin/bash',
