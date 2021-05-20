@@ -71,7 +71,7 @@ class EmulatorProcess(object):
     environment.set_value('ANDROID_SERIAL', device_serial)
 
     logs.log('Waiting on device')
-    adb.wait_until_fully_booted()
+    adb.wait_for_device()
     logs.log('Device is online')
 
   def kill(self):

@@ -294,7 +294,7 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  if is_gce():
+  if is_gce() or environment.is_android_emulator():
     # There is no recovery step at this point for a gce bot, so just exit
     # and wait for reimage on next iteration.
     bad_state_reached()
@@ -485,7 +485,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if is_gce():
+  if is_gce() or environment.is_android_emulator():
     # Nothing to do here.
     return True
 
@@ -732,11 +732,6 @@ def wait_until_fully_booted():
       is_boot_completed = boot_completed()
 
     if is_drive_ready and is_package_manager_ready and is_boot_completed:
-      return True
-
-    # is_boot_completed and is_package_manager_ready may never happen on
-    # emulated devices.
-    if is_drive_ready and environment.is_android_emulator():
       return True
 
     time.sleep(BOOT_WAIT_INTERVAL)
