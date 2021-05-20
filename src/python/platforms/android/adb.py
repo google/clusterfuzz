@@ -470,7 +470,7 @@ def get_gce_address():
   ip = get_gce_device_ip()
   if ip == '127.0.0.1':
     return ''
-  return '%s@%s' % (CUTTLEFISH_USER, ip)
+  return '{CUTTLEFISH_USER}@{ip}'
 
 
 def get_device_path():
