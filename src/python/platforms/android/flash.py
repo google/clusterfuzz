@@ -141,6 +141,7 @@ def flash_to_latest_build_if_needed():
     download_latest_build(branch, target, FLASH_CUTTLEFISH_REGEXES)
     adb.recreate_gce_device()
     adb.set_gce_device_serial()
+    adb.connect_to_gce_device()
   else:
     download_latest_build(branch, target, FLASH_IMAGE_REGEXES)
     # We do one device flash at a time on one host, otherwise we run into

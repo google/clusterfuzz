@@ -65,6 +65,13 @@ def bad_state_reached():
       'Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
 
 
+def connect_to_gce_device():
+  """Connect to Cuttlefish cvd."""
+  device_serial = environment.get_value('ANDROID_SERIAL')
+  connect_cmd = '%s connect %s' % (get_adb_path(), device_serial)
+  return execute_command(connect_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+
+
 def copy_local_directory_to_remote(local_directory, remote_directory):
   """Copies local directory contents to a device directory."""
   create_directory_if_needed(remote_directory)
