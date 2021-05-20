@@ -137,7 +137,7 @@ def flash_to_latest_build_if_needed():
         'BUILD_BRANCH and BUILD_TARGET are not set, skipping reimage.')
     return
 
-  if environment.is_android_gce():
+  if environment.is_android_cuttlefish():
     download_latest_build(branch, target, FLASH_CUTTLEFISH_REGEXES)
     adb.recreate_gce_device()
     adb.set_gce_device_serial()
