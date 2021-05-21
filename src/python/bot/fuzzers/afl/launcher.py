@@ -1532,9 +1532,7 @@ def main(argv):
     command = engine_common.strip_minijail_command(command,
                                                    runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
-  print(
-      engine_common.get_log_header(command, BOT_NAME,
-                                   fuzz_result.time_executed))
+  print(engine_common.get_log_header(command, fuzz_result.time_executed))
 
   print(fuzz_result.output)
 
