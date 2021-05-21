@@ -820,6 +820,41 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_check_trap(self):
+    """Test v8 CHECK failures that trigger SIGTRAP."""
+    data = self._read_test_data('v8_check_trap.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'interpreter_result.result() == result_compiled in foo.cc\n'
+        'v8::internal::wasm::fuzzer::InterpretAndExecuteModule\n'
+        'v8::internal::wasm::fuzzer::WasmExecutionFuzzer::FuzzWasmModule\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_check_no_sourcefile(self):
+    """Test v8 CHECK failures without source file information (e.g. from
+    official builds)."""
+    data = self._read_test_data('v8_check_no_sourcefile.txt')
+    expected_type = 'CHECK failure'
+    expected_address = ''
+    expected_state = (
+        'interpreter_result.result() == result_compiled\n'
+        'v8::internal::wasm::fuzzer::InterpretAndExecuteModule\n'
+        'v8::internal::wasm::fuzzer::WasmExecutionFuzzer::FuzzWasmModule\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_v8_dcheck(self):
     """Test the v8 DCHECK failure."""
     data = self._read_test_data('v8_dcheck_symbolized.txt')
@@ -842,7 +877,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('v8_fatal_error_no_check.txt')
     expected_type = 'Fatal error'
     expected_address = ''
-    expected_state = 'v8::HandleScope::CreateHandle\n'
+    expected_state = 'Cannot create a handle without a HandleScope\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -896,8 +931,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_v8_oom(self):
-    """Test a v8 out of memory condition."""
+    """Test a v8 JavaScript out of memory condition."""
     data = self._read_test_data('v8_oom.txt')
+    expected_type = ''
+    expected_address = ''
+    expected_state = ''
+    expected_stacktrace = ''
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom(self):
+    """Test a v8 process out of memory condition."""
+    data = self._read_test_data('v8_process_oom.txt')
     expected_type = ''
     expected_address = ''
     expected_state = ''
@@ -951,7 +999,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_v8_unknown_fatal_error(self):
     """Test a generic fatal error."""
     data = self._read_test_data('v8_unknown_fatal_error.txt')
-    expected_type = 'CHECK failure'
+    expected_type = 'Fatal error'
     expected_address = ''
     expected_state = ('something that isn\'t supported yet in '
                       'simulator-arm.cc\n')

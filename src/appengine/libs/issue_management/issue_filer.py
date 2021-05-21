@@ -128,6 +128,7 @@ def severity_substitution(label, testcase, security_severity):
 def impact_to_string(impact):
   """Convert an impact value to a human-readable string."""
   impact_map = {
+      data_types.SecurityImpact.EXTENDED_STABLE: 'ExtendedStable',
       data_types.SecurityImpact.STABLE: 'Stable',
       data_types.SecurityImpact.BETA: 'Beta',
       data_types.SecurityImpact.HEAD: 'Head',
@@ -141,6 +142,8 @@ def impact_to_string(impact):
 def _get_impact_from_labels(labels):
   """Get the impact from the label list."""
   labels = [label.lower() for label in labels]
+  if 'security_impact-extendedstable' in labels:
+    return data_types.SecurityImpact.EXTENDED_STABLE
   if 'security_impact-stable' in labels:
     return data_types.SecurityImpact.STABLE
   if 'security_impact-beta' in labels:
@@ -162,18 +165,21 @@ def update_issue_impact_labels(testcase, issue):
   if testcase.regression.startswith('0:'):
     # If the regression range starts from the start of time,
     # then we assume that the bug impacts stable.
+    # TODO(yuanjunh): change to extended stable label when it's fully supported.
     new_impact = data_types.SecurityImpact.STABLE
   elif testcase.is_impact_set_flag:
     # Add impact label based on testcase's impact value.
-    if testcase.impact_stable_version:
+    if testcase.impact_extended_stable_version:
+      new_impact = data_types.SecurityImpact.EXTENDED_STABLE
+    elif testcase.impact_stable_version:
       new_impact = data_types.SecurityImpact.STABLE
     elif testcase.impact_beta_version:
       new_impact = data_types.SecurityImpact.BETA
     elif testcase.is_crash():
       new_impact = data_types.SecurityImpact.HEAD
     else:
-      # Testcase is unreproducible and does not impact stable and beta branches.
-      # In this case, there is no impact information.
+      # Testcase is unreproducible and does not impact extended stable, stable
+      # and beta branches. In this case, there is no impact information.
       return
   else:
     # No impact information.
@@ -196,8 +202,10 @@ def update_issue_foundin_labels(testcase, issue):
   if not testcase.is_impact_set_flag:
     return
   versions_foundin = [
-      x for x in [testcase.impact_beta_version, testcase.impact_stable_version]
-      if x
+      x for x in [
+          testcase.impact_beta_version, testcase.impact_stable_version,
+          testcase.impact_extended_stable_version
+      ] if x
   ]
   milestones_foundin = {x.split('.')[0] for x in versions_foundin}
   for found_milestone in milestones_foundin:
@@ -406,6 +414,9 @@ def file_issue(testcase,
   metadata_components = _get_from_metadata(testcase, 'issue_components')
   for component in metadata_components:
     issue.components.add(component)
+
+  if testcase.one_time_crasher_flag and policy.unreproducible_component:
+    issue.components.add(policy.unreproducible_component)
 
   issue.reporter = user_email
   issue.save()

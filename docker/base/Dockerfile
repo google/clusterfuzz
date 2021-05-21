@@ -118,6 +118,9 @@ COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setu
 RUN cd /data && \
     # Make pip3.7 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
-    pipenv install --deploy --system
+    pipenv install --deploy --system && \
+    # Install tensorflow here as it's not included in the Pipfile due to
+    # strict python version requirements.
+    pip install tensorflow==2.3.0
 CMD ["bash", "-ex", "/data/start.sh"]
 

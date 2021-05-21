@@ -405,13 +405,19 @@
                 </template>
                 <template is="dom-if" if="[[info.show_impact]]">
                   <td class="label">
-                    <span class="help" title="Whether or not this crash impacts current beta and stable builds.">Impacts:</span>
+                    <span class="help" title="Whether or not this crash impacts current beta, stable or extended stable builds.">Impacts:</span>
                   </td>
                   <td class="value impacts">
                     <if-else condition="[[info.testcase.is_impact_set_flag]]">
                       <span slot="t">
                         <if-else condition="[[info.impacts_production]]">
                           <span slot="t">
+                            <template is="dom-if" if="[[info.testcase.impact_extended_stable_version]]">
+                              <impact-button
+                                  release="Extended_Stable"
+                                  version="[[info.testcase.impact_extended_stable_version]]"
+                                  likely="[[info.testcase.impact_extended_stable_version_likely]]"></impact-button>
+                            </template>
                             <template is="dom-if" if="[[info.testcase.impact_stable_version]]">
                               <impact-button
                                   release="Stable"

@@ -41,7 +41,9 @@ class ExecuteTaskTest(unittest.TestCase):
     ])
     impacts = impact_task.Impacts(
         stable=impact_task.Impact('stable', False, 'trace-stable'),
-        beta=impact_task.Impact('beta', True, 'trace-beta'))
+        beta=impact_task.Impact('beta', True, 'trace-beta'),
+        extended_stable=impact_task.Impact('extended stable', False,
+                                           'trace-extended-stable'))
     self.mock.is_chromium.return_value = True
     self.mock.is_custom_binary.return_value = False
     self.mock.has_production_builds.return_value = True
@@ -72,6 +74,9 @@ class ExecuteTaskTest(unittest.TestCase):
     """Expect testcase's impacts to be changed."""
     self.reload()
     self.assertTrue(self.testcase.is_impact_set_flag)
+    self.assertEqual('extended stable',
+                     self.testcase.impact_extended_stable_version)
+    self.assertFalse(self.testcase.impact_stable_version_likely)
     self.assertEqual('stable', self.testcase.impact_stable_version)
     self.assertFalse(self.testcase.impact_stable_version_likely)
     self.assertEqual('beta', self.testcase.impact_beta_version)
@@ -180,7 +185,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
 
   def setUp(self):
     """Setup for get impacts from url test."""
-    super(GetImpactsFromUrlTest, self).setUp()
+    super().setUp()
     helpers.patch(self, [
         'bot.tasks.impact_task.get_start_and_end_revision',
         'bot.tasks.impact_task.get_impact',
@@ -203,6 +208,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         }
     }
     self.mock.get_impact.side_effect = [
+        impact_task.Impact(),
         impact_task.Impact('s', False),
         impact_task.Impact('b', True)
     ]
@@ -290,10 +296,59 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     self.mock.get_build_to_revision_mappings.assert_has_calls(
         [mock.call('windows')])
 
-  def test_get_impacts(self):
-    """Test getting impacts."""
+  def test_get_impacts_es_not_exists(self):
+    """Test getting impacts when extended stable doesn't exist."""
     impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
 
+    self.assertEqual('', impacts.extended_stable.version)
+    self.assertFalse(impacts.extended_stable.likely)
+    self.assertEqual('s', impacts.stable.version)
+    self.assertFalse(impacts.stable.likely)
+    self.assertEqual('b', impacts.beta.version)
+    self.assertTrue(impacts.beta.likely)
+
+    self.mock.get_start_and_end_revision.assert_has_calls(
+        [mock.call('123:456', 'job')])
+    self.mock.get_build_to_revision_mappings.assert_has_calls(
+        [mock.call('windows')])
+    self.mock.get_impact.assert_has_calls([
+        mock.call(None, 1, 100),
+        mock.call({
+            'version': '74.0.1345.34',
+            'revision': '398287'
+        }, 1, 100),
+        mock.call({
+            'version': '75.0.1353.43',
+            'revision': '399171'
+        }, 1, 100)
+    ])
+
+  def test_get_impacts_es_exists(self):
+    """Test getting impacts when extended stable exists."""
+    self.mock.get_build_to_revision_mappings.return_value = {
+        'extended_stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'beta': {
+            'revision': '399171',
+            'version': '75.0.1353.43'
+        }
+    }
+    self.mock.get_impact.side_effect = [
+        impact_task.Impact('es', False),
+        impact_task.Impact('s', False),
+        impact_task.Impact('b', True)
+    ]
+
+    impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
+
+    self.assertEqual('es', impacts.extended_stable.version)
+    self.assertFalse(impacts.extended_stable.likely)
     self.assertEqual('s', impacts.stable.version)
     self.assertFalse(impacts.stable.likely)
     self.assertEqual('b', impacts.beta.version)
@@ -309,16 +364,74 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
             'revision': '398287'
         }, 1, 100),
         mock.call({
+            'version': '74.0.1345.34',
+            'revision': '398287'
+        }, 1, 100),
+        mock.call({
             'version': '75.0.1353.43',
             'revision': '399171'
         }, 1, 100)
     ])
 
-  def test_get_impacts_known_component(self):
-    """Test getting impacts for a known component."""
+  def test_get_impacts_known_component_es_not_exists(self):
+    """Test getting impacts for a known component
+    when extended stable doesn't exists."""
     self.mock.get_component_name.return_value = 'v8'
+    self.mock.get_impact.side_effect = [
+        impact_task.Impact('s', False),
+        impact_task.Impact('b', True)
+    ]
     impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
 
+    self.assertEqual('', impacts.extended_stable.version)
+    self.assertFalse(impacts.extended_stable.likely)
+    self.assertEqual('s', impacts.stable.version)
+    self.assertFalse(impacts.stable.likely)
+    self.assertEqual('b', impacts.beta.version)
+    self.assertTrue(impacts.beta.likely)
+
+    self.mock.get_start_and_end_revision.assert_has_calls(
+        [mock.call('123:456', 'job')])
+    self.mock.get_build_to_revision_mappings.assert_has_calls(
+        [mock.call('windows')])
+    self.mock.get_impact.assert_has_calls([
+        mock.call({
+            'version': '74.0.1345.34',
+            'revision': '666666'
+        }, 1, 100),
+        mock.call({
+            'version': '75.0.1353.43',
+            'revision': '777777'
+        }, 1, 100)
+    ])
+
+  def test_get_impacts_known_component_es_exists(self):
+    """Test getting impacts for a known component
+    when extended stable exists."""
+    self.mock.get_component_name.return_value = 'v8'
+    self.mock.get_build_to_revision_mappings.return_value = {
+        'extended_stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'stable': {
+            'revision': '398287',
+            'version': '74.0.1345.34'
+        },
+        'beta': {
+            'revision': '399171',
+            'version': '75.0.1353.43'
+        }
+    }
+    self.mock.get_impact.side_effect = [
+        impact_task.Impact('es', False),
+        impact_task.Impact('s', False),
+        impact_task.Impact('b', True)
+    ]
+    impacts = impact_task.get_impacts_from_url('123:456', 'job', 'windows')
+
+    self.assertEqual('es', impacts.extended_stable.version)
+    self.assertFalse(impacts.extended_stable.likely)
     self.assertEqual('s', impacts.stable.version)
     self.assertFalse(impacts.stable.likely)
     self.assertEqual('b', impacts.beta.version)
@@ -388,10 +501,12 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
     ])
     self.impacts = impact_task.Impacts(
         stable=impact_task.Impact('s', False),
-        beta=impact_task.Impact('b', True))
+        beta=impact_task.Impact('b', True),
+        extended_stable=impact_task.Impact('es', False))
 
     self.testcase = data_types.Testcase()
     self.testcase.job_type = 'job'
+    self.testcase.impact_extended_stable_version = 'es-ver'
     self.testcase.impact_stable_version = 's-ver'
     self.testcase.impact_beta_version = 'b-ver'
     self.testcase.regression = '123:456'
@@ -429,10 +544,33 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
     ])
     self.mock.get_impacts_from_url.assert_has_calls([])
 
+  def test_any_exception_on_extended_stable(self):
+    """Test exceptions on extended stable.
+    Current expected behavior is the failure is ignored"""
+    self.mock.get_impact_on_build.side_effect = [
+        self.impacts.stable,
+        self.impacts.beta,
+        Exception(),
+    ]
+
+    self.assertEqual(
+        impact_task.Impacts(self.impacts.stable, self.impacts.beta),
+        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
+    self.mock.get_impact_on_build.assert_has_calls([
+        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
+                  'path'),
+        mock.call('beta', self.testcase.impact_beta_version, self.testcase,
+                  'path'),
+        mock.call('extended_stable',
+                  self.testcase.impact_extended_stable_version, self.testcase,
+                  'path'),
+    ])
+    self.mock.get_impacts_from_url.assert_has_calls([])
+
   def test_get_impacts(self):
     """Test getting impacts."""
     self.mock.get_impact_on_build.side_effect = [
-        self.impacts.stable, self.impacts.beta
+        self.impacts.stable, self.impacts.beta, self.impacts.extended_stable
     ]
 
     self.assertEqual(
@@ -442,6 +580,9 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
         mock.call('stable', self.testcase.impact_stable_version, self.testcase,
                   'path'),
         mock.call('beta', self.testcase.impact_beta_version, self.testcase,
+                  'path'),
+        mock.call('extended_stable',
+                  self.testcase.impact_extended_stable_version, self.testcase,
                   'path'),
     ])
     self.mock.get_impacts_from_url.assert_has_calls([])

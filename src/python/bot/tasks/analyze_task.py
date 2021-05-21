@@ -318,6 +318,12 @@ def execute_task(testcase_id, job_type):
     testcase.status = 'Processed'
     metadata.status = 'Confirmed'
 
+    # Reset the timestamp as well, to respect
+    # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
+    # triage task prematurely without the grouper having a chance to run on this
+    # testcase.
+    testcase.timestamp = utils.utcnow()
+
     # Add new leaks to global blacklist to avoid detecting duplicates.
     # Only add if testcase has a direct leak crash and if it's reproducible.
     if is_lsan_enabled:

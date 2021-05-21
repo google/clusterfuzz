@@ -14,11 +14,11 @@
 """Tests for upload_testcase."""
 
 import datetime
+import io
 import os
 import unittest
 
 import flask
-import webtest
 
 from datastore import data_handler
 from datastore import data_types
@@ -110,10 +110,9 @@ class UploadOAuthTest(unittest.TestCase):
         external_reproduction_topic='topic',
         external_updates_subscription='sub').put()
 
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
+    self.app = flask.Flask('testflask')
+    self.app.add_url_rule(
         '/', view_func=upload_testcase.UploadHandlerOAuth.as_view(''))
-    self.app = webtest.TestApp(flaskapp)
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
@@ -128,15 +127,16 @@ class UploadOAuthTest(unittest.TestCase):
   def test_external_upload_oom(self):
     """Test external upload (oom)."""
     stacktrace = self._read_test_data('oom.txt')
-    response = self.app.post(
-        '/',
-        params={
-            'job': 'libfuzzer_proj_external',
-            'target': 'target',
-            'stacktrace': stacktrace,
-            'revision': 1337,
-        },
-        upload_files=[('file', 'file', b'contents')])
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_external',
+              'target': 'target',
+              'stacktrace': stacktrace,
+              'revision': 1337,
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
 
     self.assertDictEqual({
         'id': '2',
@@ -230,15 +230,16 @@ class UploadOAuthTest(unittest.TestCase):
   def test_external_upload_uaf(self):
     """Test external upload (uaf)."""
     stacktrace = self._read_test_data('uaf.txt')
-    response = self.app.post(
-        '/',
-        params={
-            'job': 'libfuzzer_proj_external',
-            'target': 'target',
-            'stacktrace': stacktrace,
-            'revision': 1337,
-        },
-        upload_files=[('file', 'file', b'contents')])
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_external',
+              'target': 'target',
+              'stacktrace': stacktrace,
+              'revision': 1337,
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
 
     self.assertDictEqual({
         'id': '2',
@@ -394,15 +395,16 @@ class UploadOAuthTest(unittest.TestCase):
     existing.put()
 
     stacktrace = self._read_test_data('oom.txt')
-    response = self.app.post(
-        '/',
-        params={
-            'job': 'libfuzzer_proj_external',
-            'target': 'target',
-            'stacktrace': stacktrace,
-            'revision': 1337,
-        },
-        upload_files=[('file', 'file', b'contents')])
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_external',
+              'target': 'target',
+              'stacktrace': stacktrace,
+              'revision': 1337,
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
 
     self.assertDictEqual({
         'id': '3',

@@ -34,6 +34,7 @@ from metrics import logs
 from platforms import android
 from system import archive
 from system import environment
+from system import new_process
 from system import shell
 
 # The default environment variables for specifying build bucket paths.
@@ -48,7 +49,7 @@ REVISION_FILE_NAME = 'REVISION'
 
 # Various build type mapping strings.
 BUILD_TYPE_SUBSTRINGS = [
-    '-beta', '-stable', '-debug', '-release', '-symbolized'
+    '-beta', '-stable', '-debug', '-release', '-symbolized', '-extended_stable'
 ]
 
 # Build eviction constants.
@@ -603,12 +604,11 @@ class Build(BaseBuild):
     """Check if build already exists."""
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     if os.path.exists(revision_file):
-      file_handle = open(revision_file, 'r')
-      try:
-        current_revision = int(file_handle.read())
-      except ValueError:
-        current_revision = -1
-      file_handle.close()
+      with open(revision_file, 'r') as file_handle:
+        try:
+          current_revision = int(file_handle.read())
+        except ValueError:
+          current_revision = -1
 
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
@@ -825,6 +825,10 @@ class FuchsiaBuild(RegularBuild):
     rollout_level = environment.get_value('FUCHSIA_UNDERCOAT_ROLLOUT_LEVEL', 0)
     self.use_undercoat = random.random() < rollout_level
 
+    # Initially, only use undercoat for fuzz tasks
+    if environment.get_value('TASK_NAME') != 'fuzz':
+      self.use_undercoat = False
+
     # Used by platforms.fuchsia.util
     environment.set_value(
         'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
@@ -865,10 +869,25 @@ class AndroidEmulatorBuild(RegularBuild):
   def setup(self):
     """Android Emulator build setup."""
     self._pre_setup()
-    emu_proc = android.emulator.EmulatorProcess()
-    emu_proc.create(self.base_build_dir)
-    emu_proc.run()
-    android.adb.run_as_root()
+
+    # Download emulator image.
+    if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
+      logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set.')
+      return False
+    archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
+    archive_dst_path = os.path.join(self.base_build_dir, 'emulator_bundle.zip')
+    storage.copy_file_from(archive_src_path, archive_dst_path)
+
+    # Extract emulator image.
+    self.emulator_path = os.path.join(self.base_build_dir, 'emulator')
+    shell.remove_directory(self.emulator_path)
+    archive.unpack(archive_dst_path, self.emulator_path)
+    shell.remove_file(archive_dst_path)
+
+    # Stop any stale emulator instances.
+    stop_script_path = os.path.join(self.emulator_path, 'stop')
+    stop_proc = new_process.ProcessRunner(stop_script_path)
+    stop_proc.run_and_wait()
 
     return super().setup()
 
@@ -1426,7 +1445,13 @@ def setup_custom_binary(target_weights=None):
 def setup_production_build(build_type):
   """Sets up build with a particular revision."""
   # Bail out if there are not stable and beta build urls.
-  if build_type == 'stable':
+  if build_type == 'extended_stable':
+    build_bucket_path = environment.get_value(
+        'EXTENDED_STABLE_BUILD_BUCKET_PATH')
+    # TODO(yuanjunh): remove it after ES exists.
+    if not build_bucket_path:
+      return None
+  elif build_type == 'stable':
     build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
   elif build_type == 'beta':
     build_bucket_path = environment.get_value('BETA_BUILD_BUCKET_PATH')
@@ -1516,6 +1541,7 @@ def is_custom_binary():
 
 def has_production_builds():
   """Return a bool on if job type has build urls for stable and beta builds."""
+  # TODO(yuanjunh): change it if after ES exists.
   return (environment.get_value('STABLE_BUILD_BUCKET_PATH') and
           environment.get_value('BETA_BUILD_BUCKET_PATH'))
 

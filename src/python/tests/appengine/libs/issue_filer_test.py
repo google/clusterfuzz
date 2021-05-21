@@ -73,7 +73,8 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     },
     'existing': {
         'labels': ['Stability-%SANITIZER%']
-    }
+    },
+    'unreproducible_component': 'Unreproducible>Component'
 })
 
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
@@ -489,6 +490,8 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase1.put()
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Unreproducible', issue_tracker._itm.last_issue.labels)
+    self.assertCountEqual(['Unreproducible>Component'],
+                          issue_tracker._itm.last_issue.components)
 
     self.testcase1.one_time_crasher_flag = False
     self.testcase1.put()
@@ -650,6 +653,18 @@ class UpdateImpactTest(unittest.TestCase):
                          mock_issue.labels.added)
     six.assertCountEqual(self, [], mock_issue.labels.removed)
 
+  def test_update_impact_extended_stable(self):
+    """Tests updating impact to ExtendedStable."""
+    self.testcase.is_impact_set_flag = True
+    self.testcase.impact_extended_stable_version = '99.1024.11.42'
+
+    mock_issue = self._make_mock_issue()
+
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    six.assertCountEqual(self, ['Security_Impact-ExtendedStable', 'FoundIn-99'],
+                         mock_issue.labels.added)
+    six.assertCountEqual(self, [], mock_issue.labels.removed)
+
   def test_update_impact_stable(self):
     """Tests updating impact to Stable."""
     self.testcase.is_impact_set_flag = True
@@ -734,6 +749,7 @@ class UpdateImpactTest(unittest.TestCase):
   def test_component_add_label(self):
     """Test that we set labels for component builds."""
     self.testcase.job_type = 'job'
+    self.testcase.impact_extended_stable_version = '1.2.3.4'
     self.testcase.impact_stable_version = '2.3.4.5'
     self.testcase.impact_beta_version = '3.4.5.6'
     self.testcase.put()
@@ -747,9 +763,9 @@ class UpdateImpactTest(unittest.TestCase):
     self.testcase.is_impact_set_flag = True
     mock_issue = self._make_mock_issue()
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self,
-                         ['Security_Impact-Stable', 'FoundIn-2', 'FoundIn-3'],
-                         mock_issue.labels.added)
+    six.assertCountEqual(self, [
+        'Security_Impact-ExtendedStable', 'FoundIn-1', 'FoundIn-2', 'FoundIn-3'
+    ], mock_issue.labels.added)
     six.assertCountEqual(self, [], mock_issue.labels.removed)
 
 

@@ -28,7 +28,9 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$PYTHON" ]; then
-  if which python3.8 > /dev/null; then
+  if which python3.9 > /dev/null; then
+    PYTHON='python3.9'
+  elif which python3.8 > /dev/null; then
     PYTHON='python3.8'
   elif which python3.7 > /dev/null; then
     PYTHON='python3.7'
@@ -43,8 +45,8 @@ if ! which "$PYTHON" > /dev/null; then
 fi
 
 version=$($PYTHON --version 2>&1 | cut -f2 -d' ')
-if [[ "$version" < "3.7" || ! "$version" < "3.9" ]]; then
-  echo "You need Python 3.8 or 3.7. Try \`export PYTHON=python3.8\` (or 3.7)."
+if [[ "$version" < "3.7" || ! "$version" < "3.a" ]]; then
+  echo "You need Python 3.9, 3.8 or 3.7. Try \`export PYTHON=python3.7\` (or 3.8, 3.9)."
   exit 1
 fi
 

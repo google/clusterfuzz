@@ -91,8 +91,9 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
+FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
-    r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)?(.*)')
+    r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
 FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
 FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
@@ -135,26 +136,28 @@ LSAN_DIRECT_LEAK_REGEX = re.compile(r'Direct leak of ')
 LSAN_INDIRECT_LEAK_REGEX = re.compile(r'Indirect leak of ')
 MAC_GDB_CRASH_ADDRESS_REGEX = re.compile(
     r'Reason:.*at address[^0-9]*([0-9a-zA-Z]+)')
-OUT_OF_MEMORY_REGEX = re.compile(
-    r'.*('
-    r'# Allocation failed.*out of memory|'
-    r'::OnNoMemory|'
-    r'ERROR.*Sanitizer failed to allocate|'
-    r'FatalProcessOutOfMemory|'
-    r'FX_OutOfMemoryTerminate|'
-    r'Out of memory\. Dying.|'
-    r'Out of memory\. size=|'
-    r'Sanitizer: allocation-size-too-big|'
-    r'Sanitizer: calloc-overflow|'
-    r'Sanitizer: calloc parameters overflow|'
-    r'Sanitizer: requested allocation size.*exceeds maximum supported size|'
-    r'TerminateBecauseOutOfMemory|'
-    r'allocator is out of memory trying to allocate|'
-    r'blinkGCOutOfMemory|'
-    r'couldnt allocate.*Out of memory|'
-    r'libFuzzer: out-of-memory \(|'
-    r'rss limit exhausted|'
-    r'in rust_oom).*')
+OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
+    r'# Allocation failed.*out of memory',
+    r'::OnNoMemory',
+    r'ERROR.*Sanitizer failed to allocate',
+    r'FatalProcessOutOfMemory',  # V8
+    r'Fatal (?:process|JavaScript) out of memory:',  # V8
+    r'Fatal JavaScript invalid size error',  # V8
+    r'FX_OutOfMemoryTerminate',
+    r'Out of memory\. Dying.',
+    r'Out of memory\. size=',
+    r'Sanitizer: allocation-size-too-big',
+    r'Sanitizer: calloc-overflow',
+    r'Sanitizer: calloc parameters overflow',
+    r'Sanitizer: requested allocation size.*exceeds maximum supported size',
+    r'TerminateBecauseOutOfMemory',
+    r'allocator is out of memory trying to allocate',
+    r'blinkGCOutOfMemory',
+    r'couldnt allocate.*Out of memory',
+    r'libFuzzer: out-of-memory \(',
+    r'rss limit exhausted',
+    r'in rust_oom'
+]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
 RUST_ASSERT_REGEX = re.compile(r'thread\s.*\spanicked at \'([^\']*)',
@@ -168,6 +171,7 @@ SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
 SAN_DEADLYSIGNAL_REGEX = re.compile(r'.*:DEADLYSIGNAL')
 SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
 SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
+SAN_TRAP_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: TRAP ')
 SAN_SEGV_CRASH_TYPE_REGEX = re.compile(
     r'.*The signal is caused by a ([A-Z]+) memory access.')
 # FIXME: Replace when better ways to check signal crashes are available.

@@ -20,7 +20,10 @@ import tempfile
 import threading
 import time
 
-import psutil
+try:
+  import psutil
+except ImportError:
+  psutil = None
 
 from base import utils
 from metrics import logs
