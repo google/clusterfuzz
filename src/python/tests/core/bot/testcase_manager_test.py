@@ -661,7 +661,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace comparison skipped.')
     ])
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_greybox_legacy(self):
     """Test test_for_crash_with_retries reproducing a legacy crash (greybox)."""
     mock_engine = mock.Mock()
@@ -773,6 +772,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash is reproducible.'),
     ])
 
+  @unittest.skip("disable for now, running into bad file descriptor error.")
   def test_test_for_reproducibility_greybox_succeed_after_multiple_tries(self):
     """Test test_for_reproducibility with with failure on first run and then
     succeed on remaining runs  (greybox)."""
