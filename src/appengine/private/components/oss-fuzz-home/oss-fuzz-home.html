@@ -43,7 +43,14 @@
       :host h2 {
         @apply(--paper-font-headline);
       }
+
+      :host #flex-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
     </style>
+    <div id="flex-container">
     <paper-card id="welcome" heading="Welcome">
       <div class="card-content">
         <p>Welcome to ClusterFuzz, the fuzzing infrastructure behind OSS-Fuzz.
@@ -63,6 +70,7 @@
        </div>
     </paper-card>
     <template is="dom-repeat" items="[[info.projects]]" as="project">
+      <div class="project">
       <h2>[[project.name]]</h2>
       <div class="project-links">
         <a href="/testcases?project=[[project.name]]&open=yes"><paper-button raised>Open crashes</paper-button></a>
@@ -87,7 +95,9 @@
           </template>
         </paper-card>
       </div>
+      </div>
     </template>
+    </div>
   </template>
   <script>
     class OssFuzzHome extends Polymer.Element {
