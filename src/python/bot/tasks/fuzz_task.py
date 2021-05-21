@@ -1003,7 +1003,7 @@ def create_testcase(group, context):
 
 
 def filter_crashes(crashes):
-  """Fitler crashes based on is_valid()."""
+  """Filter crashes based on is_valid()."""
   filtered = []
 
   for crash in crashes:
