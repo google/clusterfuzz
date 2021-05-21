@@ -772,7 +772,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash is reproducible.'),
     ])
 
-  @unittest.skip("disable for now, running into bad file descriptor error.")
   def test_test_for_reproducibility_greybox_succeed_after_multiple_tries(self):
     """Test test_for_reproducibility with with failure on first run and then
     succeed on remaining runs  (greybox)."""
