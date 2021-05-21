@@ -28,6 +28,8 @@ steps:
     mv tmp/.git .git
     rm -rf tmp
 - name: 'gcr.io/clusterfuzz-images/ci'
+  args: ['ulimit', '-n', '65536']
+- name: 'gcr.io/clusterfuzz-images/ci'
   args: ['pipenv', 'sync', '--dev']
   env:
     - PIPENV_VENV_IN_PROJECT=1
