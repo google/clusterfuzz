@@ -1491,6 +1491,7 @@ def rand_cmplog_level(strategies):
   return cmplog_level
 
 
+# pylint: disable=too-many-function-args
 def main(argv):
   """Run afl as specified by argv."""
   atexit.register(fuzzer_utils.cleanup)
