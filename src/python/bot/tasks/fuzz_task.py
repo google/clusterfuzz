@@ -1274,7 +1274,6 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 
   # Format logs with header and strategy information.
   log_header = engine_common.get_log_header(result.command,
-                                            environment.get_value('BOT_NAME'),
                                             result.time_executed)
 
   formatted_strategies = engine_common.format_fuzzing_strategies(

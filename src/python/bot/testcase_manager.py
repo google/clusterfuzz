@@ -226,9 +226,8 @@ def get_resource_dependencies(testcase_absolute_path, test_prefix=FUZZ_PREFIX):
     if filename.startswith(DEPENDENCY_PREFIX):
       # Only load the testcase contents if necessary.
       if not testcase_contents:
-        file_handle = open(testcase_absolute_path, 'rb')
-        testcase_contents = file_handle.read()
-        file_handle.close()
+        with open(testcase_absolute_path, 'rb') as file_handle:
+          testcase_contents = file_handle.read()
 
       if filename.encode('utf-8') in testcase_contents:
         file_path = os.path.join(base_directory, filename)
@@ -620,9 +619,8 @@ class TestcaseRunner(object):
       return_code = result.return_code
       crash_time = result.time_executed
 
-      log_header = engine_common.get_log_header(
-          result.command, environment.get_value('BOT_NAME'),
-          result.time_executed)
+      log_header = engine_common.get_log_header(result.command,
+                                                result.time_executed)
       output = log_header + '\n' + result.output
 
     process_handler.terminate_stale_application_instances()
@@ -823,13 +821,18 @@ def prepare_log_for_upload(symbolized_output, return_code):
       revisions.format_revision_list(components, use_html=False) or
       'Not available.\n')
 
-  revisions_header = (
-      'Component revisions (build r{app_revision}):\n{component_revisions}\n'.
-      format(
-          app_revision=app_revision, component_revisions=component_revisions))
-  return_code_header = 'Return code: %s\n\n' % return_code
+  revisions_header =\
+  f'Component revisions (build r{app_revision}):\n{component_revisions}\n'
 
-  result = revisions_header + return_code_header + symbolized_output
+  bot_name = environment.get_value('BOT_NAME')
+  bot_header = f'Bot name: {bot_name}\n'
+  if environment.is_android():
+    bot_header += f'Device serial: {environment.get_value("ANDROID_SERIAL")}\n'
+
+  return_code_header = "Return code: %s\n\n" % return_code
+
+  result = revisions_header + bot_header + return_code_header +\
+  symbolized_output
   return result.encode('utf-8')
 
 
