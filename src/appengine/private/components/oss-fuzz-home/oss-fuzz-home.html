@@ -51,52 +51,52 @@
       }
     </style>
     <div id="flex-container">
-    <paper-card id="welcome" heading="Welcome">
-      <div class="card-content">
-        <p>Welcome to ClusterFuzz, the fuzzing infrastructure behind OSS-Fuzz.
-        Here you can look at crashes, statistics, and coverage information for
-        your fuzzers. Below is an overview of your projects and their fuzzing
-        configurations.</p>
-      </div>
-       <div class="card-actions">
-         <a href="/testcases"><paper-button>All current crashes</paper-button></a>
-         <template is="dom-if" if="[[info.is_internal_user]]">
-           <a href="/fuzzer-stats?fuzzer=libFuzzer&group_by=by-fuzzer"><paper-button>All fuzzer stats</paper-button></a>
-           <a href="/crash-stats"><paper-button>All crash stats</paper-button></a>
-         </template>
-         <a href="https://oss-fuzz-build-logs.storage.googleapis.com/index.html"><paper-button>Builds status</paper-button></a>
-         <a href="https://github.com/google/oss-fuzz"><paper-button>Documentation</paper-button></a>
-         <a href="https://github.com/google/oss-fuzz/issues/new"><paper-button>Report a bug</paper-button></a>
-       </div>
-    </paper-card>
-    <template is="dom-repeat" items="[[info.projects]]" as="project">
-      <div class="project">
-      <h2>[[project.name]]</h2>
-      <div class="project-links">
-        <a href="/testcases?project=[[project.name]]&open=yes"><paper-button raised>Open crashes</paper-button></a>
-        <a href="/crash-stats?project=[[project.name]]"><paper-button raised>Crash stats</paper-button></a>
-        <a href="/coverage-report/job/[[project.coverage_job]]/latest"><paper-button raised>Total coverage</paper-button></a>
-      </div>
-      <div class="layout horizontal wrap">
-        <template is="dom-repeat" items="[[project.jobs]]" as ="job">
-          <paper-card class="target" heading="[[job.name]]">
-            <div class="card-content">
-              <p>Fuzzing engine: [[job.engine_display_name]]</p>
-              <p>[[job.sanitizer_string]]</p>
-            </div>
-            <div class="card-actions">
-             <template is="dom-if" if="{{job.has_stats}}">
-               <if-else condition="[[job.single_target]]">
-                  <a slot="t" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.single_target]]&job=[[job.name]]&group_by=by-day"><paper-button>Fuzzer stats/coverage</paper-button></a>
-                  <a slot="f" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.engine_name]]&job=[[job.name]]&group_by=by-fuzzer"><paper-button>Fuzzer stats/coverage</paper-button></a>
-               </if-else>
-             </template>
-            </div>
-          </paper-card>
-        </template>
-      </div>
-      </div>
-    </template>
+      <paper-card id="welcome" heading="Welcome">
+        <div class="card-content">
+          <p>Welcome to ClusterFuzz, the fuzzing infrastructure behind OSS-Fuzz.
+          Here you can look at crashes, statistics, and coverage information for
+          your fuzzers. Below is an overview of your projects and their fuzzing
+          configurations.</p>
+        </div>
+        <div class="card-actions">
+          <a href="/testcases"><paper-button>All current crashes</paper-button></a>
+          <template is="dom-if" if="[[info.is_internal_user]]">
+            <a href="/fuzzer-stats?fuzzer=libFuzzer&group_by=by-fuzzer"><paper-button>All fuzzer stats</paper-button></a>
+            <a href="/crash-stats"><paper-button>All crash stats</paper-button></a>
+          </template>
+          <a href="https://oss-fuzz-build-logs.storage.googleapis.com/index.html"><paper-button>Builds status</paper-button></a>
+          <a href="https://github.com/google/oss-fuzz"><paper-button>Documentation</paper-button></a>
+          <a href="https://github.com/google/oss-fuzz/issues/new"><paper-button>Report a bug</paper-button></a>
+        </div>
+      </paper-card>
+      <template is="dom-repeat" items="[[info.projects]]" as="project">
+        <div class="project">
+          <h2>[[project.name]]</h2>
+          <div class="project-links">
+            <a href="/testcases?project=[[project.name]]&open=yes"><paper-button raised>Open crashes</paper-button></a>
+            <a href="/crash-stats?project=[[project.name]]"><paper-button raised>Crash stats</paper-button></a>
+            <a href="/coverage-report/job/[[project.coverage_job]]/latest"><paper-button raised>Total coverage</paper-button></a>
+          </div>
+          <div class="layout horizontal wrap">
+            <template is="dom-repeat" items="[[project.jobs]]" as ="job">
+              <paper-card class="target" heading="[[job.name]]">
+                <div class="card-content">
+                  <p>Fuzzing engine: [[job.engine_display_name]]</p>
+                  <p>[[job.sanitizer_string]]</p>
+                </div>
+                <div class="card-actions">
+                  <template is="dom-if" if="{{job.has_stats}}">
+                    <if-else condition="[[job.single_target]]">
+                      <a slot="t" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.single_target]]&job=[[job.name]]&group_by=by-day"><paper-button>Fuzzer stats/coverage</paper-button></a>
+                      <a slot="f" href="/fuzzer-stats?project=[[project.name]]&fuzzer=[[job.engine_name]]&job=[[job.name]]&group_by=by-fuzzer"><paper-button>Fuzzer stats/coverage</paper-button></a>
+                    </if-else>
+                  </template>
+                </div>
+              </paper-card>
+            </template>
+          </div>
+        </div>
+      </template>
     </div>
   </template>
   <script>
