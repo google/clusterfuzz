@@ -163,7 +163,7 @@ def execute_command(cmd, timeout=None, log_error=True,
 
 
 def copy_to_cuttlefish(src_path, dest_path, timeout=None):
-  """Copy file between two locations"""
+  """Copy file to cuttlefish device."""
   cvd_address = get_cuttlefish_ssh_target()
   return execute_command(
       'scp -o StrictHostKeyChecking=no '
