@@ -55,6 +55,7 @@ FLASH_RETRIES = 3
 FLASH_REBOOT_BOOTLOADER_WAIT = 15
 FLASH_REBOOT_WAIT = 5 * 60
 
+
 def download_latest_build(build_info, image_regexes):
   """Download the latest build artifact for the given branch and target."""
   # Check if our local build matches the latest build. If not, we will
@@ -62,21 +63,21 @@ def download_latest_build(build_info, image_regexes):
   build_id = build_info['bid']
   target = build_info['target']
   image_directory = environment.get_value('IMAGES_DIR')
-  last_build_info = persistent_cache.get_value(
-      constants.LAST_FLASH_BUILD_KEY)
+  last_build_info = persistent_cache.get_value(constants.LAST_FLASH_BUILD_KEY)
   if not last_build_info or last_build_info['bid'] != build_id:
     # Clean up the images directory first.
     shell.remove_directory(image_directory, recreate=True)
 
     for image_regex in image_regexes:
       image_file_path = fetch_artifact.get(build_id, target, image_regex,
-                                            image_directory)
+                                           image_directory)
       if not image_file_path:
-        logs.log_error(
-            'Failed to download artifact %s for '
-            'branch %s and target %s.' % (image_file_path, build_info['branch'], target))
+        logs.log_error('Failed to download artifact %s for '
+                       'branch %s and target %s.' %
+                       (image_file_path, build_info['branch'], target))
         return
-      if image_file_path.endswith('.zip') or image_file_path.endswith('.tar.gz'):
+      if image_file_path.endswith('.zip') or image_file_path.endswith(
+          '.tar.gz'):
         archive.unpack(image_file_path, image_directory)
 
 
@@ -130,23 +131,20 @@ def flash_to_latest_build_if_needed():
     logs.log_warn(
         'BUILD_BRANCH and BUILD_TARGET are not set, skipping reimage.')
     return
-  
+
   build_info = fetch_artifact.get_latest_artifact_info(branch, target)
   if not build_info:
-    logs.log_error(
-        'Unable to fetch information on latest build artifact for '
-        'branch %s and target %s.' % (branch, target))
+    logs.log_error('Unable to fetch information on latest build artifact for '
+                   'branch %s and target %s.' % (branch, target))
     return
 
   if environment.is_android_cuttlefish():
-    print("download")
     download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES)
-    print("create")
     adb.recreate_cuttlefish_device()
-    #adb.set_cuttlefish_device_serial()
-    #adb.connect_to_cuttlefish_device()
+    adb.set_cuttlefish_device_serial()
+    adb.connect_to_cuttlefish_device()
   else:
-    download_latest_build(branch, target, FLASH_IMAGE_REGEXES)
+    download_latest_build(build_info, FLASH_IMAGE_REGEXES)
     # We do one device flash at a time on one host, otherwise we run into
     # failures and device being stuck in a bad state.
     image_directory = environment.get_value('IMAGES_DIR')
@@ -166,7 +164,7 @@ def flash_to_latest_build_if_needed():
 
       for partition, partition_image_filename in FLASH_IMAGE_FILES:
         partition_image_file_path = os.path.join(image_directory,
-                                                  partition_image_filename)
+                                                 partition_image_filename)
         adb.run_fastboot_command(
             ['flash', partition, partition_image_file_path])
         if partition in ['bootloader', 'radio']:

@@ -14,7 +14,6 @@
 """ADB shell related functions."""
 
 import collections
-import glob
 import os
 import re
 import signal
@@ -33,8 +32,8 @@ from system import shell
 ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
 BAD_STATE_WAIT = 900
 BOOT_WAIT_INTERVAL = 30
-CUTTLEFISH_USER='vsoc-01'
-CUTTLEFISH_CVD_PORT=6520
+CUTTLEFISH_USER = 'vsoc-01'
+CUTTLEFISH_CVD_PORT = 6520
 DEFAULT_DEVICE_MEMORY_MB = 2048
 DEVICE = collections.namedtuple('Device', ['serial', 'path'])
 DEVICE_HANG_STRING = None
@@ -110,12 +109,14 @@ def directory_exists(directory_path):
   return result == expected
 
 
-def execute_command(cmd, timeout=None, log_error=True, on_cuttlefish_host=False):
+def execute_command(cmd, timeout=None, log_error=True,
+                    on_cuttlefish_host=False):
   """Spawns a subprocess to run the given shell command."""
   if on_cuttlefish_host and environment.is_android_cuttlefish():
     # Auto accept key fingerprint for ssh command.
-    cmd = f'ssh -o StrictHostKeyChecking=no {get_cuttlefish_address()} "{cmd}"'
-  
+    cmd = ('ssh -o StrictHostKeyChecking=no '
+           f'{get_cuttlefish_ssh_target()} "{cmd}"')
+
   so = []
   output_dest = tempfile.TemporaryFile()
   # pylint: disable=subprocess-popen-preexec-fn
@@ -163,8 +164,11 @@ def execute_command(cmd, timeout=None, log_error=True, on_cuttlefish_host=False)
 
 def copy_to_cuttlefish(src_path, dest_path, timeout=None):
   """Copy file between two locations"""
-  cvd_address = get_cuttlefish_address()
-  return execute_command(f'scp -o StrictHostKeyChecking=no -r {src_path} {cvd_address}:{dest_path}', timeout=timeout)
+  cvd_address = get_cuttlefish_ssh_target()
+  return execute_command(
+      'scp -o StrictHostKeyChecking=no '
+      f'-r {src_path} {cvd_address}:{dest_path}',
+      timeout=timeout)
 
 
 def factory_reset():
@@ -362,8 +366,8 @@ def start_cuttlefish_device():
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
   launch_cvd_command_line = (
-      '{launch_cvd_path} -daemon -memory_mb {device_memory_mb} -report_anonymous_usage_stats Y'.format(
-          launch_cvd_path=launch_cvd_path, device_memory_mb=device_memory_mb))
+      f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
+      '-report_anonymous_usage_stats Y')
   execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
 
 
@@ -373,7 +377,8 @@ def stop_cuttlefish_device():
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
 
-  execute_command(stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+  execute_command(
+      stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
   time.sleep(STOP_CVD_WAIT)
 
 
@@ -426,7 +431,6 @@ def reset_device_connection():
   if environment.is_android_cuttlefish():
     stop_cuttlefish_device()
     start_cuttlefish_device()
-    connect_to_cuttlefish_device()
   else:
     # Physical device. Try restarting usb.
     reset_usb()
@@ -440,12 +444,13 @@ def reset_device_connection():
 
   return True
 
-def get_cuttlefish_device_ip():
+
+def get_cuttlefish_device_ip(ip=None):
   try:
-    return socket.gethostbyname('cuttlefish')
+    ip = socket.gethostbyname('cuttlefish')
   except socket.gaierror:
-    logs.log_warn('Failed to get cuttlefish ip address, use localhost instead')
-    return '127.0.0.1'
+    logs.log_fatal_and_exit('Unable to get cvd ip address on cuttlefish host.')
+  return ip
 
 
 def set_cuttlefish_device_serial():
@@ -453,12 +458,8 @@ def set_cuttlefish_device_serial():
   environment.set_value('ANDROID_SERIAL', device_serial)
 
 
-def get_cuttlefish_address():
-  ip = get_cuttlefish_device_ip()
-  if ip == '127.0.0.1':
-      logs.log_fatal_and_exit(
-          'Unable to get cvd ip address on cuttlefish host')
-  return f'{CUTTLEFISH_USER}@{ip}'
+def get_cuttlefish_ssh_target():
+  return f'{CUTTLEFISH_USER}@{get_cuttlefish_device_ip()}'
 
 
 def get_device_path():
