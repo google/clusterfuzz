@@ -1057,7 +1057,7 @@ def is_android(plt=None):
 
 
 def is_android_cuttlefish(plt=None):
-  """Return true if we are on android gce platform."""
+  """Return true if we are on android cuttlefish platform."""
   return 'ANDROID_X86' in (plt or platform())
 
 

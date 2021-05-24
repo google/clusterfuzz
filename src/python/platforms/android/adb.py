@@ -402,7 +402,7 @@ def recreate_cuttlefish_device():
     image_dest = os.path.join(cvd_dir, image_filename)
     copy_to_cuttlefish(image_src, image_dest)
 
-  #start_cuttlefish_device()
+  start_cuttlefish_device()
 
 
 def remount():
@@ -446,6 +446,7 @@ def reset_device_connection():
 
 
 def get_cuttlefish_device_ip(ip=None):
+  """Return the ip address of cuttlefish device."""
   try:
     ip = socket.gethostbyname('cuttlefish')
   except socket.gaierror:
@@ -454,11 +455,13 @@ def get_cuttlefish_device_ip(ip=None):
 
 
 def set_cuttlefish_device_serial():
+  """Set the ANDROID_SERIAL to cuttlefish ip and port."""
   device_serial = '%s:%d' % (get_cuttlefish_device_ip(), CUTTLEFISH_CVD_PORT)
   environment.set_value('ANDROID_SERIAL', device_serial)
 
 
 def get_cuttlefish_ssh_target():
+  """Return the target for cuttlefish ssh connection."""
   return f'{CUTTLEFISH_USER}@{get_cuttlefish_device_ip()}'
 
 
