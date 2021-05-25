@@ -58,6 +58,8 @@ DONT_DEFER_ENV_VAR = 'AFL_DRIVER_DONT_DEFER'
 
 FAST_CAL_ENV_VAR = 'AFL_FAST_CAL'
 
+FORKSRV_INIT_TMOUT_ENV_VAR = 'AFL_FORKSRV_INIT_TMOUT'
+
 NO_AFFINITY_ENV_VAR = 'AFL_NO_AFFINITY'
 
 STDERR_FILENAME_ENV_VAR = 'AFL_DRIVER_STDERR_DUPLICATE_FILENAME'
@@ -77,6 +79,8 @@ EXPAND_HAVOC_ENV_VAR = 'AFL_EXPAND_HAVOC_NOW'
 # Other settings.
 
 MAX_FILE_BYTES = 2**20  # 1 MB
+
+FORKSERVER_TIMEOUT = 60000  # milliseconds
 
 # This should be as high as possible, otherwise AFL will restart the binary too
 # often to be competitive with pure libFuzzer. 2147483647 is the maximum signed
