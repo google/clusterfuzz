@@ -157,7 +157,7 @@ def get_latest_artifact_info(branch, target, signed=False):
   build = builds['builds'][0]
   bid = build['buildId']
   target = build['target']['name']
-  return {'bid': bid, 'target': target}
+  return {'bid': bid, 'branch': branch, 'target': target}
 
 
 def get(bid, target, regex, output_directory, output_filename=None):

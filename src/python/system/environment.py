@@ -1056,6 +1056,11 @@ def is_android(plt=None):
   return 'ANDROID' in (plt or platform())
 
 
+def is_android_cuttlefish(plt=None):
+  """Return true if we are on android cuttlefish platform."""
+  return 'ANDROID_X86' in (plt or platform())
+
+
 def is_android_emulator(plt=None):
   """Return true if we are on android emulator platform."""
   return 'ANDROID_EMULATOR' == (plt or platform())
