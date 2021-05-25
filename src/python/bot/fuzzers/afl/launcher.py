@@ -245,19 +245,19 @@ class FuzzingStrategies(object):
 
   # Probability for the level of CMPLOG to set. (-l X)
   CMPLOG_LEVEL_PROBS = [
-      ('1', 0.3),  # Level 1
-      ('2', 0.6),  # Level 2
+      ('1', 0.6),  # Level 1
+      ('2', 0.3),  # Level 2
       ('3', 0.1),  # Level 3
   ]
 
   # Probabilty for arithmetic CMPLOG calculations.
-  CMPLOG_ARITH_PROB = 0.3
+  CMPLOG_ARITH_PROB = 0.1
 
   # Probability for transforming CMPLOG solving.
-  CMPLOG_TRANS_PROB = 0.3
+  CMPLOG_TRANS_PROB = 0.1
 
   # Probability to only CMPLOG new found paths. (AFL_CMPLOG_ONLY_NEW=1)
-  CMPLOG_ONLY_NEW_PROB = 0.5
+  CMPLOG_ONLY_NEW_PROB = 0.8
 
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
   DISABLE_TRIM_PROB = 0.75
@@ -269,18 +269,18 @@ class FuzzingStrategies(object):
   MOPT_PROB = 0.4
 
   # Probability to use the original afl queue walking mechanism. (-Z)
-  QUEUE_OLD_STRATEGY_PROB = 0.3
+  QUEUE_OLD_STRATEGY_PROB = 0.2
 
   # Probability to enable the schedule cycler. (AFL_CYCLE_SCHEDULES=1)
-  SCHEDULER_CYCLE_PROB = 0.3
+  SCHEDULER_CYCLE_PROB = 0.1
 
   # Propability which scheduler to select. (-p SCHEDULER)
   SCHEDULER_PROBS = [
-      ('fast', .25),
-      ('explore', .25),
+      ('fast', .3),
+      ('explore', .3),
       ('exploit', .2),
       ('coe', .1),
-      ('rare', .2),
+      ('rare', .1),
   ]
 
   # TODO(mbarbella): The codepath involving |strategy_dict| and the
@@ -1491,6 +1491,7 @@ def rand_cmplog_level(strategies):
   return cmplog_level
 
 
+# pylint: disable=too-many-function-args
 def main(argv):
   """Run afl as specified by argv."""
   atexit.register(fuzzer_utils.cleanup)
@@ -1531,9 +1532,7 @@ def main(argv):
     command = engine_common.strip_minijail_command(command,
                                                    runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
-  print(
-      engine_common.get_log_header(command, BOT_NAME,
-                                   fuzz_result.time_executed))
+  print(engine_common.get_log_header(command, fuzz_result.time_executed))
 
   print(fuzz_result.output)
 
