@@ -601,8 +601,10 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
         self.handle, self.executable_path, output_dir,
         ['data/' + testcase_path_name] + additional_args)
 
-    # No need to get_data because the minimized artifact is automatically
-    # fetched and we just need to move it into place
+    # The minimized artifact is automatically fetched if minimization succeeded,
+    # but this isn't always the case so let's just always fetch a new copy
+    undercoat.get_data(self.handle, self.executable_path, min_file_fullpath,
+                       output_dir)
     shutil.move(os.path.join(output_dir, target_minimized_file), output_path)
 
     return result

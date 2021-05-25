@@ -15,6 +15,7 @@
 via undercoat."""
 
 import os
+import shutil
 import tempfile
 
 from base import persistent_cache
@@ -48,18 +49,31 @@ def get_running_handles():
   return persistent_cache.get_value(HANDLE_CACHE_KEY, default_value=[])
 
 
+def get_temp_dir():
+  """Define a tempdir for undercoat to store its data in.
+
+  This tempdir needs to be of a scope that persists across invocations of the
+  bot, to ensure proper cleanup of stale handles/data."""
+  temp_dir = os.path.join(environment.get_value('ROOT_DIR'), 'bot', 'undercoat')
+  os.makedirs(temp_dir, exist_ok=True)
+
+  return temp_dir
+
+
 class UndercoatError(Exception):
   """Error for errors while running undercoat."""
 
 
 def undercoat_api_command(*args):
   """Make an API call to the undercoat binary."""
+  logs.log(f'Running undercoat command {args}')
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
   undercoat_path = os.path.join(bundle_dir, 'undercoat', 'undercoat')
   undercoat = new_process.ProcessRunner(undercoat_path, args)
   # The undercoat log is sent to stderr, which we capture to a tempfile
   with tempfile.TemporaryFile() as undercoat_log:
-    result = undercoat.run_and_wait(stderr=undercoat_log)
+    result = undercoat.run_and_wait(
+        stderr=undercoat_log, extra_env={'TMPDIR': get_temp_dir()})
     result.output = result.output.decode('utf-8')
 
     if result.return_code != 0:
@@ -74,15 +88,16 @@ def undercoat_api_command(*args):
   return result
 
 
-def undercoat_instance_command(command, handle, *args):
+def undercoat_instance_command(command, handle, *args, abort_on_error=True):
   """Helper for the subset of undercoat commands that operate on an instance."""
   try:
     return undercoat_api_command(command, '-handle', handle, *args)
   except UndercoatError:
-    # Try to print extra logs and shut down
-    # TODO(eep): Should we be attempting to automatically restart?
-    dump_instance_logs(handle)
-    stop_instance(handle)
+    if abort_on_error:
+      # Try to print extra logs and shut down
+      # TODO(eep): Should we be attempting to automatically restart?
+      dump_instance_logs(handle)
+      stop_instance(handle)
     raise
 
 
@@ -114,8 +129,8 @@ def validate_api_version():
 
 def dump_instance_logs(handle):
   """Dump logs from an undercoat instance."""
-  # Avoids using undercoat_instance_command in order to avoid recursion on error
-  qemu_log = undercoat_api_command('get_logs', '-handle', handle).output
+  qemu_log = undercoat_instance_command(
+      'get_logs', handle, abort_on_error=False).output
   logs.log_warn(qemu_log)
 
 
@@ -136,7 +151,7 @@ def stop_all():
   cleanly shut down."""
   for handle in get_running_handles():
     try:
-      undercoat_instance_command('stop_instance', handle)
+      undercoat_instance_command('stop_instance', handle, abort_on_error=False)
     except UndercoatError:
       pass
 
@@ -144,11 +159,15 @@ def stop_all():
     # again later
     remove_running_handle(handle)
 
+  # At this point, all handles/data should have been cleaned up, but if any is
+  # remaining then we clear it out here
+  shutil.rmtree(get_temp_dir())
+
 
 def stop_instance(handle):
   """Stop a running undercoat instance."""
-  # Avoids using undercoat_instance_command in order to avoid recursion on error
-  result = undercoat_api_command('stop_instance', '-handle', handle)
+  result = undercoat_instance_command(
+      'stop_instance', handle, abort_on_error=False)
 
   # Mark the corresponding handle as having been cleanly shut down
   remove_running_handle(handle)
@@ -188,5 +207,16 @@ def get_data(handle, fuzzer, src, dst):
   """Get files from a fuzzer on an instance, via undercoat.
   If src is a directory, it will be copied recursively. Standard globs are
   supported."""
-  return undercoat_instance_command('get_data', handle, '-fuzzer', fuzzer,
-                                    '-src', src, '-dst', dst).output
+  try:
+    return undercoat_instance_command(
+        'get_data',
+        handle,
+        '-fuzzer',
+        fuzzer,
+        '-src',
+        src,
+        '-dst',
+        dst,
+        abort_on_error=False).output
+  except UndercoatError:
+    return None

@@ -68,8 +68,7 @@ COMPONENTS_FILE_EXTENSION = '.components'
 METADATA_FILE_EXTENSION = '.issue_metadata'
 
 # Header format for logs.
-LOG_HEADER_FORMAT = (
-    'Command: {command}\n' + 'Bot: {bot}\n' + 'Time ran: {time}\n')
+LOG_HEADER_FORMAT = ('Command: {command}\n' + 'Time ran: {time}\n')
 
 # Number of radamsa mutations.
 RADAMSA_MUTATIONS = 2000
@@ -711,7 +710,7 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
            (idx, seed_corpus_archive_path))
 
 
-def get_log_header(command, bot_name, time_executed):
+def get_log_header(command, time_executed):
   """Get the log header."""
   return LOG_HEADER_FORMAT.format(
-      command=get_command_quoted(command), bot=bot_name, time=time_executed)
+      command=get_command_quoted(command), time=time_executed)

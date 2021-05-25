@@ -118,8 +118,9 @@ def execute_command(cmd, timeout=None, log_error=True,
            f'{get_cuttlefish_ssh_target()} "{cmd}"')
 
   so = []
+  # pylint: disable=consider-using-with
   output_dest = tempfile.TemporaryFile()
-  # pylint: disable=subprocess-popen-preexec-fn
+  # pylint: disable=subprocess-popen-preexec-fn,consider-using-with
   pipe = subprocess.Popen(
       cmd,
       executable='/bin/bash',
@@ -318,7 +319,7 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  if environment.is_android_cuttlefish():
+  if environment.is_android_cuttlefish() or environment.is_android_emulator():
     # There is no recovery step at this point for a cuttlefish bot, so just exit
     # and wait for reimage on next iteration.
     bad_state_reached()
@@ -525,7 +526,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if environment.is_android_cuttlefish():
+  if environment.is_android_cuttlefish() or environment.is_android_emulator():
     # Nothing to do here.
     return True
 
@@ -772,11 +773,6 @@ def wait_until_fully_booted():
       is_boot_completed = boot_completed()
 
     if is_drive_ready and is_package_manager_ready and is_boot_completed:
-      return True
-
-    # is_boot_completed and is_package_manager_ready may never happen on
-    # emulated devices.
-    if is_drive_ready and environment.is_android_emulator():
       return True
 
     time.sleep(BOOT_WAIT_INTERVAL)
