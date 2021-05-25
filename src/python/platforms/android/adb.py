@@ -445,13 +445,13 @@ def reset_device_connection():
   return True
 
 
-def get_cuttlefish_device_ip(ip=None):
+def get_cuttlefish_device_ip():
   """Return the ip address of cuttlefish device."""
   try:
-    ip = socket.gethostbyname('cuttlefish')
+    return socket.gethostbyname('cuttlefish')
   except socket.gaierror:
     logs.log_fatal_and_exit('Unable to get cvd ip address on cuttlefish host.')
-  return ip
+  return None
 
 
 def set_cuttlefish_device_serial():
