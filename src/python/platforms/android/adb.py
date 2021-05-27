@@ -66,6 +66,7 @@ def bad_state_reached():
 
 def connect_to_cuttlefish_device():
   """Connect to Cuttlefish cvd."""
+  logs.log('Connect to cuttlefish device.')
   device_serial = environment.get_value('ANDROID_SERIAL')
   connect_cmd = f'{get_adb_path()} connect {device_serial}'
   return execute_command(connect_cmd, timeout=RECOVERY_CMD_TIMEOUT)
@@ -459,6 +460,7 @@ def set_cuttlefish_device_serial():
   """Set the ANDROID_SERIAL to cuttlefish ip and port."""
   device_serial = '%s:%d' % (get_cuttlefish_device_ip(), CUTTLEFISH_CVD_PORT)
   environment.set_value('ANDROID_SERIAL', device_serial)
+  logs.log('Set cuttlefish device serial: %s' % device_serial)
 
 
 def get_cuttlefish_ssh_target():
