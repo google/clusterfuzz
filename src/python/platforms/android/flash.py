@@ -141,7 +141,6 @@ def flash_to_latest_build_if_needed():
   if environment.is_android_cuttlefish():
     download_latest_build(build_info, FLASH_CUTTLEFISH_REGEXES, image_directory)
     adb.recreate_cuttlefish_device()
-    adb.set_cuttlefish_device_serial()
     adb.connect_to_cuttlefish_device()
   else:
     download_latest_build(build_info, FLASH_IMAGE_REGEXES, image_directory)

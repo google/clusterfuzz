@@ -15,6 +15,8 @@
 
 from bot.init_scripts import init_runner
 from platforms import android
+from platforms.android import adb
+from system import environment
 
 TIME_SINCE_REBOOT_MIN_THRESHOLD = 10 * 60  # 10 minutes.
 
@@ -23,8 +25,16 @@ def run():
   """Run Android initialization."""
   init_runner.run()
 
+  # Set cuttlefish device serial if needed.
+  if environment.is_android_cuttlefish():
+    adb.set_cuttlefish_device_serial()
+
   # Check if we need to reflash device to latest build.
   android.flash.flash_to_latest_build_if_needed()
+
+  # Reconnect to cuttlefish device if connection is ever lost. 
+  if environment.is_android_cuttlefish():
+    adb.connect_to_cuttlefish_device()
 
   # Reboot to bring device in a good state if not done recently.
   if android.adb.time_since_last_reboot() > TIME_SINCE_REBOOT_MIN_THRESHOLD:
