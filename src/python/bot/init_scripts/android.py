@@ -32,7 +32,7 @@ def run():
   # Check if we need to reflash device to latest build.
   android.flash.flash_to_latest_build_if_needed()
 
-  # Reconnect to cuttlefish device if connection is ever lost. 
+  # Reconnect to cuttlefish device if connection is ever lost.
   if environment.is_android_cuttlefish():
     adb.connect_to_cuttlefish_device()
 

@@ -813,8 +813,8 @@ def write_data_to_file(contents, file_path):
     remount()
 
   # Write file with desired contents.
-  run_shell_command("\"echo -n '%s' | su root dd of=%s\"" % (contents.replace(
-      '"', '\\"'), file_path))
+  run_shell_command("\"echo -n '%s' | su root dd of=%s\"" %
+                    (contents.replace('"', '\\"'), file_path))
 
   # Make command line file is readable.
   run_shell_command('chmod 0644 %s' % file_path, root=True)
