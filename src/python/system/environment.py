@@ -470,7 +470,7 @@ def get_msan_options():
 def get_platform_id():
   """Return a platform id as a lowercase string."""
   bot_platform = platform()
-  if is_android_emulator():
+  if is_android_cuttlefish() or is_android_emulator():
     return bot_platform.lower()
   if is_android(bot_platform):
     # FIXME: Handle this import in a cleaner way.
