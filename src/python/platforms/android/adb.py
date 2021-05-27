@@ -458,9 +458,9 @@ def get_cuttlefish_device_ip():
 
 def set_cuttlefish_device_serial():
   """Set the ANDROID_SERIAL to cuttlefish ip and port."""
+  logs.log('Set cuttlefish device serial: %s' % device_serial)
   device_serial = '%s:%d' % (get_cuttlefish_device_ip(), CUTTLEFISH_CVD_PORT)
   environment.set_value('ANDROID_SERIAL', device_serial)
-  logs.log('Set cuttlefish device serial: %s' % device_serial)
 
 
 def get_cuttlefish_ssh_target():
