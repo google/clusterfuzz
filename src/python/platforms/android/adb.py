@@ -14,10 +14,10 @@
 """ADB shell related functions."""
 
 import collections
-import glob
 import os
 import re
 import signal
+import socket
 import subprocess
 import tempfile
 import threading
@@ -32,6 +32,8 @@ from system import shell
 ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
 BAD_STATE_WAIT = 900
 BOOT_WAIT_INTERVAL = 30
+CUTTLEFISH_USER = 'vsoc-01'
+CUTTLEFISH_CVD_PORT = 6520
 DEFAULT_DEVICE_MEMORY_MB = 2048
 DEVICE = collections.namedtuple('Device', ['serial', 'path'])
 DEVICE_HANG_STRING = None
@@ -60,6 +62,14 @@ def bad_state_reached():
   persistent_cache.clear_values()
   logs.log_fatal_and_exit(
       'Device in bad state.', wait_before_exit=BAD_STATE_WAIT)
+
+
+def connect_to_cuttlefish_device():
+  """Connect to Cuttlefish cvd."""
+  logs.log('Connect to cuttlefish device.')
+  device_serial = environment.get_value('ANDROID_SERIAL')
+  connect_cmd = f'{get_adb_path()} connect {device_serial}'
+  return execute_command(connect_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
 
 def copy_local_directory_to_remote(local_directory, remote_directory):
@@ -100,8 +110,14 @@ def directory_exists(directory_path):
   return result == expected
 
 
-def execute_command(cmd, timeout=None, log_error=True):
+def execute_command(cmd, timeout=None, log_error=True,
+                    on_cuttlefish_host=False):
   """Spawns a subprocess to run the given shell command."""
+  if on_cuttlefish_host and environment.is_android_cuttlefish():
+    # Auto accept key fingerprint for ssh command.
+    cmd = ('ssh -o StrictHostKeyChecking=no '
+           f'{get_cuttlefish_ssh_target()} "{cmd}"')
+
   so = []
   # pylint: disable=consider-using-with
   output_dest = tempfile.TemporaryFile()
@@ -148,9 +164,18 @@ def execute_command(cmd, timeout=None, log_error=True):
   return bytes_output.strip().decode('utf-8', errors='ignore')
 
 
+def copy_to_cuttlefish(src_path, dest_path, timeout=None):
+  """Copy file to cuttlefish device."""
+  cvd_address = get_cuttlefish_ssh_target()
+  return execute_command(
+      'scp -o StrictHostKeyChecking=no '
+      f'-r {src_path} {cvd_address}:{dest_path}',
+      timeout=timeout)
+
+
 def factory_reset():
   """Reset device to factory state."""
-  if is_gce() or environment.is_android_emulator():
+  if environment.is_android_cuttlefish() or environment.is_android_emulator():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
     # for reimage in next iteration.
@@ -295,8 +320,8 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  if is_gce() or environment.is_android_emulator():
-    # There is no recovery step at this point for a gce bot, so just exit
+  if environment.is_android_cuttlefish() or environment.is_android_emulator():
+    # There is no recovery step at this point for a cuttlefish bot, so just exit
     # and wait for reimage on next iteration.
     bad_state_reached()
 
@@ -309,12 +334,6 @@ def hard_reset():
   # Try soft-reset now (does not require root).
   soft_reset_cmd = get_adb_command_line('reboot')
   execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
-
-
-def is_gce():
-  """Returns if we are running in GCE environment."""
-  android_serial = environment.get_value('ANDROID_SERIAL')
-  return android_serial.startswith('127.0.0.1:')
 
 
 def kill_processes_and_children_matching_name(process_name):
@@ -340,8 +359,8 @@ def reboot():
   run_command('reboot')
 
 
-def start_gce_device():
-  """Start the gce device."""
+def start_cuttlefish_device():
+  """Start the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   launch_cvd_path = os.path.join(cvd_bin_dir, 'launch_cvd')
@@ -349,41 +368,43 @@ def start_gce_device():
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
   launch_cvd_command_line = (
-      '{launch_cvd_path} -daemon -memory_mb {device_memory_mb}'.format(
-          launch_cvd_path=launch_cvd_path, device_memory_mb=device_memory_mb))
-  execute_command(launch_cvd_command_line)
+      f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
+      '-report_anonymous_usage_stats Y')
+  execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
 
 
-def stop_gce_device():
-  """Stops the gce device."""
+def stop_cuttlefish_device():
+  """Stops the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
-  stop_cvd_path = os.path.join(cvd_bin_dir, 'stop_cvd')
+  stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
 
-  execute_command(stop_cvd_path, timeout=RECOVERY_CMD_TIMEOUT)
+  execute_command(
+      stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
   time.sleep(STOP_CVD_WAIT)
 
 
-def recreate_gce_device():
-  """Recreate gce device, restoring from backup images."""
-  logs.log('Reimaging gce device.')
+def recreate_cuttlefish_device():
+  """Recreate cuttlefish device, restoring from backup images."""
+  logs.log('Reimaging cuttlefish device.')
   cvd_dir = environment.get_value('CVD_DIR')
 
-  stop_gce_device()
+  stop_cuttlefish_device()
 
   # Delete all existing images.
-  image_dir = cvd_dir
-  for image_file_path in glob.glob(os.path.join(image_dir, '*.img')):
-    shell.remove_file(image_file_path)
+  rm_cmd = f'rm -rf {cvd_dir}/*'
+  execute_command(rm_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
 
-  # Restore images from backup.
-  backup_image_dir = os.path.join(cvd_dir, 'backup')
-  for image_filename in os.listdir(backup_image_dir):
-    image_src = os.path.join(backup_image_dir, image_filename)
-    image_dest = os.path.join(image_dir, image_filename)
-    shell.copy_file(image_src, image_dest)
+  # Copy and Combine cvd host package and OTA images.
+  image_directory = environment.get_value('IMAGES_DIR')
+  for image_filename in os.listdir(image_directory):
+    if image_filename.endswith('.zip') or image_filename.endswith('.tar.gz'):
+      continue
+    image_src = os.path.join(image_directory, image_filename)
+    image_dest = os.path.join(cvd_dir, image_filename)
+    copy_to_cuttlefish(image_src, image_dest)
 
-  start_gce_device()
+  start_cuttlefish_device()
 
 
 def remount():
@@ -409,9 +430,9 @@ def remove_file(file_path):
 def reset_device_connection():
   """Reset the connection to the physical device through USB. Returns whether
   or not the reset succeeded."""
-  if is_gce():
-    stop_gce_device()
-    start_gce_device()
+  if environment.is_android_cuttlefish():
+    stop_cuttlefish_device()
+    start_cuttlefish_device()
   else:
     # Physical device. Try restarting usb.
     reset_usb()
@@ -420,10 +441,31 @@ def reset_device_connection():
   state = get_device_state()
   if state != 'device':
     logs.log_warn('Device state is %s, unable to recover using usb reset/'
-                  'gce reconnect.' % str(state))
+                  'cuttlefish reconnect.' % str(state))
     return False
 
   return True
+
+
+def get_cuttlefish_device_ip():
+  """Return the ip address of cuttlefish device."""
+  try:
+    return socket.gethostbyname('cuttlefish')
+  except socket.gaierror:
+    logs.log_fatal_and_exit('Unable to get cvd ip address on cuttlefish host.')
+  return None
+
+
+def set_cuttlefish_device_serial():
+  """Set the ANDROID_SERIAL to cuttlefish ip and port."""
+  device_serial = '%s:%d' % (get_cuttlefish_device_ip(), CUTTLEFISH_CVD_PORT)
+  environment.set_value('ANDROID_SERIAL', device_serial)
+  logs.log('Set cuttlefish device serial: %s' % device_serial)
+
+
+def get_cuttlefish_ssh_target():
+  """Return the target for cuttlefish ssh connection."""
+  return f'{CUTTLEFISH_USER}@{get_cuttlefish_device_ip()}'
 
 
 def get_device_path():
@@ -474,7 +516,7 @@ def get_device_path():
         open('/sys/bus/usb/devices/%s/devnum' % device_id).read().strip())
     return '/dev/bus/usb/%03d/%03d' % (bus_number, device_number)
 
-  if is_gce():
+  if environment.is_android_cuttlefish():
     return None
 
   device_serial = environment.get_value('ANDROID_SERIAL')
@@ -486,7 +528,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if is_gce() or environment.is_android_emulator():
+  if environment.is_android_cuttlefish() or environment.is_android_emulator():
     # Nothing to do here.
     return True
 
@@ -632,8 +674,8 @@ def run_shell_command(cmd,
 
 def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   """Run a command in fastboot shell."""
-  if is_gce():
-    # We can't run fastboot commands on Android GCE instances.
+  if environment.is_android_cuttlefish():
+    # We can't run fastboot commands on Android cuttlefish instances.
     return None
 
   if isinstance(cmd, list):
