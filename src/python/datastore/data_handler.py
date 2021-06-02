@@ -635,7 +635,7 @@ def handle_duplicate_entry(testcase):
   elif (not existing_testcase.bug_information and
         not testcase.one_time_crasher_flag):
     metadata = data_types.TestcaseUploadMetadata.query(
-        data_types.TestcaseUploadMetadata.testcase_id == testcase_id).get()
+        data_types.TestcaseUploadMetadata.testcase_id == existing_testcase_id).get()
     if metadata:
       metadata.status = 'Duplicate'
       metadata.duplicate_of = testcase_id
