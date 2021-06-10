@@ -78,9 +78,10 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-showmap',
     'afl-tmin',
     'honggfuzz',
-    'llvm-symbolizer',
-    'jazzer_driver',
     'jazzer_agent_deploy.jar',
+    'jazzer_driver',
+    'jazzer_driver_with_sanitizer',
+    'llvm-symbolizer',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
