@@ -256,9 +256,6 @@ class FuzzingStrategies(object):
   # Probability for transforming CMPLOG solving.
   CMPLOG_TRANS_PROB = 0.1
 
-  # Probability to only CMPLOG new found paths. (AFL_CMPLOG_ONLY_NEW=1)
-  CMPLOG_ONLY_NEW_PROB = 0.8
-
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
   DISABLE_TRIM_PROB = 0.75
 
@@ -789,10 +786,8 @@ class AflRunnerCommon(object):
           self.strategies.EXPAND_HAVOC_PROB):
         environment.set_value(constants.EXPAND_HAVOC_ENV_VAR, 1)
 
-      # Randomly only CMPLOG new finds.
-      if engine_common.decide_with_probability(
-          self.strategies.CMPLOG_ONLY_NEW_PROB):
-        environment.set_value(constants.CMPLOG_ONLY_NEW_ENV_VAR, 1)
+      # Always CMPLOG only new finds.
+      environment.set_value(constants.CMPLOG_ONLY_NEW_ENV_VAR, 1)
 
       # Randomly set new vs. old queue selection mechanism.
       if engine_common.decide_with_probability(
