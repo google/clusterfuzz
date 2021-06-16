@@ -18,6 +18,7 @@
 
 import os
 import shlex
+import shutil
 import socket
 import subprocess
 import tempfile
@@ -77,8 +78,10 @@ def _fetch_qemu_vars():
   qemu_vars['sharefiles_path'] = os.path.join(
       fuchsia_resources_dir, 'qemu-for-fuchsia', 'share', 'qemu')
   qemu_vars['drive_path'] = os.path.join(fuchsia_resources_dir, 'target', 'x64',
-                                         'fvm.blk')
-  os.chmod(qemu_vars['drive_path'], 0o644)
+                                         'fvm-extended.blk')
+  qemu_vars['orig_drive_path'] = os.path.join(fuchsia_resources_dir, 'target',
+                                              'x64', 'fvm.blk')
+  os.chmod(qemu_vars['orig_drive_path'], 0o644)
   qemu_vars['fuchsia_zbi'] = os.path.join(fuchsia_resources_dir, 'target',
                                           'x64', 'fuchsia.zbi')
   qemu_vars['initrd_path'] = os.path.join(fuchsia_resources_dir,
@@ -98,7 +101,8 @@ def initial_qemu_setup():
   if os.path.exists(qemu_vars['initrd_path']):
     return
 
-  extend_fvm(qemu_vars['fuchsia_resources_dir'], qemu_vars['drive_path'])
+  extend_fvm(qemu_vars['fuchsia_resources_dir'], qemu_vars['orig_drive_path'],
+             qemu_vars['drive_path'])
   add_keys_to_zbi(qemu_vars['fuchsia_resources_dir'], qemu_vars['initrd_path'],
                   qemu_vars['fuchsia_zbi'])
 
@@ -204,6 +208,7 @@ class QemuProcess(object):
     if not self.process_runner:
       raise QemuError('Attempted to `run` QEMU VM before calling `create`')
 
+    # pylint: disable=consider-using-with
     self.logfile = open(QemuProcess.LOG_PATH, 'wb')
     self.popen = self.process_runner.run(
         stdout=self.logfile, stderr=subprocess.PIPE)
@@ -232,17 +237,25 @@ def stop_qemu():
   process_handler.terminate_processes_matching_names('qemu-system-x86_64')
 
 
-def extend_fvm(fuchsia_resources_dir, drive_path):
-  """The FVM is minimally sized to begin with; extend it to make room for
-  ephemeral packages etc."""
+def extend_fvm(fuchsia_resources_dir, orig_drive_path, drive_path):
+  """The FVM is minimally sized to begin with; make an extended copy
+  of it to make room for ephemeral packages etc."""
   fvm_tool_path = os.path.join(fuchsia_resources_dir, 'build', 'out',
                                'default.zircon', 'tools', 'fvm')
   os.chmod(fvm_tool_path, 0o500)
+
+  # Since the fvm tool modifies the image in place, make a copy so the build
+  # isn't mutated (required for running undercoat on a cached build previously
+  # affected by this legacy codepath)
+  shutil.copy(orig_drive_path, drive_path)
+
   process = new_process.ProcessRunner(fvm_tool_path,
                                       [drive_path, 'extend', '--length', '3G'])
   result = process.run_and_wait()
   if result.return_code or result.timed_out:
     raise errors.FuchsiaSdkError('Failed to extend FVM: ' + result.output)
+
+  os.chmod(drive_path, 0o644)
 
 
 def add_keys_to_zbi(fuchsia_resources_dir, initrd_path, fuchsia_zbi):

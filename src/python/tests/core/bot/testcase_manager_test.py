@@ -116,6 +116,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
         '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
         '"build_revision": 123}\n')
 
+    environment.set_value('BOT_NAME', 'hostname.company.com')
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
 
@@ -128,13 +129,15 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     self.mock.write_data.assert_called_once_with(
         b'Component revisions (build r123):\n'
         b'Component: REVISION\nComponent2: REVISION2\n\n'
+        b'Bot name: hostname.company.com\n'
         b'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
 
-  def test_upload_without_timestamp(self):
+  def test_upload_with_hostname(self):
     """Log name should be generated using current (mocked) timestamp value."""
     mock_gsutil = mock.MagicMock()
     self.mock.write_data.return_value = mock_gsutil
+    environment.set_value('BOT_NAME', 'hostname.company.com')
 
     self.fs.create_file(
         self.testcase_path + '.stats2',
@@ -149,6 +152,56 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     self.mock.write_data.assert_called_once_with(
         b'Component revisions (build r123):\n'
         b'Component: REVISION\nComponent2: REVISION2\n\n'
+        b'Bot name: hostname.company.com\n'
+        b'Return code: None\n\nNo output!',
+        'gs://fake-gcs-logs/fuzzer/job/2017-05-15/16:10:28:374119.log')
+
+  def test_upload_with_hostname_and_serial(self):
+    """Log name should be generated using current (mocked) timestamp value."""
+    mock_gsutil = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gsutil
+    environment.set_value('BOT_NAME', 'hostname.company.com')
+    environment.set_value('OS_OVERRIDE', 'ANDROID_KERNEL')
+    environment.set_value('ANDROID_SERIAL', '123456789')
+
+    self.fs.create_file(
+        self.testcase_path + '.stats2',
+        contents='{"stat": 1000, "kind": "TestcaseRun", "job": "job", '
+        '"fuzzer": "fuzzer", "build_revision": 123}\n')
+
+    crash_result = CrashResult(return_code=None, crash_time=None, output=None)
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
+    log_time = testcase_manager._get_testcase_time(self.testcase_path)
+    testcase_manager.upload_log(log, log_time)
+    self.mock.write_data.assert_called_once_with(
+        b'Component revisions (build r123):\n'
+        b'Component: REVISION\nComponent2: REVISION2\n\n'
+        b'Bot name: hostname.company.com\n'
+        b'Device serial: 123456789\n'
+        b'Return code: None\n\nNo output!',
+        'gs://fake-gcs-logs/fuzzer/job/2017-05-15/16:10:28:374119.log')
+
+  def test_upload_without_timestamp(self):
+    """Log name should be generated using current (mocked) timestamp value."""
+    mock_gsutil = mock.MagicMock()
+    self.mock.write_data.return_value = mock_gsutil
+
+    self.fs.create_file(
+        self.testcase_path + '.stats2',
+        contents='{"stat": 1000, "kind": "TestcaseRun", "job": "job", '
+        '"fuzzer": "fuzzer", "build_revision": 123}\n')
+
+    environment.set_value('BOT_NAME', 'hostname.company.com')
+    crash_result = CrashResult(return_code=None, crash_time=None, output=None)
+    log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
+                                                  crash_result.return_code)
+    log_time = testcase_manager._get_testcase_time(self.testcase_path)
+    testcase_manager.upload_log(log, log_time)
+    self.mock.write_data.assert_called_once_with(
+        b'Component revisions (build r123):\n'
+        b'Component: REVISION\nComponent2: REVISION2\n\n'
+        b'Bot name: hostname.company.com\n'
         b'Return code: None\n\nNo output!',
         'gs://fake-gcs-logs/fuzzer/job/2017-05-15/16:10:28:374119.log')
 
@@ -165,6 +218,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
         '"TestcaseRun", "job": "job", "fuzzer": "fuzzer", '
         '"build_revision": 123}\n')
 
+    environment.set_value('BOT_NAME', 'hostname.company.com')
     crash_result = CrashResult(
         return_code=1, crash_time=5, output='fake output')
     log = testcase_manager.prepare_log_for_upload(crash_result.get_stacktrace(),
@@ -176,6 +230,7 @@ class UploadTestcaseOutputTest(fake_filesystem_unittest.TestCase):
     self.mock.write_data.assert_called_once_with(
         b'Component revisions (build r123):\n'
         b'Not available.\n\n'
+        b'Bot name: hostname.company.com\n'
         b'Return code: 1\n\nfake output',
         'gs://fake-gcs-logs/fuzzer/job/2016-09-02/19:59:01:017923.log')
 
@@ -360,9 +415,8 @@ def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-
 class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   """Tests for running testcases."""
 
-  GREYBOX_FUZZER_NO_CRASH = (
-      'Command: cmd\nBot: bot_name\nTime ran: 0\n\noutput')
-  GREYBOX_FUZZER_CRASH = 'Command: cmd\nBot: bot_name\nTime ran: 1\n\ncrash'
+  GREYBOX_FUZZER_NO_CRASH = ('Command: cmd\nTime ran: 0\n\noutput')
+  GREYBOX_FUZZER_CRASH = 'Command: cmd\nTime ran: 1\n\ncrash'
 
   def setUp(self):
     """Setup for testcase running test."""
@@ -406,7 +460,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.fs.create_file('/flags-testcase', contents='-arg1 -arg2')
     self.fs.create_dir('/bot/tmp')
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_blackbox_fail(self):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (blackbox)."""
@@ -440,7 +493,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call("Didn't crash at all.")
     ])
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_greybox_fail(self):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (greybox)."""
@@ -477,7 +529,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             mock.call("Didn't crash at all.")
         ])
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_blackbox_succeed(self):
     """Test test_for_crash_with_retries reproducing a crash (blackbox)."""
     self.mock.run_process.side_effect = [
@@ -512,7 +563,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace is similar to original stacktrace.')
     ])
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_blackbox_succeed_no_comparison(self):
     """Test test_for_crash_with_retries reproducing a crash with compare_crash
     set to False (blackbox)."""
@@ -548,7 +598,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace comparison skipped.')
     ])
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_greybox_succeed(self):
     """Test test_for_crash_with_retries reproducing a crash (greybox)."""
     mock_engine = mock.Mock()
@@ -580,7 +629,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace is similar to original stacktrace.')
     ])
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_greybox_succeed_no_comparison(self):
     """Test test_for_crash_with_retries reproducing a crash with compare_crash
     set to False (greybox)."""
@@ -613,7 +661,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace comparison skipped.')
     ])
 
-  @unittest.skip("skip this flaky test for now.")
   def test_test_for_crash_with_retries_greybox_legacy(self):
     """Test test_for_crash_with_retries reproducing a legacy crash (greybox)."""
     mock_engine = mock.Mock()
@@ -638,7 +685,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace is similar to original stacktrace.')
     ])
 
-  @unittest.skip('flaky test')
   def test_test_for_reproducibility_blackbox_succeed(self):
     """Test test_for_reproducibility with success on all runs (blackbox)."""
     self.mock.run_process.return_value = (1, 1, 'crash')
@@ -665,7 +711,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash is reproducible.'),
     ])
 
-  @unittest.skip('flaky test')
   def test_test_for_reproducibility_blackbox_succeed_after_multiple_tries(self):
     """Test test_for_reproducibility with failure on first run and then succeed
     on remaining runs (blackbox)."""

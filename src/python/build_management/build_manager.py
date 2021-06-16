@@ -78,9 +78,10 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-showmap',
     'afl-tmin',
     'honggfuzz',
-    'llvm-symbolizer',
-    'jazzer_driver',
     'jazzer_agent_deploy.jar',
+    'jazzer_driver',
+    'jazzer_driver_with_sanitizer',
+    'llvm-symbolizer',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
@@ -824,6 +825,10 @@ class FuchsiaBuild(RegularBuild):
     # Decide per-build whether to use undercoat, based on rollout level
     rollout_level = environment.get_value('FUCHSIA_UNDERCOAT_ROLLOUT_LEVEL', 0)
     self.use_undercoat = random.random() < rollout_level
+
+    # Initially, only use undercoat for fuzz tasks
+    if environment.get_value('TASK_NAME') != 'fuzz':
+      self.use_undercoat = False
 
     # Used by platforms.fuchsia.util
     environment.set_value(
