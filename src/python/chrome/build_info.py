@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for fetching build info from OmahaProxy."""
 
+import json
 import re
 
 from base import utils
@@ -22,6 +23,7 @@ BUILD_INFO_PATTERN = ('([a-z]+),([a-z]+),([0-9.]+),'
                       '[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,'
                       '([0-9a-f]+),.*')
 BUILD_INFO_URL = 'https://omahaproxy.appspot.com/all?csv=1'
+BUILD_INFO_URL_CD = 'https://chromiumdash.appspot.com/fetch_releases?num=1&platform=%s' # pylint: disable=line-too-long
 
 
 class BuildInfo(object):
@@ -42,6 +44,13 @@ def _convert_platform_to_omahaproxy_platform(platform):
     return 'win'
   return platform_lower
 
+def _convert_platform_to_chromiumdash_platform(platform):
+  """Converts platform to Chromium Dash platform.
+  Note that Windows in Chromium Dash is win64 and we only want win32."""
+  platform_lower = platform.lower()
+  if platform_lower == 'windows' or platform_lower == 'win':
+    return 'Win32'
+  return platform_lower.capitalize()
 
 def get_production_builds_info(platform):
   """Gets the build information for production builds.
@@ -74,6 +83,38 @@ def get_production_builds_info(platform):
 
   return builds_metadata
 
+def get_production_builds_info_from_CD(platform):
+  """Gets the build information from Chromium Dash for production builds.
+
+  Omits platforms containing digits, namely, win64.
+  Omits channels containing underscore, namely, canary_asan.
+  Platform is e.g. ANDROID, LINUX, MAC, WIN.
+  """
+  builds_metadata = []
+  chromiumdash_platform = _convert_platform_to_chromiumdash_platform(platform)
+  query_url = BUILD_INFO_URL_CD % chromiumdash_platform
+
+  build_info = utils.fetch_url(query_url)
+  if not build_info:
+    logs.log_error('Failed to fetch build info from %s' % query_url)
+    return []
+
+  try:
+    build_info_json = json.loads(build_info)
+    if not len(build_info_json):
+      logs.log_error('Empty response from %s' % query_url)
+      return []
+  except Exception as e:
+    logs.log_error('Malformed response from %s: %s' % (query_url, str(e)))
+    return []
+
+  for info in build_info_json:
+    build_type = info['channel'].lower()
+    version = info['version']
+    revision = info['hashes']['chromium']
+    builds_metadata.append(BuildInfo(platform, build_type, version, revision))
+
+  return builds_metadata
 
 def get_release_milestone(build_type, platform):
   """Return milestone for a particular release."""
@@ -82,7 +123,7 @@ def get_release_milestone(build_type, platform):
   else:
     actual_build_type = build_type
 
-  builds_metadata = get_production_builds_info(platform)
+  builds_metadata = get_production_builds_info_from_CD(platform)
   for build_metadata in builds_metadata:
     if build_metadata.build_type == actual_build_type:
       version_parts = build_metadata.version.split('.')
