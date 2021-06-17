@@ -25,6 +25,7 @@ DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'build_info_data')
 ALL_CSV = os.path.join(DATA_DIRECTORY, 'all.csv')
 CD_ALL = os.path.join(DATA_DIRECTORY, 'chromium_dash_res_all.json')
 
+
 class BuildInfoTest(unittest.TestCase):
   """Tests BuildInfo utilities."""
 
@@ -37,7 +38,9 @@ class BuildInfoTest(unittest.TestCase):
       if url == build_info.BUILD_INFO_URL:
         return open(ALL_CSV, 'r').read()
 
-      match = re.match('https://chromiumdash\.appspot\.com/fetch_releases\?num=1&platform=([a-zA-Z0-9]+)', url)
+      match = re.match(
+          r'https://chromiumdash\.appspot\.com/fetch_releases\?num=1&platform=([a-zA-Z0-9]+)',  # pylint: disable=line-too-long
+          url)
       if match:
         res = []
         with open(CD_ALL, 'r') as all_info:
@@ -83,31 +86,31 @@ class BuildInfoTest(unittest.TestCase):
     self._validate_build_info_list(
         build_info.get_production_builds_info('foo'), [])
 
-  def test_get_valid_platform_CD(self):
+  def test_get_valid_platform_cd(self):
     """Tests if a valid platform (WIN) results in the correct metadata list from
        ChromiumDash."""
     self._validate_build_info_list(
-        build_info.get_production_builds_info_from_CD('WINDOWS'),
+        build_info.get_production_builds_info_from_cd('WINDOWS'),
         [
-          # Note that canary_asan and win64 are omitted.
-          ('WINDOWS', 'beta', '92.0.4515.59',
-           '84b5be88515123ee5a6b31eba88ed7c64f67c889'),
-          ('WINDOWS', 'canary', '93.0.4544.0',
-           '85ad99d44a476ddb896632c12c405461a88b6a10'),
-          ('WINDOWS', 'dev', '93.0.4542.2',
-           'd6bad5ddc56072ecfc90afb6448b10420aefdd6b'),
-          ('WINDOWS', 'stable', '91.0.4472.106',
-           '1b673f6c28b5095292d5b9cabb1d72cc8bee25fa'),
-          ('WINDOWS', 'extended', '91.0.4472.106',
-           '1b673f6c28b5095292d5b9cabb1d72cc8bee25fa'),
+            # Note that canary_asan and win64 are omitted.
+            ('WINDOWS', 'beta', '92.0.4515.59',
+             '84b5be88515123ee5a6b31eba88ed7c64f67c889'),
+            ('WINDOWS', 'canary', '93.0.4544.0',
+             '85ad99d44a476ddb896632c12c405461a88b6a10'),
+            ('WINDOWS', 'dev', '93.0.4542.2',
+             'd6bad5ddc56072ecfc90afb6448b10420aefdd6b'),
+            ('WINDOWS', 'stable', '91.0.4472.106',
+             '1b673f6c28b5095292d5b9cabb1d72cc8bee25fa'),
+            ('WINDOWS', 'extended', '91.0.4472.106',
+             '1b673f6c28b5095292d5b9cabb1d72cc8bee25fa'),
         ])
 
-  def test_get_invalid_platform_CD(self):
+  def test_get_invalid_platform_cd(self):
     """Tests if an invalid platform results in the correct (empty) list."""
     self._validate_build_info_list(
-        build_info.get_production_builds_info_from_CD('foo'), [])
+        build_info.get_production_builds_info_from_cd('foo'), [])
 
-  def test_get_milestone_for_release_CD(self):
+  def test_get_milestone_for_release_cd(self):
     """Tests get_milestone_for_release."""
     for platform in ['android', 'linux', 'mac', 'windows']:
       self.assertEqual(build_info.get_release_milestone('stable', platform), 91)
