@@ -23,7 +23,8 @@ BUILD_INFO_PATTERN = ('([a-z]+),([a-z]+),([0-9.]+),'
                       '[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,'
                       '([0-9a-f]+),.*')
 BUILD_INFO_URL = 'https://omahaproxy.appspot.com/all?csv=1'
-BUILD_INFO_URL_CD = 'https://chromiumdash.appspot.com/fetch_releases?num=1&platform=%s'  # pylint: disable=line-too-long
+BUILD_INFO_URL_CD = ('https://chromiumdash.appspot.com/fetch_releases?'
+                     'num=1&platform={platform}')
 
 
 class BuildInfo(object):
@@ -95,7 +96,7 @@ def get_production_builds_info_from_cd(platform):
   """
   builds_metadata = []
   chromiumdash_platform = _convert_platform_to_chromiumdash_platform(platform)
-  query_url = BUILD_INFO_URL_CD % chromiumdash_platform
+  query_url = BUILD_INFO_URL_CD.format(platform=chromiumdash_platform)
 
   build_info = utils.fetch_url(query_url)
   if not build_info:
@@ -104,11 +105,11 @@ def get_production_builds_info_from_cd(platform):
 
   try:
     build_info_json = json.loads(build_info)
-    if len(build_info_json) == 0:
+    if not build_info_json:
       logs.log_error('Empty response from %s' % query_url)
       return []
-  except Exception as e:
-    logs.log_error('Malformed response from %s: %s' % (query_url, str(e)))
+  except Exception:
+    logs.log_error('Malformed response from %s' % query_url)
     return []
 
   for info in build_info_json:

@@ -39,17 +39,17 @@ class BuildInfoTest(unittest.TestCase):
         return open(ALL_CSV, 'r').read()
 
       match = re.match(
-          r'https://chromiumdash\.appspot\.com/fetch_releases\?num=1&platform=([a-zA-Z0-9]+)',  # pylint: disable=line-too-long
-          url)
-      if match:
-        res = []
-        with open(CD_ALL, 'r') as all_info:
-          info_json = json.load(all_info)
-          for info in info_json:
-            if info['platform'] == match.group(1):
-              res.append(info)
-        return json.dumps(res)
-      return None
+          r'https://chromiumdash\.appspot\.com/fetch_releases\?'
+          r'num=1&platform=([a-zA-Z0-9]+)', url)
+      if not match:
+        return None
+      res = []
+      with open(CD_ALL, 'r') as all_info:
+        info_json = json.load(all_info)
+        for info in info_json:
+          if info['platform'] == match.group(1):
+            res.append(info)
+      return json.dumps(res)
 
     self.mock.fetch_url.side_effect = _fetch_url
 

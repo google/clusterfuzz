@@ -55,8 +55,8 @@ def main():
   try:
     builds_metadata = build_info.get_production_builds_info_from_cd(
         environment.platform())
-  except Exception as e:
-    logs.log_error('Errors when fetching from ChromiumDash: %s' % str(e))
+  except Exception:
+    logs.log_error('Errors when fetching from ChromiumDash')
     # fallback to omahaproxy in the transition stage
     # TODO(yuanjunh): remove the fallback logic after migration is done.
     builds_metadata = build_info.get_production_builds_info(
