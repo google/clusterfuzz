@@ -588,7 +588,11 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
     comment = _append_generic_incorrect_comment(comment, policy, issue,
                                                 ' and re-open the issue.')
 
-  issue.status = policy.status('wontfix')
+  skip_auto_close = data_handler.get_value_from_job_definition(
+      testcase.job_type, 'SKIP_AUTO_CLOSE_ISSUE')
+  if not skip_auto_close:
+    issue.status = policy.status('wontfix')
+
   issue.save(new_comment=comment, notify=True)
   testcase.fixed = 'NA'
   testcase.open = False
@@ -629,7 +633,11 @@ def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
   comment = (f'ClusterFuzz testcase {testcase.key.id()} is closed as invalid, '
              'so closing issue.')
 
-  issue.status = policy.status('wontfix')
+  skip_auto_close = data_handler.get_value_from_job_definition(
+      testcase.job_type, 'SKIP_AUTO_CLOSE_ISSUE')
+  if not skip_auto_close:
+    issue.status = policy.status('wontfix')
+
   issue.save(new_comment=comment, notify=True)
   logs.log(
       f'Closing issue {issue.id} for invalid testcase {testcase.key.id()}.')
