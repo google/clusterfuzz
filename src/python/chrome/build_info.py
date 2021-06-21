@@ -50,7 +50,7 @@ def _convert_platform_to_chromiumdash_platform(platform):
   """Converts platform to Chromium Dash platform.
   Note that Windows in Chromium Dash is win64 and we only want win32."""
   platform_lower = platform.lower()
-  if platform_lower in ('windows', 'win'):
+  if platform_lower == 'windows':
     return 'Win32'
   return platform_lower.capitalize()
 
@@ -92,7 +92,7 @@ def get_production_builds_info_from_cd(platform):
 
   Omits platforms containing digits, namely, win64.
   Omits channels containing underscore, namely, canary_asan.
-  Platform is e.g. ANDROID, LINUX, MAC, WIN.
+  Platform is e.g. ANDROID, LINUX, MAC, WINDOWS.
   """
   builds_metadata = []
   chromiumdash_platform = _convert_platform_to_chromiumdash_platform(platform)
@@ -138,6 +138,6 @@ def get_release_milestone(build_type, platform):
 
   if actual_build_type == 'canary':
     # If there is no canary for that platform, just return canary from windows.
-    return get_release_milestone('canary', 'win')
+    return get_release_milestone('canary', 'windows')
 
   return None
