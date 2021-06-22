@@ -335,6 +335,7 @@ indexes:
   - name: impact_extended_stable_version
   - name: impact_stable_version
   - name: impact_beta_version
+  - name: impact_head_version
   - name: timestamp
 
 - kind: Testcase
@@ -350,6 +351,7 @@ indexes:
   - name: impact_beta_version
   - name: impact_stable_version
   - name: impact_extended_stable_version
+  - name: impact_head_version
   - name: is_impact_set_flag
   - name: job_type
   - name: one_time_crasher_flag
