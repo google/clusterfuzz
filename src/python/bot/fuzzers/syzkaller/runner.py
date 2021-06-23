@@ -51,6 +51,7 @@ def get_config():
   syzhub_address = environment.get_value('SYZHUB_ADDRESS')
   syzhub_client = environment.get_value('SYZHUB_CLIENT')
   syzhub_key = environment.get_value('SYZHUB_KEY')
+  on_cuttlefish = environment.is_android_cuttlefish()
 
   config.generate(
       serial=device_serial,
@@ -62,7 +63,8 @@ def get_config():
       reproduce=False,
       syzhub_address=syzhub_address,
       syzhub_client=syzhub_client,
-      syzhub_key=syzhub_key)
+      syzhub_key=syzhub_key,
+      on_cuttlefish=on_cuttlefish)
   return ['-config', json_config_path]
 
 

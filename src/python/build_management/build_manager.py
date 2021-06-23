@@ -864,6 +864,38 @@ class FuchsiaBuild(RegularBuild):
     return True
 
 
+class CuttlefishKernelBuild(RegularBuild):
+  """Represents a Android Cuttlefish kernel build."""
+
+  def setup(self):
+    """Android kernel build setup."""
+    from platforms.android import adb
+
+    result = super().setup()
+    if not result:
+      return result
+
+    environment.set_value('VMLINUX_PATH', self.build_dir)
+
+    cvd_dir = environment.get_value('CVD_DIR')
+    adb.stop_cuttlefish_device()
+
+    for image_filename in ['bzImage', 'initramfs.img']:
+      # Delete existing kernel image.
+      rm_cmd = f'rm {cvd_dir}/{image_filename}'
+      adb.execute_command(
+          rm_cmd, timeout=adb.RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+
+      # Copy new kernel image to Cuttlefish.
+      image_src = os.path.join(self.build_dir, image_filename)
+      image_dest = os.path.join(cvd_dir, image_filename)
+      adb.copy_to_cuttlefish(image_src, image_dest)
+
+    adb.start_cuttlefish_device(use_kernel=True)
+
+    return True
+
+
 class AndroidEmulatorBuild(RegularBuild):
   """Represents an Android Emulator build."""
 
@@ -1356,6 +1388,8 @@ def setup_regular_build(revision,
     build_class = FuchsiaBuild
   elif environment.is_android_emulator():
     build_class = AndroidEmulatorBuild
+  elif environment.is_kernel_fuzzer_job():
+    build_class = CuttlefishKernelBuild
 
   build = build_class(
       base_build_dir,
