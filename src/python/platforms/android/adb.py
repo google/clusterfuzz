@@ -45,6 +45,7 @@ KERNEL_LOG_FILES = [
     '/sys/fs/pstore/console-ramoops',
 ]
 MONKEY_PROCESS_NAME = 'monkey'
+WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
 STOP_CVD_WAIT = 20
@@ -604,7 +605,7 @@ def run_command(cmd,
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
-  if not recover or environment.is_android_emulator():
+  if not recover:
     if log_output:
       logs.log('Output: (%s)' % output)
     return output
@@ -727,7 +728,8 @@ def time_since_last_reboot():
 
 def wait_for_device(recover=True):
   """Waits indefinitely for the device to come online."""
-  run_command('wait-for-device', timeout=ADB_TIMEOUT, recover=recover)
+  run_command(
+      'wait-for-device', timeout=WAIT_FOR_DEVICE_TIMEOUT, recover=recover)
 
 
 def wait_until_fully_booted():
