@@ -727,7 +727,7 @@ def time_since_last_reboot():
 
 def wait_for_device(recover=True):
   """Waits indefinitely for the device to come online."""
-  run_command('wait-for-device', timeout=RECOVERY_CMD_TIMEOUT, recover=recover)
+  run_command('wait-for-device', timeout=ADB_TIMEOUT, recover=recover)
 
 
 def wait_until_fully_booted():
