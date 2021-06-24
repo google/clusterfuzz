@@ -247,7 +247,7 @@ def get_impacts_on_prod_builds(testcase, testcase_file_path):
   # Always record the affected head version.
   start_revision, end_revision = get_start_and_end_revision(
       testcase.regression, testcase.job_type)
-  build_revision_mappings = revisions.get_build_to_revision_mappings(None)
+  build_revision_mappings = revisions.get_build_to_revision_mappings()
   impacts.head = get_head_impact(build_revision_mappings, start_revision,
                                  end_revision)
 
