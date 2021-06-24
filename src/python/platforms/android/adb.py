@@ -45,6 +45,7 @@ KERNEL_LOG_FILES = [
     '/sys/fs/pstore/console-ramoops',
 ]
 MONKEY_PROCESS_NAME = 'monkey'
+WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
 STOP_CVD_WAIT = 20
@@ -152,6 +153,7 @@ def execute_command(cmd, timeout=None, log_error=True,
   thread.start()
   thread.join(timeout)
   if thread.is_alive():
+    logs.log_warn('Command %s timed out. Killing process.' % cmd)
     try:
       pipe.kill()
     except OSError:
@@ -727,7 +729,8 @@ def time_since_last_reboot():
 
 def wait_for_device(recover=True):
   """Waits indefinitely for the device to come online."""
-  run_command('wait-for-device', timeout=RECOVERY_CMD_TIMEOUT, recover=recover)
+  run_command(
+      'wait-for-device', timeout=WAIT_FOR_DEVICE_TIMEOUT, recover=recover)
 
 
 def wait_until_fully_booted():
