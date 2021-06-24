@@ -153,6 +153,7 @@ def execute_command(cmd, timeout=None, log_error=True,
   thread.start()
   thread.join(timeout)
   if thread.is_alive():
+    logs.log_warn('Command %s timed out. Killing process.' % cmd)
     try:
       pipe.kill()
     except OSError:
@@ -605,7 +606,7 @@ def run_command(cmd,
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
-  if not recover:
+  if not recover or environment.is_android_emulator():
     if log_output:
       logs.log('Output: (%s)' % output)
     return output
