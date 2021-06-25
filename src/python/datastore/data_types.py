@@ -550,6 +550,15 @@ class Testcase(Model):
   # comment on impact_stable_version_likely.
   impact_beta_version_likely = ndb.BooleanProperty()
 
+  # The impacted 'head' version
+  impact_head_version = ndb.StringProperty()
+
+  # The impacted head version indices.
+  impact_head_version_indices = ndb.StringProperty(repeated=True)
+
+  # The impacted head version is likely.
+  impact_head_version_likely = ndb.BooleanProperty()
+
   # Whether or not impact task has been run on this testcase.
   is_impact_set_flag = ndb.BooleanProperty()
 
@@ -600,9 +609,12 @@ class Testcase(Model):
           search_tokenizer.tokenize_impact_version(self.impact_stable_version))
       self.impact_beta_version_indices = (
           search_tokenizer.tokenize_impact_version(self.impact_beta_version))
+      self.impact_head_version_indices = (
+          search_tokenizer.tokenize_impact_version(self.impact_head_version))
       self.impact_version_indices = list(
           set(self.impact_extended_stable_version_indices +
               self.impact_stable_version_indices +
+              self.impact_head_version_indices +
               self.impact_beta_version_indices))
       if self.impact_extended_stable_version:
         self.impact_version_indices.append('extended_stable')

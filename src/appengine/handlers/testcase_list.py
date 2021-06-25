@@ -46,6 +46,7 @@ FIELDS = [
     'impact_extended_stable_version',
     'impact_stable_version',
     'impact_beta_version',
+    'impact_head_version',
     'is_impact_set_flag',
 ]
 
@@ -70,6 +71,7 @@ KEYWORD_FILTERS = [
     filters.String('bug_indices', 'issue'),
     filters.String('platform', 'platform'),
     filters.String('impact_extended_stable_version_indices', 'extended_stable'),
+    filters.String('impact_head_version_indices', 'head'),
     filters.String('impact_stable_version_indices', 'stable'),
     filters.String('impact_beta_version_indices', 'beta'),
     filters.String('fuzzer_name_indices', 'fuzzer'),
@@ -145,6 +147,7 @@ def get_result():
             'extendedStable': testcase.impact_extended_stable_version,
             'stable': testcase.impact_stable_version,
             'beta': testcase.impact_beta_version,
+            'head': testcase.impact_head_version,
         },
         'regressionRange': regression_range,
         'fixedRange': fixed_range,

@@ -204,7 +204,7 @@ def update_issue_foundin_labels(testcase, issue):
   versions_foundin = [
       x for x in [
           testcase.impact_beta_version, testcase.impact_stable_version,
-          testcase.impact_extended_stable_version
+          testcase.impact_extended_stable_version, testcase.impact_head_version
       ] if x
   ]
   milestones_foundin = {x.split('.')[0] for x in versions_foundin}

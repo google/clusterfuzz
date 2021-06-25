@@ -56,22 +56,25 @@ class Impact(object):
 class Impacts(object):
   """Represents extended stable, stable and beta impacts."""
 
-  def __init__(self, stable=None, beta=None, extended_stable=None):
+  def __init__(self, stable=None, beta=None, extended_stable=None, head=None):
     self.stable = stable or Impact()
     self.beta = beta or Impact()
     self.extended_stable = extended_stable or Impact()
+    self.head = head or Impact()
 
   def is_empty(self):
     return (self.extended_stable.is_empty() and self.stable.is_empty() and
-            self.beta.is_empty())
+            self.beta.is_empty() and self.head.is_empty())
 
   def get_extra_trace(self):
-    return (self.extended_stable.extra_trace + '\n' + self.stable.extra_trace +
-            '\n' + self.beta.extra_trace).strip()
+    return (
+        self.extended_stable.extra_trace + '\n' + self.stable.extra_trace + '\n'
+        + self.beta.extra_trace + '\n' + self.head.extra_trace).strip()
 
   def __eq__(self, other):
     return (self.extended_stable == other.extended_stable and
-            self.stable == other.stable and self.beta == other.beta)
+            self.stable == other.stable and self.beta == other.beta and
+            self.head == other.head)
 
 
 def get_chromium_component_start_and_end_revision(start_revision, end_revision,
@@ -135,12 +138,16 @@ def get_component_impacts_from_url(component_name,
     return Impacts()
 
   found_impacts = dict()
-  for build in ['extended_stable', 'stable', 'beta']:
+  for build in ['extended_stable', 'stable', 'beta', 'canary']:
     mapping = build_revision_mappings.get(build)
     # TODO(yuanjunh): bypass for now but remove it after ES is enabled.
     if build == 'extended_stable' and not mapping:
       found_impacts[build] = Impact()
       continue
+    # Some platforms don't have canary, so use dev to represent
+    # the affected head version.
+    if build == 'canary' and not mapping:
+      mapping = build_revision_mappings.get('dev')
     if not mapping:
       return Impacts()
     chromium_revision = mapping['revision']
@@ -158,7 +165,7 @@ def get_component_impacts_from_url(component_name,
     }, start_revision, end_revision)
     found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'],
-                 found_impacts['extended_stable'])
+                 found_impacts['extended_stable'], found_impacts['canary'])
 
 
 def get_impacts_from_url(regression_range, job_type, platform=None):
@@ -184,8 +191,9 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
       build_revision_mappings.get('stable'), start_revision, end_revision)
   beta = get_impact(
       build_revision_mappings.get('beta'), start_revision, end_revision)
+  head = get_head_impact(build_revision_mappings, start_revision, end_revision)
 
-  return Impacts(stable, beta, extended_stable)
+  return Impacts(stable, beta, extended_stable, head)
 
 
 def get_impact(build_revision, start_revision, end_revision):
@@ -236,7 +244,22 @@ def get_impacts_on_prod_builds(testcase, testcase_file_path):
     # TODO(yuanjunh): undo the exception bypass for ES.
     logs.log_warn('Caught errors in getting impact on extended stable: %s' % e)
 
+  # Always record the affected head version.
+  start_revision, end_revision = get_start_and_end_revision(
+      testcase.regression, testcase.job_type)
+  build_revision_mappings = revisions.get_build_to_revision_mappings()
+  impacts.head = get_head_impact(build_revision_mappings, start_revision,
+                                 end_revision)
+
   return impacts
+
+
+def get_head_impact(build_revision_mappings, start_revision, end_revision):
+  """Return the impact on 'head', i.e. the latest build we can find."""
+  latest_build = build_revision_mappings.get('canary')
+  if latest_build is None:
+    latest_build = build_revision_mappings.get('dev')
+  return get_impact(latest_build, start_revision, end_revision)
 
 
 def get_impact_on_build(build_type, current_version, testcase,
@@ -292,6 +315,8 @@ def set_testcase_with_impacts(testcase, impacts):
   testcase.impact_stable_version_likely = impacts.stable.likely
   testcase.impact_beta_version = impacts.beta.version
   testcase.impact_beta_version_likely = impacts.beta.likely
+  testcase.impact_head_version = impacts.head.version
+  testcase.impact_head_version_likely = impacts.head.likely
   testcase.is_impact_set_flag = True
 
 
