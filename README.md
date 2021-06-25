@@ -37,7 +37,7 @@ a software project's development process:
 You can find detailed documentation [here](https://google.github.io/clusterfuzz).
 
 ## Trophies
-As of Febraury 2021, ClusterFuzz has found ~29,000 bugs in Google (e.g. [Chrome])
+As of February 2021, ClusterFuzz has found ~29,000 bugs in Google (e.g. [Chrome])
 and [26,000+] bugs in over [400] open source projects integrated with [OSS-Fuzz].
 
 ## Getting Help
