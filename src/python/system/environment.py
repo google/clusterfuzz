@@ -1066,6 +1066,14 @@ def is_android_emulator(plt=None):
   return 'ANDROID_EMULATOR' == (plt or platform())
 
 
+def is_android_kernel(plt=None):
+  """Return true if we are running android kernel jobs."""
+  if not plt:
+    queue_override = get_value('QUEUE_OVERRIDE')
+    plt = queue_override if queue_override else platform()
+  return 'ANDROID_KERNEL' in plt
+
+
 def is_lib():
   """Whether or not we're in libClusterFuzz."""
   return get_value('ROOT_DIR') is None
