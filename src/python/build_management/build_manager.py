@@ -878,10 +878,10 @@ class CuttlefishKernelBuild(RegularBuild):
       return result
 
     # Download syzkaller binary folder.
-    if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
-      logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set for syzkaller.')
+    if not environment.get_value('SYZKALLER_BUCKET_PATH'):
+      logs.log_error('SYZKALLER_BUCKET_PATH is not set for syzkaller.')
       return False
-    archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
+    archive_src_path = environment.get_value('SYZKALLER_BUCKET_PATH')
     archive_dst_path = os.path.join(self.build_dir, 'syzkaller.zip')
     storage.copy_file_from(archive_src_path, archive_dst_path)
 

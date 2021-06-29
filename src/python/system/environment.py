@@ -1067,11 +1067,8 @@ def is_android_emulator(plt=None):
 
 
 def is_android_kernel(plt=None):
-  """Return true if we are running android kernel jobs."""
-  if not plt:
-    queue_override = get_value('QUEUE_OVERRIDE')
-    plt = queue_override if queue_override else platform()
-  return 'ANDROID_KERNEL' in plt
+  """Return true if we are on android kernel platform groups."""
+  return 'ANDROID_KERNEL' in (plt or get_platform_group())
 
 
 def is_lib():
