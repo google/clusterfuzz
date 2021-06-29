@@ -93,16 +93,16 @@ class BuildInfoTest(unittest.TestCase):
         build_info.get_production_builds_info_from_cd('WINDOWS'),
         [
             # Note that canary_asan and win64 are omitted.
-            ('WINDOWS', 'beta', '92.0.4515.59',
-             '84b5be88515123ee5a6b31eba88ed7c64f67c889'),
-            ('WINDOWS', 'canary', '93.0.4544.0',
-             '85ad99d44a476ddb896632c12c405461a88b6a10'),
-            ('WINDOWS', 'dev', '93.0.4542.2',
-             'd6bad5ddc56072ecfc90afb6448b10420aefdd6b'),
-            ('WINDOWS', 'stable', '91.0.4472.106',
-             '1b673f6c28b5095292d5b9cabb1d72cc8bee25fa'),
-            ('WINDOWS', 'extended', '91.0.4472.106',
-             '1b673f6c28b5095292d5b9cabb1d72cc8bee25fa'),
+            ('WINDOWS', 'canary', '93.0.4557.2',
+             '2023bf9b459f1d7798ffcb93de0ff5bf9556a4a6'),
+            ('WINDOWS', 'stable', '91.0.4472.124',
+             '7a7e35991d61ce564ed3641222da2c4ed7a65535'),
+            ('WINDOWS', 'beta', '92.0.4515.70',
+             'f8707b75c2349225c3c846d9016daf10a75abefb'),
+            ('WINDOWS', 'dev', '93.0.4549.3',
+             'bf8816161669f47681d64fb77c5e2317d1873de1'),
+            ('WINDOWS', 'extended', '91.0.4472.114',
+             'c1e1dff6f551c4aab8578ec695825cc9b27d51e6'),
         ])
 
   def test_get_invalid_platform_cd(self):
@@ -123,24 +123,24 @@ class BuildInfoTest(unittest.TestCase):
     result = build_info.get_build_to_revision_mappings('WINDOWS')
     expected_result = {
       'beta': {
-        'revision': '398287',
-        'version': '92.0.4515.59'
+        'revision': '885287',
+        'version': '92.0.4515.70'
       },
       'canary': {
-        'revision': '399171',
-        'version': '93.0.4544.0'
+        'revision': '896380',
+        'version': '93.0.4557.2'
       },
       'dev': {
-        'revision': '400000',
-        'version': '93.0.4542.2'
+        'revision': '894125',
+        'version': '93.0.4549.3'
       },
       'stable': {
-        'revision': '400000',
-        'version': '91.0.4472.106'
+        'revision': '870763',
+        'version': '91.0.4472.124'
       },
       'extended': {
-        'revision': '400000',
-        'version': '91.0.4472.106'
+        'revision': '870763',
+        'version': '91.0.4472.114'
       }
     }
     self.assertDictEqual(result, expected_result)

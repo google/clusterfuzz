@@ -55,6 +55,7 @@ def _convert_platform_to_chromiumdash_platform(platform):
     return 'Win32'
   return platform_lower.capitalize()
 
+
 def _fetch_releases_from_chromiumdash(platform):
   """Makes a Call to chromiumdash's fetch_releases api,
   and returns its json array response."""
@@ -74,6 +75,8 @@ def _fetch_releases_from_chromiumdash(platform):
   except Exception:
     logs.log_error('Malformed response from %s' % query_url)
     return []
+
+  return build_info_json
 
 
 def get_production_builds_info(platform):
@@ -158,7 +161,7 @@ def get_build_to_revision_mappings(platform=None):
   for info in build_info_json:
     build_type = info['channel'].lower()
     version = info['version']
-    revision = info['chromium_main_branch_position']
+    revision = str(info['chromium_main_branch_position'])
     result[build_type] = {'revision': revision, 'version': version}
 
   return result
