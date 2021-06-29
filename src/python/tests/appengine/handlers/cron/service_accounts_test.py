@@ -32,5 +32,5 @@ class ServiceAccountIdTest(unittest.TestCase):
         service_accounts._service_account_id('a' * 26), 'bot-%s' % ('a' * 26))  # pylint: disable=protected-access
 
   def test_more_than_max_length(self):
-    with self.assertRaises(AssertionError):
-      service_accounts._service_account_id('a' * 27)  # pylint: disable=protected-access
+    self.assertEqual('bot-52a00b8461593ce33409d7c5d0',
+                     service_accounts._service_account_id('a' * 27))  # pylint: disable=protected-access
