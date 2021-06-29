@@ -139,10 +139,10 @@ def get_component_impacts_from_url(component_name,
     return Impacts()
 
   found_impacts = dict()
-  for build in ['extended', 'stable', 'beta', 'canary']:
+  for build in ['extended_stable', 'stable', 'beta', 'canary']:
     mapping = build_revision_mappings.get(build)
     # TODO(yuanjunh): bypass for now but remove it after ES is enabled.
-    if build == 'extended' and not mapping:
+    if build == 'extended_stable' and not mapping:
       found_impacts[build] = Impact()
       continue
     # Some platforms don't have canary, so use dev to represent
@@ -186,7 +186,7 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
     return Impacts()
 
   extended_stable = get_impact(
-      build_revision_mappings.get('extended'), start_revision,
+      build_revision_mappings.get('extended_stable'), start_revision,
       end_revision)
   stable = get_impact(
       build_revision_mappings.get('stable'), start_revision, end_revision)

@@ -18,7 +18,6 @@ import base64
 import bisect
 import os
 import re
-import requests
 import six
 import time
 import urllib.parse
@@ -639,9 +638,8 @@ def needs_update(revision_file, revision):
     file_exists = True
 
     try:
-      file_handle = open(revision_file, 'r')
-      current_revision = file_handle.read()
-      file_handle.close()
+      with open(revision_file, 'r') as file_handle:
+        current_revision = file_handle.read()
     except:
       logs.log_error(
           'Error occurred while reading revision file %s.' % revision_file)

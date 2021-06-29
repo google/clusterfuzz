@@ -101,7 +101,7 @@ class BuildInfoTest(unittest.TestCase):
              'f8707b75c2349225c3c846d9016daf10a75abefb'),
             ('WINDOWS', 'dev', '93.0.4549.3',
              'bf8816161669f47681d64fb77c5e2317d1873de1'),
-            ('WINDOWS', 'extended', '91.0.4472.114',
+            ('WINDOWS', 'extended_stable', '91.0.4472.114',
              'c1e1dff6f551c4aab8578ec695825cc9b27d51e6'),
         ])
 
@@ -122,26 +122,26 @@ class BuildInfoTest(unittest.TestCase):
        ChromiumDash."""
     result = build_info.get_build_to_revision_mappings('WINDOWS')
     expected_result = {
-      'beta': {
-        'revision': '885287',
-        'version': '92.0.4515.70'
-      },
-      'canary': {
-        'revision': '896380',
-        'version': '93.0.4557.2'
-      },
-      'dev': {
-        'revision': '894125',
-        'version': '93.0.4549.3'
-      },
-      'stable': {
-        'revision': '870763',
-        'version': '91.0.4472.124'
-      },
-      'extended': {
-        'revision': '870763',
-        'version': '91.0.4472.114'
-      }
+        'beta': {
+            'revision': '885287',
+            'version': '92.0.4515.70'
+        },
+        'canary': {
+            'revision': '896380',
+            'version': '93.0.4557.2'
+        },
+        'dev': {
+            'revision': '894125',
+            'version': '93.0.4549.3'
+        },
+        'stable': {
+            'revision': '870763',
+            'version': '91.0.4472.124'
+        },
+        'extended_stable': {
+            'revision': '870763',
+            'version': '91.0.4472.114'
+        }
     }
     self.assertDictEqual(result, expected_result)
 

@@ -122,6 +122,9 @@ def get_production_builds_info_from_cd(platform):
   build_info_json = _fetch_releases_from_chromiumdash(platform)
   for info in build_info_json:
     build_type = info['channel'].lower()
+    if build_type == 'extended':
+      build_type = 'extended_stable'
+
     version = info['version']
     revision = info['hashes']['chromium']
     builds_metadata.append(BuildInfo(platform, build_type, version, revision))
@@ -150,6 +153,7 @@ def get_release_milestone(build_type, platform):
 
   return None
 
+
 def get_build_to_revision_mappings(platform=None):
   """Gets the build information."""
   if not platform:
@@ -160,6 +164,9 @@ def get_build_to_revision_mappings(platform=None):
 
   for info in build_info_json:
     build_type = info['channel'].lower()
+    if build_type == 'extended':
+      build_type = 'extended_stable'
+
     version = info['version']
     revision = str(info['chromium_main_branch_position'])
     result[build_type] = {'revision': revision, 'version': version}
