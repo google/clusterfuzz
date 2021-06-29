@@ -18,6 +18,11 @@ import googleapiclient
 
 from base import utils
 
+_ACCOUNT_PREFIX = 'bot-'
+_MIN_LEN = 6
+_MAX_LEN = 30
+_HASH_PREFIX_LEN = _MAX_LEN - len(_ACCOUNT_PREFIX)
+
 
 def _create_client(service_name, version='v1'):
   """Create a googleapiclient client."""
@@ -38,19 +43,21 @@ def _service_account_id(project):
   # and a stable unique id. It is unique within a project, must be 6-30
   # characters long, and match the regular expression [a-z]([-a-z0-9]*[a-z0-9])
   # to comply with RFC1035.
-  min_len = 6
-  max_len = 30
-
-  account_id = 'bot-' + project.replace('_', '-')
+  account_id = _ACCOUNT_PREFIX + project.replace('_', '-')
   if not account_id[-1].isalnum():
     # Must end in '[a-z][0-9]'.
     account_id += '0'
 
-  if len(account_id) < min_len:
+  if len(account_id) < _MIN_LEN:
     # Must be at least |min_len| in length.
-    account_id = account_id.ljust(min_len, '0')
+    account_id = account_id.ljust(_MIN_LEN, '0')
 
-  assert len(account_id) >= min_len and len(account_id) <= max_len
+  # Use a hash prefix as the service account name if the project name is too
+  # long.
+  if len(account_id) > _MAX_LEN:
+    account_id = _ACCOUNT_PREFIX + utils.string_hash(project)[:_HASH_PREFIX_LEN]
+
+  assert len(account_id) >= _MIN_LEN and len(account_id) <= _MAX_LEN
   return account_id
 
 
