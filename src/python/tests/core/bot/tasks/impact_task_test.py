@@ -193,7 +193,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     helpers.patch(self, [
         'bot.tasks.impact_task.get_start_and_end_revision',
         'bot.tasks.impact_task.get_impact',
-        'build_management.revisions.get_build_to_revision_mappings',
+        'chrome.build_info.get_build_to_revision_mappings',
         'build_management.revisions.revision_to_branched_from',
         'datastore.data_handler.get_component_name',
     ])
@@ -657,7 +657,7 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
         'bot.tasks.impact_task.get_impact_on_build',
         'bot.tasks.impact_task.get_impacts_from_url',
         'bot.testcase_manager.get_command_line_for_application',
-        'build_management.revisions.get_build_to_revision_mappings',
+        'chrome.build_info.get_build_to_revision_mappings',
     ])
     self.mock.get_build_to_revision_mappings.return_value = {
         'stable': {

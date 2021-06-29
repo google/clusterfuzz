@@ -116,3 +116,36 @@ class BuildInfoTest(unittest.TestCase):
       self.assertEqual(build_info.get_release_milestone('stable', platform), 91)
       self.assertEqual(build_info.get_release_milestone('beta', platform), 92)
       self.assertEqual(build_info.get_release_milestone('head', platform), 93)
+
+  def test_get_build_to_revision_mappings_with_valid_platform(self):
+    """Tests if a valid platform (WIN) results in the correct metadata dict from
+       ChromiumDash."""
+    result = build_info.get_build_to_revision_mappings('WINDOWS')
+    expected_result = {
+      'beta': {
+        'revision': '398287',
+        'version': '92.0.4515.59'
+      },
+      'canary': {
+        'revision': '399171',
+        'version': '93.0.4544.0'
+      },
+      'dev': {
+        'revision': '400000',
+        'version': '93.0.4542.2'
+      },
+      'stable': {
+        'revision': '400000',
+        'version': '91.0.4472.106'
+      },
+      'extended': {
+        'revision': '400000',
+        'version': '91.0.4472.106'
+      }
+    }
+    self.assertDictEqual(result, expected_result)
+
+  def test_get_build_to_revision_mappings_with_invalid_platform(self):
+    """Tests if an invalid platform results in the correct (empty) dict."""
+    result = build_info.get_build_to_revision_mappings('foo')
+    self.assertEqual(result, {})
