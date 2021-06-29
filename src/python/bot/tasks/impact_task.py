@@ -22,6 +22,7 @@ from bot import testcase_manager
 from bot.tasks import setup
 from build_management import build_manager
 from build_management import revisions
+from chrome import build_info
 from datastore import data_handler
 from datastore import data_types
 from metrics import logs
@@ -133,7 +134,7 @@ def get_component_impacts_from_url(component_name,
   if not end_revision:
     return Impacts()
 
-  build_revision_mappings = revisions.get_build_to_revision_mappings(platform)
+  build_revision_mappings = build_info.get_build_to_revision_mappings(platform)
   if not build_revision_mappings:
     return Impacts()
 
@@ -180,7 +181,7 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
   if not end_revision:
     return Impacts()
 
-  build_revision_mappings = revisions.get_build_to_revision_mappings(platform)
+  build_revision_mappings = build_info.get_build_to_revision_mappings(platform)
   if not build_revision_mappings:
     return Impacts()
 
@@ -247,7 +248,7 @@ def get_impacts_on_prod_builds(testcase, testcase_file_path):
   # Always record the affected head version.
   start_revision, end_revision = get_start_and_end_revision(
       testcase.regression, testcase.job_type)
-  build_revision_mappings = revisions.get_build_to_revision_mappings()
+  build_revision_mappings = build_info.get_build_to_revision_mappings()
   impacts.head = get_head_impact(build_revision_mappings, start_revision,
                                  end_revision)
 

@@ -18,7 +18,6 @@ import base64
 import bisect
 import os
 import re
-import requests
 import six
 import time
 import urllib.parse
@@ -476,44 +475,6 @@ def get_component_range_list(start_revision, end_revision, job_type):
   return component_revisions
 
 
-def get_build_to_revision_mappings(platform=None):
-  """Gets the build information."""
-  if not platform:
-    platform = environment.platform()
-
-  # Build information matching regex.
-  # Platform, Build Type, Version, ..., ..., ..., ..., Base Trunk Position, etc.
-  build_info_pattern = ('([a-z]+),([a-z]+),([0-9.]+),'
-                        '[^,]*,[^,]*,[^,]*,[^,]*,([0-9_]+),.*')
-  build_info_url = environment.get_value('BUILD_INFO_URL')
-  if not build_info_url:
-    return None
-
-  operations_timeout = environment.get_value('URL_BLOCKING_OPERATIONS_TIMEOUT')
-  result = {}
-
-  response = requests.get(build_info_url, timeout=operations_timeout)
-  if response.status_code != 200:
-    logs.log_error('Failed to get build mappings from url: %s' % build_info_url)
-    return None
-  build_info = response.text
-
-  for line in build_info.splitlines():
-    m = re.match(build_info_pattern, line)
-    if m:
-      build_platform = m.group(1)
-      if not platform.lower().startswith(build_platform):
-        continue
-
-      build_type = m.group(2)
-      version = m.group(3)
-      revision = m.group(4)
-
-      result[build_type] = {'revision': revision, 'version': version}
-
-  return result
-
-
 def get_start_and_end_revision(revision_range):
   """Return start and end revision for a regression range."""
   try:
@@ -677,9 +638,8 @@ def needs_update(revision_file, revision):
     file_exists = True
 
     try:
-      file_handle = open(revision_file, 'r')
-      current_revision = file_handle.read()
-      file_handle.close()
+      with open(revision_file, 'r') as file_handle:
+        current_revision = file_handle.read()
     except:
       logs.log_error(
           'Error occurred while reading revision file %s.' % revision_file)

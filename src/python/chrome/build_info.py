@@ -18,6 +18,7 @@ import re
 
 from base import utils
 from metrics import logs
+from system import environment
 
 BUILD_INFO_PATTERN = ('([a-z]+),([a-z]+),([0-9.]+),'
                       '[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,'
@@ -53,6 +54,29 @@ def _convert_platform_to_chromiumdash_platform(platform):
   if platform_lower == 'windows':
     return 'Win32'
   return platform_lower.capitalize()
+
+
+def _fetch_releases_from_chromiumdash(platform):
+  """Makes a Call to chromiumdash's fetch_releases api,
+  and returns its json array response."""
+  chromiumdash_platform = _convert_platform_to_chromiumdash_platform(platform)
+  query_url = BUILD_INFO_URL_CD.format(platform=chromiumdash_platform)
+
+  build_info = utils.fetch_url(query_url)
+  if not build_info:
+    logs.log_error('Failed to fetch build info from %s' % query_url)
+    return []
+
+  try:
+    build_info_json = json.loads(build_info)
+    if not build_info_json:
+      logs.log_error('Empty response from %s' % query_url)
+      return []
+  except Exception:
+    logs.log_error('Malformed response from %s' % query_url)
+    return []
+
+  return build_info_json
 
 
 def get_production_builds_info(platform):
@@ -95,25 +119,12 @@ def get_production_builds_info_from_cd(platform):
   Platform is e.g. ANDROID, LINUX, MAC, WINDOWS.
   """
   builds_metadata = []
-  chromiumdash_platform = _convert_platform_to_chromiumdash_platform(platform)
-  query_url = BUILD_INFO_URL_CD.format(platform=chromiumdash_platform)
-
-  build_info = utils.fetch_url(query_url)
-  if not build_info:
-    logs.log_error('Failed to fetch build info from %s' % query_url)
-    return []
-
-  try:
-    build_info_json = json.loads(build_info)
-    if not build_info_json:
-      logs.log_error('Empty response from %s' % query_url)
-      return []
-  except Exception:
-    logs.log_error('Malformed response from %s' % query_url)
-    return []
-
+  build_info_json = _fetch_releases_from_chromiumdash(platform)
   for info in build_info_json:
     build_type = info['channel'].lower()
+    if build_type == 'extended':
+      build_type = 'extended_stable'
+
     version = info['version']
     revision = info['hashes']['chromium']
     builds_metadata.append(BuildInfo(platform, build_type, version, revision))
@@ -141,3 +152,23 @@ def get_release_milestone(build_type, platform):
     return get_release_milestone('canary', 'windows')
 
   return None
+
+
+def get_build_to_revision_mappings(platform=None):
+  """Gets the build information."""
+  if not platform:
+    platform = environment.platform()
+
+  result = {}
+  build_info_json = _fetch_releases_from_chromiumdash(platform)
+
+  for info in build_info_json:
+    build_type = info['channel'].lower()
+    if build_type == 'extended':
+      build_type = 'extended_stable'
+
+    version = info['version']
+    revision = str(info['chromium_main_branch_position'])
+    result[build_type] = {'revision': revision, 'version': version}
+
+  return result
