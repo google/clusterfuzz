@@ -1399,7 +1399,7 @@ def setup_regular_build(revision,
     build_class = FuchsiaBuild
   elif environment.is_android_emulator():
     build_class = AndroidEmulatorBuild
-  elif environment.is_kernel_fuzzer_job():
+  elif environment.is_android_cuttlefish() and environment.is_kernel_fuzzer_job():
     build_class = CuttlefishKernelBuild
 
   build = build_class(
