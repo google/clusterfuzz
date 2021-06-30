@@ -20,7 +20,6 @@ from python.base import modules
 modules.fix_module_search_paths()
 
 import atexit
-import datetime
 import os
 import subprocess
 import time
@@ -166,7 +165,7 @@ def run_loop(bot_command, heartbeat_command):
 
 def set_start_time():
   """Set START_TIME."""
-  environment.set_value('START_TIME', datetime.datetime.utcnow().timestamp())
+  environment.set_value('START_TIME', time.time())
 
 
 def main():
