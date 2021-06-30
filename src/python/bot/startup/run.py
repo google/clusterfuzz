@@ -20,7 +20,6 @@ from python.base import modules
 modules.fix_module_search_paths()
 
 import atexit
-import datetime
 import os
 import subprocess
 import time
