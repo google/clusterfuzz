@@ -1101,7 +1101,7 @@ def bot_run_timed_out():
   if not start_time:
     return False
 
-  start_time = datetime.datetime.fromtimestamp(start_time)
+  start_time = datetime.datetime.utcfromtimestamp(start_time)
 
   # Actual run timeout takes off the duration for one task.
   average_task_duration = environment.get_value('AVERAGE_TASK_DURATION', 0)
