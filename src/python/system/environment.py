@@ -1066,6 +1066,11 @@ def is_android_emulator(plt=None):
   return 'ANDROID_EMULATOR' == (plt or platform())
 
 
+def is_android_kernel(plt=None):
+  """Return true if we are on android kernel platform groups."""
+  return 'ANDROID_KERNEL' in (plt or get_platform_group())
+
+
 def is_lib():
   """Whether or not we're in libClusterFuzz."""
   return get_value('ROOT_DIR') is None

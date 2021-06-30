@@ -91,7 +91,7 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
 
   def test_syzkaller_kasan_android_with_env(self):
     """Test syzkaller kasan."""
-    environment.set_value('OS_OVERRIDE', 'ANDROID')
+    environment.set_value('OS_OVERRIDE', 'ANDROID_KERNEL')
     environment.set_bot_environment()
     self._real_read_data_from_file = utils.read_data_from_file
     test_helpers.patch(self, [

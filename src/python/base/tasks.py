@@ -61,6 +61,7 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX_UNTRUSTED': 'Linux (untrusted)',
     'ANDROID': 'Android',
     'ANDROID_KERNEL': 'Android Kernel',
+    'ANDROID_KERNEL_X86': 'Android Kernel (X86)',
     'ANDROID_AUTO': 'Android Auto',
     'ANDROID_X86': 'Android (x86)',
     'ANDROID_EMULATOR': 'Android (Emulated)',

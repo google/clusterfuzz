@@ -361,7 +361,7 @@ def reboot():
   run_command('reboot')
 
 
-def start_cuttlefish_device():
+def start_cuttlefish_device(use_kernel=False):
   """Start the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
@@ -372,6 +372,12 @@ def start_cuttlefish_device():
   launch_cvd_command_line = (
       f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
       '-report_anonymous_usage_stats Y')
+  if use_kernel:
+    kernel_path = os.path.join(cvd_dir, 'bzImage')
+    initramfs_path = os.path.join(cvd_dir, 'initramfs.img')
+    launch_cvd_command_line += (
+        f' -kernel_path={kernel_path} -initramfs_path={initramfs_path}')
+
   execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
 
 
