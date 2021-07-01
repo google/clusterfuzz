@@ -50,4 +50,8 @@ RUN git clone https://gerrit.googlesource.com/gcompute-tools \
     /data/gcompute-tools
 
 COPY start.sh setup_depot_tools.sh setup_gerrit.sh /data/
+
+# Fix PATH to prefer /usr/local/bin to avoid build failures with using older
+# Python 3 in /usr/bin.
+ENV PATH /usr/local/bin:$PATH
 CMD ["bash", "-ex", "/data/start.sh"]
