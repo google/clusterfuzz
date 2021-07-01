@@ -54,4 +54,5 @@ COPY start.sh setup_depot_tools.sh setup_gerrit.sh /data/
 # Fix PATH to prefer /usr/local/bin to avoid build failures with using older
 # Python 3 in /usr/bin.
 ENV PATH /usr/local/bin:$PATH
+RUN ln -s /usr/local/bin/python3.7 /usr/local/bin/python3
 CMD ["bash", "-ex", "/data/start.sh"]
