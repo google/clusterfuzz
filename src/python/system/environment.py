@@ -874,9 +874,9 @@ def reset_current_memory_tool_options(redzone_size=0,
     set_value('UBSAN_OPTIONS', joined_tool_options)
 
   # For Android, we need to set shell property |asan.options|.
-  # For engine-based uzzers, it is not needed as options variable is directly
+  # For engine-based fuzzers, it is not needed as options variable is directly
   # passed to shell.
-  if is_android(bot_platform) and not is_engine_fuzzer_job():
+  if is_android(bot_platform) and not is_engine_fuzzer_job() and not is_kernel_fuzzer_job():
     android.sanitizer.set_options(tool_name, joined_tool_options)
 
 
