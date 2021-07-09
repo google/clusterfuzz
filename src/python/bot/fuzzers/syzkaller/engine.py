@@ -151,7 +151,8 @@ class SyzkallerEngine(engine.Engine):
     self._create_temp_corpus_dir('new')
 
     args = options.arguments
-    args += ['--coverfile', runner.get_cover_file_path()]
+    if not environment.is_android_cuttlefish():
+      args += ['--coverfile', runner.get_cover_file_path()]
 
     self.init_corpus(options.corpus_dir, runner.get_work_dir())
     fuzz_result = syzkaller_runner.fuzz(max_time, additional_args=args)
