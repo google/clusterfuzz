@@ -151,6 +151,8 @@ class SyzkallerEngine(engine.Engine):
     self._create_temp_corpus_dir('new')
 
     args = options.arguments
+
+    # TODO(yanghuiz): Dump coverfile from Syzkaller HTTP endpoint and remove this.
     if not environment.is_android_cuttlefish():
       args += ['--coverfile', runner.get_cover_file_path()]
 
