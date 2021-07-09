@@ -40,7 +40,7 @@ class SyzkallerOptions(engine.FuzzOptions):
 
   def __init__(self, corpus_dir, arguments, strategies, fuzz_corpus_dirs,
                extra_env):
-    super(SyzkallerOptions, self).__init__(corpus_dir, arguments, strategies)
+    super().__init__(corpus_dir, arguments, strategies)
     self.fuzz_corpus_dirs = fuzz_corpus_dirs
     self.extra_env = extra_env
 
@@ -151,7 +151,11 @@ class SyzkallerEngine(engine.Engine):
     self._create_temp_corpus_dir('new')
 
     args = options.arguments
-    args += ['--coverfile', runner.get_cover_file_path()]
+
+    # TODO(yanghuiz): Dump coverfile from Syzkaller HTTP endpoint and
+    # remove this.
+    if not environment.is_android_cuttlefish():
+      args += ['--coverfile', runner.get_cover_file_path()]
 
     self.init_corpus(options.corpus_dir, runner.get_work_dir())
     fuzz_result = syzkaller_runner.fuzz(max_time, additional_args=args)
