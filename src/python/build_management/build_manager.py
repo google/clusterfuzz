@@ -903,6 +903,7 @@ class CuttlefishKernelBuild(RegularBuild):
       adb.copy_to_cuttlefish(image_src, image_dest)
 
     adb.start_cuttlefish_device(use_kernel=True)
+    adb.connect_to_cuttlefish_device()
 
     return True
 
