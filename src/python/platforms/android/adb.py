@@ -392,6 +392,15 @@ def stop_cuttlefish_device():
   time.sleep(STOP_CVD_WAIT)
 
 
+def restart_cuttlefish_device():
+  """Restarts the cuttlefish device."""
+  cvd_dir = environment.get_value('CVD_DIR')
+  cvd_bin_dir = os.path.join(cvd_dir, 'bin')
+  restart_cvd_cmd = os.path.join(cvd_bin_dir, 'restart_cvd')
+
+  execute_command(restart_cvd_cmd, on_cuttlefish_host=True)
+
+
 def recreate_cuttlefish_device():
   """Recreate cuttlefish device, restoring from backup images."""
   logs.log('Reimaging cuttlefish device.')
@@ -439,8 +448,7 @@ def reset_device_connection():
   """Reset the connection to the physical device through USB. Returns whether
   or not the reset succeeded."""
   if environment.is_android_cuttlefish():
-    stop_cuttlefish_device()
-    start_cuttlefish_device()
+    restart_cuttlefish_device()
   else:
     # Physical device. Try restarting usb.
     reset_usb()
