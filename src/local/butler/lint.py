@@ -197,7 +197,7 @@ def execute(_):
       line_length_override = '--max-line-length=240'
 
     _execute_command_and_track_error(
-        f'yapf -d {line_length_override} file_path')
+        f'yapf -d {line_length_override} {file_path}')
     _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c {file_path}')
 
     py_test_init_check(file_path)
