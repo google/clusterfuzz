@@ -1,15 +1,8 @@
-# libClusterFuzz
+# ClusterFuzz
 
-This is currently **WIP**.
+This directory contains the source of ClusterFuzz.
 
-libClusterFuzz provides common fuzzing helpers from the ClusterFuzz project,
-including:
-  - Stacktrace parsing and comparison.
-  - Fuzzing with libFuzzer, honggfuzz, AFL.
-  - Testcase reproduction.
-  - Fuzz target discovery.
-
-## Building and testing
+## Building and testing libClusterFuzz
 Run `./build.sh` to build the pip package.
 
 For testing, use a fresh Python 3 virtualenv, and install the package by running
