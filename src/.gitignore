@@ -1,3 +1,4 @@
 dist/
 build/
 *.egg-info
+lib-config
