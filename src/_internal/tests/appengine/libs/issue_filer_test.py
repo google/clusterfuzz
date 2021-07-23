@@ -243,8 +243,8 @@ class IssueFilerTests(unittest.TestCase):
         auto_cc=data_types.AutoCCType.SECURITY).put()
 
     helpers.patch(self, [
-        'base.utils.utcnow',
-        'datastore.data_handler.get_issue_description',
+        '_internal.base.utils.utcnow',
+        '_internal.datastore.data_handler.get_issue_description',
         'libs.issue_management.issue_tracker_policy.get',
     ])
 
@@ -775,7 +775,7 @@ class NotifyIssueUpdateTests(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'config.local_config.ProjectConfig',
+        '_internal.config.local_config.ProjectConfig',
     ])
 
     self.topic = 'projects/project/topics/issue-updates'

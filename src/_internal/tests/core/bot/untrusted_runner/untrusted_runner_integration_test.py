@@ -306,7 +306,8 @@ class UntrustedRunnerIntegrationTest(
     environment.set_value('TASK_NAME', 'fuzz')
     environment.set_value('TASK_ARGUMENT', 'libFuzzer')
 
-    launcher_dir = os.path.join('src', '_internal', 'bot', 'fuzzers', 'libFuzzer')
+    launcher_dir = os.path.join('src', '_internal', 'bot', 'fuzzers',
+                                'libFuzzer')
     environment.set_value('FUZZER_DIR',
                           os.path.join(os.environ['ROOT_DIR'], launcher_dir))
 
@@ -525,9 +526,9 @@ class UntrustedRunnerIntegrationTest(
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""
     worker_root = os.environ['WORKER_ROOT_DIR']
-    worker_test_build_dir = os.path.join(worker_root, 'src', '_internal', 'tests',
-                                         'core', 'bot', 'untrusted_runner',
-                                         'test_data', 'test_build')
+    worker_test_build_dir = os.path.join(
+        worker_root, 'src', '_internal', 'tests', 'core', 'bot',
+        'untrusted_runner', 'test_data', 'test_build')
     fuzz_target_paths = file_host.get_fuzz_targets(worker_test_build_dir)
     six.assertCountEqual(self, [
         os.path.join(worker_test_build_dir, 'do_stuff_fuzzer'),

@@ -57,7 +57,7 @@ class GetExecutableFileNameTest(unittest.TestCase):
   EXECUTABLE = 'fuzzer_executable'
 
   def setUp(self):
-    test_helpers.patch(self, ['system.environment.platform'])
+    test_helpers.patch(self, ['_internal.system.environment.platform'])
 
   @parameterized.parameterized.expand(['MAC', 'LINUX'])
   def test_non_windows(self, platform):
@@ -84,8 +84,9 @@ class ParseMemoryToolOptionsTest(unittest.TestCase):
   """Tests for _parse_memory_tool_options."""
 
   def setUp(self):
-    test_helpers.patch(self,
-                       ['metrics.logs.log_warn', 'metrics.logs.log_error'])
+    test_helpers.patch(
+        self,
+        ['_internal.metrics.logs.log_warn', '_internal.metrics.logs.log_error'])
 
     self.windows_expected = {
         'redzone':
@@ -244,8 +245,8 @@ class ResetCurrentMemoryToolOptionsTest(unittest.TestCase):
     to the llvm symbolizer on Windows."""
     os.environ['JOB_NAME'] = 'windows_libfuzzer_chrome_asan'
     test_helpers.patch(self, [
-        'system.environment.platform',
-        'system.environment.get_llvm_symbolizer_path'
+        '_internal.system.environment.platform',
+        '_internal.system.environment.get_llvm_symbolizer_path'
     ])
     self.mock.platform.return_value = 'WINDOWS'
     windows_symbolizer_path = (
@@ -319,8 +320,8 @@ class GetMemoryToolOptionsTest(unittest.TestCase):
     test_helpers.patch_environ(self)
     os.environ['JOB_NAME'] = 'windows_libfuzzer_chrome_asan'
     test_helpers.patch(self, [
-        'system.environment.platform',
-        'system.environment.get_llvm_symbolizer_path'
+        '_internal.system.environment.platform',
+        '_internal.system.environment.get_llvm_symbolizer_path'
     ])
     self.mock.platform.return_value = 'WINDOWS'
     windows_symbolizer_path = (
@@ -342,7 +343,8 @@ class AppEngineNoopTest(unittest.TestCase):
   """Tests for appengine_noop."""
 
   def setUp(self):
-    test_helpers.patch(self, ['system.environment.is_running_on_app_engine'])
+    test_helpers.patch(
+        self, ['_internal.system.environment.is_running_on_app_engine'])
 
   def test_appengine(self):
     """Test calling function in App Engine environment."""
@@ -369,7 +371,8 @@ class BotNoopTest(unittest.TestCase):
   """Tests for bot_noop."""
 
   def setUp(self):
-    test_helpers.patch(self, ['system.environment.is_running_on_app_engine'])
+    test_helpers.patch(
+        self, ['_internal.system.environment.is_running_on_app_engine'])
 
   def test_appengine(self):
     """Test calling function in App Engine environment."""
@@ -398,7 +401,8 @@ class LocalNoopTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(
-        self, ['system.environment.is_running_on_app_engine_development'])
+        self,
+        ['_internal.system.environment.is_running_on_app_engine_development'])
 
   def test_prod(self):
     """Test calling function in production environment."""

@@ -37,7 +37,7 @@ class DictionaryManagerTest(unittest.TestCase):
 
   def tearDown(self):
     """Delete local copy of the updated dictionary. It should be auto-deleted,
-    but we patch('system.shell.remove_file') while running the tests."""
+    but we patch('_internal.system.shell.remove_file') while running the tests."""
     if os.path.exists(self.local_dict_path):
       os.remove(self.local_dict_path)
 
@@ -112,7 +112,7 @@ class CorrectIfNeededTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'base.utils.write_data_to_file',
+        '_internal.base.utils.write_data_to_file',
     ])
     environment.set_value('FAIL_RETRIES', 1)
 

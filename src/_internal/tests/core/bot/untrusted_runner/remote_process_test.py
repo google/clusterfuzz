@@ -27,7 +27,7 @@ class RemoteProcessTest(unittest.TestCase):
   """RemoteProcess tests."""
 
   def setUp(self):
-    test_helpers.patch(self, ['system.process_handler.run_process'])
+    test_helpers.patch(self, ['_internal.system.process_handler.run_process'])
 
   @mock.patch.object(new_process.ProcessRunner, 'run_and_wait')
   def test_run_and_wait(self, mock_run_and_wait):

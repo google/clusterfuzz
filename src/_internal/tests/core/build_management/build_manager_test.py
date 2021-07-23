@@ -80,9 +80,9 @@ class TrunkBuildTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'build_management.build_manager._setup_build_directories',
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager.setup_regular_build',
+        '_internal.build_management.build_manager._setup_build_directories',
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager.setup_regular_build',
     ])
 
     os.environ['BUILDS_DIR'] = '/builds'
@@ -180,7 +180,7 @@ class FuchsiaBuildTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'system.shell.clear_temp_directory',
+        '_internal.system.shell.clear_temp_directory',
     ])
 
     self.temp_dir = tempfile.mkdtemp()
@@ -245,10 +245,10 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager.Build._unpack_build',
-        'fuzzing.fuzzer_selection.get_fuzz_target_weights',
-        'system.shell.clear_temp_directory',
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager.Build._unpack_build',
+        '_internal.fuzzing.fuzzer_selection.get_fuzz_target_weights',
+        '_internal.system.shell.clear_temp_directory',
         'time.time',
     ])
 
@@ -353,15 +353,15 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'bot.fuzzers.utils.get_fuzz_targets',
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager.Build._get_fuzz_targets_from_archive',
-        'build_management.build_manager._make_space',
-        'build_management.build_manager._make_space_for_build',
-        'system.shell.clear_temp_directory',
-        'google_cloud_utils.storage.copy_file_from',
-        'google_cloud_utils.storage.get_download_file_size',
-        'system.archive.unpack',
+        '_internal.bot.fuzzers.utils.get_fuzz_targets',
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager.Build._get_fuzz_targets_from_archive',
+        '_internal.build_management.build_manager._make_space',
+        '_internal.build_management.build_manager._make_space_for_build',
+        '_internal.system.shell.clear_temp_directory',
+        '_internal.google_cloud_utils.storage.copy_file_from',
+        '_internal.google_cloud_utils.storage.get_download_file_size',
+        '_internal.system.archive.unpack',
         'time.time',
     ])
 
@@ -527,9 +527,9 @@ class SymbolizedBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager.Build._unpack_build',
-        'system.shell.clear_temp_directory', 'time.time'
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager.Build._unpack_build',
+        '_internal.system.shell.clear_temp_directory', 'time.time'
     ])
 
     test_helpers.patch_environ(self)
@@ -730,9 +730,9 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager.Build._unpack_build',
-        'system.shell.clear_temp_directory',
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager.Build._unpack_build',
+        '_internal.system.shell.clear_temp_directory',
         'time.sleep',
         'time.time',
     ])
@@ -899,10 +899,10 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
     """Setup for custom build test."""
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'build_management.build_manager._make_space_for_build',
-        'system.shell.clear_temp_directory',
-        'google_cloud_utils.blobs.read_blob_to_disk',
-        'system.archive.unpack',
+        '_internal.build_management.build_manager._make_space_for_build',
+        '_internal.system.shell.clear_temp_directory',
+        '_internal.google_cloud_utils.blobs.read_blob_to_disk',
+        '_internal.system.archive.unpack',
         'time.sleep',
         'time.time',
     ])
@@ -1006,7 +1006,7 @@ class SystemBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'system.shell.clear_temp_directory',
+        '_internal.system.shell.clear_temp_directory',
     ])
 
     test_helpers.patch_environ(self)
@@ -1042,9 +1042,9 @@ class AuxiliaryRegularBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager.Build._unpack_build',
-        'system.shell.clear_temp_directory',
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager.Build._unpack_build',
+        '_internal.system.shell.clear_temp_directory',
         'time.time',
     ])
 
@@ -1138,15 +1138,15 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'bot.fuzzers.utils.get_fuzz_targets',
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager.Build._get_fuzz_targets_from_archive',
-        'build_management.build_manager._make_space',
-        'build_management.build_manager._make_space_for_build',
-        'system.shell.clear_temp_directory',
-        'google_cloud_utils.storage.copy_file_from',
-        'google_cloud_utils.storage.get_download_file_size',
-        'system.archive.unpack',
+        '_internal.bot.fuzzers.utils.get_fuzz_targets',
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager.Build._get_fuzz_targets_from_archive',
+        '_internal.build_management.build_manager._make_space',
+        '_internal.build_management.build_manager._make_space_for_build',
+        '_internal.system.shell.clear_temp_directory',
+        '_internal.google_cloud_utils.storage.copy_file_from',
+        '_internal.google_cloud_utils.storage.get_download_file_size',
+        '_internal.system.archive.unpack',
         'time.time',
     ])
 
@@ -1295,7 +1295,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         os.path.isdir('/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d'))
 
 
-@mock.patch('build_management.build_manager.MAX_EVICTED_BUILDS', 3)
+@mock.patch('_internal.build_management.build_manager.MAX_EVICTED_BUILDS', 3)
 class BuildEvictionTests(fake_filesystem_unittest.TestCase):
   """Build eviction tests."""
 
@@ -1303,9 +1303,9 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     """Setup for build eviction tests."""
     test_utils.set_up_pyfakefs(self)
     test_helpers.patch(self, [
-        'base.utils.is_chromium',
-        'system.shell.get_free_disk_space',
-        'system.archive.extracted_size',
+        '_internal.base.utils.is_chromium',
+        '_internal.system.shell.get_free_disk_space',
+        '_internal.system.archive.extracted_size',
     ])
 
     test_helpers.patch_environ(self)
@@ -1531,8 +1531,8 @@ class RpathsTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'build_management.build_manager.Build._unpack_build',
-        'system.shell.clear_temp_directory',
+        '_internal.build_management.build_manager.Build._unpack_build',
+        '_internal.system.shell.clear_temp_directory',
     ])
 
     os.environ['JOB_NAME'] = 'linux_msan_test'
@@ -1823,15 +1823,15 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
 
     test_helpers.patch(self, [
-        'build_management.build_manager.get_build_urls_list',
-        'build_management.build_manager._make_space',
-        'build_management.build_manager._make_space_for_build',
-        'system.shell.clear_temp_directory',
-        'google_cloud_utils.storage.copy_file_from',
-        'google_cloud_utils.storage.get_download_file_size',
-        'google_cloud_utils.storage.list_blobs',
-        'google_cloud_utils.storage.read_data',
-        'system.archive.unpack',
+        '_internal.build_management.build_manager.get_build_urls_list',
+        '_internal.build_management.build_manager._make_space',
+        '_internal.build_management.build_manager._make_space_for_build',
+        '_internal.system.shell.clear_temp_directory',
+        '_internal.google_cloud_utils.storage.copy_file_from',
+        '_internal.google_cloud_utils.storage.get_download_file_size',
+        '_internal.google_cloud_utils.storage.list_blobs',
+        '_internal.google_cloud_utils.storage.read_data',
+        '_internal.system.archive.unpack',
         'time.time',
     ])
 
@@ -1841,8 +1841,9 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['JOB_NAME'] = 'libfuzzer_job'
     os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = 'True'
-    os.environ['FUZZER_DIR'] = os.path.join(
-        os.environ['ROOT_DIR'], 'src', '_internal', 'bot', 'fuzzers', 'libFuzzer')
+    os.environ['FUZZER_DIR'] = os.path.join(os.environ['ROOT_DIR'], 'src',
+                                            '_internal', 'bot', 'fuzzers',
+                                            'libFuzzer')
     self.fs.add_real_directory(os.environ['FUZZER_DIR'])
 
     self.mock.list_blobs.return_value = (

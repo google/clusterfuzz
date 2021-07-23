@@ -32,8 +32,8 @@ class BuildSetupHostTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'build_management.build_manager.set_environment_vars',
-        'bot.untrusted_runner.host.stub',
+        '_internal.build_management.build_manager.set_environment_vars',
+        '_internal.bot.untrusted_runner.host.stub',
     ])
 
     test_helpers.patch_environ(self)

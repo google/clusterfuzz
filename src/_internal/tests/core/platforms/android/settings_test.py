@@ -31,7 +31,7 @@ class GetDeviceCodenameTest(unittest.TestCase):
   """Tests for get_device_codename."""
 
   def setUp(self):
-    test_helpers.patch(self, ['platforms.android.adb.run_command'])
+    test_helpers.patch(self, ['_internal.platforms.android.adb.run_command'])
     test_helpers.patch_environ(self)
 
     output = _read_data_file('get_device_codename_output.txt')

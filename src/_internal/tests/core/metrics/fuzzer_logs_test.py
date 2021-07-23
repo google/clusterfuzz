@@ -35,7 +35,7 @@ class FuzzerLogsTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'datetime.datetime',
-        'google_cloud_utils.storage.write_data',
+        '_internal.google_cloud_utils.storage.write_data',
     ])
 
     self.mock.datetime.utcnow.return_value = self.fake_utcnow

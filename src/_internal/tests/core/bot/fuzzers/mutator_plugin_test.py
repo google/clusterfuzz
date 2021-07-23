@@ -104,8 +104,8 @@ class PluginGetterTest(fake_filesystem_unittest.TestCase):
     self.plugins_dir = os.path.join(self.plugins_root_dir, 'plugins')
 
     helpers.patch(self, [
-        'google_cloud_utils.storage.copy_file_from',
-        'bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
+        '_internal.google_cloud_utils.storage.copy_file_from',
+        '_internal.bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
     ])
 
     def mocked_copy_file_from(gcs_url, file_path):

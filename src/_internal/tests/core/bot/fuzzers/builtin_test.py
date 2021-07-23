@@ -39,8 +39,8 @@ class BaseEngineFuzzerTest(fake_filesystem_unittest.TestCase):
     """Setup for base engine fuzzer test."""
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.utils.default_project_name',
-        'bot.fuzzers.builtin.fuzzers_utils.get_fuzz_targets'
+        '_internal.base.utils.default_project_name',
+        '_internal.bot.fuzzers.builtin.fuzzers_utils.get_fuzz_targets'
     ])
 
     test_utils.set_up_pyfakefs(self)
@@ -159,7 +159,7 @@ class GetFuzzerPath(unittest.TestCase):
   def test_get_fuzzer_path(self, target_name, mock_platform):
     """Test that get_fuzzer_path returns the path of a fuzzer."""
     target_path = os.path.join('path', 'to', target_name)
-    helpers.patch(self, ['system.environment.platform'])
+    helpers.patch(self, ['_internal.system.environment.platform'])
     self.mock.platform.return_value = mock_platform
     result = builtin._get_fuzzer_path(['a', target_path], 'fuzzer')  # pylint: disable=protected-access
     self.assertEqual(result, target_path)

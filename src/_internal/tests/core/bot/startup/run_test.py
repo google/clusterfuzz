@@ -24,9 +24,9 @@ class UpdateSourceCodeIfNeededTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.startup.run.stop_heartbeat',
-        'bot.tasks.update_task.get_newer_source_revision',
-        'bot.tasks.update_task.update_source_code',
+        '_internal.bot.startup.run.stop_heartbeat',
+        '_internal.bot.tasks.update_task.get_newer_source_revision',
+        '_internal.bot.tasks.update_task.update_source_code',
     ])
 
   def test_not_update(self):
@@ -50,12 +50,12 @@ class RunLoopTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'atexit.register',
-        'bot.startup.run.start_bot',
-        'bot.startup.run.start_heartbeat',
-        'bot.startup.run.stop_heartbeat',
-        'bot.startup.run.update_source_code_if_needed',
-        'bot.startup.run.sleep',
-        'datastore.data_handler.bot_run_timed_out',
+        '_internal.bot.startup.run.start_bot',
+        '_internal.bot.startup.run.start_heartbeat',
+        '_internal.bot.startup.run.stop_heartbeat',
+        '_internal.bot.startup.run.update_source_code_if_needed',
+        '_internal.bot.startup.run.sleep',
+        '_internal.datastore.data_handler.bot_run_timed_out',
     ])
 
   def test_loop(self):

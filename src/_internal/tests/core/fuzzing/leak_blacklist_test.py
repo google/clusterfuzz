@@ -77,7 +77,7 @@ class LeaksTest(unittest.TestCase):
         testcase)
     self.assertTrue(blacklist_item.key.get())
 
-  @mock.patch('fuzzing.leak_blacklist.get_local_blacklist_file_path')
+  @mock.patch('_internal.fuzzing.leak_blacklist.get_local_blacklist_file_path')
   def test_copy_global_to_local_blacklist(self,
                                           mock_get_local_blacklist_file_path):
     """Test copying of global to local blacklist."""

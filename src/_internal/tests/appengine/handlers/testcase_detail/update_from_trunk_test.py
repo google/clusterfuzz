@@ -29,8 +29,8 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.tasks.add_task',
-        'base.tasks.queue_for_job',
+        '_internal.base.tasks.add_task',
+        '_internal.base.tasks.queue_for_job',
         'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.check_access_and_get_testcase',

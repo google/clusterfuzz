@@ -29,7 +29,7 @@ class JSMinimizerTest(unittest.TestCase):
 
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'bot.minimizer.minimizer.Testcase.prepare_test',
+        '_internal.bot.minimizer.minimizer.Testcase.prepare_test',
     ])
 
     self.mock.prepare_test.side_effect = self._mock_prepare_test

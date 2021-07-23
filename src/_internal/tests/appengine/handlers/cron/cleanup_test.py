@@ -74,7 +74,7 @@ class CleanupTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
         'handlers.cron.cleanup.get_crash_occurrence_platforms',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
@@ -945,7 +945,7 @@ class UpdateOsLabelsTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'metrics.crash_stats.get',
+        '_internal.metrics.crash_stats.get',
     ])
     self.policy = issue_tracker_policy.get('test-project')
 
@@ -1098,8 +1098,8 @@ class GetTopCrashesForAllProjectsAndPlatforms(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'metrics.crash_stats.get',
-        'metrics.crash_stats.get_last_successful_hour',
+        '_internal.metrics.crash_stats.get',
+        '_internal.metrics.crash_stats.get_last_successful_hour',
     ])
 
     self.top_crashes_rows = [
@@ -1174,9 +1174,9 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     helpers.patch_environ(self)
 
     helpers.patch(self, [
-        'base.utils.is_oss_fuzz',
-        'base.utils.is_chromium',
-        'chrome.build_info.get_release_milestone',
+        '_internal.base.utils.is_oss_fuzz',
+        '_internal.base.utils.is_chromium',
+        '_internal.chrome.build_info.get_release_milestone',
     ])
     self.mock.get_release_milestone.return_value = 63
 
@@ -1476,7 +1476,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'base.utils.is_oss_fuzz',
+        '_internal.base.utils.is_oss_fuzz',
     ])
     helpers.patch_environ(self)
 
@@ -2103,7 +2103,7 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
     ])
     self.mock.utcnow.return_value = datetime.datetime(2018, 1, 31)
 
@@ -2166,7 +2166,7 @@ class CleanupUnusedHeartbeatsTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
     ])
 
     self.mock.utcnow.return_value = datetime.datetime(2018, 1, 31)

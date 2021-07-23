@@ -31,7 +31,7 @@ class BuildInfoTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.utils.fetch_url',
+        '_internal.base.utils.fetch_url',
     ])
 
     def _fetch_url(url):

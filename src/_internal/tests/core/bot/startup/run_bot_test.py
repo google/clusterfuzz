@@ -85,10 +85,10 @@ class TaskLoopTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.tasks.get_task',
-        'bot.tasks.commands.process_command',
-        'bot.tasks.update_task.run',
-        'bot.tasks.update_task.track_revision',
+        '_internal.base.tasks.get_task',
+        '_internal.bot.tasks.commands.process_command',
+        '_internal.bot.tasks.update_task.run',
+        '_internal.bot.tasks.update_task.track_revision',
     ])
 
     self.task = mock.MagicMock()

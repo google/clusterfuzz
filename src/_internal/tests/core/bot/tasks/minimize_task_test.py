@@ -41,8 +41,8 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'bot.tasks.minimize_task._run_libfuzzer_testcase',
-        'bot.tasks.minimize_task._run_libfuzzer_tool',
+        '_internal.bot.tasks.minimize_task._run_libfuzzer_testcase',
+        '_internal.bot.tasks.minimize_task._run_libfuzzer_tool',
     ])
 
     test_utils.setup_pubsub(utils.get_application_id())
@@ -106,7 +106,7 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     patcher = mock.patch(
-        'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
+        '_internal.bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.fuzzer_directory',
         new_callable=mock.PropertyMock)
 
     mock_fuzzer_directory = patcher.start()
@@ -150,7 +150,7 @@ class MinimizeTaskTestUntrusted(
 
   def test_minimize(self):
     """Test minimize."""
-    helpers.patch(self, ['base.utils.is_oss_fuzz'])
+    helpers.patch(self, ['_internal.base.utils.is_oss_fuzz'])
     self.mock.is_oss_fuzz.return_value = True
 
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')

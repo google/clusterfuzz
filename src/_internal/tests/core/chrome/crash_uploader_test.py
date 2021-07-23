@@ -64,9 +64,9 @@ class CrashBaseTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-    test_helpers.patch(
-        self,
-        ['crash_analysis.stack_parsing.stack_symbolizer.filter_binary_path'])
+    test_helpers.patch(self, [
+        '_internal.crash_analysis.stack_parsing.stack_symbolizer.filter_binary_path'
+    ])
 
     # For Android, skip symbolization as real device is unavailable.
     self.mock.filter_binary_path.return_value = ''
@@ -172,8 +172,8 @@ class CrashReportsTest(CrashBaseTest):
     # Check object fields are what we expect.
     self._validate_report_fields(EXPECTED_REPORT_INFO, report_info)
 
-  @mock.patch('platforms.android.adb.run_shell_command')
-  @mock.patch('platforms.android.adb.run_command')
+  @mock.patch('_internal.platforms.android.adb.run_shell_command')
+  @mock.patch('_internal.platforms.android.adb.run_command')
   def test_get_crash_info(self, mock_run_shell_command, mock_run_command):
     """Tests if parsing sample output (crash-stacks stacktrace) produces
        expected CrashReportInfo object (on Android; on other platforms,
@@ -200,7 +200,7 @@ class CrashReportsTest(CrashBaseTest):
       os.environ['OS_OVERRIDE'] = TEST_OS
       self.fail('Expected none for non-Android.')
 
-  @mock.patch('google_cloud_utils.blobs.write_blob')
+  @mock.patch('_internal.google_cloud_utils.blobs.write_blob')
   def test_store_minidump(self, mock_write_testcase):
     """Tests (very roughly) minidump upload to blobstore: just check there /is/
        a blobstore ID returned."""

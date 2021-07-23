@@ -29,7 +29,8 @@ from local.butler import appengine
 from local.butler import common
 from src._internal.config import local_config
 
-APPENGINE_TEST_DIRECTORY = os.path.join('src', '_internal', 'tests', 'appengine')
+APPENGINE_TEST_DIRECTORY = os.path.join('src', '_internal', 'tests',
+                                        'appengine')
 CORE_TEST_DIRECTORY = os.path.join('src', '_internal', 'tests', 'core')
 SLOW_TEST_THRESHOLD = 2  # In seconds.
 TESTS_TIMEOUT = 20 * 60  # In seconds.

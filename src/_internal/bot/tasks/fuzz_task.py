@@ -14,6 +14,7 @@
 """Fuzz task for handling fuzzing."""
 
 import collections
+from collections import namedtuple
 import datetime
 import itertools
 import os
@@ -37,7 +38,6 @@ from _internal.bot.tasks import task_creation
 from _internal.bot.tasks import trials
 from _internal.build_management import build_manager
 from _internal.chrome import crash_uploader
-from collections import namedtuple
 from _internal.crash_analysis import crash_analyzer
 from _internal.crash_analysis.crash_result import CrashResult
 from _internal.crash_analysis.stack_parsing import stack_analyzer
@@ -52,7 +52,6 @@ from _internal.fuzzing import leak_blacklist
 from _internal.google_cloud_utils import big_query
 from _internal.google_cloud_utils import blobs
 from _internal.google_cloud_utils import storage
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import fuzzer_logs
 from _internal.metrics import fuzzer_stats
 from _internal.metrics import logs
@@ -61,6 +60,7 @@ from _internal.platforms import android
 from _internal.system import environment
 from _internal.system import process_handler
 from _internal.system import shell
+from lib.clusterfuzz.fuzz import engine
 
 SelectionMethod = namedtuple('SelectionMethod', 'method_name probability')
 

@@ -31,9 +31,9 @@ class CrashImportantTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'metrics.crash_stats.get_last_successful_hour',
-        'metrics.crash_stats.get',
-        'base.utils.utcnow',
+        '_internal.metrics.crash_stats.get_last_successful_hour',
+        '_internal.metrics.crash_stats.get',
+        '_internal.base.utils.utcnow',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
 
@@ -184,7 +184,7 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
 

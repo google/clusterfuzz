@@ -159,7 +159,7 @@ class TestBuildResults(unittest.TestCase):
 
     self.client = mock.Mock(spec_set=big_query.Client)
     test_helpers.patch(self, [
-        'google_cloud_utils.big_query.Client',
+        '_internal.google_cloud_utils.big_query.Client',
     ])
     self.mock.Client.return_value = self.client
 
@@ -228,7 +228,7 @@ class TestBuildResults(unittest.TestCase):
     test_helpers.patch(self, [
         'handlers.fuzzer_stats._build_old_results',
         'handlers.fuzzer_stats._build_todays_results',
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
     ])
 
     self.mock._build_old_results.return_value = None
@@ -251,7 +251,7 @@ class TestBuildResults(unittest.TestCase):
     test_helpers.patch(self, [
         'handlers.fuzzer_stats._build_old_results',
         'handlers.fuzzer_stats._build_todays_results',
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
     ])
 
     self.mock._build_old_results.return_value = None
@@ -393,7 +393,7 @@ class TestGetDate(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
     ])
 
   def test_get_date_empty_date(self):

@@ -229,7 +229,7 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'base.utils.random_weighted_choice',
+        '_internal.base.utils.random_weighted_choice',
     ])
 
     self.mock.random_weighted_choice.side_effect = _mock_random_weighted_choice
@@ -321,7 +321,7 @@ class SelectFuzzTargetTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.utils.random_weighted_choice',
+        '_internal.base.utils.random_weighted_choice',
     ])
 
     self.mock.random_weighted_choice.side_effect = lambda x: x[0]

@@ -320,7 +320,7 @@ class GetSeedCorpusPath(fake_filesystem_unittest.TestCase):
   def test_multiple_corpora(self, fuzz_target_path):
     """Tests that the function logs an error when target has multiple seed
     corpora."""
-    test_helpers.patch(self, ['metrics.logs.log_error'])
+    test_helpers.patch(self, ['_internal.metrics.logs.log_error'])
     self._create_seed_corpus('.tar.gz')
     self._create_seed_corpus('.zip')
     self.assertIsNotNone(self._get_seed_corpus_path(fuzz_target_path))

@@ -30,7 +30,7 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'bot.untrusted_runner.host.stub',
+        '_internal.bot.untrusted_runner.host.stub',
     ])
 
     test_helpers.patch_environ(self)
@@ -139,8 +139,8 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
     self.mock.stub().Stat.return_value = result
     self.assertIsNone(file_host.stat('/path'))
 
-  @mock.patch('bot.untrusted_runner.file_host.remove_directory')
-  @mock.patch('bot.untrusted_runner.file_host.copy_file_to_worker')
+  @mock.patch('_internal.bot.untrusted_runner.file_host.remove_directory')
+  @mock.patch('_internal.bot.untrusted_runner.file_host.copy_file_to_worker')
   def test_copy_directory_to_worker(self, mock_copy_file_to_worker,
                                     mock_remove_directory):
     """Test file_host.copy_directory_to_worker."""
@@ -185,8 +185,8 @@ class FileHostTest(fake_filesystem_unittest.TestCase):
     self.assertFalse(
         file_host.copy_directory_to_worker('/host/dir', '/worker/copied_dir2'))
 
-  @mock.patch('bot.untrusted_runner.file_host.list_files')
-  @mock.patch('bot.untrusted_runner.file_host.copy_file_from_worker')
+  @mock.patch('_internal.bot.untrusted_runner.file_host.list_files')
+  @mock.patch('_internal.bot.untrusted_runner.file_host.copy_file_from_worker')
   def test_copy_directory_from_worker(self, mock_copy_file_from_worker,
                                       mock_list_files):
     """Test file_host.copy_directory_from_worker."""

@@ -31,7 +31,7 @@ class HomeTests(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'libs.access.get_access',
-        'base.external_users.allowed_jobs_for_user',
+        '_internal.base.external_users.allowed_jobs_for_user',
         'libs.helpers.get_user_email',
     ])
 

@@ -31,7 +31,7 @@ class WriteToBigQueryTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'google_cloud_utils.big_query.write_range',
+        '_internal.google_cloud_utils.big_query.write_range',
     ])
 
     self.testcase = data_types.Testcase(
@@ -58,9 +58,9 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'build_management.build_manager.setup_regular_build',
-        'bot.testcase_manager.test_for_crash_with_retries',
-        'bot.testcase_manager.check_for_bad_build',
+        '_internal.build_management.build_manager.setup_regular_build',
+        '_internal.bot.testcase_manager.test_for_crash_with_retries',
+        '_internal.bot.testcase_manager.check_for_bad_build',
     ])
 
   def test_error_on_failed_setup(self):
@@ -79,8 +79,8 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.tasks.regression_task.save_regression_range',
-        'bot.tasks.regression_task._testcase_reproduces_in_revision',
+        '_internal.bot.tasks.regression_task.save_regression_range',
+        '_internal.bot.tasks.regression_task._testcase_reproduces_in_revision',
     ])
 
     # Keep a dummy test case. Values are not important, but we need an id.
@@ -143,7 +143,7 @@ class ValidateRegressionRangeTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.tasks.regression_task._testcase_reproduces_in_revision',
+        '_internal.bot.tasks.regression_task._testcase_reproduces_in_revision',
         'random.sample',
     ])
 

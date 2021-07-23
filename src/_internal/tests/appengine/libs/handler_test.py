@@ -180,7 +180,7 @@ class CronTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'config.db_config.get_value',
+        '_internal.config.db_config.get_value',
         'libs.form.generate_csrf_token',
         'libs.auth.is_current_user_admin',
         'libs.auth.get_current_user',
@@ -410,7 +410,7 @@ class CheckAdminAccessIfOssFuzzTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.utils.is_oss_fuzz',
+        '_internal.base.utils.is_oss_fuzz',
         'libs.auth.is_current_user_admin',
     ])
     test_helpers.patch_environ(self)
@@ -498,8 +498,8 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'config.db_config.get_value',
-        'config.local_config._load_yaml_file',
+        '_internal.config.db_config.get_value',
+        '_internal.config.local_config._load_yaml_file',
         'libs.handler.get_access_token',
         'requests.get',
     ])
@@ -647,8 +647,8 @@ class TestGetAccessToken(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'config.db_config.get_value',
-        'config.local_config._load_yaml_file',
+        '_internal.config.db_config.get_value',
+        '_internal.config.local_config._load_yaml_file',
         'requests.post',
     ])
 
@@ -709,7 +709,7 @@ class AllowedCorsHandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'config.local_config._load_yaml_file',
+        '_internal.config.local_config._load_yaml_file',
     ])
 
     self.mock._load_yaml_file.side_effect = mocked_load_yaml_file  # pylint: disable=protected-access

@@ -170,8 +170,8 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
     os.environ['BOT_TMPDIR'] = os.path.join(self.tmp_dir, 'bot_tmpdir')
 
     test_helpers.patch(self, [
-        'datastore.data_handler.get_data_bundle_bucket_name',
-        'system.environment.set_environment_parameters_from_file',
+        '_internal.datastore.data_handler.get_data_bundle_bucket_name',
+        '_internal.system.environment.set_environment_parameters_from_file',
     ])
 
     test_helpers.patch_environ(self)

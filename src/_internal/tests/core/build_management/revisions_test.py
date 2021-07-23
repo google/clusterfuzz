@@ -50,10 +50,10 @@ class RevisionsTestcase(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.utils.default_project_name',
-        'base.memoize.FifoOnDisk.get',
-        'base.memoize.FifoOnDisk.put',
-        'config.local_config.ProjectConfig',
+        '_internal.base.utils.default_project_name',
+        '_internal.base.memoize.FifoOnDisk.get',
+        '_internal.base.memoize.FifoOnDisk.put',
+        '_internal.config.local_config.ProjectConfig',
     ])
 
     self.mock.get.return_value = None
@@ -138,7 +138,7 @@ class RevisionsTestcase(unittest.TestCase):
     revision = revisions.convert_revision_to_integer('12345')
     self.assertEqual(revision, 12345)
 
-  @mock.patch('metrics.logs.log_error')
+  @mock.patch('_internal.metrics.logs.log_error')
   def test_convert_revision_to_integer_version_string(self, _):
     """Test version string conversions in convert_revision_to_integer."""
     revision = revisions.convert_revision_to_integer('1.1.1.1')
@@ -178,10 +178,10 @@ class RevisionsTestcase(unittest.TestCase):
     with self.assertRaises(ValueError):
       revisions.convert_revision_to_integer('...')
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   @mock.patch(
-      'build_management.revisions._git_commit_position_to_git_hash_for_chromium'
+      '_internal.build_management.revisions._git_commit_position_to_git_hash_for_chromium'
   )
   def test_get_component_range_list_chromium(
       self, mock_get_git_hash, mock_get_url_content, mock_get_config):
@@ -198,10 +198,10 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('chromium_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   @mock.patch(
-      'build_management.revisions._git_commit_position_to_git_hash_for_chromium'
+      '_internal.build_management.revisions._git_commit_position_to_git_hash_for_chromium'
   )
   def test_get_component_range_list_clank(
       self, mock_get_git_hash, mock_get_url_content, mock_get_config):
@@ -218,8 +218,8 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('clank_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_get_git_hash_for_git_commit_pos(self, mock_get_url_content,
                                            mock_get_config):
     """Test git hash for git commit position."""
@@ -243,10 +243,10 @@ class RevisionsTestcase(unittest.TestCase):
         'numbering_type=COMMIT_POSITION&project=chromium&'
         'repo=v8%2Fv8&fields=git_sha')
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   @mock.patch(
-      'build_management.revisions._git_commit_position_to_git_hash_for_chromium'
+      '_internal.build_management.revisions._git_commit_position_to_git_hash_for_chromium'
   )
   def test_get_real_revision_chromium(self, mock_get_git_hash,
                                       mock_get_url_content, mock_get_config):
@@ -259,8 +259,8 @@ class RevisionsTestcase(unittest.TestCase):
     self.assertEqual('1d783bc2a3629b94c963debfa3feaee27092dd92',
                      revisions.get_real_revision(336903, BASIC_JOB_TYPE))
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_get_real_revision_oss_fuzz(self, mock_get_url_content,
                                       mock_get_config):
     """Test that get_real_revision works properly for non-chromium revisions."""
@@ -273,8 +273,8 @@ class RevisionsTestcase(unittest.TestCase):
     self.assertEqual('54444451414e3efb4a4c7e319a3f4110e20c7cf2',
                      revisions.get_real_revision(9003, SRCMAP_JOB_TYPE))
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_get_component_revision_list_src_map(self, mock_get_url_content,
                                                mock_get_config):
     """Test get_component_range_list for srcmap jobs."""
@@ -287,8 +287,8 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('srcmap_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_get_component_revision_list_src_map_text(self, mock_get_url_content,
                                                     mock_get_config):
     """Test get_component_range_list for srcmap jobs (text only)."""
@@ -301,8 +301,8 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('srcmap_expected_text.txt')
     self.assertEqual(result_as_html, expected_html)
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_get_component_range_list_same_hash(self, mock_get_url_content,
                                               mock_get_config):
     """Test get_component_range_list for 2 builds that have different revision
@@ -316,8 +316,8 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('srcmap_expected_html_2.txt')
     self.assertEqual(result_as_html, expected_html)
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_get_component_range_list_0_start_custom(self, mock_get_url_content,
                                                    mock_get_config):
     """Test get_component_range_list with a '0' start_revision."""
@@ -330,8 +330,8 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('srcmap_expected_html_3.txt')
     self.assertEqual(result_as_html, expected_html)
 
-  @mock.patch('config.db_config.get')
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.config.db_config.get')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_get_component_range_list_custom_binary_job(
       self, mock_get_url_content, mock_get_config):
     """Test get_component_range_list with a custom binary job."""
@@ -395,7 +395,7 @@ class RevisionsTestcase(unittest.TestCase):
     self.assertEqual(revisions.find_max_revision_index(revisions_list, 3001), 3)
     self.assertIsNone(revisions.find_max_revision_index(revisions_list, 4001))
 
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_revision_to_branched_from(self, mock_get_url_content):
     """Test revision_to_branched_from() with normal branch."""
     mock_get_url_content.side_effect = self.mock_get_url_content
@@ -403,7 +403,7 @@ class RevisionsTestcase(unittest.TestCase):
                                               'abcd')
     self.assertEqual('36884', val)
 
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_revision_to_branched_from_no_branched_from(self,
                                                       mock_get_url_content):
     """Test revision_to_branched_from() where commit has no branch-from"""
@@ -412,7 +412,7 @@ class RevisionsTestcase(unittest.TestCase):
                                               'f00d')
     self.assertEqual(None, val)
 
-  @mock.patch('build_management.revisions._get_url_content')
+  @mock.patch('_internal.build_management.revisions._get_url_content')
   def test_revision_to_branched_from_no_message(self, mock_get_url_content):
     """Test revision_to_branched_from() with no commit message at all"""
     mock_get_url_content.side_effect = self.mock_get_url_content

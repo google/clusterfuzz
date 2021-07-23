@@ -41,11 +41,11 @@ from _internal.fuzzing import leak_blacklist
 from _internal.google_cloud_utils import big_query
 from _internal.google_cloud_utils import blobs
 from _internal.google_cloud_utils import storage
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import logs
 from _internal.system import archive
 from _internal.system import environment
 from _internal.system import shell
+from lib.clusterfuzz.fuzz import engine
 
 # TODO(ochang): Move common libFuzzer code from fuzzer into CF.
 

@@ -236,7 +236,8 @@ class GetRegressionTest(unittest.TestCase):
   """Test get_regression."""
 
   def setUp(self):
-    helpers.patch(self, ['build_management.build_manager.is_custom_binary'])
+    helpers.patch(self,
+                  ['_internal.build_management.build_manager.is_custom_binary'])
 
   def test_one_time_crasher(self):
     """Test when one_time_crasher_flag is True."""
@@ -272,14 +273,14 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for crash init test."""
     helpers.patch(self, [
-        'chrome.crash_uploader.FileMetadataInfo',
-        'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
-        'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
-        'bot.testcase_manager.get_additional_command_line_flags',
-        'bot.testcase_manager.get_command_line_for_application',
-        'base.utils.get_crash_stacktrace_output',
-        'crash_analysis.crash_analyzer.ignore_stacktrace',
-        'crash_analysis.crash_analyzer.is_security_issue',
+        '_internal.chrome.crash_uploader.FileMetadataInfo',
+        '_internal.bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
+        '_internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
+        '_internal.bot.testcase_manager.get_additional_command_line_flags',
+        '_internal.bot.testcase_manager.get_command_line_for_application',
+        '_internal.base.utils.get_crash_stacktrace_output',
+        '_internal.crash_analysis.crash_analyzer.ignore_stacktrace',
+        '_internal.crash_analysis.crash_analyzer.is_security_issue',
     ])
     helpers.patch_environ(self)
     test_utils.set_up_pyfakefs(self)
@@ -445,9 +446,9 @@ class CrashGroupTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.tasks.fuzz_task.find_main_crash',
-        'datastore.data_handler.find_testcase',
-        'datastore.data_handler.get_project_name',
+        '_internal.bot.tasks.fuzz_task.find_main_crash',
+        '_internal.datastore.data_handler.find_testcase',
+        '_internal.datastore.data_handler.get_project_name',
     ])
 
     self.mock.get_project_name.return_value = 'some_project'
@@ -555,7 +556,7 @@ class FindMainCrashTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.testcase_manager.test_for_reproducibility',
+        '_internal.bot.testcase_manager.test_for_reproducibility',
     ])
     self.crashes = [
         self._make_crash('g1'),
@@ -652,21 +653,22 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for process crashes test."""
     helpers.patch(self, [
-        'chrome.crash_uploader.get_symbolized_stack_bytes',
-        'bot.tasks.fuzz_task.get_unsymbolized_crash_stacktrace',
-        'bot.tasks.task_creation.create_tasks',
-        'bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
-        'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
-        'build_management.revisions.get_real_revision',
-        'bot.testcase_manager.get_command_line_for_application',
-        'bot.testcase_manager.test_for_reproducibility',
-        'base.utils.get_crash_stacktrace_output',
-        'crash_analysis.crash_analyzer.ignore_stacktrace',
-        'crash_analysis.crash_analyzer.is_security_issue',
-        'datastore.data_handler.get_issue_tracker_name',
-        'datastore.data_handler.get_project_name',
-        'google_cloud_utils.big_query.Client.insert',
-        'google_cloud_utils.big_query.get_api_client', 'time.sleep', 'time.time'
+        '_internal.chrome.crash_uploader.get_symbolized_stack_bytes',
+        '_internal.bot.tasks.fuzz_task.get_unsymbolized_crash_stacktrace',
+        '_internal.bot.tasks.task_creation.create_tasks',
+        '_internal.bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
+        '_internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
+        '_internal.build_management.revisions.get_real_revision',
+        '_internal.bot.testcase_manager.get_command_line_for_application',
+        '_internal.bot.testcase_manager.test_for_reproducibility',
+        '_internal.base.utils.get_crash_stacktrace_output',
+        '_internal.crash_analysis.crash_analyzer.ignore_stacktrace',
+        '_internal.crash_analysis.crash_analyzer.is_security_issue',
+        '_internal.datastore.data_handler.get_issue_tracker_name',
+        '_internal.datastore.data_handler.get_project_name',
+        '_internal.google_cloud_utils.big_query.Client.insert',
+        '_internal.google_cloud_utils.big_query.get_api_client', 'time.sleep',
+        'time.time'
     ])
     test_utils.set_up_pyfakefs(self)
 
@@ -956,9 +958,9 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
   def setUp(self):
     self.client = mock.Mock(spec_set=big_query.Client)
     helpers.patch(self, [
-        'system.environment.get_value',
-        'datastore.data_handler.get_project_name',
-        'google_cloud_utils.big_query.Client',
+        '_internal.system.environment.get_value',
+        '_internal.datastore.data_handler.get_project_name',
+        '_internal.google_cloud_utils.big_query.Client',
         'time.time',
     ])
     monitor.metrics_store().reset_for_testing()
@@ -1171,9 +1173,9 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for test corpus sync."""
     helpers.patch(self, [
-        'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_to_disk',
-        'fuzzing.corpus_manager.FuzzTargetCorpus.upload_files',
-        'google_cloud_utils.storage.last_updated',
+        '_internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_to_disk',
+        '_internal.fuzzing.corpus_manager.FuzzTargetCorpus.upload_files',
+        '_internal.google_cloud_utils.storage.last_updated',
     ])
 
     helpers.patch_environ(self)
@@ -1235,24 +1237,24 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     """Setup for blackbox fuzzing test."""
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.utils.random_element_from_list',
-        'base.utils.random_number',
-        'bot.fuzzers.engine_common.current_timestamp',
-        'bot.tasks.fuzz_task.pick_gestures',
-        'bot.testcase_manager.upload_log',
-        'bot.testcase_manager.upload_testcase',
-        'build_management.revisions.get_component_list',
-        'crash_analysis.crash_analyzer.is_crash',
-        'crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
-        'datastore.ndb_init.context',
-        'metrics.fuzzer_stats.upload_stats',
+        '_internal.base.utils.random_element_from_list',
+        '_internal.base.utils.random_number',
+        '_internal.bot.fuzzers.engine_common.current_timestamp',
+        '_internal.bot.tasks.fuzz_task.pick_gestures',
+        '_internal.bot.testcase_manager.upload_log',
+        '_internal.bot.testcase_manager.upload_testcase',
+        '_internal.build_management.revisions.get_component_list',
+        '_internal.crash_analysis.crash_analyzer.is_crash',
+        '_internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
+        '_internal.datastore.ndb_init.context',
+        '_internal.metrics.fuzzer_stats.upload_stats',
         'random.random',
-        'system.process_handler.close_queue',
-        'system.process_handler.get_process',
-        'system.process_handler.get_queue',
-        'system.process_handler.run_process',
-        'system.process_handler.terminate_hung_threads',
-        'system.process_handler.terminate_stale_application_instances',
+        '_internal.system.process_handler.close_queue',
+        '_internal.system.process_handler.get_process',
+        '_internal.system.process_handler.get_queue',
+        '_internal.system.process_handler.run_process',
+        '_internal.system.process_handler.terminate_hung_threads',
+        '_internal.system.process_handler.terminate_stale_application_instances',
     ])
 
     os.environ['APP_ARGS'] = '-x'
@@ -1355,13 +1357,13 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     """Setup for do engine fuzzing test."""
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'bot.fuzzers.engine_common.current_timestamp',
-        'bot.tasks.fuzz_task.GcsCorpus.sync_from_gcs',
-        'bot.tasks.fuzz_task.GcsCorpus.upload_files',
-        'build_management.revisions.get_component_list',
-        'bot.testcase_manager.upload_log',
-        'bot.testcase_manager.upload_testcase',
-        'metrics.fuzzer_stats.upload_stats',
+        '_internal.bot.fuzzers.engine_common.current_timestamp',
+        '_internal.bot.tasks.fuzz_task.GcsCorpus.sync_from_gcs',
+        '_internal.bot.tasks.fuzz_task.GcsCorpus.upload_files',
+        '_internal.build_management.revisions.get_component_list',
+        '_internal.bot.testcase_manager.upload_log',
+        '_internal.bot.testcase_manager.upload_testcase',
+        '_internal.metrics.fuzzer_stats.upload_stats',
     ])
     test_utils.set_up_pyfakefs(self)
 

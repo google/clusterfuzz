@@ -70,9 +70,10 @@ class RunCommandTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        ('fuzz_execute_task', 'bot.tasks.fuzz_task.execute_task'),
-        ('progression_execute_task', 'bot.tasks.progression_task.execute_task'),
-        'base.utils.utcnow',
+        ('fuzz_execute_task', '_internal.bot.tasks.fuzz_task.execute_task'),
+        ('progression_execute_task',
+         '_internal.bot.tasks.progression_task.execute_task'),
+        '_internal.base.utils.utcnow',
     ])
 
     os.environ['BOT_NAME'] = 'bot_name'

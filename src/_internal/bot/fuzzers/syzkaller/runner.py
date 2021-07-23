@@ -23,11 +23,11 @@ from _internal.bot.fuzzers import utils as fuzzer_utils
 from _internal.bot.fuzzers.syzkaller import config
 from _internal.config import local_config
 from _internal.google_cloud_utils import storage
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import logs
 from _internal.platforms.android import kernel_utils
 from _internal.system import environment
 from _internal.system import new_process
+from lib.clusterfuzz.fuzz import engine
 
 REPRODUCE_REGEX = re.compile(r'reproduced (\d+) crashes')
 

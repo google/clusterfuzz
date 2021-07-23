@@ -50,10 +50,10 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'datastore.data_handler.get_issue_description',
-        'datastore.data_handler.get_issue_summary',
-        'datastore.data_handler.get_stacktrace',
-        'datastore.data_handler.update_group_bug',
+        '_internal.datastore.data_handler.get_issue_description',
+        '_internal.datastore.data_handler.get_issue_summary',
+        '_internal.datastore.data_handler.get_stacktrace',
+        '_internal.datastore.data_handler.update_group_bug',
         'libs.helpers.get_issue_tracker_for_testcase',
         'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',

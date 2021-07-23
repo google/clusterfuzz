@@ -29,7 +29,6 @@ from _internal.crash_analysis.crash_result import CrashResult
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.datastore import ndb_init
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import fuzzer_logs
 from _internal.metrics import fuzzer_stats
 from _internal.metrics import logs
@@ -38,6 +37,7 @@ from _internal.system import archive
 from _internal.system import environment
 from _internal.system import process_handler
 from _internal.system import shell
+from lib.clusterfuzz.fuzz import engine
 
 # Testcase filename prefixes and suffixes.
 CRASH_PREFIX = 'crash-'

@@ -47,9 +47,9 @@ class GetTaskTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'base.persistent_cache.get_value',
-        'base.persistent_cache.set_value',
-        'base.utils.utcnow',
+        '_internal.base.persistent_cache.get_value',
+        '_internal.base.persistent_cache.set_value',
+        '_internal.base.utils.utcnow',
         'time.sleep',
     ])
 
@@ -150,7 +150,7 @@ class LeaseTaskTest(unittest.TestCase):
     helpers.patch_environ(self)
 
     helpers.patch(self, [
-        'datastore.data_handler.update_heartbeat',
+        '_internal.datastore.data_handler.update_heartbeat',
         'time.time',
     ])
 
@@ -276,7 +276,7 @@ class ExternalTasksTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'google_cloud_utils.blobs.read_key',
+        '_internal.google_cloud_utils.blobs.read_key',
     ])
 
     self.mock.read_key.return_value = b'reproducer'

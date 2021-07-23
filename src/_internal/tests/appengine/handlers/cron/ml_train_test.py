@@ -37,8 +37,9 @@ class HandlerTest(unittest.TestCase):
     self.app = webtest.TestApp(flaskapp)
 
     test_helpers.patch(self, [
-        'base.tasks.add_task', 'handlers.base_handler.Handler.is_cron',
-        'metrics.logs.log_error'
+        '_internal.base.tasks.add_task',
+        'handlers.base_handler.Handler.is_cron',
+        '_internal.metrics.logs.log_error'
     ])
 
     # Create fake jobs.

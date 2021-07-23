@@ -178,9 +178,9 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.honggfuzz.put()
 
     helpers.patch(self, [
-        'config.local_config.ProjectConfig',
-        ('get_application_id_2', 'base.utils.get_application_id'),
-        'google_cloud_utils.storage.build',
+        '_internal.config.local_config.ProjectConfig',
+        ('get_application_id_2', '_internal.base.utils.get_application_id'),
+        '_internal.google_cloud_utils.storage.build',
         'time.sleep',
         'handlers.base_handler.Handler.is_cron',
         'handlers.cron.project_setup.get_oss_fuzz_projects',
@@ -1626,10 +1626,10 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.honggfuzz.put()
 
     helpers.patch(self, [
-        'config.local_config.ProjectConfig',
-        ('get_application_id_2', 'base.utils.get_application_id'),
-        'google_cloud_utils.storage.build',
-        'google_cloud_utils.storage.read_data',
+        '_internal.config.local_config.ProjectConfig',
+        ('get_application_id_2', '_internal.base.utils.get_application_id'),
+        '_internal.google_cloud_utils.storage.build',
+        '_internal.google_cloud_utils.storage.read_data',
         'time.sleep',
         'handlers.base_handler.Handler.is_cron',
     ])

@@ -41,7 +41,7 @@ class StatsGetterTests(unittest.TestCase):
   CORPUS_SIZE = 20
   ACTUAL_DURATION = 5
 
-  @mock.patch('system.environment.get_value', override_fail_retries)
+  @mock.patch('_internal.system.environment.get_value', override_fail_retries)
   def setUp(self):
 
     def get_data_path(filename, is_in_output=True):
@@ -60,7 +60,8 @@ class StatsGetterTests(unittest.TestCase):
 
     self.stats_getter.set_afl_stats()
     dont_use_strategies(self)
-    test_helpers.patch(self, ['bot.fuzzers.engine_common.is_lpm_fuzz_target'])
+    test_helpers.patch(
+        self, ['_internal.bot.fuzzers.engine_common.is_lpm_fuzz_target'])
     self.mock.is_lpm_fuzz_target.return_value = True
     self.strategies = launcher.FuzzingStrategies(None)
 
@@ -98,7 +99,7 @@ class StatsGetterTests(unittest.TestCase):
 
     self.assertEqual(self.stats_getter.afl_stats, expected_stats)
 
-  @mock.patch('system.environment.get_value', override_fail_retries)
+  @mock.patch('_internal.system.environment.get_value', override_fail_retries)
   def _set_stats(self):
     """Helper function that calls self.stats_getter.set_stats with default
     values and returns the result.
@@ -212,7 +213,7 @@ class StatsGetterTests(unittest.TestCase):
     actual_stats = self._set_stats()
     self.assertEqual(actual_stats, expected_stats)
 
-  @mock.patch('system.environment.get_value', override_fail_retries)
+  @mock.patch('_internal.system.environment.get_value', override_fail_retries)
   def test_actual_duration_is_0(self):
     """Tests that average_exec_per_sec is set to 0 when actual_duration is 0."""
     self.stats_getter.set_stats(
@@ -226,7 +227,7 @@ class StatsGetterTests(unittest.TestCase):
 
     self.assertEqual(self.stats_getter.stats['average_exec_per_sec'], 0)
 
-  @mock.patch('system.environment.get_value', override_fail_retries)
+  @mock.patch('_internal.system.environment.get_value', override_fail_retries)
   def test_log_lines_unwanted(self):
     """Tests that average_exec_per_sec is set to 0 when actual_duration is 0."""
     with open(os.path.join(self.data_dir, 'unwanted_logging.txt')) as f:

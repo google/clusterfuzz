@@ -27,7 +27,7 @@ class RemoteProcessHostTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'bot.untrusted_runner.host.stub',
+        '_internal.bot.untrusted_runner.host.stub',
     ])
 
   def test_run_and_wait(self):

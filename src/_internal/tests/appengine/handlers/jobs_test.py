@@ -180,7 +180,7 @@ class JobsUpdateTest(unittest.TestCase):
         'libs.access.has_access',
         'libs.access.get_access',
         'libs.gcs.prepare_blob_upload',
-        'fuzzing.fuzzer_selection.update_mappings_for_job',
+        '_internal.fuzzing.fuzzer_selection.update_mappings_for_job',
     ])
     self.mock.get_current_user().email = 'test@user.com'
     self.mock.prepare_blob_upload.return_value = (

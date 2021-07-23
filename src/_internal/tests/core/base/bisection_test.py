@@ -31,12 +31,12 @@ class RequestBisectionTest(unittest.TestCase):
     helpers.patch_environ(self)
 
     helpers.patch(self, [
-        'build_management.build_manager.get_primary_bucket_path',
-        'build_management.build_manager.get_revisions_list',
-        'build_management.revisions.get_component_range_list',
-        'config.local_config.ProjectConfig',
-        'google_cloud_utils.blobs.read_key',
-        'google_cloud_utils.pubsub.PubSubClient.publish',
+        '_internal.build_management.build_manager.get_primary_bucket_path',
+        '_internal.build_management.build_manager.get_revisions_list',
+        '_internal.build_management.revisions.get_component_range_list',
+        '_internal.config.local_config.ProjectConfig',
+        '_internal.google_cloud_utils.blobs.read_key',
+        '_internal.google_cloud_utils.pubsub.PubSubClient.publish',
     ])
     self.mock.ProjectConfig.return_value = mock_config.MockConfig({
         'env': {

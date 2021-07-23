@@ -38,8 +38,8 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
     self.fs.create_dir(os.path.join('/', 'usr', 'lib32'))
 
     test_helpers.patch(self, [
-        'system.minijail._get_minijail_path',
-        'system.minijail.MinijailChroot._mknod',
+        '_internal.system.minijail._get_minijail_path',
+        '_internal.system.minijail.MinijailChroot._mknod',
     ])
 
     test_helpers.patch_environ(self)
@@ -84,7 +84,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
         minijail.ChrootBinding('/foo/bar', '/bar', False))
     self.assertFalse(os.path.exists(chroot_directory))
 
-  @mock.patch('system.minijail.os.getuid', lambda: 1000)
+  @mock.patch('_internal.system.minijail.os.getuid', lambda: 1000)
   def test_minijail(self):
     """Test minijail process command."""
     with minijail.MinijailChroot() as chroot:
@@ -98,7 +98,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           '/usr/lib,/usr/lib,0', '-b', '/usr/lib32,/usr/lib32,0', '/bin/ls'
       ])
 
-  @mock.patch('system.minijail.os.getuid', lambda: 1000)
+  @mock.patch('_internal.system.minijail.os.getuid', lambda: 1000)
   def test_minijail_bindings(self):
     """Test minijail process command with additional bind dirs."""
     with minijail.MinijailChroot(bindings=[
@@ -116,9 +116,9 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           '/foo/bar,/bar,1', '-b', '/foo/barr,/barr,0', '/bin/ls'
       ])
 
-  @mock.patch('system.minijail.os.getuid', lambda: 1000)
-  @mock.patch('system.minijail.subprocess.Popen')
-  @mock.patch('system.minijail.tempfile.NamedTemporaryFile')
+  @mock.patch('_internal.system.minijail.os.getuid', lambda: 1000)
+  @mock.patch('_internal.system.minijail.subprocess.Popen')
+  @mock.patch('_internal.system.minijail.tempfile.NamedTemporaryFile')
   def test_minijail_pid(self, mock_tempfile, _):
     """Test minijail process command writing to pid file."""
     mock_tempfile.return_value.name = '/temp_pid'
@@ -135,7 +135,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           '/usr/lib,/usr/lib,0', '-b', '/usr/lib32,/usr/lib32,0', 'bin/ls'
       ])
 
-  @mock.patch('system.minijail.subprocess.Popen')
+  @mock.patch('_internal.system.minijail.subprocess.Popen')
   def test_minijail_env_vars(self, mock_popen):
     """Test passing of env vars."""
     os.environ['ASAN_OPTIONS'] = 'asan_option=1'

@@ -34,7 +34,7 @@ class TestFormatters(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
     ])
     self.mock.utcnow.return_value = datetime.datetime(2018, 1, 1)
 

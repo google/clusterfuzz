@@ -17,10 +17,10 @@ import os
 
 from _internal.bot import testcase_manager
 from _internal.crash_analysis.stack_parsing import stack_analyzer
-from lib.clusterfuzz.fuzz import engine
 from _internal.system import environment
 from _internal.system import new_process
 from _internal.system import shell
+from lib.clusterfuzz.fuzz import engine
 
 TESTCASE_PREFIX = 'fuzz-'
 OUTPUT_PREFIX = 'output-'
@@ -154,6 +154,7 @@ class BlackboxEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
+    del arguments
     # For blackbox fuzzers, |target_path| supplies the path to the fuzzer script
     # rather than a target in the build archive.
     fuzzer_path = target_path

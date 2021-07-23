@@ -30,7 +30,7 @@ class OAuthHandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'google_cloud_utils.blobs.get_blob_info',
+        '_internal.google_cloud_utils.blobs.get_blob_info',
         'libs.access.check_access_and_get_testcase',
         'libs.handler.get_email_and_access_token',
         'libs.gcs.get_signed_url',
@@ -76,7 +76,7 @@ class GetTestcaseBlobInfoTest(unittest.TestCase):
     self.testcase.put()
 
     test_helpers.patch(self, [
-        'google_cloud_utils.blobs.get_blob_info',
+        '_internal.google_cloud_utils.blobs.get_blob_info',
     ])
 
     self.key = 'key'

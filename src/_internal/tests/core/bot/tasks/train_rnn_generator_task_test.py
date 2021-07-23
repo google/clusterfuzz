@@ -129,9 +129,9 @@ class ExecuteTaskTest(unittest.TestCase):
     os.environ['FUZZ_INPUTS_DISK'] = self.temp_dir
 
     test_helpers.patch(self, [
-        'bot.tasks.ml_train_utils.get_corpus',
-        'bot.tasks.train_rnn_generator_task.train_rnn',
-        'bot.tasks.train_rnn_generator_task.upload_model_to_gcs',
+        '_internal.bot.tasks.ml_train_utils.get_corpus',
+        '_internal.bot.tasks.train_rnn_generator_task.train_rnn',
+        '_internal.bot.tasks.train_rnn_generator_task.upload_model_to_gcs',
     ])
 
     self.mock.get_corpus.return_value = True

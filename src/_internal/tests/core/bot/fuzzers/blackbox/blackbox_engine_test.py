@@ -43,7 +43,7 @@ class BlackboxEngineTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'os.chmod',
-        'system.new_process.ProcessRunner.run_and_wait',
+        '_internal.system.new_process.ProcessRunner.run_and_wait',
     ])
 
   def test_prepare(self):

@@ -40,9 +40,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Set environment variables used by stack analyzer tests."""
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
-        'metrics.logs.log_error',
-        'platforms.android.kernel_utils.get_kernel_prefix_and_full_hash'
+        '_internal.crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
+        '_internal.metrics.logs.log_error',
+        '_internal.platforms.android.kernel_utils.get_kernel_prefix_and_full_hash'
     ])
 
     os.environ['JOB_NAME'] = TEST_JOB_NAME
@@ -2590,7 +2590,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
         return [r'Envoy\:\:Upstream\:\:ClusterManagerImpl']
       return default
 
-    helpers.patch(self, ['config.local_config.ProjectConfig.get'])
+    helpers.patch(self, ['_internal.config.local_config.ProjectConfig.get'])
     self.mock.get.side_effect = _mock_config_get
 
     data = self._read_test_data('assert_with_panic_keyword.txt')

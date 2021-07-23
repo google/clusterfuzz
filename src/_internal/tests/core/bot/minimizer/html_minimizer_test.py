@@ -26,11 +26,12 @@ class HTMLMinimizerTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(
         self,
-        [('js_minimizer', 'bot.minimizer.js_minimizer.JSMinimizer.minimize'),
+        [('js_minimizer',
+          '_internal.bot.minimizer.js_minimizer.JSMinimizer.minimize'),
          ('html_minimizer',
-          'bot.minimizer.chunk_minimizer.ChunkMinimizer.minimize'),
+          '_internal.bot.minimizer.chunk_minimizer.ChunkMinimizer.minimize'),
          ('line_minimizer',
-          'bot.minimizer.delta_minimizer.DeltaMinimizer.minimize')])
+          '_internal.bot.minimizer.delta_minimizer.DeltaMinimizer.minimize')])
 
     # HTML Minimizer passes data to a series of sub-minimizers. These take a
     # long time to run. We just want to test that the results are being handled

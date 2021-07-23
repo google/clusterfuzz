@@ -137,8 +137,8 @@ class JsonHandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.external_users._allowed_entities_for_user',
-        'base.external_users._get_permissions_query_for_user',
+        '_internal.base.external_users._allowed_entities_for_user',
+        '_internal.base.external_users._get_permissions_query_for_user',
         'libs.access.get_user_job_type',
         'libs.access.has_access',
         'libs.helpers.get_user_email',

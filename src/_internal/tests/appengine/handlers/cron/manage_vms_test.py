@@ -300,10 +300,10 @@ class CronTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'base.utils.is_oss_fuzz',
+        '_internal.base.utils.is_oss_fuzz',
         'handlers.cron.helpers.bot_manager.BotManager',
-        'system.environment.is_running_on_app_engine',
-        'google_cloud_utils.compute_engine_projects.load_project',
+        '_internal.system.environment.is_running_on_app_engine',
+        '_internal.google_cloud_utils.compute_engine_projects.load_project',
     ])
 
     self.mock.is_oss_fuzz.return_value = True

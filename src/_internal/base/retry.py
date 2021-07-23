@@ -101,6 +101,8 @@ def wrap(retries,
           if not handle_retry(num_try, exception=e):
             raise
 
+      return None
+
     @functools.wraps(func)
     def _generator_wrapper(*args, **kwargs):
       """Generator function wrapper."""

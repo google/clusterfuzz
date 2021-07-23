@@ -52,15 +52,15 @@ class BaseTest(object):
     """Setup."""
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
-        'bot.tasks.corpus_pruning_task.choose_cross_pollination_strategy',
-        'bot.tasks.task_creation.create_tasks',
-        'bot.tasks.setup.update_fuzzer_and_data_bundles',
-        'fuzzing.corpus_manager.backup_corpus',
-        'fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
-        'fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
-        'google_cloud_utils.blobs.write_blob',
-        'google_cloud_utils.storage.write_data',
+        '_internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
+        '_internal.bot.tasks.corpus_pruning_task.choose_cross_pollination_strategy',
+        '_internal.bot.tasks.task_creation.create_tasks',
+        '_internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
+        '_internal.fuzzing.corpus_manager.backup_corpus',
+        '_internal.fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
+        '_internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
+        '_internal.google_cloud_utils.blobs.write_blob',
+        '_internal.google_cloud_utils.storage.write_data',
         'lib.clusterfuzz.fuzz.engine.get',
     ])
     self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
@@ -158,8 +158,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def setUp(self):
     BaseTest.setUp(self)
     helpers.patch(self, [
-        'build_management.build_manager.setup_build',
-        'base.utils.get_application_id',
+        '_internal.build_management.build_manager.setup_build',
+        '_internal.base.utils.get_application_id',
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
@@ -308,7 +308,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
 
     environment.set_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES', True)
     helpers.patch(self, [
-        'system.shell.clear_temp_directory',
+        '_internal.system.shell.clear_temp_directory',
     ])
 
   def tearDown(self):
@@ -342,9 +342,9 @@ class CorpusPruningTestUntrusted(
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
-        'bot.tasks.setup.get_fuzzer_directory',
-        'base.tasks.add_task',
-        'bot.tasks.corpus_pruning_task._record_cross_pollination_stats',
+        '_internal.bot.tasks.setup.get_fuzzer_directory',
+        '_internal.base.tasks.add_task',
+        '_internal.bot.tasks.corpus_pruning_task._record_cross_pollination_stats',
         'lib.clusterfuzz.fuzz.engine.get',
     ])
 

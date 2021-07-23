@@ -26,8 +26,8 @@ class RequestTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'base.utils.read_data_from_file',
-        'base.utils.write_data_to_file',
+        '_internal.base.utils.read_data_from_file',
+        '_internal.base.utils.write_data_to_file',
         'httplib2.Http',
         'local.butler.reproduce_tool.prompts.get_string',
         'webbrowser.open',

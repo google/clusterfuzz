@@ -51,21 +51,21 @@ class InvalidTestcaseError(Error):
   """Error thrown when there is an attempt to access an invalid test case."""
 
   def __init__(self):
-    super(InvalidTestcaseError, self).__init__('Invalid test case.')
+    super().__init__('Invalid test case.')
 
 
 class InvalidFuzzerError(Error):
   """Error thrown when there is an attempt to set up a nonexistent fuzzer."""
 
   def __init__(self):
-    super(InvalidFuzzerError, self).__init__('Invalid fuzzer.')
+    super().__init__('Invalid fuzzer.')
 
 
 class BadStateError(Error):
   """We are in an unexpected state that we cannot recover from."""
 
   def __init__(self, message=None):
-    super(BadStateError, self).__init__('Entered a bad state.' or message)
+    super().__init__('Entered a bad state.' or message)
 
 
 class BuildNotFoundError(Error):
@@ -74,7 +74,7 @@ class BuildNotFoundError(Error):
   def __init__(self, revision, job_type):
     self.revision = revision
     self.job_type = job_type
-    super(BuildNotFoundError, self).__init__()
+    super().__init__()
 
   def __str__(self):
     return 'Build not found (revision %d, job %s).' % (self.revision,
@@ -87,7 +87,7 @@ class BuildSetupError(Error):
   def __init__(self, revision, job_type):
     self.revision = revision
     self.job_type = job_type
-    super(BuildSetupError, self).__init__()
+    super().__init__()
 
   def __str__(self):
     return 'Build setup failed (revision %d, job %s).' % (self.revision,
@@ -100,7 +100,7 @@ class BadBuildError(Error):
   def __init__(self, revision, job_type):
     self.revision = revision
     self.job_type = job_type
-    super(BadBuildError, self).__init__()
+    super().__init__()
 
   def __str__(self):
     return 'Bad build detected (revision %d, job %s).' % (self.revision,
@@ -111,7 +111,7 @@ class BadConfigError(Error):
   """Error thrown when configuration is bad."""
 
   def __init__(self, config_dir):
-    super(BadConfigError, self).__init__(
+    super().__init__(
         'Bad configuration at: {config_dir}'.format(config_dir=config_dir))
 
 
@@ -120,7 +120,7 @@ class ConfigParseError(Error):
 
   def __init__(self, file_path):
     self.file_path = file_path
-    super(ConfigParseError, self).__init__()
+    super().__init__()
 
   def __str__(self):
     return 'Failed to parse config file %s.' % self.file_path
@@ -131,7 +131,7 @@ class InvalidConfigKey(Error):
 
   def __init__(self, key_name):
     self.key_name = key_name
-    super(InvalidConfigKey, self).__init__()
+    super().__init__()
 
   def __str__(self):
     return 'Invalid config key %s.' % self.key_name

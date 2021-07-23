@@ -33,7 +33,7 @@ class GcsCorpusTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'fuzzing.corpus_manager._count_corpus_files',
+        '_internal.fuzzing.corpus_manager._count_corpus_files',
         'multiprocessing.cpu_count',
         'subprocess.Popen',
     ])
@@ -109,8 +109,8 @@ class RsyncErrorHandlingTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'fuzzing.corpus_manager._count_corpus_files',
-        'google_cloud_utils.gsutil.GSUtilRunner.run_gsutil',
+        '_internal.fuzzing.corpus_manager._count_corpus_files',
+        '_internal.google_cloud_utils.gsutil.GSUtilRunner.run_gsutil',
     ])
 
   def test_rsync_error_below_threshold(self):
@@ -200,7 +200,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     os.environ['CORPUS_BUCKET'] = 'bucket'
 
     test_helpers.patch(self, [
-        'fuzzing.corpus_manager._count_corpus_files',
+        '_internal.fuzzing.corpus_manager._count_corpus_files',
         'multiprocessing.cpu_count',
         'subprocess.Popen',
     ])
@@ -300,9 +300,9 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
     os.environ['CORPUS_BUCKET'] = 'bucket'
 
     test_helpers.patch(self, [
-        'base.utils.utcnow',
-        'google_cloud_utils.storage.copy_blob',
-        'google_cloud_utils.storage.copy_file_to',
+        '_internal.base.utils.utcnow',
+        '_internal.google_cloud_utils.storage.copy_blob',
+        '_internal.google_cloud_utils.storage.copy_file_to',
         'multiprocessing.cpu_count',
         'shutil.make_archive',
     ])
@@ -379,7 +379,8 @@ class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
 
   def test_logs_errors(self):
     """Test that errors are logged when we fail to rename a file."""
-    test_helpers.patch(self, ['shutil.move', 'metrics.logs.log_error'])
+    test_helpers.patch(self,
+                       ['shutil.move', '_internal.metrics.logs.log_error'])
 
     def mock_move(*args, **kwargs):  # pylint: disable=unused-argument
       raise OSError

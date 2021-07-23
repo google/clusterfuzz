@@ -81,7 +81,7 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'config.db_config.get_value',
+        '_internal.config.db_config.get_value',
         'libs.form.generate_csrf_token',
         'libs.helpers.get_user_email',
     ])

@@ -35,7 +35,8 @@ class GetUserJobTypeTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(
-        self, ['config.db_config.get_value', 'libs.helpers.get_user_email'])
+        self,
+        ['_internal.config.db_config.get_value', 'libs.helpers.get_user_email'])
 
   def test_none(self):
     """Ensure it returns None when config is invalid."""
@@ -63,7 +64,7 @@ class IsPrivilegedUserTest(unittest.TestCase):
   _FAKE_CONFIG = 'Test@test.com\n'
 
   def setUp(self):
-    test_helpers.patch(self, ['config.db_config.get_value'])
+    test_helpers.patch(self, ['_internal.config.db_config.get_value'])
 
   def test_none(self):
     """Ensure it returns False when config is invalid."""
@@ -79,7 +80,7 @@ class IsPrivilegedUserTest(unittest.TestCase):
 
   def test_all_users_privileged(self):
     """Test when all_users_privileged is set."""
-    test_helpers.patch(self, ['config.local_config.AuthConfig'])
+    test_helpers.patch(self, ['_internal.config.local_config.AuthConfig'])
     self.mock.AuthConfig.return_value = mock_config.MockConfig({
         'all_users_privileged': True,
     })
@@ -92,7 +93,7 @@ class IsDomainAllowedTest(unittest.TestCase):
   _FAKE_CONFIG = ['test.com', 'test2.com']
 
   def setUp(self):
-    test_helpers.patch(self, ['config.local_config.AuthConfig.get'])
+    test_helpers.patch(self, ['_internal.config.local_config.AuthConfig.get'])
 
   def test_none(self):
     """Ensure it returns False when config is invalid."""
@@ -122,8 +123,8 @@ class GetAccessTest(unittest.TestCase):
         'libs.access._is_blacklisted_user',
         'libs.access._is_privileged_user',
         'libs.access._is_domain_allowed',
-        'base.external_users.is_fuzzer_allowed_for_user',
-        'base.external_users.is_job_allowed_for_user',
+        '_internal.base.external_users.is_fuzzer_allowed_for_user',
+        '_internal.base.external_users.is_job_allowed_for_user',
     ])
     self.mock._is_blacklisted_user.return_value = False
     self.user = auth.User('test@test.com')
@@ -240,7 +241,7 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
     test_helpers.patch(self, [
         'libs.access._is_domain_allowed',
         'libs.auth.get_current_user',
-        'config.db_config.get',
+        '_internal.config.db_config.get',
         'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
         'libs.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',

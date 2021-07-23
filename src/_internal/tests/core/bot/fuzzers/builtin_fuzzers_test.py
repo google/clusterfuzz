@@ -65,9 +65,9 @@ class BuiltinFuzzersSetupTest(fake_filesystem_unittest.TestCase):
     environment.set_value('DATA_BUNDLES_DIR', '/data-bundles')
 
     helpers.patch(self, [
-        'bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.run',
-        'metrics.fuzzer_logs.get_bucket',
-        'google_cloud_utils.blobs.write_blob',
+        '_internal.bot.fuzzers.libFuzzer.fuzzer.LibFuzzer.run',
+        '_internal.metrics.fuzzer_logs.get_bucket',
+        '_internal.google_cloud_utils.blobs.write_blob',
     ])
 
     self.fuzzer = data_types.Fuzzer(

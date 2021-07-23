@@ -96,8 +96,7 @@ def symlink_dirs():
   symlink_config_dir()
 
   common.symlink(
-      src=os.path.join('src', 'lib'),
-      target=os.path.join(SRC_DIR_PY, 'lib'))
+      src=os.path.join('src', 'lib'), target=os.path.join(SRC_DIR_PY, 'lib'))
 
   common.symlink(
       src=os.path.join('src', '_internal'),

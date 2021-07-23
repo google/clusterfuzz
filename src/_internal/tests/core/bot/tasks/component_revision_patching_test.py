@@ -33,7 +33,7 @@ class ComponentRevisionPatchingTest(unittest.TestCase):
     helpers.patch_environ(self)
 
     helpers.patch(self, [
-        'build_management.revisions.get_component_revisions_dict',
+        '_internal.build_management.revisions.get_component_revisions_dict',
     ])
 
     self.mock.get_component_revisions_dict.side_effect = (

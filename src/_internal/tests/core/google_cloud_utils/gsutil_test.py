@@ -29,7 +29,7 @@ class GSUtilRunnerTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'system.new_process.ProcessRunner.run_and_wait',
+        '_internal.system.new_process.ProcessRunner.run_and_wait',
     ])
 
     test_utils.set_up_pyfakefs(self)

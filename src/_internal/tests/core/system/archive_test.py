@@ -67,7 +67,7 @@ class IteratorTest(unittest.TestCase):
   def test_tar_xz_broken_links(self):
     """Test that a .tar file with broken links is handled properly by
     iterator()."""
-    helpers.patch(self, ['metrics.logs.log_warn'])
+    helpers.patch(self, ['_internal.metrics.logs.log_warn'])
 
     archive_name = 'broken-links.tar.xz'
     archive_path = os.path.join(TESTDATA_PATH, archive_name)

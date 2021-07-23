@@ -22,7 +22,7 @@ class ServerTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'metrics.logs._is_running_on_app_engine',
+        '_internal.metrics.logs._is_running_on_app_engine',
     ])
     self.mock._is_running_on_app_engine.return_value = True  # pylint: disable=protected-access
 

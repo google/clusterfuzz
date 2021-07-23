@@ -27,7 +27,7 @@ class WrapTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'base.retry.sleep',
+        '_internal.base.retry.sleep',
     ])
 
     self.func_body = mock.MagicMock()

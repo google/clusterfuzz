@@ -43,8 +43,8 @@ class DownloadTest(unittest.TestCase):
     self.testcase.put()
 
     test_helpers.patch(self, [
-        'base.utils.is_oss_fuzz',
-        'google_cloud_utils.blobs.get_blob_info',
+        '_internal.base.utils.is_oss_fuzz',
+        '_internal.google_cloud_utils.blobs.get_blob_info',
         'libs.access.can_user_access_testcase',
         'libs.access.has_access',
         'libs.gcs.get_signed_url',

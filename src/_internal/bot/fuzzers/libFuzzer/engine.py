@@ -27,11 +27,11 @@ from _internal.bot.fuzzers.libFuzzer import constants
 from _internal.bot.fuzzers.libFuzzer import fuzzer
 from _internal.bot.fuzzers.libFuzzer import stats
 from _internal.fuzzing import strategy
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import logs
 from _internal.metrics import profiler
 from _internal.system import environment
 from _internal.system import shell
+from lib.clusterfuzz.fuzz import engine
 
 ENGINE_ERROR_MESSAGE = 'libFuzzer: engine encountered an error'
 DICT_PARSING_FAILED_REGEX = re.compile(

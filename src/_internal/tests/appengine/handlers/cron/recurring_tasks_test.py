@@ -104,7 +104,7 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     self.app = webtest.TestApp(flaskapp)
 
     helpers.patch(self, [
-        'base.tasks.add_task',
+        '_internal.base.tasks.add_task',
     ])
 
   def test_execute(self):
@@ -128,7 +128,7 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
             '/schedule-impact-tasks'))
     self.app = webtest.TestApp(flaskapp)
     helpers.patch(self, [
-        'base.tasks.add_task',
+        '_internal.base.tasks.add_task',
     ])
 
   def test_execute(self):

@@ -125,6 +125,8 @@ class AFLEngine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
+    del arguments
+    del max_time
     config = launcher.AflConfig.from_target_path(target_path)
     input_directory = None  # Not required for reproduction.
     runner = launcher.prepare_runner(target_path, config, input_path,

@@ -25,8 +25,8 @@ from _internal.bot import testcase_manager
 from _internal.bot.tasks import corpus_pruning_task
 from _internal.bot.untrusted_runner import file_host
 from _internal.datastore import data_types
-from lib.clusterfuzz.fuzz import engine
 from _internal.protos import untrusted_runner_pb2
+from lib.clusterfuzz.fuzz import engine
 
 
 def _fuzz_target_to_proto(fuzz_target):

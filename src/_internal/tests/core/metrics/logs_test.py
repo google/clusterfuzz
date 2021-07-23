@@ -132,7 +132,7 @@ class FormatRecordTest(unittest.TestCase):
   """Test format_record."""
 
   def setUp(self):
-    helpers.patch(self, ['metrics.logs.update_entry_with_exc'])
+    helpers.patch(self, ['_internal.metrics.logs.update_entry_with_exc'])
     helpers.patch_environ(self)
 
     self.maxDiff = None  # pylint: disable=invalid-name
@@ -229,7 +229,7 @@ class JsonSocketHandler(unittest.TestCase):
   """Test JsonSocketHandler."""
 
   def setUp(self):
-    helpers.patch(self, ['metrics.logs.format_record'])
+    helpers.patch(self, ['_internal.metrics.logs.format_record'])
 
   def test_make_pickle(self):
     """Test makePickle."""
@@ -248,12 +248,12 @@ class ConfigureTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'metrics.logs.get_logging_config_dict',
-        'metrics.logs.set_logger',
+        '_internal.metrics.logs.get_logging_config_dict',
+        '_internal.metrics.logs.set_logger',
         'logging.config.dictConfig',
         'logging.getLogger',
-        'metrics.logs._is_running_on_app_engine',
-        'metrics.logs.suppress_unwanted_warnings',
+        '_internal.metrics.logs._is_running_on_app_engine',
+        '_internal.metrics.logs.suppress_unwanted_warnings',
         'google.cloud.logging.Client',
     ])
 
@@ -283,9 +283,10 @@ class EmitTest(unittest.TestCase):
   """Test emit."""
 
   def setUp(self):
-    helpers.patch(
-        self,
-        ['metrics.logs.get_logger', 'metrics.logs._is_running_on_app_engine'])
+    helpers.patch(self, [
+        '_internal.metrics.logs.get_logger',
+        '_internal.metrics.logs._is_running_on_app_engine'
+    ])
     # Reset default extras as it may be modified during other test runs.
     logs._default_extras = {}  # pylint: disable=protected-access
     self.mock._is_running_on_app_engine.return_value = False  # pylint: disable=protected-access
@@ -361,7 +362,7 @@ class LogErrorTest(unittest.TestCase):
   """Tests log_error."""
 
   def setUp(self):
-    helpers.patch(self, ['metrics.logs.emit', 'sys.exc_info'])
+    helpers.patch(self, ['_internal.metrics.logs.emit', 'sys.exc_info'])
 
   def test_no_exception(self):
     """Tests no exception."""

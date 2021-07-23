@@ -31,7 +31,7 @@ class WriteToBigqueryTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'google_cloud_utils.big_query.write_range',
+        '_internal.google_cloud_utils.big_query.write_range',
     ])
 
     self.testcase = data_types.Testcase(
@@ -58,9 +58,9 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'build_management.build_manager.setup_regular_build',
-        'bot.testcase_manager.test_for_crash_with_retries',
-        'bot.testcase_manager.check_for_bad_build',
+        '_internal.build_management.build_manager.setup_regular_build',
+        '_internal.bot.testcase_manager.test_for_crash_with_retries',
+        '_internal.bot.testcase_manager.check_for_bad_build',
     ])
 
   def test_error_on_failed_setup(self):
@@ -79,8 +79,8 @@ class UpdateIssueMetadataTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.fuzzers.engine_common.find_fuzzer_path',
-        'bot.fuzzers.engine_common.get_all_issue_metadata',
+        '_internal.bot.fuzzers.engine_common.find_fuzzer_path',
+        '_internal.bot.fuzzers.engine_common.get_all_issue_metadata',
     ])
 
     data_types.FuzzTarget(engine='libFuzzer', binary='fuzzer').put()
@@ -144,7 +144,7 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'google_cloud_utils.storage.copy_file_to',
+        '_internal.google_cloud_utils.storage.copy_file_to',
     ])
 
     os.environ['CORPUS_BUCKET'] = 'corpus'

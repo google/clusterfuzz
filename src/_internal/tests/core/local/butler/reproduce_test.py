@@ -89,8 +89,8 @@ class ReproduceTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.testcase_manager.engine_reproduce',
-        'config.local_config.ProjectConfig',
+        '_internal.bot.testcase_manager.engine_reproduce',
+        '_internal.config.local_config.ProjectConfig',
         'lib.clusterfuzz.fuzz.engine.get',
         'local.butler.reproduce._download_testcase',
         'local.butler.reproduce._get_testcase',
@@ -98,8 +98,8 @@ class ReproduceTest(unittest.TestCase):
         'local.butler.reproduce._verify_target_exists',
         'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
         'local.butler.reproduce_tool.prompts.get_boolean',
-        'system.process_handler.run_process',
-        'system.process_handler.terminate_stale_application_instances',
+        '_internal.system.process_handler.run_process',
+        '_internal.system.process_handler.terminate_stale_application_instances',
     ])
     helpers.patch_environ(self)
 
@@ -169,10 +169,10 @@ class DownloadTestcaseTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'base.utils.write_data_to_file',
+        '_internal.base.utils.write_data_to_file',
         'local.butler.reproduce_tool.http_utils.request',
-        'system.archive.unpack',
-        'system.archive.get_file_list',
+        '_internal.system.archive.unpack',
+        '_internal.system.archive.get_file_list',
     ])
     helpers.patch_environ(self)
 

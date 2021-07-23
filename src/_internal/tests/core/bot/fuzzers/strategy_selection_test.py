@@ -33,8 +33,8 @@ class TestDefaultStrategySelectionLibFuzzerPatched(unittest.TestCase):
   def setUp(self):
     """Set up method for strategy pool generator tests with patch."""
     test_helpers.patch_environ(self)
-    test_helpers.patch(self,
-                       ['bot.fuzzers.engine_common.decide_with_probability'])
+    test_helpers.patch(
+        self, ['_internal.bot.fuzzers.engine_common.decide_with_probability'])
     self.mock.decide_with_probability.return_value = True
 
   def test_default_pool_deterministic(self):
@@ -135,8 +135,8 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
   def setUp(self):
     """Put data in the local ndb table the tests to query from."""
     test_helpers.patch_environ(self)
-    test_helpers.patch(self,
-                       ['bot.fuzzers.engine_common.decide_with_probability'])
+    test_helpers.patch(
+        self, ['_internal.bot.fuzzers.engine_common.decide_with_probability'])
     self.mock.decide_with_probability.return_value = True
 
     data = []
@@ -184,8 +184,8 @@ class TestDefaultStrategySelectionAFLPatched(unittest.TestCase):
   def setUp(self):
     """Set up method for strategy pool generator tests with patch."""
     test_helpers.patch_environ(self)
-    test_helpers.patch(self,
-                       ['bot.fuzzers.engine_common.decide_with_probability'])
+    test_helpers.patch(
+        self, ['_internal.bot.fuzzers.engine_common.decide_with_probability'])
     self.mock.decide_with_probability.return_value = True
 
   def test_default_pool_deterministic(self):
@@ -276,8 +276,8 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
   def setUp(self):
     """Put data in the local ndb table the tests to query from."""
     test_helpers.patch_environ(self)
-    test_helpers.patch(self,
-                       ['bot.fuzzers.engine_common.decide_with_probability'])
+    test_helpers.patch(
+        self, ['_internal.bot.fuzzers.engine_common.decide_with_probability'])
     self.mock.decide_with_probability.return_value = True
 
     data = []

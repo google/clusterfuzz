@@ -138,7 +138,7 @@ class GetTestWithCache(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'config.local_config._search_key',
+        '_internal.config.local_config._search_key',
     ])
     self.mock._search_key.return_value = 'value'  # pylint: disable=protected-access
 

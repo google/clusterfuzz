@@ -20,10 +20,10 @@ from _internal.bot.fuzzers import engine_common
 from _internal.bot.fuzzers import utils as fuzzer_utils
 from _internal.bot.fuzzers.syzkaller import constants
 from _internal.bot.fuzzers.syzkaller import runner
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import profiler
 from _internal.system import environment
 from _internal.system import shell
+from lib.clusterfuzz.fuzz import engine
 
 BIN_FOLDER_PATH = 'bin'
 REPRO_TIME = 70

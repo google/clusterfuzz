@@ -84,12 +84,12 @@ class UploadOAuthTest(unittest.TestCase):
     self.maxDiff = None  # pylint: disable=invalid-name
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'google_cloud_utils.blobs.get_blob_info',
-        'google_cloud_utils.blobs.write_blob',
+        '_internal.google_cloud_utils.blobs.get_blob_info',
+        '_internal.google_cloud_utils.blobs.write_blob',
         'libs.access.has_access',
         'libs.helpers.get_user_email',
-        'base.utils.current_date_time',
-        'base.utils.utcnow',
+        '_internal.base.utils.current_date_time',
+        '_internal.base.utils.utcnow',
     ])
 
     self.mock.get_blob_info.return_value.filename = 'input'

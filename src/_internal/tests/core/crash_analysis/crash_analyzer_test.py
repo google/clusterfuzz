@@ -46,7 +46,8 @@ class IgnoreStacktraceTest(unittest.TestCase):
         return [r'.*[c]{3}']
       return None
 
-    test_helpers.patch(self, ['config.local_config.ProjectConfig.get'])
+    test_helpers.patch(self,
+                       ['_internal.config.local_config.ProjectConfig.get'])
     self.mock.get.side_effect = _mock_config_get
 
     crash_stacktrace = ('aaa\nbbbbbbb\nzzzccc\nddd\n\n')

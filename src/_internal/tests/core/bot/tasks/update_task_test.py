@@ -86,8 +86,8 @@ class GetNewerSourceRevisionTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'bot.tasks.update_task.get_remote_source_revision',
-        'bot.tasks.update_task.get_local_source_revision',
+        '_internal.bot.tasks.update_task.get_remote_source_revision',
+        '_internal.bot.tasks.update_task.get_local_source_revision',
     ])
 
     os.environ['ROOT_DIR'] = 'root_dir'

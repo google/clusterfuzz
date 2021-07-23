@@ -30,14 +30,14 @@ class ExecuteTaskTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'base.utils.is_chromium',
-        'bot.tasks.impact_task.get_impacts_from_url',
-        'bot.tasks.impact_task.get_impacts_on_prod_builds',
-        'bot.tasks.setup.setup_testcase',
-        'build_management.build_manager.is_custom_binary',
-        'build_management.build_manager.has_production_builds',
-        'bot.testcase_manager.get_command_line_for_application',
-        'base.tasks.add_task',
+        '_internal.base.utils.is_chromium',
+        '_internal.bot.tasks.impact_task.get_impacts_from_url',
+        '_internal.bot.tasks.impact_task.get_impacts_on_prod_builds',
+        '_internal.bot.tasks.setup.setup_testcase',
+        '_internal.build_management.build_manager.is_custom_binary',
+        '_internal.build_management.build_manager.has_production_builds',
+        '_internal.bot.testcase_manager.get_command_line_for_application',
+        '_internal.base.tasks.add_task',
     ])
     impacts = impact_task.Impacts(
         stable=impact_task.Impact('stable', False, 'trace-stable'),
@@ -191,11 +191,11 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
     """Setup for get impacts from url test."""
     super().setUp()
     helpers.patch(self, [
-        'bot.tasks.impact_task.get_start_and_end_revision',
-        'bot.tasks.impact_task.get_impact',
-        'chrome.build_info.get_build_to_revision_mappings',
-        'build_management.revisions.revision_to_branched_from',
-        'datastore.data_handler.get_component_name',
+        '_internal.bot.tasks.impact_task.get_start_and_end_revision',
+        '_internal.bot.tasks.impact_task.get_impact',
+        '_internal.chrome.build_info.get_build_to_revision_mappings',
+        '_internal.build_management.revisions.revision_to_branched_from',
+        '_internal.datastore.data_handler.get_component_name',
     ])
     self.mock.get_component_name.return_value = None
     self.mock.revision_to_branched_from.side_effect = (
@@ -654,10 +654,10 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'bot.tasks.impact_task.get_impact_on_build',
-        'bot.tasks.impact_task.get_impacts_from_url',
-        'bot.testcase_manager.get_command_line_for_application',
-        'chrome.build_info.get_build_to_revision_mappings',
+        '_internal.bot.tasks.impact_task.get_impact_on_build',
+        '_internal.bot.tasks.impact_task.get_impacts_from_url',
+        '_internal.bot.testcase_manager.get_command_line_for_application',
+        '_internal.chrome.build_info.get_build_to_revision_mappings',
     ])
     self.mock.get_build_to_revision_mappings.return_value = {
         'stable': {
@@ -804,10 +804,10 @@ class GetImpactOnBuild(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'build_management.build_manager.setup_production_build',
-        'system.environment.get_value',
-        'bot.testcase_manager.get_command_line_for_application',
-        'bot.testcase_manager.test_for_crash_with_retries',
+        '_internal.build_management.build_manager.setup_production_build',
+        '_internal.system.environment.get_value',
+        '_internal.bot.testcase_manager.get_command_line_for_application',
+        '_internal.bot.testcase_manager.test_for_crash_with_retries',
     ])
     self.env = {
         'APP_PATH': 'app',
@@ -872,10 +872,10 @@ class GetStartAndEndRevisionTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'build_management.revisions.get_start_and_end_revision',
-        'build_management.revisions.get_component_range_list',
-        'bot.testcase_manager.get_command_line_for_application',
-        'system.environment.is_android',
+        '_internal.build_management.revisions.get_start_and_end_revision',
+        '_internal.build_management.revisions.get_component_range_list',
+        '_internal.bot.testcase_manager.get_command_line_for_application',
+        '_internal.system.environment.is_android',
     ])
 
   def test_normal(self):

@@ -26,7 +26,7 @@ class FuzzerTest(builtin_test.BaseEngineFuzzerTest):
   def setUp(self):
     super(FuzzerTest, self).setUp()
     helpers.patch(self, [
-        'metrics.logs.log_warn',
+        '_internal.metrics.logs.log_warn',
     ])
 
   def _test_passed(self):

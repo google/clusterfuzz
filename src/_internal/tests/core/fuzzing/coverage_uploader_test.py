@@ -47,14 +47,14 @@ class UploadTestsToCloudStorageTest(fake_filesystem_unittest.TestCase):
     """Setup for upload tests to cloud storage test."""
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'base.utils.utcnow',
-        'config.local_config.ProjectConfig.get',
-        'datastore.locks.acquire_lock',
-        'datastore.locks.release_lock',
-        'google_cloud_utils.gsutil.GSUtilRunner',
-        'google_cloud_utils.storage.list_blobs',
-        'google_cloud_utils.storage.read_data',
-        'google_cloud_utils.storage.write_data',
+        '_internal.base.utils.utcnow',
+        '_internal.config.local_config.ProjectConfig.get',
+        '_internal.datastore.locks.acquire_lock',
+        '_internal.datastore.locks.release_lock',
+        '_internal.google_cloud_utils.gsutil.GSUtilRunner',
+        '_internal.google_cloud_utils.storage.list_blobs',
+        '_internal.google_cloud_utils.storage.read_data',
+        '_internal.google_cloud_utils.storage.write_data',
     ])
 
     test_utils.set_up_pyfakefs(self)

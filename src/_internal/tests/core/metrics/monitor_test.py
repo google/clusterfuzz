@@ -27,8 +27,8 @@ class InitializeTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'config.local_config.ProjectConfig.get',
-        'metrics.monitor.check_module_loaded',
+        '_internal.config.local_config.ProjectConfig.get',
+        '_internal.metrics.monitor.check_module_loaded',
         'google.cloud.monitoring_v3.MetricServiceClient',
         'threading.Thread.start',
     ])
@@ -67,7 +67,7 @@ class MonitorTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'metrics.monitor.check_module_loaded',
+        '_internal.metrics.monitor.check_module_loaded',
     ])
     self.mock.check_module_loaded.return_value = True
     monitor.metrics_store().reset_for_testing()

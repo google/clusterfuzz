@@ -367,7 +367,8 @@ def get_root_directory():
 
 def get_startup_scripts_directory():
   """Return path to startup scripts."""
-  return os.path.join(get_value('ROOT_DIR'), 'src', '_internal', 'bot', 'startup')
+  return os.path.join(
+      get_value('ROOT_DIR'), 'src', '_internal', 'bot', 'startup')
 
 
 def get_config_directory():

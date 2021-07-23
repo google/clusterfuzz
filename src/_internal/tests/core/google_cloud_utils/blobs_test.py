@@ -32,13 +32,13 @@ class BlobsTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'system.environment.is_running_on_app_engine',
-        'google_cloud_utils.blobs.generate_new_blob_name',
-        'google_cloud_utils.storage.copy_file_from',
-        'google_cloud_utils.storage.copy_file_to',
-        'google_cloud_utils.storage.delete',
-        'google_cloud_utils.storage.read_data',
-        'google_cloud_utils.storage.get',
+        '_internal.system.environment.is_running_on_app_engine',
+        '_internal.google_cloud_utils.blobs.generate_new_blob_name',
+        '_internal.google_cloud_utils.storage.copy_file_from',
+        '_internal.google_cloud_utils.storage.copy_file_to',
+        '_internal.google_cloud_utils.storage.delete',
+        '_internal.google_cloud_utils.storage.read_data',
+        '_internal.google_cloud_utils.storage.get',
     ])
 
     self.mock.is_running_on_app_engine.return_value = True

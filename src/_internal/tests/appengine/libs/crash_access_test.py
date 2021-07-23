@@ -34,7 +34,7 @@ class AddScopeTest(unittest.TestCase):
     Query = base.Query  # pylint: disable=invalid-name
 
     test_helpers.patch(self, [
-        'base.external_users._allowed_entities_for_user',
+        '_internal.base.external_users._allowed_entities_for_user',
         'libs.crash_access.get_permission_names',
         'libs.access.has_access',
         'libs.access.get_user_job_type',

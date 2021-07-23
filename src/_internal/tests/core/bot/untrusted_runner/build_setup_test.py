@@ -40,7 +40,7 @@ class BuildSetupTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         ('regular_build_setup',
-         'build_management.build_manager.RegularBuild.setup'),
+         '_internal.build_management.build_manager.RegularBuild.setup'),
     ])
 
     test_helpers.patch_environ(self)

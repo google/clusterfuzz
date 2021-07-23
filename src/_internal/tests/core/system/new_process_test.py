@@ -89,9 +89,10 @@ class PosixProcessTest(unittest.TestCase):
   TIME_ERROR = 0.3
 
   def setUp(self):
-    helpers.patch(
-        self,
-        ['system.environment.platform', 'system.new_process.ChildProcess.kill'])
+    helpers.patch(self, [
+        '_internal.system.environment.platform',
+        '_internal.system.new_process.ChildProcess.kill'
+    ])
     self.mock.platform.return_value = 'LINUX'
     self.mock.kill.side_effect = mock_kill
 
@@ -205,9 +206,10 @@ class WindowsProcessTest(unittest.TestCase):
   TIME_ERROR = 0.3
 
   def setUp(self):
-    helpers.patch(
-        self,
-        ['system.environment.platform', 'system.new_process.ChildProcess.kill'])
+    helpers.patch(self, [
+        '_internal.system.environment.platform',
+        '_internal.system.new_process.ChildProcess.kill'
+    ])
     self.mock.kill.side_effect = mock_kill
     self.mock.platform.return_value = 'WINDOWS'
 

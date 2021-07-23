@@ -81,7 +81,7 @@ class JiraTests(unittest.TestCase):
         'IssueTrackerManager.get_issues',
         'libs.issue_management.jira.IssueTracker.get_issue',
         'libs.issue_management.jira.IssueTracker.new_issue',
-        'config.db_config.get'
+        '_internal.config.db_config.get'
     ])
 
     self.itm = issue_tracker_manager.IssueTrackerManager('VSEC')

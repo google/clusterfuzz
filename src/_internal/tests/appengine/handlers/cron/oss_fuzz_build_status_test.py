@@ -75,10 +75,10 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.app = webtest.TestApp(flaskapp)
 
     test_helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
         'libs.issue_management.issue_tracker_utils.get_issue_tracker',
-        'metrics.logs.log_error',
+        '_internal.metrics.logs.log_error',
         'requests.get',
     ])
 

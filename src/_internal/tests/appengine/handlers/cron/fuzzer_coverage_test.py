@@ -32,7 +32,7 @@ class HandlerTest(unittest.TestCase):
   """Tests for the fuzzer coverage crom task Handler."""
 
   def setUp(self):
-    test_helpers.patch(self, ['base.utils.default_project_name'])
+    test_helpers.patch(self, ['_internal.base.utils.default_project_name'])
 
     # It's important to use chromium here to test they datastore key generation
     # logic which uses project qualified fuzz target names.

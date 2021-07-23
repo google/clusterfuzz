@@ -114,7 +114,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
         auto_cc=data_types.AutoCCType.ALL).put()
 
     test_helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
         'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
         'libs.issue_management.issue_tracker_policy.get',

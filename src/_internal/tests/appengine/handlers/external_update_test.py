@@ -46,7 +46,7 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.app = webtest.TestApp(flaskapp)
 
     test_helpers.patch(self, [
-        'base.utils.utcnow',
+        '_internal.base.utils.utcnow',
         'google.oauth2.id_token.verify_oauth2_token',
     ])
 

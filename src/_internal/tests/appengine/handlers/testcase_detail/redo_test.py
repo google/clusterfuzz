@@ -33,7 +33,7 @@ class HandlerTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'base.tasks.redo_testcase', 'libs.auth.get_current_user',
+        '_internal.base.tasks.redo_testcase', 'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.check_access_and_get_testcase'
     ])

@@ -71,8 +71,8 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
-        'metrics.logs.log_error',
+        '_internal.crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
+        '_internal.metrics.logs.log_error',
     ])
     os.environ['JOB_NAME'] = TEST_JOB_NAME
 
@@ -95,13 +95,14 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
     environment.set_bot_environment()
     self._real_read_data_from_file = utils.read_data_from_file
     test_helpers.patch(self, [
-        'platforms.android.fetch_artifact.get',
-        'platforms.android.kernel_utils.get_kernel_hash_and_build_id',
-        'platforms.android.kernel_utils.get_kernel_name',
-        'platforms.android.settings.get_product_brand',
-        'google_cloud_utils.storage.get_file_from_cache_if_exists',
-        'google_cloud_utils.storage.store_file_in_cache',
-        'base.utils.write_data_to_file', 'base.utils.read_data_from_file'
+        '_internal.platforms.android.fetch_artifact.get',
+        '_internal.platforms.android.kernel_utils.get_kernel_hash_and_build_id',
+        '_internal.platforms.android.kernel_utils.get_kernel_name',
+        '_internal.platforms.android.settings.get_product_brand',
+        '_internal.google_cloud_utils.storage.get_file_from_cache_if_exists',
+        '_internal.google_cloud_utils.storage.store_file_in_cache',
+        '_internal.base.utils.write_data_to_file',
+        '_internal.base.utils.read_data_from_file'
     ])
     self.mock.get.side_effect = _mock_fetch_artifact_get
     self.mock.get_kernel_hash_and_build_id.return_value = '40e9b2ff3a2', '12345'

@@ -28,7 +28,7 @@ class HandlerTest(unittest.TestCase):
     test_helpers.patch(self, [
         'libs.issue_management.issue_tracker_utils.get_issue_url',
         'libs.helpers.get_testcase',
-        'metrics.logs._is_running_on_app_engine',
+        '_internal.metrics.logs._is_running_on_app_engine',
     ])
     self.mock._is_running_on_app_engine.return_value = True  # pylint: disable=protected-access
 

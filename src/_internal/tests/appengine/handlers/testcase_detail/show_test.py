@@ -327,12 +327,12 @@ class GetTestcaseTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'build_management.revisions.get_component_range_list',
-        'build_management.revisions.get_component_revisions_dict',
-        'config.db_config.get',
-        'config.db_config.get_value',
-        'config.db_config.get_value_for_job',
-        'datastore.data_handler.get_stacktrace',
+        '_internal.build_management.revisions.get_component_range_list',
+        '_internal.build_management.revisions.get_component_revisions_dict',
+        '_internal.config.db_config.get',
+        '_internal.config.db_config.get_value',
+        '_internal.config.db_config.get_value_for_job',
+        '_internal.datastore.data_handler.get_stacktrace',
         'handlers.testcase_detail.show.filter_stacktrace',
         'libs.issue_management.issue_tracker_utils.get_issue_url',
         'libs.access.can_user_access_testcase',
@@ -340,7 +340,7 @@ class GetTestcaseTest(unittest.TestCase):
         'libs.auth.is_current_user_admin',
         'libs.form.generate_csrf_token',
         'libs.helpers.get_user_email',
-        'metrics.crash_stats.get_last_crash_time',
+        '_internal.metrics.crash_stats.get_last_crash_time',
     ])
 
     self.mock.has_access.return_value = False
