@@ -22,10 +22,10 @@ import urllib.parse
 
 import googleapiclient
 
-from base import utils
-from google_cloud_utils import blobs
-from google_cloud_utils import storage
-from system import environment
+from _internal.base import utils
+from _internal.google_cloud_utils import blobs
+from _internal.google_cloud_utils import storage
+from _internal.system import environment
 
 STORAGE_URL = 'https://storage.googleapis.com/%s'
 DEFAULT_URL_VALID_SECONDS = 30 * 60  # 30 minutes.

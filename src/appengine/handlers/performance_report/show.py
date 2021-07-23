@@ -19,16 +19,16 @@ import logging
 import os
 import urllib.parse
 
-from datastore import data_handler
-from google_cloud_utils import big_query
+from _internal.datastore import data_handler
+from _internal.google_cloud_utils import big_query
 from handlers import base_handler
 from handlers.performance_report import constants
 from handlers.performance_report import performance_analyzer
 from libs import access
 from libs import handler
 from libs import helpers
-from metrics import fuzzer_logs
-from metrics import fuzzer_stats
+from _internal.metrics import fuzzer_logs
+from _internal.metrics import fuzzer_stats
 
 
 def _build_rows_and_columns(performance_report):

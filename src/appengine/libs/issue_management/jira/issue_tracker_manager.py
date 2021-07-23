@@ -16,7 +16,7 @@
 import jira
 import json
 
-from config import db_config
+from _internal.config import db_config
 
 
 class IssueTrackerManager(object):

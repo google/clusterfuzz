@@ -15,11 +15,11 @@
 
 from google.cloud import ndb
 
-from base import untrusted
-from datastore import data_types
+from _internal.base import untrusted
+from _internal.datastore import data_types
 from handlers import base_handler
 from libs import handler
-from metrics import logs
+from _internal.metrics import logs
 
 
 def generate_cert(project_name):

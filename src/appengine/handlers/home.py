@@ -13,16 +13,16 @@
 # limitations under the License.
 """Home page handler."""
 
-from base import external_users
-from base import memoize
-from base import utils
-from datastore import data_handler
-from datastore import data_types
+from _internal.base import external_users
+from _internal.base import memoize
+from _internal.base import utils
+from _internal.datastore import data_handler
+from _internal.datastore import data_types
 from handlers import base_handler
 from libs import access
 from libs import handler
 from libs import helpers
-from system import environment
+from _internal.system import environment
 
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
 

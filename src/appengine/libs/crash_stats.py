@@ -18,7 +18,7 @@
 from libs import helpers
 from libs.query import big_query_query
 
-from metrics import crash_stats
+from _internal.metrics import crash_stats
 
 # We don't allow showing more than 3 days when viewing by hours because it'd
 # break the UI.

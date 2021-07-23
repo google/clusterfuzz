@@ -13,7 +13,7 @@
 # limitations under the License.
 """Domain verifier."""
 
-from config import local_config
+from _internal.config import local_config
 from handlers import base_handler
 from libs import helpers
 

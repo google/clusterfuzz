@@ -26,16 +26,16 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 import google.auth
 
-from base import utils
-from config import db_config
-from config import local_config
-from datastore import data_types
-from google_cloud_utils import pubsub
+from _internal.base import utils
+from _internal.config import db_config
+from _internal.config import local_config
+from _internal.datastore import data_types
+from _internal.google_cloud_utils import pubsub
 from libs import access
 from libs import auth
 from libs import csp
 from libs import helpers
-from system import environment
+from _internal.system import environment
 
 JSON = 'json'
 FORM = 'form'

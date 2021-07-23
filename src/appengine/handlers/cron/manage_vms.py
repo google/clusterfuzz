@@ -22,11 +22,11 @@ import logging
 
 from google.cloud import ndb
 
-from base import utils
-from config import local_config
-from datastore import data_types
-from datastore import ndb_utils
-from google_cloud_utils import compute_engine_projects
+from _internal.base import utils
+from _internal.config import local_config
+from _internal.datastore import data_types
+from _internal.datastore import ndb_utils
+from _internal.google_cloud_utils import compute_engine_projects
 from handlers import base_handler
 from handlers.cron.helpers import bot_manager
 from libs import handler

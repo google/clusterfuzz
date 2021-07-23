@@ -15,9 +15,9 @@
 
 from flask import request
 
-from base import utils
-from config import db_config
-from datastore import data_types
+from _internal.base import utils
+from _internal.config import db_config
+from _internal.datastore import data_types
 from handlers import base_handler
 from libs import form
 from libs import handler

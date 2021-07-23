@@ -17,9 +17,9 @@ import datetime
 import six
 import sys
 
-from base import utils
-from datastore import data_types
-from datastore import ndb_utils
+from _internal.base import utils
+from _internal.datastore import data_types
+from _internal.datastore import ndb_utils
 from local.butler.scripts import attribute_builder
 from local.butler.scripts import batcher
 

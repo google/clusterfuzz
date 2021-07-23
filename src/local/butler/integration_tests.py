@@ -18,7 +18,7 @@ import urllib.request
 
 from local.butler import common
 from local.butler import constants
-from python.tests.test_libs import test_utils
+from _internal.tests.test_libs import test_utils
 
 RUN_SERVER_TIMEOUT = 120
 

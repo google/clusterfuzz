@@ -13,12 +13,12 @@
 # limitations under the License.
 """Handlers used to recreate recurring tasks."""
 
-from base import tasks
-from datastore import data_types
-from datastore import ndb_utils
+from _internal.base import tasks
+from _internal.datastore import data_types
+from _internal.datastore import ndb_utils
 from handlers import base_handler
 from libs import handler
-from metrics import logs
+from _internal.metrics import logs
 
 
 class OpenReproducibleTestcaseTasksScheduler(base_handler.Handler):

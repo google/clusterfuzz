@@ -14,7 +14,7 @@
 
 from collections import namedtuple
 
-from config import local_config
+from _internal.config import local_config
 
 Status = namedtuple('Status',
                     ['assigned', 'duplicate', 'wontfix', 'fixed', 'verified'])

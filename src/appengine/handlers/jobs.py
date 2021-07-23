@@ -18,11 +18,11 @@ import six
 from flask import request
 from google.cloud import ndb
 
-from base import tasks
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import fuzzer_selection
+from _internal.base import tasks
+from _internal.datastore import data_handler
+from _internal.datastore import data_types
+from _internal.datastore import ndb_utils
+from _internal.fuzzing import fuzzer_selection
 from handlers import base_handler
 from libs import filters
 from libs import form

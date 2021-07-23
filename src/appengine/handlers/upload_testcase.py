@@ -22,15 +22,15 @@ import os
 from flask import request
 from google.cloud import ndb
 
-from base import external_users
-from base import memoize
-from base import tasks
-from base import utils
-from crash_analysis.stack_parsing import stack_analyzer
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import blobs
-from google_cloud_utils import storage
+from _internal.base import external_users
+from _internal.base import memoize
+from _internal.base import tasks
+from _internal.base import utils
+from _internal.crash_analysis.stack_parsing import stack_analyzer
+from _internal.datastore import data_handler
+from _internal.datastore import data_types
+from _internal.google_cloud_utils import blobs
+from _internal.google_cloud_utils import storage
 from handlers import base_handler
 from libs import access
 from libs import form
@@ -39,8 +39,8 @@ from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
-from system import archive
-from system import environment
+from _internal.system import archive
+from _internal.system import environment
 
 MAX_RETRIES = 50
 RUN_FILE_PATTERNS = ['run', 'fuzz-', 'index.', 'crash.']

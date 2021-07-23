@@ -15,8 +15,8 @@
 
 import urllib.parse
 
-from config import db_config
-from datastore import data_handler
+from _internal.config import db_config
+from _internal.datastore import data_handler
 from handlers import base_handler
 from libs import handler
 

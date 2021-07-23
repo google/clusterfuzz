@@ -20,14 +20,14 @@ import time
 
 from googleapiclient.errors import HttpError
 
-from base import utils
-from datastore import data_types
-from google_cloud_utils import big_query
+from _internal.base import utils
+from _internal.datastore import data_types
+from _internal.google_cloud_utils import big_query
 from handlers import base_handler
 from libs import handler
-from metrics import fuzzer_stats
-from metrics import fuzzer_stats_schema
-from metrics import logs
+from _internal.metrics import fuzzer_stats
+from _internal.metrics import fuzzer_stats_schema
+from _internal.metrics import logs
 
 STATS_KINDS = [fuzzer_stats.JobRun, fuzzer_stats.TestcaseRun]
 

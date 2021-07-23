@@ -13,15 +13,15 @@
 # limitations under the License.
 """External reproduction updates."""
 
-from crash_analysis import crash_analyzer
-from crash_analysis.crash_comparer import CrashComparer
-from crash_analysis.stack_parsing import stack_analyzer
-from datastore import data_handler
-from datastore import data_types
+from _internal.crash_analysis import crash_analyzer
+from _internal.crash_analysis.crash_comparer import CrashComparer
+from _internal.crash_analysis.stack_parsing import stack_analyzer
+from _internal.datastore import data_handler
+from _internal.datastore import data_types
 from handlers import base_handler
 from libs import handler
 from libs import helpers
-from metrics import logs
+from _internal.metrics import logs
 
 
 def _mark_as_fixed(testcase, revision):

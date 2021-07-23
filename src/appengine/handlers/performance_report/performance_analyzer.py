@@ -18,7 +18,7 @@ import datetime
 import json
 import operator
 
-from metrics import fuzzer_logs
+from _internal.metrics import fuzzer_logs
 
 # A tuple representing an analyzer for a single problem.
 BasicAnalyzer = collections.namedtuple('Analyzer', 'checker weight description')

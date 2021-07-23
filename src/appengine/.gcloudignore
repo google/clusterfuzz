@@ -20,5 +20,5 @@ __pycache__/
 /setup.cfg
 
 private/
-python/bot/
-python/tests/
+_internal/bot/
+_internal/tests/

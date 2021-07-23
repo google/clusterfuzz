@@ -15,7 +15,7 @@
 
 from flask import request
 
-from base import tasks
+from _internal.base import tasks
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler

@@ -17,10 +17,10 @@ import httplib2
 import os
 import webbrowser
 
-from base import json_utils
-from base import utils
+from _internal.base import json_utils
+from _internal.base import utils
 from local.butler.reproduce_tool import prompts
-from system import shell
+from _internal.system import shell
 
 GET_METHOD = 'GET'
 POST_METHOD = 'POST'

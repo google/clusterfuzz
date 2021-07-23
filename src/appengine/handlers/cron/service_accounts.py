@@ -16,7 +16,7 @@ import logging
 
 import googleapiclient
 
-from base import utils
+from _internal.base import utils
 
 _ACCOUNT_PREFIX = 'bot-'
 _MIN_LEN = 6

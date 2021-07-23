@@ -17,7 +17,7 @@ import os
 import sys
 
 from local.butler import common
-from src.python.config import local_config
+from src._internal.config import local_config
 
 INDEX_FILE_PATH = 'src/appengine/index.yaml'
 

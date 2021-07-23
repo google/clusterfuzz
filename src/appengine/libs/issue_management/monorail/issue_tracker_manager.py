@@ -22,7 +22,7 @@ from .comment import Comment
 from .issue import ChangeList
 from .issue import Issue
 
-from base import retry
+from _internal.base import retry
 
 # Default value for issue tracker connection failures.
 FAIL_RETRIES = 7

@@ -15,8 +15,8 @@
 
 from flask import request
 
-from base import utils
-from google_cloud_utils import blobs
+from _internal.base import utils
+from _internal.google_cloud_utils import blobs
 from handlers import base_handler
 from libs import access
 from libs import handler
