@@ -17,10 +17,10 @@ import json
 
 from flask import request
 
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.datastore import ndb_utils
-from _internal.metrics import crash_stats as crash_stats_common
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.metrics import crash_stats as crash_stats_common
 from handlers import base_handler
 from libs import crash_access
 from libs import crash_stats

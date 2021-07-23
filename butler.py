@@ -309,7 +309,7 @@ def _setup():
   os.environ['PYTHONIOENCODING'] = 'UTF-8'
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
-  from _internal.base import modules
+  from clusterfuzz._internal.base import modules
   modules.fix_module_search_paths()
 
 

@@ -20,8 +20,7 @@ from local.butler import common
 FIRST_PARTY_MODULES = [
     'handlers',
     'libs',
-    '_internal',
-    'lib.clusterfuzz',
+    'clusterfuzz',
 ]
 
 ISORT_CMD = ('isort --dont-order-by-type --force-single-line-imports '

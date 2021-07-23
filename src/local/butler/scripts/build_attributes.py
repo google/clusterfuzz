@@ -18,9 +18,9 @@ import sys
 
 import six
 
-from _internal.base import utils
-from _internal.datastore import data_types
-from _internal.datastore import ndb_utils
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from local.butler.scripts import attribute_builder
 from local.butler.scripts import batcher
 

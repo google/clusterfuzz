@@ -164,7 +164,7 @@ def yaml_validate(file_path):
 def is_auto_generated_file(filepath):
   """Check if file is auto-generated so we dont lint it"""
   return filepath.endswith('_pb2.py') or filepath.endswith('pb2_grpc.py') or \
-         os.path.dirname(filepath) == os.path.join('src', '_internal', 'bot',
+         os.path.dirname(filepath) == os.path.join('src', 'clusterfuzz', '_internal', 'bot',
                                                    'tokenizer', 'grammars')
 
 
@@ -191,7 +191,13 @@ def execute(_):
 
   for file_path in py_changed_file_paths:
     _execute_command_and_track_error('pylint ' + file_path)
-    _execute_command_and_track_error('yapf -d ' + file_path)
+
+    line_length_override = ''
+    if '_test.py' in file_path:
+      line_length_override = '--max-line-length=240'
+
+    _execute_command_and_track_error(
+        f'yapf -d {line_length_override} file_path')
     _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c {file_path}')
 
     py_test_init_check(file_path)

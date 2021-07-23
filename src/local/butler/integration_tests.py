@@ -16,7 +16,7 @@ import time
 import urllib.error
 import urllib.request
 
-from _internal.tests.test_libs import test_utils
+from clusterfuzz._internal.tests.test_libs import test_utils
 from local.butler import common
 from local.butler import constants
 

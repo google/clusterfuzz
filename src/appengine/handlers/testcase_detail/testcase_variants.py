@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Handler for getting testcase variants."""
-from _internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from libs import handler
 

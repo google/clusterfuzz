@@ -13,7 +13,7 @@
 # limitations under the License.
 """reproduce.py reproduces test cases locally."""
 
-from _internal.base import modules
+from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
@@ -23,18 +23,18 @@ import tempfile
 import time
 from urllib import parse
 
-from _internal.base import json_utils
-from _internal.base import utils
-from _internal.bot import testcase_manager
-from _internal.bot.fuzzers import init
-from _internal.bot.tasks import commands
-from _internal.bot.tasks import setup
-from _internal.build_management import build_manager
-from _internal.datastore import data_types
-from _internal.system import archive
-from _internal.system import environment
-from _internal.system import new_process
-from _internal.system import shell
+from clusterfuzz._internal.base import json_utils
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot import testcase_manager
+from clusterfuzz._internal.bot.fuzzers import init
+from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.system import archive
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import new_process
+from clusterfuzz._internal.system import shell
 from local.butler import appengine
 from local.butler.reproduce_tool import android
 from local.butler.reproduce_tool import config
@@ -211,7 +211,7 @@ def _prepare_initial_environment(build_directory, iterations, verbose):
           os.path.join(root_dir, 'src', 'bazel-genfiles'),
           os.path.join(root_dir, 'src', 'bazel-out'),
           os.path.join(root_dir, 'src', 'bazel-src'),
-          os.path.join(root_dir, 'src', '_internal', 'tests'),
+          os.path.join(root_dir, 'src', 'clusterfuzz', '_internal', 'tests'),
       ])
 
   environment.set_value('CONFIG_DIR_OVERRIDE',

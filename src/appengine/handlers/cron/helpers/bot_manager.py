@@ -20,8 +20,8 @@ import googleapiclient
 from googleapiclient.discovery import build
 import httplib2
 
-from _internal.base import retry
-from _internal.google_cloud_utils import credentials
+from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.google_cloud_utils import credentials
 
 RETRY_COUNT = 8
 RETRY_DELAY = 4

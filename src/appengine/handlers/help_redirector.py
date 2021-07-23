@@ -13,7 +13,7 @@
 # limitations under the License.
 """Help."""
 
-from _internal.config import db_config
+from clusterfuzz._internal.config import db_config
 from handlers import base_handler
 
 DEFAULT_DOCUMENTATION_URL = 'https://google.github.io/clusterfuzz/'

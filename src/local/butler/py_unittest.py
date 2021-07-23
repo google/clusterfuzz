@@ -27,11 +27,12 @@ import unittest
 
 from local.butler import appengine
 from local.butler import common
-from src._internal.config import local_config
+from src.clusterfuzz._internal.config import local_config
 
-APPENGINE_TEST_DIRECTORY = os.path.join('src', '_internal', 'tests',
-                                        'appengine')
-CORE_TEST_DIRECTORY = os.path.join('src', '_internal', 'tests', 'core')
+APPENGINE_TEST_DIRECTORY = os.path.join('src', 'clusterfuzz', '_internal',
+                                        'tests', 'appengine')
+CORE_TEST_DIRECTORY = os.path.join('src', 'clusterfuzz', '_internal', 'tests',
+                                   'core')
 SLOW_TEST_THRESHOLD = 2  # In seconds.
 TESTS_TIMEOUT = 20 * 60  # In seconds.
 
@@ -230,7 +231,7 @@ def execute(args):
   # Don't use absolute paths to make it easier to compare results in tests.
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.join('.', 'configs', 'test')
 
-  top_level_dir = os.path.join('src', '_internal')
+  top_level_dir = os.path.join('src', 'clusterfuzz', '_internal')
   if args.target == 'appengine':
     # Build template files.
     appengine.build_templates()
@@ -283,7 +284,7 @@ def execute(args):
     sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
 
     # Fix paths again to get config modules added to the import path.
-    from _internal.base import modules
+    from clusterfuzz._internal.base import modules
     modules.fix_module_search_paths()
 
   # Set expected environment variables.

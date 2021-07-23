@@ -31,10 +31,10 @@ import json
 import logging
 import time
 
-from _internal.base import utils
-from _internal.datastore import data_types
-from _internal.google_cloud_utils import big_query
-from _internal.metrics import crash_stats
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import crash_stats
 from handlers import base_handler
 from libs import handler
 

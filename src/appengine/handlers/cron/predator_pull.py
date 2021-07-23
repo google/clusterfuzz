@@ -15,11 +15,11 @@
 
 import json
 
-from _internal.base import errors
-from _internal.config import db_config
-from _internal.datastore import data_handler
-from _internal.google_cloud_utils import pubsub
-from _internal.metrics import logs
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 

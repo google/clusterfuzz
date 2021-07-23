@@ -23,14 +23,14 @@ from googleapiclient.errors import HttpError
 import six
 import yaml
 
-from _internal.base import external_users
-from _internal.base import memoize
-from _internal.base import utils
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.google_cloud_utils import big_query
-from _internal.metrics import fuzzer_stats
-from _internal.metrics import logs
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import fuzzer_stats
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import access
 from libs import handler

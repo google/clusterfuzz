@@ -13,12 +13,12 @@
 # limitations under the License.
 """External reproduction updates."""
 
-from _internal.crash_analysis import crash_analyzer
-from _internal.crash_analysis.crash_comparer import CrashComparer
-from _internal.crash_analysis.stack_parsing import stack_analyzer
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.metrics import logs
+from clusterfuzz._internal.crash_analysis import crash_analyzer
+from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
+from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import helpers

@@ -15,7 +15,7 @@
 
 from flask import request
 
-from _internal.google_cloud_utils import storage
+from clusterfuzz._internal.google_cloud_utils import storage
 from handlers import base_handler
 from libs import handler
 from libs import helpers

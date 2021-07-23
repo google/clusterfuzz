@@ -15,11 +15,11 @@
 
 from flask import request
 
-from _internal.base import errors
-from _internal.base import utils
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.google_cloud_utils import blobs
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import blobs
 from handlers import base_handler
 from libs import crash_access
 from libs import filters

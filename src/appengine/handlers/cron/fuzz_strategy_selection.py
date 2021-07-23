@@ -23,11 +23,11 @@ edges."""
 
 from collections import namedtuple
 
-from _internal.datastore import data_types
-from _internal.datastore import ndb_utils
-from _internal.fuzzing import strategy
-from _internal.google_cloud_utils import big_query
-from _internal.metrics import logs
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import strategy
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 

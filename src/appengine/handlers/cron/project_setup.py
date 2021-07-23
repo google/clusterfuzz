@@ -24,19 +24,19 @@ import requests
 import six
 import yaml
 
-from _internal.base import tasks
-from _internal.base import untrusted
-from _internal.base import utils
-from _internal.config import db_config
-from _internal.config import local_config
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.datastore import ndb_utils
-from _internal.fuzzing import fuzzer_selection
-from _internal.google_cloud_utils import pubsub
-from _internal.google_cloud_utils import storage
-from _internal.metrics import logs
-from _internal.system import environment
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import untrusted
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import handler
 

@@ -17,7 +17,7 @@ import datetime
 
 from googleapiclient import discovery
 
-from _internal.base import retry
+from clusterfuzz._internal.base import retry
 
 from . import credential_storage
 from .comment import Comment

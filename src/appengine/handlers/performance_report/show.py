@@ -19,10 +19,10 @@ import logging
 import os
 import urllib.parse
 
-from _internal.datastore import data_handler
-from _internal.google_cloud_utils import big_query
-from _internal.metrics import fuzzer_logs
-from _internal.metrics import fuzzer_stats
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import fuzzer_logs
+from clusterfuzz._internal.metrics import fuzzer_stats
 from handlers import base_handler
 from handlers.performance_report import constants
 from handlers.performance_report import performance_analyzer

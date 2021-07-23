@@ -16,10 +16,10 @@
 import os
 import time
 
-from _internal.platforms.android import adb
-from _internal.platforms.android import device
-from _internal.system import environment
-from _internal.system import new_process
+from clusterfuzz._internal.platforms.android import adb
+from clusterfuzz._internal.platforms.android import device
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import new_process
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import prompts
 

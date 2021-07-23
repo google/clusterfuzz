@@ -17,7 +17,7 @@ import urllib.parse
 
 from flask import request
 
-from _internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import blobs
 from handlers import base_handler
 from libs import access
 from libs import gcs

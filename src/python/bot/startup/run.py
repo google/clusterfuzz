@@ -16,7 +16,7 @@
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
-from _internal.base import modules
+from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
@@ -25,14 +25,14 @@ import os
 import subprocess
 import time
 
-from _internal.base import persistent_cache
-from _internal.base.untrusted import untrusted_noop
-from _internal.bot.tasks import update_task
-from _internal.datastore import data_handler
-from _internal.datastore import ndb_init
-from _internal.metrics import logs
-from _internal.system import environment
-from _internal.system import shell
+from clusterfuzz._internal.base import persistent_cache
+from clusterfuzz._internal.base.untrusted import untrusted_noop
+from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import shell
 
 BOT_SCRIPT = 'run_bot.py'
 HEARTBEAT_SCRIPT = 'run_heartbeat.py'

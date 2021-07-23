@@ -15,7 +15,7 @@
 
 from dateutil import parser
 
-from _internal.config import db_config
+from clusterfuzz._internal.config import db_config
 from libs.issue_management import issue_tracker
 from libs.issue_management.jira.issue_tracker_manager import IssueTrackerManager
 

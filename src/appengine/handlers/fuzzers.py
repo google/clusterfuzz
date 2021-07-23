@@ -19,13 +19,13 @@ import io
 from flask import request
 from google.cloud import ndb
 
-from _internal.base import utils
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.fuzzing import fuzzer_selection
-from _internal.google_cloud_utils import storage
-from _internal.metrics import fuzzer_logs
-from _internal.system import archive
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import fuzzer_logs
+from clusterfuzz._internal.system import archive
 from handlers import base_handler
 from libs import access
 from libs import form

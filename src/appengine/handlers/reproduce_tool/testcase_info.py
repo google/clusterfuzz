@@ -15,8 +15,8 @@
 
 from flask import request
 
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from libs import access
 from libs import handler

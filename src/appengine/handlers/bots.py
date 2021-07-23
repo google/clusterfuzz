@@ -17,10 +17,10 @@ import datetime
 
 from flask import request
 
-from _internal.base import tasks
-from _internal.base import utils
-from _internal.datastore import data_types
-from _internal.datastore import ndb_utils
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from handlers import base_handler
 from libs import filters
 from libs import handler

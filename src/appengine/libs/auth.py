@@ -21,12 +21,12 @@ from googleapiclient.discovery import build
 import jwt
 import requests
 
-from _internal.base import memoize
-from _internal.base import utils
-from _internal.config import local_config
-from _internal.datastore import data_types
-from _internal.metrics import logs
-from _internal.system import environment
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from libs import request_cache
 
 User = collections.namedtuple('User', ['email'])

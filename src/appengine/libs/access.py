@@ -13,12 +13,12 @@
 # limitations under the License.
 """access.py contains static methods around access permissions."""
 
-from _internal.base import errors
-from _internal.base import external_users
-from _internal.base import utils
-from _internal.config import db_config
-from _internal.config import local_config
-from _internal.datastore import data_handler
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
 from libs import auth
 from libs import helpers
 from libs.issue_management import issue_tracker_utils

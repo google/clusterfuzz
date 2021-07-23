@@ -31,11 +31,11 @@ from flask.views import MethodView
 from google.cloud import ndb
 import jinja2
 
-from _internal.base import utils
-from _internal.config import db_config
-from _internal.config import local_config
-from _internal.google_cloud_utils import storage
-from _internal.system import environment
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.system import environment
 from libs import auth
 from libs import form
 from libs import helpers

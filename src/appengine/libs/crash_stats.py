@@ -15,7 +15,7 @@
   testcase detail page. This can't be with common.crash_stats because it imports
   specific libraries on appengine."""
 
-from _internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import crash_stats
 from libs import helpers
 from libs.query import big_query_query
 

@@ -13,12 +13,12 @@
 # limitations under the License.
 """Home page handler."""
 
-from _internal.base import external_users
-from _internal.base import memoize
-from _internal.base import utils
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.system import environment
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import handler

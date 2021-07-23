@@ -20,19 +20,19 @@ import random
 
 from googleapiclient.errors import HttpError
 
-from _internal.base import dates
-from _internal.base import errors
-from _internal.base import memoize
-from _internal.base import utils
-from _internal.chrome import build_info
-from _internal.crash_analysis import crash_comparer
-from _internal.crash_analysis import severity_analyzer
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.datastore import ndb_utils
-from _internal.fuzzing import leak_blacklist
-from _internal.metrics import crash_stats
-from _internal.metrics import logs
+from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.chrome import build_info
+from clusterfuzz._internal.crash_analysis import crash_comparer
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import mail

@@ -15,11 +15,11 @@
 
 import six
 
-from _internal.base import errors
-from _internal.crash_analysis.crash_comparer import CrashComparer
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.metrics import logs
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from libs.issue_management import issue_tracker_utils
 
 from . import group_leader

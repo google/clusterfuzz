@@ -20,17 +20,17 @@ import re
 from flask import request
 import jinja2
 
-from _internal.base import utils
-from _internal.build_management import revisions
-from _internal.build_management import source_mapper
-from _internal.config import db_config
-from _internal.crash_analysis import severity_analyzer
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.fuzzing import leak_blacklist
-from _internal.google_cloud_utils import blobs
-from _internal.metrics import crash_stats
-from _internal.system import environment
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.build_management import source_mapper
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import auth

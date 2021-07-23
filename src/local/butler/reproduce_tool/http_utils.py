@@ -18,9 +18,9 @@ import webbrowser
 
 import httplib2
 
-from _internal.base import json_utils
-from _internal.base import utils
-from _internal.system import shell
+from clusterfuzz._internal.base import json_utils
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.system import shell
 from local.butler.reproduce_tool import prompts
 
 GET_METHOD = 'GET'

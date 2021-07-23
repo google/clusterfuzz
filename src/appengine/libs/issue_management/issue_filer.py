@@ -16,15 +16,15 @@
 import itertools
 import re
 
-from _internal.base import external_users
-from _internal.base import utils
-from _internal.config import local_config
-from _internal.crash_analysis import severity_analyzer
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.google_cloud_utils import pubsub
-from _internal.metrics import logs
-from _internal.system import environment
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from libs.issue_management import issue_tracker_policy
 
 NON_CRASH_TYPES = [

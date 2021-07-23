@@ -17,7 +17,7 @@ import json
 
 import jira
 
-from _internal.config import db_config
+from clusterfuzz._internal.config import db_config
 
 
 class IssueTrackerManager(object):

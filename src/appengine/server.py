@@ -18,10 +18,10 @@ from flask import redirect
 from flask import request
 from google.cloud import ndb
 
-from _internal.base import utils
-from _internal.config import local_config
-from _internal.metrics import logs
-from _internal.system import environment
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range

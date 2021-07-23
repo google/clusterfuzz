@@ -13,10 +13,10 @@
 # limitations under the License.
 """Handlers used to recreate recurring tasks."""
 
-from _internal.base import tasks
-from _internal.datastore import data_types
-from _internal.datastore import ndb_utils
-from _internal.metrics import logs
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 

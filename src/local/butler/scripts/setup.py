@@ -16,10 +16,10 @@
 from google.cloud import monitoring_v3
 import six
 
-from _internal.base import utils
-from _internal.datastore import data_types
-from _internal.metrics import monitor
-from _internal.metrics import monitoring_metrics
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import monitor
+from clusterfuzz._internal.metrics import monitoring_metrics
 
 LIBFUZZER_TEMPLATE = """MAX_FUZZ_THREADS = 1
 MAX_TESTCASES = 2

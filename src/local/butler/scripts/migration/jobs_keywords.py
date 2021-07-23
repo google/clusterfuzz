@@ -15,7 +15,7 @@
 
 from google.cloud import ndb
 
-from _internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_types
 
 
 def execute(args):

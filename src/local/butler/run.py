@@ -18,8 +18,8 @@ import importlib
 import os
 
 from local.butler import constants
-from src._internal.config import local_config
-from src._internal.datastore import ndb_init
+from src.clusterfuzz._internal.config import local_config
+from src.clusterfuzz._internal.datastore import ndb_init
 
 
 def execute(args):

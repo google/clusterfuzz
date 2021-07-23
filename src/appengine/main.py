@@ -40,4 +40,5 @@ except ImportError:
   pass
 
 import server
+
 app = server.app

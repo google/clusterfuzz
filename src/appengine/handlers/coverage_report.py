@@ -16,9 +16,9 @@
 import datetime
 import re
 
-from _internal.datastore import data_handler
-from _internal.datastore import data_types
-from _internal.metrics import fuzzer_stats
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import fuzzer_stats
 from handlers import base_handler
 from libs import handler
 from libs import helpers
