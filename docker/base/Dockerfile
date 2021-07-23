@@ -68,6 +68,8 @@ RUN cd /tmp && \
     mkdir -p $JAVA_HOME && \
     tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
+# Install Java AWT dependencies.
+RUN apt-get install libxext-dev -y
 
 # Install Python 3.
 RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
