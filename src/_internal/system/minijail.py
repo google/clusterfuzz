@@ -14,7 +14,6 @@
 """Running processes with minijail."""
 
 from collections import namedtuple
-
 import os
 import shutil
 import signal
@@ -346,7 +345,8 @@ class MinijailProcessRunner(new_process.ProcessRunner):
     command.insert(2, pid_file.name)
 
     passed_env = popen_args.pop('env', None)
-    from _internal.bot.untrusted_runner import environment as untrusted_environment
+    from _internal.bot.untrusted_runner import \
+        environment as untrusted_environment
     env = untrusted_environment.get_env_for_untrusted_process(passed_env)
     if extra_env is not None:
       env.update(extra_env)

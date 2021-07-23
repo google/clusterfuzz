@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for persistent_cache."""
 
-from pyfakefs import fake_filesystem_unittest
 import datetime
+
+from pyfakefs import fake_filesystem_unittest
 
 from _internal.base import persistent_cache
 from _internal.system import environment

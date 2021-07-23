@@ -15,17 +15,17 @@
 # pylint: disable=protected-access
 import datetime
 import json
-import mock
 import os
 import sys
 import unittest
 
+import mock
 from pyfakefs import fake_filesystem_unittest
 import yaml
 
-from local.butler import deploy
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
+from local.butler import deploy
 
 
 @mock.patch('local.butler.deploy.RETRY_WAIT_SECONDS', 0)

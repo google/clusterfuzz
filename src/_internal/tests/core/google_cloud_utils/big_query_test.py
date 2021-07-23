@@ -14,8 +14,9 @@
 """big_query tests."""
 
 import datetime
-import mock
 import unittest
+
+import mock
 
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import big_query

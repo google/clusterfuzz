@@ -15,14 +15,14 @@
 # pylint: disable=protected-access
 
 import functools
-import mock
 import os
-import parameterized
 import shutil
 import tempfile
 import types
 import unittest
 
+import mock
+import parameterized
 from pyfakefs import fake_filesystem_unittest
 import six
 
@@ -355,7 +355,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch(self, [
         '_internal.bot.fuzzers.utils.get_fuzz_targets',
         '_internal.build_management.build_manager.get_build_urls_list',
-        '_internal.build_management.build_manager.Build._get_fuzz_targets_from_archive',
+        '_internal.build_management.build_manager.Build.'
+        '_get_fuzz_targets_from_archive',
         '_internal.build_management.build_manager._make_space',
         '_internal.build_management.build_manager._make_space_for_build',
         '_internal.system.shell.clear_temp_directory',
@@ -1140,7 +1141,8 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch(self, [
         '_internal.bot.fuzzers.utils.get_fuzz_targets',
         '_internal.build_management.build_manager.get_build_urls_list',
-        '_internal.build_management.build_manager.Build._get_fuzz_targets_from_archive',
+        '_internal.build_management.build_manager.Build.'
+        '_get_fuzz_targets_from_archive',
         '_internal.build_management.build_manager._make_space',
         '_internal.build_management.build_manager._make_space_for_build',
         '_internal.system.shell.clear_temp_directory',

@@ -14,9 +14,10 @@
 """Run command based on the current task."""
 
 import functools
-import six
 import sys
 import time
+
+import six
 
 from _internal.base import errors
 from _internal.base import tasks

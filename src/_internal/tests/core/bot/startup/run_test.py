@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Run tests."""
-import mock
 import unittest
+
+import mock
 
 from _internal.bot.startup import run
 from _internal.tests.test_libs import helpers

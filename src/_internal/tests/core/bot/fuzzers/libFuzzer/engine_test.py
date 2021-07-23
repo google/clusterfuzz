@@ -477,7 +477,8 @@ class BaseIntegrationTest(unittest.TestCase):
         '_internal.bot.fuzzers.engine_common.random_choice',
         '_internal.bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         '_internal.bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
-        '_internal.bot.fuzzers.strategy_selection.generate_weighted_strategy_pool',
+        '_internal.bot.fuzzers.strategy_selection.'
+        'generate_weighted_strategy_pool',
         '_internal.bot.fuzzers.libfuzzer.get_dictionary_analysis_timeout',
         '_internal.bot.fuzzers.libfuzzer.get_fuzz_timeout',
         'os.getpid',
@@ -775,7 +776,8 @@ class IntegrationTests(BaseIntegrationTest):
     fuzz_target_name = 'analyze_dict_fuzzer'
 
     test_helpers.patch(self, [
-        '_internal.bot.fuzzers.libFuzzer.engine.LibFuzzerEngine._create_merge_corpus_dir',
+        '_internal.bot.fuzzers.libFuzzer.engine.LibFuzzerEngine.'
+        '_create_merge_corpus_dir',
         '_internal.system.shell.get_directory_file_count',
     ])
 

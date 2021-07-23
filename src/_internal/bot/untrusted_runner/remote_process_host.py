@@ -16,12 +16,12 @@
 import os
 import subprocess
 
-from . import environment
-from . import host
-
 from _internal.protos import untrusted_runner_pb2
 from _internal.system import new_process
 from _internal.system import process_handler
+
+from . import environment
+from . import host
 
 
 def process_result_from_proto(process_result_proto):

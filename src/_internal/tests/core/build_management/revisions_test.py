@@ -15,9 +15,10 @@
 
 import ast
 import hashlib
-import mock
 import os
 import unittest
+
+import mock
 
 from _internal.build_management import revisions
 from _internal.datastore import data_types
@@ -180,9 +181,8 @@ class RevisionsTestcase(unittest.TestCase):
 
   @mock.patch('_internal.config.db_config.get')
   @mock.patch('_internal.build_management.revisions._get_url_content')
-  @mock.patch(
-      '_internal.build_management.revisions._git_commit_position_to_git_hash_for_chromium'
-  )
+  @mock.patch('_internal.build_management.revisions.'
+              '_git_commit_position_to_git_hash_for_chromium')
   def test_get_component_range_list_chromium(
       self, mock_get_git_hash, mock_get_url_content, mock_get_config):
     """Test that get_component_range_list works properly for the Chromium
@@ -200,9 +200,8 @@ class RevisionsTestcase(unittest.TestCase):
 
   @mock.patch('_internal.config.db_config.get')
   @mock.patch('_internal.build_management.revisions._get_url_content')
-  @mock.patch(
-      '_internal.build_management.revisions._git_commit_position_to_git_hash_for_chromium'
-  )
+  @mock.patch('_internal.build_management.revisions.'
+              '_git_commit_position_to_git_hash_for_chromium')
   def test_get_component_range_list_clank(
       self, mock_get_git_hash, mock_get_url_content, mock_get_config):
     """Test that get_component_range_list works properly for the Clank repo."""
@@ -245,9 +244,8 @@ class RevisionsTestcase(unittest.TestCase):
 
   @mock.patch('_internal.config.db_config.get')
   @mock.patch('_internal.build_management.revisions._get_url_content')
-  @mock.patch(
-      '_internal.build_management.revisions._git_commit_position_to_git_hash_for_chromium'
-  )
+  @mock.patch('_internal.build_management.revisions.'
+              '_git_commit_position_to_git_hash_for_chromium')
   def test_get_real_revision_chromium(self, mock_get_git_hash,
                                       mock_get_url_content, mock_get_config):
     """Test that get_real_revision works properly for chromium revisions."""

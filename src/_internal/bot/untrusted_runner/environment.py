@@ -15,12 +15,14 @@
 
 import os
 import re
+
 import six
 
 try:
+  from _internal.protos import untrusted_runner_pb2
+
   from . import file_host
   from . import host
-  from _internal.protos import untrusted_runner_pb2
 except ImportError:
   # TODO(ochang): Fix this.
   pass

@@ -17,11 +17,11 @@ import datetime
 import unittest
 
 from _internal.datastore import data_types
+from _internal.tests.test_libs import helpers as test_helpers
+from _internal.tests.test_libs import test_utils
 from handlers import home
 from libs import access
 from libs import helpers
-from _internal.tests.test_libs import helpers as test_helpers
-from _internal.tests.test_libs import test_utils
 
 
 @test_utils.with_cloud_emulators('datastore')

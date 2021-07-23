@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Download testcase tests."""
-import flask
 import unittest
+
+import flask
 import webtest
 
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import storage
-from handlers.testcase_detail import download_testcase
-from libs import helpers
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.testcase_detail import download_testcase
+from libs import helpers
 
 
 @test_utils.with_cloud_emulators('datastore')

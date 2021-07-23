@@ -18,12 +18,12 @@ import string
 import subprocess
 
 try:
-  from clusterfuzz._internal.base import utils
-  from clusterfuzz._internal.crash_analysis import crash_analyzer
-  from clusterfuzz._internal.platforms.linux.lkl \
-    import constants as lkl_constants
-  from clusterfuzz._internal.metrics import logs
-  from clusterfuzz._internal.system import environment
+  from clusterfuzz._link._internal.base import utils
+  from clusterfuzz._link._internal.crash_analysis import crash_analyzer
+  from clusterfuzz._link._internal.metrics import logs
+  from clusterfuzz._link._internal.platforms.linux.lkl import \
+      constants as lkl_constants
+  from clusterfuzz._link._internal.system import environment
 except ImportError:
   from _internal.base import utils
   from _internal.crash_analysis import crash_analyzer

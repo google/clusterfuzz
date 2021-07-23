@@ -13,21 +13,14 @@
 # limitations under the License.
 """Untrusted instance."""
 
+from concurrent import futures
 import functools
-import grpc
 import os
 import threading
 import time
 import traceback
 
-from concurrent import futures
-
-from . import build_setup
-from . import config
-from . import file_impl
-from . import remote_process
-from . import symbolize
-from . import tasks_impl
+import grpc
 
 from _internal.base import utils
 from _internal.google_cloud_utils import compute_metadata
@@ -39,6 +32,13 @@ from _internal.protos import untrusted_runner_pb2_grpc
 from _internal.system import environment
 from _internal.system import process_handler
 from _internal.system import shell
+
+from . import build_setup
+from . import config
+from . import file_impl
+from . import remote_process
+from . import symbolize
+from . import tasks_impl
 
 SHUTDOWN_GRACE_SECONDS = 5
 

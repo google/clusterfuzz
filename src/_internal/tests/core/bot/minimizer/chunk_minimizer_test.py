@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for the Chunk minimizer."""
 
-from . import base_minimizer_tester
 from _internal.bot.minimizer import chunk_minimizer
+
+from . import base_minimizer_tester
 
 
 class ChunkMinimizerTest(base_minimizer_tester.BaseMinimizerTester):

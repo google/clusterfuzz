@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for remote_process."""
 
-import mock
 import unittest
+
+import mock
 
 from _internal.bot.untrusted_runner import remote_process
 from _internal.bot.untrusted_runner import remote_process_host

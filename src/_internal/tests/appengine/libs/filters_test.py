@@ -13,8 +13,9 @@
 # limitations under the License.
 """filters tests"""
 
-import mock
 import unittest
+
+import mock
 
 from libs import filters
 from libs import helpers

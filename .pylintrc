@@ -37,7 +37,9 @@ disable=
   # To be removed. Leftovers from Python 3 migration.
   consider-using-with,
   raise-missing-from,
-  super-with-arguments
+  super-with-arguments,
+  use-a-generator,
+  consider-using-generator
 
 [BASIC]
 

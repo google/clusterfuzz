@@ -13,12 +13,12 @@
 # limitations under the License.
 """Tests testcase_manager."""
 import datetime
-import mock
 import os
 import shutil
 import tempfile
 import unittest
 
+import mock
 from pyfakefs import fake_filesystem_unittest
 
 from _internal.bot import testcase_manager
@@ -28,12 +28,12 @@ from _internal.bot.untrusted_runner import file_host
 from _internal.build_management import build_manager
 from _internal.crash_analysis.crash_result import CrashResult
 from _internal.datastore import data_types
-from lib.clusterfuzz import stacktraces
-from lib.clusterfuzz.fuzz import engine
 from _internal.system import environment
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
 from _internal.tests.test_libs import untrusted_runner_helpers
+from lib.clusterfuzz import stacktraces
+from lib.clusterfuzz.fuzz import engine
 
 
 class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
@@ -427,7 +427,8 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         '_internal.bot.fuzzers.engine_common.find_fuzzer_path',
         '_internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
         '_internal.system.process_handler.run_process',
-        '_internal.system.process_handler.terminate_stale_application_instances',
+        '_internal.system.process_handler.'
+        'terminate_stale_application_instances',
         'lib.clusterfuzz.fuzz.engine.get',
         '_internal.metrics.logs.log',
     ])

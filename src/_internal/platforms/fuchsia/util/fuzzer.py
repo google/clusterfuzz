@@ -17,9 +17,10 @@ import datetime
 import errno
 import glob
 import os
-import six
 import subprocess
 import time
+
+import six
 
 
 class Fuzzer(object):

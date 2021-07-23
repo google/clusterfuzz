@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from io import StringIO
+import sys
+
 # Generated from HTMLLexer.g4 by ANTLR 4.7.1
 # encoding: utf-8
 from antlr4 import *
-from io import StringIO
-import sys
 
 
 def serializedATN():

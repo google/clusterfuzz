@@ -14,6 +14,7 @@
 """Analyze task for handling user uploads."""
 
 import datetime
+
 import six
 
 from _internal.base import errors

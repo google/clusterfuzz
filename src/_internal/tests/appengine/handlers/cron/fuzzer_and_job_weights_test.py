@@ -14,13 +14,14 @@
 """Tests for the automatic weight adjusment cron job."""
 # pylint: disable=protected-access
 import datetime
-import six
 import unittest
 
+import six
+
 from _internal.datastore import data_types
-from handlers.cron import fuzzer_and_job_weights
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import fuzzer_and_job_weights
 
 _TEST_SPECIFICATION = fuzzer_and_job_weights.QuerySpecification(
     query_format='ignored',

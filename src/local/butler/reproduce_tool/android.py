@@ -16,12 +16,12 @@
 import os
 import time
 
-from local.butler.reproduce_tool import errors
-from local.butler.reproduce_tool import prompts
 from _internal.platforms.android import adb
 from _internal.platforms.android import device
 from _internal.system import environment
 from _internal.system import new_process
+from local.butler.reproduce_tool import errors
+from local.butler.reproduce_tool import prompts
 
 ADB_DEVICES_SEPARATOR_STRING = 'List of devices attached'
 EMULATOR_RELATIVE_PATH = os.path.join('local', 'bin', 'android-sdk', 'emulator',

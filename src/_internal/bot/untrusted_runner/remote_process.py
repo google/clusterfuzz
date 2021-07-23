@@ -13,12 +13,12 @@
 # limitations under the License.
 """Remote process implementation."""
 
-from . import protobuf_utils
-
 from _internal.metrics import logs
 from _internal.protos import untrusted_runner_pb2
 from _internal.system import new_process
 from _internal.system import process_handler
+
+from . import protobuf_utils
 
 
 def process_result_to_proto(process_result):

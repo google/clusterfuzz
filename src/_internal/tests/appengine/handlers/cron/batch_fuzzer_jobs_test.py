@@ -18,8 +18,8 @@ import unittest
 from google.cloud import ndb
 
 from _internal.datastore import data_types
-from handlers.cron import batch_fuzzer_jobs
 from _internal.tests.test_libs import test_utils
+from handlers.cron import batch_fuzzer_jobs
 
 
 @test_utils.with_cloud_emulators('datastore')

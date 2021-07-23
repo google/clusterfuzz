@@ -19,9 +19,9 @@ import os
 import unittest
 
 from _internal.datastore import data_types
-from handlers.cron import fuzz_strategy_selection
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import fuzz_strategy_selection
 
 DATA_DIRECTORY = os.path.join(
     os.path.dirname(__file__), 'fuzz_strategy_selection_data')

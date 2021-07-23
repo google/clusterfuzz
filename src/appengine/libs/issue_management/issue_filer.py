@@ -23,9 +23,9 @@ from _internal.crash_analysis import severity_analyzer
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import pubsub
-from libs.issue_management import issue_tracker_policy
 from _internal.metrics import logs
 from _internal.system import environment
+from libs.issue_management import issue_tracker_policy
 
 NON_CRASH_TYPES = [
     'Data race',

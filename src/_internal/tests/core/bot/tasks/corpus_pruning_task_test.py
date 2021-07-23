@@ -16,12 +16,12 @@
 # pylint: disable=protected-access
 
 import datetime
-import mock
 import os
 import shutil
 import tempfile
 import unittest
 
+import mock
 import six
 
 from _internal.bot.fuzzers import options
@@ -53,7 +53,8 @@ class BaseTest(object):
     helpers.patch_environ(self)
     helpers.patch(self, [
         '_internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
-        '_internal.bot.tasks.corpus_pruning_task.choose_cross_pollination_strategy',
+        '_internal.bot.tasks.corpus_pruning_task.'
+        'choose_cross_pollination_strategy',
         '_internal.bot.tasks.task_creation.create_tasks',
         '_internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
         '_internal.fuzzing.corpus_manager.backup_corpus',
@@ -344,7 +345,8 @@ class CorpusPruningTestUntrusted(
     helpers.patch(self, [
         '_internal.bot.tasks.setup.get_fuzzer_directory',
         '_internal.base.tasks.add_task',
-        '_internal.bot.tasks.corpus_pruning_task._record_cross_pollination_stats',
+        '_internal.bot.tasks.corpus_pruning_task.'
+        '_record_cross_pollination_stats',
         'lib.clusterfuzz.fuzz.engine.get',
     ])
 

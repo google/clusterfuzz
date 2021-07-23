@@ -17,8 +17,8 @@ import datetime
 import unittest
 
 from _internal.datastore import data_handler
-from handlers.cron import grouper
 from _internal.tests.test_libs import test_utils
+from handlers.cron import grouper
 
 
 @test_utils.with_cloud_emulators('datastore')

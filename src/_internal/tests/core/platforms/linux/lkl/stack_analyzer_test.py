@@ -71,7 +71,8 @@ class LKLStackAnalyzerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        '_internal.crash_analysis.stack_parsing.stack_symbolizer.symbolize_stacktrace',
+        '_internal.crash_analysis.stack_parsing.stack_symbolizer.'
+        'symbolize_stacktrace',
         '_internal.metrics.logs.log_error',
     ])
     os.environ['JOB_NAME'] = TEST_JOB_NAME

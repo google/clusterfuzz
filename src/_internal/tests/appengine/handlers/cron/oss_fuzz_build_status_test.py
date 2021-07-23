@@ -15,19 +15,19 @@
 
 import datetime
 import json
-import mock
 import unittest
 
 import flask
+import mock
 import six
 import webtest
 
 from _internal.datastore import data_types
+from _internal.tests.test_libs import helpers as test_helpers
+from _internal.tests.test_libs import test_utils
 from handlers.cron import oss_fuzz_build_status
 from libs.issue_management import monorail
 from libs.issue_management.monorail.issue import Issue
-from _internal.tests.test_libs import helpers as test_helpers
-from _internal.tests.test_libs import test_utils
 
 
 class MockResponse(object):

@@ -18,7 +18,6 @@ import os
 import unittest
 
 from _internal.metrics import monitor
-
 from _internal.tests.test_libs import helpers
 
 

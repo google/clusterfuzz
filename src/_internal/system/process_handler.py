@@ -435,6 +435,7 @@ def terminate_hung_threads(threads):
 
   if environment.is_trusted_host():
     from _internal.bot.untrusted_runner import host
+
     # Bail out on trusted hosts since we're using threads and can't clean up.
     host.host_exit_no_return()
 

@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for the Windows initialization script."""
 
-import mock
 import unittest
+
+import mock
 
 from _internal.bot.init_scripts import windows
 from _internal.system import environment

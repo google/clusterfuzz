@@ -18,8 +18,9 @@ import datetime
 import os
 import re
 import shlex
-import six
 import time
+
+import six
 
 try:
   from shlex import quote

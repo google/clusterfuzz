@@ -16,9 +16,9 @@ import datetime
 import unittest
 
 from _internal.datastore import data_types
-from handlers import coverage_report
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
+from handlers import coverage_report
 
 
 @test_utils.with_cloud_emulators('datastore')

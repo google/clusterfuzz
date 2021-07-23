@@ -22,9 +22,9 @@ from _internal.datastore import fuzz_target_utils
 from _internal.datastore import ndb_utils
 from _internal.fuzzing import corpus_manager
 from _internal.google_cloud_utils import storage
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from _internal.metrics import logs
 
 
 def _set_public_acl_if_needed(url):

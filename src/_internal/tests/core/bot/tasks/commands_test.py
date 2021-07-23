@@ -13,11 +13,11 @@
 # limitations under the License.
 """commands tests."""
 import datetime
-import mock
 import os
 import unittest
 
 from google.cloud import ndb
+import mock
 
 from _internal.base import errors
 from _internal.bot.tasks import commands

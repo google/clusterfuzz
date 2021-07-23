@@ -17,10 +17,11 @@ import ast
 import functools
 import os
 import re
-import six
 import socket
 import subprocess
 import sys
+
+import six
 import yaml
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.

@@ -15,7 +15,6 @@
 
 import os
 import unittest
-
 from unittest import mock
 
 from _internal.bot.fuzzers.blackbox import engine

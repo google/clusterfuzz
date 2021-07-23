@@ -13,10 +13,11 @@
 # limitations under the License.
 """helpers.py contains convenient methods for writing tests."""
 
-import mock
 import os
 import time
 import types
+
+import mock
 
 
 class Matcher(object):

@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """clean_indexes test."""
-import mock
+from collections import namedtuple
 import os
 import unittest
 
-from collections import namedtuple
+import mock
+
 Args = namedtuple('Args', 'config_dir')
 
-from local.butler import clean_indexes
 from _internal.tests.test_libs import helpers
+from local.butler import clean_indexes
 
 
 class ExecuteTest(unittest.TestCase):

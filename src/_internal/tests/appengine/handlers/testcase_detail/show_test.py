@@ -19,10 +19,10 @@ import os
 import unittest
 
 from _internal.datastore import data_types
-from handlers.testcase_detail import show
-from libs import helpers
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.testcase_detail import show
+from libs import helpers
 
 
 class ParseSuspectedClsTest(unittest.TestCase):

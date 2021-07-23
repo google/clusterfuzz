@@ -13,10 +13,10 @@
 # limitations under the License.
 """Load project data."""
 
-import os
-import six
-
 from collections import namedtuple
+import os
+
+import six
 
 from _internal.config import local_config
 from _internal.system import environment

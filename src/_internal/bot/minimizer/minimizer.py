@@ -13,13 +13,14 @@
 # limitations under the License.
 """Base classes for other minimizers."""
 
-from _internal.metrics import logs
 import copy
 import functools
 import os
 import tempfile
 import threading
 import time
+
+from _internal.metrics import logs
 
 from . import errors
 

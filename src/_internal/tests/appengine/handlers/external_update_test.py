@@ -23,9 +23,9 @@ import flask
 import webtest
 
 from _internal.datastore import data_types
-from handlers import external_update
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers import external_update
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'external_update_data')
 

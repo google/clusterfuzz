@@ -13,15 +13,15 @@
 # limitations under the License.
 """Tests for the base handler class."""
 
-import flask
 import unittest
+
+import flask
+from flask import request
 import webtest
 
-from flask import request
-
+from _internal.tests.test_libs import helpers as test_helpers
 from handlers import base_handler
 from libs import helpers
-from _internal.tests.test_libs import helpers as test_helpers
 
 
 class JsonHandler(base_handler.Handler):

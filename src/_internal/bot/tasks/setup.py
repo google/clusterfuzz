@@ -16,9 +16,10 @@
 import datetime
 import os
 import shlex
-import six
 import time
 import zipfile
+
+import six
 
 from _internal.base import dates
 from _internal.base import errors

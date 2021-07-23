@@ -16,10 +16,11 @@
 import filecmp
 import os
 import shutil
-import six
 import subprocess
 import sys
 import tempfile
+
+import six
 
 from _internal.base import utils
 from _internal.bot import testcase_manager

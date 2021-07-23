@@ -13,10 +13,10 @@
 # limitations under the License.
 """Remote corpus manager."""
 
-from . import remote_process_host
-
 from _internal.fuzzing import corpus_manager
 from _internal.google_cloud_utils import gsutil
+
+from . import remote_process_host
 
 
 class RemoteGSUtilRunner(gsutil.GSUtilRunner):

@@ -18,11 +18,11 @@ import datetime
 from flask import request
 
 from _internal.config import local_config
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import auth
 from libs import handler
 from libs import helpers
-from _internal.metrics import logs
 
 DEFAULT_REDIRECT = '/'
 SESSION_EXPIRY_DAYS = 14

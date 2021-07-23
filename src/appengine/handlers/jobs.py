@@ -13,10 +13,9 @@
 # limitations under the License.
 """Manage job types."""
 
-import six
-
 from flask import request
 from google.cloud import ndb
+import six
 
 from _internal.base import tasks
 from _internal.datastore import data_handler

@@ -18,11 +18,11 @@ from _internal.base import memoize
 from _internal.base import utils
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
+from _internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import handler
 from libs import helpers
-from _internal.system import environment
 
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
 

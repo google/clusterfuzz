@@ -24,8 +24,6 @@ import time
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from . import credentials
-
 from _internal.base import retry
 from _internal.base import utils
 from _internal.config import local_config
@@ -33,6 +31,8 @@ from _internal.datastore import locks
 from _internal.metrics import logs
 from _internal.system import environment
 from _internal.system import shell
+
+from . import credentials
 
 try:
   import google.cloud

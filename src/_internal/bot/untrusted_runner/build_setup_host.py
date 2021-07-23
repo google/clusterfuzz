@@ -13,11 +13,11 @@
 # limitations under the License.
 """Build setup host (client)."""
 
-from . import host
-
 from _internal.build_management import build_manager
 from _internal.protos import untrusted_runner_pb2
 from _internal.system import environment
+
+from . import host
 
 
 def _clear_env():

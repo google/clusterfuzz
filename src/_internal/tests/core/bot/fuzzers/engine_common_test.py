@@ -14,11 +14,11 @@
 """Tests fuzzers.engine_common."""
 
 import os
-import parameterized
-import six
 import unittest
 
+import parameterized
 from pyfakefs import fake_filesystem_unittest
+import six
 
 from _internal.bot.fuzzers import engine_common
 from _internal.system import environment

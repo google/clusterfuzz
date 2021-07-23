@@ -15,11 +15,11 @@
 
 import datetime
 import json
-import mock
 import os
 import re
 import unittest
 
+import mock
 import six
 
 from _internal.bot.tasks import fuzz_task

@@ -17,10 +17,6 @@ import os
 import socket
 import time
 
-from . import adb
-from . import constants
-from . import fetch_artifact
-from . import settings
 from _internal.base import dates
 from _internal.base import persistent_cache
 from _internal.datastore import locks
@@ -28,6 +24,11 @@ from _internal.metrics import logs
 from _internal.system import archive
 from _internal.system import environment
 from _internal.system import shell
+
+from . import adb
+from . import constants
+from . import fetch_artifact
+from . import settings
 
 FLASH_IMAGE_REGEXES = [
     r'.*[.]img',

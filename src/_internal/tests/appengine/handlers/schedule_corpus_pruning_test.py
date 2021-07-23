@@ -16,9 +16,9 @@
 import unittest
 
 from _internal.datastore import data_types
-from handlers.cron import schedule_corpus_pruning
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import schedule_corpus_pruning
 
 
 @test_utils.with_cloud_emulators('datastore')

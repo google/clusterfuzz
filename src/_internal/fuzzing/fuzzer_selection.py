@@ -15,11 +15,12 @@
 
 import collections
 
+from google.cloud import ndb
+
 from _internal.base import utils
 from _internal.datastore import data_types
 from _internal.datastore import fuzz_target_utils
 from _internal.datastore import ndb_utils
-from google.cloud import ndb
 from _internal.metrics import logs
 from _internal.system import environment
 

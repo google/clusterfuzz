@@ -16,9 +16,9 @@
 import unittest
 
 from _internal.datastore import data_types
+from _internal.tests.test_libs import helpers as test_helpers
 from libs.issue_management import issue_tracker
 from libs.issue_management import issue_tracker_utils
-from _internal.tests.test_libs import helpers as test_helpers
 
 
 class IssueTrackerUtilsUrlTest(unittest.TestCase):

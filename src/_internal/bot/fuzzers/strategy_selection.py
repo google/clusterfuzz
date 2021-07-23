@@ -17,9 +17,10 @@ Decides the set strategies to be considered by the launcher. Note
 that because of compatability issues, the exact set of strategies
 generated here may be modified in the launcher before being launched."""
 
+from collections import namedtuple
+
 from _internal.base import utils
 from _internal.bot.fuzzers import engine_common
-from collections import namedtuple
 from _internal.fuzzing import strategy
 from _internal.metrics import logs
 from _internal.system import environment

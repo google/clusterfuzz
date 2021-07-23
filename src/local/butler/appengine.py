@@ -28,6 +28,7 @@ def _add_env_vars_if_needed(yaml_path, additional_env_vars):
   """Add environment variables to yaml file if necessary."""
   # Defer imports since our python paths have to be set up first.
   import yaml
+
   from src._internal.config import local_config
 
   env_values = local_config.ProjectConfig().get('env')

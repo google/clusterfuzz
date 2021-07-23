@@ -36,9 +36,8 @@ REBASED_ENVIRONMENT_VARIABLES = set([
 ])
 
 
-@mock.patch(
-    '_internal.bot.untrusted_runner.environment.FORWARDED_ENVIRONMENT_VARIABLES',
-    FORWARDED_ENVIRONMENT_VARIABLES)
+@mock.patch('_internal.bot.untrusted_runner.environment.'
+            'FORWARDED_ENVIRONMENT_VARIABLES', FORWARDED_ENVIRONMENT_VARIABLES)
 @mock.patch(
     '_internal.bot.untrusted_runner.environment.REBASED_ENVIRONMENT_VARIABLES',
     REBASED_ENVIRONMENT_VARIABLES)

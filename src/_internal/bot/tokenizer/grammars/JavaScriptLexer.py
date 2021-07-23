@@ -14,9 +14,10 @@
 """Translation from Java code for JavaScriptBaseLexer made to work with
 JavaScriptLexer"""
 
-from antlr4 import *
 from io import StringIO
 import sys
+
+from antlr4 import *
 
 from .JavaScriptBaseLexer import JavaScriptBaseLexer
 

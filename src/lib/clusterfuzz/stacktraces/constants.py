@@ -16,7 +16,8 @@
 import re
 
 try:
-  from clusterfuzz._internal.crash_analysis.stack_parsing import stack_parser
+  from clusterfuzz._link._internal.crash_analysis.stack_parsing import \
+      stack_parser
 except ImportError:
   from _internal.crash_analysis.stack_parsing import stack_parser
 

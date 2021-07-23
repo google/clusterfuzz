@@ -25,6 +25,7 @@ from _internal.system import shell
 
 try:
   from _internal.google_cloud_utils import gsutil
+
   # Disable "invalid-name" because fixing the issue will cause pylint to
   # complain the None assignment is incorrectly named.
   DEFAULT_GSUTIL_RUNNER = gsutil.GSUtilRunner  # pylint: disable=invalid-name

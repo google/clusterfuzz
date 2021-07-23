@@ -18,10 +18,10 @@ from _internal.crash_analysis.crash_comparer import CrashComparer
 from _internal.crash_analysis.stack_parsing import stack_analyzer
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import helpers
-from _internal.metrics import logs
 
 
 def _mark_as_fixed(testcase, revision):

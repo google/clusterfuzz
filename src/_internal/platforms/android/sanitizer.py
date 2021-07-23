@@ -15,11 +15,12 @@
 
 import os
 
+from _internal.metrics import logs
+from _internal.system import environment
+
 from . import adb
 from . import constants
 from . import settings
-from _internal.metrics import logs
-from _internal.system import environment
 
 try:
   from _internal.system import new_process

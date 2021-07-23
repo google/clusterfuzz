@@ -22,10 +22,10 @@ import flask
 
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
-from handlers import upload_testcase
-from libs import helpers
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers import upload_testcase
+from libs import helpers
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'upload_testcase_data')
 

@@ -16,8 +16,9 @@
 import email
 import os
 import re
-import requests
 import tempfile
+
+import requests
 
 from _internal.base import utils
 from _internal.build_management import revisions

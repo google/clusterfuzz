@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """find_similar_issues tests."""
+import unittest
+
 import flask
 import mock
-import unittest
 import webtest
 
 from _internal.datastore import data_types
+from _internal.tests.test_libs import helpers as test_helpers
+from _internal.tests.test_libs import test_utils
 from handlers.testcase_detail import find_similar_issues
 from libs.issue_management import monorail
 from libs.issue_management.monorail import issue
-from _internal.tests.test_libs import helpers as test_helpers
-from _internal.tests.test_libs import test_utils
 
 
 @test_utils.with_cloud_emulators('datastore')

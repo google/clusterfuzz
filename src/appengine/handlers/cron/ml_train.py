@@ -16,9 +16,9 @@
 from _internal.base import tasks
 from _internal.datastore import data_types
 from _internal.datastore import fuzz_target_utils
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from _internal.metrics import logs
 
 MODEL_NAME_TO_TASK = {
     'rnn_generator': 'train_rnn_generator',

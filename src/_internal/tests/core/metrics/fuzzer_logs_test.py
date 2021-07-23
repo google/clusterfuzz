@@ -13,8 +13,9 @@
 # limitations under the License.
 """fuzzer_logs test."""
 import datetime
-import mock
 import unittest
+
+import mock
 
 from _internal.metrics import fuzzer_logs
 from _internal.system import environment

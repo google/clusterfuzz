@@ -31,14 +31,14 @@ from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.datastore import ndb_utils
 from _internal.fuzzing import leak_blacklist
+from _internal.metrics import crash_stats
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import mail
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from _internal.metrics import crash_stats
-from _internal.metrics import logs
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')

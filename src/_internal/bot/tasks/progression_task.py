@@ -14,8 +14,9 @@
 """Test to see if test cases are fixed."""
 
 import os
-import six
 import time
+
+import six
 
 from _internal.base import bisection
 from _internal.base import errors

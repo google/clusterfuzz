@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """impact_task tests."""
-import mock
 import unittest
+
+import mock
 
 from _internal.bot.tasks import impact_task
 from _internal.build_management import build_manager
 from _internal.datastore import data_types
-from _internal.tests.core.bot.tasks.component_revision_patching_test \
-    import ComponentRevisionPatchingTest
+from _internal.tests.core.bot.tasks.component_revision_patching_test import \
+    ComponentRevisionPatchingTest
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
 

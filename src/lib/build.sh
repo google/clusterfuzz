@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,25 +16,7 @@
 # Delete existing symlinks.
 find clusterfuzz/ -type l | xargs rm
 
-DEPENDENCIES=(
-    $(pwd)/../base
-    $(pwd)/../bot
-    $(pwd)/../build_management
-    $(pwd)/../config
-    $(pwd)/../crash_analysis
-    $(pwd)/../datastore
-    $(pwd)/../fuzzer_utils
-    $(pwd)/../fuzzing
-    $(pwd)/../google_cloud_utils
-    $(pwd)/../metrics
-    $(pwd)/../platforms
-    $(pwd)/../system
-    $(pwd)/../../protos
-)
-
-for dependency in ${DEPENDENCIES[@]}; do
-  ln -s "$dependency" clusterfuzz/_internal/
-done
+ln -s $(pwd)/../_internal clusterfuzz/_link
 
 # Symlink config dir.
 ln -s $(pwd)/../../../configs/test clusterfuzz/lib-config

@@ -15,9 +15,7 @@
 # pylint: disable=protected-access
 
 import datetime
-import mock
 import os
-import parameterized
 import queue
 import shutil
 import tempfile
@@ -25,6 +23,8 @@ import threading
 import time
 import unittest
 
+import mock
+import parameterized
 from pyfakefs import fake_filesystem_unittest
 import six
 
@@ -38,14 +38,14 @@ from _internal.chrome import crash_uploader
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import big_query
-from lib.clusterfuzz import stacktraces
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import monitor
 from _internal.metrics import monitoring_metrics
 from _internal.system import environment
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
 from _internal.tests.test_libs import untrusted_runner_helpers
+from lib.clusterfuzz import stacktraces
+from lib.clusterfuzz.fuzz import engine
 
 
 class TrackFuzzerRunResultTest(unittest.TestCase):
@@ -1254,7 +1254,8 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         '_internal.system.process_handler.get_queue',
         '_internal.system.process_handler.run_process',
         '_internal.system.process_handler.terminate_hung_threads',
-        '_internal.system.process_handler.terminate_stale_application_instances',
+        '_internal.system.process_handler.'
+        'terminate_stale_application_instances',
     ])
 
     os.environ['APP_ARGS'] = '-x'

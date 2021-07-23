@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Retry tests."""
+import unittest
+
 # pylint: disable=protected-access
 import mock
-import unittest
 
 from _internal.base import retry
 from _internal.metrics import monitor

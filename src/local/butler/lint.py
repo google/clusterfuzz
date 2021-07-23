@@ -15,10 +15,12 @@
 
 import os
 import sys
+
 import yaml
 
 from local.butler import appengine
 from local.butler import common
+from local.butler import format as formatter
 
 _GOLINT_EXCEPTIONS = [
     'types.go'  # Not all model names conform to Go naming conventions.
@@ -47,6 +49,7 @@ _LICENSE_CHECK_IGNORE_DIRECTORIES = [
     'templates',  # Generated code.
 ]
 _LICENSE_CHECK_STRING = 'http://www.apache.org/licenses/LICENSE-2.0'
+_LICENSE_CHECK_IGNORE = 'LICENSE_CHECK_IGNORE'
 _PY_TEST_SUFFIX = '_test.py'
 _PY_INIT_FILENAME = '__init__.py'
 _YAML_EXCEPTIONS = ['bad.yaml']
@@ -89,7 +92,8 @@ def license_validate(file_path):
     return
 
   with open(file_path) as f:
-    if _LICENSE_CHECK_STRING in f.read():
+    data = f.read()
+    if _LICENSE_CHECK_STRING in data or _LICENSE_CHECK_IGNORE in data:
       return
 
   _error('Failed: Missing license header for %s.' % file_path)
@@ -188,8 +192,8 @@ def execute(_):
   for file_path in py_changed_file_paths:
     _execute_command_and_track_error('pylint ' + file_path)
     _execute_command_and_track_error('yapf -d ' + file_path)
+    _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c {file_path}')
 
-    py_import_order(file_path)
     py_test_init_check(file_path)
 
   golint_path = os.path.join('local', 'bin', 'golint')

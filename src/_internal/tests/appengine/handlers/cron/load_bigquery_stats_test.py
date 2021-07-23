@@ -13,16 +13,16 @@
 # limitations under the License.
 """Tests for load_bigquery_stats."""
 import datetime
-import mock
 import unittest
 
 import flask
+import mock
 import webtest
 
 from _internal.datastore import data_types
-from handlers.cron import load_bigquery_stats
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import load_bigquery_stats
 
 
 @test_utils.with_cloud_emulators('datastore')

@@ -27,10 +27,11 @@ import os
 import re
 import shutil
 import signal
-import six
 import stat
 import subprocess
 import sys
+
+import six
 
 from _internal.base import utils
 from _internal.bot.fuzzers import dictionary_manager

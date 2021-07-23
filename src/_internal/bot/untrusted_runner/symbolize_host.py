@@ -13,10 +13,10 @@
 # limitations under the License.
 """Stacktrace symbolization (host side)."""
 
+from _internal.protos import untrusted_runner_pb2
+
 from . import host
 from . import protobuf_utils
-
-from _internal.protos import untrusted_runner_pb2
 
 
 def symbolize_stacktrace(unsymbolized_crash_stacktrace,

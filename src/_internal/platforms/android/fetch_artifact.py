@@ -15,12 +15,12 @@
 minor modifications, especially without any google3 specific library
 dependencies)."""
 
-import apiclient
 import io
 import json
 import os
 import re
 
+import apiclient
 from oauth2client.service_account import ServiceAccountCredentials
 
 from _internal.config import db_config

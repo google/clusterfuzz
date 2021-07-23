@@ -18,9 +18,10 @@ import base64
 import bisect
 import os
 import re
-import six
 import time
 import urllib.parse
+
+import six
 
 from _internal.base import memoize
 from _internal.base import utils

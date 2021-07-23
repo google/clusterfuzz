@@ -13,14 +13,15 @@
 # limitations under the License.
 """HTTP utility functions for the reproduce tool."""
 
-import httplib2
 import os
 import webbrowser
 
+import httplib2
+
 from _internal.base import json_utils
 from _internal.base import utils
-from local.butler.reproduce_tool import prompts
 from _internal.system import shell
+from local.butler.reproduce_tool import prompts
 
 GET_METHOD = 'GET'
 POST_METHOD = 'POST'

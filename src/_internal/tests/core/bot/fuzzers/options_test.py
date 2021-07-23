@@ -13,8 +13,8 @@
 # limitations under the License.
 """Tests for libfuzzer."""
 
-from pyfakefs import fake_filesystem_unittest
 import mock
+from pyfakefs import fake_filesystem_unittest
 
 from _internal.bot.fuzzers import options
 from _internal.tests.test_libs import test_utils
@@ -76,7 +76,7 @@ class GetFuzzTargetOptions(fake_filesystem_unittest.TestCase):
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
 
-    input_data = ('[libfuzzer]\n' 'close_fd_mask=1\n')
+    input_data = ('[libfuzzer]\nclose_fd_mask=1\n')
     self.fs.create_file('/path/fuzz_target.options', contents=input_data)
 
   def _get_arguments(self, fuzz_target_path):

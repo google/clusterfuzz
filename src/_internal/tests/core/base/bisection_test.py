@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for bisection."""
 import datetime
-import mock
 import unittest
+
+import mock
 
 from _internal.base import bisection
 from _internal.datastore import data_types

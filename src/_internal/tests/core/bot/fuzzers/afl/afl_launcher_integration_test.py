@@ -13,18 +13,20 @@
 # limitations under the License.
 """Integration tests for AFL launcher.py."""
 
-import mock
 import os
 import re
 import shutil
 import unittest
+
+import mock
 
 from _internal.bot.fuzzers import engine_common
 from _internal.bot.fuzzers.afl import fuzzer
 from _internal.bot.fuzzers.afl import launcher
 from _internal.system import environment
 from _internal.system import new_process
-from _internal.tests.core.bot.fuzzers.afl.afl_launcher_test import dont_use_strategies
+from _internal.tests.core.bot.fuzzers.afl.afl_launcher_test import \
+    dont_use_strategies
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
 

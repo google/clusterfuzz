@@ -14,10 +14,10 @@
 """Reproduce tool configuration tests."""
 import unittest
 
-from local.butler.reproduce_tool import config
-from local.butler.reproduce_tool import errors
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs.reproduce_tool_fakes import FakeResponse
+from local.butler.reproduce_tool import config
+from local.butler.reproduce_tool import errors
 
 
 class ReproduceToolConfigurationTest(unittest.TestCase):

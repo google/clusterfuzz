@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """oss_fuzz_apply_ccs tests."""
-import flask
 import unittest
 
+import flask
 from google.cloud import ndb
 import webtest
 
 from _internal.datastore import data_types
-from handlers.cron import oss_fuzz_generate_certs
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import oss_fuzz_generate_certs
 
 
 @test_utils.with_cloud_emulators('datastore')

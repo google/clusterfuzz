@@ -13,13 +13,13 @@
 # limitations under the License.
 """Minimizer used for additional reduction on javascript test cases."""
 
+from _internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
+from _internal.bot.tokenizer.grammars.JavaScriptLexer import JavaScriptLexer
+
 from . import delta_minimizer
 from . import errors
 from . import minimizer
 from . import utils
-
-from _internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
-from _internal.bot.tokenizer.grammars.JavaScriptLexer import JavaScriptLexer
 
 
 def step_back_while(cur_index, condition):

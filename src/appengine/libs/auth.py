@@ -14,20 +14,20 @@
 """Authentication helpers."""
 
 import collections
-import jwt
 
 from firebase_admin import auth
 from google.cloud import ndb
 from googleapiclient.discovery import build
+import jwt
 import requests
 
 from _internal.base import memoize
 from _internal.base import utils
 from _internal.config import local_config
 from _internal.datastore import data_types
-from libs import request_cache
 from _internal.metrics import logs
 from _internal.system import environment
+from libs import request_cache
 
 User = collections.namedtuple('User', ['email'])
 

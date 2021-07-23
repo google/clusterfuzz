@@ -15,10 +15,11 @@
 
 import base64
 import collections
-import googleapiclient
-import httplib2
 import json
 import threading
+
+import googleapiclient
+import httplib2
 
 from _internal.base import retry
 from _internal.google_cloud_utils import credentials

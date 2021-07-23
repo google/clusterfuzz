@@ -15,11 +15,12 @@
 
 import argparse
 import math
-import numpy as np
 import os
 import sys
-import tensorflow as tf
 import time
+
+import numpy as np
+import tensorflow as tf
 
 from _internal.bot.fuzzers.ml.rnn import constants
 from _internal.bot.fuzzers.ml.rnn import utils

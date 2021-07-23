@@ -16,9 +16,9 @@ import time
 import urllib.error
 import urllib.request
 
+from _internal.tests.test_libs import test_utils
 from local.butler import common
 from local.butler import constants
-from _internal.tests.test_libs import test_utils
 
 RUN_SERVER_TIMEOUT = 120
 

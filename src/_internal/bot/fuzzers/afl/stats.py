@@ -15,6 +15,7 @@
 
 import os
 import re
+
 import six
 
 from _internal.bot.fuzzers import dictionary_manager

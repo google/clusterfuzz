@@ -14,8 +14,9 @@
 """Build attributes of every testcase."""
 
 import datetime
-import six
 import sys
+
+import six
 
 from _internal.base import utils
 from _internal.datastore import data_types

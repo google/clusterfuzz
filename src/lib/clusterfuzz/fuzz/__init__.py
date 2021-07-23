@@ -14,7 +14,7 @@
 """Fuzzing functions."""
 
 try:
-  from clusterfuzz._internal.bot.fuzzers import utils
+  from clusterfuzz._link._internal.bot.fuzzers import utils
 except ImportError:
   from _internal.bot.fuzzers import utils
 
@@ -28,12 +28,11 @@ def _initialize():
   global _initialized
 
   try:
-    from clusterfuzz._internal.bot.fuzzers.afl \
-        import engine as afl_engine
-    from clusterfuzz._internal.bot.fuzzers.honggfuzz \
-        import engine as honggfuzz_engine
-    from clusterfuzz._internal.bot.fuzzers.libFuzzer \
-        import engine as libFuzzer_engine
+    from clusterfuzz._link._internal.bot.fuzzers.afl import engine as afl_engine
+    from clusterfuzz._link._internal.bot.fuzzers.honggfuzz import \
+        engine as honggfuzz_engine
+    from clusterfuzz._link._internal.bot.fuzzers.libFuzzer import \
+        engine as libFuzzer_engine
   except ImportError:
     from _internal.bot.fuzzers.afl import engine as afl_engine
     from _internal.bot.fuzzers.honggfuzz import engine as honggfuzz_engine

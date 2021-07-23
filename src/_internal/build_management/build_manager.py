@@ -13,14 +13,13 @@
 # limitations under the License.
 """Build manager."""
 
+from collections import namedtuple
+from distutils import spawn
 import os
 import random
 import re
 import subprocess
 import time
-
-from collections import namedtuple
-from distutils import spawn
 
 from _internal.base import errors
 from _internal.base import utils

@@ -15,10 +15,10 @@
 
 from flask import request
 
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import helpers
-from _internal.metrics import logs
 
 
 class ReportCspFailureHandler(base_handler.Handler):

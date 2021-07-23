@@ -13,11 +13,12 @@
 # limitations under the License.
 """Tests for leaks functions."""
 
-import mock
 import os
 import shutil
 import tempfile
 import unittest
+
+import mock
 
 from _internal.datastore import data_types
 from _internal.fuzzing import leak_blacklist

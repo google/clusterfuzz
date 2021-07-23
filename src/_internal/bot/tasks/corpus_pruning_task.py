@@ -13,9 +13,9 @@
 # limitations under the License.
 """Corpus pruning task."""
 
-from enum import Enum
 import collections
 import datetime
+from enum import Enum
 import os
 import random
 import shutil

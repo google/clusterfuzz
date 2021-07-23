@@ -14,6 +14,7 @@
 """Get values / settings from local configuration."""
 
 import os
+
 import six
 import yaml
 

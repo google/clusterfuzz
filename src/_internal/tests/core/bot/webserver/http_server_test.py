@@ -14,10 +14,10 @@
 """Tests for the http_server module."""
 
 import os
-import six
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
+import six
 
 from _internal.bot.webserver import http_server
 from _internal.tests.test_libs import helpers

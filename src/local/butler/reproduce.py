@@ -14,13 +14,13 @@
 """reproduce.py reproduces test cases locally."""
 
 from _internal.base import modules
+
 modules.fix_module_search_paths()
 
 import os
 import shutil
 import tempfile
 import time
-
 from urllib import parse
 
 from _internal.base import json_utils
@@ -31,16 +31,16 @@ from _internal.bot.tasks import commands
 from _internal.bot.tasks import setup
 from _internal.build_management import build_manager
 from _internal.datastore import data_types
+from _internal.system import archive
+from _internal.system import environment
+from _internal.system import new_process
+from _internal.system import shell
 from local.butler import appengine
 from local.butler.reproduce_tool import android
 from local.butler.reproduce_tool import config
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
 from local.butler.reproduce_tool import prompts
-from _internal.system import archive
-from _internal.system import environment
-from _internal.system import new_process
-from _internal.system import shell
 
 CONFIG_DIRECTORY = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz')

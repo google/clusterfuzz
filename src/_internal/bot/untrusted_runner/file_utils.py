@@ -13,9 +13,9 @@
 # limitations under the License.
 """Helpers for file operations."""
 
-from . import config
-
 from _internal.protos import untrusted_runner_pb2
+
+from . import config
 
 
 def file_chunk_generator(handle):

@@ -20,6 +20,8 @@ from google.cloud import ndb
 
 from _internal.base import utils
 from _internal.config import local_config
+from _internal.metrics import logs
+from _internal.system import environment
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range
@@ -64,11 +66,10 @@ from handlers.cron import recurring_tasks
 from handlers.cron import schedule_corpus_pruning
 from handlers.cron import sync_admins
 from handlers.cron import triage
-from handlers.performance_report import (show as show_performance_report)
+from handlers.performance_report import show as show_performance_report
 from handlers.reproduce_tool import get_config
 from handlers.reproduce_tool import testcase_info
-from handlers.testcase_detail import (crash_stats as crash_stats_on_testcase)
-from handlers.testcase_detail import (show as show_testcase)
+from handlers.testcase_detail import crash_stats as crash_stats_on_testcase
 from handlers.testcase_detail import create_issue
 from handlers.testcase_detail import delete
 from handlers.testcase_detail import download_testcase
@@ -80,11 +81,10 @@ from handlers.testcase_detail import redo
 from handlers.testcase_detail import remove_duplicate
 from handlers.testcase_detail import remove_group
 from handlers.testcase_detail import remove_issue
+from handlers.testcase_detail import show as show_testcase
 from handlers.testcase_detail import testcase_variants
 from handlers.testcase_detail import update_from_trunk
 from handlers.testcase_detail import update_issue
-from _internal.metrics import logs
-from _internal.system import environment
 
 ndb_client = ndb.Client()
 

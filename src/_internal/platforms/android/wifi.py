@@ -21,11 +21,12 @@ try:
 except ImportError:
   from pipes import quote
 
-from . import adb
-from . import app
 from _internal.config import db_config
 from _internal.metrics import logs
 from _internal.system import environment
+
+from . import adb
+from . import app
 
 WIFI_UTIL_PACKAGE_NAME = 'com.android.tradefed.utils.wifi'
 WIFI_UTIL_CALL_PATH = '%s/.WifiUtil' % WIFI_UTIL_PACKAGE_NAME

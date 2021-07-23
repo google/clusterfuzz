@@ -23,9 +23,9 @@ import googleapiclient
 
 from _internal.base import utils
 from _internal.config import local_config
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from _internal.metrics import logs
 
 # CrashStatistic is excluded because the number of records is too high and
 # can be rebuilt from BigQuery dataset.

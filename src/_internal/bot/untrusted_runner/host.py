@@ -166,6 +166,8 @@ def _wrap_call(func, num_retries=config.RPC_RETRY_ATTEMPTS):
 
         time.sleep(RPC_FAIL_WAIT_TIME)
 
+    return None
+
   return wrapped
 
 

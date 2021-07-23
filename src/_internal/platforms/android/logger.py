@@ -16,9 +16,9 @@
 import re
 import time
 
-from . import adb
-
 from _internal.metrics import logs
+
+from . import adb
 
 
 def clear_log():

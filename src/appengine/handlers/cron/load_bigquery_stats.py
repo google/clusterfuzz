@@ -14,20 +14,20 @@
 """Handler used for loading bigquery data."""
 
 import datetime
-import httplib2
 import random
 import time
 
 from googleapiclient.errors import HttpError
+import httplib2
 
 from _internal.base import utils
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import big_query
-from handlers import base_handler
-from libs import handler
 from _internal.metrics import fuzzer_stats
 from _internal.metrics import fuzzer_stats_schema
 from _internal.metrics import logs
+from handlers import base_handler
+from libs import handler
 
 STATS_KINDS = [fuzzer_stats.JobRun, fuzzer_stats.TestcaseRun]
 

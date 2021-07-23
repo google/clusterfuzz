@@ -13,8 +13,9 @@
 # limitations under the License.
 """environment tests."""
 import os
-import parameterized
 import unittest
+
+import parameterized
 
 from _internal.system import environment
 from _internal.tests.test_libs import helpers as test_helpers

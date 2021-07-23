@@ -13,11 +13,12 @@
 # limitations under the License.
 """Tests for crash uploader functions."""
 
-import mock
 import os
 import socket
 import unittest
 import urllib.parse
+
+import mock
 
 from _internal.chrome import crash_uploader
 from _internal.crash_analysis.stack_parsing import stack_analyzer

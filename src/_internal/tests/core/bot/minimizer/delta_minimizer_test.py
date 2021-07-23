@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for the Delta minimizer."""
 
-from . import base_minimizer_tester
 from _internal.bot.minimizer import delta_minimizer
+
+from . import base_minimizer_tester
 
 
 class DeltaMinimizerTest(base_minimizer_tester.BaseMinimizerTester):

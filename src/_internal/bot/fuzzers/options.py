@@ -17,6 +17,7 @@ import configparser
 import os
 import random
 import re
+
 import six
 
 from _internal.bot.fuzzers import utils as fuzzer_utils

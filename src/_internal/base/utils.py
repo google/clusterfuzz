@@ -21,12 +21,13 @@ import hashlib
 import inspect
 import os
 import random
-import requests
 import sys
 import time
 import urllib.parse
 import urllib.request
 import weakref
+
+import requests
 
 from _internal.base import errors
 from _internal.base import memoize

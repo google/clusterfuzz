@@ -14,6 +14,7 @@
 """Fuzzer related helper functions."""
 
 from _internal.base import modules
+
 modules.fix_module_search_paths()
 
 # Import some functions that may be used by existing fuzzers before

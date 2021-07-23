@@ -14,13 +14,14 @@
 """Tests for the crash_access library."""
 # pylint: disable=protected-access
 
-import mock
 import unittest
 
+import mock
+
+from _internal.tests.test_libs import helpers as test_helpers
 from libs import crash_access
 from libs import helpers
 from libs.query import base
-from _internal.tests.test_libs import helpers as test_helpers
 
 
 def _has_access(need_privileged_access=False):

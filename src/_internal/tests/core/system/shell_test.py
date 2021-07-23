@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """shell tests."""
-import mock
 import os
 import sys
 import unittest
 
+import mock
 from pyfakefs import fake_filesystem_unittest
 
 from _internal.system import environment

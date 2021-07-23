@@ -17,12 +17,13 @@ import datetime
 import re
 import time
 
-from . import adb
-from . import settings
 from _internal.base import dates
 from _internal.base import persistent_cache
 from _internal.metrics import logs
 from _internal.system import environment
+
+from . import adb
+from . import settings
 
 BATTERY_CHARGE_INTERVAL = 30 * 60  # 0.5 hour.
 BATTERY_CHECK_INTERVAL = 15 * 60  # 15 minutes.

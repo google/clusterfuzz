@@ -15,20 +15,20 @@
 
 import collections
 import datetime
-import six
 
 from google.cloud import ndb
+import six
 
 from _internal.base import utils
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.datastore import ndb_utils
 from _internal.google_cloud_utils import big_query
-from handlers import base_handler
-from libs import handler
 from _internal.metrics import fuzzer_stats
 from _internal.metrics import logs
 from _internal.system import environment
+from handlers import base_handler
+from libs import handler
 
 QuerySpecification = collections.namedtuple(
     'QuerySpecification', ['query_format', 'formatter', 'reason'])
@@ -383,8 +383,7 @@ def update_job_weights():
       # the default weight in that case to allow for recovery.
       if targets_count and targets_count.count:
         multiplier = targets_count.count
-        if multiplier > TARGET_COUNT_WEIGHT_CAP:
-          multiplier = TARGET_COUNT_WEIGHT_CAP
+        multiplier = min(multiplier, TARGET_COUNT_WEIGHT_CAP)
 
     update_job_weight(job.name, multiplier)
 

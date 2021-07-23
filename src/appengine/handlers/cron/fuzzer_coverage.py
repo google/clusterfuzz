@@ -22,9 +22,9 @@ from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.datastore import ndb_utils
 from _internal.google_cloud_utils import storage
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from _internal.metrics import logs
 
 
 def _latest_report_info_dir(bucket):

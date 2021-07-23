@@ -17,9 +17,9 @@ from google.cloud import ndb
 
 from _internal.base import untrusted
 from _internal.datastore import data_types
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from _internal.metrics import logs
 
 
 def generate_cert(project_name):

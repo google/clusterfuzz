@@ -35,10 +35,10 @@ from _internal.base import utils
 from _internal.config import db_config
 from _internal.config import local_config
 from _internal.google_cloud_utils import storage
+from _internal.system import environment
 from libs import auth
 from libs import form
 from libs import helpers
-from _internal.system import environment
 
 # Pattern from
 # https://github.com/google/closure-library/blob/
@@ -249,6 +249,8 @@ class Handler(MethodView):
     except Exception:
       traceback.print_exc()
       self.handle_exception_exception()
+
+    return None
 
   def handle_exception_exception(self):
     """Catch exception in handle_exception and format it properly."""

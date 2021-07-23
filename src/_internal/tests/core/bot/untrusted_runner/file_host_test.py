@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests for remote_process."""
 
-import mock
 import os
 
+import mock
 from pyfakefs import fake_filesystem_unittest
 
 from _internal.bot.untrusted_runner import config

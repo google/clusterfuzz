@@ -14,10 +14,10 @@
 """Tests for corpus_manager."""
 
 import datetime
-import mock
 import os
 import unittest
 
+import mock
 from pyfakefs import fake_filesystem_unittest
 
 from _internal.base import utils

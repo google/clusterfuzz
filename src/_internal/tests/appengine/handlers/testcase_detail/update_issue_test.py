@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """update_issue tests."""
+import unittest
+
 import flask
 import mock
-import unittest
 import webtest
 
 from _internal.datastore import data_types
+from _internal.tests.test_libs import helpers as test_helpers
+from _internal.tests.test_libs import test_utils
 from handlers.testcase_detail import update_issue
 from libs import access
 from libs import form
@@ -25,8 +28,6 @@ from libs.issue_management import issue_tracker_policy
 from libs.issue_management import monorail
 from libs.issue_management.monorail import issue
 from libs.issue_management.monorail import issue_tracker_manager
-from _internal.tests.test_libs import helpers as test_helpers
-from _internal.tests.test_libs import test_utils
 
 CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     'status': {

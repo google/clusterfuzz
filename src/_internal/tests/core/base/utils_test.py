@@ -13,7 +13,6 @@
 # limitations under the License.
 """utils tests."""
 import datetime
-import mock
 import os
 import shutil
 import sys
@@ -22,6 +21,7 @@ import time
 import unittest
 
 from google.cloud import ndb
+import mock
 from pyfakefs import fake_filesystem_unittest
 
 from _internal.base import utils

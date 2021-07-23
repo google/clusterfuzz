@@ -15,11 +15,11 @@
 
 import os
 
-from . import file_utils
-
 from _internal.bot.fuzzers import utils as fuzzers_utils
 from _internal.protos import untrusted_runner_pb2
 from _internal.system import shell
+
+from . import file_utils
 
 
 def create_directory(request, _):

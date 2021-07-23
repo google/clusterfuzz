@@ -18,14 +18,14 @@ import tempfile
 import unittest
 
 from _internal.datastore import data_types
-from local.butler import reproduce
-from local.butler.reproduce_tool import errors
 from _internal.system import environment
 from _internal.system import shell
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
 from _internal.tests.test_libs.reproduce_tool_fakes import FakeConfig
 from _internal.tests.test_libs.reproduce_tool_fakes import FakeResponse
+from local.butler import reproduce
+from local.butler.reproduce_tool import errors
 
 
 def _fake_get_echo_testcase(*_):
@@ -99,7 +99,8 @@ class ReproduceTest(unittest.TestCase):
         'local.butler.reproduce_tool.config.ReproduceToolConfiguration',
         'local.butler.reproduce_tool.prompts.get_boolean',
         '_internal.system.process_handler.run_process',
-        '_internal.system.process_handler.terminate_stale_application_instances',
+        '_internal.system.process_handler.'
+        'terminate_stale_application_instances',
     ])
     helpers.patch_environ(self)
 

@@ -16,10 +16,11 @@
 import binascii
 import functools
 import os
-import six
 import threading
 import time
 import zipfile
+
+import six
 
 from _internal.base import errors
 from _internal.base import tasks
@@ -44,12 +45,12 @@ from _internal.crash_analysis.crash_result import CrashResult
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import blobs
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import logs
 from _internal.platforms import android
 from _internal.system import environment
 from _internal.system import process_handler
 from _internal.system import shell
+from lib.clusterfuzz.fuzz import engine
 
 IPCDUMP_TIMEOUT = 60
 COMBINED_IPCDUMP_TIMEOUT = 60 * 3
@@ -1113,6 +1114,7 @@ def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
   arguments = list(arguments)
   if environment.is_trusted_host():
     from _internal.bot.untrusted_runner import tasks_host
+
     # TODO(ochang): Remove hardcode.
     return tasks_host.process_testcase('libFuzzer', tool_name, target_name,
                                        arguments, testcase_path, output_path,

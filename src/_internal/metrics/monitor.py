@@ -21,9 +21,10 @@ import collections
 import functools
 import itertools
 import re
-import six
 import threading
 import time
+
+import six
 
 try:
   from google.cloud import monitoring_v3

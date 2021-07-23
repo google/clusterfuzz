@@ -14,9 +14,9 @@
 """Tests fuzzers.builtin."""
 
 import os
-import parameterized
 import unittest
 
+import parameterized
 from pyfakefs import fake_filesystem_unittest
 
 from _internal.bot.fuzzers import builtin

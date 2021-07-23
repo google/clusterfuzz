@@ -18,11 +18,11 @@ import collections
 import copy
 import json
 import re
+
+from google.cloud import ndb
 import requests
 import six
 import yaml
-
-from google.cloud import ndb
 
 from _internal.base import tasks
 from _internal.base import untrusted
@@ -35,10 +35,10 @@ from _internal.datastore import ndb_utils
 from _internal.fuzzing import fuzzer_selection
 from _internal.google_cloud_utils import pubsub
 from _internal.google_cloud_utils import storage
-from handlers import base_handler
-from libs import handler
 from _internal.metrics import logs
 from _internal.system import environment
+from handlers import base_handler
+from libs import handler
 
 from . import service_accounts
 

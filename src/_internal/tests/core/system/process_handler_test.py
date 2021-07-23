@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for process_handler."""
 
-import mock
 import unittest
+
+import mock
 
 from _internal.system import process_handler
 from _internal.tests.test_libs import helpers as test_helpers

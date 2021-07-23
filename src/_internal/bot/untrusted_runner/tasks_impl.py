@@ -22,8 +22,8 @@ from _internal.bot.tasks import corpus_pruning_task
 from _internal.bot.tasks import fuzz_task
 from _internal.bot.tasks import minimize_task
 from _internal.datastore import data_types
-from lib.clusterfuzz.fuzz import engine
 from _internal.protos import untrusted_runner_pb2
+from lib.clusterfuzz.fuzz import engine
 
 
 def _proto_to_fuzz_target(proto):

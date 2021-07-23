@@ -13,10 +13,11 @@
 # limitations under the License.
 """Utility functions for ml rnn model."""
 
-import numpy as np
 import os
 import random
 import sys
+
+import numpy as np
 import tensorflow as tf
 
 from _internal.bot.fuzzers.ml.rnn import constants

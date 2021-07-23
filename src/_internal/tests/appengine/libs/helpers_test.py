@@ -16,9 +16,9 @@
 
 import unittest
 
+from _internal.tests.test_libs import helpers as test_helpers
 from libs import auth
 from libs import helpers
-from _internal.tests.test_libs import helpers as test_helpers
 
 
 class TestNotFoundException(Exception):

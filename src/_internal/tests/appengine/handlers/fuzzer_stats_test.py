@@ -16,19 +16,19 @@
 import ast
 import datetime
 import json
-import mock
 import os
 import unittest
 
 import flask
+import mock
 import webtest
 
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import big_query
-from handlers import fuzzer_stats
-from libs import helpers
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers import fuzzer_stats
+from libs import helpers
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'fuzzer_stats_data')
 

@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for the Mac initialization script."""
 
-import mock
 import unittest
+
+import mock
 
 from _internal.bot.init_scripts import mac
 from _internal.tests.test_libs import helpers

@@ -14,25 +14,25 @@
 """Tests for project_setup."""
 import ast
 import copy
-import flask
-import googleapiclient
 import json
-import mock
 import os
 import posixpath
 import unittest
-import webtest
 
+import flask
 from google.cloud import ndb
+import googleapiclient
+import mock
 import six
+import webtest
 
 from _internal.base import utils
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import pubsub
-from handlers.cron import project_setup
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import mock_config
 from _internal.tests.test_libs import test_utils
+from handlers.cron import project_setup
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'project_setup_data')
 

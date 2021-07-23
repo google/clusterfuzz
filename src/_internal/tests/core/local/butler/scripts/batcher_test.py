@@ -16,8 +16,8 @@ import datetime
 import unittest
 
 from _internal.datastore import data_types
-from local.butler.scripts import batcher
 from _internal.tests.test_libs import test_utils
+from local.butler.scripts import batcher
 
 
 @test_utils.with_cloud_emulators('datastore')

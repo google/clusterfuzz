@@ -16,9 +16,9 @@
 from _internal.base import tasks
 from _internal.datastore import data_types
 from _internal.datastore import ndb_utils
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from _internal.metrics import logs
 
 
 class OpenReproducibleTestcaseTasksScheduler(base_handler.Handler):

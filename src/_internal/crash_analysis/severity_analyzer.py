@@ -55,11 +55,8 @@ def _modify_severity(severity,
   max_index = min(len(SEVERITY_ORDER) - 1, max_index)
 
   severity_index += delta
-  if severity_index > max_index:
-    severity_index = max_index
-
-  if severity_index < min_index:
-    severity_index = min_index
+  severity_index = min(severity_index, max_index)
+  severity_index = max(severity_index, min_index)
 
   return SEVERITY_ORDER[severity_index]
 

@@ -15,8 +15,9 @@
 
 import re
 
-from . import adb
 from _internal.system import environment
+
+from . import adb
 
 BUILD_FINGERPRINT_REGEX = re.compile(
     r'(?P<vendor>.+)\/(?P<target>.+)'

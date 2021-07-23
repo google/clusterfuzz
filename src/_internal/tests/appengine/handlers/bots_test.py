@@ -21,9 +21,9 @@ import flask
 import webtest
 
 from _internal.datastore import data_types
-from handlers import bots
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers import bots
 
 
 @test_utils.with_cloud_emulators('datastore')

@@ -20,9 +20,9 @@ import unittest
 from _internal.base import utils
 from _internal.bot.fuzzers import libfuzzer
 from _internal.bot.fuzzers.libFuzzer import stats as performance_stats
-from handlers.performance_report import performance_analyzer
 from _internal.system import environment
 from _internal.tests.test_libs import helpers as test_helpers
+from handlers.performance_report import performance_analyzer
 
 # Use default values for stats values usually provided by CF.
 DEFAULT_STATS_PROVIDED_BY_CF = {

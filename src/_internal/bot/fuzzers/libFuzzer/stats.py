@@ -19,9 +19,9 @@ from _internal.bot.fuzzers import dictionary_manager
 from _internal.bot.fuzzers import utils as fuzzer_utils
 from _internal.bot.fuzzers.libFuzzer import constants
 from _internal.fuzzing import strategy
-from lib.clusterfuzz.stacktraces import constants as stacktrace_constants
 from _internal.metrics import logs
 from _internal.system import environment
+from lib.clusterfuzz.stacktraces import constants as stacktrace_constants
 
 # Regular expressions to detect different types of crashes.
 LEAK_TESTCASE_REGEX = re.compile(r'.*ERROR: LeakSanitizer.*')

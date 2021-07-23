@@ -15,13 +15,13 @@
 
 import datetime
 import json
-import mock
 import os
 import unittest
 
 from google.cloud import ndb
-from pyfakefs import fake_filesystem_unittest
+import mock
 import parameterized
+from pyfakefs import fake_filesystem_unittest
 
 from _internal.config import local_config
 from _internal.datastore import data_handler

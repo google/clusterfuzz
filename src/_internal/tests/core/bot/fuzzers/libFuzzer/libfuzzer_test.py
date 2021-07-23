@@ -16,9 +16,10 @@
 
 import copy
 import os
-import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 import shutil
 import unittest
+
+import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
 from _internal.bot.fuzzers import engine_common
 from _internal.bot.fuzzers import libfuzzer

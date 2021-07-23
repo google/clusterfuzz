@@ -18,8 +18,8 @@ import stat
 from _internal.bot.fuzzers import engine_common
 from _internal.bot.fuzzers.afl import launcher
 from _internal.bot.fuzzers.afl import stats
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import logs
+from lib.clusterfuzz.fuzz import engine
 
 
 def _run_single_testcase(fuzzer_runner, testcase_file_path):

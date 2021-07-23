@@ -20,8 +20,8 @@ import unittest
 from _internal.bot.tasks import blame_task
 from _internal.datastore import data_handler
 from _internal.system import environment
-from _internal.tests.core.bot.tasks.component_revision_patching_test \
-    import ComponentRevisionPatchingTest
+from _internal.tests.core.bot.tasks.component_revision_patching_test import \
+    ComponentRevisionPatchingTest
 from _internal.tests.test_libs import test_utils
 
 

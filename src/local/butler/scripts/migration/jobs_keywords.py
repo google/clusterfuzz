@@ -13,8 +13,9 @@
 # limitations under the License.
 """Build keyword attributes for every job."""
 
-from _internal.datastore import data_types
 from google.cloud import ndb
+
+from _internal.datastore import data_types
 
 
 def execute(args):

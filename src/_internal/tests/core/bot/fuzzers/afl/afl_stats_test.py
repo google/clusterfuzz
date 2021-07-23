@@ -14,16 +14,18 @@
 """Test the stats.py script for AFL-based fuzzers."""
 
 import copy
-import mock
 import os
-import six
 import unittest
+
+import mock
+import six
 
 from _internal.bot.fuzzers import engine_common
 from _internal.bot.fuzzers.afl import launcher
 from _internal.bot.fuzzers.afl import stats
 from _internal.fuzzing import strategy
-from _internal.tests.core.bot.fuzzers.afl.afl_launcher_test import dont_use_strategies
+from _internal.tests.core.bot.fuzzers.afl.afl_launcher_test import \
+    dont_use_strategies
 from _internal.tests.test_libs import helpers as test_helpers
 
 

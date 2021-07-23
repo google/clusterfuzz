@@ -17,6 +17,7 @@
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
 from _internal.base import modules
+
 modules.fix_module_search_paths()
 
 import atexit

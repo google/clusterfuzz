@@ -31,6 +31,8 @@ from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import blobs
 from _internal.google_cloud_utils import storage
+from _internal.system import archive
+from _internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import form
@@ -39,8 +41,6 @@ from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
-from _internal.system import archive
-from _internal.system import environment
 
 MAX_RETRIES = 50
 RUN_FILE_PATTERNS = ['run', 'fuzz-', 'index.', 'crash.']

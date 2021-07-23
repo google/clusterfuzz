@@ -12,20 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """access tests."""
-# pylint: disable=protected-access
-import mock
 import unittest
 
+# pylint: disable=protected-access
+import mock
+
 from _internal.datastore import data_types
+from _internal.tests.test_libs import helpers as test_helpers
+from _internal.tests.test_libs import mock_config
+from _internal.tests.test_libs import test_utils
 from libs import access
 from libs import auth
 from libs import helpers
 from libs.issue_management import monorail
 from libs.issue_management.monorail import issue
 from libs.issue_management.monorail import issue_tracker_manager
-from _internal.tests.test_libs import helpers as test_helpers
-from _internal.tests.test_libs import mock_config
-from _internal.tests.test_libs import test_utils
 
 
 class GetUserJobTypeTest(unittest.TestCase):

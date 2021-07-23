@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for corpus_pruning_task."""
-# pylint: disable=unused-argument
-import mock
 import os
 import shutil
 import tempfile
 import unittest
+
+# pylint: disable=unused-argument
+import mock
 
 from _internal.base import utils
 from _internal.bot.fuzzers import init as fuzzers_init

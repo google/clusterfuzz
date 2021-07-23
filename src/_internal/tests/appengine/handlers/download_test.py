@@ -21,10 +21,10 @@ import webtest
 
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import storage
-from handlers import download
-from libs.issue_management import issue_tracker
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers import download
+from libs.issue_management import issue_tracker
 
 
 @test_utils.with_cloud_emulators('datastore')

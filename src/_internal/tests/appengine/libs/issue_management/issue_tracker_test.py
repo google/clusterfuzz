@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests for the issue_tracker module."""
 
-import mock
 import unittest
 
+import mock
 import six
 
 from libs.issue_management.issue_tracker import IssueTracker

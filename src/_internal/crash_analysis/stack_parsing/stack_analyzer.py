@@ -14,11 +14,10 @@
 """Stack analyzer module."""
 
 from _internal.config import local_config
-from lib.clusterfuzz import stacktraces
 from _internal.platforms.android import kernel_utils as android_kernel
 from _internal.platforms.linux.lkl import kernel_utils as lkl_kernel
-
 from _internal.system import environment
+from lib.clusterfuzz import stacktraces
 
 MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS = 64
 

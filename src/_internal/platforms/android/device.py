@@ -16,8 +16,15 @@
 import copy
 import datetime
 import os
-import six
 import time
+
+import six
+
+from _internal.base import dates
+from _internal.base import persistent_cache
+from _internal.config import db_config
+from _internal.metrics import logs
+from _internal.system import environment
 
 from . import adb
 from . import app
@@ -27,11 +34,6 @@ from . import sanitizer
 from . import settings
 from . import ui
 from . import wifi
-from _internal.base import dates
-from _internal.base import persistent_cache
-from _internal.config import db_config
-from _internal.metrics import logs
-from _internal.system import environment
 
 # Variables related to adding test account on device.
 ADD_TEST_ACCOUNT_APK_NAME = 'user_account_setup.apk'

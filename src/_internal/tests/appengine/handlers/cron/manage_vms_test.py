@@ -15,18 +15,18 @@
 
 import copy
 import functools
-import mock
 import unittest
 
 from google.cloud import ndb
+import mock
 import six
 
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import compute_engine_projects
-from handlers.cron import manage_vms
-from handlers.cron.helpers import bot_manager
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import manage_vms
+from handlers.cron.helpers import bot_manager
 
 INSTANCE_GROUPS = {
     'oss-fuzz-linux-zone2-pre-proj2': {

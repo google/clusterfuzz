@@ -14,11 +14,11 @@
 """Reproduce tool HTTP utility tests."""
 import unittest
 
-from local.butler.reproduce_tool import http_utils
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs.reproduce_tool_fakes import FakeConfig
 from _internal.tests.test_libs.reproduce_tool_fakes import FakeHttp
 from _internal.tests.test_libs.reproduce_tool_fakes import FakeResponse
+from local.butler.reproduce_tool import http_utils
 
 
 class RequestTest(unittest.TestCase):

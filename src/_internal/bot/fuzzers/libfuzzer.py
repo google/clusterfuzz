@@ -383,6 +383,8 @@ class LibFuzzerCommon(object):
         max_stdout_len=MAX_OUTPUT_LEN)
 
 
+# False positive.
+# pylint: disable=unexpected-keyword-arg
 class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when minijail is not used)."""
 

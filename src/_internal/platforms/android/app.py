@@ -17,10 +17,11 @@ import os
 import re
 import time
 
-from . import adb
-from . import constants
 from _internal.metrics import logs
 from _internal.system import environment
+
+from . import adb
+from . import constants
 
 AAPT_CMD_TIMEOUT = 60
 CHROME_CACHE_DIRS = [

@@ -13,9 +13,8 @@
 # limitations under the License.
 """Initial datastore setup."""
 
-import six
-
 from google.cloud import monitoring_v3
+import six
 
 from _internal.base import utils
 from _internal.datastore import data_types

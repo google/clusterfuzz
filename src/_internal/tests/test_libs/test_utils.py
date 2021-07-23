@@ -17,14 +17,15 @@ import atexit
 import datetime
 import io
 import os
-import requests
 import shutil
-import six
 import socket
 import subprocess
 import tempfile
 import threading
 import unittest
+
+import requests
+import six
 
 from _internal.config import local_config
 from _internal.datastore import data_types

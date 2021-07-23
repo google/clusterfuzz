@@ -24,14 +24,14 @@ from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.fuzzing import fuzzer_selection
 from _internal.google_cloud_utils import storage
+from _internal.metrics import fuzzer_logs
+from _internal.system import archive
 from handlers import base_handler
 from libs import access
 from libs import form
 from libs import gcs
 from libs import handler
 from libs import helpers
-from _internal.metrics import fuzzer_logs
-from _internal.system import archive
 
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
 

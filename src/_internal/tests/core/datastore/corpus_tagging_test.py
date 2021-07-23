@@ -13,11 +13,12 @@
 # limitations under the License.
 """Tests for corpus tagging helper functions."""
 
+import unittest
+
 from _internal.datastore import corpus_tagging
 from _internal.datastore import data_types
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
-import unittest
 
 
 @test_utils.with_cloud_emulators('datastore')

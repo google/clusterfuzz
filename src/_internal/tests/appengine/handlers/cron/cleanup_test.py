@@ -20,11 +20,11 @@ import unittest
 import six
 
 from _internal.datastore import data_types
-from handlers.cron import cleanup
-from libs.issue_management import issue_tracker_policy
 from _internal.tests.test_libs import appengine_test_utils
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import cleanup
+from libs.issue_management import issue_tracker_policy
 
 ISSUE_IGNORE_LABEL = 'ClusterFuzz-Ignore'
 ISSUE_INVALID_FUZZER_LABEL = 'ClusterFuzz-Invalid-Fuzzer'

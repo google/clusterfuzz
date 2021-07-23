@@ -15,6 +15,7 @@
 
 import json
 import re
+
 import six
 
 from _internal.build_management import build_manager

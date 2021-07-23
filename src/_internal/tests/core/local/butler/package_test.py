@@ -17,10 +17,10 @@ import tempfile
 import unittest
 import zipfile
 
-from local.butler import package
 from _internal.system import shell
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
+from local.butler import package
 
 
 class IsNodeUpToDateTest(unittest.TestCase):

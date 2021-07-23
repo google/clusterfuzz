@@ -13,8 +13,9 @@
 # limitations under the License.
 """Tests for the issue redirector handler."""
 
-import mock
 import unittest
+
+import mock
 import webtest
 
 from _internal.datastore import data_types

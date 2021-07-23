@@ -14,10 +14,11 @@
 """Tests for process."""
 # pylint: disable=unused-argument
 
-import mock
 import queue
 import time
 import unittest
+
+import mock
 
 from _internal.system import new_process
 from _internal.tests.test_libs import helpers

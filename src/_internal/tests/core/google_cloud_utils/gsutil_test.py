@@ -15,8 +15,8 @@
 
 import os
 
-from pyfakefs import fake_filesystem_unittest
 import mock
+from pyfakefs import fake_filesystem_unittest
 
 from _internal.google_cloud_utils import gsutil
 from _internal.tests.test_libs import helpers as test_helpers

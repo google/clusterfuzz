@@ -17,8 +17,9 @@ import glob
 import os
 import re
 import shutil
-import six
 import subprocess
+
+import six
 
 from .host import Host
 

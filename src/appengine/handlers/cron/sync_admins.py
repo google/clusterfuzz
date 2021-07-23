@@ -18,9 +18,9 @@ import googleapiclient
 from _internal.base import utils
 from _internal.datastore import data_types
 from _internal.datastore import ndb_utils
+from _internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from _internal.metrics import logs
 
 
 def admins_from_iam_policy(iam_policy):

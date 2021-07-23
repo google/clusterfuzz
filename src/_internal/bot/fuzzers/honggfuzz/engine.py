@@ -19,10 +19,10 @@ import re
 
 from _internal.base import utils
 from _internal.bot.fuzzers import dictionary_manager
-from lib.clusterfuzz.fuzz import engine
 from _internal.metrics import logs
 from _internal.system import environment
 from _internal.system import new_process
+from lib.clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
 _RSS_LIMIT = 2560

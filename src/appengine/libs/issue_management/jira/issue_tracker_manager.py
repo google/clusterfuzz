@@ -13,8 +13,9 @@
 # limitations under the License.
 """Issue tracker manager functions."""
 
-import jira
 import json
+
+import jira
 
 from _internal.config import db_config
 

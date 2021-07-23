@@ -16,24 +16,23 @@
 # pylint: disable=protected-access
 
 import datetime
-import mock
 import os
 import unittest
 
+import mock
 import parameterized
 import six
 
 from _internal.datastore import data_types
 from _internal.google_cloud_utils import pubsub
+from _internal.tests.test_libs import helpers
+from _internal.tests.test_libs import mock_config
+from _internal.tests.test_libs import test_utils
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import monorail
 from libs.issue_management.issue_tracker import LabelStore
 from libs.issue_management.monorail.issue import Issue as MonorailIssue
-
-from _internal.tests.test_libs import helpers
-from _internal.tests.test_libs import mock_config
-from _internal.tests.test_libs import test_utils
 
 CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     'status': {

@@ -16,13 +16,13 @@
 import os
 import shutil
 
-from . import file_utils
-from . import host
-
 from _internal.metrics import logs
 from _internal.protos import untrusted_runner_pb2
 from _internal.system import environment
 from _internal.system import shell
+
+from . import file_utils
+from . import host
 
 
 def is_directory_parent(path, directory):

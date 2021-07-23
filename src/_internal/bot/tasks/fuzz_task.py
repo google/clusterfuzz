@@ -20,10 +20,10 @@ import itertools
 import os
 import random
 import re
-import six
 import time
 
 from google.cloud import ndb
+import six
 
 from _internal.base import dates
 from _internal.base import utils
@@ -455,7 +455,8 @@ class GcsCorpus(object):
   def __init__(self, engine_name, project_qualified_target_name,
                corpus_directory, data_directory):
     if environment.is_trusted_host():
-      from _internal.bot.untrusted_runner import corpus_manager as remote_corpus_manager
+      from _internal.bot.untrusted_runner import \
+          corpus_manager as remote_corpus_manager
       self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
           engine_name, project_qualified_target_name)
     else:

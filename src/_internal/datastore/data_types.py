@@ -14,9 +14,9 @@
 """Classes for objects stored in the datastore."""
 
 import re
-import six
 
 from google.cloud import ndb
+import six
 
 from _internal.base import json_utils
 from _internal.base import utils

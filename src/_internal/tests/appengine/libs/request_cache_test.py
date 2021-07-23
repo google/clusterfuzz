@@ -15,8 +15,8 @@
 
 import unittest
 
-from libs import request_cache
 from _internal.tests.test_libs import helpers as test_helpers
+from libs import request_cache
 
 
 class CacheClass(object):

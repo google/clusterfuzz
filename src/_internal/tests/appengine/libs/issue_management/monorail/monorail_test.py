@@ -14,16 +14,16 @@
 """Tests for monorail issue management."""
 
 import datetime
-import mock
 import unittest
 
+import mock
 import six
 
+from _internal.tests.test_libs import helpers
 from libs.issue_management import monorail
 from libs.issue_management.monorail import issue_tracker_manager
 from libs.issue_management.monorail.comment import Comment as MonorailComment
 from libs.issue_management.monorail.issue import Issue as MonorailIssue
-from _internal.tests.test_libs import helpers
 
 
 class IssueTrackerManager(issue_tracker_manager.IssueTrackerManager):

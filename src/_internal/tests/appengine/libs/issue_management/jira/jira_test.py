@@ -13,16 +13,16 @@
 # limitations under the License.
 """Tests for jira issue management."""
 
-from dateutil import tz
 import datetime
 import unittest
 
+from dateutil import tz
 import six
 
+from _internal.tests.test_libs import helpers
 from libs.issue_management import jira
 from libs.issue_management.jira import Issue
 from libs.issue_management.jira import issue_tracker_manager
-from _internal.tests.test_libs import helpers
 
 
 class Config(object):

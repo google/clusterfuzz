@@ -20,9 +20,9 @@ import six
 import webtest
 
 from _internal.datastore import data_types
-from handlers.cron import sync_admins
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import sync_admins
 
 
 @test_utils.with_cloud_emulators('datastore')

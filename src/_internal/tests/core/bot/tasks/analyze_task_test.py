@@ -28,8 +28,10 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     helpers.patch(
         self,
         [
-            '_internal.bot.fuzzers.engine_common.get_all_issue_metadata_for_testcase',
-            '_internal.datastore.data_types.Testcase._post_put_hook',  # Disable logging.
+            '_internal.bot.fuzzers.engine_common.'
+            'get_all_issue_metadata_for_testcase',
+            # Disable logging.
+            '_internal.datastore.data_types.Testcase._post_put_hook',
             '_internal.metrics.logs.log',
         ])
 

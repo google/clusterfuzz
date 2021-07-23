@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Create issue tests."""
+import unittest
+
 import flask
 import mock
-import unittest
 import webtest
 
 from _internal.datastore import data_types
-from handlers.testcase_detail import create_issue
-from libs import form
 from _internal.tests.test_libs import helpers as test_helpers
 from _internal.tests.test_libs import test_utils
+from handlers.testcase_detail import create_issue
+from libs import form
 
 
 @test_utils.with_cloud_emulators('datastore')

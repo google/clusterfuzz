@@ -17,8 +17,8 @@
 import unittest
 
 from _internal.datastore import data_types
-from handlers.reproduce_tool import testcase_info
 from _internal.tests.test_libs import test_utils
+from handlers.reproduce_tool import testcase_info
 
 
 @test_utils.with_cloud_emulators('datastore')

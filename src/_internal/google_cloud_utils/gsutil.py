@@ -14,6 +14,7 @@
 """Functions for running gsutil."""
 
 import os
+
 import six
 
 from _internal.base import utils

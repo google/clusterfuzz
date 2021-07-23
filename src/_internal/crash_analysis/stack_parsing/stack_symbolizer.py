@@ -30,9 +30,10 @@
 
 import os
 import re
-import six
 import subprocess
 import sys
+
+import six
 
 from _internal.base import utils
 from _internal.google_cloud_utils import storage

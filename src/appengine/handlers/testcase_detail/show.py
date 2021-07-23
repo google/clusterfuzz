@@ -15,10 +15,10 @@
 
 import datetime
 import html
-import jinja2
 import re
 
 from flask import request
+import jinja2
 
 from _internal.base import utils
 from _internal.build_management import revisions
@@ -29,6 +29,8 @@ from _internal.datastore import data_handler
 from _internal.datastore import data_types
 from _internal.fuzzing import leak_blacklist
 from _internal.google_cloud_utils import blobs
+from _internal.metrics import crash_stats
+from _internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import auth
@@ -36,8 +38,6 @@ from libs import form
 from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
-from _internal.metrics import crash_stats
-from _internal.system import environment
 
 FIND_SIMILAR_ISSUES_OPTIONS = [{
     'type': 'open',

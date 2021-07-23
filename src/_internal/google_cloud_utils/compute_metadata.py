@@ -13,8 +13,9 @@
 # limitations under the License.
 """GCE metadata."""
 
-import requests
 import socket
+
+import requests
 
 from _internal.base import retry
 from _internal.system import environment

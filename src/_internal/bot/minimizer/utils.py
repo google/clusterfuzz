@@ -17,9 +17,10 @@ import os
 import shlex
 import subprocess
 
-from . import errors
 from _internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from _internal.bot.tokenizer.grammars.HTMLLexer import HTMLLexer
+
+from . import errors
 
 # TODO(mbarbella): Improve configuration of the test function.
 attempts = 1

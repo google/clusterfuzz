@@ -19,10 +19,10 @@ import unittest
 
 from _internal.datastore import data_handler
 from _internal.datastore import data_types
-from handlers.cron import triage
 from _internal.tests.test_libs import appengine_test_utils
 from _internal.tests.test_libs import helpers
 from _internal.tests.test_libs import test_utils
+from handlers.cron import triage
 
 
 @test_utils.with_cloud_emulators('datastore')
