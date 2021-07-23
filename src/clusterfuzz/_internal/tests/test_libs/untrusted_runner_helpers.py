@@ -83,6 +83,9 @@ def _create_test_root():
       os.path.join(real_root, 'src', 'appengine'),
       os.path.join(root_path, 'src', 'appengine'))
   shutil.copytree(
+      os.path.join(real_root, 'src', 'python'),
+      os.path.join(root_path, 'src', 'python'))
+  shutil.copytree(
       os.path.join(real_root, 'src', 'clusterfuzz'),
       os.path.join(root_path, 'src', 'clusterfuzz'))
   shutil.copytree(

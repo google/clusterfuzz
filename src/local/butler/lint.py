@@ -190,14 +190,13 @@ def execute(_):
   yaml_changed_file_paths = [f for f in file_paths if f.endswith('.yaml')]
 
   for file_path in py_changed_file_paths:
-    _execute_command_and_track_error('pylint ' + file_path)
-
     line_length_override = ''
     if '_test.py' in file_path:
       line_length_override = '--max-line-length=240'
 
     _execute_command_and_track_error(
-        f'yapf -d {line_length_override} {file_path}')
+        f'pylint {line_length_override} {file_path}')
+    _execute_command_and_track_error(f'yapf -d {file_path}')
     _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c {file_path}')
 
     py_test_init_check(file_path)
