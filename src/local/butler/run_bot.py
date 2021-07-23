@@ -44,6 +44,9 @@ def _setup_bot_directory(args):
       os.path.join(src_root_dir, 'src', '_internal'),
       os.path.join(bot_src_dir, '_internal'))
   common.update_dir(
+      os.path.join(src_root_dir, 'src', 'python'),
+      os.path.join(bot_src_dir, 'python'))
+  common.update_dir(
       os.path.join(src_root_dir, 'src', 'third_party'),
       os.path.join(bot_src_dir, 'third_party'))
 
@@ -110,7 +113,7 @@ def execute(args):
 
   try:
     os.chdir(os.path.join(args.directory, 'clusterfuzz'))
-    proc = common.execute_async('python src/_internal/bot/startup/run_bot.py')
+    proc = common.execute_async('python src/python/bot/startup/run_bot.py')
 
     def _stop_handler(*_):
       print('Bot has been stopped. Exit.')
