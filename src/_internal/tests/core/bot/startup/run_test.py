@@ -16,7 +16,7 @@ import unittest
 
 import mock
 
-from _internal.bot.startup import run
+from python.bot.startup import run
 from _internal.tests.test_libs import helpers
 
 
@@ -25,7 +25,7 @@ class UpdateSourceCodeIfNeededTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        '_internal.bot.startup.run.stop_heartbeat',
+        'python.bot.startup.run.stop_heartbeat',
         '_internal.bot.tasks.update_task.get_newer_source_revision',
         '_internal.bot.tasks.update_task.update_source_code',
     ])
@@ -51,11 +51,11 @@ class RunLoopTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'atexit.register',
-        '_internal.bot.startup.run.start_bot',
-        '_internal.bot.startup.run.start_heartbeat',
-        '_internal.bot.startup.run.stop_heartbeat',
-        '_internal.bot.startup.run.update_source_code_if_needed',
-        '_internal.bot.startup.run.sleep',
+        'python.bot.startup.run.start_bot',
+        'python.bot.startup.run.start_heartbeat',
+        'python.bot.startup.run.stop_heartbeat',
+        'python.bot.startup.run.update_source_code_if_needed',
+        'python.bot.startup.run.sleep',
         '_internal.datastore.data_handler.bot_run_timed_out',
     ])
 

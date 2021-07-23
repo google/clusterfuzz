@@ -18,7 +18,7 @@ import unittest
 
 import mock
 
-from _internal.bot.startup import run_bot
+from python.bot.startup import run_bot
 from _internal.metrics import monitor
 from _internal.metrics import monitoring_metrics
 from _internal.tests.test_libs import helpers
