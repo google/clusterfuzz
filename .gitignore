@@ -31,8 +31,7 @@
 /src/appengine/config
 /src/appengine/local_gcs
 /src/appengine/private/bower_components
-/src/appengine/lib
-/src/appengine/_internal
+/src/appengine/clusterfuzz
 /src/appengine/resources/clusterfuzz-source.manifest
 /src/appengine/templates
 /src/appengine/third_party
