@@ -42,3 +42,7 @@
 /src/third_party
 _test_data
 bazel-*
+/src/dist
+/src/build
+*.egg-info
+/src/clusterfuzz/lib-config
