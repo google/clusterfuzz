@@ -14,10 +14,11 @@
 """Request specific caching.."""
 
 import collections
+
 import flask
 
-from base import memoize
-from metrics import logs
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.metrics import logs
 
 
 def get_current_request():

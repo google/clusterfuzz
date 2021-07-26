@@ -17,6 +17,16 @@ import os
 
 from local.butler import common
 
+FIRST_PARTY_MODULES = [
+    'handlers',
+    'libs',
+    'clusterfuzz',
+]
+
+ISORT_CMD = ('isort --dont-order-by-type --force-single-line-imports '
+             '--force-sort-within-sections --line-length=80 ' + ' '.join(
+                 [f'-p {mod}' for mod in FIRST_PARTY_MODULES]) + ' ')
+
 
 def execute(_):
   """Format changed code."""
@@ -33,6 +43,7 @@ def execute(_):
   go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
   for file_path in py_changed_file_paths:
     common.execute('yapf -i ' + file_path)
+    common.execute(f'{ISORT_CMD} {file_path}')
 
   for file_path in go_changed_file_paths:
     common.execute('gofmt -w ' + file_path)

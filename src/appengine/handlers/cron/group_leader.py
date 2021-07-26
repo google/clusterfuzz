@@ -15,6 +15,7 @@
   because it is used by group_task.py and attribute_builder.py."""
 
 import itertools
+
 import six
 
 

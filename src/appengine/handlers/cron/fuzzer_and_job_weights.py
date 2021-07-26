@@ -15,20 +15,20 @@
 
 import collections
 import datetime
-import six
 
 from google.cloud import ndb
+import six
 
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from google_cloud_utils import big_query
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import fuzzer_stats
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import handler
-from metrics import fuzzer_stats
-from metrics import logs
-from system import environment
 
 QuerySpecification = collections.namedtuple(
     'QuerySpecification', ['query_format', 'formatter', 'reason'])
@@ -383,8 +383,7 @@ def update_job_weights():
       # the default weight in that case to allow for recovery.
       if targets_count and targets_count.count:
         multiplier = targets_count.count
-        if multiplier > TARGET_COUNT_WEIGHT_CAP:
-          multiplier = TARGET_COUNT_WEIGHT_CAP
+        multiplier = min(multiplier, TARGET_COUNT_WEIGHT_CAP)
 
     update_job_weight(job.name, multiplier)
 

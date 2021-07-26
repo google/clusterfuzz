@@ -17,14 +17,14 @@ import datetime
 import json
 import os
 
-from config import local_config
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from google_cloud_utils import storage
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from metrics import logs
 
 
 def _latest_report_info_dir(bucket):

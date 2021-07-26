@@ -18,27 +18,27 @@ import collections
 import copy
 import json
 import re
+
+from google.cloud import ndb
 import requests
 import six
 import yaml
 
-from google.cloud import ndb
-
-from base import tasks
-from base import untrusted
-from base import utils
-from config import db_config
-from config import local_config
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import fuzzer_selection
-from google_cloud_utils import pubsub
-from google_cloud_utils import storage
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import untrusted
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import handler
-from metrics import logs
-from system import environment
 
 from . import service_accounts
 

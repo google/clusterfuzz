@@ -13,15 +13,15 @@
 # limitations under the License.
 """Library to manage bots using GCE instance templates and groups."""
 
-import google_auth_httplib2
-import googleapiclient
-import httplib2
 import time
 
+import google_auth_httplib2
+import googleapiclient
 from googleapiclient.discovery import build
+import httplib2
 
-from base import retry
-from google_cloud_utils import credentials
+from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.google_cloud_utils import credentials
 
 RETRY_COUNT = 8
 RETRY_DELAY = 4

@@ -15,20 +15,22 @@
 
 import datetime
 import html
-import jinja2
 import re
 
 from flask import request
+import jinja2
 
-from base import utils
-from build_management import revisions
-from build_management import source_mapper
-from config import db_config
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from fuzzing import leak_blacklist
-from google_cloud_utils import blobs
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.build_management import source_mapper
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import auth
@@ -36,8 +38,6 @@ from libs import form
 from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from system import environment
 
 FIND_SIMILAR_ISSUES_OPTIONS = [{
     'type': 'open',

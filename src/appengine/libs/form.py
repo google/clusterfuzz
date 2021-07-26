@@ -16,10 +16,9 @@ import base64
 import datetime
 import os
 
-from base import utils
-from datastore import data_types
-from datastore import ndb_utils
-
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from libs import helpers
 
 

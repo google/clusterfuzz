@@ -21,8 +21,8 @@
 
 import collections
 
-from base import external_users
-from datastore import data_types
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.datastore import data_types
 from libs import access
 from libs import helpers
 

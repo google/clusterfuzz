@@ -19,7 +19,7 @@
 import re
 import sys
 
-from datastore import search_tokenizer
+from clusterfuzz._internal.datastore import search_tokenizer
 from libs import helpers
 
 KEYWORD_FIELD_REGEX = (
