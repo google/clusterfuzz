@@ -247,7 +247,6 @@ class Handler(MethodView):
         return self.render_forbidden(str(exception))
       return self.render('error.html', values, status)
     except Exception:
-      traceback.print_exc()
       self.handle_exception_exception()
 
     return None
