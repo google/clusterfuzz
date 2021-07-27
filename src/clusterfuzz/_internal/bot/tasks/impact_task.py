@@ -40,10 +40,15 @@ class AppFailedException(Exception):
 class Impact(object):
   """Represents impact on a build type."""
 
-  def __init__(self, version='', likely=False, extra_trace=''):
+  def __init__(self,
+               version='',
+               likely=False,
+               extra_trace='',
+               milestone_only=False):
     self.version = str(version)
     self.likely = likely
     self.extra_trace = extra_trace
+    self.milestone_only = milestone_only
 
   def is_empty(self):
     """Return True if empty."""
@@ -51,11 +56,12 @@ class Impact(object):
 
   def __eq__(self, other):
     return (self.version == other.version and self.likely == other.likely and
-            self.extra_trace == other.extra_trace)
+            self.extra_trace == other.extra_trace and
+            self.milestone_only == other.milestone_only)
 
 
 class Impacts(object):
-  """Represents extended stable, stable and beta impacts."""
+  """Represents impacts on different release channels."""
 
   def __init__(self, stable=None, beta=None, extended_stable=None, head=None):
     self.stable = stable or Impact()
@@ -163,7 +169,7 @@ def get_component_impacts_from_url(component_name,
     impact = get_impact({
         'revision': branched_from,
         'version': mapping['version']
-    }, start_revision, end_revision)
+    }, start_revision, end_revision, build == 'canary')
     found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'],
                  found_impacts['extended_stable'], found_impacts['canary'])
@@ -197,7 +203,10 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
   return Impacts(stable, beta, extended_stable, head)
 
 
-def get_impact(build_revision, start_revision, end_revision):
+def get_impact(build_revision,
+               start_revision,
+               end_revision,
+               is_last_possible_build=False):
   """Return a Impact object represents the impact on a given build_type. Or
     return None."""
   if not build_revision:
@@ -209,10 +218,18 @@ def get_impact(build_revision, start_revision, end_revision):
 
   revision = int(revision)
 
+  version = build_revision['version']
   if start_revision > revision:
+    if is_last_possible_build:
+      # There are no further builds to be tested. We are probably testing
+      # a revision of the code which hasn't yet made it into *any* build.
+      # If that's the case, we'll say that this test case _probably_
+      # impacts the milestone. We can't be sure, because the next build
+      # might happen to gain a new milestone number, but it's unlikely.
+      milestone = version.split('.')[0]
+      return Impact(milestone, likely=True, milestone_only=True)
     return Impact()
 
-  version = build_revision['version']
   if end_revision < revision:
     return Impact(version, likely=False)
 
@@ -260,7 +277,7 @@ def get_head_impact(build_revision_mappings, start_revision, end_revision):
   latest_build = build_revision_mappings.get('canary')
   if latest_build is None:
     latest_build = build_revision_mappings.get('dev')
-  return get_impact(latest_build, start_revision, end_revision)
+  return get_impact(latest_build, start_revision, end_revision, True)
 
 
 def get_impact_on_build(build_type, current_version, testcase,
