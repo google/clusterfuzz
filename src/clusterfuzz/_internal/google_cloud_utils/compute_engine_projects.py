@@ -60,7 +60,7 @@ def _process_instance_template(instance_template):
   items = instance_template['properties']['metadata']['items']
   for item in items:
     # If the item value is a relative file path specified using the file://
-    # scheme, then subsitute it with the actual file content. This is needed
+    # scheme, then subtitute it with the actual file content. This is needed
     # since compute engine instance manager cannot read files from our repo.
     if (isinstance(item['value'], str) and
         item['value'].startswith(FILE_SCHEME)):

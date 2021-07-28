@@ -381,7 +381,7 @@ class BaseBuild:
 
 
 class Build(BaseBuild):
-  """Repesents a build type at a particular revision."""
+  """Represent a build type at a particular revision."""
 
   def __init__(self, base_build_dir, revision, build_prefix=''):
     super().__init__(base_build_dir)
@@ -509,7 +509,7 @@ class Build(BaseBuild):
       # For fuzzing, pick a random fuzz target so that we only un-archive that
       # particular fuzz target and its dependencies and save disk space.  If we
       # are going to unpack everythng in archive based on
-      # |UNPACK_ALL_FUZZ_TARGETS_AND_FILES| in the job defition, then don't set
+      # |UNPACK_ALL_FUZZ_TARGETS_AND_FILES| in the job definition, then don't set
       # a random fuzz target before we've unpacked the build. It won't actually
       # save us anything in this case and can be really expensive for large
       # builds (such as Chrome OS). Defer setting it until after the build has

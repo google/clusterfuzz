@@ -57,7 +57,7 @@ class StatsGetter(object):
     Args:
       afl_stats_path: The path to the fuzzer_stats file afl-fuzz outputs.
       Note that we do not use the term "fuzzer_stats" in this parameter and
-      associated vairables so that they wont be confused with the module
+      associated vairables so that they won't be confused with the module
       "fuzzer_stats".
       dict_path: The path to the dictionary file given to afl-fuzz as input.
     """

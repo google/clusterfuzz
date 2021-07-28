@@ -190,7 +190,7 @@ def generate_new_testcase_mutations_using_radamsa(
 
     if (os.path.exists(output_path) and
         os.path.getsize(output_path) > CORPUS_INPUT_SIZE_LIMIT):
-      # Skip large files to avoid furthur mutations and impact fuzzing
+      # Skip large files to avoid further mutations and impact fuzzing
       # efficiency.
       shell.remove_file(output_path)
     elif result.return_code or result.timed_out:

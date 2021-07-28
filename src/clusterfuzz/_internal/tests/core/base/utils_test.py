@@ -262,32 +262,32 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
     os.environ['TOOL_NAME'] = 'ASAN'
     os.environ['JOB_NAME'] = 'linux_asan_chrome'
 
-    self.start_seperator = '+' + '-' * 40
-    self.end_seperator = '-' * 40 + '+'
+    self.start_separator = '+' + '-' * 40
+    self.end_separator = '-' * 40 + '+'
 
   def test_env_settings(self):
     """Tests that environment settings are added."""
     os.environ['ASAN_OPTIONS'] = 'setting1=value1:setting2=value_2'
     self.assertEqual(
         '[Environment] ASAN_OPTIONS=setting1=value1:setting2=value_2\n'
-        '[Command line] cmd_line\n\n' + self.start_seperator +
-        'Release Build Stacktrace' + self.end_seperator + '\nsym_stack',
+        '[Command line] cmd_line\n\n' + self.start_separator +
+        'Release Build Stacktrace' + self.end_separator + '\nsym_stack',
         utils.get_crash_stacktrace_output('cmd_line', 'sym_stack'))
 
   def test_release_sym_stack(self):
     """Tests release build with a symbolized stack, with build type not
     explicitly passed."""
     self.assertEqual(
-        '[Command line] cmd_line_release\n\n' + self.start_seperator +
-        'Release Build Stacktrace' + self.end_seperator + '\nsym_stack',
+        '[Command line] cmd_line_release\n\n' + self.start_separator +
+        'Release Build Stacktrace' + self.end_separator + '\nsym_stack',
         utils.get_crash_stacktrace_output('cmd_line_release', 'sym_stack'))
 
   def test_debug_sym_stack(self):
     """Tests debug build with a symbolized stack, with build type explicitly
     passed."""
     self.assertEqual(
-        '[Command line] cmd_line\n\n' + self.start_seperator +
-        'Debug Build Stacktrace' + self.end_seperator + '\nsym_stack',
+        '[Command line] cmd_line\n\n' + self.start_separator +
+        'Debug Build Stacktrace' + self.end_separator + '\nsym_stack',
         utils.get_crash_stacktrace_output(
             'cmd_line', 'sym_stack', build_type='debug'))
 
@@ -295,34 +295,34 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
     """Tests debug build with a symbolized stack, with build type not explicitly
     passed."""
     self.assertEqual(
-        '[Command line] cmd_line_dbg\n\n' + self.start_seperator +
-        'Debug Build Stacktrace' + self.end_seperator + '\nsym_stack',
+        '[Command line] cmd_line_dbg\n\n' + self.start_separator +
+        'Debug Build Stacktrace' + self.end_separator + '\nsym_stack',
         utils.get_crash_stacktrace_output('cmd_line_dbg', 'sym_stack'))
 
   def test_stable_sym_stack(self):
     """Tests stable build with a symbolized stack, with build type not
     explicitly passed."""
     self.assertEqual(
-        '[Command line] cmd_line_stable\n\n' + self.start_seperator +
-        'Stable Build Stacktrace' + self.end_seperator + '\nsym_stack',
+        '[Command line] cmd_line_stable\n\n' + self.start_separator +
+        'Stable Build Stacktrace' + self.end_separator + '\nsym_stack',
         utils.get_crash_stacktrace_output('cmd_line_stable', 'sym_stack'))
 
   def test_beta_sym_stack(self):
     """Tests beta build with a symbolized stack, with build type not
     explicitly passed."""
     self.assertEqual(
-        '[Command line] cmd_line_beta\n\n' + self.start_seperator +
-        'Beta Build Stacktrace' + self.end_seperator + '\nsym_stack',
+        '[Command line] cmd_line_beta\n\n' + self.start_separator +
+        'Beta Build Stacktrace' + self.end_separator + '\nsym_stack',
         utils.get_crash_stacktrace_output('cmd_line_beta', 'sym_stack'))
 
   def test_release_sym_and_unsym_stacks(self):
     """Tests release build with symbolized and unsymbolized stacks, with build
     type not explicitly passed."""
     self.assertEqual(
-        '[Command line] cmd_line\n\n' + self.start_seperator +
-        'Release Build Stacktrace' + self.end_seperator + '\nsym_stack\n\n' +
-        self.start_seperator + 'Release Build Unsymbolized Stacktrace (diff)' +
-        self.end_seperator + '\n\nunsym_stack',
+        '[Command line] cmd_line\n\n' + self.start_separator +
+        'Release Build Stacktrace' + self.end_separator + '\nsym_stack\n\n' +
+        self.start_separator + 'Release Build Unsymbolized Stacktrace (diff)' +
+        self.end_separator + '\n\nunsym_stack',
         utils.get_crash_stacktrace_output('cmd_line', 'sym_stack',
                                           'unsym_stack'))
 
@@ -330,10 +330,10 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
     """Tests debug build with symbolized and unsymbolized stacks, with build
     type explicitly passed."""
     self.assertEqual(
-        '[Command line] cmd_line\n\n' + self.start_seperator +
-        'Debug Build Stacktrace' + self.end_seperator + '\nsym_stack\n\n' +
-        self.start_seperator + 'Debug Build Unsymbolized Stacktrace (diff)' +
-        self.end_seperator + '\n\nunsym_stack',
+        '[Command line] cmd_line\n\n' + self.start_separator +
+        'Debug Build Stacktrace' + self.end_separator + '\nsym_stack\n\n' +
+        self.start_separator + 'Debug Build Unsymbolized Stacktrace (diff)' +
+        self.end_separator + '\n\nunsym_stack',
         utils.get_crash_stacktrace_output(
             'cmd_line', 'sym_stack', 'unsym_stack', build_type='debug'))
 
@@ -341,10 +341,10 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
     """Tests release build with symbolized and unsymbolized stacks, having some
     common frames, and build type not explicitly passed."""
     self.assertEqual(
-        '[Command line] cmd_line\n\n' + self.start_seperator +
-        'Release Build Stacktrace' + self.end_seperator +
-        '\nc1\nc2\nc3\nsym_stack\nc4\nc5\nc6\n\n' + self.start_seperator +
-        'Release Build Unsymbolized Stacktrace (diff)' + self.end_seperator +
+        '[Command line] cmd_line\n\n' + self.start_separator +
+        'Release Build Stacktrace' + self.end_separator +
+        '\nc1\nc2\nc3\nsym_stack\nc4\nc5\nc6\n\n' + self.start_separator +
+        'Release Build Unsymbolized Stacktrace (diff)' + self.end_separator +
         '\n\nc2\nc3\nunsym_stack\nc4\nc5',
         utils.get_crash_stacktrace_output(
             'cmd_line', 'c1\nc2\nc3\nsym_stack\nc4\nc5\nc6',
@@ -354,10 +354,10 @@ class GetCrashStacktraceOutputTest(unittest.TestCase):
     """Tests debug build with symbolized and unsymbolized stacks, having some
     common frames, and build type explicitly passed."""
     self.assertEqual(
-        '[Command line] cmd_line\n\n' + self.start_seperator +
-        'Debug Build Stacktrace' + self.end_seperator +
-        '\nc1\nc2\nc3\nsym_stack\nc4\nc5\nc6\n\n' + self.start_seperator +
-        'Debug Build Unsymbolized Stacktrace (diff)' + self.end_seperator +
+        '[Command line] cmd_line\n\n' + self.start_separator +
+        'Debug Build Stacktrace' + self.end_separator +
+        '\nc1\nc2\nc3\nsym_stack\nc4\nc5\nc6\n\n' + self.start_separator +
+        'Debug Build Unsymbolized Stacktrace (diff)' + self.end_separator +
         '\n\nc2\nc3\nunsym_stack\nc4\nc5',
         utils.get_crash_stacktrace_output(
             'cmd_line',
@@ -378,22 +378,22 @@ class GetApplicationIDTest(unittest.TestCase):
     self.assertEqual(None, utils.get_application_id())
 
   def test_simple_app_id(self):
-    """Test simple app id without domain or partition seperator."""
+    """Test simple app id without domain or partition separator."""
     os.environ['APPLICATION_ID'] = 'app_id'
     self.assertEqual('app_id', utils.get_application_id())
 
   def test_app_id_with_partition(self):
-    """Test app id with partition seperator, but no domain seperator."""
+    """Test app id with partition separator, but no domain separator."""
     os.environ['APPLICATION_ID'] = 'dev~app_id'
     self.assertEqual('app_id', utils.get_application_id())
 
   def test_app_id_with_domain(self):
-    """Test app id with domain seperator, but no partition seperator."""
+    """Test app id with domain separator, but no partition separator."""
     os.environ['APPLICATION_ID'] = 'company:app_id'
     self.assertEqual('company:app_id', utils.get_application_id())
 
   def test_app_id_with_domain_and_partition(self):
-    """Test app id with domain and partition seperator."""
+    """Test app id with domain and partition separator."""
     os.environ['APPLICATION_ID'] = 's~company:app_id'
     self.assertEqual('company:app_id', utils.get_application_id())
 

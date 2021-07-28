@@ -200,7 +200,7 @@ class GcsProvider(StorageProvider):
       yield properties
 
     if not recursive:
-      # When doing delimeter listings, the "directories" will be in `prefixes`.
+      # When doing delimiter listings, the "directories" will be in `prefixes`.
       for prefix in iterator.prefixes:
         properties['bucket'] = bucket_name
         properties['name'] = prefix

@@ -84,7 +84,7 @@ def _do_instance_operation(operation, instance_name, project, zone,
 
 
 def _execute_api_call_with_retries(api_func):
-  """Execute the given API call, retrying if neccessary. Returns the response if
+  """Execute the given API call, retrying if necessary. Returns the response if
   successful, or None."""
   last_exception = None
   for i in range(NUM_RETRIES + 1):

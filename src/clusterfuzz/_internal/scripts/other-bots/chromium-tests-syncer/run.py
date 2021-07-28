@@ -66,7 +66,7 @@ def unpack_crash_testcases(crash_testcases_directory):
     if not testcase.bug_information:
       continue
 
-    # 6. Existing IPC testcases are un-interesting and unused in furthur
+    # 6. Existing IPC testcases are un-interesting and unused in further
     # mutations. Due to size bloat, ignoring these for now.
     if testcase.absolute_path.endswith(testcase_manager.IPCDUMP_EXTENSION):
       continue
@@ -277,7 +277,7 @@ def main():
   create_symbolic_link(tests_directory, 'ChakraCore/test', 'chakra')
 
   # FIXME: Find a way to rename LayoutTests to web_tests without breaking
-  # compatability with older testcases.
+  # compatibility with older testcases.
   create_symbolic_link(tests_directory, 'src/third_party/blink/web_tests',
                        'LayoutTests')
 

@@ -170,7 +170,7 @@ class Client(object):
 
     Args:
       query: the query string.
-      timeout: the timout in seconds.
+      timeout: the timeout in seconds.
       max_results: the number of rows per response. The response cannot exceed
         10MB.
       use_legacy_sql: whether or not the query is of the legacy sql.

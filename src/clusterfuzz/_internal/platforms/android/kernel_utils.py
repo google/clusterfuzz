@@ -39,7 +39,7 @@ def _get_clean_kernel_path(path):
   """Sometimes kernel paths start with
   /buildbot/src/partner-android/BRANCH/private/PROJ.  We want to remove all
   of this."""
-  # Remove the stuff before 'private', since it is build-server dependant
+  # Remove the stuff before 'private', since it is build-server dependent
   # and not part of the final URL.
   if '/private/' in path:
     path_parts = path.split('/')

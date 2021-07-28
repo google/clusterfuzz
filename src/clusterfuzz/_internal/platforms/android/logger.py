@@ -84,7 +84,7 @@ def filter_log_output(output):
       if not frame_address.startswith('0x'):
         frame_address = '0x%s' % frame_address
 
-      # Seperate out the function argument.
+      # Separate out the function argument.
       frame_binary = (frame_binary.split(' '))[0]
 
       # Normalize line into the same sanitizer tool format.

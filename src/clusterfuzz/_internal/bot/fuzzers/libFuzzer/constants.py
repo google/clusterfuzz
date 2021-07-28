@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Constants that are meaningful to libFuzzer.
-Should not have any dependancies.
+Should not have any dependencies.
 Note that libFuzzers arguments take the form -flag=value. Thus any variables
 defined in this function that end with the suffix "_FLAG" should contain
 "-flag=". Any variable that ends with the suffix "_ARGUMENT" should contain

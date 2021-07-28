@@ -917,7 +917,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_v8_abort_without_source(self):
     """Test the v8 abort error format without source file and line
-    informatiom."""
+    information."""
     data = self._read_test_data('v8_abort_without_source.txt')
     expected_type = 'ASSERT'
     expected_address = ''
@@ -1746,7 +1746,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_null_dereference_read(self):
-    """Test a Null-dereference READ derived from ASan UNKNOWN READ acccess."""
+    """Test a Null-dereference READ derived from ASan UNKNOWN READ access."""
     data = self._read_test_data('asan_null_dereference_read.txt')
     expected_type = 'Null-dereference READ'
     expected_state = ('content::NavigationEntryImpl::site_instance\n'
@@ -1762,7 +1762,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_null_dereference_write(self):
-    """Test a Null-dereference WRITE derived from ASan UNKNOWN WRITE acccess."""
+    """Test a Null-dereference WRITE derived from ASan UNKNOWN WRITE access."""
     data = self._read_test_data('asan_null_dereference_write.txt')
     expected_type = 'Null-dereference WRITE'
     expected_state = ('SetTaskInfo\n'
@@ -1795,7 +1795,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_asan_null_dereference_win_read(self):
     """Test a Null-dereference READ derived from ASan UNKNOWN READ
-    acccess-violation on windows."""
+    access-violation on windows."""
     data = self._read_test_data('asan_null_dereference_win_read.txt')
     expected_type = 'Null-dereference READ'
     expected_state = ('blink::SVGEnumerationBase::calculateAnimatedValue\n'
@@ -1811,7 +1811,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_asan_null_dereference_win_write(self):
     """Test a Null-dereference WRITE derived from ASan UNKNOWN WRITE
-    acccess-violation on windows."""
+    access-violation on windows."""
     data = self._read_test_data('asan_null_dereference_win_write.txt')
     expected_type = 'Null-dereference WRITE'
     expected_state = ('blink::SVGEnumerationBase::calculateAnimatedValue\n'
@@ -1826,7 +1826,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_unknown_crash_read_null(self):
-    """Test an ASan Unknown-crash READ acccess from nullptr."""
+    """Test an ASan Unknown-crash READ access from nullptr."""
     data = self._read_test_data('asan_unknown_crash_read.txt')
     expected_type = 'Null-dereference'
     expected_state = ('void rawspeed::FujiDecompressor::copy_line'
@@ -1842,7 +1842,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_unknown_crash_write(self):
-    """Test an ASan Unknown-crash WRITE acccess."""
+    """Test an ASan Unknown-crash WRITE access."""
     data = self._read_test_data('asan_unknown_crash_write.txt')
     expected_type = 'UNKNOWN'
     expected_state = ('void rawspeed::FujiDecompressor::copy_line'
@@ -1858,7 +1858,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_unknown_read(self):
-    """Test an ASan UNKNOWN READ acccess."""
+    """Test an ASan UNKNOWN READ access."""
     data = self._read_test_data('asan_unknown_read.txt')
     expected_type = 'UNKNOWN READ'
     expected_state = ('content::NavigationEntryImpl::site_instance\n'
@@ -1874,7 +1874,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_unknown_write(self):
-    """Test an ASan UNKNOWN WRITE acccess."""
+    """Test an ASan UNKNOWN WRITE accces."""
     data = self._read_test_data('asan_unknown_write.txt')
     expected_type = 'UNKNOWN WRITE'
     expected_state = ('SetTaskInfo\n'
@@ -1905,7 +1905,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_unknown_win_read(self):
-    """Test an ASan UNKNOWN READ acccess-violation on windows."""
+    """Test an ASan UNKNOWN READ access-violation on windows."""
     data = self._read_test_data('asan_unknown_win_read.txt')
     expected_type = 'UNKNOWN READ'
     expected_state = ('blink::SVGEnumerationBase::calculateAnimatedValue\n'
@@ -1920,7 +1920,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_asan_unknown_win_write(self):
-    """Test an ASan UNKNOWN WRITE acccess-violation on windows."""
+    """Test an ASan UNKNOWN WRITE access-violation on windows."""
     data = self._read_test_data('asan_unknown_win_write.txt')
     expected_type = 'UNKNOWN WRITE'
     expected_state = ('blink::SVGEnumerationBase::calculateAnimatedValue\n'

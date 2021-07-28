@@ -323,9 +323,9 @@ def get_file_contents_with_fatal_error_on_failure(path):
 
 
 def get_line_seperator(label=''):
-  """Return a line seperator with an optional label."""
-  seperator = '-' * 40
-  result = '\n\n%s%s%s\n\n' % (seperator, label, seperator)
+  """Return a line separator with an optional label."""
+  separator = '-' * 40
+  result = '\n\n%s%s%s\n\n' % (separator, label, separator)
   return result
 
 
@@ -502,7 +502,7 @@ def is_valid_testcase_file(file_path,
 
 
 def maximum_parallel_processes_allowed():
-  """Return maxium number of parallel processes allowed. Adjust it based
+  """Return maximum number of parallel processes allowed. Adjust it based
   on thread multiplier."""
   if environment.is_trusted_host():
     # gRPC only supports 1 thread/process.
@@ -717,7 +717,7 @@ def timeout(duration):
     def _wrapper(*args, **kwargs):
       """Wrapper."""
       # FIXME: Weird exceptions in imports, might be something relating to our
-      # reload module. Needs furthur investigation, try this as a temporary fix.
+      # reload module. Needs further investigation, try this as a temporary fix.
       import multiprocessing.pool
       import threading
 

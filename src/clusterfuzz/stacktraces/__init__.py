@@ -131,7 +131,7 @@ class StackParser:
     if len(stack_frame) < 3:
       return True
 
-    # Normalize path seperator in stack frame, this allows to ignore strings
+    # Normalize path separator in stack frame, this allows to ignore strings
     # properly cross-platform.
     normalized_stack_frame = stack_frame.replace('\\', '/')
 
@@ -1379,7 +1379,7 @@ def reverse_python_stacktrace(stacktrace):
   in_python_stacktrace = False
 
   for line in stacktrace:
-    # Locate the begining of the python stacktrace.
+    # Locate the beginning of the python stacktrace.
     if in_python_stacktrace is False:
       for regex, _ in PYTHON_CRASH_TYPES_MAP:
         if regex.match(line):
@@ -1387,7 +1387,7 @@ def reverse_python_stacktrace(stacktrace):
           python_stacktrace_split = [line]  # Add the "title" of the stacktrace
           break
     else:
-      if '=========' in line:  # Locate the begining of the sanitizer stacktrace
+      if '=========' in line:  # Locate the beginning of the sanitizer stacktrace
         break
       python_stacktrace_split.insert(1, line)
 

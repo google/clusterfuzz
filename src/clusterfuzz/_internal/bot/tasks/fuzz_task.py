@@ -263,7 +263,7 @@ def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout):
     # can be incomplete. So, make a judgement on reproducibility based on passed
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
-    # type and crash state paramaters.
+    # type and crash state parameters.
     if testcase_manager.test_for_reproducibility(
         fuzzer_name,
         full_fuzzer_name,
@@ -1445,17 +1445,17 @@ class FuzzingSession(object):
       # Build the fuzzer command execution string.
       command = shell.get_execute_command(fuzzer_executable)
 
-      # NodeJS and shell script expect space seperator for arguments.
+      # NodeJS and shell script expect space separator for arguments.
       if command.startswith('node ') or command.startswith('sh '):
-        argument_seperator = ' '
+        argument_separator = ' '
       else:
-        argument_seperator = '='
+        argument_separator = '='
 
       command_format = ('%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d')
       fuzzer_command = str(
-          command_format % (command, argument_seperator, self.data_directory,
-                            argument_seperator, self.testcase_directory,
-                            argument_seperator, testcase_count))
+          command_format % (command, argument_separator, self.data_directory,
+                            argument_separator, self.testcase_directory,
+                            argument_separator, testcase_count))
       fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
 
       # Run the fuzzer.
@@ -1612,7 +1612,7 @@ class FuzzingSession(object):
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
     """Run blackbox fuzzing. Currently also used for engine fuzzing."""
     # Set the thread timeout values.
-    # TODO(ochang): Remove this hack once engine fuzzing refactor is compelte.
+    # TODO(ochang): Remove this hack once engine fuzzing refactor is complete.
     fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
     if fuzz_test_timeout:
       test_timeout = set_test_timeout(fuzz_test_timeout,
@@ -1810,7 +1810,7 @@ class FuzzingSession(object):
                                FuzzErrorCode.FUZZER_SETUP_FAILED)
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
 
-      # Artifical sleep to slow down continuous failed fuzzer runs if the bot is
+      # Artificial sleep to slow down continuous failed fuzzer runs if the bot is
       # using command override for task execution.
       time.sleep(failure_wait_interval)
       return
