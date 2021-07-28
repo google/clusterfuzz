@@ -663,7 +663,6 @@ class GetImpactTest(unittest.TestCase):
     }, 31, 32, True)
     self.assertEqual('50', impact.version)
     self.assertTrue(impact.likely)
-    self.assertTrue(impact.milestone_only)
     self.assertEqual('', impact.extra_trace)
 
 

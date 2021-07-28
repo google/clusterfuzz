@@ -40,15 +40,10 @@ class AppFailedException(Exception):
 class Impact(object):
   """Represents impact on a build type."""
 
-  def __init__(self,
-               version='',
-               likely=False,
-               extra_trace='',
-               milestone_only=False):
+  def __init__(self, version='', likely=False, extra_trace=''):
     self.version = str(version)
     self.likely = likely
     self.extra_trace = extra_trace
-    self.milestone_only = milestone_only
 
   def is_empty(self):
     """Return True if empty."""
@@ -56,8 +51,7 @@ class Impact(object):
 
   def __eq__(self, other):
     return (self.version == other.version and self.likely == other.likely and
-            self.extra_trace == other.extra_trace and
-            self.milestone_only == other.milestone_only)
+            self.extra_trace == other.extra_trace)
 
 
 class Impacts(object):
@@ -227,7 +221,7 @@ def get_impact(build_revision,
       # impacts the milestone. We can't be sure, because the next build
       # might happen to gain a new milestone number, but it's unlikely.
       milestone = version.split('.')[0]
-      return Impact(milestone, likely=True, milestone_only=True)
+      return Impact(milestone, likely=True)
     return Impact()
 
   if end_revision < revision:
@@ -277,7 +271,8 @@ def get_head_impact(build_revision_mappings, start_revision, end_revision):
   latest_build = build_revision_mappings.get('canary')
   if latest_build is None:
     latest_build = build_revision_mappings.get('dev')
-  return get_impact(latest_build, start_revision, end_revision, True)
+  return get_impact(
+      latest_build, start_revision, end_revision, is_last_possible_build=True)
 
 
 def get_impact_on_build(build_type, current_version, testcase,
