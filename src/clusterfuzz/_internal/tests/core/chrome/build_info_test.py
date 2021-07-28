@@ -14,7 +14,7 @@
 """Tests for build info utilities."""
 
 import json
-import os, sys
+import os
 import re
 import unittest
 
