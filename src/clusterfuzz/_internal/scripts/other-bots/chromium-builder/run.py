@@ -72,7 +72,7 @@ def main():
     revision = build_metadata.revision
     version = build_metadata.version
 
-    if build_type not in ['stable', 'beta']:
+    if build_type not in ['extended_stable', 'stable', 'beta']:
       # We don't need dev or canary builds atm.
       continue
 
@@ -84,8 +84,8 @@ def main():
       # Check if we already have built the same build.
       if (tool_and_build_type in LAST_BUILD and
           revision == LAST_BUILD[tool_and_build_type]):
-        logs.log('Skipping same build %s (revision %s).' % (tool_and_build_type,
-                                                            revision))
+        logs.log('Skipping same build %s (revision %s).' %
+                 (tool_and_build_type, revision))
         continue
 
       LAST_BUILD[tool_and_build_type] = revision

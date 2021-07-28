@@ -14,7 +14,7 @@
 """Tests for build info utilities."""
 
 import json
-import os
+import os, sys
 import re
 import unittest
 
@@ -40,7 +40,7 @@ class BuildInfoTest(unittest.TestCase):
 
       match = re.match(
           r'https://chromiumdash\.appspot\.com/fetch_releases\?'
-          r'num=1&platform=([a-zA-Z0-9]+)', url)
+          r'num=1&platform=([a-zA-Z0-9]+)($|&channel=([a-zA-Z]+))', url)
       if not match:
         return None
       res = []
@@ -48,6 +48,8 @@ class BuildInfoTest(unittest.TestCase):
         info_json = json.load(all_info)
         for info in info_json:
           if info['platform'] == match.group(1):
+            if match.group(3) and info['channel'] != match.group(3):
+              continue
             res.append(info)
       return json.dumps(res)
 
@@ -105,6 +107,22 @@ class BuildInfoTest(unittest.TestCase):
              'c1e1dff6f551c4aab8578ec695825cc9b27d51e6'),
         ])
 
+  def test_get_valid_linux_builds_info(self):
+    """Tests if a valid Linux builds info in the correct metadata list from
+       ChromiumDash."""
+    self._validate_build_info_list(
+        build_info.get_production_builds_info_from_cd('LINUX'),
+        [
+            ('LINUX', 'beta', '92.0.4515.70',
+             'f8707b75c2349225c3c846d9016daf10a75abefb'),
+            ('LINUX', 'dev', '93.0.4549.3',
+             'bf8816161669f47681d64fb77c5e2317d1873de1'),
+            ('LINUX', 'stable', '91.0.4472.114',
+             'c1e1dff6f551c4aab8578ec695825cc9b27d51e6'),
+            ('LINUX', 'extended_stable', '91.0.4472.114',
+             'c1e1dff6f551c4aab8578ec695825cc9b27d51e6'),
+        ])
+
   def test_get_invalid_platform_cd(self):
     """Tests if an invalid platform results in the correct (empty) list."""
     self._validate_build_info_list(
@@ -116,6 +134,9 @@ class BuildInfoTest(unittest.TestCase):
       self.assertEqual(build_info.get_release_milestone('stable', platform), 91)
       self.assertEqual(build_info.get_release_milestone('beta', platform), 92)
       self.assertEqual(build_info.get_release_milestone('head', platform), 93)
+      if platform != 'android':
+        self.assertEqual(
+            build_info.get_release_milestone('extended_stable', platform), 91)
 
   def test_get_build_to_revision_mappings_with_valid_platform(self):
     """Tests if a valid platform (WIN) results in the correct metadata dict from
@@ -137,6 +158,30 @@ class BuildInfoTest(unittest.TestCase):
         'stable': {
             'revision': '870763',
             'version': '91.0.4472.124'
+        },
+        'extended_stable': {
+            'revision': '870763',
+            'version': '91.0.4472.114'
+        }
+    }
+    self.assertDictEqual(result, expected_result)
+
+  def test_get_build_to_revision_mappings_for_linux(self):
+    """Tests if a valid platform (Linux) results in the correct metadata dict
+       from ChromiumDash."""
+    result = build_info.get_build_to_revision_mappings('LINUX')
+    expected_result = {
+        'beta': {
+            'revision': '885287',
+            'version': '92.0.4515.70'
+        },
+        'dev': {
+            'revision': '894125',
+            'version': '93.0.4549.3'
+        },
+        'stable': {
+            'revision': '870763',
+            'version': '91.0.4472.114'
         },
         'extended_stable': {
             'revision': '870763',

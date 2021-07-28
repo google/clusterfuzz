@@ -56,11 +56,13 @@ def _convert_platform_to_chromiumdash_platform(platform):
   return platform_lower.capitalize()
 
 
-def _fetch_releases_from_chromiumdash(platform):
+def _fetch_releases_from_chromiumdash(platform, channel=None):
   """Makes a Call to chromiumdash's fetch_releases api,
   and returns its json array response."""
   chromiumdash_platform = _convert_platform_to_chromiumdash_platform(platform)
   query_url = BUILD_INFO_URL_CD.format(platform=chromiumdash_platform)
+  if channel:
+    query_url = query_url + '&channel=' + channel
 
   build_info = utils.fetch_url(query_url)
   if not build_info:
@@ -129,6 +131,17 @@ def get_production_builds_info_from_cd(platform):
     revision = info['hashes']['chromium']
     builds_metadata.append(BuildInfo(platform, build_type, version, revision))
 
+  # Hack: pretend Windows extended stable info to be Linux extended stable info.
+  # Because Linux doesn't have extended stable channel.
+  if platform.lower() == 'linux':
+    es_info = _fetch_releases_from_chromiumdash(
+        'WINDOWS', channel='Extended')[0]
+    builds_metadata.append(
+        BuildInfo(platform,
+                  'extended_stable',
+                  es_info['version'],
+                  es_info['hashes']['chromium']))
+
   return builds_metadata
 
 
@@ -170,5 +183,15 @@ def get_build_to_revision_mappings(platform=None):
     version = info['version']
     revision = str(info['chromium_main_branch_position'])
     result[build_type] = {'revision': revision, 'version': version}
+
+  # Hack: pretend Windows extended stable info to be Linux extended stable info.
+  # Because Linux doesn't have extended stable channel.
+  if platform.lower() == 'linux':
+    es_info = _fetch_releases_from_chromiumdash(
+        'WINDOWS',channel='Extended')[0]
+    result['extended_stable'] = {
+        'revision': str(es_info['chromium_main_branch_position']),
+        'version': es_info['version']
+    }
 
   return result

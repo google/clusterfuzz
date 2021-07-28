@@ -706,33 +706,14 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
     """Test app fail on beta."""
     self.mock.get_impact_on_build.side_effect = [
         self.impacts.stable,
-        impact_task.AppFailedException()
+        impact_task.AppFailedException(),
+        self.impacts.extended_stable
     ]
 
     self.assertEqual(
         impact_task.Impacts(
-            self.impacts.stable, impact_task.Impact(), head=self.impacts.head),
-        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
-    self.mock.get_impact_on_build.assert_has_calls([
-        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
-                  'path'),
-        mock.call('beta', self.testcase.impact_beta_version, self.testcase,
-                  'path'),
-    ])
-    self.mock.get_impacts_from_url.assert_has_calls([])
-
-  def test_any_exception_on_extended_stable(self):
-    """Test exceptions on extended stable.
-    Current expected behavior is the failure is ignored"""
-    self.mock.get_impact_on_build.side_effect = [
-        self.impacts.stable,
-        self.impacts.beta,
-        Exception(),
-    ]
-
-    self.assertEqual(
-        impact_task.Impacts(
-            self.impacts.stable, self.impacts.beta, head=self.impacts.head),
+            self.impacts.stable, impact_task.Impact(),
+            self.impacts.extended_stable, head=self.impacts.head),
         impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
     self.mock.get_impact_on_build.assert_has_calls([
         mock.call('stable', self.testcase.impact_stable_version, self.testcase,
@@ -744,6 +725,30 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
                   'path'),
     ])
     self.mock.get_impacts_from_url.assert_has_calls([])
+
+  def test_app_failed_on_extended_stable(self):
+    """Test app fail on extended stable."""
+    self.mock.get_impact_on_build.side_effect = [
+        self.impacts.stable,
+        self.impacts.beta,
+        impact_task.AppFailedException(),
+    ]
+    self.mock.get_impacts_from_url.return_value = self.impacts
+
+    self.assertEqual(
+        self.impacts,
+        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
+    self.mock.get_impact_on_build.assert_has_calls([
+        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
+                  'path'),
+        mock.call('beta', self.testcase.impact_beta_version, self.testcase,
+                  'path'),
+        mock.call('extended_stable',
+                  self.testcase.impact_extended_stable_version, self.testcase,
+                  'path'),
+    ])
+    self.mock.get_impacts_from_url.assert_has_calls(
+        [mock.call(self.testcase.regression, self.testcase.job_type)])
 
   def test_get_impacts(self):
     """Test getting impacts."""

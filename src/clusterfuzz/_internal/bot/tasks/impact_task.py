@@ -68,9 +68,9 @@ class Impacts(object):
             self.beta.is_empty() and self.head.is_empty())
 
   def get_extra_trace(self):
-    return (
-        self.extended_stable.extra_trace + '\n' + self.stable.extra_trace + '\n'
-        + self.beta.extra_trace + '\n' + self.head.extra_trace).strip()
+    return (self.extended_stable.extra_trace + '\n' + self.stable.extra_trace +
+            '\n' + self.beta.extra_trace + '\n' +
+            self.head.extra_trace).strip()
 
   def __eq__(self, other):
     return (self.extended_stable == other.extended_stable and
@@ -160,10 +160,11 @@ def get_component_impacts_from_url(component_name,
         component_revision['url'], component_revision['rev'])
     if not branched_from:
       return Impacts()
-    impact = get_impact({
-        'revision': branched_from,
-        'version': mapping['version']
-    }, start_revision, end_revision)
+    impact = get_impact(
+        {
+            'revision': branched_from,
+            'version': mapping['version']
+        }, start_revision, end_revision)
     found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'],
                  found_impacts['extended_stable'], found_impacts['canary'])
@@ -225,8 +226,9 @@ def get_impacts_on_prod_builds(testcase, testcase_file_path):
   and beta."""
   impacts = Impacts()
   try:
-    impacts.stable = get_impact_on_build(
-        'stable', testcase.impact_stable_version, testcase, testcase_file_path)
+    impacts.stable = get_impact_on_build('stable',
+                                         testcase.impact_stable_version,
+                                         testcase, testcase_file_path)
   except AppFailedException:
     return get_impacts_from_url(testcase.regression, testcase.job_type)
 
@@ -241,9 +243,8 @@ def get_impacts_on_prod_builds(testcase, testcase_file_path):
     impacts.extended_stable = get_impact_on_build(
         'extended_stable', testcase.impact_extended_stable_version, testcase,
         testcase_file_path)
-  except Exception as e:
-    # TODO(yuanjunh): undo the exception bypass for ES.
-    logs.log_warn('Caught errors in getting impact on extended stable: %s' % e)
+  except AppFailedException:
+    return get_impacts_from_url(testcase.regression, testcase.job_type)
 
   # Always record the affected head version.
   start_revision, end_revision = get_start_and_end_revision(
@@ -272,8 +273,8 @@ def get_impact_on_build(build_type, current_version, testcase,
     return Impact()
   build = build_manager.setup_production_build(build_type)
   if not build:
-    raise BuildFailedException(
-        'Build setup failed for %s' % build_type.capitalize())
+    raise BuildFailedException('Build setup failed for %s' %
+                               build_type.capitalize())
 
   if not build_manager.check_app_path():
     raise AppFailedException()
@@ -286,9 +287,9 @@ def get_impact_on_build(build_type, current_version, testcase,
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
 
-  if es_enabled:
-    logs.log(
-        "ES build for testcase %d, command: %s" % (testcase.key.id(), command))
+  if es_enabled and build_type == 'extended_stable':
+    logs.log("ES build for testcase %d, command: %s" %
+             (testcase.key.id(), command))
 
   result = testcase_manager.test_for_crash_with_retries(
       testcase,
@@ -402,7 +403,7 @@ def execute_task(testcase_id, job_type):
   # but it crashes on one of the production builds.
   if testcase.is_status_unreproducible() and impacts.get_extra_trace():
     testcase.crash_stacktrace = data_handler.filter_stacktrace(
-        '%s\n\n%s' % (data_handler.get_stacktrace(testcase),
-                      impacts.get_extra_trace()))
+        '%s\n\n%s' %
+        (data_handler.get_stacktrace(testcase), impacts.get_extra_trace()))
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)
