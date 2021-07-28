@@ -241,9 +241,8 @@ def get_impacts_on_prod_builds(testcase, testcase_file_path):
     impacts.extended_stable = get_impact_on_build(
         'extended_stable', testcase.impact_extended_stable_version, testcase,
         testcase_file_path)
-  except Exception as e:
-    # TODO(yuanjunh): undo the exception bypass for ES.
-    logs.log_warn('Caught errors in getting impact on extended stable: %s' % e)
+  except AppFailedException:
+    return get_impacts_from_url(testcase.regression, testcase.job_type)
 
   # Always record the affected head version.
   start_revision, end_revision = get_start_and_end_revision(
@@ -286,7 +285,7 @@ def get_impact_on_build(build_type, current_version, testcase,
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
 
-  if es_enabled:
+  if es_enabled and build_type == 'extended_stable':
     logs.log(
         "ES build for testcase %d, command: %s" % (testcase.key.id(), command))
 

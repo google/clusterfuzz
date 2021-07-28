@@ -72,7 +72,7 @@ def main():
     revision = build_metadata.revision
     version = build_metadata.version
 
-    if build_type not in ['stable', 'beta']:
+    if build_type not in ['extended_stable', 'stable', 'beta']:
       # We don't need dev or canary builds atm.
       continue
 
