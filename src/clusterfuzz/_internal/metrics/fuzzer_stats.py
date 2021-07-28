@@ -398,7 +398,7 @@ class BaseCoverageField(object):
 
     elif group_by == QueryGroupBy.GROUP_BY_JOB:
       # Return the latest coverage data for the fuzzer. Even though we group by
-      # job here, coverage information does not differ accross jobs. As of now,
+      # job here, coverage information does not differ across jobs. As of now,
       # it only depends on the fuzzer name and the date.
       coverage_info = self.ctx.get_coverage_info(self.ctx.fuzzer)
 
@@ -952,7 +952,7 @@ class TableQuery(object):
     # For query by time, we can't correlate the time of testcase run with a job
     # run since they are set at different times. So, use only the results from
     # testcase run and don't join them with job run, see build(). Also, the job
-    # paramaters like: known crashes, new crashes are aggregate numbers from job
+    # parameters like: known crashes, new crashes are aggregate numbers from job
     # that are not applicable to show per testcase run (a point on graph).
     if job_run_fields and self.group_by != QueryGroupBy.GROUP_BY_TIME:
       self.job_run_query = JobQuery(fuzzer_name, job_types, job_run_fields,

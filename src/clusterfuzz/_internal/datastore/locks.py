@@ -52,7 +52,7 @@ def _get_current_lock_zone():
     if platform_group.strip() == platform:
       return zone
 
-  # Default to per-platform seperation.
+  # Default to per-platform separation.
   logs.log_warn('Platform group mapping not set in admin configuration, '
                 'using default platform - %s.' % platform)
   return platform

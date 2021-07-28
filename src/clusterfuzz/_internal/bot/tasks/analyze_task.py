@@ -345,5 +345,5 @@ def execute_task(testcase_id, job_type):
   # 3. Find testcase impact on production branches (impact).
   # 4. Check whether testcase is fixed (progression).
   # 5. Get second stacktrace from another job in case of
-  #    one-time crashers (stack).
+  #    one-time crashes (stack).
   task_creation.create_tasks(testcase)

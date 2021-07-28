@@ -47,7 +47,7 @@ def is_fuzz_target_local(file_path, file_handle=None):
     return False
 
   if not file_handle and not os.path.exists(file_path):
-    # Ignore non-existant files for cases when we don't have a file handle.
+    # Ignore non-existent files for cases when we don't have a file handle.
     return False
 
   if filename.endswith('_fuzzer'):

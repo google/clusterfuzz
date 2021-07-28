@@ -116,7 +116,7 @@ def run(input_directory,
         generation_count=None,
         hidden_state_size=None,
         hidden_layer_size=None):
-  """Generate inputs with specified model paramters.
+  """Generate inputs with specified model parameters.
 
   Args:
     input_directory: Corpus directory. Required argument for generation script.
@@ -137,7 +137,7 @@ def run(input_directory,
   script_path = os.path.join(ML_RNN_SCRIPT_DIR,
                              constants.GENERATION_SCRIPT_NAME)
 
-  # Wrap commmand arguments.
+  # Wrap command arguments.
   args_list = [
       script_path,
       constants.INPUT_DIR_ARGUMENT_PREFIX + input_directory,

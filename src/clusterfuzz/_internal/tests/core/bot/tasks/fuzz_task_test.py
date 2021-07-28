@@ -780,7 +780,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     self.mock.insert.return_value = {'insertErrors': [{'index': 0}]}
 
-    # TODO(metzman): Add a seperate test for strategies.
+    # TODO(metzman): Add a separate test for strategies.
     r2_stacktrace = ('r2\ncf::fuzzing_strategies: value_profile\n')
 
     crashes = [

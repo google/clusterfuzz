@@ -37,5 +37,5 @@ def unlock_screen():
   # This key does the unlock.
   adb.run_shell_command(['input', 'keyevent', 'KEYCODE_MENU'])
 
-  # Artifical delay to let the unlock to complete.
+  # Artificial delay to let the unlock to complete.
   time.sleep(1)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Constants that are meaningful to syzkaller.
-Should not have any dependancies.
+Should not have any dependencies.
 """
 
 SYZ_REPRO = 'syz-crush'

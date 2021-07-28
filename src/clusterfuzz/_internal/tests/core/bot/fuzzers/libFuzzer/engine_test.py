@@ -314,7 +314,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
 
     # Main things to test are:
     # 1) The new corpus directory is used in the second call only.
-    # 2) the merge contro file is explicitly specified for both calls.
+    # 2) the merge control file is explicitly specified for both calls.
     mock_merge_calls[0].assert_called_with(
         mock.ANY, [
             '/fuzz-inputs/temp-9001/merge-corpus',

@@ -118,7 +118,7 @@ class GetTimeoutTestBase(unittest.TestCase):
 
   def validation_helper(self, environment_variable_values):
     """Call self.function() and assert that it throws an AssertionError. Set
-    envionment variables based on |environment_variable_values| before calling
+    environment variables based on |environment_variable_values| before calling
     self.function.
     """
     self._set_environment_values(environment_variable_values)

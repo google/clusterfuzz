@@ -18,7 +18,7 @@ import random
 
 from . import adb
 
-# Fixed delay in miliseconds between consecutive monkey events.
+# Fixed delay in milliseconds between consecutive monkey events.
 MONKEY_THROTTLE_DELAY = 100
 
 # Maximum number of monkey events per testcase.

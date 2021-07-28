@@ -14,7 +14,7 @@
 """Fuzzing strategy selection cron job.
 
 Runs multi-armed bandit experiments for fuzzing strategy selection.
-In particular, this is a Boltzman Exploration (softmax) implementaion
+In particular, this is a Boltzman Exploration (softmax) implementation
 of multi-armed bandit experiments. Queries from bigquery to update
 multi-armed bandit probability values based on the new edges for various
 combined strategies. In the upload_bandit_weights function, we can change

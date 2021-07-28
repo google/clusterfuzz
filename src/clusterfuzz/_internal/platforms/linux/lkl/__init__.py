@@ -18,7 +18,7 @@ from . import constants
 
 
 def get_lkl_binary_name(unsymbolized_crash_stacktrace_split):
-  """Retunrs the lkl binary name from a stack trace."""
+  """Returns the lkl binary name from a stack trace."""
   for line in unsymbolized_crash_stacktrace_split:
     match = constants.LINUX_KERNEL_LIBRARY_ASSERT_REGEX.match(line)
     if match:
