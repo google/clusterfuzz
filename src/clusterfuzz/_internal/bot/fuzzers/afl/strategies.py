@@ -18,8 +18,8 @@ class FastCal(object):
   """Contains the different values FuzzingStrategies.fast_cal can store."""
 
   NOT_SET = 0
-  # OFF means we've explicitly decided *not* to use AFL_FAST_CAL. It doesn't mean
-  # that we haven't decided yet.
+  # OFF means we've explicitly decided *not* to use AFL_FAST_CAL. It doesn't
+  # mean that we haven't decided yet.
   OFF = 1
   RANDOM = 2
   MANUAL = 3
