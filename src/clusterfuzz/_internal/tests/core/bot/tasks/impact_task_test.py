@@ -707,13 +707,15 @@ class GetImpactsOnProdBuilds(unittest.TestCase):
     self.mock.get_impact_on_build.side_effect = [
         self.impacts.stable,
         impact_task.AppFailedException(),
-        self.impacts.extended_stable
+        self.impacts.extended_stable,
     ]
 
     self.assertEqual(
         impact_task.Impacts(
-            self.impacts.stable, impact_task.Impact(),
-            self.impacts.extended_stable, head=self.impacts.head),
+            self.impacts.stable,
+            impact_task.Impact(),
+            self.impacts.extended_stable,
+            head=self.impacts.head),
         impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
     self.mock.get_impact_on_build.assert_has_calls([
         mock.call('stable', self.testcase.impact_stable_version, self.testcase,

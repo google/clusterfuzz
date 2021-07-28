@@ -137,9 +137,7 @@ def get_production_builds_info_from_cd(platform):
     es_info = _fetch_releases_from_chromiumdash(
         'WINDOWS', channel='Extended')[0]
     builds_metadata.append(
-        BuildInfo(platform,
-                  'extended_stable',
-                  es_info['version'],
+        BuildInfo(platform, 'extended_stable', es_info['version'],
                   es_info['hashes']['chromium']))
 
   return builds_metadata
@@ -188,7 +186,7 @@ def get_build_to_revision_mappings(platform=None):
   # Because Linux doesn't have extended stable channel.
   if platform.lower() == 'linux':
     es_info = _fetch_releases_from_chromiumdash(
-        'WINDOWS',channel='Extended')[0]
+        'WINDOWS', channel='Extended')[0]
     result['extended_stable'] = {
         'revision': str(es_info['chromium_main_branch_position']),
         'version': es_info['version']

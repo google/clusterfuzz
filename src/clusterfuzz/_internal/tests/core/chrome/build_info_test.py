@@ -111,8 +111,7 @@ class BuildInfoTest(unittest.TestCase):
     """Tests if a valid Linux builds info in the correct metadata list from
        ChromiumDash."""
     self._validate_build_info_list(
-        build_info.get_production_builds_info_from_cd('LINUX'),
-        [
+        build_info.get_production_builds_info_from_cd('LINUX'), [
             ('LINUX', 'beta', '92.0.4515.70',
              'f8707b75c2349225c3c846d9016daf10a75abefb'),
             ('LINUX', 'dev', '93.0.4549.3',

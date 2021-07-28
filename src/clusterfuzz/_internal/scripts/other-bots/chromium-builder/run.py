@@ -84,8 +84,8 @@ def main():
       # Check if we already have built the same build.
       if (tool_and_build_type in LAST_BUILD and
           revision == LAST_BUILD[tool_and_build_type]):
-        logs.log('Skipping same build %s (revision %s).' %
-                 (tool_and_build_type, revision))
+        logs.log('Skipping same build %s (revision %s).' % (tool_and_build_type,
+                                                            revision))
         continue
 
       LAST_BUILD[tool_and_build_type] = revision
