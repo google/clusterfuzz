@@ -128,7 +128,7 @@ def severity_substitution(label, testcase, security_severity):
 def impact_to_string(impact):
   """Convert an impact value to a human-readable string."""
   impact_map = {
-      data_types.SecurityImpact.EXTENDED_STABLE: 'ExtendedStable',
+      data_types.SecurityImpact.EXTENDED_STABLE: 'Extended',
       data_types.SecurityImpact.STABLE: 'Stable',
       data_types.SecurityImpact.BETA: 'Beta',
       data_types.SecurityImpact.HEAD: 'Head',
@@ -142,7 +142,7 @@ def impact_to_string(impact):
 def _get_impact_from_labels(labels):
   """Get the impact from the label list."""
   labels = [label.lower() for label in labels]
-  if 'security_impact-extendedstable' in labels:
+  if 'security_impact-extended' in labels:
     return data_types.SecurityImpact.EXTENDED_STABLE
   if 'security_impact-stable' in labels:
     return data_types.SecurityImpact.STABLE
