@@ -395,7 +395,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         mock.call({
             'version': '76.0.1234.43',
             'revision': '400000'
-        }, 1, 100)
+        }, 1, 100, True)
     ])
 
   def test_get_impacts_canary_not_exists(self):
@@ -456,7 +456,7 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         mock.call({
             'version': '76.0.1234.43',
             'revision': '400000'
-        }, 1, 100)
+        }, 1, 100, True)
     ])
 
   def test_get_impacts_known_component_es_not_exists(self):
@@ -485,15 +485,15 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         mock.call({
             'version': '74.0.1345.34',
             'revision': '666666'
-        }, 1, 100),
+        }, 1, 100, False),
         mock.call({
             'version': '75.0.1353.43',
             'revision': '888888'
-        }, 1, 100),
+        }, 1, 100, False),
         mock.call({
             'version': '76.0.1234.43',
             'revision': '888888'
-        }, 1, 100)
+        }, 1, 100, True)
     ])
 
   def test_get_impacts_known_component_es_exists(self):
@@ -543,15 +543,15 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         mock.call({
             'version': '74.0.1345.34',
             'revision': '666666'
-        }, 1, 100),
+        }, 1, 100, False),
         mock.call({
             'version': '75.0.1353.43',
             'revision': '888888'
-        }, 1, 100),
+        }, 1, 100, False),
         mock.call({
             'version': '76.0.1234.43',
             'revision': '888888'
-        }, 1, 100)
+        }, 1, 100, True)
     ])
 
   def test_get_impacts_known_component_es_exists_canary_not_exists(self):
@@ -601,15 +601,15 @@ class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
         mock.call({
             'version': '74.0.1345.34',
             'revision': '666666'
-        }, 1, 100),
+        }, 1, 100, False),
         mock.call({
             'version': '75.0.1353.43',
             'revision': '888888'
-        }, 1, 100),
+        }, 1, 100, False),
         mock.call({
             'version': '76.0.1234.43',
             'revision': '888888'
-        }, 1, 100)
+        }, 1, 100, True)
     ])
 
 
@@ -632,7 +632,8 @@ class GetImpactTest(unittest.TestCase):
       revision."""
     self.assertTrue(
         impact_task.get_impact({
-            'revision': '10'
+            'revision': '10',
+            'version': '50'
         }, 20, 100).is_empty())
 
   def test_get_impact(self):
@@ -645,6 +646,21 @@ class GetImpactTest(unittest.TestCase):
   def test_get_likely_impact(self):
     """Test getting likely version."""
     impact = impact_task.get_impact({'revision': '30', 'version': '50'}, 20, 31)
+    self.assertEqual('50', impact.version)
+    self.assertTrue(impact.likely)
+    self.assertEqual('', impact.extra_trace)
+
+  def test_get_beyond_build(self):
+    """Test if the regression range is beyond the version."""
+    impact = impact_task.get_impact({'revision': '30', 'version': '50'}, 31, 32)
+    self.assertTrue(impact.is_empty())
+
+  def test_get_beyond_build_if_final(self):
+    """Test getting likely version."""
+    impact = impact_task.get_impact({
+        'revision': '30',
+        'version': '50.1.2.3'
+    }, 31, 32, True)
     self.assertEqual('50', impact.version)
     self.assertTrue(impact.likely)
     self.assertEqual('', impact.extra_trace)
