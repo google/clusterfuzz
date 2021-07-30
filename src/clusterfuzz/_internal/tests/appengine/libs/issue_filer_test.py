@@ -762,9 +762,10 @@ class UpdateImpactTest(unittest.TestCase):
     self.testcase.is_impact_set_flag = True
     mock_issue = self._make_mock_issue()
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, [
-        'Security_Impact-Extended', 'FoundIn-1', 'FoundIn-2', 'FoundIn-3'
-    ], mock_issue.labels.added)
+    six.assertCountEqual(
+        self,
+        ['Security_Impact-Extended', 'FoundIn-1', 'FoundIn-2', 'FoundIn-3'],
+        mock_issue.labels.added)
     six.assertCountEqual(self, [], mock_issue.labels.removed)
 
 
