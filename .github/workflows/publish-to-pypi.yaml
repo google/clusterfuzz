@@ -10,6 +10,8 @@ jobs:
         working-directory: src
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Set up Python 3
       uses: actions/setup-python@v2
       with:
