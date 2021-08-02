@@ -1,5 +1,7 @@
 name: Publish PyPI package
-on: push
+on:
+  release:
+    types: [published]
 
 jobs:
   publish:
@@ -24,14 +26,8 @@ jobs:
         --user
     - name: Build a binary wheel and a source tarball
       run: ./build.sh
-    - name: Publish distribution to Test PyPI
+    - name: Publish distribution to PyPI
       uses: pypa/gh-action-pypi-publish@master
       with:
-        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        repository_url: https://test.pypi.org/legacy/
+        password: ${{ secrets.PYPI_API_TOKEN }}
         packages_dir: src/dist/
-    #- name: Publish distribution to PyPI
-    #  if: startsWith(github.ref, 'refs/tags')
-    #  uses: pypa/gh-action-pypi-publish@master
-    #  with:
-    #    password: ${{ secrets.PYPI_API_TOKEN }}
