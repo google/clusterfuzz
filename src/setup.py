@@ -20,7 +20,8 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='clusterfuzz',
-    version=subprocess.check_output(['git', 'describe', '--abbrev=0']).strip(),
+    version=subprocess.check_output(['git', 'describe',
+                                     '--abbrev=0']).strip().decode(),
     author='ClusterFuzz authors',
     author_email='clusterfuzz-dev@googlegroups.com',
     description='ClusterFuzz',
