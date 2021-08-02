@@ -29,11 +29,10 @@ permalink: /contributing-code/source-code/
     * **libs** - general helper libraries (e.g. access control).
     * **private** - original template code for various web pages (Polymer 2).
     * **templates** - auto-generated minimized template code for various web pages (Polymer 2).
-  * **go** - go code.
-  * **python** - python 2 code.
-    * **bot** - bot specific code.
-    * **tests** - tests for core and App Engine code.
-    * rest are *package* level directories.
+  * **clusterfuzz** - python  code.
+    * **_internal** - Internal/private modules.
+    * **_internal/tests** - tests for core and App Engine code.
+    * rest are public modules.
   * **third_party** - third-party package dependencies.
   * **requirements.txt** - platform agnostic package list.
   * **platform_requirements.txt** - platform dependent package list.
