@@ -17,6 +17,11 @@ import fnmatch
 import os
 import re
 import tempfile
+import threading
+import time
+
+import psutil
+import requests
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -29,12 +34,20 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
+LOCAL_HOST = '127.0.0.1'
+RAWCOVER_RETRIEVE_INTERVAL = 180  # retrieve rawcover every 180 seconds
 REPRODUCE_REGEX = re.compile(r'reproduced (\d+) crashes')
 
 
 def get_work_dir():
   """Return work directory for Syzkaller."""
-  return os.path.join(environment.get_value('FUZZ_INPUTS_DISK'), 'syzkaller')
+  work_dir = os.path.join(
+      environment.get_value('FUZZ_INPUTS_DISK'), 'syzkaller')
+
+  if not os.path.exists(work_dir):
+    os.mkdir(work_dir)
+
+  return work_dir
 
 
 def get_config():
@@ -70,7 +83,34 @@ def get_config():
 
 def get_cover_file_path():
   """Return location of coverage file for Syzkaller."""
-  return os.path.join(get_work_dir(), 'coverfile')
+  file_path = os.path.join(get_work_dir(), 'coverfile')
+  if not os.path.isfile(file_path):
+    open(file_path, 'w+').close()
+
+  logs.log(f'Rawcover file will be stored in {file_path}')
+  return file_path
+
+
+def find_syzkaller_port(pid: int) -> int:
+  """Find localhost port where syzkaller is connected."""
+
+  for connection in psutil.net_connections():
+    if connection.pid != pid:
+      continue
+
+    try:
+      local_address = connection.laddr
+
+      if (local_address.ip == LOCAL_HOST and
+          connection.status == psutil.CONN_LISTEN):
+        logs.log(f'Syzkaller port = {local_address.port}')
+        return local_address.port
+
+    except AttributeError:
+      continue
+
+  # No connection found
+  return 0
 
 
 def get_runner(fuzzer_path):
@@ -94,6 +134,20 @@ def _upload_kernel_coverage_data(kcov_path, kernel_bid):
     logs.log(f'Copied kcov data to {gcs_url}.')
 
 
+class LoopingTimer(threading.Timer):
+  """Extend Timer to loop every interval seconds."""
+
+  def __init__(self, interval, function, args=None, kwargs=None):
+    super(LoopingTimer, self).__init__(
+        interval, function, args=args, kwargs=kwargs)
+
+  def run(self):
+    # loops until self.cancel()
+    while not self.finished.is_set():
+      self.finished.wait(self.interval)
+      self.function(*self.args, **self.kwargs)
+
+
 class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
   """Syzkaller runner."""
 
@@ -102,7 +156,6 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
     Args:
       executable_path: Path to the fuzzer executable.
-      default_args: Default arguments to always pass to the fuzzer.
     """
     super().__init__(executable_path=executable_path)
 
@@ -145,17 +198,77 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
-  def fuzz(self,
-           fuzz_timeout,
-           additional_args,
-           unused_additional_args=None,
-           unused_extra_env=None):
+  def save_rawcover_output(self, pid: int):
+    """Find syzkaller port and write rawcover data to a file."""
+
+    port = find_syzkaller_port(pid)
+
+    # port not found
+    if not port:
+      logs.log_warn('Syzkaller port was not found')
+      return
+
+    rawcover = requests.get(f'http://localhost:{port}/rawcover').text
+
+    if not rawcover:
+      logs.log_warn('Syzkaller rawcover not yet loaded')
+      return
+
+    file_path = get_cover_file_path()
+    with open(file_path, 'w+') as f:
+      f.write(rawcover)
+      logs.log(f'Writing syzkaller rawcover to {file_path}')
+
+  def run_and_wait(self, syzkaller_args=None,
+                   timeout=None) -> new_process.ProcessResult:
+    process = self.run(syzkaller_args)
+
+    start_time = time.time()
+
+    pid = process.popen.pid
+
+    logs.log(f'Syzkaller pid = {pid}')
+
+    looping_timer = LoopingTimer(
+        RAWCOVER_RETRIEVE_INTERVAL,
+        self.save_rawcover_output,
+        args=[pid],
+    )
+    looping_timer.run()
+
+    if not timeout:
+      output = process.communicate()[0]
+      looping_timer.cancel()
+      return new_process.ProcessResult(process.command, process.poll(), output,
+                                       time.time() - start_time, False)
+
+    result = new_process.wait_process(
+        process,
+        timeout=timeout,
+        input_data=None,
+        terminate_before_kill=False,
+        terminate_wait_time=None,
+    )
+    looping_timer.cancel()
+
+    return result
+
+  def fuzz(
+      self,
+      fuzz_timeout,
+      additional_args,
+      unused_additional_args=None,
+      unused_extra_env=None,
+  ) -> engine.FuzzResult:
     """This is where actual syzkaller fuzzing is done.
+
     Args:
-      fuzz_timeout: The maximum time in seconds that fuzz job is allowed
+      fuzz_timeout (float): The maximum time in seconds that fuzz job is allowed
           to run for.
       additional_args: A sequence of additional arguments to be passed to
           the executable.
+    Returns:
+      engine.FuzzResult
     """
 
     def _filter_log(content):

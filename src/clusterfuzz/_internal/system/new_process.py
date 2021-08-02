@@ -50,11 +50,11 @@ def _end_process(terminate_function, process_result):
   process_result.timed_out = True
 
 
-def _wait_process(process,
-                  timeout,
-                  input_data=None,
-                  terminate_before_kill=False,
-                  terminate_wait_time=None):
+def wait_process(process,
+                 timeout,
+                 input_data=None,
+                 terminate_before_kill=False,
+                 terminate_wait_time=None):
   """Waits until either the process exits or times out.
 
   Args:
@@ -388,7 +388,7 @@ class ProcessRunner(object):
       return ProcessResult(process.command, process.poll(), output,
                            time.time() - start_time, False)
 
-    result = _wait_process(
+    result = wait_process(
         process,
         timeout=timeout,
         input_data=input_data,

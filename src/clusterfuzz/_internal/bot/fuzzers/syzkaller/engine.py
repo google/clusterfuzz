@@ -152,11 +152,6 @@ class SyzkallerEngine(engine.Engine):
 
     args = options.arguments
 
-    # TODO(yanghuiz): Dump coverfile from Syzkaller HTTP endpoint and
-    # remove this.
-    if not environment.is_android_cuttlefish():
-      args += ['--coverfile', runner.get_cover_file_path()]
-
     self.init_corpus(options.corpus_dir, runner.get_work_dir())
     fuzz_result = syzkaller_runner.fuzz(max_time, additional_args=args)
     self.save_corpus(runner.get_work_dir(), options.corpus_dir)
