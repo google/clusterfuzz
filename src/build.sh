@@ -14,7 +14,8 @@
 # limitations under the License.
 
 # Symlink config dir.
+rm -f clusterfuzz/lib-config
 ln -s $(pwd)/../configs/test clusterfuzz/lib-config
 
 rm -rf dist
-python setup.py sdist bdist_wheel
+python3 -m build
