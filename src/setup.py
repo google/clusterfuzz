@@ -13,13 +13,14 @@
 # limitations under the License.
 """setup.py for libClusterFuzz."""
 import setuptools
+import subprocess
 
 with open('README.md', 'r') as fh:
   long_description = fh.read()
 
 setuptools.setup(
     name='clusterfuzz',
-    version='0.0.1a',
+    version=subprocess.check_output(['git', 'describe', '--abbrev=0']).strip(),
     author='ClusterFuzz authors',
     author_email='clusterfuzz-dev@googlegroups.com',
     description='ClusterFuzz',
