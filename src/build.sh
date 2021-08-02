@@ -18,4 +18,4 @@ rm -f clusterfuzz/lib-config
 ln -s $(pwd)/../configs/test clusterfuzz/lib-config
 
 rm -rf dist
-python3 -m build
+python3 -m build --sdist --wheel --outdir dist/ .
