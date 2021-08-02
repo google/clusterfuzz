@@ -24,7 +24,7 @@ permalink: /contributing-code/source-code/
 * **local** - artifacts for local testing (e.g. install_deps.bash for ClusterFuzz deps).
 * **resources** - helper binaries needed by bots (e.g. llvm-symbolizer).
 * **src** - source code root.
-  * **appengine** - App Engine specific files (Python 2).
+  * **appengine** - App Engine specific files.
     * **handlers** - backend code for various web pages.
     * **libs** - general helper libraries (e.g. access control).
     * **private** - original template code for various web pages (Polymer 2).
@@ -35,7 +35,7 @@ permalink: /contributing-code/source-code/
     * **tests** - tests for core and App Engine code.
     * rest are *package* level directories.
   * **third_party** - third-party package dependencies.
-  * **requirements.txt** - platform agnostic package list (Python 2).
-  * **platform_requirements.txt** - platform dependent package list (Python 2).
+  * **requirements.txt** - platform agnostic package list.
+  * **platform_requirements.txt** - platform dependent package list.
 * **bower.json** - component dependencies for Polymer 2.
 * **butler.py** - helper script for various command line tasks (e.g. testing, deployment).
