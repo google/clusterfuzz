@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+## Version 2.5.0
+- Restructured internal imports to make pip package cleaner.
+- AFL++ support.
+- Many bug fixes.
+
 ## Version 2.4.0
 - Various improvements for libClusterFuzz.
 - Local development improvements.
