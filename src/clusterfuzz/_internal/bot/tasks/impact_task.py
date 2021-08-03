@@ -277,10 +277,6 @@ def get_head_impact(build_revision_mappings, start_revision, end_revision):
 def get_impact_on_build(build_type, current_version, testcase,
                         testcase_file_path):
   """Return impact and additional trace on a prod build given build_type."""
-  # TODO(yuanjunh): remove es_enabled var after testing is done.
-  es_enabled = testcase.get_metadata('es_enabled', False)
-  if build_type == 'extended_stable' and not es_enabled:
-    return Impact()
   build = build_manager.setup_production_build(build_type)
   if not build:
     raise BuildFailedException(
@@ -296,10 +292,6 @@ def get_impact_on_build(build_type, current_version, testcase,
   app_path = environment.get_value('APP_PATH')
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
-
-  if es_enabled and build_type == 'extended_stable':
-    logs.log(
-        "ES build for testcase %d, command: %s" % (testcase.key.id(), command))
 
   result = testcase_manager.test_for_crash_with_retries(
       testcase,

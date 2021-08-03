@@ -165,8 +165,7 @@ def update_issue_impact_labels(testcase, issue):
   if testcase.regression.startswith('0:'):
     # If the regression range starts from the start of time,
     # then we assume that the bug impacts stable.
-    # TODO(yuanjunh): change to extended stable label when it's fully supported.
-    new_impact = data_types.SecurityImpact.STABLE
+    new_impact = data_types.SecurityImpact.EXTENDED_STABLE
   elif testcase.is_impact_set_flag:
     # Add impact label based on testcase's impact value.
     if testcase.impact_extended_stable_version:
