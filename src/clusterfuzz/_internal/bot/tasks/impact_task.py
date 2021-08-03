@@ -25,7 +25,6 @@ from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 

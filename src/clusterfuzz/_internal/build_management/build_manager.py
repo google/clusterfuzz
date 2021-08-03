@@ -509,7 +509,7 @@ class Build(BaseBuild):
       # For fuzzing, pick a random fuzz target so that we only un-archive that
       # particular fuzz target and its dependencies and save disk space.  If we
       # are going to unpack everythng in archive based on
-      # |UNPACK_ALL_FUZZ_TARGETS_AND_FILES| in the job definition, then don't set
+      # UNPACK_ALL_FUZZ_TARGETS_AND_FILES in the job definition, then don't set
       # a random fuzz target before we've unpacked the build. It won't actually
       # save us anything in this case and can be really expensive for large
       # builds (such as Chrome OS). Defer setting it until after the build has
@@ -1589,7 +1589,6 @@ def has_production_builds():
   return (environment.get_value('STABLE_BUILD_BUCKET_PATH') and
           environment.get_value('BETA_BUILD_BUCKET_PATH') and
           environment.get_value('EXTENDED_STABLE_BUILD_BUCKET_PATH'))
-
 
 
 def has_symbolized_builds():
