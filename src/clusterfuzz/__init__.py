@@ -12,3 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libClusterfuzz package."""
+
+import os
+
+if not os.getenv('ROOT_DIR'):
+  # libClusterFuzz
+  os.environ['CONFIG_DIR_OVERRIDE'] = os.path.join(
+      os.path.dirname(os.path.abspath(__file__)), 'lib-config')
+
+  os.environ['ROOT_DIR'] = os.path.dirname(
+      os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+  os.environ['LIB_CF'] = 'True'
+
+  from ._internal.system import environment
+  environment.set_default_vars()
