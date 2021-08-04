@@ -14,7 +14,7 @@
 FROM gcr.io/clusterfuzz-images/base
 
 ENV RUN_CMD \
-   "python3.7 $ROOT_DIR/src/python/scripts/other-bots/chromium-builder/run.py"
+   "python3.7 $ROOT_DIR/src/python/other-bots/chromium-builder/run.py"
 ENV BUCKET_PREFIX "chromium-browser-"
 ENV BUILD_DIR /home/$USER/builds
 ENV DISABLE_MOUNTS True
