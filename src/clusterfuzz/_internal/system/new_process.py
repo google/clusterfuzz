@@ -303,11 +303,15 @@ class ProcessRunner(object):
     stdout_file = None
     if stdout == subprocess.PIPE and max_stdout_len:
       stdout_file = tempfile.TemporaryFile()
+      stdout = stdout_file
 
     interactive = environment.get_value('CF_INTERACTIVE')
     if interactive:
       popen_args['bufsize'] = 0
       if stdout != subprocess.PIPE:
+        # If the provided stdout is a file object, (i.e. not subprocess.PIPE),
+        # we need to pipe writes through to there to ensure consistent
+        # behaviour.
         stdout_file = stdout
 
       stdout = subprocess.PIPE
