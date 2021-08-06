@@ -76,8 +76,7 @@ class GFTEngine(engine.Engine):
         timeout=max_time,
         extra_env={
             'FUZZTEST_DB': options.corpus_dir,
-        },
-        cwd=reproducers_dir)
+        })
     log_lines = fuzz_result.output.splitlines()
 
     crashes = []
