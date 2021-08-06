@@ -113,3 +113,62 @@ class GFTEngine(engine.Engine):
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
+
+  def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
+                      reproducers_dir, max_time):
+    """Optional (but recommended): run corpus minimization.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for corpus minimization.
+      input_dirs: Input corpora.
+      output_dir: Output directory to place minimized corpus.
+      reproducers_dir: The directory to put reproducers in when crashes are
+          found.
+      max_time: Maximum allowed time for the minimization.
+
+    Returns:
+      A FuzzResult object.
+
+    Raises:
+      TimeoutError: If the corpus minimization exceeds max_time.
+      Error: If the merge failed in some other way.
+    """
+    raise NotImplementedError
+
+  def minimize_testcase(self, target_path, arguments, input_path, output_path,
+                        max_time):
+    """Optional (but recommended): Minimize a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase minimization.
+      input_path: Path to the reproducer input.
+      output_path: Path to the minimized output.
+      max_time: Maximum allowed time for the minimization.
+
+    Returns:
+      A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the testcase minimization exceeds max_time.
+    """
+    raise NotImplementedError
+
+  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+    """Optional (but recommended): Cleanse a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase cleanse.
+      input_path: Path to the reproducer input.
+      output_path: Path to the cleansed output.
+      max_time: Maximum allowed time for the cleanse.
+
+    Returns:
+      A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the cleanse exceeds max_time.
+    """
+    raise NotImplementedError
