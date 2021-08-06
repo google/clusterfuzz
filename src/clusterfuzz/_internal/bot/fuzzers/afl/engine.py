@@ -54,7 +54,12 @@ class AFLEngine(engine.Engine):
     afl_config = launcher.AflConfig.from_target_path(target_path)
     arguments = afl_config.additional_afl_arguments
     # TODO(mbarbella): Select all strategies here instead of deferring to fuzz.
-    strategies = launcher.FuzzingStrategies(target_path).to_strategy_dict()
+
+    if self.do_strategies:
+      strategies = launcher.FuzzingStrategies(target_path).to_strategy_dict()
+    else:
+      strategies = {}
+
     return engine.FuzzOptions(corpus_dir, arguments, strategies)
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):

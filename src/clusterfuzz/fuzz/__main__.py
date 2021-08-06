@@ -60,6 +60,7 @@ def main():
   os.environ['BUILD_DIR'] = os.path.dirname(args.target)
 
   engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
+  engine_impl.do_strategies = False
   options = engine_impl.prepare(args.corpus, args.target,
                                 os.path.dirname(args.target))
   result = engine_impl.fuzz(args.target, options, args.output,
