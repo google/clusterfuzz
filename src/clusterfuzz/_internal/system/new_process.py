@@ -16,7 +16,6 @@
 from distutils import spawn
 import os
 import subprocess
-import sys
 import tempfile
 import threading
 import time
@@ -132,17 +131,11 @@ def kill_process_tree(root_pid):
 class ChildProcess(object):
   """A class representing a process that's running."""
 
-  def __init__(self,
-               popen,
-               command,
-               max_stdout_len=None,
-               stdout_file=None,
-               interactive=False):
+  def __init__(self, popen, command, max_stdout_len=None, stdout_file=None):
     self._popen = popen
     self._command = command
     self._max_stdout_len = max_stdout_len
     self._stdout_file = stdout_file
-    self._interactive = interactive
 
   @property
   def command(self):
@@ -154,29 +147,7 @@ class ChildProcess(object):
 
   def communicate(self, input=None):  # pylint: disable=redefined-builtin
     """subprocess.Popen.communicate."""
-    stdout = b''
-    stderr = b''
-
-    if self._interactive:
-      if input:
-        self._popen.stdin.write(input)
-
-      while True:
-        line = self._popen.stdout.readline()
-        if not line:
-          break
-
-        if self._stdout_file:
-          self._stdout_file.write(line)
-        else:
-          stdout += line
-
-        sys.stdout.write(line.decode())
-
-      self._popen.wait()
-    else:
-      stdout, stderr = self._popen.communicate(input)
-
+    stdout, stderr = self._popen.communicate(input)
     if not self._max_stdout_len:
       return stdout, stderr
 
@@ -299,22 +270,8 @@ class ProcessRunner(object):
     """
     # TODO: Rename popen_args to popen_kwargs.
     command = self.get_command(additional_args)
-
-    stdout_file = None
     if stdout == subprocess.PIPE and max_stdout_len:
-      stdout_file = tempfile.TemporaryFile()
-      stdout = stdout_file
-
-    interactive = environment.get_value('CF_INTERACTIVE')
-    if interactive:
-      popen_args['bufsize'] = 0
-      if stdout != subprocess.PIPE:
-        # If the provided stdout is a file object, (i.e. not subprocess.PIPE),
-        # we need to pipe writes through to there to ensure consistent
-        # behaviour.
-        stdout_file = stdout
-
-      stdout = subprocess.PIPE
+      stdout = tempfile.TemporaryFile()
 
     env = popen_args.pop('env', os.environ.copy())
     if extra_env is not None:
@@ -330,8 +287,7 @@ class ProcessRunner(object):
             **popen_args),
         command,
         max_stdout_len=max_stdout_len,
-        stdout_file=stdout_file,
-        interactive=interactive)
+        stdout_file=stdout)
 
   # Note: changes to this function may require changes to
   # untrusted_runner.proto.
