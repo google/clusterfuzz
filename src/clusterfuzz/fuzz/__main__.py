@@ -21,7 +21,8 @@ import clusterfuzz.fuzz
 
 
 def main():
-  os.environ['CF_INTERACTIVE'] = 'True'
+  os.environ['CONFIG_DIR_OVERRIDE'] = os.path.join(
+      os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lib-config')
   os.environ['PROJECT_NAME'] = 'libClusterFuzz'
 
   parser = argparse.ArgumentParser(description='Fuzzing tool')
@@ -30,7 +31,7 @@ def main():
       '-e',
       '--engine',
       help='Fuzzing engine.',
-      choices=['libFuzzer', 'afl', 'honggfuzz'],
+      choices=['libFuzzer', 'honggfuzz'],
       default='libFuzzer')
   parser.add_argument(
       '-s',
@@ -56,8 +57,6 @@ def main():
     os.environ['JOB_NAME'] = 'libfuzzer_msan'
   elif args.sanitizer == 'undefined':
     os.environ['JOB_NAME'] = 'libfuzzer_ubsan'
-
-  os.environ['BUILD_DIR'] = os.path.dirname(args.target)
 
   engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
   options = engine_impl.prepare(args.corpus, args.target,
