@@ -1076,4 +1076,4 @@ def is_android_kernel(plt=None):
 
 def is_lib():
   """Whether or not we're in libClusterFuzz."""
-  return get_value('ROOT_DIR') is None
+  return get_value('LIB_CF')
