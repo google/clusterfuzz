@@ -15,9 +15,9 @@
 
 import os
 
-if not os.getenv('ROOT_DIR'):
-  # If ROOT_DIR isn't set by the time we import this, assume we're
-  # libClusterFuzz.
+if not os.getenv('ROOT_DIR') and not os.getenv('GAE_ENV'):
+  # If ROOT_DIR isn't set by the time we import this and we're not on GAE,
+  # assume we're libClusterFuzz.
   this_dir = os.path.dirname(os.path.abspath(__file__))
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.join(this_dir, 'lib-config')
   os.environ['ROOT_DIR'] = os.path.dirname(os.path.dirname(this_dir))
