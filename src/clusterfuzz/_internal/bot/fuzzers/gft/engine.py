@@ -73,7 +73,8 @@ class GFTEngine(engine.Engine):
     runner = new_process.UnicodeProcessRunner(target_path)
 
     fuzz_result = runner.run_and_wait(
-        timeout=max_time, extra_env={
+        timeout=max_time,
+        extra_env={
             'FUZZTEST_REPRODUCERS_OUT_DIR': reproducers_dir,
         })
     log_lines = fuzz_result.output.splitlines()
