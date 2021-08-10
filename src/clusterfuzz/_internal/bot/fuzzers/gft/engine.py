@@ -74,7 +74,7 @@ class GFTEngine(engine.Engine):
 
     fuzz_result = runner.run_and_wait(
         timeout=max_time, extra_env={
-            'FUZZTEST_DB': options.corpus_dir,
+            'FUZZTEST_REPRODUCERS_OUT_DIR': reproducers_dir,
         })
     log_lines = fuzz_result.output.splitlines()
 
