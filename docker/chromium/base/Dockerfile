@@ -37,11 +37,7 @@ RUN apt-get update && \
         nodejs \
         pulseaudio \
         xdotool \
-        xvfb && \
-    # 16.04's pyOpenSSL (installed by install-build-deps.sh) is too old for
-    # Google Cloud SDK.
-    sudo apt-get remove -y python-openssl && \
-    sudo pip2 install cryptography==3.3.2 pyOpenSSL==19.0.0
+        xvfb
 
 # Needed for older versions of Chrome.
 RUN ln -s /usr/lib/x86_64-linux-gnu/libudev.so /usr/lib/x86_64-linux-gnu/libudev.so.0
