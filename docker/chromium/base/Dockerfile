@@ -35,7 +35,6 @@ RUN apt-get update && \
         libgles2-mesa \
         nfs-common \
         nodejs \
-        nodejs-legacy \
         pulseaudio \
         xdotool \
         xvfb && \
