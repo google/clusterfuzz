@@ -42,7 +42,9 @@ def get_engine(name):
   if not _initialized:
     _initialize()
 
-  return engine.get(name)
+  engine_impl = engine.get(name)
+  engine_impl.do_strategies = False
+  return engine_impl
 
 
 def is_fuzz_target(file_path, file_handle=None):

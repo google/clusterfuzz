@@ -109,10 +109,15 @@ class LibFuzzerEngine(engine.Engine):
     del build_dir
     arguments = fuzzer.get_arguments(target_path)
     grammar = fuzzer.get_grammar(target_path)
-    strategy_pool = strategy_selection.generate_weighted_strategy_pool(
-        strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
-        use_generator=True,
-        engine_name=self.name)
+
+    if self.do_strategies:
+      strategy_pool = strategy_selection.generate_weighted_strategy_pool(
+          strategy_list=strategy.LIBFUZZER_STRATEGY_LIST,
+          use_generator=True,
+          engine_name=self.name)
+    else:
+      strategy_pool = strategy_selection.StrategyPool()
+
     strategy_info = libfuzzer.pick_strategies(strategy_pool, target_path,
                                               corpus_dir, arguments, grammar)
 

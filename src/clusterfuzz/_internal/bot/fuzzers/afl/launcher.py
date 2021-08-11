@@ -291,7 +291,7 @@ class FuzzingStrategies(object):
 
     # If we have already generated a strategy dict, use that in favor of
     # creating a new pool and picking randomly.
-    if strategy_dict:
+    if strategy_dict is not None:
       self.use_corpus_subset = 'corpus_subset' in strategy_dict
       if self.use_corpus_subset:
         self.corpus_subset_size = strategy_dict['corpus_subset']

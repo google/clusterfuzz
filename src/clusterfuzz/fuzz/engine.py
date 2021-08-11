@@ -65,6 +65,9 @@ class ReproduceResult(object):
 class Engine(object):
   """Base interface for a grey box fuzzing engine."""
 
+  def __init__(self):
+    self.do_strategies = True
+
   @property
   def name(self):
     """Get the name of the engine."""
