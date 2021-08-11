@@ -327,7 +327,7 @@ class LibFuzzerEngine(engine.Engine):
     })
 
     # Remove fuzzing arguments before merge and dictionary analysis step.
-    non_fuzz_arguments = options.arguments[:]
+    non_fuzz_arguments = options.arguments.copy()
     libfuzzer.remove_fuzzing_arguments(non_fuzz_arguments, is_merge=True)
 
     if options.merge_back_new_testcases:
