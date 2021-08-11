@@ -16,9 +16,10 @@ FROM gcr.io/clusterfuzz-images/base@sha256:1110514de5bb678562b75e5cf65130923bd22
 ENV UPDATE_WEB_TESTS True
 ENV NFS_ROOT /mnt/nfs/cfvolume
 
+COPY third_party/install-build-deps.sh /tmp
+# TODO(metzman): Don't use install-build-deps.sh. It's installing a lot more
+# than what we actually need.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    curl 'https://chromium.googlesource.com/chromium/src/+/master/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
-    chmod u+x /tmp/install-build-deps.sh && \
     /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms
 
 RUN apt-get update && \

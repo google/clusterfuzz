@@ -14,7 +14,7 @@
 FROM gcr.io/clusterfuzz-images/base
 
 # Use nodesource nodejs packages.
-RUN curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
+RUN curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update && \
