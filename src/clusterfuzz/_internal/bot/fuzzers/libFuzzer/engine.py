@@ -70,6 +70,8 @@ class LibFuzzerOptions(engine.FuzzOptions):
     self.extra_env = extra_env
     self.use_dataflow_tracing = use_dataflow_tracing
     self.is_mutations_run = is_mutations_run
+    self.merge_back_new_testcases = True
+    self.analyze_dictionary = True
 
 
 class LibFuzzerEngine(engine.Engine):
@@ -255,9 +257,12 @@ class LibFuzzerEngine(engine.Engine):
     libfuzzer.set_sanitizer_options(target_path, fuzz_options=options)
 
     # Directory to place new units.
-    new_corpus_dir = self._create_temp_corpus_dir('new')
+    if options.merge_back_new_testcases:
+      new_corpus_dir = self._create_temp_corpus_dir('new')
+      corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
+    else:
+      corpus_directories = options.fuzz_corpus_dirs
 
-    corpus_directories = [new_corpus_dir] + options.fuzz_corpus_dirs
     fuzz_result = runner.fuzz(
         corpus_directories,
         fuzz_timeout=max_time,
@@ -322,11 +327,13 @@ class LibFuzzerEngine(engine.Engine):
     })
 
     # Remove fuzzing arguments before merge and dictionary analysis step.
-    merge_arguments = options.arguments[:]
-    libfuzzer.remove_fuzzing_arguments(merge_arguments, is_merge=True)
-    self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
-                          options.fuzz_corpus_dirs, merge_arguments,
-                          parsed_stats)
+    non_fuzz_arguments = options.arguments[:]
+    libfuzzer.remove_fuzzing_arguments(non_fuzz_arguments, is_merge=True)
+
+    if options.merge_back_new_testcases:
+      self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
+                            options.fuzz_corpus_dirs, non_fuzz_arguments,
+                            parsed_stats)
 
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
@@ -343,9 +350,10 @@ class LibFuzzerEngine(engine.Engine):
           engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
                        actual_duration))
 
-    libfuzzer.analyze_and_update_recommended_dictionary(
-        runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
-        merge_arguments)
+    if options.analyze_dictionary:
+      libfuzzer.analyze_and_update_recommended_dictionary(
+          runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
+          non_fuzz_arguments)
 
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed)

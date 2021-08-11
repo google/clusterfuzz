@@ -62,6 +62,10 @@ def main():
   engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
   options = engine_impl.prepare(args.corpus, args.target,
                                 os.path.dirname(args.target))
+  if args.engine == 'libFuzzer':
+    options.merge_back_new_testcases = False
+    options.analyze_dictionary = False
+
   result = engine_impl.fuzz(args.target, options, args.output,
                             args.max_duration)
   print('Command: ', ' '.join([shlex.quote(part) for part in result.command]))
