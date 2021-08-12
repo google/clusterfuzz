@@ -25,6 +25,7 @@ import six
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.build_management import overrides
 from clusterfuzz._internal.build_management import source_mapper
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
@@ -344,8 +345,11 @@ def _get_revision_vars_url_format(job_type):
   if utils.string_is_true(custom_binary):
     return None
 
-  return data_handler.get_value_from_job_definition_or_environment(
+  rev_path = data_handler.get_value_from_job_definition_or_environment(
       job_type, 'REVISION_VARS_URL')
+  rev_path = overrides.check_and_apply_overrides(
+      rev_path, overrides.PLATFORM_ID_TO_REV_PATH_KEY)
+  return rev_path
 
 
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))

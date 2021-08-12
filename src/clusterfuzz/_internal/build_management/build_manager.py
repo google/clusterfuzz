@@ -23,6 +23,7 @@ import time
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.build_management import overrides
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -509,11 +510,11 @@ class Build(BaseBuild):
       # For fuzzing, pick a random fuzz target so that we only un-archive that
       # particular fuzz target and its dependencies and save disk space.  If we
       # are going to unpack everythng in archive based on
-      # UNPACK_ALL_FUZZ_TARGETS_AND_FILES in the job definition, then don't set
-      # a random fuzz target before we've unpacked the build. It won't actually
-      # save us anything in this case and can be really expensive for large
-      # builds (such as Chrome OS). Defer setting it until after the build has
-      # been unpacked.
+      # |UNPACK_ALL_FUZZ_TARGETS_AND_FILES| in the job definition, then don't
+      # set a random fuzz target before we've unpacked the build. It won't
+      # actually save us anything in this case and can be really expensive for
+      # large builds (such as Chrome OS). Defer setting it until after the build
+      # has been unpacked.
       self._pick_fuzz_target(
           self._get_fuzz_targets_from_archive(build_local_archive),
           target_weights)
@@ -1230,8 +1231,9 @@ def get_primary_bucket_path():
   if release_build_bucket_path:
     return release_build_bucket_path
 
-  fuzz_target_build_bucket_path = environment.get_value(
+  fuzz_target_build_bucket_path = get_bucket_path(
       'FUZZ_TARGET_BUILD_BUCKET_PATH')
+
   if fuzz_target_build_bucket_path:
     fuzz_target = environment.get_value('FUZZ_TARGET')
     if not fuzz_target:
@@ -1385,7 +1387,7 @@ def setup_regular_build(revision,
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
-    bucket_path = environment.get_value('RELEASE_BUILD_BUCKET_PATH')
+    bucket_path = get_bucket_path('RELEASE_BUILD_BUCKET_PATH')
 
   build_urls = get_build_urls_list(bucket_path)
   job_type = environment.get_value('JOB_NAME')
@@ -1566,8 +1568,9 @@ def setup_build(revision=0, target_weights=None):
   if system_binary:
     return setup_system_binary()
 
-  fuzz_target_build_bucket_path = environment.get_value(
+  fuzz_target_build_bucket_path = get_bucket_path(
       'FUZZ_TARGET_BUILD_BUCKET_PATH')
+
   if fuzz_target_build_bucket_path:
     # Split fuzz target build.
     return _setup_split_targets_build(
@@ -1580,7 +1583,7 @@ def setup_build(revision=0, target_weights=None):
   # If no revision is provided, we default to a trunk build.
   bucket_paths = []
   for env_var in DEFAULT_BUILD_BUCKET_PATH_ENV_VARS:
-    bucket_path = environment.get_value(env_var)
+    bucket_path = get_bucket_path(env_var)
     if bucket_path:
       bucket_paths.append(bucket_path)
 
@@ -1671,3 +1674,11 @@ def check_app_path(app_path='APP_PATH'):
   # APP_PATH.
   return (not environment.get_value('APP_NAME') or
           environment.get_value(app_path))
+
+
+def get_bucket_path(name):
+  """Return build bucket path, applying any set overrides."""
+  bucket_path = environment.get_value(name)
+  bucket_path = overrides.check_and_apply_overrides(
+      bucket_path, overrides.PLATFORM_ID_TO_BUILD_PATH_KEY)
+  return bucket_path
