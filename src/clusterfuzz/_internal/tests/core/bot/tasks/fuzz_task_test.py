@@ -1272,7 +1272,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     os.environ['FUZZER_DIR'] = '/fuzzer'
     os.environ['INPUT_DIR'] = '/input'
     os.environ['JOB_NAME'] = 'asan_test'
-    os.environ['MAX_FUZZ_THREADS'] = '2'
+    os.environ['MAX_FUZZ_THREADS'] = '1'
     os.environ['MAX_TESTCASES'] = '3'
     os.environ['RANDOM_SEED'] = '-r'
     os.environ['ROOT_DIR'] = '/root'
