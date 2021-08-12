@@ -84,11 +84,14 @@ class GFTEngine(engine.Engine):
       reproducer_path = _get_reproducer_path(line)
       if reproducer_path:
         crashes.append(
-            engine.Crash(reproducer_path, fuzz_result.output, [],
-                         int(fuzz_result.time_executed)))
+            engine.Crash(
+                reproducer_path,
+                fuzz_result.output,
+                reproduce_args=[],
+                crash_time=int(fuzz_result.time_executed)))
         continue
 
-    # TODO(ochang): Implement this.
+    # TODO(ochang): Implement stats parsing.
     stats = {}
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
