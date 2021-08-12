@@ -19,18 +19,22 @@ from . import engine
 
 _initialized = False
 
+ENGINES = ('afl', 'gft', 'hongfuzz', 'libFuzzer')
+
 
 def _initialize():
   """Initialize the engine implementations."""
   global _initialized
 
   from clusterfuzz._internal.bot.fuzzers.afl import engine as afl_engine
+  from clusterfuzz._internal.bot.fuzzers.gft import engine as gft_engine
   from clusterfuzz._internal.bot.fuzzers.honggfuzz import \
       engine as honggfuzz_engine
   from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
       engine as libFuzzer_engine
 
   engine.register('afl', afl_engine.AFLEngine)
+  engine.register('gft', gft_engine.GFTEngine)
   engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
   engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
 

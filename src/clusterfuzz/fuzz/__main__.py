@@ -30,7 +30,7 @@ def main():
       '-e',
       '--engine',
       help='Fuzzing engine.',
-      choices=['libFuzzer', 'afl', 'honggfuzz'],
+      choices=clusterfuzz.fuzz.ENGINES,
       default='libFuzzer')
   parser.add_argument(
       '-s',

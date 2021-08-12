@@ -1237,7 +1237,7 @@ def get_primary_bucket_path():
     if not fuzz_target:
       raise BuildManagerException('FUZZ_TARGET is not defined.')
 
-    return fuzz_target_build_bucket_path.replace('%TARGET%', fuzz_target)
+    return _full_fuzz_target_path(fuzz_target_build_bucket_path, fuzz_target)
 
   raise BuildManagerException(
       'RELEASE_BUILD_BUCKET_PATH or FUZZ_TARGET_BUILD_BUCKET_PATH '
@@ -1299,6 +1299,16 @@ def _get_targets_list(bucket_path):
   return [t for t in targets if t in listed_targets]
 
 
+def _full_fuzz_target_path(bucket_path, fuzz_target):
+  """Get the full fuzz target bucket path."""
+  bucket_path_name = fuzz_target
+  if '@' in fuzz_target:
+    # Multi-target binary/archive "base@target_name"
+    bucket_path_name = fuzz_target.split('@')[0]
+
+  return bucket_path.replace('%TARGET%', bucket_path_name)
+
+
 def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   """Set up targets build."""
   targets_list = _get_targets_list(bucket_path)
@@ -1312,7 +1322,7 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
     raise BuildManagerException(
         'Failed to choose a fuzz target (path=%s).' % bucket_path)
 
-  fuzz_target_bucket_path = bucket_path.replace('%TARGET%', fuzz_target)
+  fuzz_target_bucket_path = _full_fuzz_target_path(bucket_path, fuzz_target)
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
 

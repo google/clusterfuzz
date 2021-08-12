@@ -1991,6 +1991,15 @@ class GetPrimaryBucketPathTest(unittest.TestCase):
     self.assertEqual('gs://fuzz_target/test_target/path',
                      build_manager.get_primary_bucket_path())
 
+  def test_fuzz_target_bucket_path_multi_target(self):
+    """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH with a multi
+    target binary."""
+    os.environ[
+        'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
+    os.environ['FUZZ_TARGET'] = 'test_target@target'
+    self.assertEqual('gs://fuzz_target/test_target/path',
+                     build_manager.get_primary_bucket_path())
+
   def test_fuzz_target_bucket_path_no_fuzz_target(self):
     """Test primary bucket being a FUZZ_TARGET_BUILD_BUCKET_PATH with no fuzz
     target defined."""
