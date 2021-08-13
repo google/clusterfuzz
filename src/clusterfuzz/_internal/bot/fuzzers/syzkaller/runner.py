@@ -44,7 +44,6 @@ def get_work_dir():
       environment.get_value('FUZZ_INPUTS_DISK'), 'syzkaller')
 
   os.makedirs(work_dir, exist_ok=True)
-
   return work_dir
 
 
@@ -81,19 +80,12 @@ def get_config():
 
 def get_cover_file_path():
   """Return location of coverage file for Syzkaller."""
-  file_path = os.path.join(get_work_dir(), 'coverfile')
-
-  logs.log(f'Rawcover file will be stored in {file_path}')
-  return file_path
+  return os.path.join(get_work_dir(), 'coverfile')
 
 
 def find_syzkaller_port(pid: int) -> int or None:
   """Find localhost port where syzkaller is connected."""
-  try:
-    import psutil  # pylint: disable=g-import-not-at-top
-  except ImportError:
-    logs.log_warn('Runtime environment does not support psutil')
-    return None
+  import psutil  # pylint: disable=g-import-not-at-top
 
   for connection in psutil.net_connections():
     if connection.pid != pid:
@@ -211,8 +203,20 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       f.write(rawcover)
       logs.log(f'Writing syzkaller rawcover to {file_path}')
 
-  def run_and_wait(self, *args, timeout=None,
+  def run_and_loop(self, *args, timeout=None,
                    **kwargs) -> new_process.ProcessResult:
+    """Adds looping call to run_and_wait method.
+
+    This method adds LoopingTimer() that continuously executes a function
+    that gets / saves rawcover data from Syzkaller.
+
+    Args:
+      *args: args for self.run()
+      timeout: timeout in seconds to stop Syzkaller
+      **kwargs: kwargs for self.run()
+    Returns:
+      new_process.ProcessResult from Syzkaller
+    """
     process = self.run(*args, **kwargs)
     pid = process.popen.pid
     logs.log(f'Syzkaller pid = {pid}')
@@ -233,7 +237,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
                                          output,
                                          time.time() - start_time, False)
 
-      result = new_process.wait_process(
+      return new_process.wait_process(
           process,
           timeout=timeout,
           input_data=None,
@@ -242,8 +246,6 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       )
     finally:
       looping_timer.cancel()
-
-    return result
 
   def fuzz(
       self,
@@ -277,7 +279,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     # Save kernel_bid for later in case the device is down.
     _, kernel_bid = kernel_utils.get_kernel_hash_and_build_id()
 
-    fuzz_result = self.run_and_wait(additional_args, timeout=fuzz_timeout)
+    fuzz_result = self.run_and_loop(additional_args, timeout=fuzz_timeout)
     logs.log('Syzkaller stopped, fuzzing timed out: {}'.format(
         fuzz_result.time_executed))
 
