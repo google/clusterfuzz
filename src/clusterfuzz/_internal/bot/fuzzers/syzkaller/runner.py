@@ -20,7 +20,6 @@ import tempfile
 import threading
 import time
 
-import psutil
 import requests
 
 from clusterfuzz._internal.base import utils
@@ -91,26 +90,26 @@ def get_cover_file_path():
   return file_path
 
 
-def find_syzkaller_port(pid: int) -> int:
+def find_syzkaller_port(pid: int) -> int or None:
   """Find localhost port where syzkaller is connected."""
+  try:
+    import psutil  # pylint: disable=g-import-not-at-top
+  except ImportError:
+    logs.log_warn('Runtime environment does not support psutil')
+    return None
 
   for connection in psutil.net_connections():
     if connection.pid != pid:
       continue
 
-    try:
-      local_address = connection.laddr
-
-      if (local_address.ip == LOCAL_HOST and
-          connection.status == psutil.CONN_LISTEN):
-        logs.log(f'Syzkaller port = {local_address.port}')
-        return local_address.port
-
-    except AttributeError:
-      continue
+    local_address = connection.laddr
+    if (local_address.ip == LOCAL_HOST and
+        connection.status == psutil.CONN_LISTEN):
+      logs.log(f'Syzkaller port = {local_address.port}')
+      return local_address.port
 
   # No connection found
-  return 0
+  return None
 
 
 def get_runner(fuzzer_path):
@@ -200,16 +199,12 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
   def save_rawcover_output(self, pid: int):
     """Find syzkaller port and write rawcover data to a file."""
-
     port = find_syzkaller_port(pid)
-
-    # port not found
-    if not port:
-      logs.log_warn('Syzkaller port was not found')
+    if port is None:
+      logs.log_warn('Could not find Syzkaller port')
       return
 
     rawcover = requests.get(f'http://localhost:{port}/rawcover').text
-
     if not rawcover:
       logs.log_warn('Syzkaller rawcover not yet loaded')
       return
