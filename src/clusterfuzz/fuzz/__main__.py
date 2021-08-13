@@ -69,7 +69,6 @@ def main():
   result = engine_impl.fuzz(args.target, options, args.output,
                             args.max_duration)
   print('Command: ', ' '.join([shlex.quote(part) for part in result.command]))
-  print(result.logs)
 
 
 if __name__ == '__main__':

@@ -39,14 +39,23 @@ def main():
       choices=['address', 'memory', 'undefined'],
       default='address')
   parser.add_argument(
-      '-r', '--reproducer', help='Path to reproducer.', required=True)
+      '-i',
+      '--input',
+      action='append',
+      help='Path to input corpus.',
+      required=True)
   parser.add_argument(
-      '-d',
-      '--max_duration',
-      help='Max time in seconds to run.',
-      type=int,
-      default=25)
-  parser.add_argument('engine_args', nargs='*')
+      '-o',
+      '--output',
+      help='Path to output (minimized) corpus.',
+      required=True)
+  parser.add_argument(
+      '-c',
+      '--crashers',
+      help='Path to crashers found during minimization.',
+      default=os.getcwd())
+  parser.add_argument(
+      '-d', '--max_duration', help='Max time in seconds to run.', type=int)
   args = parser.parse_args()
 
   # TODO(ochang): Find a cleaner way to propagate this.
@@ -60,8 +69,8 @@ def main():
   os.environ['BUILD_DIR'] = os.path.dirname(args.target)
 
   engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
-  result = engine_impl.reproduce(args.target, args.reproducer, args.engine_args,
-                                 args.max_duration)
+  result = engine_impl.minimize_corpus(args.target, [], args.input, args.output,
+                                       args.crashers, args.max_duration)
   print('Command: ', ' '.join([shlex.quote(part) for part in result.command]))
 
 
