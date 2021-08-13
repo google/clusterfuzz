@@ -43,8 +43,7 @@ def get_work_dir():
   work_dir = os.path.join(
       environment.get_value('FUZZ_INPUTS_DISK'), 'syzkaller')
 
-  if not os.path.exists(work_dir):
-    os.mkdir(work_dir)
+  os.makedirs(work_dir, exist_ok=True)
 
   return work_dir
 
@@ -83,8 +82,6 @@ def get_config():
 def get_cover_file_path():
   """Return location of coverage file for Syzkaller."""
   file_path = os.path.join(get_work_dir(), 'coverfile')
-  if not os.path.isfile(file_path):
-    open(file_path, 'w+').close()
 
   logs.log(f'Rawcover file will be stored in {file_path}')
   return file_path
