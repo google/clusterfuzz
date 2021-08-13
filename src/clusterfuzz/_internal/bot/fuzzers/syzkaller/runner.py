@@ -211,16 +211,13 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       f.write(rawcover)
       logs.log(f'Writing syzkaller rawcover to {file_path}')
 
-  def run_and_wait(self, syzkaller_args=None,
-                   timeout=None) -> new_process.ProcessResult:
-    process = self.run(syzkaller_args)
-
-    start_time = time.time()
-
+  def run_and_wait(self, *args, timeout=None,
+                   **kwargs) -> new_process.ProcessResult:
+    process = self.run(*args, **kwargs)
     pid = process.popen.pid
-
     logs.log(f'Syzkaller pid = {pid}')
 
+    start_time = time.time()
     looping_timer = LoopingTimer(
         RAWCOVER_RETRIEVE_INTERVAL,
         self.save_rawcover_output,
@@ -228,20 +225,23 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     )
     looping_timer.run()
 
-    if not timeout:
-      output = process.communicate()[0]
-      looping_timer.cancel()
-      return new_process.ProcessResult(process.command, process.poll(), output,
-                                       time.time() - start_time, False)
+    try:
+      if not timeout:
+        output = process.communicate()[0]
+        looping_timer.cancel()
+        return new_process.ProcessResult(process.command, process.poll(),
+                                         output,
+                                         time.time() - start_time, False)
 
-    result = new_process.wait_process(
-        process,
-        timeout=timeout,
-        input_data=None,
-        terminate_before_kill=False,
-        terminate_wait_time=None,
-    )
-    looping_timer.cancel()
+      result = new_process.wait_process(
+          process,
+          timeout=timeout,
+          input_data=None,
+          terminate_before_kill=False,
+          terminate_wait_time=None,
+      )
+    finally:
+      looping_timer.cancel()
 
     return result
 
