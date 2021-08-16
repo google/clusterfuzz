@@ -71,6 +71,18 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
+GOOGLEFUZZTEST_TEMPLATE = """MAX_FUZZ_THREADS = 1
+MAX_TESTCASES = 2
+FUZZ_TEST_TIMEOUT = 8400
+TEST_TIMEOUT = 65
+WARMUP_TIMEOUT = 65
+BAD_BUILD_CHECK = False
+THREAD_ALIVE_CHECK_INTERVAL = 1
+REPORT_OOMS_AND_HANGS = True
+ENABLE_GESTURES = False
+THREAD_DELAY = 30.0
+"""
+
 ENGINE_ASAN_TEMPLATE = ('LSAN = True\n'
                         'ADDITIONAL_ASAN_OPTIONS = '
                         'symbolize=0:'
@@ -113,6 +125,7 @@ TEMPLATES = {
     'engine_msan': ENGINE_MSAN_TEMPLATE,
     'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
     'honggfuzz': HONGGFUZZ_TEMPLATE,
+    'googlefuzztest': GOOGLEFUZZTEST_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
     'syzkaller': SYZKALLER_TEMPLATE,
     'prune': PRUNE_TEMPLATE,
@@ -264,6 +277,15 @@ class SyzkallerDefaults(BaseBuiltinFuzzerDefaults):
     self.key_id = 1340
 
 
+class GoogleFuzzTestDefaults(BaseBuiltinFuzzerDefaults):
+  """Default values for googlefuzztest."""
+
+  def __init__(self):
+    super().__init__()
+    self.name = 'googlefuzztest'
+    self.key_id = 1341
+
+
 def setup_config(non_dry_run):
   """Set up configuration."""
   config = data_types.Config.query().get()
@@ -283,6 +305,7 @@ def setup_fuzzers(non_dry_run):
       AflDefaults(),
       LibFuzzerDefaults(),
       HonggfuzzDefaults(),
+      GoogleFuzzTestDefaults(),
       SyzkallerDefaults()
   ]:
     fuzzer = data_types.Fuzzer.query(

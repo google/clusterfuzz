@@ -15,7 +15,8 @@
 
 from clusterfuzz._internal.bot.fuzzers.afl import engine as afl_engine
 from clusterfuzz._internal.bot.fuzzers.blackbox import engine as blackbox_engine
-from clusterfuzz._internal.bot.fuzzers.gft import engine as gft_engine
+from clusterfuzz._internal.bot.fuzzers.googlefuzztest import \
+    engine as gft_engine
 from clusterfuzz._internal.bot.fuzzers.honggfuzz import \
     engine as honggfuzz_engine
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
@@ -29,7 +30,7 @@ def run():
   """Initialise builtin fuzzing engines."""
   engine.register('afl', afl_engine.AFLEngine)
   engine.register('blackbox', blackbox_engine.BlackboxEngine)
-  engine.register('gft', gft_engine.GFTEngine)
+  engine.register('googlefuzztest', gft_engine.GoogleFuzzTestEngine)
   engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
   engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
   engine.register('syzkaller', syzkaller_engine.SyzkallerEngine)

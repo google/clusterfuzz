@@ -22,7 +22,7 @@ from clusterfuzz.fuzz import engine
 _CRASH_REGEX = re.compile(r'^Reproducer file written to\s*(.*)$')
 
 
-class GFTError(Exception):
+class GoogleFuzzTestError(Exception):
   """Base exception class."""
 
 
@@ -35,12 +35,12 @@ def _get_reproducer_path(line):
   return crash_match.group(1)
 
 
-class GFTEngine(engine.Engine):
+class GoogleFuzzTestEngine(engine.Engine):
   """GFT engine implementation."""
 
   @property
   def name(self):
-    return 'gft'
+    return 'googlefuzztest'
 
   def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options. Returns a
@@ -70,6 +70,7 @@ class GFTEngine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
+    del options  # Unused.
     runner = new_process.UnicodeProcessRunner(target_path)
 
     fuzz_result = runner.run_and_wait(
