@@ -45,10 +45,7 @@ def main():
       help='Path to input corpus.',
       required=True)
   parser.add_argument(
-      '-o',
-      '--output',
-      help='Path to output (pruned) corpus.',
-      required=True)
+      '-o', '--output', help='Path to output (pruned) corpus.', required=True)
   parser.add_argument(
       '-c',
       '--crashers',
