@@ -43,7 +43,7 @@ def main():
       '-o', '--output', help='Path to crashers.', default=os.getcwd())
   parser.add_argument(
       '-d',
-      '--max_duration',
+      '--max-duration',
       help='Max time in seconds to run.',
       type=int,
       default=3600)

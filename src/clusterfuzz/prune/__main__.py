@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Reproduction module."""
+"""Prune module."""
 
 import argparse
 import os
@@ -47,15 +47,15 @@ def main():
   parser.add_argument(
       '-o',
       '--output',
-      help='Path to output (minimized) corpus.',
+      help='Path to output (pruned) corpus.',
       required=True)
   parser.add_argument(
       '-c',
       '--crashers',
-      help='Path to crashers found during minimization.',
+      help='Path to crashers found during pruning.',
       default=os.getcwd())
   parser.add_argument(
-      '-d', '--max_duration', help='Max time in seconds to run.', type=int)
+      '-d', '--max-duration', help='Max time in seconds to run.', type=int)
   args = parser.parse_args()
 
   # TODO(ochang): Find a cleaner way to propagate this.

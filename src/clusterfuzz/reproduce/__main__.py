@@ -42,7 +42,7 @@ def main():
       '-r', '--reproducer', help='Path to reproducer.', required=True)
   parser.add_argument(
       '-d',
-      '--max_duration',
+      '--max-duration',
       help='Max time in seconds to run.',
       type=int,
       default=25)
