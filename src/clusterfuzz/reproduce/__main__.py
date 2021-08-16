@@ -42,7 +42,7 @@ def main():
       '-r', '--reproducer', help='Path to reproducer.', required=True)
   parser.add_argument(
       '-d',
-      '--max_duration',
+      '--max-duration',
       help='Max time in seconds to run.',
       type=int,
       default=25)
@@ -63,7 +63,6 @@ def main():
   result = engine_impl.reproduce(args.target, args.reproducer, args.engine_args,
                                  args.max_duration)
   print('Command: ', ' '.join([shlex.quote(part) for part in result.command]))
-  print(result.output)
 
 
 if __name__ == '__main__':
