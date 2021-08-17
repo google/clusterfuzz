@@ -385,11 +385,21 @@ def format_issue_information(testcase, format_string):
   sanitizer_options_string = ' '.join(sanitizer_options)
   bazel_test_args = _get_bazel_test_args(arguments, sanitizer_options)
 
+  # Multi-target binaries.
+  fuzz_target_parts = fuzz_target.split('@')
+  base_fuzz_target = fuzz_target_parts[0]
+  if len(fuzz_target_parts) == 2:
+    fuzz_test_name = fuzz_target_parts[1]
+  else:
+    fuzz_test_name = ''
+
   result = format_string.replace('%TESTCASE%', testcase_id)
   result = result.replace('%PROJECT%', project_name)
   result = result.replace('%REVISION%', last_tested_crash_revision)
   result = result.replace('%FUZZER_NAME%', fuzzer_name)
   result = result.replace('%FUZZ_TARGET%', fuzz_target)
+  result = result.replace('%BASE_FUZZ_TARGET%', base_fuzz_target)
+  result = result.replace('%FUZZ_TEST_NAME%', fuzz_test_name)
   result = result.replace('%ENGINE%', engine)
   result = result.replace('%SANITIZER%', sanitizer)
   result = result.replace('%SANITIZER_OPTIONS%', sanitizer_options_string)

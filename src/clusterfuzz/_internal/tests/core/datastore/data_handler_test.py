@@ -760,6 +760,25 @@ class GetFormattedReproductionHelpTest(unittest.TestCase):
         '--test_arg=-arg1=val1 '
         '--test_arg=\'-arg2=val2 val3\'')
 
+  def test_multi_target_binary(self):
+    """Test multi target binaries."""
+    fuzz_target = data_types.FuzzTarget()
+    fuzz_target.binary = 'base_fuzzer@blah'
+    fuzz_target.project = 'test_project'
+    fuzz_target.engine = 'googlefuzztest'
+    fuzz_target.put()
+    environment.set_value('HELP_FORMAT', '%BASE_FUZZ_TARGET%\n%FUZZ_TEST_NAME%')
+
+    testcase = data_types.Testcase()
+    testcase.fuzzer_name = 'googlefuzztest'
+    testcase.job_type = 'jobtype'
+    testcase.overridden_fuzzer_name = 'googlefuzztest_test_project_base_fuzzer-blah'
+    testcase.put()
+
+    self.assertEqual(
+        data_handler.get_formatted_reproduction_help(testcase),
+        'base_fuzzer\nblah')
+
 
 @test_utils.with_cloud_emulators('datastore')
 class RecordFuzzTargetTest(unittest.TestCase):

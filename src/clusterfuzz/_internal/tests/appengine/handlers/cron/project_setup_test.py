@@ -177,6 +177,9 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.honggfuzz.data_bundle_name = 'global'
     self.honggfuzz.put()
 
+    self.gft = data_types.Fuzzer(name='googlefuzztest', jobs=[])
+    self.gft.put()
+
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.ProjectConfig',
         ('get_application_id_2',
@@ -1592,7 +1595,7 @@ def _mock_read_data(path):
                   'gs://bucket/c-d/%ENGINE%/%SANITIZER%/%TARGET%/([0-9]+).zip',
               'name':
                   '//c/d',
-              'fuzzing_engines': ['libfuzzer'],
+              'fuzzing_engines': ['libfuzzer', 'googlefuzztest'],
               'sanitizers': ['address']
           },
       ]
@@ -1626,6 +1629,9 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.honggfuzz = data_types.Fuzzer(name='honggfuzz', jobs=[])
     self.honggfuzz.put()
 
+    self.gft = data_types.Fuzzer(name='googlefuzztest', jobs=[])
+    self.gft.put()
+
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.ProjectConfig',
         ('get_application_id_2',
@@ -1647,6 +1653,7 @@ class GenericProjectSetupTest(unittest.TestCase):
                     'afl': 'clusterfuzz-builds-afl',
                     'dataflow': 'clusterfuzz-builds-dataflow',
                     'honggfuzz': 'clusterfuzz-builds-honggfuzz',
+                    'googlefuzztest': 'clusterfuzz-builds-googlefuzztest',
                     'libfuzzer': 'clusterfuzz-builds',
                     'libfuzzer_i386': 'clusterfuzz-builds-i386',
                     'no_engine': 'clusterfuzz-builds-no-engine',
@@ -1681,6 +1688,7 @@ class GenericProjectSetupTest(unittest.TestCase):
                     'afl': 'clusterfuzz-builds-afl-dbg',
                     'dataflow': 'clusterfuzz-builds-dataflow-dbg',
                     'honggfuzz': 'clusterfuzz-builds-honggfuzz-dbg',
+                    'googlefuzztest': 'clusterfuzz-builds-googlefuzztest-dbg',
                     'libfuzzer': 'clusterfuzz-builds-dbg',
                     'libfuzzer_i386': 'clusterfuzz-builds-i386-dbg',
                     'no_engine': 'clusterfuzz-builds-no-engine-dbg',
@@ -1798,6 +1806,20 @@ class GenericProjectSetupTest(unittest.TestCase):
                      job.external_updates_subscription)
     self.assertTrue(job.is_external())
 
+    job = data_types.Job.query(
+        data_types.Job.name == 'googlefuzztest_asan_c-d').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket/c-d/googlefuzztest/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL\n', job.environment_string)
+    six.assertCountEqual(self, ['engine_asan', 'googlefuzztest'], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
     six.assertCountEqual(self, [
@@ -1814,3 +1836,7 @@ class GenericProjectSetupTest(unittest.TestCase):
     six.assertCountEqual(self, [
         'honggfuzz_asan_a-b',
     ], honggfuzz.jobs)
+
+    gft = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'googlefuzztest').get()
+    six.assertCountEqual(self, ['googlefuzztest_asan_c-d'], gft.jobs)
