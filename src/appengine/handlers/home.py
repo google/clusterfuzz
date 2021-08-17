@@ -13,16 +13,16 @@
 # limitations under the License.
 """Home page handler."""
 
-from base import external_users
-from base import memoize
-from base import utils
-from datastore import data_handler
-from datastore import data_types
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import handler
 from libs import helpers
-from system import environment
 
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
 

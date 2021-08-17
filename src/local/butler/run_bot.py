@@ -41,11 +41,11 @@ def _setup_bot_directory(args):
       os.path.join(src_root_dir, 'src', 'appengine'),
       os.path.join(bot_src_dir, 'appengine'))
   common.update_dir(
-      os.path.join(src_root_dir, 'src', 'protos'),
-      os.path.join(bot_src_dir, 'protos'))
-  common.update_dir(
       os.path.join(src_root_dir, 'src', 'python'),
       os.path.join(bot_src_dir, 'python'))
+  common.update_dir(
+      os.path.join(src_root_dir, 'src', 'clusterfuzz'),
+      os.path.join(bot_src_dir, 'clusterfuzz'))
   common.update_dir(
       os.path.join(src_root_dir, 'src', 'third_party'),
       os.path.join(bot_src_dir, 'third_party'))
@@ -73,8 +73,8 @@ def _setup_environment_and_configs(args, appengine_path):
     os.environ['BOT_NAME'] = args.name
 
   os.environ['LD_LIBRARY_PATH'] = '{0}:{1}'.format(
-      os.path.join(clusterfuzz_dir, 'src', 'python', 'scripts'),
-      os.getenv('LD_LIBRARY_PATH', ''))
+      os.path.join(clusterfuzz_dir, 'src', 'clusterfuzz', '_internal',
+                   'scripts'), os.getenv('LD_LIBRARY_PATH', ''))
 
   tmpdir = os.path.join(clusterfuzz_dir, 'bot_tmpdir')
   if not os.path.exists(tmpdir):

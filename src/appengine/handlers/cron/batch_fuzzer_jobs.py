@@ -13,11 +13,11 @@
 # limitations under the License.
 """A cron handler that batches FuzzerJobs."""
 
-from datastore import data_types
+from google.cloud import ndb
+
+from clusterfuzz._internal.datastore import data_types
 from handlers import base_handler
 from libs import handler
-
-from google.cloud import ndb
 
 FUZZER_JOB_BATCH_SIZE = 4000
 

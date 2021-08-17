@@ -16,25 +16,25 @@
 import datetime
 import html
 import re
-import six
 import urllib.parse
-import yaml
 
 from flask import request
 from googleapiclient.errors import HttpError
+import six
+import yaml
 
-from base import external_users
-from base import memoize
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import big_query
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import fuzzer_stats
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import access
 from libs import handler
 from libs import helpers
-from metrics import fuzzer_stats
-from metrics import logs
 
 # Old fuzzer stats don't change, we could cache forever and it would never go
 # stale. Since stats can get pretty large and probably aren't used much the day

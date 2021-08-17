@@ -18,27 +18,27 @@ import collections
 import copy
 import json
 import re
+
+from google.cloud import ndb
 import requests
 import six
 import yaml
 
-from google.cloud import ndb
-
-from base import tasks
-from base import untrusted
-from base import utils
-from config import db_config
-from config import local_config
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import fuzzer_selection
-from google_cloud_utils import pubsub
-from google_cloud_utils import storage
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import untrusted
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import handler
-from metrics import logs
-from system import environment
 
 from . import service_accounts
 
@@ -130,6 +130,13 @@ HONGGFUZZ_ASAN_JOB = JobInfo(
     'address', ['honggfuzz', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 
+GFT_ASAN_JOB = JobInfo('googlefuzztest_asan_', 'googlefuzztest', 'address',
+                       ['googlefuzztest', 'engine_asan'])
+GFT_MSAN_JOB = JobInfo('googlefuzztest_msan_', 'googlefuzztest', 'memory',
+                       ['googlefuzztest', 'engine_msan'])
+GFT_UBSAN_JOB = JobInfo('googlefuzztest_ubsan_', 'googlefuzztest', 'undefined',
+                        ['googlefuzztest', 'engine_ubsan'])
+
 JOB_MAP = {
     'libfuzzer': {
         'x86_64': {
@@ -149,6 +156,13 @@ JOB_MAP = {
     'honggfuzz': {
         'x86_64': {
             'address': HONGGFUZZ_ASAN_JOB,
+        },
+    },
+    'googlefuzztest': {
+        'x86_64': {
+            'address': GFT_ASAN_JOB,
+            'memory': GFT_MSAN_JOB,
+            'undefined': GFT_UBSAN_JOB,
         },
     },
     'none': {
@@ -944,11 +958,24 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get honggfuzz Fuzzer entity.')
       return
 
+    gft = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'googlefuzztest').get()
+    if not gft:
+      logs.log_error('Failed to get googlefuzztest Fuzzer entity.')
+      return
+
     project_config = local_config.ProjectConfig()
     segregate_projects = project_config.get('segregate_projects')
     project_setup_configs = project_config.get('project_setup')
     project_names = set()
     job_names = set()
+
+    fuzzer_entities = {
+        'afl': afl,
+        'honggfuzz': honggfuzz,
+        'googlefuzztest': gft,
+        'libfuzzer': libfuzzer,
+    }
 
     for setup_config in project_setup_configs:
       bucket_config = setup_config.get('build_buckets')
@@ -968,14 +995,11 @@ class Handler(base_handler.Handler):
               'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
               'afl': bucket_config.get('afl'),
               'honggfuzz': bucket_config.get('honggfuzz'),
+              'googlefuzztest': bucket_config.get('googlefuzztest'),
               'none': bucket_config.get('no_engine'),
               'dataflow': bucket_config.get('dataflow'),
           },
-          fuzzer_entities={
-              'libfuzzer': libfuzzer,
-              'honggfuzz': honggfuzz,
-              'afl': afl,
-          },
+          fuzzer_entities=fuzzer_entities,
           add_info_labels=setup_config.get('add_info_labels', False),
           add_revision_mappings=setup_config.get('add_revision_mappings',
                                                  False),
@@ -996,5 +1020,6 @@ class Handler(base_handler.Handler):
       project_names.update(result.project_names)
       job_names.update(result.job_names)
 
-    cleanup_stale_projects([libfuzzer, afl, honggfuzz], project_names,
-                           job_names, segregate_projects)
+    cleanup_stale_projects(
+        list(fuzzer_entities.values()), project_names, job_names,
+        segregate_projects)

@@ -111,7 +111,8 @@ def package(revision,
     if (file_path.startswith('config') or file_path.startswith('local') or
         file_path.startswith(os.path.join('src', 'appengine')) or
         file_path.startswith(os.path.join('src', 'local')) or
-        file_path.startswith(os.path.join('src', 'python', 'tests'))):
+        file_path.startswith(
+            os.path.join('src', 'clusterfuzz', '_internal', 'tests'))):
       continue
     _add_to_zip(output_file, file_path)
 

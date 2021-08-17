@@ -16,7 +16,8 @@
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
-from python.base import modules
+from clusterfuzz._internal.base import modules
+
 modules.fix_module_search_paths()
 
 import multiprocessing
@@ -25,20 +26,20 @@ import sys
 import time
 import traceback
 
-from base import dates
-from base import errors
-from base import tasks
-from base import untrusted
-from base import utils
-from bot.fuzzers import init as fuzzers_init
-from bot.tasks import update_task
-from datastore import data_handler
-from datastore import ndb_init
-from metrics import logs
-from metrics import monitor
-from metrics import monitoring_metrics
-from metrics import profiler
-from system import environment
+from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import untrusted
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
+from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitor
+from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.metrics import profiler
+from clusterfuzz._internal.system import environment
 
 
 class _Monitor(object):
@@ -63,7 +64,7 @@ class _Monitor(object):
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
-  from bot.tasks import commands
+  from clusterfuzz._internal.bot.tasks import commands
 
   clean_exit = False
   while True:
@@ -130,14 +131,15 @@ def main():
   fuzzers_init.run()
 
   if environment.is_trusted_host(ensure_connected=False):
-    from bot.untrusted_runner import host
+    from clusterfuzz._internal.bot.untrusted_runner import host
     host.init()
 
   if environment.is_untrusted_worker():
     # Track revision since we won't go into the task_loop.
     update_task.track_revision()
 
-    from bot.untrusted_runner import untrusted as untrusted_worker
+    from clusterfuzz._internal.bot.untrusted_runner import \
+        untrusted as untrusted_worker
     untrusted_worker.start_server()
     assert False, 'Unreachable code'
 

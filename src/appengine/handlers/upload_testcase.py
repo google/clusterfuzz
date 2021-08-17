@@ -22,15 +22,17 @@ import os
 from flask import request
 from google.cloud import ndb
 
-from base import external_users
-from base import memoize
-from base import tasks
-from base import utils
-from crash_analysis.stack_parsing import stack_analyzer
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import blobs
-from google_cloud_utils import storage
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.system import archive
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import form
@@ -39,8 +41,6 @@ from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
-from system import archive
-from system import environment
 
 MAX_RETRIES = 50
 RUN_FILE_PATTERNS = ['run', 'fuzz-', 'index.', 'crash.']

@@ -13,14 +13,15 @@
 # limitations under the License.
 """HTTP utility functions for the reproduce tool."""
 
-import httplib2
 import os
 import webbrowser
 
-from base import json_utils
-from base import utils
+import httplib2
+
+from clusterfuzz._internal.base import json_utils
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.system import shell
 from local.butler.reproduce_tool import prompts
-from system import shell
 
 GET_METHOD = 'GET'
 POST_METHOD = 'POST'

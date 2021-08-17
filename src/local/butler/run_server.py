@@ -18,11 +18,11 @@ import threading
 import time
 import urllib.request
 
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.tests.test_libs import test_utils
 from local.butler import appengine
 from local.butler import common
 from local.butler import constants
-from python.config import local_config
-from python.tests.test_libs import test_utils
 
 
 def bootstrap_db():

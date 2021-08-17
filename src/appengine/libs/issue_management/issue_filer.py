@@ -16,16 +16,16 @@
 import itertools
 import re
 
-from base import external_users
-from base import utils
-from config import local_config
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import pubsub
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from libs.issue_management import issue_tracker_policy
-from metrics import logs
-from system import environment
 
 NON_CRASH_TYPES = [
     'Data race',
@@ -128,7 +128,7 @@ def severity_substitution(label, testcase, security_severity):
 def impact_to_string(impact):
   """Convert an impact value to a human-readable string."""
   impact_map = {
-      data_types.SecurityImpact.EXTENDED_STABLE: 'ExtendedStable',
+      data_types.SecurityImpact.EXTENDED_STABLE: 'Extended',
       data_types.SecurityImpact.STABLE: 'Stable',
       data_types.SecurityImpact.BETA: 'Beta',
       data_types.SecurityImpact.HEAD: 'Head',
@@ -142,7 +142,7 @@ def impact_to_string(impact):
 def _get_impact_from_labels(labels):
   """Get the impact from the label list."""
   labels = [label.lower() for label in labels]
-  if 'security_impact-extendedstable' in labels:
+  if 'security_impact-extended' in labels:
     return data_types.SecurityImpact.EXTENDED_STABLE
   if 'security_impact-stable' in labels:
     return data_types.SecurityImpact.STABLE
@@ -165,8 +165,7 @@ def update_issue_impact_labels(testcase, issue):
   if testcase.regression.startswith('0:'):
     # If the regression range starts from the start of time,
     # then we assume that the bug impacts stable.
-    # TODO(yuanjunh): change to extended stable label when it's fully supported.
-    new_impact = data_types.SecurityImpact.STABLE
+    new_impact = data_types.SecurityImpact.EXTENDED_STABLE
   elif testcase.is_impact_set_flag:
     # Add impact label based on testcase's impact value.
     if testcase.impact_extended_stable_version:

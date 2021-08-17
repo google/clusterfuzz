@@ -21,11 +21,11 @@ import datetime
 from google.cloud import ndb
 import googleapiclient
 
-from base import utils
-from config import local_config
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from metrics import logs
 
 # CrashStatistic is excluded because the number of records is too high and
 # can be rebuilt from BigQuery dataset.

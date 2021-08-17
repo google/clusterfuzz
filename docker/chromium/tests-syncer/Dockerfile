@@ -14,7 +14,7 @@
 FROM gcr.io/clusterfuzz-images/base
 
 ENV RUN_CMD \
-    "python3.7 $ROOT_DIR/src/python/scripts/other-bots/chromium-tests-syncer/run.py"
+    "python3.7 $ROOT_DIR/src/python/other-bots/chromium-tests-syncer/run.py"
 ENV DISABLE_MOUNTS True
 ENV EXTRA_PATH "/data/depot_tools"
 ENV SYNC_INTERVAL 43200

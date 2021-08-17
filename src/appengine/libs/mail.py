@@ -19,8 +19,8 @@ from sendgrid.helpers.mail import Mail
 from sendgrid.helpers.mail import Subject
 from sendgrid.helpers.mail import To
 
-from config import db_config
-from metrics import logs
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.metrics import logs
 
 
 def send(to_email, subject, html_content):

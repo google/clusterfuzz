@@ -19,7 +19,7 @@
 import re
 import sys
 
-from datastore import search_tokenizer
+from clusterfuzz._internal.datastore import search_tokenizer
 from libs import helpers
 
 KEYWORD_FIELD_REGEX = (
@@ -149,7 +149,7 @@ class Keyword(SimpleFilter):
     super(Keyword, self).__init__(field, param_key, required=False)
 
   def add(self, query, params):
-    """Add fitler."""
+    """Add filter."""
     value = params.get(self.param_key, '')
     for fltr in self.keyword_filters:
       value, raw_value = extract_keyword_field(value, fltr.param_key)

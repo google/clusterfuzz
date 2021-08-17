@@ -17,7 +17,6 @@ import os
 import sys
 
 # Add necessary directories to path.
-sys.path.append('python')
 sys.path.append('third_party')
 
 config_modules_path = os.path.join('config', 'modules')
@@ -41,4 +40,5 @@ except ImportError:
   pass
 
 import server
+
 app = server.app

@@ -34,7 +34,12 @@ disable=
   useless-suppression,
   wrong-import-order,
   wrong-import-position,
-
+  # FIXME: To be removed. Leftovers from Python 3 migration.
+  consider-using-with,
+  raise-missing-from,
+  super-with-arguments,
+  use-a-generator,
+  consider-using-generator
 
 [BASIC]
 

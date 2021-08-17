@@ -17,21 +17,21 @@ import datetime
 import itertools
 import json
 
-from . import grouper
-
-from base import dates
-from base import errors
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
+from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from metrics import logs
+
+from . import grouper
 
 UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
     'Out-of-memory', 'Stack-overflow', 'Timeout'

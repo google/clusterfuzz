@@ -20,25 +20,25 @@ import random
 
 from googleapiclient.errors import HttpError
 
-from base import dates
-from base import errors
-from base import memoize
-from base import utils
-from chrome import build_info
-from crash_analysis import crash_comparer
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import leak_blacklist
+from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.chrome import build_info
+from clusterfuzz._internal.crash_analysis import crash_comparer
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import mail
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from metrics import logs
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')

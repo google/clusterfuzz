@@ -31,12 +31,12 @@ import json
 import logging
 import time
 
-from base import utils
-from datastore import data_types
-from google_cloud_utils import big_query
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import crash_stats
 from handlers import base_handler
 from libs import handler
-from metrics import crash_stats
 
 # After insertion, it takes a few seconds for a record to show up.
 # We give it a few minutes.
@@ -172,6 +172,8 @@ def build_if_needed():
     return end_hour
   except TooEarlyException:
     logging.info("Skip building crash stats because it's too early.")
+
+  return None
 
 
 class Handler(base_handler.Handler):

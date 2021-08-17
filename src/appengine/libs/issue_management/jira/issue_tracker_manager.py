@@ -13,10 +13,11 @@
 # limitations under the License.
 """Issue tracker manager functions."""
 
-import jira
 import json
 
-from config import db_config
+import jira
+
+from clusterfuzz._internal.config import db_config
 
 
 class IssueTrackerManager(object):

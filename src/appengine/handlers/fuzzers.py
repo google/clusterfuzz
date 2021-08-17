@@ -19,19 +19,19 @@ import io
 from flask import request
 from google.cloud import ndb
 
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from fuzzing import fuzzer_selection
-from google_cloud_utils import storage
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import fuzzer_logs
+from clusterfuzz._internal.system import archive
 from handlers import base_handler
 from libs import access
 from libs import form
 from libs import gcs
 from libs import handler
 from libs import helpers
-from metrics import fuzzer_logs
-from system import archive
 
 ARCHIVE_READ_SIZE_LIMIT = 16 * 1024 * 1024
 

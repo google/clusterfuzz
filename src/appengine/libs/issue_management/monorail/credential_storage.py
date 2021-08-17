@@ -16,7 +16,7 @@
 from oauth2client.client import Credentials
 from oauth2client.client import Storage
 
-from config import db_config
+from clusterfuzz._internal.config import db_config
 
 
 class CredentialStorage(Storage):

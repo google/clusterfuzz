@@ -13,34 +13,34 @@
 # limitations under the License.
 """reproduce.py reproduces test cases locally."""
 
-from python.base import modules
+from clusterfuzz._internal.base import modules
+
 modules.fix_module_search_paths()
 
 import os
 import shutil
 import tempfile
 import time
-
 from urllib import parse
 
-from base import json_utils
-from base import utils
-from bot import testcase_manager
-from bot.fuzzers import init
-from bot.tasks import commands
-from bot.tasks import setup
-from build_management import build_manager
-from datastore import data_types
+from clusterfuzz._internal.base import json_utils
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot import testcase_manager
+from clusterfuzz._internal.bot.fuzzers import init
+from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.build_management import build_manager
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.system import archive
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import new_process
+from clusterfuzz._internal.system import shell
 from local.butler import appengine
 from local.butler.reproduce_tool import android
 from local.butler.reproduce_tool import config
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
 from local.butler.reproduce_tool import prompts
-from system import archive
-from system import environment
-from system import new_process
-from system import shell
 
 CONFIG_DIRECTORY = os.path.join(
     os.path.expanduser('~'), '.config', 'clusterfuzz')
@@ -211,7 +211,7 @@ def _prepare_initial_environment(build_directory, iterations, verbose):
           os.path.join(root_dir, 'src', 'bazel-genfiles'),
           os.path.join(root_dir, 'src', 'bazel-out'),
           os.path.join(root_dir, 'src', 'bazel-src'),
-          os.path.join(root_dir, 'src', 'python', 'tests'),
+          os.path.join(root_dir, 'src', 'clusterfuzz', '_internal', 'tests'),
       ])
 
   environment.set_value('CONFIG_DIR_OVERRIDE',

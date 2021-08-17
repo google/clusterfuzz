@@ -14,7 +14,7 @@
 """Fuzzing strategy selection cron job.
 
 Runs multi-armed bandit experiments for fuzzing strategy selection.
-In particular, this is a Boltzman Exploration (softmax) implementaion
+In particular, this is a Boltzman Exploration (softmax) implementation
 of multi-armed bandit experiments. Queries from bigquery to update
 multi-armed bandit probability values based on the new edges for various
 combined strategies. In the upload_bandit_weights function, we can change
@@ -22,13 +22,14 @@ metric to be for edges, crash, features, or units. Currently based on new
 edges."""
 
 from collections import namedtuple
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import strategy
-from google_cloud_utils import big_query
+
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import strategy
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from metrics import logs
 
 # After experimentation with high, low, and medium temperature parameters, we
 # decided on .15.
