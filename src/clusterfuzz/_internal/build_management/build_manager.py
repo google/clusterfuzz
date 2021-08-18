@@ -1281,6 +1281,11 @@ def get_revisions_list(bucket_path, testcase=None):
   return revision_list
 
 
+def _base_fuzz_target_name(target_name):
+  """Get the base fuzz target name "X" from "X@Y"."""
+  return target_name.split('@')[0]
+
+
 def _get_targets_list(bucket_path):
   """Get the target list for a given fuzz target bucket path. This is done by
   reading the targets.list file, which contains a list of the currently active
@@ -1296,17 +1301,12 @@ def _get_targets_list(bucket_path):
   listed_targets = set(
       os.path.basename(path.rstrip('/'))
       for path in storage.list_blobs(bucket_dir_path, recursive=False))
-  return [t for t in targets if t in listed_targets]
+  return [t for t in targets if _base_fuzz_target_name(t) in listed_targets]
 
 
 def _full_fuzz_target_path(bucket_path, fuzz_target):
   """Get the full fuzz target bucket path."""
-  bucket_path_name = fuzz_target
-  if '@' in fuzz_target:
-    # Multi-target binary/archive "base@target_name"
-    bucket_path_name = fuzz_target.split('@')[0]
-
-  return bucket_path.replace('%TARGET%', bucket_path_name)
+  return bucket_path.replace('%TARGET%', _base_fuzz_target_name(fuzz_target))
 
 
 def _setup_split_targets_build(bucket_path, target_weights, revision=None):
