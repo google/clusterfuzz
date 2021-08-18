@@ -645,15 +645,14 @@ def is_honggfuzz_job(job_name=None):
   return _job_substring_match('honggfuzz', job_name)
 
 
-def is_engine_fuzzer_job(job_name=None):
-  """Return if true is this is an engine fuzzer."""
-  return bool(get_engine_for_job(job_name))
-
-
 def is_kernel_fuzzer_job(job_name=None):
   """Return true if the current job uses syzkaller."""
-  # Prefix matching is not sufficient.
   return _job_substring_match('syzkaller', job_name)
+
+
+def is_engine_fuzzer_job(job_name=None):
+  """Return true if this is an engine fuzzer."""
+  return bool(get_engine_for_job(job_name))
 
 
 def get_engine_for_job(job_name=None):
@@ -665,6 +664,8 @@ def get_engine_for_job(job_name=None):
     return 'afl'
   if is_honggfuzz_job(job_name):
     return 'honggfuzz'
+  if is_kernel_fuzzer_job(job_name):
+    return 'syzkaller'
 
   return None
 
@@ -876,7 +877,7 @@ def reset_current_memory_tool_options(redzone_size=0,
     set_value('UBSAN_OPTIONS', joined_tool_options)
 
   # For Android, we need to set shell property |asan.options|.
-  # For engine-based uzzers, it is not needed as options variable is directly
+  # For engine-based fuzzers, it is not needed as options variable is directly
   # passed to shell.
   if is_android(bot_platform) and not is_engine_fuzzer_job():
     android.sanitizer.set_options(tool_name, joined_tool_options)
