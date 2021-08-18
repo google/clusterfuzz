@@ -727,6 +727,9 @@ class ProjectSetup(object):
             'reproduction_topic']
         job.external_updates_subscription = self._external_config[
             'updates_subscription']
+      else:
+        job.external_reproduction_topic = None
+        job.external_updates_subscription = None
 
       if not info.get('disabled', False):
         job_names.append(job_name)
