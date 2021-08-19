@@ -14,7 +14,7 @@
 # limitations under the License.
 
 IMAGES=(
-  # gcr.io/clusterfuzz-images/base
+  gcr.io/clusterfuzz-images/base
   gcr.io/clusterfuzz-images/high-end
   gcr.io/clusterfuzz-images/ml-with-gpu
   gcr.io/clusterfuzz-images/chromium/base
@@ -35,9 +35,9 @@ GIT_HASH=$1
 stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
 for image in "${IMAGES[@]}"; do
   docker build -t $image ${image#gcr.io/clusterfuzz-images/}
-  # docker tag $image $image:$stamp
-  # docker push $image
-  # docker push $image:$stamp
+  docker tag $image $image:$stamp
+  docker push $image
+  docker push $image:$stamp
 done
 
 echo Built and pushed images successfully with stamp $stamp
