@@ -241,7 +241,7 @@ class RevisionsTestcase(unittest.TestCase):
     # URL encoding easier to understand.
     mock_get_url_content.assert_called_once_with(
         revisions.CRREV_NUMBERING_URL +
-        '?number=29124&numbering_identifier=refs%2Fheads%2Fmaster&'
+        '?number=29124&numbering_identifier=refs%2Fheads%2Fmain&'
         'numbering_type=COMMIT_POSITION&project=chromium&'
         'repo=v8%2Fv8&fields=git_sha')
 
