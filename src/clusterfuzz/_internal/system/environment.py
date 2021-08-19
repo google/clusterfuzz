@@ -650,6 +650,11 @@ def is_kernel_fuzzer_job(job_name=None):
   return _job_substring_match('syzkaller', job_name)
 
 
+def is_googlefuzztest_job(job_name=None):
+  """Return true if the current job uses googlefuzztest."""
+  return _job_substring_match('googlefuzztest', job_name)
+
+
 def is_engine_fuzzer_job(job_name=None):
   """Return true if this is an engine fuzzer."""
   return bool(get_engine_for_job(job_name))
@@ -666,6 +671,8 @@ def get_engine_for_job(job_name=None):
     return 'honggfuzz'
   if is_kernel_fuzzer_job(job_name):
     return 'syzkaller'
+  if is_googlefuzztest_job(job_name):
+    return 'googlefuzztest'
 
   return None
 
