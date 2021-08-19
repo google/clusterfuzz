@@ -26,8 +26,8 @@ WORKDIR /data
 #
 # Add NVIDIA package repositories.
 # Add HTTPS support for apt-key.
-# cuda-repo-ubuntu1604_10.1.243-1_amd64.deb doesn't exist in https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/
-RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_10.1.243-1_amd64.deb && \
+RUN apt-get install -y gnupg-curl && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_10.1.243-1_amd64.deb && \
     apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub && \
     dpkg -i cuda-repo-ubuntu1604_10.1.243-1_amd64.deb && \
     apt-get update && \
@@ -50,10 +50,10 @@ RUN apt-get install -y --no-install-recommends \
 
 # Replace TensorFlow CPU version with GPU version. Also the version number
 # needs to match cuda and cuDNN version above.
-RUN python3 -m pip uninstall tensorflow -y && \
-    python3 -m pip uninstall tensorboard -y && \
-    python3 -m pip install mock==2.0.0 && \
-    python3 -m pip install tensorflow-gpu==2.3.0
+RUN python3.7 -m pip uninstall tensorflow -y && \
+    python3.7 -m pip uninstall tensorboard -y && \
+    python3.7 -m pip install mock==2.0.0 && \
+    python3.7 -m pip install tensorflow-gpu==2.3.0
 
 WORKDIR $INSTALL_DIRECTORY
 

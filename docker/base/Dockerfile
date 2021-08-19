@@ -18,8 +18,6 @@ WORKDIR /data
 
 ENV DEBIAN_FRONTEND noninteractive
 
-# TODO(metzman): Remove tools needed solely for python install.
-
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get autoremove -y && \
@@ -42,7 +40,7 @@ RUN apt-get update && \
         lsb-release \
         net-tools \
         psmisc \
-        python \
+        python3-dbg \
         python3-dev \
         python3-pip \
         socat \
@@ -70,7 +68,12 @@ RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db
     tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
 
-RUN pip install pipenv
+# Install Python 3.
+RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-3.7.7 && \
+    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
+    rm -rf /tmp/Python-3.7.7
+RUN pip3.7 install pipenv
 
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
@@ -94,7 +97,7 @@ ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
 ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
-ENV RUN_CMD "python3 $ROOT_DIR/src/python/bot/startup/run.py"
+ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
 ENV DEPLOYMENT_ZIP "linux-3.zip"
 
 # Passwordless sudo (needed for AFL launcher).
@@ -113,6 +116,8 @@ ENV PYTHONIOENCODING UTF-8
 
 COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile Pipfile.lock /data/
 RUN cd /data && \
+    # Make pip3.7 the default so that pipenv install --system works.
+    mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
     pipenv install --deploy --system && \
     # Install tensorflow here as it's not included in the Pipfile due to
     # strict python version requirements.

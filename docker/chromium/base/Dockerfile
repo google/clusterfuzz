@@ -16,10 +16,9 @@ FROM gcr.io/clusterfuzz-images/base@sha256:1110514de5bb678562b75e5cf65130923bd22
 ENV UPDATE_WEB_TESTS True
 ENV NFS_ROOT /mnt/nfs/cfvolume
 
-COPY third_party/install-build-deps.sh /tmp
-# TODO(metzman): Don't use install-build-deps.sh. It's installing a lot more
-# than what we actually need.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
+    curl 'https://chromium.googlesource.com/chromium/src/+/master/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
+    chmod u+x /tmp/install-build-deps.sh && \
     /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms
 
 RUN apt-get update && \
@@ -35,9 +34,14 @@ RUN apt-get update && \
         libgles2-mesa \
         nfs-common \
         nodejs \
+        nodejs-legacy \
         pulseaudio \
         xdotool \
-        xvfb
+        xvfb && \
+    # 16.04's pyOpenSSL (installed by install-build-deps.sh) is too old for
+    # Google Cloud SDK.
+    sudo apt-get remove -y python-openssl && \
+    sudo pip2 install cryptography==3.3.2 pyOpenSSL==19.0.0
 
 # Needed for older versions of Chrome.
 RUN ln -s /usr/lib/x86_64-linux-gnu/libudev.so /usr/lib/x86_64-linux-gnu/libudev.so.0
