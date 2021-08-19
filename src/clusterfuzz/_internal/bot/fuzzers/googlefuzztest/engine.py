@@ -19,7 +19,7 @@ import re
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
-_CRASH_REGEX = re.compile(r'.*Reproducer file written to\s*(.*)$')
+_CRASH_REGEX = re.compile(r'.*Reproducer file written to:\s*(.*)$')
 
 
 class GoogleFuzzTestError(Exception):
