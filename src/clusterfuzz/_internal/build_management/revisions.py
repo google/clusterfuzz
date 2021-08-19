@@ -231,7 +231,7 @@ def _git_commit_position_to_git_hash_for_chromium(revision, repository):
   """Return git hash for a git commit position using cr-rev.appspot.com."""
   request_variables = {
       'number': revision,
-      'numbering_identifier': 'refs/heads/master',
+      'numbering_identifier': 'refs/heads/main',
       'numbering_type': 'COMMIT_POSITION',
       'project': 'chromium',
       'repo': repository,
