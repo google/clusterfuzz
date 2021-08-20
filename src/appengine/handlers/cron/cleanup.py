@@ -45,7 +45,6 @@ GENERIC_INCORRECT_COMMENT = (
 OSS_FUZZ_INCORRECT_COMMENT = ('\n\nIf this is incorrect, please file a bug on '
                               'https://github.com/google/oss-fuzz/issues/new')
 
-AUTO_CC_LIMIT = 5
 TOP_CRASHES_LIMIT = 5
 TOP_CRASHES_DAYS_LOOKBEHIND = 7
 TOP_CRASHES_MIN_THRESHOLD = 50 * TOP_CRASHES_DAYS_LOOKBEHIND
@@ -1089,7 +1088,7 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
 
   ccs_added = False
   actions = list(issue.actions)
-  for cc in random.sample(ccs_list, min(AUTO_CC_LIMIT, len(ccs_list))):
+  for cc in ccs_list:
     if cc in issue.ccs:
       continue
 
