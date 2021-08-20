@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 
 RUN mkdir /data
 WORKDIR /data
@@ -40,10 +40,6 @@ RUN apt-get update && \
         lsb-release \
         net-tools \
         psmisc \
-        python \
-        python-dbg \
-        python-dev \
-        python-pip \
         socat \
         sudo \
         unzip \
@@ -63,8 +59,8 @@ RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.b
 ENV JAVA_HOME=/usr/lib/jvm/java-15-openjdk-amd64
 ENV JVM_LD_LIBRARY_PATH=$JAVA_HOME/lib/server
 ENV PATH=$PATH:$JAVA_HOME/bin
-ADD https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db48ee2/7/GPL/openjdk-15.0.2_linux-x64_bin.tar.gz /tmp
-RUN cd /tmp && \
+RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db48ee2/7/GPL/openjdk-15.0.2_linux-x64_bin.tar.gz -O /tmp/openjdk-15.0.2_linux-x64_bin.tar.gz && \
+    cd /tmp && \
     mkdir -p $JAVA_HOME && \
     tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
@@ -76,11 +72,12 @@ RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /
     rm -rf /tmp/Python-3.7.7
 RUN pip3.7 install pipenv
 
-# Install Google Cloud SDK.
-RUN CLOUD_SDK_REPO="cloud-sdk-$(lsb_release -c -s)" && \
-    echo "deb https://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -  && \
-    apt-get update && apt-get install -y google-cloud-sdk
+RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
+    | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+    | apt-key add - && \
+    apt-get update -y && \
+    apt-get install -y google-cloud-sdk
 
 # Set up google-fluentd
 # We ignore errors in install-logging-agent.sh as it always fails to start
