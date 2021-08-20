@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:focal
+FROM ubuntu:20.04
 
 RUN mkdir /data
 WORKDIR /data
@@ -40,9 +40,6 @@ RUN apt-get update && \
         lsb-release \
         net-tools \
         psmisc \
-        python3-dbg \
-        python3-dev \
-        python3-pip \
         socat \
         sudo \
         unzip \
