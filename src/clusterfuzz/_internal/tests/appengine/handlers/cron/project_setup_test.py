@@ -1588,7 +1588,7 @@ def _mock_read_data(path):
               'name':
                   '//a/b',
               'fuzzing_engines': ['libfuzzer', 'honggfuzz'],
-              'sanitizers': ['address']
+              'sanitizers': ['address', 'memory']
           },
           {
               'build_path':
@@ -1649,6 +1649,7 @@ class GenericProjectSetupTest(unittest.TestCase):
             {
                 'source': 'gs://bucket/projects.json',
                 'build_type': 'FUZZ_TARGET_BUILD_BUCKET_PATH',
+                'experimental_sanitizers': ['memory'],
                 'build_buckets': {
                     'afl': 'clusterfuzz-builds-afl',
                     'dataflow': 'clusterfuzz-builds-dataflow',
@@ -1669,7 +1670,7 @@ class GenericProjectSetupTest(unittest.TestCase):
                             'ASAN_VAR': 'VAL',
                         },
                         'memory': {
-                            'NOT_SET': 'VAL',
+                            'MSAN_VAR': 'VAL',
                         }
                     }
                 }
@@ -1704,7 +1705,7 @@ class GenericProjectSetupTest(unittest.TestCase):
                             'ASAN_VAR': 'VAL-dbg',
                         },
                         'memory': {
-                            'NOT_SET': 'VAL-dbg',
+                            'MSAN_VAR': 'VAL-dbg',
                         }
                     }
                 }
@@ -1732,6 +1733,22 @@ class GenericProjectSetupTest(unittest.TestCase):
         'STRING_VAR = VAL\n', job.environment_string)
     six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
                          job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_msan_a-b').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket/a-b/libfuzzer/memory/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'EXPERIMENTAL = True\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'MSAN_VAR = VAL\n'
+        'STRING_VAR = VAL\n', job.environment_string)
+    six.assertCountEqual(self, ['engine_msan', 'libfuzzer'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
@@ -1825,6 +1842,7 @@ class GenericProjectSetupTest(unittest.TestCase):
     six.assertCountEqual(self, [
         'libfuzzer_asan_a-b',
         'libfuzzer_asan_c-d',
+        'libfuzzer_msan_a-b',
         'old_unmanaged',
     ], libfuzzer.jobs)
 

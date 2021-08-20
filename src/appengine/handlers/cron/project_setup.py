@@ -577,6 +577,7 @@ class ProjectSetup(object):
                config_suffix='',
                external_config=None,
                segregate_projects=False,
+               experimental_sanitizers=None,
                engine_build_buckets=None,
                fuzzer_entities=None,
                add_info_labels=False,
@@ -588,6 +589,7 @@ class ProjectSetup(object):
     self._build_bucket_path_template = build_bucket_path_template
     self._revision_url_template = revision_url_template
     self._segregate_projects = segregate_projects
+    self._experimental_sanitizers = experimental_sanitizers
     self._engine_build_buckets = engine_build_buckets
     self._fuzzer_entities = fuzzer_entities
     self._add_info_labels = add_info_labels
@@ -793,7 +795,9 @@ class ProjectSetup(object):
       if help_url:
         job.environment_string += 'HELP_URL = %s\n' % help_url
 
-      if template.experimental:
+      if (template.experimental or
+          (self._experimental_sanitizers and
+           template.memory_tool in self._experimental_sanitizers)):
         job.environment_string += 'EXPERIMENTAL = True\n'
 
       if template.minimize_job_override:
@@ -993,6 +997,8 @@ class Handler(base_handler.Handler):
           config_suffix=setup_config.get('job_suffix', ''),
           external_config=setup_config.get('external_config', ''),
           segregate_projects=segregate_projects,
+          experimental_sanitizers=setup_config.get('experimental_sanitizers',
+                                                   []),
           engine_build_buckets={
               'libfuzzer': bucket_config.get('libfuzzer'),
               'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
