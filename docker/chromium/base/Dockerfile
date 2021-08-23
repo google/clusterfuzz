@@ -21,7 +21,8 @@ RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula selec
     chmod u+x /tmp/install-build-deps.sh && \
     /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms
 
-RUN apt-get update && \
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
     apt-get install -y \
         autofs \
         dbus-x11 \
