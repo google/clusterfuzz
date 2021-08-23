@@ -20,7 +20,7 @@ docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
   -v $(pwd):/workspace \
   $IMAGE \
-  pipenv sync --dev
+  pipenv sync --dev --python=python3.7
 docker run -i --rm \
   -e PIPENV_VENV_IN_PROJECT=1 \
   -v $(pwd):/workspace \
