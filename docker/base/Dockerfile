@@ -26,6 +26,7 @@ RUN apt-get update && \
         build-essential \
         curl \
         gdb \
+        iproute2 \
         libbz2-dev \
         libcurl4-openssl-dev \
         libffi-dev \
