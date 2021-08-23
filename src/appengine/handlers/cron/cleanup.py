@@ -16,7 +16,6 @@
 import collections
 import datetime
 import json
-import random
 
 from googleapiclient.errors import HttpError
 
@@ -45,7 +44,6 @@ GENERIC_INCORRECT_COMMENT = (
 OSS_FUZZ_INCORRECT_COMMENT = ('\n\nIf this is incorrect, please file a bug on '
                               'https://github.com/google/oss-fuzz/issues/new')
 
-AUTO_CC_LIMIT = 5
 TOP_CRASHES_LIMIT = 5
 TOP_CRASHES_DAYS_LOOKBEHIND = 7
 TOP_CRASHES_MIN_THRESHOLD = 50 * TOP_CRASHES_DAYS_LOOKBEHIND
@@ -288,10 +286,9 @@ def get_top_crashes_for_all_projects_and_platforms():
   projects_to_jobs_and_platforms = (get_jobs_and_platforms_for_project())
   top_crashes_by_project_and_platform_map = {}
 
-  for project_name in projects_to_jobs_and_platforms:
+  for project_name, project_map in projects_to_jobs_and_platforms.items():
     top_crashes_by_project_and_platform_map[project_name] = {}
 
-    project_map = projects_to_jobs_and_platforms[project_name]
     for platform in project_map.platforms:
       where_clause = (
           'crash_type NOT IN UNNEST(%s) AND '
@@ -1089,7 +1086,7 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
 
   ccs_added = False
   actions = list(issue.actions)
-  for cc in random.sample(ccs_list, min(AUTO_CC_LIMIT, len(ccs_list))):
+  for cc in ccs_list:
     if cc in issue.ccs:
       continue
 

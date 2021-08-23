@@ -1583,23 +1583,6 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
                          sorted(self.issue.ccs))
     self.assertIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
-  def test_only_add_five_random_ccs(self):
-    """Test that up to 5 random ccs are added. """
-    issue_owners = ['dev%s@example.com' % idx for idx in range(100)]
-    self.testcase.set_metadata('issue_owners', ','.join(issue_owners))
-
-    helpers.patch(self, ['random.sample'])
-    self.mock.sample.side_effect = lambda l, size: l[-size:]
-    cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
-                                              self.issue)
-    self.assertEqual(
-        'Automatically adding ccs based on OWNERS file / target commit history.'
-        '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label.',
-        self.issue._monorail_issue.comment)
-
-    six.assertCountEqual(self, issue_owners[-5:], self.issue.ccs)
-    self.assertIn('ClusterFuzz-Auto-CC', self.issue.labels)
-
 
 @test_utils.with_cloud_emulators('datastore')
 class UpdateIssueLabelsForFlakyTestcaseTest(unittest.TestCase):
