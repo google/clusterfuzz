@@ -404,6 +404,11 @@ def execute_task(testcase_id, job_type):
     do_libfuzzer_minimization(testcase, testcase_file_path)
     return
 
+  if environment.is_engine_fuzzer_job():
+    # TODO(ochang): More robust check for engine minimization support.
+    _skip_minimization(testcase, 'Engine does not support minimization.')
+    return
+
   max_threads = utils.maximum_parallel_processes_allowed()
 
   # Prepare the test case runner.
