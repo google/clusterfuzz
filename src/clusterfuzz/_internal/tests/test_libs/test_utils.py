@@ -199,7 +199,7 @@ def wait_for_emulator_ready(proc,
   thread.start()
 
   if not ready_event.wait(timeout):
-    output = '\n'.join(output_lines)
+    output = b'\n'.join(output_lines).decode()
     raise RuntimeError(
         f'{emulator} emulator did not get ready in time: {output}.')
 
