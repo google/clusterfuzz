@@ -215,7 +215,6 @@ def execute(args):
   """Run Python unit tests. For unittests involved appengine, sys.path needs
   certain modification."""
   os.environ['PY_UNITTESTS'] = 'True'
-  os.environ['CLOUDSDK_PYTHON'] = 'python2'
 
   if os.getenv('INTEGRATION') or os.getenv('UNTRUSTED_RUNNER_TESTS'):
     # Set up per-user buckets used by integration tests.

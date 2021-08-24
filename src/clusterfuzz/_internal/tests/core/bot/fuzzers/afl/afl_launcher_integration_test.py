@@ -293,7 +293,7 @@ class TestLauncher(BaseLauncherTest):
     # *WARNING* Do not lower the fuzz timeout unless you really know what you
     # are doing. Doing so will cause the test to fail on rare ocassion, which
     # will break deploys.
-    mock_get_timeout.return_value = get_fuzz_timeout(90.0)
+    mock_get_timeout.return_value = get_fuzz_timeout(120.0)
     testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
 
     output = run_launcher(testcase_path, 'easy_crash_fuzzer')

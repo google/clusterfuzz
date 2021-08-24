@@ -541,9 +541,9 @@ class UntrustedRunnerIntegrationTest(
     """Tests that large messages work."""
     expected_output = b'A' * 1024 * 1024 * 5 + b'\n'
 
-    runner = remote_process_host.RemoteProcessRunner('/usr/bin/python')
+    runner = remote_process_host.RemoteProcessRunner('/usr/bin/python3')
     result = runner.run_and_wait(
-        additional_args=['-c', 'print "A"*5*1024*1024'])
+        additional_args=['-c', 'print("A"*5*1024*1024)'])
     self.assertEqual(result.return_code, 0)
     self.assertEqual(result.output, expected_output)
 

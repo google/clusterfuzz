@@ -174,6 +174,8 @@ def wait_for_emulator_ready(proc,
                             timeout=EMULATOR_TIMEOUT,
                             output_lines=None):
   """Wait for emulator to be ready."""
+  if output_lines is None:
+    output_lines = []
 
   def _read_thread(proc, ready_event):
     """Thread to continuously read from the process stdout."""
@@ -197,8 +199,9 @@ def wait_for_emulator_ready(proc,
   thread.start()
 
   if not ready_event.wait(timeout):
+    output = b'\n'.join(output_lines).decode()
     raise RuntimeError(
-        '{} emulator did not get ready in time.'.format(emulator))
+        f'{emulator} emulator did not get ready in time: {output}.')
 
   return thread
 
