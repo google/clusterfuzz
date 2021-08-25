@@ -62,10 +62,9 @@ def _get_config_dict(url):
 
 def _get_path_from_config(config_dict, config_key, platform_id):
   """Return True if a path override is present and return the override."""
-  config_sub_dict = config_dict.get(config_key)
-  if config_sub_dict:
-    return config_sub_dict.get(platform_id)
-  return None
+  if config_key not in config_dict:
+    return None
+  return config_dict[config_key].get(platform_id)
 
 
 class BuildOverrideError(Exception):
