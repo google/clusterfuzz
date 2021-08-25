@@ -182,6 +182,10 @@ def main():
   persistent_cache.initialize()
   logs.configure('run')
 
+  # Python buffering can otherwise cause exception logs in the child run_*.py
+  # processes to be lost.
+  environment.set_value('PYTHONUNBUFFERED', 1)
+
   # Create command strings to launch bot and heartbeat.
   base_directory = environment.get_startup_scripts_directory()
   log_directory = environment.get_value('LOG_DIR')
