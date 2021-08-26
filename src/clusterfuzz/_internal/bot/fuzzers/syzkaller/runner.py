@@ -199,7 +199,12 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       logs.log_warn('Could not find Syzkaller port')
       return
 
-    rawcover = requests.get(f'http://localhost:{port}/rawcover').text
+    try:
+      rawcover = requests.get(f'http://localhost:{port}/rawcover').text
+    except requests.exceptions.ConnectionError:
+      logs.log_warn('Connection to Syzkaller Failed')
+      return
+
     if not rawcover:
       logs.log_warn('Syzkaller rawcover not yet loaded')
       return
