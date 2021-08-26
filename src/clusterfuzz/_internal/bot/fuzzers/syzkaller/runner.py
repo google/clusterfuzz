@@ -205,7 +205,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       logs.log_warn('Connection to Syzkaller Failed')
       return
 
-    if not rawcover:
+    if not rawcover or rawcover.startswith('coverage is not ready'):
       logs.log_warn('Syzkaller rawcover not yet loaded')
       return
 
