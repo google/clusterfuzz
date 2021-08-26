@@ -20,6 +20,7 @@ RUN apt-get update && \
     apt-get install -y \
       libcurl3-gnutls \
       libffi6 \
+      libnettle6 \
       libssl1.0.0
 
 FROM ubuntu:20.04
@@ -42,6 +43,7 @@ RUN apt-get update && \
         libcurl4-openssl-dev \
         libffi-dev \
         libgdbm-dev \
+        libidn11 \
         liblzma-dev \
         libncurses5-dev \
         libncursesw5 \
@@ -69,6 +71,7 @@ COPY --from=xenial \
 COPY --from=xenial \
     /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.* \
     /usr/lib/x86_64-linux-gnu/libffi.so.6.* \
+    /usr/lib/x86_64-linux-gnu/libnettle.so.* \
     /usr/lib/x86_64-linux-gnu/
 
 # Install patchelf.
