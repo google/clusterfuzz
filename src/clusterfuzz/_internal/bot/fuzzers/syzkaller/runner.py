@@ -83,24 +83,6 @@ def get_cover_file_path():
   return os.path.join(get_work_dir(), 'coverfile')
 
 
-def find_syzkaller_port(pid: int) -> int or None:
-  """Find localhost port where syzkaller is connected."""
-  import psutil  # pylint: disable=g-import-not-at-top
-
-  for connection in psutil.net_connections():
-    if connection.pid != pid:
-      continue
-
-    local_address = connection.laddr
-    if (local_address.ip == LOCAL_HOST and
-        connection.status == psutil.CONN_LISTEN):
-      logs.log(f'Syzkaller port = {local_address.port}')
-      return local_address.port
-
-  # No connection found
-  return None
-
-
 def get_runner(fuzzer_path):
   """Return a syzkaller runner object."""
   return AndroidSyzkallerRunner(fuzzer_path)
@@ -146,12 +128,35 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       executable_path: Path to the fuzzer executable.
     """
     super().__init__(executable_path=executable_path)
+    self._port = None
 
   def get_command(self, additional_args=None):
     """Process.get_command override."""
     base_command = super().get_command(additional_args=additional_args)
 
     return base_command
+
+  def get_port(self, pid: int) -> int or None:
+    """Find localhost port where syzkaller is connected."""
+
+    if self._port is not None:
+      return self._port
+
+    import psutil  # pylint: disable=g-import-not-at-top
+
+    for connection in psutil.net_connections():
+      if connection.pid != pid:
+        continue
+
+      local_address = connection.laddr
+      if (local_address.ip == LOCAL_HOST and
+          connection.status == psutil.CONN_LISTEN):
+        self._port = local_address.port
+        logs.log(f'Syzkaller listening at: http://localhost:{self._port}')
+        return self._port
+
+    # No connection found
+    return None
 
   def _create_empty_testcase_file(self):
     """Create an empty testcase file in temporary directory."""
@@ -188,13 +193,19 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
   def save_rawcover_output(self, pid: int):
     """Find syzkaller port and write rawcover data to a file."""
-    port = find_syzkaller_port(pid)
+
+    port = self.get_port(pid)
     if port is None:
       logs.log_warn('Could not find Syzkaller port')
       return
 
-    rawcover = requests.get(f'http://localhost:{port}/rawcover').text
-    if not rawcover:
+    try:
+      rawcover = requests.get(f'http://localhost:{port}/rawcover').text
+    except requests.exceptions.ConnectionError:
+      logs.log_warn('Connection to Syzkaller Failed')
+      return
+
+    if not rawcover or rawcover.startswith('coverage is not ready'):
       logs.log_warn('Syzkaller rawcover not yet loaded')
       return
 
@@ -221,29 +232,32 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     pid = process.popen.pid
     logs.log(f'Syzkaller pid = {pid}')
 
-    start_time = time.time()
     looping_timer = LoopingTimer(
         RAWCOVER_RETRIEVE_INTERVAL,
         self.save_rawcover_output,
         args=[pid],
     )
-    looping_timer.run()
+    looping_timer.start()
 
     try:
       if not timeout:
+        start_time = time.time()
         output = process.communicate()[0]
-        looping_timer.cancel()
         return new_process.ProcessResult(process.command, process.poll(),
                                          output,
                                          time.time() - start_time, False)
 
-      return new_process.wait_process(
+      result = new_process.wait_process(
           process,
           timeout=timeout,
           input_data=None,
           terminate_before_kill=False,
           terminate_wait_time=None,
       )
+      result.command = process.command
+      result.output = str(result.output)
+
+      return result
     finally:
       looping_timer.cancel()
 
