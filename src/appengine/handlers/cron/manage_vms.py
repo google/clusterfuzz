@@ -36,7 +36,7 @@ PROJECT_MIN_CPUS = 1
 # This is the maximum number of instances supported in a single instance group.
 PROJECT_MAX_CPUS = 1000
 
-NUM_THREADS = 5
+NUM_THREADS = 8
 
 WorkerInstance = namedtuple('WorkerInstance', ['name', 'project'])
 
@@ -170,13 +170,17 @@ class ClustersManager(object):
     """Start the thread pool."""
     self.thread_pool = ThreadPoolExecutor(max_workers=NUM_THREADS)
 
-  def finish_updates(self):
-    """Close the thread pool and finish cluster updates."""
+  def wait_updates(self):
+    """Wait for updates to finish."""
     for update in self.pending_updates:
       # Raise any exceptions.
       update.result()
 
     self.pending_updates = []
+
+  def finish_updates(self):
+    """Close the thread pool and finish cluster updates."""
+    self.wait_updates()
     self.thread_pool.shutdown()
     self.thread_pool = None
 
@@ -273,10 +277,48 @@ class ClustersManager(object):
 class OssFuzzClustersManager(ClustersManager):
   """Manager for clusters in OSS-Fuzz."""
 
+  def __init__(self, project_id):
+    super().__init__(project_id)
+    self.worker_to_assignment = {}
+    for assignment in self.gce_project.host_worker_assignments:
+      self.worker_to_assignment[assignment.worker] = assignment
+
+    self.all_host_names = set()
+
   def update_clusters(self):
     """Update all clusters in a project."""
-    self.update_project_cpus()
-    self.assign_hosts_to_workers()
+    self.start_thread_pool()
+
+    all_projects = list(data_types.OssFuzzProject.query().order(
+        data_types.OssFuzzProject.name))
+
+    self.cleanup_old_projects([project.name for project in all_projects])
+
+    projects = [project for project in all_projects if not project.high_end]
+    high_end_projects = [
+        project for project in all_projects if project.high_end
+    ]
+
+    project_infos = [
+        self.get_or_create_project_info(project.name) for project in projects
+    ]
+
+    high_end_project_infos = [
+        self.get_or_create_project_info(project.name)
+        for project in high_end_projects
+    ]
+
+    for project, project_info in itertools.chain(
+        list(zip(projects, project_infos)),
+        list(zip(high_end_projects, high_end_project_infos))):
+      self.cleanup_clusters(project, project_info)
+
+    for cluster in self.gce_project.clusters:
+      self.update_project_cpus(projects, project_infos, high_end_projects,
+                               high_end_project_infos, cluster)
+
+    self.cleanup_old_assignments(self.all_host_names)
+    self.finish_updates()
 
   def get_or_create_project_info(self, project_name):
     """Get OSS-Fuzz CPU info by project name (or create a new one if it doesn't
@@ -529,78 +571,56 @@ class OssFuzzClustersManager(ClustersManager):
 
     self.pending_updates.append(self.thread_pool.submit(do_update))
 
-  def update_project_cpus(self):
+  def update_project_cpus(self, projects, project_infos, high_end_projects,
+                          high_end_project_infos, cluster):
     """Update CPU allocations for each project."""
-    all_projects = list(data_types.OssFuzzProject.query().order(
-        data_types.OssFuzzProject.name))
-
-    self.cleanup_old_projects([project.name for project in all_projects])
-
-    projects = [project for project in all_projects if not project.high_end]
-    high_end_projects = [
-        project for project in all_projects if project.high_end
-    ]
-
-    project_infos = [
-        self.get_or_create_project_info(project.name) for project in projects
-    ]
-
-    high_end_project_infos = [
-        self.get_or_create_project_info(project.name)
-        for project in high_end_projects
-    ]
-
-    for project, project_info in itertools.chain(
-        list(zip(projects, project_infos)),
-        list(zip(high_end_projects, high_end_project_infos))):
-      self.cleanup_clusters(project, project_info)
-
-    self.start_thread_pool()
     # Calculate CPUs in each cluster.
-    for cluster in self.gce_project.clusters:
-      if not cluster.distribute:
-        self.pending_updates.append(
-            self.thread_pool.submit(self.update_cluster, cluster, cluster.name,
-                                    cluster.instance_count))
-        continue
+    if not cluster.distribute:
+      self.pending_updates.append(
+          self.thread_pool.submit(self.update_cluster, cluster, cluster.name,
+                                  cluster.instance_count))
+      return
 
-      if cluster.high_end:
-        current_projects = high_end_projects
-        current_project_infos = high_end_project_infos
+    if cluster.high_end:
+      current_projects = high_end_projects
+      current_project_infos = high_end_project_infos
+    else:
+      current_projects = projects
+      current_project_infos = project_infos
+
+    cpu_counts = self.distribute_cpus(current_projects, cluster.instance_count)
+
+    # Resize projects starting with ones that reduce number of CPUs. This is
+    # so that we always have quota when we're resizing a project cluster.
+    # pylint: disable=cell-var-from-loop
+    def _cpu_diff_key(index):
+      cluster_info = current_project_infos[index].get_cluster_info(cluster.name)
+      if cluster_info and cluster_info.cpu_count is not None:
+        old_cpu_count = cluster_info.cpu_count
       else:
-        current_projects = projects
-        current_project_infos = project_infos
+        old_cpu_count = 0
 
-      cpu_counts = self.distribute_cpus(current_projects,
-                                        cluster.instance_count)
+      return cpu_counts[index] - old_cpu_count
 
-      # Resize projects starting with ones that reduce number of CPUs. This is
-      # so that we always have quota when we're resizing a project cluster.
-      # pylint: disable=cell-var-from-loop
-      def _cpu_diff_key(index):
-        cluster_info = current_project_infos[index].get_cluster_info(
-            cluster.name)
-        if cluster_info and cluster_info.cpu_count is not None:
-          old_cpu_count = cluster_info.cpu_count
-        else:
-          old_cpu_count = 0
+    resize_order = sorted(list(range(len(cpu_counts))), key=_cpu_diff_key)
+    for i in resize_order:
+      project = current_projects[i]
+      project_info = current_project_infos[i]
+      self.update_project_cluster(
+          project,
+          project_info,
+          cluster,
+          cpu_counts[i],
+          disk_size_gb=project.disk_size_gb)
 
-        return cpu_counts[index] - old_cpu_count
-
-      resize_order = sorted(list(range(len(cpu_counts))), key=_cpu_diff_key)
-      for i in resize_order:
-        project = current_projects[i]
-        project_info = current_project_infos[i]
-        self.update_project_cluster(
-            project,
-            project_info,
-            cluster,
-            cpu_counts[i],
-            disk_size_gb=project.disk_size_gb)
-
-    self.finish_updates()
+    self.wait_updates()
     ndb_utils.put_multi(project_infos)
     ndb_utils.put_multi(high_end_project_infos)
+
+    # If the workers are done, we're ready to assign them.
+    # Note: This assumes that hosts are always specified before workers.
+    if cluster.name in self.worker_to_assignment:
+      self.assign_hosts_to_workers(self.worker_to_assignment[cluster.name])
 
   def get_all_workers_in_cluster(self, manager, cluster_name):
     """Get all workers in a cluster."""
@@ -638,58 +658,53 @@ class OssFuzzClustersManager(ClustersManager):
 
     return workers
 
-  def assign_hosts_to_workers(self):
+  def assign_hosts_to_workers(self, assignment):
     """Assign host instances to workers."""
-    all_host_names = set()
-    for assignment in self.gce_project.host_worker_assignments:
-      host_cluster = self.gce_project.get_cluster(assignment.host)
-      worker_cluster = self.gce_project.get_cluster(assignment.worker)
+    host_cluster = self.gce_project.get_cluster(assignment.host)
+    worker_cluster = self.gce_project.get_cluster(assignment.worker)
 
-      if host_cluster.gce_zone != worker_cluster.gce_zone:
-        logging.error('Mismatching zones for %s and %s.', assignment.host,
-                      assignment.worker)
-        continue
+    if host_cluster.gce_zone != worker_cluster.gce_zone:
+      logging.error('Mismatching zones for %s and %s.', assignment.host,
+                    assignment.worker)
+      return
 
-      if (host_cluster.instance_count * assignment.workers_per_host !=
-          worker_cluster.instance_count):
-        logging.error('Invalid host/worker cluster size for %s and %s.',
-                      assignment.host, assignment.worker)
-        continue
+    if (host_cluster.instance_count * assignment.workers_per_host !=
+        worker_cluster.instance_count):
+      logging.error('Invalid host/worker cluster size for %s and %s.',
+                    assignment.host, assignment.worker)
+      return
 
-      if host_cluster.high_end != worker_cluster.high_end:
-        logging.error('Mismatching high end setting for %s and %s',
-                      assignment.host, assignment.worker)
-        continue
+    if host_cluster.high_end != worker_cluster.high_end:
+      logging.error('Mismatching high end setting for %s and %s',
+                    assignment.host, assignment.worker)
+      return
 
-      manager = bot_manager.BotManager(self.gce_project.project_id,
-                                       host_cluster.gce_zone)
-      host_instance_group = manager.instance_group(host_cluster.name)
+    manager = bot_manager.BotManager(self.gce_project.project_id,
+                                     host_cluster.gce_zone)
+    host_instance_group = manager.instance_group(host_cluster.name)
 
-      if not host_instance_group.exists():
-        logging.error('Host instance group %s does not exist.',
-                      host_cluster.name)
-        continue
+    if not host_instance_group.exists():
+      logging.error('Host instance group %s does not exist.', host_cluster.name)
+      return
 
-      host_names = [
-          _instance_name_from_url(instance['instance'])
-          for instance in host_instance_group.list_managed_instances()
-      ]
-      all_host_names.update(host_names)
-      worker_instances = self.get_all_workers_in_cluster(
-          manager, worker_cluster.name)
+    host_names = [
+        _instance_name_from_url(instance['instance'])
+        for instance in host_instance_group.list_managed_instances()
+    ]
+    self.all_host_names.update(host_names)
+    worker_instances = self.get_all_workers_in_cluster(manager,
+                                                       worker_cluster.name)
 
-      if len(worker_instances) != worker_cluster.instance_count:
-        logging.error(
-            'Actual number of worker instances for %s did not match. '
-            'Expected %d, got %d.', worker_cluster.name,
-            worker_cluster.instance_count, len(worker_instances))
-        continue
+    if len(worker_instances) != worker_cluster.instance_count:
+      logging.error(
+          'Actual number of worker instances for %s did not match. '
+          'Expected %d, got %d.', worker_cluster.name,
+          worker_cluster.instance_count, len(worker_instances))
+      return
 
-      new_assignments = self.do_assign_hosts_to_workers(
-          host_names, worker_instances, assignment.workers_per_host)
-      ndb_utils.put_multi(new_assignments)
-
-    self.cleanup_old_assignments(all_host_names)
+    new_assignments = self.do_assign_hosts_to_workers(
+        host_names, worker_instances, assignment.workers_per_host)
+    ndb_utils.put_multi(new_assignments)
 
 
 class Handler(base_handler.Handler):

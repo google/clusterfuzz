@@ -180,6 +180,167 @@ INSTANCES = {
     } for i in range(1, 3)],
 }
 
+OSS_FUZZ_CLUSTERS = compute_engine_projects.Project(
+    project_id='clusterfuzz-external',
+    clusters=[
+        compute_engine_projects.Cluster(
+            name='oss-fuzz-linux-zone2-pre',
+            gce_zone='us-east2-a',
+            instance_count=997,
+            instance_template='external-pre-zone2',
+            distribute=True,
+            worker=False,
+            high_end=False),
+        compute_engine_projects.Cluster(
+            name='oss-fuzz-linux-zone3-host',
+            gce_zone='us-central1-d',
+            instance_count=2,
+            instance_template='host-zone3',
+            distribute=False,
+            worker=False,
+            high_end=False),
+        compute_engine_projects.Cluster(
+            name='oss-fuzz-linux-zone3-worker',
+            gce_zone='us-central1-d',
+            instance_count=16,
+            instance_template='worker-zone3',
+            distribute=True,
+            worker=True,
+            high_end=False),
+        compute_engine_projects.Cluster(
+            name='oss-fuzz-linux-zone3-host-high-end',
+            gce_zone='us-central1-d',
+            instance_count=1,
+            instance_template='host-high-end-zone3',
+            distribute=False,
+            worker=False,
+            high_end=True),
+        compute_engine_projects.Cluster(
+            name='oss-fuzz-linux-zone3-worker-high-end',
+            gce_zone='us-central1-d',
+            instance_count=2,
+            instance_template='worker-zone3',
+            distribute=True,
+            worker=True,
+            high_end=True),
+    ],
+    instance_templates=[
+        {
+            'name': 'external-pre-zone2',
+            'description': '{"version": 1}',
+            'properties': {
+                'metadata': {
+                    'items': [],
+                },
+                'disks': [{
+                    'initializeParams': {
+                        'diskSizeGb': 30,
+                    },
+                }],
+                'serviceAccounts': [{
+                    'email':
+                        'email',
+                    'scopes': [
+                        'https://www.googleapis.com/auth/'
+                        'devstorage.full_control',
+                        'https://www.googleapis.com/auth/logging.write',
+                        'https://www.googleapis.com/auth/userinfo.email',
+                        'https://www.googleapis.com/auth/appengine.apis',
+                        'https://www.googleapis.com/auth/prodxmon',
+                        'https://www.googleapis.com/auth/bigquery',
+                    ]
+                }],
+            }
+        },
+        {
+            'name': 'host-zone3',
+            'description': '{"version": 1}',
+            'properties': {
+                'metadata': {
+                    'items': [],
+                },
+                'disks': [{
+                    'initializeParams': {
+                        'diskSizeGb': 30,
+                    },
+                }],
+                'serviceAccounts': [{
+                    'email':
+                        'email',
+                    'scopes': [
+                        'https://www.googleapis.com/auth/'
+                        'devstorage.full_control',
+                        'https://www.googleapis.com/auth/logging.write',
+                        'https://www.googleapis.com/auth/userinfo.email',
+                        'https://www.googleapis.com/auth/appengine.apis',
+                        'https://www.googleapis.com/auth/prodxmon',
+                        'https://www.googleapis.com/auth/bigquery',
+                    ]
+                }],
+            }
+        },
+        {
+            'name': 'worker-zone3',
+            'description': '{"version": 1}',
+            'properties': {
+                'metadata': {
+                    'items': [],
+                },
+                'disks': [{
+                    'initializeParams': {
+                        'diskSizeGb': 30,
+                    },
+                }],
+                'serviceAccounts': [{
+                    'email':
+                        'email',
+                    'scopes': [
+                        'https://www.googleapis.com/auth/'
+                        'devstorage.full_control',
+                        'https://www.googleapis.com/auth/logging.write',
+                        'https://www.googleapis.com/auth/userinfo.email',
+                        'https://www.googleapis.com/auth/prodxmon',
+                    ]
+                }],
+            }
+        },
+        {
+            'name': 'host-high-end-zone3',
+            'description': '{"version": 1}',
+            'properties': {
+                'metadata': {
+                    'items': [],
+                },
+                'disks': [{
+                    'initializeParams': {
+                        'diskSizeGb': 100,
+                    },
+                }],
+                'serviceAccounts': [{
+                    'email':
+                        'email',
+                    'scopes': [
+                        'https://www.googleapis.com/auth/'
+                        'devstorage.full_control',
+                        'https://www.googleapis.com/auth/logging.write',
+                        'https://www.googleapis.com/auth/userinfo.email',
+                        'https://www.googleapis.com/auth/prodxmon',
+                    ]
+                }],
+            }
+        },
+    ],
+    host_worker_assignments=[
+        compute_engine_projects.HostWorkerAssignment(
+            host='oss-fuzz-linux-zone3-host',
+            worker='oss-fuzz-linux-zone3-worker',
+            workers_per_host=8),
+        compute_engine_projects.HostWorkerAssignment(
+            host='oss-fuzz-linux-zone3-host-high-end',
+            worker='oss-fuzz-linux-zone3-worker-high-end',
+            workers_per_host=2),
+    ])
+
 
 def mock_resource(spec):
   """Mock resource."""
@@ -308,166 +469,7 @@ class CronTest(unittest.TestCase):
 
     self.mock.is_oss_fuzz.return_value = True
     self.mock.is_running_on_app_engine.return_value = True
-    self.mock.load_project.return_value = compute_engine_projects.Project(
-        project_id='clusterfuzz-external',
-        clusters=[
-            compute_engine_projects.Cluster(
-                name='oss-fuzz-linux-zone2-pre',
-                gce_zone='us-east2-a',
-                instance_count=997,
-                instance_template='external-pre-zone2',
-                distribute=True,
-                worker=False,
-                high_end=False),
-            compute_engine_projects.Cluster(
-                name='oss-fuzz-linux-zone3-host',
-                gce_zone='us-central1-d',
-                instance_count=2,
-                instance_template='host-zone3',
-                distribute=False,
-                worker=False,
-                high_end=False),
-            compute_engine_projects.Cluster(
-                name='oss-fuzz-linux-zone3-worker',
-                gce_zone='us-central1-d',
-                instance_count=16,
-                instance_template='worker-zone3',
-                distribute=True,
-                worker=True,
-                high_end=False),
-            compute_engine_projects.Cluster(
-                name='oss-fuzz-linux-zone3-host-high-end',
-                gce_zone='us-central1-d',
-                instance_count=1,
-                instance_template='host-high-end-zone3',
-                distribute=False,
-                worker=False,
-                high_end=True),
-            compute_engine_projects.Cluster(
-                name='oss-fuzz-linux-zone3-worker-high-end',
-                gce_zone='us-central1-d',
-                instance_count=2,
-                instance_template='worker-zone3',
-                distribute=True,
-                worker=True,
-                high_end=True),
-        ],
-        instance_templates=[
-            {
-                'name': 'external-pre-zone2',
-                'description': '{"version": 1}',
-                'properties': {
-                    'metadata': {
-                        'items': [],
-                    },
-                    'disks': [{
-                        'initializeParams': {
-                            'diskSizeGb': 30,
-                        },
-                    }],
-                    'serviceAccounts': [{
-                        'email':
-                            'email',
-                        'scopes': [
-                            'https://www.googleapis.com/auth/'
-                            'devstorage.full_control',
-                            'https://www.googleapis.com/auth/logging.write',
-                            'https://www.googleapis.com/auth/userinfo.email',
-                            'https://www.googleapis.com/auth/appengine.apis',
-                            'https://www.googleapis.com/auth/prodxmon',
-                            'https://www.googleapis.com/auth/bigquery',
-                        ]
-                    }],
-                }
-            },
-            {
-                'name': 'host-zone3',
-                'description': '{"version": 1}',
-                'properties': {
-                    'metadata': {
-                        'items': [],
-                    },
-                    'disks': [{
-                        'initializeParams': {
-                            'diskSizeGb': 30,
-                        },
-                    }],
-                    'serviceAccounts': [{
-                        'email':
-                            'email',
-                        'scopes': [
-                            'https://www.googleapis.com/auth/'
-                            'devstorage.full_control',
-                            'https://www.googleapis.com/auth/logging.write',
-                            'https://www.googleapis.com/auth/userinfo.email',
-                            'https://www.googleapis.com/auth/appengine.apis',
-                            'https://www.googleapis.com/auth/prodxmon',
-                            'https://www.googleapis.com/auth/bigquery',
-                        ]
-                    }],
-                }
-            },
-            {
-                'name': 'worker-zone3',
-                'description': '{"version": 1}',
-                'properties': {
-                    'metadata': {
-                        'items': [],
-                    },
-                    'disks': [{
-                        'initializeParams': {
-                            'diskSizeGb': 30,
-                        },
-                    }],
-                    'serviceAccounts': [{
-                        'email':
-                            'email',
-                        'scopes': [
-                            'https://www.googleapis.com/auth/'
-                            'devstorage.full_control',
-                            'https://www.googleapis.com/auth/logging.write',
-                            'https://www.googleapis.com/auth/userinfo.email',
-                            'https://www.googleapis.com/auth/prodxmon',
-                        ]
-                    }],
-                }
-            },
-            {
-                'name': 'host-high-end-zone3',
-                'description': '{"version": 1}',
-                'properties': {
-                    'metadata': {
-                        'items': [],
-                    },
-                    'disks': [{
-                        'initializeParams': {
-                            'diskSizeGb': 100,
-                        },
-                    }],
-                    'serviceAccounts': [{
-                        'email':
-                            'email',
-                        'scopes': [
-                            'https://www.googleapis.com/auth/'
-                            'devstorage.full_control',
-                            'https://www.googleapis.com/auth/logging.write',
-                            'https://www.googleapis.com/auth/userinfo.email',
-                            'https://www.googleapis.com/auth/prodxmon',
-                        ]
-                    }],
-                }
-            },
-        ],
-        host_worker_assignments=[
-            compute_engine_projects.HostWorkerAssignment(
-                host='oss-fuzz-linux-zone3-host',
-                worker='oss-fuzz-linux-zone3-worker',
-                workers_per_host=8),
-            compute_engine_projects.HostWorkerAssignment(
-                host='oss-fuzz-linux-zone3-host-high-end',
-                worker='oss-fuzz-linux-zone3-worker-high-end',
-                workers_per_host=2),
-        ])
+    self.mock.load_project.return_value = OSS_FUZZ_CLUSTERS
 
     data_types.OssFuzzProject(
         id='proj1',
@@ -941,6 +943,12 @@ class CronTest(unittest.TestCase):
 class OssFuzzDistributeCpusTest(unittest.TestCase):
   """Tests OSS-Fuzz CPU distribution."""
 
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.compute_engine_projects.load_project',
+    ])
+    self.mock.load_project.return_value = OSS_FUZZ_CLUSTERS
+
   def test_equal(self):
     """Tests for each project receiving equal share."""
     projects = [
@@ -1066,6 +1074,12 @@ class OssFuzzDistributeCpusTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class AssignHostWorkerTest(unittest.TestCase):
   """Tests host -> worker assignment."""
+
+  def setUp(self):
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.compute_engine_projects.load_project',
+    ])
+    self.mock.load_project.return_value = OSS_FUZZ_CLUSTERS
 
   def test_assign_keep_existing(self):
     """Test that assignment keeps existing assignments."""
