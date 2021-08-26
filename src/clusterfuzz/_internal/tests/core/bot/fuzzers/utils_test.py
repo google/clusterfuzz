@@ -110,3 +110,27 @@ class IsFuzzTargetLocalTest(unittest.TestCase):
         'abc', contents=b'anything\nLLVMFuzzerTestOneInput')
     with open(path, 'rb') as f:
       self.assertTrue(utils.is_fuzz_target_local('name', f))
+
+
+class GetSupportingFileTest(unittest.TestCase):
+  """Tests for get_supporting_file."""
+
+  def test_no_extension(self):
+    """Test no extension."""
+    self.assertEqual('/a/b.labels', utils.get_supporting_file(
+        '/a/b', '.labels'))
+
+  def test_unknown_extension(self):
+    """Test unknown extension."""
+    self.assertEqual('/a/b.c.labels',
+                     utils.get_supporting_file('/a/b.c', '.labels'))
+
+  def test_exe(self):
+    """Test exe extension."""
+    self.assertEqual('/a/b.labels',
+                     utils.get_supporting_file('/a/b.exe', '.labels'))
+
+  def test_par(self):
+    """Test par extension."""
+    self.assertEqual('/a/b.labels',
+                     utils.get_supporting_file('/a/b.par', '.labels'))
