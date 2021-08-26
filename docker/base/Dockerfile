@@ -11,6 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copy some commonly linked library versions from xenial for backwards
+# compatibility with older builds.
+FROM ubuntu:16.04 as xenial
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update && \
+    apt-get install -y \
+      libcurl3-gnutls \
+      libffi6 \
+      libnettle6 \
+      libssl1.0.0
+
 FROM ubuntu:20.04
 
 RUN mkdir /data
@@ -31,12 +43,15 @@ RUN apt-get update && \
         libcurl4-openssl-dev \
         libffi-dev \
         libgdbm-dev \
+        libidn11 \
         liblzma-dev \
         libncurses5-dev \
+        libncursesw5 \
         libnss3-dev \
         libreadline-dev \
         libsqlite3-dev \
         libssl-dev \
+        libtinfo5 \
         locales \
         lsb-release \
         net-tools \
@@ -48,6 +63,16 @@ RUN apt-get update && \
         wget \
         zip \
         zlib1g-dev
+
+COPY --from=xenial \
+    /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
+    /lib/x86_64-linux-gnu/libssl.so.1.0.0 \
+    /lib/x86_64-linux-gnu/
+COPY --from=xenial \
+    /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.* \
+    /usr/lib/x86_64-linux-gnu/libffi.so.6.* \
+    /usr/lib/x86_64-linux-gnu/libnettle.so.* \
+    /usr/lib/x86_64-linux-gnu/
 
 # Install patchelf.
 RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
