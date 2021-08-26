@@ -124,7 +124,18 @@ def get_build_revision():
 
 def get_supporting_file(fuzz_target_path, extension_or_suffix):
   """Get supporting file for a fuzz target with the provided extension."""
-  return utils.get_path_without_ext(fuzz_target_path) + extension_or_suffix
+  base_fuzz_target_path = fuzz_target_path
+
+  # Strip any known extensions.
+  for ext in ALLOWED_FUZZ_TARGET_EXTENSIONS:
+    if not ext:
+      continue
+
+    if base_fuzz_target_path.endswith(ext):
+      base_fuzz_target_path = base_fuzz_target_path[:-len(ext)]
+      break
+
+  return base_fuzz_target_path + extension_or_suffix
 
 
 def get_temp_dir():
