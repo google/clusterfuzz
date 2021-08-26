@@ -232,29 +232,32 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     pid = process.popen.pid
     logs.log(f'Syzkaller pid = {pid}')
 
-    start_time = time.time()
     looping_timer = LoopingTimer(
         RAWCOVER_RETRIEVE_INTERVAL,
         self.save_rawcover_output,
         args=[pid],
     )
-    looping_timer.run()
+    looping_timer.start()
 
     try:
       if not timeout:
+        start_time = time.time()
         output = process.communicate()[0]
-        looping_timer.cancel()
         return new_process.ProcessResult(process.command, process.poll(),
                                          output,
                                          time.time() - start_time, False)
 
-      return new_process.wait_process(
+      result = new_process.wait_process(
           process,
           timeout=timeout,
           input_data=None,
           terminate_before_kill=False,
           terminate_wait_time=None,
       )
+      result.command = process.command
+      result.output = str(result.output)
+
+      return result
     finally:
       looping_timer.cancel()
 
