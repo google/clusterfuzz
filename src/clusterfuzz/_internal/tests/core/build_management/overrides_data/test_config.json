@@ -1,0 +1,10 @@
+{
+	"build_paths": {
+		"android:seahawk_hwasan:r": "gs://auto/git_r/something/something/%something%/([something]+).zip",
+		"android:seahawk_hwasan:s": "gs://auto/git_s/something/%something%/([something]+).zip"
+	},
+	"revisions_paths": {
+		"android:seahawk_hwasan:r": "gs://auto/git_r/something/%s.srcmap.json",
+		"android:seahawk_hwasan:s": "gs://auto/git_s/something/%s.srcmap.json"
+	}
+}

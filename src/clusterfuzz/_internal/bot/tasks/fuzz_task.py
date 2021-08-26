@@ -1810,8 +1810,8 @@ class FuzzingSession(object):
                                FuzzErrorCode.FUZZER_SETUP_FAILED)
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
 
-      # Artificial sleep to slow down continuous failed fuzzer runs if the bot is
-      # using command override for task execution.
+      # Artificial sleep to slow down continuous failed fuzzer runs if the bot
+      # is using command override for task execution.
       time.sleep(failure_wait_interval)
       return
 

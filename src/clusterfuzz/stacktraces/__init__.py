@@ -1387,7 +1387,7 @@ def reverse_python_stacktrace(stacktrace):
           python_stacktrace_split = [line]  # Add the "title" of the stacktrace
           break
     else:
-      if '=========' in line:  # Locate the beginning of the sanitizer stacktrace
+      if '=========' in line:  # Locate beginning of the sanitizer stacktrace
         break
       python_stacktrace_split.insert(1, line)
 

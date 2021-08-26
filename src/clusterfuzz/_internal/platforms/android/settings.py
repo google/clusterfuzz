@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Settings change related functions."""
-
 import re
 
 from clusterfuzz._internal.system import environment
