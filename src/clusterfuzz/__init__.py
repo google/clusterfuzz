@@ -18,10 +18,12 @@ import os
 if not os.getenv('ROOT_DIR') and not os.getenv('GAE_ENV'):
   # If ROOT_DIR isn't set by the time we import this and we're not on GAE,
   # assume we're libClusterFuzz.
+  # Actual value does not matter, it just needs to be set.
+  os.environ['ROOT_DIR'] = '/tmp'
+  os.environ['LIB_CF'] = 'True'
   this_dir = os.path.dirname(os.path.abspath(__file__))
   os.environ['CONFIG_DIR_OVERRIDE'] = os.path.join(this_dir, 'lib-config')
-  os.environ['ROOT_DIR'] = os.path.dirname(os.path.dirname(this_dir))
-  os.environ['LIB_CF'] = 'True'
 
-  from ._internal.system import environment
-  environment.set_default_vars()
+  # Other necessary env vars.
+  os.environ['FAIL_RETRIES'] = '1'
+  os.environ['FAIL_WAIT'] = '10'
