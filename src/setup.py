@@ -19,7 +19,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='clusterfuzz',
-    version='2.5.1',
+    version='2.5.2',
     author='ClusterFuzz authors',
     author_email='clusterfuzz-dev@googlegroups.com',
     description='ClusterFuzz',
@@ -38,7 +38,7 @@ setuptools.setup(
         'google-auth>=1.22.1',
         'google-auth-oauthlib',
         'google-cloud-core',
-        'google-cloud-datastore',
+        'google-cloud-datastore==1.12.0',
         'google-cloud-logging',
         'google-cloud-monitoring',
         'google-cloud-ndb',
