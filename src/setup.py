@@ -19,7 +19,7 @@ with open('README.md', 'r') as fh:
 
 setuptools.setup(
     name='clusterfuzz',
-    version='2.5.3',
+    version='2.5.4',
     author='ClusterFuzz authors',
     author_email='clusterfuzz-dev@googlegroups.com',
     description='ClusterFuzz',
@@ -49,6 +49,7 @@ setuptools.setup(
         'oauth2client',
         'protobuf',
         'psutil',
+        'pytz',
         'PyYAML',
         'requests',
         'six',
