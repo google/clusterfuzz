@@ -158,7 +158,8 @@ def get_component_impacts_from_url(component_name,
     branched_from = revisions.revision_to_branched_from(
         component_revision['url'], component_revision['rev'])
     if not branched_from:
-      return Impacts()
+      branched_from = component_revision['rev'] # this is a head revision,
+        # not branched
     impact = get_impact({
         'revision': branched_from,
         'version': mapping['version']
