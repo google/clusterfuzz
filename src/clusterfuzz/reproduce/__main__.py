@@ -14,16 +14,14 @@
 """Reproduction module."""
 
 import argparse
-import os
 import shlex
+import sys
 
+from clusterfuzz.environment import Environment
 import clusterfuzz.fuzz
 
 
 def main():
-  os.environ['CF_INTERACTIVE'] = 'True'
-  os.environ['PROJECT_NAME'] = 'libClusterFuzz'
-
   parser = argparse.ArgumentParser(description='Fuzzing tool')
   parser.add_argument('-t', '--target', help='Path to target.', required=True)
   parser.add_argument(
@@ -49,20 +47,13 @@ def main():
   parser.add_argument('engine_args', nargs='*')
   args = parser.parse_args()
 
-  # TODO(ochang): Find a cleaner way to propagate this.
-  if args.sanitizer == 'address':
-    os.environ['JOB_NAME'] = 'libfuzzer_asan'
-  elif args.sanitizer == 'memory':
-    os.environ['JOB_NAME'] = 'libfuzzer_msan'
-  elif args.sanitizer == 'undefined':
-    os.environ['JOB_NAME'] = 'libfuzzer_ubsan'
+  with Environment(args.engine, args.sanitizer, args.target, interactive=True):
+    engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
+    result = engine_impl.reproduce(args.target, args.reproducer,
+                                   args.engine_args, args.max_duration)
 
-  os.environ['BUILD_DIR'] = os.path.dirname(args.target)
-
-  engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
-  result = engine_impl.reproduce(args.target, args.reproducer, args.engine_args,
-                                 args.max_duration)
   print('Command: ', ' '.join([shlex.quote(part) for part in result.command]))
+  sys.exit(result.return_code)
 
 
 if __name__ == '__main__':
