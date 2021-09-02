@@ -316,12 +316,11 @@ class LibFuzzerEngine(engine.Engine):
     timeout_limit = fuzzer_utils.extract_argument(
         options.arguments, constants.TIMEOUT_FLAG, remove=False)
 
-    expected_duration = runner.get_max_total_time(max_time)
     actual_duration = int(fuzz_result.time_executed)
-    fuzzing_time_percent = 100 * actual_duration / float(expected_duration)
+    fuzzing_time_percent = 100 * actual_duration / float(max_time)
     parsed_stats.update({
         'timeout_limit': int(timeout_limit),
-        'expected_duration': expected_duration,
+        'expected_duration': max_time,
         'actual_duration': actual_duration,
         'fuzzing_time_percent': fuzzing_time_percent,
     })
