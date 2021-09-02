@@ -1217,10 +1217,11 @@ def get_strategy_distribution_from_ndb():
 
 def _get_issue_metadata_from_environment(variable_name):
   """Get issue metadata from environment."""
-  values = str(environment.get_value(variable_name, '')).split()
+  values = str(environment.get_value_string(variable_name, '')).split(',')
   # Allow a variation with a '_1' to specified. This is needed in cases where
   # this is specified in both the job and the bot environment.
-  values.extend(str(environment.get_value(variable_name + '_1', '')).split())
+  values.extend(
+      str(environment.get_value_string(variable_name + '_1', '')).split(','))
   return [value.strip() for value in values if value.strip()]
 
 
