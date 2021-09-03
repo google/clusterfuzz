@@ -20,6 +20,8 @@ from clusterfuzz._internal.system import environment
 
 # Inverted SANITIZER_NAME_MAP.
 SANITIZER_MAP = {v: k for k, v in environment.SANITIZER_NAME_MAP.items()}
+# Check for duplicate values in the original map.
+assert len(SANITIZER_MAP) == len(environment.SANITIZER_NAME_MAP)
 
 
 class Environment:
