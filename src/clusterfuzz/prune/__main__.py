@@ -17,13 +17,11 @@ import argparse
 import os
 import shlex
 
+from clusterfuzz.environment import Environment
 import clusterfuzz.fuzz
 
 
 def main():
-  os.environ['CF_INTERACTIVE'] = 'True'
-  os.environ['PROJECT_NAME'] = 'libClusterFuzz'
-
   parser = argparse.ArgumentParser(description='Fuzzing tool')
   parser.add_argument('-t', '--target', help='Path to target.', required=True)
   parser.add_argument(
@@ -55,19 +53,13 @@ def main():
       '-d', '--max-duration', help='Max time in seconds to run.', type=int)
   args = parser.parse_args()
 
-  # TODO(ochang): Find a cleaner way to propagate this.
-  if args.sanitizer == 'address':
-    os.environ['JOB_NAME'] = 'libfuzzer_asan'
-  elif args.sanitizer == 'memory':
-    os.environ['JOB_NAME'] = 'libfuzzer_msan'
-  elif args.sanitizer == 'undefined':
-    os.environ['JOB_NAME'] = 'libfuzzer_ubsan'
+  os.makedirs(args.output, exist_ok=True)
+  with Environment(args.engine, args.sanitizer, args.target, interactive=True):
+    engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
+    result = engine_impl.minimize_corpus(args.target, [], args.input,
+                                         args.output, args.crashers,
+                                         args.max_duration)
 
-  os.environ['BUILD_DIR'] = os.path.dirname(args.target)
-
-  engine_impl = clusterfuzz.fuzz.get_engine(args.engine)
-  result = engine_impl.minimize_corpus(args.target, [], args.input, args.output,
-                                       args.crashers, args.max_duration)
   print('Command: ', ' '.join([shlex.quote(part) for part in result.command]))
 
 
