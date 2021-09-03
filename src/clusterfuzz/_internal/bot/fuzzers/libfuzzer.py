@@ -160,13 +160,13 @@ class LibFuzzerCommon(object):
         timeout=analyze_timeout,
         max_stdout_len=MAX_OUTPUT_LEN)
 
-  def get_max_total_time(self, timeout):
-    """Calculate value of `-max_total_time=` argument to be passed to fuzzer.
+  def get_total_timeout(self, timeout):
+    """Calculate the total process timeout.
 
     Args:
       timeout: The maximum time in seconds that libFuzzer is allowed to run for.
     """
-    timeout = timeout - self.LIBFUZZER_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME
+    timeout = timeout + self.LIBFUZZER_CLEAN_EXIT_TIME
     return int(timeout)
 
   def get_minimize_total_time(self, timeout):
@@ -205,7 +205,7 @@ class LibFuzzerCommon(object):
     if additional_args is None:
       additional_args = []
 
-    max_total_time = self.get_max_total_time(fuzz_timeout)
+    max_total_time = fuzz_timeout
     if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
       max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
     assert max_total_time > 0
@@ -227,7 +227,7 @@ class LibFuzzerCommon(object):
     additional_args.extend(corpus_directories)
     return self.run_and_wait(
         additional_args=additional_args,
-        timeout=fuzz_timeout - self.SIGTERM_WAIT_TIME,
+        timeout=self.get_total_timeout(fuzz_timeout),
         terminate_before_kill=True,
         terminate_wait_time=self.SIGTERM_WAIT_TIME,
         max_stdout_len=MAX_OUTPUT_LEN,
@@ -488,7 +488,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
     self._push_corpora_from_host_to_target(corpus_directories)
 
-    max_total_time = self.get_max_total_time(fuzz_timeout)
+    max_total_time = fuzz_timeout
     if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
       max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
     assert max_total_time > 0
@@ -828,7 +828,7 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
     self._test_ssh()
     self._push_corpora_from_host_to_target(corpus_directories)
 
-    max_total_time = self.get_max_total_time(fuzz_timeout)
+    max_total_time = fuzz_timeout
     if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
       max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
     assert max_total_time > 0
