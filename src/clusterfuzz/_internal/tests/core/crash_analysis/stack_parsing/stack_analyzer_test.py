@@ -1745,6 +1745,19 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_kasan_uaf_2(self):
+    """Test a second case of KASan use-after-free."""
+    data = self._read_test_data('kasan_uaf2.txt')
+    expected_type = 'Kernel failure\nUse-after-free\nWRITE 8'
+    expected_state = ('f2fs_register_inmem_page\nf2fs_set_data_page_dirty\nset_page_dirty\n')
+    expected_address = '0xffffffc05b5c4d28'
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_asan_null_dereference_read(self):
     """Test a Null-dereference READ derived from ASan UNKNOWN READ access."""
     data = self._read_test_data('asan_null_dereference_read.txt')
