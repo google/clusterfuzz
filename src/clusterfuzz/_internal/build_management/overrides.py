@@ -23,9 +23,10 @@ PLATFORM_ID_URLS_FILENAME = 'config.json'
 PLATFORM_ID_TO_BUILD_PATH_KEY = 'build_paths'
 PLATFORM_ID_TO_REV_PATH_KEY = 'revisions_paths'
 
-OVERRIDE_PATH_NOT_FOUND_ERROR = 'Could not find override path from config.'
-OVERRIDE_CONFIG_NOT_JSON_ERROR = 'Could not read config as json.'
-OVERRIDE_CONFIG_NOT_READ_ERROR = 'Could not import config file.'
+OVERRIDE_PATH_NOT_FOUND_ERROR = 'Could not find override path from config, '\
+                                 'config_key: {}, config_url: {}, '\
+                                 'platform_id = {}.'
+OVERRIDE_CONFIG_NOT_READ_ERROR = 'Could not import config file. config_url: {}'
 
 
 def check_and_apply_overrides(curr_path, config_key):
@@ -44,7 +45,9 @@ def _apply_platform_id_overrides(platform_id, config_url, config_key):
   config_dict = _get_config_dict(config_url)
   path = _get_path_from_config(config_dict, config_key, platform_id)
   if not path:
-    raise BuildOverrideError(OVERRIDE_PATH_NOT_FOUND_ERROR)
+    raise BuildOverrideError(
+        OVERRIDE_PATH_NOT_FOUND_ERROR.format(config_key, config_url,
+                                             platform_id))
   return path
 
 
@@ -52,12 +55,8 @@ def _get_config_dict(url):
   """Read configs from a json and return them as a dict"""
   url_data = storage.read_data(url)
   if not url_data:
-    raise BuildOverrideError(OVERRIDE_CONFIG_NOT_READ_ERROR)
-  try:
-    config_dict = json.loads(url_data)
-  except ValueError:
-    raise BuildOverrideError(OVERRIDE_CONFIG_NOT_JSON_ERROR)
-  return config_dict
+    raise BuildOverrideError(OVERRIDE_CONFIG_NOT_READ_ERROR.format(url))
+  return json.loads(url_data)
 
 
 def _get_path_from_config(config_dict, config_key, platform_id):
