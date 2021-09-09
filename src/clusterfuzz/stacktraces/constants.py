@@ -105,13 +105,13 @@ HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
 JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
-KASAN_ACCESS_TYPE_REGEX = re.compile(r'.*(Read|Write) of size ([0-9]+)')
+KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
 KASAN_ACCESS_TYPE_ADDRESS_REGEX = re.compile(
-    r'.*(Read|Write) of size ([0-9]+) at (addr|address) ([a-f0-9]+)')
+    r'(Read|Write) of size ([0-9]+) at (addr|address) ([a-f0-9]+)')
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
-    r'.*BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
+    r'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
 KASAN_CRASH_TYPE_FUNCTION_REGEX = re.compile(
-    r'.*BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)/([\w]+)')
+    r'BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)/([\w]+)')
 KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')
 LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
     r'.*ERROR:\s*libFuzzer:\s*deadly signal')

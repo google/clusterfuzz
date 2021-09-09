@@ -279,13 +279,25 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       engine.FuzzResult
     """
 
-    def _filter_log(content):
-      """Filter unneeded content from log."""
-      result = ''
-      strip_regex = re.compile(r'^c\d+\s+\d+\s')
-      for line in content.splitlines():
-        result += strip_regex.sub('', line) + '\n'
-      return result
+    def _filter_log(content: str) -> str:
+      """Remove unnecessary prefix from each line of log.
+
+      e.g
+      [  565.723853] c4   8262 BUG: KASAN: ...
+      vs.
+      BUG: KASAN: ...
+
+      Args:
+        content (str): log content
+      Returns:
+        filtered log with new lines (str)
+      """
+
+      strip_regex = re.compile(r'^(\[.*\]\s+)?c\d+\s+\d+\s')
+
+      result = [strip_regex.sub('', line) for line in content.splitlines()]
+
+      return '\n'.join(result)
 
     logs.log('Running Syzkaller.')
     additional_args = copy.copy(additional_args)

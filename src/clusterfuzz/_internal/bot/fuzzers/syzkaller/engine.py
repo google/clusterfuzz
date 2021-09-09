@@ -131,7 +131,8 @@ class SyzkallerEngine(engine.Engine):
     if os.path.isfile(source_file):
       shutil.copy(source_file, destination_file)
 
-  def fuzz(self, target_path, options, unused_reproducers_dir=None, max_time=0):
+  def fuzz(self, target_path, options, unused_reproducers_dir=None,
+           max_time=0) -> engine.FuzzResult:
     """Run a fuzz session.
 
     Args:
