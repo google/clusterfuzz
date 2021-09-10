@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for syzkaller runner."""
+# pylint: disable=protected-access
 import unittest
 
 from clusterfuzz._internal.bot.fuzzers.syzkaller.runner import \
