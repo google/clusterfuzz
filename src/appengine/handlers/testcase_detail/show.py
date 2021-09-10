@@ -62,6 +62,20 @@ KERNEL_LINK_REGEX = re.compile(
     r'(.+)(http:\/\/go\/pakernel\/[^;]+);([^;]+);(.*)')
 KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
 
+STACKTRACE_MAX_LENGTH = 500000
+
+
+def _truncate_stacktrace(stacktrace):
+  """Truncate stacktrace if necessary."""
+  if len(stacktrace) > STACKTRACE_MAX_LENGTH:
+    # Read first and last |STACKTRACE_MAX_LENGTH/2| bytes.
+    truncated = len(stacktrace) - STACKTRACE_MAX_LENGTH
+    return (stacktrace[:STACKTRACE_MAX_LENGTH // 2] +
+            f'...truncated {truncated} bytes...' +
+            stacktrace[-STACKTRACE_MAX_LENGTH // 2:])
+
+  return stacktrace
+
 
 def _parse_suspected_cls(predator_result):
   """Parse raw suspected_cls into dict."""
@@ -175,6 +189,9 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   """Clean up and format a stack trace for display."""
   if not crash_stacktrace:
     return ''
+
+  # Truncate stacktrace if it's too big.
+  crash_stacktrace = _truncate_stacktrace(crash_stacktrace)
 
   filtered_crash_lines = []
   for line in crash_stacktrace.splitlines():
