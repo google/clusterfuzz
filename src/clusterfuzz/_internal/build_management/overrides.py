@@ -23,9 +23,9 @@ PLATFORM_ID_URLS_FILENAME = 'config.json'
 PLATFORM_ID_TO_BUILD_PATH_KEY = 'build_paths'
 PLATFORM_ID_TO_REV_PATH_KEY = 'revisions_paths'
 
-OVERRIDE_PATH_NOT_FOUND_ERROR = 'Could not find override path from config, '\
-                                 'config_key: {}, config_url: {}, '\
-                                 'platform_id = {}.'
+OVERRIDE_PATH_NOT_FOUND_ERROR = ('Could not find override path from config, '
+                                 'config_key: {}, config_url: {}, '
+                                 'platform_id = {}.')
 OVERRIDE_CONFIG_NOT_READ_ERROR = 'Could not import config file. config_url: {}'
 
 
