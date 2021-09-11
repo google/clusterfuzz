@@ -255,11 +255,28 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
           terminate_wait_time=None,
       )
       result.command = process.command
-      result.output = str(result.output)
+      result.output = str(result.output, 'utf-8')
 
       return result
     finally:
       looping_timer.cancel()
+
+  def _filter_log(self, content: str) -> str:
+    """Remove unnecessary prefix from each line of log.
+
+    e.g
+    [  565.723853] c4   8262 BUG: KASAN: use-after-free...
+    vs.
+    BUG: KASAN: use-after-free...
+
+    Args:
+      content (str): log content
+    Returns:
+      filtered log with new lines (str)
+    """
+    strip_regex = re.compile(r'^(\[.*?\]\s+)?c\d+\s+\d+\s')
+    result = [strip_regex.sub('', line) for line in content.splitlines()]
+    return '\n'.join(result)
 
   def fuzz(
       self,
@@ -278,14 +295,6 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     Returns:
       engine.FuzzResult
     """
-
-    def _filter_log(content):
-      """Filter unneeded content from log."""
-      result = ''
-      strip_regex = re.compile(r'^c\d+\s+\d+\s')
-      for line in content.splitlines():
-        result += strip_regex.sub('', line) + '\n'
-      return result
 
     logs.log('Running Syzkaller.')
     additional_args = copy.copy(additional_args)
@@ -309,7 +318,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
         unique_crash = os.path.join(subdir, file)
         if fnmatch.fnmatch(file, 'report*') and unique_crash not in visited:
           visited.add(unique_crash)
-          log_content = _filter_log(
+          log_content = self._filter_log(
               utils.read_data_from_file(
                   os.path.join(subdir, file), eval_data=False).decode('utf-8'))
           fuzz_logs += log_content + '\n'

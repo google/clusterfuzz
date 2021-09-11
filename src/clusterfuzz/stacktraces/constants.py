@@ -111,7 +111,7 @@ KASAN_ACCESS_TYPE_ADDRESS_REGEX = re.compile(
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
     r'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
 KASAN_CRASH_TYPE_FUNCTION_REGEX = re.compile(
-    r'BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)/([\w]+)')
+    r'BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)\/([\w]+)')
 KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')
 LIBFUZZER_DEADLY_SIGNAL_REGEX = re.compile(
     r'.*ERROR:\s*libFuzzer:\s*deadly signal')
