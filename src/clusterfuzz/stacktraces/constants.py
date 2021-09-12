@@ -37,6 +37,9 @@ ANDROID_KERNEL_STACK_FRAME_REGEX = re.compile(
     r'[^(]*\[\<([x0-9a-fA-F]+)\>\]\s+'
     # e.g. "(msm_vidc_prepare_buf+0xa0/0x124)"; function (3), offset (4)
     r'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
+ANDROID_KERNEL_STACK_FRAME_NO_ADDRESS_REGEX = re.compile(
+    # e.g. "(msm_vidc_prepare_buf+0xa0/0x124)"; function (2), offset (3)
+    r'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
 ANDROID_KERNEL_TIME_REGEX = re.compile(r'^\[\s*\d+\.\d+\]\s')
 # Parentheses are optional.
 ANDROID_PROCESS_NAME_REGEX = re.compile(r'.*[(](.*)[)]$')
@@ -110,6 +113,8 @@ KASAN_ACCESS_TYPE_ADDRESS_REGEX = re.compile(
     r'(Read|Write) of size ([0-9]+) at (addr|address) ([a-f0-9]+)')
 KASAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
     r'BUG: KASAN: (.*) (in|on).*(addr|address) ([a-f0-9]+)')
+KASAN_CRASH_TYPE_ADDRESS_RANGE_REGEX = re.compile(
+    r'KASAN: (.*?) (in|on) range \[([a-z0-9]+)-([a-z0-9]+)\]')
 KASAN_CRASH_TYPE_FUNCTION_REGEX = re.compile(
     r'BUG: KASAN: (.*) (in|on).* ([\w]+)\+([\w]+)\/([\w]+)')
 KASAN_GPF_REGEX = re.compile(r'general protection fault:.*KASAN')

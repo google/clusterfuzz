@@ -1687,6 +1687,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_syzkaller_kasan_x86(self):
+    """Test syzkaller kasan x86."""
+    data = self._read_test_data('kasan_syzkaller_x86.txt')
+    expected_type = 'Kernel failure\nNull-ptr-deref'
+    expected_state = ('__x64_sys_io_uring_setup\n'
+                      'do_syscall_64\n'
+                      'entry_SYSCALL_64_after_hwframe\n')
+    expected_address = '0x000000000088'
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_kasan_gpf(self):
     """Test a KASan GPF."""
     data = self._read_test_data('kasan_gpf.txt')
