@@ -22,6 +22,7 @@ EXECUTABLE_PATH = '/usr/local/google/home/username/syzkaller'
 
 
 class RunnerTest(unittest.TestCase):
+  """Tests for AndroidSyzkallerRunner."""
 
   def setUp(self):
     super(RunnerTest, self).setUp()
