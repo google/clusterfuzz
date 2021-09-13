@@ -759,28 +759,25 @@ class StackParser:
             type_filter=get_fault_description_for_android_kernel)
 
       # Generic KASan errors.
-      address_match = self.update_state_on_match(
+      if self.update_state_on_match(
           KASAN_CRASH_TYPE_ADDRESS_REGEX,
           line,
           state,
           new_type='Kernel failure',
           type_from_group=1,
           address_from_group=4,
-          type_filter=filter_kasan_crash_type)
-
-      if address_match is not None:
+          type_filter=filter_kasan_crash_type):
         state.crash_address = f'0x{state.crash_address}'
 
-      address_range_match = self.update_state_on_match(
+      # Generic KASan errors with an address range.
+      if self.update_state_on_match(
           KASAN_CRASH_TYPE_ADDRESS_RANGE_REGEX,
           line,
           state,
           new_type='Kernel failure',
           type_from_group=1,
           address_from_group=3,
-          type_filter=filter_kasan_crash_type)
-
-      if address_range_match is not None:
+          type_filter=filter_kasan_crash_type):
         state.crash_address = state.crash_address
 
       # Generic KASan errors without an address.
@@ -1146,14 +1143,8 @@ class StackParser:
         continue
 
       # Android kernel stack frame without address
-      android_kernel_match = self.add_frame_on_match(
-          ANDROID_KERNEL_STACK_FRAME_NO_ADDRESS_REGEX,
-          line,
-          state,
-          group=2,
-      )
-
-      if android_kernel_match:
+      if self.add_frame_on_match(
+          ANDROID_KERNEL_STACK_FRAME_NO_ADDRESS_REGEX, line, state, group=2):
         state.found_android_kernel_crash = True
         continue
 
