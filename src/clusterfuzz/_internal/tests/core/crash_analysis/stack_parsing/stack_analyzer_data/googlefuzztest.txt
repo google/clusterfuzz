@@ -1,0 +1,10 @@
+=================================================================
+==3789131==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000004efe at pc 0x55a6437f16c7 bp 0x7ffdd7a52440 sp 0x7ffdd7a52438
+READ of size 1 at 0x602000004efe thread T0
+SCARINESS: 12 (1-byte-read-heap-buffer-overflow)
+    #0 0x55a6437f16c6 in foo::Bar(std::__u::basic_string_view<char, std::__u::char_traits<char> >) foo/bar.cc:10:15
+    #1 0x55a6437dca44 in blah::(anonymous namespace)::Foo(std::__u::basic_string_view<char, std::__u::char_traits<char> >) foo/blah.cc:24:49
+    #3 0x55a6437ea4cf in auto fuzztest::internal::FuzzTestFuzzerImpl<> const foo/blah/fuzztest.h:360:24
+    #21 0x7f2af34fdbbc in __libc_start_main
+    #22 0x55a64371aaa8 in _start src/sysdeps/x86_64/start.S:108
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/mnt/scratch0/clusterfuzz/bot/builds/build/revisions/foo_test+0x15c96c6)
