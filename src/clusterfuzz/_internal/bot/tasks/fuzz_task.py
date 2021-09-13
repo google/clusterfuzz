@@ -1011,9 +1011,10 @@ def filter_crashes(crashes: List[CrashInfo]) -> List[CrashInfo]:
 
   for crash in crashes:
     if not crash.is_valid():
-      logs.log((
-          f'Ignore crash (reason={crash.get_error()}, type={crash.crash_type}, '
-          f'state={crash.crash_state}, stacktrace={crash.crash_stacktrace}).'))
+      logs.log(
+          (f'Ignore crash (reason={crash.get_error()}, '
+           f'type={crash.crash_type}, state={crash.crash_state})'),
+          stacktrace={crash.crash_stacktrace})
       continue
 
     filtered.append(crash)
