@@ -22,6 +22,7 @@ EXECUTABLE_PATH = '/usr/local/google/home/username/syzkaller'
 
 
 class RunnerTest(unittest.TestCase):
+  """Tests for AndroidSyzkallerRunner."""
 
   def setUp(self):
     super(RunnerTest, self).setUp()
@@ -33,4 +34,12 @@ class RunnerTest(unittest.TestCase):
     self.assertEqual(
         self.target._filter_log(content),
         'BUG: KASAN: use-after-free in f2fs_register_inmem_page+0x208/0x390',
+    )
+
+  def test_filter_log_without_pid(self):
+    content = ('[ 1850.287295] KASAN: null-ptr-deref in range '
+               '[0x0000000000000088-0x000000000000008f]')
+    self.assertEqual(
+        self.target._filter_log(content),
+        'KASAN: null-ptr-deref in range [0x0000000000000088-0x000000000000008f]',
     )

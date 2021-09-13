@@ -146,9 +146,9 @@ class StackParser:
     return False
 
   def update_state_on_match(self,
-                            compiled_regex,
-                            line,
-                            state,
+                            compiled_regex: re.Pattern,
+                            line: str,
+                            state: CrashInfo,
                             new_type=None,
                             new_state=None,
                             new_frame_count=None,
@@ -158,7 +158,7 @@ class StackParser:
                             state_from_group=None,
                             address_filter=lambda s: s,
                             type_filter=lambda s: s,
-                            reset=False):
+                            reset=False) -> re.Match or None:
     """Update the specified parts of the state if we have a match."""
 
     match = compiled_regex.match(line)
@@ -197,9 +197,9 @@ class StackParser:
     return match
 
   def add_frame_on_match(self,
-                         compiled_regex,
-                         line,
-                         state,
+                         compiled_regex: re.Pattern,
+                         line: str,
+                         state: CrashInfo,
                          group=0,
                          frame_filter=_filter_stack_frame,
                          demangle=False,
@@ -767,7 +767,18 @@ class StackParser:
           type_from_group=1,
           address_from_group=4,
           type_filter=filter_kasan_crash_type):
-        state.crash_address = '0x%s' % state.crash_address
+        state.crash_address = f'0x{state.crash_address}'
+
+      # Generic KASan errors with an address range.
+      if self.update_state_on_match(
+          KASAN_CRASH_TYPE_ADDRESS_RANGE_REGEX,
+          line,
+          state,
+          new_type='Kernel failure',
+          type_from_group=1,
+          address_from_group=3,
+          type_filter=filter_kasan_crash_type):
+        state.crash_address = state.crash_address
 
       # Generic KASan errors without an address.
       self.update_state_on_match(
@@ -1129,6 +1140,12 @@ class StackParser:
         # more detailed information from KASan.
         if state.frame_count == 1 and not state.is_kasan:
           state.crash_address = '0x%s' % android_kernel_match.group(1)
+        continue
+
+      # Android kernel stack frame without address
+      if self.add_frame_on_match(
+          ANDROID_KERNEL_STACK_FRAME_NO_ADDRESS_REGEX, line, state, group=2):
+        state.found_android_kernel_crash = True
         continue
 
       # V8 correctness fuzzer metadata.

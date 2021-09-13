@@ -269,12 +269,16 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     vs.
     BUG: KASAN: use-after-free...
 
+    [ 1850.287295] KASAN: ...
+    vs.
+    KASAN: ...
+
     Args:
       content (str): log content
     Returns:
       filtered log with new lines (str)
     """
-    strip_regex = re.compile(r'^(\[.*?\]\s+)?c\d+\s+\d+\s')
+    strip_regex = re.compile(r'^(\[.*?\]\s+)?(c\d+\s+\d+\s)?')
     result = [strip_regex.sub('', line) for line in content.splitlines()]
     return '\n'.join(result)
 
