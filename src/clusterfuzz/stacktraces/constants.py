@@ -537,7 +537,10 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^_etext',
 
     # Swift specific.
-    r'^_swift_stdlib_'
+    r'^_swift_stdlib_',
+
+    # googlefuzztest specific.
+    r'.*fuzztest::internal::',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [

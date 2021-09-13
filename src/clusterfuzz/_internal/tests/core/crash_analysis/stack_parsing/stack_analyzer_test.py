@@ -3129,3 +3129,15 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_googlefuzztest(self):
+    """Test googlefuzzztest stacktrace."""
+    data = self._read_test_data('googlefuzztest.txt')
+    expected_type = 'Heap-buffer-overflow\nREAD 1'
+    expected_state = ('foo::Bar\nblah::Foo\n')
+    expected_address = '0x602000004efe'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
