@@ -21,6 +21,7 @@ import os
 import random
 import re
 import time
+from typing import List
 
 from google.cloud import ndb
 import six
@@ -61,6 +62,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
+from clusterfuzz.stacktraces.__init__ import CrashInfo
 
 SelectionMethod = namedtuple('SelectionMethod', 'method_name probability')
 
@@ -1003,14 +1005,16 @@ def create_testcase(group, context):
   return testcase
 
 
-def filter_crashes(crashes):
+def filter_crashes(crashes: List[CrashInfo]) -> List[CrashInfo]:
   """Filter crashes based on is_valid()."""
   filtered = []
 
   for crash in crashes:
     if not crash.is_valid():
-      logs.log('Ignore crash (reason=%s, type=%s, state=%s).' %
-               (crash.get_error(), crash.crash_type, crash.crash_state))
+      logs.log(
+          (f'Ignore crash (reason={crash.get_error()}, '
+           f'type={crash.crash_type}, state={crash.crash_state})'),
+          stacktrace={crash.crash_stacktrace})
       continue
 
     filtered.append(crash)
