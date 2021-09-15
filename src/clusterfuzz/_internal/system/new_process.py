@@ -423,14 +423,15 @@ class UnshareProcessRunnerMixin(object):
     if environment.platform() != 'LINUX':
       raise RuntimeError('UnshareProcessRunner only supported on Linux')
 
-    unshare_path = spawn.find_executable('unshare')
+    unshare_path = environment.get_default_tool_path('unshare')
     if not unshare_path:
       raise RuntimeError('unshare not found')
 
-    command = [unshare_path]
-    command.extend([
+    command = [
+        unshare_path,
+        '-c',  # Map current user to same user in user namespace.
         '-n',  # Enter network namespace.
-    ])
+    ]
 
     command.append(self._executable_path)
     command.extend(self._default_args)
