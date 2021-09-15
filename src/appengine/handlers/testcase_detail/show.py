@@ -319,7 +319,7 @@ def get_testcase_detail_by_id(testcase_id):
   return get_testcase_detail(testcase)
 
 
-def _get_revision_range_html_from_string(job_type, revision_range):
+def _get_revision_range_html_from_string(job_type, platform_id, revision_range):
   """Return revision range html for a revision range and job type given a range
   string."""
   try:
@@ -327,16 +327,20 @@ def _get_revision_range_html_from_string(job_type, revision_range):
   except:
     return 'Bad revision range.'
 
-  return _get_revision_range_html(job_type, start_revision, end_revision)
+  return _get_revision_range_html(job_type, platform_id, start_revision,
+                                  end_revision)
 
 
-def _get_revision_range_html(job_type, start_revision, end_revision=None):
+def _get_revision_range_html(job_type,
+                             platform_id,
+                             start_revision,
+                             end_revision=None):
   """Return revision range html for a revision range and job type."""
   if end_revision is None:
     end_revision = start_revision
 
   component_rev_list = revisions.get_component_range_list(
-      start_revision, end_revision, job_type)
+      start_revision, end_revision, job_type, platform_id=platform_id)
   if not component_rev_list:
     return ('%s:%s (No component revisions found!)' % (start_revision,
                                                        end_revision))
@@ -391,8 +395,8 @@ def get_testcase_detail(testcase):
   elif testcase.regression == 'NA':
     regression = 'NA'
   else:
-    regression = _get_revision_range_html_from_string(testcase.job_type,
-                                                      testcase.regression)
+    regression = _get_revision_range_html_from_string(
+        testcase.job_type, testcase.platform_id, testcase.regression)
 
   fixed_full = None
   if 'progression_pending' in metadata:
@@ -405,19 +409,19 @@ def get_testcase_detail(testcase):
     fixed = 'YES'
   else:
     fixed = 'YES'
-    fixed_full = _get_revision_range_html_from_string(testcase.job_type,
-                                                      testcase.fixed)
+    fixed_full = _get_revision_range_html_from_string(
+        testcase.job_type, testcase.platform_id, testcase.fixed)
 
   last_tested = None
   last_tested_revision = (
       metadata.get('last_tested_revision') or testcase.crash_revision)
   if last_tested_revision:
-    last_tested = _get_revision_range_html(testcase.job_type,
-                                           last_tested_revision)
+    last_tested = _get_revision_range_html(
+        testcase.job_type, testcase.platform_id, last_tested_revision)
 
   crash_revision = testcase.crash_revision
   crash_revisions_dict = revisions.get_component_revisions_dict(
-      crash_revision, testcase.job_type)
+      crash_revision, testcase.job_type, platform_id=testcase.platform_id)
   crash_stacktrace = data_handler.get_stacktrace(testcase)
   crash_stacktrace = filter_stacktrace(crash_stacktrace, testcase.crash_type,
                                        crash_revisions_dict, testcase.platform,
@@ -427,7 +431,9 @@ def get_testcase_detail(testcase):
 
   last_tested_crash_revision = metadata.get('last_tested_crash_revision')
   last_tested_crash_revisions_dict = revisions.get_component_revisions_dict(
-      last_tested_crash_revision, testcase.job_type)
+      last_tested_crash_revision,
+      testcase.job_type,
+      platform_id=testcase.platform_id)
   last_tested_crash_stacktrace = data_handler.get_stacktrace(
       testcase, stack_attribute='last_tested_crash_stacktrace')
   last_tested_crash_stacktrace = filter_stacktrace(
@@ -540,14 +546,20 @@ def get_testcase_detail(testcase):
               crash_stacktrace,
           'revision':
               revisions.get_real_revision(
-                  crash_revision, testcase.job_type, display=True)
+                  crash_revision,
+                  testcase.job_type,
+                  display=True,
+                  platform_id=testcase.platform_id)
       },
       'last_tested_crash_stacktrace': {
           'lines':
               last_tested_crash_stacktrace,
           'revision':
               revisions.get_real_revision(
-                  last_tested_crash_revision, testcase.job_type, display=True)
+                  last_tested_crash_revision,
+                  testcase.job_type,
+                  display=True,
+                  platform_id=testcase.platform_id)
       },
       'security_severity':
           security_severity,
