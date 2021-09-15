@@ -320,7 +320,7 @@ class LibFuzzerEngine(engine.Engine):
     fuzzing_time_percent = 100 * actual_duration / float(max_time)
     parsed_stats.update({
         'timeout_limit': int(timeout_limit),
-        'expected_duration': max_time,
+        'expected_duration': int(max_time),
         'actual_duration': actual_duration,
         'fuzzing_time_percent': fuzzing_time_percent,
     })
