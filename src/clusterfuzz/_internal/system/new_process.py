@@ -170,7 +170,7 @@ class ChildProcess(object):
         else:
           stdout += line
 
-        sys.stdout.write(line.decode())
+        sys.stdout.write(utils.decode_to_unicode(line))
 
       self._popen.wait()
     else:
