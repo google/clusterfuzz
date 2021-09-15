@@ -887,7 +887,6 @@ class IntegrationTests(BaseIntegrationTest):
     engine_impl.fuzz(target_path, options, TEMP_DIR, 5)
 
 
-@unittest.skip('needs root')
 @test_utils.integration
 class UnshareIntegrationTests(IntegrationTests):
   """Unshare runner integration tests."""
@@ -899,8 +898,11 @@ class UnshareIntegrationTests(IntegrationTests):
   def compare_arguments(self, target_path, arguments, corpora_or_testcase,
                         actual):
     """Compare expected arguments."""
-    self.assertListEqual(actual, ['/usr/bin/unshare', '-n', target_path] +
-                         arguments + corpora_or_testcase)
+    self.assertListEqual(actual, [
+        os.path.join(
+            environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
+            'unshare'), '-c', '-n', target_path
+    ] + arguments + corpora_or_testcase)
 
 
 @test_utils.integration
