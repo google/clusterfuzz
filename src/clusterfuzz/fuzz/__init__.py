@@ -38,6 +38,8 @@ def _initialize():
   engine.register('googlefuzztest', gft_engine.GoogleFuzzTestEngine)
   engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
   engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
+  # Allow lower cased version as well.
+  engine.register('libfuzzer', libFuzzer_engine.LibFuzzerEngine)
 
   _initialized = True
 
