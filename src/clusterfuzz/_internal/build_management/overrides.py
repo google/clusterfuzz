@@ -29,14 +29,17 @@ OVERRIDE_PATH_NOT_FOUND_ERROR = ('Could not find override path from config, '
 OVERRIDE_CONFIG_NOT_READ_ERROR = 'Could not import config file. config_url: {}'
 
 
-def check_and_apply_overrides(curr_path, config_key):
+def check_and_apply_overrides(curr_path, config_key, platform_id=None):
   """Check if the given file points to a config, if so, use that to override
   any given paths"""
   if not curr_path:
     return curr_path
+
+  if not platform_id:
+    platform_id = environment.get_platform_id()
+
   if os.path.basename(curr_path) == PLATFORM_ID_URLS_FILENAME:
-    curr_path = _apply_platform_id_overrides(environment.get_platform_id(),
-                                             curr_path, config_key)
+    curr_path = _apply_platform_id_overrides(platform_id, curr_path, config_key)
   return curr_path
 
 

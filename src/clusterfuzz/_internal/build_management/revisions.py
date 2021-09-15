@@ -332,7 +332,7 @@ def get_components_list(component_revisions_dict, job_type):
   return components
 
 
-def _get_revision_vars_url_format(job_type):
+def _get_revision_vars_url_format(job_type, platform_id=None):
   """Return REVISION_VARS_URL from job environment if available. Otherwise,
   default to one set in project.yaml. For custom binary jobs, this is not
   applicable."""
@@ -348,19 +348,20 @@ def _get_revision_vars_url_format(job_type):
   rev_path = data_handler.get_value_from_job_definition_or_environment(
       job_type, 'REVISION_VARS_URL')
   rev_path = overrides.check_and_apply_overrides(
-      rev_path, overrides.PLATFORM_ID_TO_REV_PATH_KEY)
+      rev_path, overrides.PLATFORM_ID_TO_REV_PATH_KEY, platform_id=platform_id)
   return rev_path
 
 
 @memoize.wrap(memoize.FifoOnDisk(DISK_CACHE_SIZE))
 @memoize.wrap(memoize.Memcache(60 * 60 * 24 * 30))  # 30 day TTL
-def get_component_revisions_dict(revision, job_type):
+def get_component_revisions_dict(revision, job_type, platform_id=None):
   """Retrieve revision vars dict."""
   if revision == 0 or revision == '0' or revision is None:
     # Return empty dict for zero start revision.
     return {}
 
-  revision_vars_url_format = _get_revision_vars_url_format(job_type)
+  revision_vars_url_format = _get_revision_vars_url_format(
+      job_type, platform_id=platform_id)
   if not revision_vars_url_format:
     return None
 
@@ -429,16 +430,19 @@ def get_component_list(revision, job_type):
   return get_component_range_list(revision, revision, job_type)
 
 
-def get_component_range_list(start_revision, end_revision, job_type):
+def get_component_range_list(start_revision,
+                             end_revision,
+                             job_type,
+                             platform_id=None):
   """Gets revision variable ranges for a changeset range."""
   start_component_revisions_dict = get_component_revisions_dict(
-      start_revision, job_type)
+      start_revision, job_type, platform_id=platform_id)
 
   if start_revision == end_revision:
     end_component_revisions_dict = start_component_revisions_dict
   else:
     end_component_revisions_dict = get_component_revisions_dict(
-        end_revision, job_type)
+        end_revision, job_type, platform_id=platform_id)
 
   if (start_component_revisions_dict is None or
       end_component_revisions_dict is None):
@@ -607,13 +611,14 @@ def get_last_revision_in_list(revision_list):
   return revision_list[-1]
 
 
-def get_real_revision(revision, job_type, display=False):
+def get_real_revision(revision, job_type, display=False, platform_id=None):
   """Convert the revision number into a real revision hash (e.g. git hash)."""
   if revision is None:
     # Bail early when caller passes revision from a non-existent attribute.
     return None
 
-  component_revisions_dict = get_component_revisions_dict(revision, job_type)
+  component_revisions_dict = get_component_revisions_dict(
+      revision, job_type, platform_id=platform_id)
   if not component_revisions_dict:
     return str(revision)
 
