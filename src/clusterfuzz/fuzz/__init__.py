@@ -19,7 +19,7 @@ from . import engine
 
 _initialized = False
 
-ENGINES = ('afl', 'googlefuzztest', 'hongfuzz', 'libFuzzer')
+ENGINES = ('afl', 'googlefuzztest', 'honggfuzz', 'libFuzzer')
 
 
 def _initialize():
