@@ -21,6 +21,7 @@ import os
 import sys
 import time
 import traceback
+from typing import Any
 
 STACKDRIVER_LOG_MESSAGE_LIMIT = 80000  # Allowed log entry size is 100 KB.
 LOCAL_LOG_MESSAGE_LIMIT = 100000
@@ -143,7 +144,7 @@ def truncate(msg, limit):
   ])
 
 
-def format_record(record):
+def format_record(record: logging.LogRecord) -> str:
   """Format LogEntry into JSON string."""
   entry = {
       'message':
@@ -180,7 +181,14 @@ def format_record(record):
       'IOError: [Errno 4] Interrupted function call' in entry['message']):
     entry['severity'] = 'WARNING'
 
-  return json.dumps(entry)
+  return json.dumps(entry, default=_handle_unserializable)
+
+
+def _handle_unserializable(unserializable: Any) -> str:
+  try:
+    return str(unserializable, 'utf-8')
+  except TypeError:
+    return str(unserializable)
 
 
 def update_entry_with_exc(entry, exc_info):
@@ -219,7 +227,7 @@ class JsonSocketHandler(logging.handlers.SocketHandler):
   """Format log into JSON string before sending it to fluentd. We need this
     because SocketHandler doesn't respect the formatter attribute."""
 
-  def makePickle(self, record):
+  def makePickle(self, record: logging.LogRecord):
     """Format LogEntry into JSON string."""
     # \n is the recognized delimiter by fluentd's in_tcp. Don't remove.
     return (format_record(record) + '\n').encode('utf-8')
