@@ -1143,6 +1143,10 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     new_process.ProcessRunner.__init__(self, self.afl_fuzz_path)
 
 
+class UnshareAflRunner(new_process.UnshareProcessRunnerMixin, AflRunner):
+  """AFL runner which unshares."""
+
+
 class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
                         engine_common.MinijailEngineFuzzerRunner):
   """Minijail AFL runner."""
@@ -1440,9 +1444,13 @@ def prepare_runner(fuzzer_path,
         input_directory,
         timeout=timeout,
         strategy_dict=strategy_dict)
-
   else:
-    runner = AflRunner(
+    if environment.get_value('USE_UNSHARE'):
+      runner_class = UnshareAflRunner
+    else:
+      runner_class = AflRunner
+
+    runner = runner_class(
         fuzzer_path,
         config,
         testcase_file_path,

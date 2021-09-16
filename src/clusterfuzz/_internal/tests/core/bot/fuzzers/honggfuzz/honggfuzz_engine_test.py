@@ -20,6 +20,7 @@ import unittest
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.honggfuzz import engine
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -63,6 +64,10 @@ class IntegrationTest(unittest.TestCase):
 
     os.environ['BUILD_DIR'] = DATA_DIR
 
+  def compare_arguments(self, expected, actual):
+    """Compare expected arguments."""
+    self.assertListEqual(expected, actual)
+
   def assert_has_stats(self, results):
     """Assert that stats exist."""
     self.assertIn('iterations', results.stats)
@@ -93,7 +98,7 @@ class IntegrationTest(unittest.TestCase):
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-    self.assertListEqual([
+    self.compare_arguments([
         os.path.join(DATA_DIR, 'honggfuzz'),
         '-n',
         '1',
@@ -129,7 +134,7 @@ class IntegrationTest(unittest.TestCase):
                                                  'always_crash_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
-    self.assertListEqual([
+    self.compare_arguments([
         os.path.join(DATA_DIR, 'honggfuzz'),
         '-n',
         '1',
@@ -163,3 +168,20 @@ class IntegrationTest(unittest.TestCase):
       self.assertEqual(b'A', f.read()[:1])
 
     self.assert_has_stats(results)
+
+
+@test_utils.integration
+class UnshareIntegrationTest(IntegrationTest):
+  """Integration tests."""
+
+  def compare_arguments(self, expected, actual):
+    """Compare expected arguments."""
+    self.assertListEqual([
+        os.path.join(
+            environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
+            'unshare'), '-c', '-n'
+    ] + expected, actual)
+
+  def setUp(self):
+    super().setUp()
+    os.environ['USE_UNSHARE'] = 'True'

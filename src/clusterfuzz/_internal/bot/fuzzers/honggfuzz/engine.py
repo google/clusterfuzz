@@ -57,6 +57,9 @@ def _get_runner():
     raise HonggfuzzError('honggfuzz not found in build')
 
   os.chmod(honggfuzz_path, 0o755)
+  if environment.get_value('USE_UNSHARE'):
+    return new_process.UnicodeUnshareRunner(honggfuzz_path)
+
   return new_process.UnicodeProcessRunner(honggfuzz_path)
 
 
