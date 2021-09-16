@@ -426,6 +426,7 @@ class UnshareProcessRunnerMixin(object):
     if not unshare_path:
       raise RuntimeError('unshare not found')
 
+    logs.log(f'Using unshare: {unshare_path}')
     command = [
         unshare_path,
         '-c',  # Map current user to same user in user namespace.
@@ -443,3 +444,7 @@ class UnshareProcessRunnerMixin(object):
 
 class UnshareProcessRunner(UnshareProcessRunnerMixin, ProcessRunner):
   """ProcessRunner which unshares."""
+
+
+class UnicodeUnshareRunner(UnshareProcessRunnerMixin, UnicodeProcessRunner):
+  """Unicode unshare runner."""
