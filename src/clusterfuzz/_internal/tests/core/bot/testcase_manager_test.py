@@ -848,8 +848,7 @@ class UntrustedEngineReproduceTest(
 
     build_manager.setup_build()
     result = testcase_manager.engine_reproduce(
-        libfuzzer_engine.LibFuzzerEngine(), 'test_fuzzer', testcase_file_path,
-        [], 30)
+        libfuzzer_engine.Engine(), 'test_fuzzer', testcase_file_path, [], 30)
 
     self.assertEqual([
         os.path.join(environment.get_value('BUILD_DIR'), 'test_fuzzer'),
@@ -873,7 +872,7 @@ class UntrustedEngineReproduceTest(
 
     build_manager.setup_build()
     with self.assertRaises(testcase_manager.TargetNotFoundError):
-      testcase_manager.engine_reproduce(libfuzzer_engine.LibFuzzerEngine(),
+      testcase_manager.engine_reproduce(libfuzzer_engine.Engine(),
                                         'does_not_exist', testcase_file_path,
                                         [], 30)
 

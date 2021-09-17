@@ -290,17 +290,8 @@ def dump_big_query_data(stats, testcase_file_path, fuzzer_command):
   fuzzer_stats.TestcaseRun.write_to_disk(testcase_run, testcase_file_path)
 
 
-def find_fuzzer_path(build_directory, fuzzer_name, is_blackbox=False):
+def find_fuzzer_path(build_directory, fuzzer_name):
   """Find the fuzzer path with the given name."""
-  # Blackbox fuzzers are special cases. They run from the fuzzers directory
-  # rather than using a target from the build archive.
-  if is_blackbox:
-    fuzzer_directory = environment.get_value('FUZZERS_DIR')
-    fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
-    fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == fuzzer_name).get()
-    return os.path.join(fuzzer_directory, fuzzer.executable_path)
-
   if not build_directory:
     # Grey-box fuzzers might not have the build directory for a particular job
     # configuration when doing variant task testing (e.g. Android on-device
@@ -502,9 +493,7 @@ def get_all_issue_metadata_for_testcase(testcase):
     return None
 
   build_dir = environment.get_value('BUILD_DIR')
-  is_blackbox = fuzz_target.engine == 'blackbox'
-  target_path = find_fuzzer_path(
-      build_dir, fuzz_target.binary, is_blackbox=is_blackbox)
+  target_path = find_fuzzer_path(build_dir, fuzz_target.binary)
   if not target_path:
     logs.log_error('Failed to find target path for ' + fuzz_target.binary)
     return None

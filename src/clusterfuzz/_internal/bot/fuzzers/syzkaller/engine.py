@@ -45,7 +45,7 @@ class SyzkallerOptions(engine.FuzzOptions):
     self.extra_env = extra_env
 
 
-class SyzkallerEngine(engine.Engine):
+class Engine(engine.Engine):
   """Syzkaller fuzzing engine implementation."""
 
   @property

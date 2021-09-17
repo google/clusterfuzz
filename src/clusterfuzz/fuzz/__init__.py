@@ -13,34 +13,22 @@
 # limitations under the License.
 """Fuzzing functions."""
 
+from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal.bot.fuzzers import init
 from clusterfuzz._internal.bot.fuzzers import utils
 
 from . import engine
 
 _initialized = False
 
-ENGINES = ('afl', 'googlefuzztest', 'honggfuzz', 'libFuzzer')
+ENGINES = fuzzing.PUBLIC_ENGINES
 
 
 def _initialize():
   """Initialize the engine implementations."""
   global _initialized
 
-  from clusterfuzz._internal.bot.fuzzers.afl import engine as afl_engine
-  from clusterfuzz._internal.bot.fuzzers.googlefuzztest import \
-      engine as gft_engine
-  from clusterfuzz._internal.bot.fuzzers.honggfuzz import \
-      engine as honggfuzz_engine
-  from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
-      engine as libFuzzer_engine
-
-  engine.register('afl', afl_engine.AFLEngine)
-  engine.register('googlefuzztest', gft_engine.GoogleFuzzTestEngine)
-  engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
-  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
-  # Allow lower cased version as well.
-  engine.register('libfuzzer', libFuzzer_engine.LibFuzzerEngine)
-
+  init.run(include_private=False, include_lowercase=True)
   _initialized = True
 
 

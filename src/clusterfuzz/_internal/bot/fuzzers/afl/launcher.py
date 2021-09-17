@@ -1374,7 +1374,7 @@ def get_first_stacktrace(stderr_data):
 
 # TODO(mbarbella): After deleting the non-engine AFL code, remove this
 # function and replace it with a simple check based on the timeout set in
-# AFLEngine.fuzz. Mutations should also be moved to fuzz.
+# Engine.fuzz. Mutations should also be moved to fuzz.
 def get_fuzz_timeout(is_mutations_run, full_timeout=None):
   """Get the maximum amount of time that should be spent fuzzing."""
   fuzz_timeout = full_timeout
