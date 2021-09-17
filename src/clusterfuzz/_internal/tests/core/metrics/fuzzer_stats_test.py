@@ -241,41 +241,6 @@ class FuzzerStatsTest(unittest.TestCase):
     self.assertEqual(job_run['testcases_executed'], 9001)
     self.assertEqual(job_run['crashes'], [{'test': 'crash'}])
 
-  @mock.patch(
-      'clusterfuzz._internal.metrics.fuzzer_stats.TestcaseRun.read_from_disk')
-  def test_fuzz_task_upload_testcase_run_stats_builtin_fuzzer(
-      self, mock_read_from_disk_new):
-    """Tests that fuzz_task.read_and_upload_testcase_run_stats uploads stats."""
-    testcase_run = fuzzer_stats.TestcaseRun('placeholder', 'placeholder', 0,
-                                            1472846341.017923)
-    testcase_run['stat'] = 9001
-
-    mock_read_from_disk_new.return_value = testcase_run
-    fuzz_task.read_and_upload_testcase_run_stats(
-        'libFuzzer', 'libFuzzer_fuzzer1', 'job', 123, ['fake_path'])
-
-    self.assertEqual(1, self.mock.write_data.call_count)
-
-    self.assertEqual(
-        b'{"fuzzer": "libFuzzer_fuzzer1", "job": "job", "build_revision": 123, '
-        b'"timestamp": 1472846341.017923, "kind": "TestcaseRun", "stat": 9001}',
-        self.mock.write_data.call_args[0][0])
-
-  @mock.patch(
-      'clusterfuzz._internal.metrics.fuzzer_stats.TestcaseRun.read_from_disk')
-  def test_fuzz_task_upload_testcase_run_stats_blackbox_fuzzer(
-      self, mock_read_from_disk_new):
-    """Tests that fuzz_task.read_and_upload_testcase_run_stats uploads stats."""
-    testcase_run = fuzzer_stats.TestcaseRun('placeholder', 'placeholder', 0,
-                                            1472846341.017923)
-    testcase_run['stat'] = 9001
-
-    mock_read_from_disk_new.return_value = testcase_run
-    fuzz_task.read_and_upload_testcase_run_stats(
-        'blackbox_fuzzer', 'blackbox_fuzzer', 'job', 123, ['fake_path'])
-
-    self.assertEqual(0, self.mock.write_data.call_count)
-
   def test_fuzz_task_upload_job_run_stats(self):
     """Tests that fuzz_task.upload_job_run_stats uploads stats."""
     groups = [

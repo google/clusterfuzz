@@ -538,9 +538,7 @@ def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
     return tasks_host.engine_reproduce(engine_impl, target_name, testcase_path,
                                        arguments, timeout)
   build_dir = environment.get_value('BUILD_DIR')
-  is_blackbox = engine_impl.name == 'blackbox'
-  target_path = engine_common.find_fuzzer_path(
-      build_dir, target_name, is_blackbox=is_blackbox)
+  target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   if not target_path:
     raise TargetNotFoundError('Failed to find target ' + target_name)
 
