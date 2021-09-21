@@ -103,7 +103,7 @@ def _get_stats(line):
   return stats
 
 
-class HonggfuzzEngine(engine.Engine):
+class Engine(engine.Engine):
   """honggfuzz engine implementation."""
 
   @property

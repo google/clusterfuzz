@@ -15,9 +15,9 @@
 
 import os
 
+from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.fuzzers import builtin_fuzzers
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -33,7 +33,7 @@ def upload_testcases_if_needed(fuzzer_name, testcase_list, testcase_directory,
   """Upload test cases from the list to a cloud storage bucket."""
   # Since builtin fuzzers have a coverage minimized corpus, no need to upload
   # test case samples for them.
-  if fuzzer_name in builtin_fuzzers.BUILTIN_FUZZERS:
+  if fuzzer_name in fuzzing.ENGINES:
     return
 
   bucket_name = local_config.ProjectConfig().get(

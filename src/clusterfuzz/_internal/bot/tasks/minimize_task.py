@@ -27,7 +27,8 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
-from clusterfuzz._internal.bot.fuzzers.libFuzzer.engine import LibFuzzerEngine
+from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
+    engine as libfuzzer_engine
 from clusterfuzz._internal.bot.minimizer import basic_minimizers
 from clusterfuzz._internal.bot.minimizer import delta_minimizer
 from clusterfuzz._internal.bot.minimizer import errors as minimizer_errors
@@ -1131,7 +1132,7 @@ def run_libfuzzer_engine(tool_name, target_name, arguments, testcase_path,
   if not target_path:
     return engine.ReproduceResult([], 0, 0, '')
 
-  engine_impl = LibFuzzerEngine()
+  engine_impl = libfuzzer_engine.Engine()
   if tool_name == 'minimize':
     func = engine_impl.minimize_testcase
   else:

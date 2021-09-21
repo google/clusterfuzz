@@ -30,7 +30,6 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import builtin
-from clusterfuzz._internal.bot.fuzzers import builtin_fuzzers
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
@@ -563,26 +562,6 @@ def add_additional_testcase_run_data(testcase_run, fully_qualified_fuzzer_name,
   testcase_run['fuzzer'] = fully_qualified_fuzzer_name
   testcase_run['job'] = job_type
   testcase_run['build_revision'] = revision
-
-
-def read_and_upload_testcase_run_stats(fuzzer_name, fully_qualified_fuzzer_name,
-                                       job_type, revision, testcase_file_paths):
-  """Upload per-testcase stats."""
-  if fuzzer_name not in builtin_fuzzers.BUILTIN_FUZZERS:
-    # Testcase run stats are only applicable to builtin fuzzers (libFuzzer,AFL).
-    return
-
-  testcase_runs = []
-  for testcase_file_path in testcase_file_paths:
-    testcase_run = fuzzer_stats.TestcaseRun.read_from_disk(
-        testcase_file_path, delete=True)
-    if testcase_run:
-      add_additional_testcase_run_data(
-          testcase_run, fully_qualified_fuzzer_name, job_type, revision)
-      testcase_runs.append(testcase_run)
-
-  for testcase_run in testcase_runs:
-    upload_testcase_run_stats(testcase_run)
 
 
 def get_fuzzer_metadata_from_output(fuzzer_output):
@@ -1257,9 +1236,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
                                   sync_corpus_directory, testcase_directory)
 
   build_dir = environment.get_value('BUILD_DIR')
-  is_blackbox = engine_impl.name == 'blackbox'
-  target_path = engine_common.find_fuzzer_path(
-      build_dir, target_name, is_blackbox=is_blackbox)
+  target_path = engine_common.find_fuzzer_path(build_dir, target_name)
   options = engine_impl.prepare(sync_corpus_directory, target_path, build_dir)
 
   fuzz_test_timeout = environment.get_value('FUZZ_TEST_TIMEOUT')
@@ -1414,72 +1391,59 @@ class FuzzingSession(object):
     environment.reset_current_memory_tool_options(
         redzone_size=16, leaks=False, quarantine_size_mb=0)
 
-    if fuzzer.builtin:
-      fuzzer_command = 'builtin'
-      builtin_fuzzer = builtin_fuzzers.get(fuzzer.name)
+    # Make sure we have a file to execute for the fuzzer.
+    if not fuzzer.executable_path:
+      logs.log_error(
+          'Fuzzer %s does not have an executable path.' % fuzzer_name)
+      error_occurred = True
+      return error_occurred, None, None, None
 
-      builtin_result = builtin_fuzzer.run(
-          self.data_directory, self.testcase_directory, testcase_count)
+    # Get the fuzzer executable and chdir to its base directory. This helps to
+    # prevent referencing every file using __file__.
+    fuzzer_executable = os.path.join(fuzzer_directory, fuzzer.executable_path)
+    fuzzer_executable_directory = os.path.dirname(fuzzer_executable)
 
-      fuzzer_output = builtin_result.output
-      sync_corpus_directory = builtin_result.corpus_directory
+    # Make sure the fuzzer executable exists on disk.
+    if not os.path.exists(fuzzer_executable):
+      logs.log_error(
+          'File %s does not exist. Cannot generate testcases for fuzzer %s.' %
+          (fuzzer_executable, fuzzer_name))
+      error_occurred = True
+      return error_occurred, None, None, None, None
 
-      # Return code is always 0 as builtin fuzzers log errors directly.
-      fuzzer_return_code = 0
+    # Build the fuzzer command execution string.
+    command = shell.get_execute_command(fuzzer_executable)
+
+    # NodeJS and shell script expect space separator for arguments.
+    if command.startswith('node ') or command.startswith('sh '):
+      argument_separator = ' '
     else:
-      # Make sure we have a file to execute for the fuzzer.
-      if not fuzzer.executable_path:
-        logs.log_error(
-            'Fuzzer %s does not have an executable path.' % fuzzer_name)
-        error_occurred = True
-        return error_occurred, None, None, None
+      argument_separator = '='
 
-      # Get the fuzzer executable and chdir to its base directory. This helps to
-      # prevent referencing every file using __file__.
-      fuzzer_executable = os.path.join(fuzzer_directory, fuzzer.executable_path)
-      fuzzer_executable_directory = os.path.dirname(fuzzer_executable)
+    command_format = ('%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d')
+    fuzzer_command = str(
+        command_format % (command, argument_separator, self.data_directory,
+                          argument_separator, self.testcase_directory,
+                          argument_separator, testcase_count))
+    fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
 
-      # Make sure the fuzzer executable exists on disk.
-      if not os.path.exists(fuzzer_executable):
-        logs.log_error(
-            'File %s does not exist. Cannot generate testcases for fuzzer %s.' %
-            (fuzzer_executable, fuzzer_name))
-        error_occurred = True
-        return error_occurred, None, None, None, None
+    # Run the fuzzer.
+    logs.log('Running fuzzer - %s.' % fuzzer_command)
+    fuzzer_return_code, fuzzer_duration, fuzzer_output = (
+        process_handler.run_process(
+            fuzzer_command,
+            current_working_directory=fuzzer_executable_directory,
+            timeout=fuzzer_timeout,
+            testcase_run=False,
+            ignore_children=False))
 
-      # Build the fuzzer command execution string.
-      command = shell.get_execute_command(fuzzer_executable)
+    # Use the custom return code for timeouts if needed.
+    if fuzzer_return_code is None:
+      fuzzer_return_code = FuzzErrorCode.FUZZER_TIMEOUT
 
-      # NodeJS and shell script expect space separator for arguments.
-      if command.startswith('node ') or command.startswith('sh '):
-        argument_separator = ' '
-      else:
-        argument_separator = '='
-
-      command_format = ('%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d')
-      fuzzer_command = str(
-          command_format % (command, argument_separator, self.data_directory,
-                            argument_separator, self.testcase_directory,
-                            argument_separator, testcase_count))
-      fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
-
-      # Run the fuzzer.
-      logs.log('Running fuzzer - %s.' % fuzzer_command)
-      fuzzer_return_code, fuzzer_duration, fuzzer_output = (
-          process_handler.run_process(
-              fuzzer_command,
-              current_working_directory=fuzzer_executable_directory,
-              timeout=fuzzer_timeout,
-              testcase_run=False,
-              ignore_children=False))
-
-      # Use the custom return code for timeouts if needed.
-      if fuzzer_return_code is None:
-        fuzzer_return_code = FuzzErrorCode.FUZZER_TIMEOUT
-
-      # Use the custom return code for execution failures if needed.
-      if fuzzer_duration is None:
-        fuzzer_return_code = FuzzErrorCode.FUZZER_EXECUTION_FAILED
+    # Use the custom return code for execution failures if needed.
+    if fuzzer_duration is None:
+      fuzzer_return_code = FuzzErrorCode.FUZZER_EXECUTION_FAILED
 
     # Force GC to save some memory before processing fuzzer output.
     utils.python_gc()
@@ -1545,10 +1509,6 @@ class FuzzingSession(object):
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
-    # For blackbox fuzzers, |FUZZ_TARGET| should be set to the fuzzer name.
-    if engine_impl.name == 'blackbox':
-      environment.set_value('FUZZ_TARGET', self.fuzzer_name)
-
     # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
     if not fuzz_target_name:
@@ -1869,11 +1829,6 @@ class FuzzingSession(object):
 
     engine_impl = engine.get(self.fuzzer.name)
 
-    # TODO(mbarbella): Remove the environment variable check when the old
-    # blackbox pipeline has been converted to the engine interface.
-    if not engine_impl and environment.get_value('USE_BLACKBOX_ENGINE'):
-      engine_impl = engine.get('blackbox')
-
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -1931,9 +1886,6 @@ class FuzzingSession(object):
             thread_wait_timeout=THREAD_WAIT_TIMEOUT,
             data_directory=self.data_directory))
 
-    read_and_upload_testcase_run_stats(
-        self.fuzzer_name, self.fully_qualified_fuzzer_name, self.job_type,
-        crash_revision, testcase_file_paths)
     upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
                          crash_revision, time.time(),
                          new_crash_count, known_crash_count,

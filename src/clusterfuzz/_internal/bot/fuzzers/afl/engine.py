@@ -31,7 +31,7 @@ def _run_single_testcase(fuzzer_runner, testcase_file_path):
   return fuzzer_runner.run_single_testcase(testcase_file_path)
 
 
-class AFLEngine(engine.Engine):
+class Engine(engine.Engine):
   """AFL engine implementation."""
 
   @property

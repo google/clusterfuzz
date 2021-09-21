@@ -55,8 +55,8 @@ def create_temp_dir():
 
 @unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
                  'AFL_INTEGRATION_TESTS=1 must be set')
-class AFLEngineTest(unittest.TestCase):
-  """Tests for AFLEngine."""
+class EngineTest(unittest.TestCase):
+  """Tests for Engine."""
 
   def setUp(self):
     clear_temp_dir()
@@ -70,7 +70,7 @@ class AFLEngineTest(unittest.TestCase):
 
   def test_fuzz(self):
     """Test for fuzz."""
-    engine_impl = engine.AFLEngine()
+    engine_impl = engine.Engine()
 
     afl_launcher_integration_test.setup_testcase_and_corpus(
         'empty', 'corpus', fuzz=True)
@@ -88,7 +88,7 @@ class AFLEngineTest(unittest.TestCase):
 
   def test_reproduce(self):
     """Test for reproduce."""
-    engine_impl = engine.AFLEngine()
+    engine_impl = engine.Engine()
     target_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     testcase_path = afl_launcher_integration_test.setup_testcase_and_corpus(
         'crash', 'empty_corpus')
@@ -101,7 +101,7 @@ class AFLEngineTest(unittest.TestCase):
 
   def test_fuzz_with_crash(self):
     """Tests that we detect crashes when fuzzing."""
-    engine_impl = engine.AFLEngine()
+    engine_impl = engine.Engine()
 
     afl_launcher_integration_test.setup_testcase_and_corpus(
         'empty', 'corpus', fuzz=True)
@@ -121,7 +121,7 @@ class AFLEngineTest(unittest.TestCase):
 
   def test_startup_crash_not_reported(self):
     """Ensures that we properly handle startup crashes."""
-    engine_impl = engine.AFLEngine()
+    engine_impl = engine.Engine()
 
     afl_launcher_integration_test.setup_testcase_and_corpus(
         'empty', 'corpus', fuzz=True)

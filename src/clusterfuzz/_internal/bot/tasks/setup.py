@@ -26,7 +26,6 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.fuzzers import builtin_fuzzers
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -676,10 +675,6 @@ def get_data_bundle_directory(fuzzer_name):
 
 def get_fuzzer_directory(fuzzer_name):
   """Return directory used by a fuzzer."""
-  builtin_fuzzer = builtin_fuzzers.get(fuzzer_name)
-  if builtin_fuzzer:
-    return builtin_fuzzer.fuzzer_directory
-
   fuzzer_directory = environment.get_value('FUZZERS_DIR')
   fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
   return fuzzer_directory

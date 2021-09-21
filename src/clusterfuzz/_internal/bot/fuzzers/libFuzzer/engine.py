@@ -74,7 +74,7 @@ class LibFuzzerOptions(engine.FuzzOptions):
     self.analyze_dictionary = True
 
 
-class LibFuzzerEngine(engine.Engine):
+class Engine(engine.Engine):
   """LibFuzzer engine implementation."""
 
   @property

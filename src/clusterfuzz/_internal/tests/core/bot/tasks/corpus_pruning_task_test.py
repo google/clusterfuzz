@@ -65,7 +65,7 @@ class BaseTest(object):
         'clusterfuzz._internal.google_cloud_utils.storage.write_data',
         'clusterfuzz.fuzz.engine.get',
     ])
-    self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
+    self.mock.get.return_value = libFuzzer_engine.Engine()
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
@@ -351,7 +351,7 @@ class CorpusPruningTestUntrusted(
         'clusterfuzz.fuzz.engine.get',
     ])
 
-    self.mock.get.return_value = libFuzzer_engine.LibFuzzerEngine()
+    self.mock.get.return_value = libFuzzer_engine.Engine()
     self.mock.get_fuzzer_directory.return_value = os.path.join(
         environment.get_value('ROOT_DIR'), 'src', 'clusterfuzz', '_internal',
         'bot', 'fuzzers', 'libFuzzer')

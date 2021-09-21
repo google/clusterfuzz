@@ -13,24 +13,23 @@
 # limitations under the License.
 """Fuzzing engine initialization."""
 
-from clusterfuzz._internal.bot.fuzzers.afl import engine as afl_engine
-from clusterfuzz._internal.bot.fuzzers.blackbox import engine as blackbox_engine
-from clusterfuzz._internal.bot.fuzzers.googlefuzztest import \
-    engine as gft_engine
-from clusterfuzz._internal.bot.fuzzers.honggfuzz import \
-    engine as honggfuzz_engine
-from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
-    engine as libFuzzer_engine
-from clusterfuzz._internal.bot.fuzzers.syzkaller import \
-    engine as syzkaller_engine
+import importlib
+
+from clusterfuzz._internal import fuzzing
 from clusterfuzz.fuzz import engine
 
 
-def run():
+def run(include_private=True, include_lowercase=False):
   """Initialise builtin fuzzing engines."""
-  engine.register('afl', afl_engine.AFLEngine)
-  engine.register('blackbox', blackbox_engine.BlackboxEngine)
-  engine.register('googlefuzztest', gft_engine.GoogleFuzzTestEngine)
-  engine.register('honggfuzz', honggfuzz_engine.HonggfuzzEngine)
-  engine.register('libFuzzer', libFuzzer_engine.LibFuzzerEngine)
-  engine.register('syzkaller', syzkaller_engine.SyzkallerEngine)
+  if include_private:
+    engines = fuzzing.ENGINES
+  else:
+    engines = fuzzing.PUBLIC_ENGINES
+
+  for engine_name in engines:
+    mod = importlib.import_module(
+        f'clusterfuzz._internal.bot.fuzzers.{engine_name}.engine')
+
+    engine.register(engine_name, mod.Engine)
+    if include_lowercase and engine_name.lower() != engine_name:
+      engine.register(engine_name.lower(), mod.Engine)

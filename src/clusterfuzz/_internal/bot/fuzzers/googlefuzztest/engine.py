@@ -35,7 +35,7 @@ def _get_reproducer_path(line):
   return crash_match.group(1)
 
 
-class GoogleFuzzTestEngine(engine.Engine):
+class Engine(engine.Engine):
   """GFT engine implementation."""
 
   @property

@@ -11,3 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Fuzzing module."""
+
+PUBLIC_ENGINES = (
+    'libFuzzer',
+    'afl',
+    'honggfuzz',
+    'googlefuzztest',
+)
+
+PRIVATE_ENGINES = ('syzkaller',)
+
+ENGINES = PUBLIC_ENGINES + PRIVATE_ENGINES

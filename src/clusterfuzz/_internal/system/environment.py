@@ -24,6 +24,8 @@ import sys
 import six
 import yaml
 
+from clusterfuzz._internal import fuzzing
+
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
@@ -619,8 +621,7 @@ def _job_substring_match(search_string, job_name):
 
 def is_afl_job(job_name=None):
   """Return true if the current job uses AFL."""
-  # Prefix matching is not sufficient.
-  return _job_substring_match('afl', job_name)
+  return get_engine_for_job(job_name) == 'afl'
 
 
 def is_chromeos_job(job_name=None):
@@ -641,23 +642,17 @@ def is_chromeos_system_job(job_name=None):
 
 def is_libfuzzer_job(job_name=None):
   """Return true if the current job uses libFuzzer."""
-  # Prefix matching is not sufficient.
-  return _job_substring_match('libfuzzer', job_name)
+  return get_engine_for_job(job_name) == 'libFuzzer'
 
 
 def is_honggfuzz_job(job_name=None):
   """Return true if the current job uses honggfuzz."""
-  return _job_substring_match('honggfuzz', job_name)
+  return get_engine_for_job(job_name) == 'honggfuzz'
 
 
 def is_kernel_fuzzer_job(job_name=None):
   """Return true if the current job uses syzkaller."""
-  return _job_substring_match('syzkaller', job_name)
-
-
-def is_googlefuzztest_job(job_name=None):
-  """Return true if the current job uses googlefuzztest."""
-  return _job_substring_match('googlefuzztest', job_name)
+  return get_engine_for_job(job_name) == 'syzkaller'
 
 
 def is_engine_fuzzer_job(job_name=None):
@@ -667,17 +662,12 @@ def is_engine_fuzzer_job(job_name=None):
 
 def get_engine_for_job(job_name=None):
   """Get the engine for the given job."""
-  # TODO(ochang): Generalize this rather than hardcoding all these engines.
-  if is_libfuzzer_job(job_name):
-    return 'libFuzzer'
-  if is_afl_job(job_name):
-    return 'afl'
-  if is_honggfuzz_job(job_name):
-    return 'honggfuzz'
-  if is_kernel_fuzzer_job(job_name):
-    return 'syzkaller'
-  if is_googlefuzztest_job(job_name):
-    return 'googlefuzztest'
+  if not job_name:
+    job_name = get_value('JOB_NAME')
+
+  for engine in fuzzing.ENGINES:
+    if engine.lower() in job_name:
+      return engine
 
   return None
 
