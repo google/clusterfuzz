@@ -146,8 +146,7 @@ class UploadOAuthTest(unittest.TestCase):
     testcase = data_handler.get_testcase_by_id(2)
     self.assert_dict_has_items({
         'absolute_path': 'input',
-        'additional_metadata': '{"fuzzer_binary_name": "target", '
-                               '"uploaded_additional_args": "%TESTCASE%"}',
+        'additional_metadata': '{"fuzzer_binary_name": "target"}',
         'archive_filename': None,
         'archive_state': 0,
         'binary_flag': False,
@@ -251,8 +250,7 @@ class UploadOAuthTest(unittest.TestCase):
         'absolute_path':
             'input',
         'additional_metadata':
-            '{"fuzzer_binary_name": "target", '
-            '"uploaded_additional_args": "%TESTCASE%"}',
+            '{"fuzzer_binary_name": "target"}',
         'archive_filename':
             None,
         'archive_state':
@@ -414,8 +412,7 @@ class UploadOAuthTest(unittest.TestCase):
     testcase = data_handler.get_testcase_by_id(3)
     self.assert_dict_has_items({
         'absolute_path': 'input',
-        'additional_metadata': '{"fuzzer_binary_name": "target", '
-                               '"uploaded_additional_args": "%TESTCASE%"}',
+        'additional_metadata': '{"fuzzer_binary_name": "target"}',
         'archive_filename': None,
         'archive_state': 0,
         'binary_flag': False,

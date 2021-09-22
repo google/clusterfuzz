@@ -22,6 +22,7 @@ import os
 from flask import request
 from google.cloud import ndb
 
+from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import tasks
@@ -166,12 +167,10 @@ def filter_target_names(targets, engine):
 def filter_blackbox_fuzzers(fuzzers):
   """Filter out fuzzers such that only blackbox fuzzers are included."""
 
-  def is_greybox_fuzzer(name):
-    # TODO(ochang): Generalize this check.
-    return (name.startswith('libFuzzer') or name.startswith('afl') or
-            name.startswith('honggfuzz'))
+  def is_engine_fuzzer(name):
+    return any(name.startswith(engine) for engine in fuzzing.ENGINES)
 
-  return [f for f in fuzzers if not is_greybox_fuzzer(f)]
+  return [f for f in fuzzers if not is_engine_fuzzer(f)]
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
@@ -233,28 +232,18 @@ class Handler(base_handler.Handler):
     return self.render(
         'upload.html', {
             'fieldValues': {
-                'blackboxFuzzers':
-                    filter_blackbox_fuzzers(allowed_fuzzers),
-                'jobs':
-                    allowed_jobs,
-                'libfuzzerTargets':
-                    filter_target_names(allowed_fuzzers, 'libFuzzer'),
-                'aflTargets':
-                    filter_target_names(allowed_fuzzers, 'afl'),
-                'honggfuzzTargets':
-                    filter_target_names(allowed_fuzzers, 'honggfuzz'),
-                'isChromium':
-                    utils.is_chromium(),
-                'sandboxedJobs':
-                    data_types.INTERNAL_SANDBOXED_JOB_TYPES,
-                'csrfToken':
-                    form.generate_csrf_token(),
-                'isExternalUser':
-                    not is_privileged_or_domain_user,
-                'uploadInfo':
-                    gcs.prepare_blob_upload()._asdict(),
-                'hasIssueTracker':
-                    has_issue_tracker,
+                'blackboxFuzzers': filter_blackbox_fuzzers(allowed_fuzzers),
+                'jobs': allowed_jobs,
+                'targets': {
+                    engine: filter_target_names(allowed_fuzzers, engine)
+                    for engine in fuzzing.ENGINES
+                },
+                'isChromium': utils.is_chromium(),
+                'sandboxedJobs': data_types.INTERNAL_SANDBOXED_JOB_TYPES,
+                'csrfToken': form.generate_csrf_token(),
+                'isExternalUser': not is_privileged_or_domain_user,
+                'uploadInfo': gcs.prepare_blob_upload()._asdict(),
+                'hasIssueTracker': has_issue_tracker,
             },
             'params': params,
             'result': result
@@ -462,10 +451,6 @@ class UploadHandlerCommon(object):
       if gestures:
         raise helpers.EarlyExitException(
             'You are not privileged to run arbitrary gestures.', 400)
-
-    # TODO(aarya): Remove once AFL is migrated to engine pipeline.
-    if target_name:
-      additional_arguments = '%TESTCASE%'
 
     if crash_revision and crash_revision.isdigit():
       crash_revision = int(crash_revision)
