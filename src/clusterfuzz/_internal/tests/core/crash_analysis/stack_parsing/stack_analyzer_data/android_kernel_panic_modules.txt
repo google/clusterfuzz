@@ -1,0 +1,445 @@
+Kernel panic - not syncing: pt_handle_check physical-memory-group-manager 5 unknown
+CPU: 0 PID: 21794 Comm: syz-executor Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+panic+0x240/0x5d4
+pt_client_enable+0x0/0x7c [slc_pt]
+pt_client_enable+0x4c/0x7c [slc_pt]
+mgm_alloc_page+0x174/0x2d8 [mali_pixel]
+kbase_mem_alloc_page+0xa8/0x220 [mali_kbase]
+kbase_mem_pool_grow+0x94/0x290 [mali_kbase]
+kbase_mmu_init+0xcc/0x180 [mali_kbase]
+kbase_context_mmu_init+0x5c/0x74 [mali_kbase]
+kbase_create_context+0x138/0x270 [mali_kbase]
+kbase_file_create_kctx+0xdc/0x2f0 [mali_kbase]
+kbase_api_set_flags+0xa4/0x1ec [mali_kbase]
+kbase_ioctl+0x2dc/0x111c [mali_kbase]
+__arm64_sys_ioctl+0xd8/0x138
+el0_svc_common+0x170/0x2b0
+do_el0_svc+0x44/0xe4
+el0_svc+0x14/0x24
+el0_sync_handler+0x88/0xec
+el0_sync+0x1a8/0x1c0
+SMP: stopping secondary CPUs
+debug-snapshot dss: core register saved(CPU:6)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:6)
+CPU: 6 PID: 0 Comm: swapper/6 Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+dbg_snapshot_save_context+0x318/0x37c [dss]
+dbg_snapshot_ipi_stop+0x4c/0x60 [dss]
+__traceiter_android_vh_ipi_stop+0x60/0xa8
+trace_android_vh_ipi_stop_rcuidle+0x110/0x18c
+ipi_handler+0x10c/0x1f8
+handle_percpu_devid_fasteoi_ipi+0xf4/0x324
+__handle_domain_irq+0xe0/0x17c
+gic_handle_irq+0x84/0x1b8
+el1_irq+0xe4/0x1c0
+cpuidle_enter_state+0x2c0/0x9a4
+cpuidle_enter+0x54/0x84
+do_idle+0x260/0x31c
+cpu_startup_entry+0x28/0x2c
+secondary_start_kernel+0x268/0x2b0
+debug-snapshot dss: core register saved(CPU:7)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:7)
+CPU: 7 PID: 0 Comm: swapper/7 Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+dbg_snapshot_save_context+0x318/0x37c [dss]
+dbg_snapshot_ipi_stop+0x4c/0x60 [dss]
+__traceiter_android_vh_ipi_stop+0x60/0xa8
+trace_android_vh_ipi_stop_rcuidle+0x110/0x18c
+ipi_handler+0x10c/0x1f8
+handle_percpu_devid_fasteoi_ipi+0xf4/0x324
+__handle_domain_irq+0xe0/0x17c
+gic_handle_irq+0x84/0x1b8
+el1_irq+0xe4/0x1c0
+cpuidle_enter_state+0x2c0/0x9a4
+cpuidle_enter+0x54/0x84
+do_idle+0x260/0x31c
+cpu_startup_entry+0x28/0x2c
+secondary_start_kernel+0x268/0x2b0
+debug-snapshot dss: core register saved(CPU:2)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:2)
+CPU: 2 PID: 994 Comm: logcat Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+dbg_snapshot_save_context+0x318/0x37c [dss]
+dbg_snapshot_ipi_stop+0x4c/0x60 [dss]
+__traceiter_android_vh_ipi_stop+0x60/0xa8
+trace_android_vh_ipi_stop_rcuidle+0x110/0x18c
+ipi_handler+0x10c/0x1f8
+handle_percpu_devid_fasteoi_ipi+0xf4/0x324
+__handle_domain_irq+0xe0/0x17c
+gic_handle_irq+0x84/0x1b8
+el0_irq_naked+0x60/0x6c
+debug-snapshot dss: core register saved(CPU:1)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:1)
+CPU: 1 PID: 0 Comm: swapper/1 Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+dbg_snapshot_save_context+0x318/0x37c [dss]
+dbg_snapshot_ipi_stop+0x4c/0x60 [dss]
+__traceiter_android_vh_ipi_stop+0x60/0xa8
+trace_android_vh_ipi_stop_rcuidle+0x110/0x18c
+ipi_handler+0x10c/0x1f8
+handle_percpu_devid_fasteoi_ipi+0xf4/0x324
+__handle_domain_irq+0xe0/0x17c
+gic_handle_irq+0x84/0x1b8
+el1_irq+0xe4/0x1c0
+cpuidle_enter_state+0x2c0/0x9a4
+cpuidle_enter+0x54/0x84
+do_idle+0x260/0x31c
+cpu_startup_entry+0x28/0x2c
+secondary_start_kernel+0x268/0x2b0
+debug-snapshot dss: core register saved(CPU:3)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:3)
+CPU: 3 PID: 0 Comm: swapper/3 Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+dbg_snapshot_save_context+0x318/0x37c [dss]
+dbg_snapshot_ipi_stop+0x4c/0x60 [dss]
+__traceiter_android_vh_ipi_stop+0x60/0xa8
+trace_android_vh_ipi_stop_rcuidle+0x110/0x18c
+ipi_handler+0x10c/0x1f8
+handle_percpu_devid_fasteoi_ipi+0xf4/0x324
+__handle_domain_irq+0xe0/0x17c
+gic_handle_irq+0x84/0x1b8
+el1_irq+0xe4/0x1c0
+cpuidle_enter_state+0x2c0/0x9a4
+cpuidle_enter+0x54/0x84
+do_idle+0x260/0x31c
+cpu_startup_entry+0x28/0x2c
+secondary_start_kernel+0x268/0x2b0
+debug-snapshot dss: core register saved(CPU:4)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:4)
+CPU: 4 PID: 0 Comm: swapper/4 Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+dbg_snapshot_save_context+0x318/0x37c [dss]
+dbg_snapshot_ipi_stop+0x4c/0x60 [dss]
+__traceiter_android_vh_ipi_stop+0x60/0xa8
+trace_android_vh_ipi_stop_rcuidle+0x110/0x18c
+ipi_handler+0x10c/0x1f8
+handle_percpu_devid_fasteoi_ipi+0xf4/0x324
+__handle_domain_irq+0xe0/0x17c
+gic_handle_irq+0x84/0x1b8
+el1_irq+0xe4/0x1c0
+cpuidle_enter_state+0x2c0/0x9a4
+cpuidle_enter+0x54/0x84
+do_idle+0x260/0x31c
+cpu_startup_entry+0x28/0x2c
+secondary_start_kernel+0x268/0x2b0
+debug-snapshot dss: core register saved(CPU:5)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:5)
+CPU: 5 PID: 0 Comm: swapper/5 Tainted: G           O      5.10.63-android13-0-00042-g47eca0506306-ab7740722 #1
+Hardware name: Oriole Proto 1.1 (DT)
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+dump_stack_lvl+0x124/0x180
+dump_stack+0x20/0x68
+dbg_snapshot_save_context+0x318/0x37c [dss]
+dbg_snapshot_ipi_stop+0x4c/0x60 [dss]
+__traceiter_android_vh_ipi_stop+0x60/0xa8
+trace_android_vh_ipi_stop_rcuidle+0x110/0x18c
+ipi_handler+0x10c/0x1f8
+handle_percpu_devid_fasteoi_ipi+0xf4/0x324
+__handle_domain_irq+0xe0/0x17c
+gic_handle_irq+0x84/0x1b8
+el1_irq+0xe4/0x1c0
+cpuidle_enter_state+0x2c0/0x9a4
+cpuidle_enter+0x54/0x84
+do_idle+0x260/0x31c
+cpu_startup_entry+0x28/0x2c
+secondary_start_kernel+0x268/0x2b0
+s3c2410-wdt 10060000.watchdog_cl0: watchdog reset is started to 30secs
+s3c2410-wdt 10070000.watchdog_cl1: s3c2410wdt_multistage_wdt_stop: cluster 1 stop done, WTCON 00115718
+s3c2410-wdt 10060000.watchdog_cl0: Watchdog cluster 0 stop done, WTCON = 115718
+s3c2410-wdt 10070000.watchdog_cl1: s3c2410wdt_multistage_wdt_stop: cluster 1 stop done, WTCON 00115718
+s3c2410-wdt 10070000.watchdog_cl1: s3c2410wdt_multistage_wdt_start: count=0x0000cc8c, wtcon=0011573c
+s3c2410-wdt 10060000.watchdog_cl0: Watchdog cluster 0 start, WTCON = 115739
+s3c2410-wdt 10070000.watchdog_cl1: s3c2410wdt_multistage_wdt_stop: cluster 1 stop done, WTCON 00115718
+s3c2410-wdt 10070000.watchdog_cl1: Watchdog cluster 1 keepalive!, old_wtcnt = cc62, wtcnt = cc8c
+Kernel Offset: disabled
+CPU features: 0x000,18040026,6a00a238
+Memory Limit: none
+No errors found
+cpif: s5100_send_panic_noti_ext: Send CMD_KERNEL_PANIC message to CP
+cpif: pcie_send_ap2cp_irq: Reserve doorbell interrupt: PCI not powered on
+Hardlockup CPU mask: 0x0
+trusty-log odm:trusty:log: panic notifier - trusty version Project: slider, Build: 7656020, Built: 02:58:15 Aug 19 2021
+item - log_kevents is disabled
+
+current proc : 21794 syz-executor
+------------------------------------------------------------------------------
+pid    uTime    sTime         exec(ns) stat cpu          user_pc      task_struct              comm
+------------------------------------------------------------------------------
+0                0                0                0 R(0)   0         f8e42e99         4480f24e *        swapper/0
+task:swapper/0       state:R  running task     stack:    0 pid:    0 ppid:     0 flags:0x00000008
+Call trace:
+__switch_to+0x254/0x5d8
+__schedule+0x7a4/0xb0c
+schedule_idle+0x30/0x5c
+do_idle+0x2dc/0x31c
+cpu_startup_entry+0x28/0x2c
+rest_init+0x110/0x128
+arch_call_rest_init+0x18/0x28
+start_kernel+0x3e8/0x530
+16                0         61708415    1406445638227 R(0)   0                0         132be078 *      migration/0
+task:migration/0     state:R  running task     stack:    0 pid:   16 ppid:     2 flags:0x00000008
+Call trace:
+__switch_to+0x254/0x5d8
+__schedule+0x7a4/0xb0c
+schedule+0x110/0x17c
+smpboot_thread_fn+0x38c/0x5a0
+kthread+0x210/0x238
+ret_from_fork+0x10/0x30
+994    1435399899122        394872549    1487063316098 R(0)   2         48aede7e         35e5d625 *           logcat
+task:logcat          state:R  running task     stack:    0 pid:  994 ppid:   991 flags:0x04000000
+Call trace:
+__switch_to+0x254/0x5d8
+0xffffff8006b99818
+21794                0                0    1408973854335 R(0)   0         546acaf6         c346c557       syz-executor
+task:syz-executor    state:R  running task     stack:    0 pid:21794 ppid:  4718 flags:0x00000802
+Call trace:
+dump_backtrace+0x0/0x300
+show_stack+0x30/0x44
+sched_show_task+0x248/0x354
+dbg_snapshot_dump_one_task_info+0x2ec/0x364 [dss]
+dbg_snapshot_dump_task_info+0x118/0x1a8 [dss]
+dbg_snapshot_panic_handler+0x2cc/0x39c [dss]
+atomic_notifier_call_chain+0x70/0xc8
+panic+0x288/0x5d4
+pt_client_enable+0x0/0x7c [slc_pt]
+pt_client_enable+0x4c/0x7c [slc_pt]
+mgm_alloc_page+0x174/0x2d8 [mali_pixel]
+kbase_mem_alloc_page+0xa8/0x220 [mali_kbase]
+kbase_mem_pool_grow+0x94/0x290 [mali_kbase]
+kbase_mmu_init+0xcc/0x180 [mali_kbase]
+kbase_context_mmu_init+0x5c/0x74 [mali_kbase]
+kbase_create_context+0x138/0x270 [mali_kbase]
+kbase_file_create_kctx+0xdc/0x2f0 [mali_kbase]
+kbase_api_set_flags+0xa4/0x1ec [mali_kbase]
+kbase_ioctl+0x2dc/0x111c [mali_kbase]
+__arm64_sys_ioctl+0xd8/0x138
+el0_svc_common+0x170/0x2b0
+do_el0_svc+0x44/0xe4
+el0_svc+0x14/0x24
+el0_sync_handler+0x88/0xec
+el0_sync+0x1a8/0x1c0
+------------------------------------------------------------------------------
+debug-snapshot dss: debug-snapshot physical / virtual memory layout:
+header          : phys:0x00000000df115b56 / virt:0x00000000de3904f7 / size:0x10000 / en:1
+log_bcm         : phys:0x000000005966531c / virt:0x0000000077747050 / size:0x400000 / en:1
+log_s2d         : phys:0x000000009563106d / virt:0x000000009ce4c895 / size:0x1500000 / en:1
+log_array_reset : phys:0x000000002641d573 / virt:0x000000007987247d / size:0xa00000 / en:1
+log_itmon       : phys:0x00000000ec28c403 / virt:0x000000008898c362 / size:0x10000 / en:1
+debug-snapshot dss: total_item_size: 35968KB, dbg_snapshot_log struct size: 4200KB
+debug-snapshot-log physical / virtual memory layout:
+task_log    : phys:0x000000006d3fdd3b / virt:0x000000003c65dc66 / size:0x50000 / en:1
+work_log    : phys:0x00000000be43113e / virt:0x000000003d6fe46f / size:0x60000 / en:1
+cpuidle_log : phys:0x00000000b3949143 / virt:0x00000000d9e32415 / size:0x40000 / en:1
+suspend_log : phys:0x00000000ab995dec / virt:0x00000000e753102d / size:0x14000 / en:1
+irq_log     : phys:0x00000000f6aa9da2 / virt:0x00000000178a9667 / size:0x180000 / en:1
+hrtimer_log : phys:0x000000005cb9d04a / virt:0x000000004323570e / size:0x50000 / en:1
+clk_log     : phys:0x00000000e34420a3 / virt:0x000000005566940e / size:0xa000 / en:1
+pmu_log     : phys:0x0000000015edf808 / virt:0x00000000c663e76f / size:0x8000 / en:1
+freq_log    : phys:0x000000007b70a1cf / virt:0x000000005a6416e7 / size:0xc0000 / en:1
+dm_log      : phys:0x000000004b9cefbe / virt:0x0000000068016b67 / size:0xa000 / en:1
+regulator_log: phys:0x00000000d6a5ba4f / virt:0x0000000011d2569e / size:0xe000 / en:1
+thermal_log : phys:0x00000000c6110305 / virt:0x0000000006e7a53a / size:0xc000 / en:1
+acpm_log    : phys:0x000000008f83ee8f / virt:0x0000000049c4e3ce / size:0x8000 / en:1
+printk_log  : phys:0x00000000970f7bda / virt:0x00000000ee9e3822 / size:0x48000 / en:1
+==========================================================
+Panic Report
+==========================================================
+<last info>
+CPU ID: 0 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 159]       1502.343654 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+CPU ID: 1 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 597]       1502.467175 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+CPU ID: 2 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 403]       1482.092276 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+CPU ID: 3 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 299]       1502.467206 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+CPU ID: 4 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 401]       1502.467564 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+CPU ID: 5 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 658]       1502.467586 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+CPU ID: 6 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 931]       1502.437877 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+CPU ID: 7 ----------------------------------
+>>> task    : [1023]          0.000000 sec,  task_comm: NULL            ,     task: 0x0               , exec_start:                0
+>>> work    : [1023]          0.000000 sec,    work_fn: 0x0,  en:   0 
+>>> irq     : [4095]          0.000000 sec,    handler: 0x0,      irq:        0,         en:  0, 
+>>> cpuidle : [ 766]       1502.323187 sec,      modes: c2, state: 0, stay time: 0, online_cpus: 8, en: 3 
+
+<last freq info>
+LIT[ 291]:       1337.102809 sec,     old_freq:  1598Mhz,  target_freq:  1803Mhz,  en: 3 
+MID[ 347]:       1502.458681 sec,     old_freq:   696Mhz,  target_freq:   553Mhz,  en: 3 
+BIG[ 437]:       1502.463697 sec,     old_freq:   500Mhz,  target_freq:  2802Mhz,  en: 3 
+INT[  95]:       1498.818624 sec,     old_freq:   332Mhz,  target_freq:   200Mhz,  en: 3 
+MIF[ 203]:       1502.458543 sec,     old_freq:   546Mhz,  target_freq:   421Mhz,  en: 3 
+ISP: no information
+DISP[  17]:        181.199491 sec,     old_freq:   267Mhz,  target_freq:   134Mhz,  en: 3 
+INTCAM: no information
+TPU: no information
+TNR: no information
+MFC: no information
+BO: no information
+<irq info>
+----------------------------------------------------------
+sum irq : 6694160
+----------------------------------------------------------
+irq-1   (hwirq-0  ) :  1955881 IPI
+irq-2   (hwirq-1  ) :   653949 IPI
+irq-3   (hwirq-2  ) :        7 IPI
+irq-6   (hwirq-5  ) :   443602 IPI
+irq-11  (hwirq-27 ) :     2735 arch_timer
+irq-88  (hwirq-657) :    10706 10840000.pinctrl
+irq-89  (hwirq-676) :       42 10c40000.pinctrl
+irq-144 (hwirq-386) :    12329 1c0b0000.drmdpp
+irq-145 (hwirq-393) :    12329 1c0b0000.drmdpp
+irq-146 (hwirq-387) :      292 1c0b1000.drmdpp
+irq-147 (hwirq-394) :      292 1c0b1000.drmdpp
+irq-148 (hwirq-388) :    11098 1c0b2000.drmdpp
+irq-149 (hwirq-395) :    11098 1c0b2000.drmdpp
+irq-150 (hwirq-389) :      205 1c0b3000.drmdpp
+irq-151 (hwirq-396) :      205 1c0b3000.drmdpp
+irq-152 (hwirq-390) :      598 1c0b4000.drmdpp
+irq-153 (hwirq-397) :      598 1c0b4000.drmdpp
+irq-154 (hwirq-391) :       53 1c0b5000.drmdpp
+irq-155 (hwirq-398) :       53 1c0b5000.drmdpp
+irq-157 (hwirq-377) :    12395 1c2c0000.drmdsim
+irq-158 (hwirq-370) :    12327 1c300000.drmdecon
+irq-159 (hwirq-369) :    12285 1c300000.drmdecon
+irq-166 (hwirq-452) :    61258 1c500000.mali
+irq-168 (hwirq-451) :    60013 1c500000.mali
+irq-169 (hwirq-104) :     3907 176a0000.mbox
+irq-171 (hwirq-479) :    13325 gsa-mb-irq
+irq-172 (hwirq-504) :     6614 exynos-pcie
+irq-174 (hwirq-719) :       62 abrolhos
+irq-175 (hwirq-564) :   255687 ufshcd
+irq-176 (hwirq-667) :     5703 10900000.hsi2c
+irq-177 (hwirq-668) :      416 10910000.hsi2c
+irq-178 (hwirq-669) :      870 10920000.hsi2c
+irq-179 (hwirq-673) :      653 10960000.hsi2c
+irq-180 (hwirq-674) :     4592 10970000.hsi2c
+irq-181 (hwirq-687) :    17477 10d50000.hsi2c
+irq-188 (hwirq-101) :     1712 175b0000.serial
+irq-252 (hwirq-106) :        4 176c0000.exynos-adv_tracer
+irq-259 (hwirq-789) :   344626 exynos-mct
+irq-260 (hwirq-790) :   158978 exynos-mct
+irq-261 (hwirq-791) :   243529 exynos-mct
+irq-262 (hwirq-792) :   167772 exynos-mct
+irq-263 (hwirq-793) :    98427 exynos-mct
+irq-264 (hwirq-794) :    91726 exynos-mct
+irq-265 (hwirq-795) :   818698 exynos-mct
+irq-266 (hwirq-796) :  1037716 exynos-mct
+irq-268 (hwirq-666) :        1 10a00000.uart
+irq-270 (hwirq-23 ) :     7319 arm-pmu
+irq-274 (hwirq-495) :   104668 dwc3
+irq-280 (hwirq-801) :    12825 100a0000.BIG
+irq-282 (hwirq-256) :        2 seclog
+irq-287 (hwirq-1  ) :        2 17c90000.gsa-ns:gsa_gsc@0
+irq-288 (hwirq-4  ) :       55 cp2ap_wakeup
+irq-290 (hwirq-4  ) :      165 ttyBCM
+irq-389 (hwirq-13 ) :     2336 trusty
+irq-391 (hwirq-1  ) :        2 CPU1_OCP_IRQ
+irq-392 (hwirq-2  ) :       92 CPU2_OCP_IRQ
+irq-393 (hwirq-3  ) :        1 SOFT_CPU1_OCP_IRQ
+irq-394 (hwirq-4  ) :     2241 SOFT_CPU2_OCP_IRQ
+irq-395 (hwirq-1  ) :        1 TPU_OCP_IRQ
+irq-396 (hwirq-3  ) :        1 SOFT_TPU_OCP_IRQ
+irq-397 (hwirq-0  ) :        1 GPU_OCP_IRQ
+irq-398 (hwirq-2  ) :        1 SOFT_GPU_OCP_IRQ
+irq-400 (hwirq-3  ) :       10 max777x9_pmic
+irq-401 (hwirq-5  ) :        3 max2339_ovp
+irq-402 (hwirq-6  ) :       11 bt_host_wake
+irq-403 (hwirq-2  ) :       12 i2c-max77759tcpc
+irq-408 (hwirq-0  ) :      156 st21nfc
+irq-409 (hwirq-2  ) :       42 st21nfc_pw_stats_idle_handle
+irq-410 (hwirq-6  ) :        2 tbn
+irq-411 (hwirq-1  ) :        5 vl53l1_interrupt
+irq-412 (hwirq-5  ) :       42 cs40l25a
+irq-413 (hwirq-3  ) :    10702 ???
+irq-414 (hwirq-0  ) :        2 fts
+irq-415 (hwirq-7  ) :        2 gf
+irq-416 (hwirq-524288) :     6614 mif_cp2ap_msg
+==========================================================
+debug-snapshot dss: core register saved(CPU:0)
+debug-snapshot dss: ECC error check erridr_el1.num = 0x2
+debug-snapshot dss: ERRSELR_EL1.SEL = 0, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: ERRSELR_EL1.SEL = 1, NOT Error, ERXSTATUS_EL1 = 0x0
+debug-snapshot dss: context saved(CPU:0)

@@ -758,6 +758,16 @@ class StackParser:
             type_from_group=3,
             type_filter=get_fault_description_for_android_kernel)
 
+        # Kernel Panic
+        self.update_state_on_match(
+            KERNEL_PANIC,
+            line,
+            state,
+            new_type='Kernel failure',
+            reset=True,
+            type_from_group=1,
+            type_filter=filter_kernel_panic_crash_type)
+
       # Generic KASan errors.
       if self.update_state_on_match(
           KASAN_CRASH_TYPE_ADDRESS_REGEX,
@@ -1334,6 +1344,11 @@ def get_fault_description_for_android_kernel(code):
 def filter_kasan_crash_type(crash_type):
   """Filter a KASan crash type."""
   return 'Kernel failure\n%s' % crash_type.replace(' ', '-').capitalize()
+
+
+def filter_kernel_panic_crash_type(crash_type):
+  """Filter a kernel panic crash type."""
+  return 'Kernel failure\n%s' % crash_type.replace(' ', '-')
 
 
 def update_crash_state_for_stack_overflow_if_needed(state):
