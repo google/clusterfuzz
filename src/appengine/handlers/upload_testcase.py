@@ -322,12 +322,10 @@ class UploadHandlerCommon(object):
 
     fuzzer_name = request.get('fuzzer')
     job_type_lowercase = job_type.lower()
-    if 'libfuzzer' in job_type_lowercase:
-      fuzzer_name = 'libFuzzer'
-    elif 'afl' in job_type_lowercase:
-      fuzzer_name = 'afl'
-    elif 'honggfuzz' in job_type_lowercase:
-      fuzzer_name = 'honggfuzz'
+
+    for engine in fuzzing.ENGINES:
+      if engine.lower() in job_type_lowercase:
+        fuzzer_name = engine
 
     is_engine_job = fuzzer_name and environment.is_engine_fuzzer_job(job_type)
     target_name = request.get('target')
