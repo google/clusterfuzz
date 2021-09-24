@@ -3141,3 +3141,28 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_android_kasan_510(self):
+    """Test android kasan 5.10 stacktrace."""
+    data = self._read_test_data('android_kernel_kasan_510.txt')
+    expected_type = 'Kernel failure\nUse-after-free\nWRITE 8'
+    expected_state = (
+        'f2fs_register_inmem_page\nf2fs_set_data_page_dirty\nset_page_dirty\n')
+    expected_address = '0xffffffc05b5c4d28'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_android_panic_modules(self):
+    """Test android kernel panic with modules stacktrace."""
+    data = self._read_test_data('android_kernel_panic_modules.txt')
+    expected_type = 'Kernel failure\npt_handle_check-physical-memory-group-manager-5-unknown'
+    expected_state = ('pt_client_enable\npt_client_enable\nmgm_alloc_page\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
