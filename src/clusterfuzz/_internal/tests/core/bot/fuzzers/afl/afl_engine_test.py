@@ -30,7 +30,7 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
-CORPUS_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'corpus')
+DEFAULT_CORPUS_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'corpus')
 OUTPUT_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'output')
 
 BASE_FUZZ_TIMEOUT = (
@@ -64,6 +64,7 @@ class EngineTest(unittest.TestCase):
 
     test_helpers.patch_environ(self)
     afl_launcher_integration_test.dont_use_strategies(self)
+    environment.set_value('BUILD_DIR', DATA_DIRECTORY)
 
   def tearDown(self):
     clear_temp_dir()
@@ -75,16 +76,17 @@ class EngineTest(unittest.TestCase):
     afl_launcher_integration_test.setup_testcase_and_corpus(
         'empty', 'corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
-    options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
+    options = engine_impl.prepare(DEFAULT_CORPUS_DIRECTORY, fuzzer_path,
+                                  DATA_DIRECTORY)
 
     result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
                               FUZZ_TIMEOUT)
 
     self.assertEqual('{0}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
-    self.assertIn('-i{0}'.format(CORPUS_DIRECTORY), result.command)
+    self.assertIn('-i{0}'.format(DEFAULT_CORPUS_DIRECTORY), result.command)
 
     # Ensure that we've added something other than the dummy file to the corpus.
-    self.assertTrue(os.listdir(CORPUS_DIRECTORY))
+    self.assertTrue(os.listdir(DEFAULT_CORPUS_DIRECTORY))
 
   def test_reproduce(self):
     """Test for reproduce."""
@@ -104,9 +106,11 @@ class EngineTest(unittest.TestCase):
     engine_impl = engine.Engine()
 
     afl_launcher_integration_test.setup_testcase_and_corpus(
-        'empty', 'corpus', fuzz=True)
+        'empty', 'easy_crash_corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'easy_crash_fuzzer')
-    options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
+    options = engine_impl.prepare(
+        os.path.join(TEMP_DIRECTORY, 'easy_crash_corpus'), fuzzer_path,
+        DATA_DIRECTORY)
 
     result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
                               LONG_FUZZ_TIMEOUT)
@@ -118,17 +122,3 @@ class EngineTest(unittest.TestCase):
 
     # Testcase (non-zero size) should've been copied back.
     self.assertNotEqual(os.path.getsize(crash.input_path), 0)
-
-  def test_startup_crash_not_reported(self):
-    """Ensures that we properly handle startup crashes."""
-    engine_impl = engine.Engine()
-
-    afl_launcher_integration_test.setup_testcase_and_corpus(
-        'empty', 'corpus', fuzz=True)
-    fuzzer_path = os.path.join(DATA_DIRECTORY, 'always_crash_fuzzer')
-    options = engine_impl.prepare(CORPUS_DIRECTORY, fuzzer_path, DATA_DIRECTORY)
-
-    result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
-                              FUZZ_TIMEOUT)
-
-    self.assertFalse(result.crashes)
