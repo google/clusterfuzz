@@ -262,7 +262,8 @@ class Blacklist(Model):
 class Fuzzer(Model):
   """Represents a fuzzer."""
 
-  VALID_NAME_REGEX = NAME_CHECK_REGEX
+  # Additionally allows '.' and '@' over NAME_CHECK_REGEX.
+  VALID_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_@.-]+$')
 
   # Last update time.
   timestamp = ndb.DateTimeProperty()
