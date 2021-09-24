@@ -64,6 +64,11 @@ def generate(serial,
     data['target'] = 'linux/amd64'
     data['disable_syscalls'] = ['openat$vhost_vsock']
     data['sandbox'] = 'none'
+    # Cuttlefish pass kernel log as console input in Syzkaller config.
+    device = {}
+    device['serial'] = serial
+    device['console'] = '/home/vsoc-01/cuttlefish_runtime.1/kernel.log'
+    devices['devices'] = [device]
 
   if syzhub_address and syzhub_client and syzhub_key:
     data['hub_addr'] = syzhub_address
