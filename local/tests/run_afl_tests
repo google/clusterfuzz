@@ -8,4 +8,4 @@ if [ "$(cat /proc/sys/kernel/core_pattern)" != "core" ]; then
 fi
 
 AFL_INTEGRATION_TESTS=1 python butler.py py_unittest \
-    -t core -p '*afl_launcher_integration*' "$@"
+    -t core -p '*afl*' "$@"

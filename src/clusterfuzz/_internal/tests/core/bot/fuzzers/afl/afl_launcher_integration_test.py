@@ -294,11 +294,12 @@ class TestLauncher(BaseLauncherTest):
     # are doing. Doing so will cause the test to fail on rare ocassion, which
     # will break deploys.
     mock_get_timeout.return_value = get_fuzz_timeout(120.0)
-    testcase_path = setup_testcase_and_corpus('empty', 'corpus', fuzz=True)
+    testcase_path = setup_testcase_and_corpus(
+        'empty', 'easy_crash_corpus', fuzz=True)
 
     output = run_launcher(testcase_path, 'easy_crash_fuzzer')
     self.assertIn(
-        'Command: {0}/afl-fuzz -l2 -pfast -Sdefault -i{1}/corpus '
+        'Command: {0}/afl-fuzz -l2 -pfast -Sdefault -i{1}/easy_crash_corpus '
         '-o{1}/temp-1337/afl_output_dir -mnone '
         '{0}/easy_crash_fuzzer 2147483647'.format(DATA_DIRECTORY,
                                                   TEMP_DIRECTORY), output)
