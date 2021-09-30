@@ -483,10 +483,6 @@ def execute_task(testcase_id, job_type):
     create_additional_tasks(testcase)
     return
 
-  # If we've made it this far, the test case appears to be reproducible. Clear
-  # metadata from previous runs had it been marked as potentially flaky.
-  task_creation.mark_unreproducible_if_flaky(testcase, False)
-
   test_runner.set_test_expectations(testcase.security_flag, flaky_stack,
                                     saved_unsymbolized_crash_state)
 
@@ -1273,8 +1269,6 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     logs.log_warn('Security flag does not match.')
     handle_unreproducible()
     return
-
-  task_creation.mark_unreproducible_if_flaky(testcase, False)
 
   expected_state = initial_crash_result.get_symbolized_data()
   logs.log('Initial crash state: %s\n' % expected_state.crash_state)
