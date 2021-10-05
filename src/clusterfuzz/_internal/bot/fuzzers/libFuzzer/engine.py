@@ -300,7 +300,8 @@ class Engine(engine.Engine):
     # If we exited with a non-zero return code with no crash file in output from
     # libFuzzer, this is most likely a startup crash. Use an empty testcase to
     # to store it as a crash.
-    if not crash_testcase_file_path and fuzz_result.return_code:
+    if (not crash_testcase_file_path and
+        fuzz_result.return_code not in constants.NONCRASH_RETURN_CODES):
       crash_testcase_file_path = self._create_empty_testcase_file(
           reproducers_dir)
 
