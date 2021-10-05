@@ -104,6 +104,13 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
         message='still crashes on latest custom build')
     return
 
+  if result.unexpected_crash:
+    testcase.set_metadata(
+        'crashes_on_unexpected_state', True, update_testcase=False)
+  else:
+    testcase.delete_metadata(
+        'crashes_on_unexpected_state', update_testcase=False)
+
   # Retry once on another bot to confirm our results and in case this bot is in
   # a bad state which we didn't catch through our usual means.
   if data_handler.is_first_retry_for_task(testcase, reset_after_retry=True):
@@ -325,6 +332,11 @@ def find_fixed_range(testcase_id, job_type):
                                              job_type, state.crash_type,
                                              state.crash_address, state.frames)
     return
+
+  if result.unexpected_crash:
+    testcase.set_metadata('crashes_on_unexpected_state', True)
+  else:
+    testcase.delete_metadata('crashes_on_unexpected_state')
 
   # Don't burden NFS server with caching these random builds.
   environment.set_value('CACHE_STORE', False)
