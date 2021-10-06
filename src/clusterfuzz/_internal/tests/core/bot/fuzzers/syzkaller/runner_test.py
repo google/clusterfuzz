@@ -61,7 +61,8 @@ class RunnerTest(unittest.TestCase):
         'FUZZ_INPUTS_DISK': INPUT_DIR,
         'BUILD_DIR': BUILD_DIR,
         'OS_OVERRIDE': 'ANDROID_X86',
-        'VMLINUX_PATH': BUILD_DIR
+        'VMLINUX_PATH': BUILD_DIR,
+        'CVD_DIR': '/home/vsoc-01'
     }
     mock_temp_dir.return_value = TEMP_DIR
     mock_get_value.side_effect = env.get
@@ -77,7 +78,7 @@ class RunnerTest(unittest.TestCase):
         '"vm": {"devices": ['
         '{'
         '"serial": "172.18.0.2:6520", '
-        '"console": "/home/vsoc-01/cuttlefish_runtime.1/kernel.log"'
+        '"console": "/home/vsoc-01/cuttlefish_runtime/kernel.log"'
         '}'
         ']}, '
         f'"kernel_obj": "{BUILD_DIR}", '
