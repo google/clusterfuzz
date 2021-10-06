@@ -663,6 +663,7 @@ class TestcaseRunner(object):
     """Try reproducing a crash with retries."""
     self._pre_run_cleanup()
     crash_result = None
+    unexpected_crash = False
 
     for round_number in range(1, retries + 1):
       crash_result = self.run(round_number)
@@ -680,6 +681,7 @@ class TestcaseRunner(object):
         continue
 
       if crash_result.is_security_issue() != expected_security_flag:
+        unexpected_crash = True
         logs.log('Crash security flag does not match, ignored.')
         continue
 
@@ -691,10 +693,16 @@ class TestcaseRunner(object):
       if crash_comparer.is_similar():
         logs.log('Crash stacktrace is similar to original stacktrace.')
         return crash_result
+
+      unexpected_crash = True
       logs.log('Crash stacktrace does not match original stacktrace.')
 
     logs.log('Didn\'t crash at all.')
-    return CrashResult(return_code=0, crash_time=0, output=crash_result.output)
+    return CrashResult(
+        return_code=0,
+        crash_time=0,
+        output=crash_result.output,
+        unexpected_crash=unexpected_crash)
 
   def test_reproduce_reliability(self, retries, expected_state,
                                  expected_security_flag):

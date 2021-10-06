@@ -23,10 +23,13 @@ from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 class CrashResult(object):
   """Represents a crash result from a test run."""
 
-  def __init__(self, return_code, crash_time, output):
+  def __init__(self, return_code, crash_time, output, unexpected_crash=False):
     self.return_code = return_code
     self.crash_time = crash_time
     self.output = utils.decode_to_unicode(output) if output else 'No output!'
+    # For crashes against an expected state, this indicates whether if there
+    # was a crash that didn't match.
+    self.unexpected_crash = unexpected_crash
 
     self._symbolized_crash_data = None
     self._unsymbolized_crash_data = None
