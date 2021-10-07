@@ -16,6 +16,8 @@
 import json
 import os
 
+from clusterfuzz._internal.system import environment
+
 
 def generate(serial,
              work_dir_path,
@@ -64,6 +66,14 @@ def generate(serial,
     data['target'] = 'linux/amd64'
     data['disable_syscalls'] = ['openat$vhost_vsock']
     data['sandbox'] = 'none'
+    device = {}
+    device['serial'] = serial
+    # Syzkaller uses cuttlefish kernel.log as console instead of serial console.
+    # kernel.log will be collected within respective cuttlefish_runtime folder.
+    # We only have one instance launched at one time.
+    cvd_dir = environment.get_value('CVD_DIR')
+    device['console'] = f'{cvd_dir}/cuttlefish_runtime/kernel.log'
+    devices['devices'] = [device]
 
   if syzhub_address and syzhub_client and syzhub_key:
     data['hub_addr'] = syzhub_address
