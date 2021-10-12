@@ -324,8 +324,11 @@ class Handler(base_handler.Handler):
       # File the bug first and then create filed bug metadata.
       try:
         issue_filer.file_issue(testcase, issue_tracker)
-      except Exception:
+      except Exception as e:
         logs.log_error('Failed to file issue for testcase %d.' % testcase_id)
+        _add_triage_message(testcase,
+                            f'Failed to file issue due to exception: {str(e)}')
+
         continue
 
       _create_filed_bug_metadata(testcase)
