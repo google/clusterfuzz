@@ -298,7 +298,7 @@ def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
 
   with tempfile.NamedTemporaryFile() as f:
     f.write(open('src/requirements.txt', 'rb').read())
-    f.write(open('src/appengine/requirements.txt', 'rb').read())
+    f.write(open('src/appengine/gae_requirements.txt', 'rb').read())
     f.flush()
 
     _install_pip(f.name, 'src/appengine/third_party')
