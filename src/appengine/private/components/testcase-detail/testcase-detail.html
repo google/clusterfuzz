@@ -202,13 +202,7 @@
         </div>
         <div class="section">
           <div class="title">
-            Overview
-            <template is="dom-if" if="[[isNA(info.fixed)]]">
-              -- NOT VALID
-            </template>
-            <template is="dom-if" if="[[isFixed(info)]]">
-              -- ALREADY FIXED
-            </template>
+            Overview          
           </div>
           <div class="body">
             <table cellpadding="0" cellspacing="0" class="overview">
@@ -323,33 +317,7 @@
                     <span slot="f">NA</span>
                   </if-else>
                 </td>
-                <td class="label">
-                  <span class="help" title="Whether or not the crash is fixed. If yes, please see the fixed revision range below.">Fixed:</span>
-                </td>
-                <td class="value">
-                  <if-else condition="[[info.metadata.progression_pending]]">
-                    <span slot="t">Pending</span>
-                    <span slot="f">
-                      <if-else condition="[[isFixed(info)]]">
-                        <span class="fixed" slot="t">YES</span>
-                        <span slot="f">
-                          <if-else condition="[[isNotFixed(info)]]">
-                            <span class="not-fixed" slot="t">NO</span>
-                            <span slot="f">
-                              [[info.fixed]]
-                              <template is="dom-repeat" items="[[fixedHelpText(info)]]">
-                                <iron-icon class="fixed-help" icon="icons:help-outline" title="[[item]]"></iron-icon>
-                              </template>
-                            </span>
-                          </if-else>
-                          <template is="dom-if" if="[[info.is_admin]]">
-                            <paper-icon-button icon="create" hidden$="[[!info.testcase.one_time_crasher_flag]]" toggles active="{{markFixedDialogOpened}}" title="Mark as fixed"></paper-icon-button>
-                          </template>
-                        </span>
-                      </if-else>
-                    </span>
-                  </if-else>
-                </td>
+
               </tr>
               <tr>
                 <template is="dom-if" if="[[info.fuzzer_display.engine]]">
@@ -495,6 +463,36 @@
                   </td>
                 </tr>
               </template>
+              <td class="label">
+                <span class="help" title="Whether or not the crash is fixed. If yes, please see the fixed revision range below.">Fixed:</span>
+              </td>
+              <td colspan="5" class="value">               
+                <if-else condition="[[info.metadata.progression_pending]]">
+                  <span slot="t">Pending</span>
+                  <span slot="f">
+                    <if-else condition="[[isFixed(info)]]">
+                      <span class="fixed" slot="t">YES</span>
+                      <span slot="f">
+                        <if-else condition="[[isNotFixed(info)]]">
+                          <span class="not-fixed" slot="t">NO</span>
+                          <span slot="f">
+                            <if-else condition="[[isNA(info.fixed)]]">
+                              <span slot="t">Unable to determine fixed status as testcase is invalid.</span>
+                              <span slot="f">[[info.fixed]]</span>
+                            </if-else> 
+                            <template is="dom-repeat" items="[[fixedHelpText(info)]]">
+                              <iron-icon class="fixed-help" icon="icons:help-outline" title="[[item]]"></iron-icon>
+                            </template>
+                          </span>
+                        </if-else>
+                        <template is="dom-if" if="[[info.is_admin]]">
+                          <paper-icon-button icon="create" hidden$="[[!info.testcase.one_time_crasher_flag]]" toggles active="{{markFixedDialogOpened}}" title="Mark as fixed"></paper-icon-button>
+                        </template>
+                      </span>
+                    </if-else>
+                  </span>
+                </if-else>
+              </td>
             </table>
             <div class="artifacts">
               <template is="dom-if" if="[[nonEmpty(info.testcase.gestures)]]">
