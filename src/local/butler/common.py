@@ -15,6 +15,7 @@
    commands."""
 
 import datetime
+from distutils import dir_util
 import io
 import os
 import platform
@@ -24,8 +25,6 @@ import sys
 import tempfile
 import urllib.request
 import zipfile
-
-from distutils import dir_util
 
 from local.butler import constants
 
