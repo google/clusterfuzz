@@ -1247,7 +1247,9 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
     # Add directory containing libclang_rt.ubsan_standalone-aarch64-android.so
     # to LD_LIBRARY_PATH.
-    ld_library_path = android.sanitizer.get_ld_library_path_for_sanitizers()
+    ld_library_path = ''
+    if not android.settings.is_automotive():
+      ld_library_path = android.sanitizer.get_ld_library_path_for_sanitizers()
     if ld_library_path:
       default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
 
