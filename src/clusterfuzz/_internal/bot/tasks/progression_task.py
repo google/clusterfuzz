@@ -455,6 +455,14 @@ def execute_task(testcase_id, job_type):
     error_message = 'Unable to recover from bad build'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
+  except errors.BuildNotFoundError as e:
+    # If an expected build no longer exists, we can't continue.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase.fixed = 'NA'
+    testcase.open = False
+    error_message = f'Build {e.revision} not longer exists'
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                         error_message)
 
   # If there is a fine grained bisection service available, request it. Both
   # regression and fixed ranges are requested once. Regression is also requested
