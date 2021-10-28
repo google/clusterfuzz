@@ -63,10 +63,10 @@ class _Monitor(object):
       return
     duration = self.time_module.time() - self.start_time
     monitoring_metrics.TASK_TOTAL_RUN_TIME.increment_by(
-      int(duration), {
-        'task': self.task.command or '',
-        'job': self.task.job or '',
-    })
+        int(duration), {
+            'task': self.task.command or '',
+            'job': self.task.job or '',
+        })
 
 
 def task_loop():
