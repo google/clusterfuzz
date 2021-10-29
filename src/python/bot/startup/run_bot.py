@@ -58,8 +58,7 @@ class _Monitor(object):
     self.start_time = self.time_module.time()
 
   def __exit__(self, exc_type, value, trackback):
-    # Only log task run time for Android platform.
-    if not environment.is_android():
+    if not environment.get_value('LOG_TASK_TIMES'):
       return
     duration = self.time_module.time() - self.start_time
     monitoring_metrics.TASK_TOTAL_RUN_TIME.increment_by(
