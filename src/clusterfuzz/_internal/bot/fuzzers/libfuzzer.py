@@ -1249,6 +1249,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     # to LD_LIBRARY_PATH.
     ld_library_path = ''
     if not android.settings.is_automotive():
+      # TODO(MHA3): Remove this auto check.
       ld_library_path = android.sanitizer.get_ld_library_path_for_sanitizers()
     if ld_library_path:
       default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
