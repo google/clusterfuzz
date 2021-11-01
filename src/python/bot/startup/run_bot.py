@@ -58,7 +58,14 @@ class _Monitor(object):
     self.start_time = self.time_module.time()
 
   def __exit__(self, exc_type, value, trackback):
-    pass
+    if not environment.get_value('LOG_TASK_TIMES'):
+      return
+    duration = self.time_module.time() - self.start_time
+    monitoring_metrics.TASK_TOTAL_RUN_TIME.increment_by(
+        int(duration), {
+            'task': self.task.command or '',
+            'job': self.task.job or '',
+        })
 
 
 def task_loop():

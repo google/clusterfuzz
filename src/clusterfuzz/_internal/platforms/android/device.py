@@ -345,6 +345,7 @@ def initialize_environment():
                         settings.get_sanitizer_tool_name())
   environment.set_value('SECURITY_PATCH_LEVEL',
                         settings.get_security_patch_level())
+  environment.set_value('LOG_TASK_TIMES', True)
 
 
 def install_application_if_needed(apk_path, force_update):

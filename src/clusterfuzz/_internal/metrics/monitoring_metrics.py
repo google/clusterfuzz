@@ -146,3 +146,12 @@ TASK_COUNT = monitor.CounterMetric(
         monitor.StringField('task'),
         monitor.StringField('job'),
     ])
+
+TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
+    'task/total_time',
+    description=('The task run time in seconds'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+    ],
+)
