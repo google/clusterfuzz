@@ -768,6 +768,14 @@ class StackParser:
             type_from_group=1,
             type_filter=filter_kernel_panic_crash_type)
 
+      self.update_state_on_match(
+          KERNEL_BUG,
+          line,
+          state,
+          new_type='Kernel failure',
+          type_from_group=1,
+          type_filter=filter_kasan_crash_type)
+
       # Generic KASan errors.
       if self.update_state_on_match(
           KASAN_CRASH_TYPE_ADDRESS_REGEX,

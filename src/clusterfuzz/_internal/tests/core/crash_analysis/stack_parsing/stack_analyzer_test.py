@@ -1962,6 +1962,24 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_kernel_invalid_opcode(self):
+    """Test kernel bug: invalid opcode."""
+    data = self._read_test_data('kernel_bug_invalid_opcode.txt')
+    expected_type = 'Kernel failure\nKernel/time/timer.c:{*}!'
+    expected_address = ''
+    expected_state = 'test_rtc_alarm_irq_enable\nrtc_alarm_irq_enable\nrtc_dev_ioctl\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(
+        data,
+        expected_type,
+        expected_address,
+        expected_state,
+        expected_stacktrace,
+        expected_security_flag,
+    )
+
   def test_security_check_failure(self):
     """Test a security CHECK failure (i.e. Blink RELEASE_ASSERT)."""
     data = self._read_test_data('security_check_failure.txt')

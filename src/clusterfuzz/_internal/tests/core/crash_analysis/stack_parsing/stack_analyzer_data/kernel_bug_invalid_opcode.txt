@@ -1,0 +1,32 @@
+ABE: drivers/rtc/rtc-test.c +53 test_rtc_set_alarm
+------------[ cut here ]------------
+kernel BUG at kernel/time/timer.c:1147!
+invalid opcode: 0000 [#1] PREEMPT SMP KASAN PTI
+CPU: 1 PID: 30432 Comm: syz-executor Tainted: G           O      5.10.43-android12-9-00106-g6c3417436a6f-ab7724335 #1
+Hardware name: ChromiumOS crosvm, BIOS 0
+RIP: 0010:add_timer+0x74/0x80
+Code: 03 42 80 3c 38 00 74 05 e8 a9 a7 43 00 49 8b 76 10 4c 89 f7 ba 04 00 00 00 e8 88 ec ff ff 5b 41 5e 41 5f 5d c3 e8 cc 15 0e 00 <0f> 0b 66 2e 0f 1f 84 00 00 00 00 00 55 48 89 e5 41 57 41 56 41 55
+RSP: 0018:ffff888014cefd90 EFLAGS: 00010283
+RAX: ffffffff81569974 RBX: ffff88800e0e5230 RCX: 0000000000040000
+RDX: ffffc90000e27000 RSI: 0000000000000379 RDI: 000000000000037a
+RBP: ffff888014cefda8 R08: 0000000000000000 R09: 0000000000000000
+R10: ffffed100cca470e R11: ffffffffa0370370 R12: ffff88800e920001
+R13: dffffc0000000000 R14: ffff88800e0e5228 R15: dffffc0000000000
+FS:  0000779e47dac700(0000) GS:ffff888066500000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000000051e110 CR3: 000000003f070003 CR4: 0000000000170ea0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+test_rtc_alarm_irq_enable+0x74/0xa0 [rtc_test]
+? test_rtc_set_time+0x80/0x80 [rtc_test]
+rtc_alarm_irq_enable+0x11e/0x210
+rtc_dev_ioctl+0x3b9/0xb20
+? do_vfs_ioctl+0x6c5/0x15a0
+? rtc_dev_poll+0xe0/0xe0
+__se_sys_ioctl+0xea/0x140
+__x64_sys_ioctl+0x7b/0x90
+do_syscall_64+0x37/0x50
+entry_SYSCALL_64_after_hwframe+0x44/0xa9
+RIP: 0033:0x46a1b9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48

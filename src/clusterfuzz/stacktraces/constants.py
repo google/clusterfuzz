@@ -108,6 +108,7 @@ HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
 JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
+KERNEL_BUG = re.compile(r'kernel BUG at (.*)')
 KASAN_ACCESS_TYPE_REGEX = re.compile(r'(Read|Write) of size ([0-9]+)')
 KASAN_ACCESS_TYPE_ADDRESS_REGEX = re.compile(
     r'(Read|Write) of size ([0-9]+) at (addr|address) ([a-f0-9]+)')
