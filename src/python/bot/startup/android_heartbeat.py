@@ -35,7 +35,7 @@ def main():
   """Run a cycle of heartbeat checks to ensure Android device is running."""
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
-    
+
   if environment.is_android_cuttlefish():
     android.adb.set_cuttlefish_device_serial()
     android.adb.connect_to_cuttlefish_device()
@@ -45,11 +45,10 @@ def main():
 
   while True:
     state = int(android.adb.get_device_state() == 'device')
-    monitoring_metrics.ANDROID_UPTIME.set(
-      state, {
+    monitoring_metrics.ANDROID_UPTIME.set(state, {
         'serial': device_serial,
         'platform ': environment.platform(),
-      })
+    })
     time.sleep(data_types.ANDROID_HEARTBEAT_WAIT_INTERVAL)
 
     if data_handler.bot_run_timed_out():
