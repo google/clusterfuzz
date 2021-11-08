@@ -155,3 +155,12 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
         monitor.StringField('job'),
     ],
 )
+
+ANDROID_UPTIME = monitor.GaugeMetric(
+    'android_device_uptime',
+    description='Android device uptime',
+    field_spec=[
+        monitor.StringField('serial'),
+        monitor.StringField('platform'),
+    ],
+)

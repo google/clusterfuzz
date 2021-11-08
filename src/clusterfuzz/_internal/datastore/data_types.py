@@ -59,6 +59,9 @@ FILE_UNREPRODUCIBLE_TESTCASE_MIN_CRASH_THRESHOLD = 100
 # Heartbeat wait interval.
 HEARTBEAT_WAIT_INTERVAL = 10 * 60
 
+# Android device heartbeat wait interval.
+ANDROID_HEARTBEAT_WAIT_INTERVAL = 60
+
 # FIXME: Move this to configuration.
 # List of internal sandboxed data types. This gives a warning on testcase
 # uploads on unsandboxed job types.
