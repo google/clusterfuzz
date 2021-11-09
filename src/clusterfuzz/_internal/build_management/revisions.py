@@ -44,7 +44,8 @@ COMPONENT_NAMES_BLACKLIST = [
 ]
 DISK_CACHE_SIZE = 1000
 SOURCE_MAP_EXTENSION = '.srcmap.json'
-FIND_BRANCHED_FROM = re.compile(r'Cr-Branched-From:.*master@\{#(\d+)\}')
+FIND_BRANCHED_FROM = re.compile(
+    r'Cr-Branched-From:.*(?:master|main)@\{#(\d+)\}')
 
 
 def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
