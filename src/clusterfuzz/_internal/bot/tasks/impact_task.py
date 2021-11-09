@@ -45,6 +45,10 @@ class Impact(object):
     self.likely = likely
     self.extra_trace = extra_trace
 
+  def __str__(self):
+    return (f'version: {self.version}, likely: {self.likely}, '
+            f'extra_trace: {self.extra_trace}')
+
   def is_empty(self):
     """Return True if empty."""
     return not self.version
