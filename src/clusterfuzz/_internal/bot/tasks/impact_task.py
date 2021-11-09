@@ -25,6 +25,7 @@ from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
@@ -128,8 +129,12 @@ def get_component_impacts_from_url(component_name,
                                    job_type,
                                    platform=None):
   """Gets component impact string using the build information url."""
+  logs.log('Getting component impacts from URL. Component name %s, '
+           'regression range %s, job type %s, platform %s.' %
+           (component_name, regression_range, str(job_type), str(platform)))
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
+  logs.log('Start and end revision %s, %s' % (start_revision, end_revision))
   if not end_revision:
     return Impacts()
 
@@ -140,6 +145,7 @@ def get_component_impacts_from_url(component_name,
   found_impacts = dict()
   for build in ['extended_stable', 'stable', 'beta', 'canary']:
     mapping = build_revision_mappings.get(build)
+    logs.log('Considering impacts for %s.' % (build))
     # TODO(yuanjunh): bypass for now but remove it after ES is enabled.
     if build == 'extended_stable' and not mapping:
       found_impacts[build] = Impact()
@@ -151,12 +157,15 @@ def get_component_impacts_from_url(component_name,
     if not mapping:
       return Impacts()
     chromium_revision = mapping['revision']
+    logs.log('Chromium revision is %s.' % (chromium_revision))
     component_revision = get_component_information_by_name(
         chromium_revision, component_name)
+    logs.log('Component revision is %s.' % (component_revision))
     if not component_revision:
       return Impacts()
     branched_from = revisions.revision_to_branched_from(
         component_revision['url'], component_revision['rev'])
+    logs.log('Branched from revision is %s.' % (branched_from))
     if not branched_from:
       # This is a head revision, not branched.
       branched_from = component_revision['rev']
@@ -164,6 +173,7 @@ def get_component_impacts_from_url(component_name,
         'revision': branched_from,
         'version': mapping['version']
     }, start_revision, end_revision, build == 'canary')
+    logs.log('Resulting impact is %s.' % (str(impact)))
     found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'],
                  found_impacts['extended_stable'], found_impacts['canary'])
@@ -171,11 +181,14 @@ def get_component_impacts_from_url(component_name,
 
 def get_impacts_from_url(regression_range, job_type, platform=None):
   """Gets impact string using the build information url."""
+  logs.log('Get component impacts from URL: range %s, '
+           'job type %s.' % (regression_range, str(job_type)))
   component_name = data_handler.get_component_name(job_type)
   if component_name:
     return get_component_impacts_from_url(component_name, regression_range,
                                           job_type, platform)
 
+  logs.log('Proceeding to calculate impacts as non-component')
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
   if not end_revision:
@@ -361,6 +374,7 @@ def execute_task(testcase_id, job_type):
                                          'Not applicable for custom binaries')
     return
 
+  logs.log('Preparing to calculate impact.')
   # If we don't have a stable or beta build url pattern, we try to use build
   # information url to make a guess.
   if not build_manager.has_production_builds():
@@ -371,6 +385,7 @@ def execute_task(testcase_id, job_type):
           'task finishes')
       return
 
+    logs.log('No production builds; calculating impact from URL.')
     impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
     testcase = data_handler.get_testcase_by_id(testcase_id)
     set_testcase_with_impacts(testcase, impacts)
@@ -385,6 +400,7 @@ def execute_task(testcase_id, job_type):
 
   # Setup extended stable, stable, beta builds
   # and get impact and crash stacktrace.
+  logs.log('Have production builds; calculating impact by reproduction.')
   try:
     impacts = get_impacts_on_prod_builds(testcase, testcase_file_path)
   except BuildFailedException as error:
