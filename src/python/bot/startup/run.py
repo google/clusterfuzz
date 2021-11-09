@@ -189,7 +189,8 @@ def update_source_code_if_needed():
 def run_loop(bot_command, heartbeat_command):
   """Run infinite loop with bot's command."""
   atexit.register(stop_heartbeat)
-  atexit.register(stop_android_heartbeat)
+  if environment.is_android():
+    atexit.register(stop_android_heartbeat)
 
   while True:
     update_source_code_if_needed()
