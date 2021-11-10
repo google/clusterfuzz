@@ -1970,6 +1970,12 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'])
     six.assertCountEqual(self, ['target1', 'target3'], targets_list)
 
+  def test_target_no_longer_built(self):
+    """Test a target that's not longer listed in target.list."""
+    os.environ['FUZZ_TARGET'] = 'target4'
+    with self.assertRaises(errors.BuildNotFoundError):
+      build_manager.setup_build()
+
 
 class GetPrimaryBucketPathTest(unittest.TestCase):
   """Tests for get_primary_bucket_path."""

@@ -1324,6 +1324,9 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
     raise BuildManagerException(
         'Failed to choose a fuzz target (path=%s).' % bucket_path)
 
+  if fuzz_target not in targets_list:
+    raise errors.BuildNotFoundError(revision, environment.get_value('JOB_NAME'))
+
   fuzz_target_bucket_path = _full_fuzz_target_path(bucket_path, fuzz_target)
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
