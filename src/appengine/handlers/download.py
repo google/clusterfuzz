@@ -18,6 +18,7 @@ import urllib.parse
 
 from flask import request
 
+from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_handler
@@ -27,6 +28,8 @@ from libs import access
 from libs import gcs
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
+
+_OSS_FUZZ_REPRODUCER_DELAY = 30
 
 
 class Handler(base_handler.Handler, gcs.SignedGcsHandler):
@@ -76,6 +79,14 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     # If the issue is explicitly marked as view restricted to committers only
     # (OSS-Fuzz only), then don't allow public download.
     if 'restrict-view-commit' in issue.labels:
+      return False
+
+    # For OSS-Fuzz, delay the disclosure of the reproducer by 30 days.
+    # If the deadline had previously exceeded, the reproducer was made public
+    # already so exclude that case.
+    if (utils.is_oss_fuzz() and 'deadline-exceeded' not in issue.labels and
+        issue.closed_time and not dates.time_has_expired(
+            issue.closed_time, days=_OSS_FUZZ_REPRODUCER_DELAY)):
       return False
 
     return True
