@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for download."""
 
+import datetime
 import unittest
 import urllib.parse
 
@@ -214,6 +215,8 @@ class DownloadTest(unittest.TestCase):
     self.mock.is_oss_fuzz.return_value = True
     mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
     mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.closed_time = (
+        datetime.datetime.utcnow() - datetime.timedelta(days=30))
 
     self._test_download(
         self.minimized_key, expect_status=302, expect_blob=False)
@@ -262,6 +265,39 @@ class DownloadTest(unittest.TestCase):
         self.fuzzed_key,
         testcase_id=self.testcase.key.id(),
         expect_filename='clusterfuzz-testcase-1.ext')
+
+  def test_public_download_oss_fuzz_reproducer_delay(self):
+    """Test reproducer delay on OSS-Fuzz."""
+    self.mock.get_user_email.return_value = ''
+
+    self.mock.is_oss_fuzz.return_value = True
+    mock_issue = self.mock.get_issue_tracker_for_testcase(None).get_issue()
+    mock_issue.labels = issue_tracker.LabelStore([])
+    mock_issue.closed_time = (
+        datetime.datetime.utcnow() - datetime.timedelta(days=29))
+
+    # All attempts should fail.
+    self._test_download(
+        self.minimized_key, expect_status=302, expect_blob=False)
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_status=302,
+        expect_blob=False)
+
+    # But if the deadline had exceeded anyway, no extra delay should apply.
+    mock_issue.labels.add('deadline-exceeded')
+    self._test_download(
+        testcase_id=self.testcase.key.id(),
+        expect_filename='clusterfuzz-testcase-minimized-1.ext')
+    self._test_download(
+        self.minimized_key,
+        testcase_id=self.testcase.key.id(),
+        expect_filename='clusterfuzz-testcase-minimized-1.ext')
 
   def test_download_invalid_id(self):
     """Test download with an invalid testcase ID."""
