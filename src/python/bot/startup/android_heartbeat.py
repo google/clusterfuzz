@@ -26,6 +26,7 @@ import time
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
@@ -35,12 +36,12 @@ def main():
   """Run a cycle of heartbeat checks to ensure Android device is running."""
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
+  monitor.initialize()
 
   if environment.is_android_cuttlefish():
     android.adb.set_cuttlefish_device_serial()
     android.adb.connect_to_cuttlefish_device()
 
-  #bot name should be extracted correctly
   device_serial = environment.get_value('ANDROID_SERIAL')
 
   while True:

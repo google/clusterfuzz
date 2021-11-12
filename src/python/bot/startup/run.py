@@ -36,7 +36,7 @@ from clusterfuzz._internal.system import shell
 
 BOT_SCRIPT = 'run_bot.py'
 HEARTBEAT_SCRIPT = 'run_heartbeat.py'
-ANDROID_SCRIPT = 'android_heartbeat.py'
+ANDROID_HEARTBEAT_SCRIPT = 'android_heartbeat.py'
 HEARTBEAT_START_WAIT_TIME = 60
 LOOP_SLEEP_INTERVAL = 3
 MAX_SUBPROCESS_TIMEOUT = 2**31 // 1000  # https://bugs.python.org/issue20493
@@ -139,7 +139,8 @@ def start_android_heartbeat():
     return
 
   base_directory = environment.get_startup_scripts_directory()
-  android_beat_script_path = os.path.join(base_directory, ANDROID_SCRIPT)
+  android_beat_script_path = os.path.join(base_directory,
+                                          ANDROID_HEARTBEAT_SCRIPT)
   android_beat_interpreter = shell.get_interpreter(android_beat_script_path)
   assert android_beat_interpreter
   android_beat_command = [android_beat_interpreter, android_beat_script_path]
@@ -164,8 +165,8 @@ def stop_android_heartbeat():
 
   try:
     _android_heartbeat_handle.kill()
-  except Exception:
-    pass
+  except Exception as e:
+    logs.log_error('Unable to stop android heartbeat process: %s' % str(e))
 
   _android_heartbeat_handle = None
 
