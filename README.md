@@ -47,6 +47,10 @@ questions, request features, or ask for help.
 ## Staying Up to Date
 We will use [clusterfuzz-announce(#)googlegroups.com](https://groups.google.com/forum/#!forum/clusterfuzz-announce) to make announcements about ClusterFuzz.
 
+## ClusterFuzzLite
+For a more lightweight version of ClusterFuzz that runs on CI/CD
+systems, check out [ClusterFuzzLite](http://github.com/google/clusterfuzzlite).
+
 [Chrome]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
 [26,000+]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=-status%3AWontFix%2CDuplicate%20-component%3AInfra&can=1
 [400]: https://github.com/google/oss-fuzz/tree/master/projects
