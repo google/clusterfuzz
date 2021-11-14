@@ -461,6 +461,7 @@ def execute_task(testcase_id, job_type):
     testcase.fixed = 'NA'
     testcase.open = False
     error_message = f'Build {e.revision} not longer exists'
+    data_handler.clear_progression_pending(testcase)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
 
