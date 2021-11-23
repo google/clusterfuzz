@@ -199,7 +199,7 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
   if not end_revision:
     return Impacts()
 
-  logs.log('Gathering build to revision mappings for %s', platform)
+  logs.log(f'Gathering build to revision mappings for {platform}')
   build_revision_mappings = build_info.get_build_to_revision_mappings(platform)
   if not build_revision_mappings:
     return Impacts()
