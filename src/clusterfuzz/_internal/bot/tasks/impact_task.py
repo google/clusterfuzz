@@ -192,16 +192,19 @@ def get_impacts_from_url(regression_range, job_type, platform=None):
     return get_component_impacts_from_url(component_name, regression_range,
                                           job_type, platform)
 
-  logs.log('Proceeding to calculate impacts as non-component')
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
+  logs.log('Proceeding to calculate impacts as non-component based on '
+           'range %s-%s' % (str(start_revision), str(end_revision)))
   if not end_revision:
     return Impacts()
 
+  logs.log(f'Gathering build to revision mappings for {platform}')
   build_revision_mappings = build_info.get_build_to_revision_mappings(platform)
   if not build_revision_mappings:
     return Impacts()
 
+  logs.log('Calculating impacts from URL')
   extended_stable = get_impact(
       build_revision_mappings.get('extended_stable'), start_revision,
       end_revision)
