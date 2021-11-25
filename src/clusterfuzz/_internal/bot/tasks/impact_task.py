@@ -111,7 +111,7 @@ def get_start_and_end_revision(regression_range, job_type):
 
 def is_valid_regression_range(regression_range, job_type):
   """Return whether we have a valid regression range."""
-  (start, end) = get_start_and_end_revision(regression_range, job_type)
+  start, end = get_start_and_end_revision(regression_range, job_type)
   return start != 0 or end != 0
 
 
