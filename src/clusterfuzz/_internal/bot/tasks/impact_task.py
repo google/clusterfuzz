@@ -109,6 +109,12 @@ def get_start_and_end_revision(regression_range, job_type):
   return start_revision, end_revision
 
 
+def is_valid_regression_range(regression_range, job_type):
+  """Return whether we have a valid regression range."""
+  start, end = get_start_and_end_revision(regression_range, job_type)
+  return start != 0 or end != 0
+
+
 def get_component_information_by_name(chromium_revision,
                                       component_display_name):
   """Returns a dictionary with information about a component at a revision."""
@@ -385,7 +391,7 @@ def execute_task(testcase_id, job_type):
   # If we don't have a stable or beta build url pattern, we try to use build
   # information url to make a guess.
   if not build_manager.has_production_builds():
-    if not testcase.regression:
+    if not is_valid_regression_range(testcase.regression, testcase.job_type):
       data_handler.update_testcase_comment(
           testcase, data_types.TaskState.FINISHED,
           'Cannot run without regression range, will re-run once regression '
