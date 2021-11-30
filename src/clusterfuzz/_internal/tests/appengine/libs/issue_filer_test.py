@@ -183,8 +183,7 @@ class IssueFilerTests(unittest.TestCase):
     data_types.Job(
         name='chromeos_job4', environment_string='', platform='linux').put()
 
-    data_types.Job(
-        name='ios_job', environment_string='', platform='mac').put()
+    data_types.Job(name='ios_job', environment_string='', platform='mac').put()
 
     testcase_args = {
         'crash_type': 'Heap-use-after-free',
@@ -230,8 +229,7 @@ class IssueFilerTests(unittest.TestCase):
         job_type='job', additional_metadata='invalid', **testcase_args)
     self.testcase6.put()
 
-    self.testcase7 = data_types.Testcase(
-        job_type='ios_job4', **testcase_args)
+    self.testcase7 = data_types.Testcase(job_type='ios_job4', **testcase_args)
     self.testcase7.put()
 
     data_types.ExternalUserPermission(
@@ -462,7 +460,7 @@ class IssueFilerTests(unittest.TestCase):
         data_types.SecuritySeverity.LOW: 'Security_Severity-Low',
     }
 
-    for security_severity in security_severity_string_map:
+    for security_severity, value in security_severity_string_map.items():
       issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
 
       self.testcase1.security_flag = True
@@ -470,8 +468,7 @@ class IssueFilerTests(unittest.TestCase):
       self.testcase1.put()
 
       issue_filer.file_issue(self.testcase1, issue_tracker)
-      self.assertIn(security_severity_string_map[security_severity],
-                    issue_tracker._itm.last_issue.labels)
+      self.assertIn(value, issue_tracker._itm.last_issue.labels)
       self.assertEqual(
           1,
           len(
