@@ -624,6 +624,11 @@ def is_afl_job(job_name=None):
   return get_engine_for_job(job_name) == 'afl'
 
 
+def is_ios_job(job_name=None):
+  """Return True if the current job is for iOS."""
+  return _job_substring_match('ios_', job_name)
+
+
 def is_chromeos_job(job_name=None):
   """Return True if the current job is for ChromeOS."""
   return _job_substring_match('chromeos', job_name)

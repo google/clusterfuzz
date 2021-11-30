@@ -183,6 +183,9 @@ class IssueFilerTests(unittest.TestCase):
     data_types.Job(
         name='chromeos_job4', environment_string='', platform='linux').put()
 
+    data_types.Job(
+        name='ios_job', environment_string='', platform='mac').put()
+
     testcase_args = {
         'crash_type': 'Heap-use-after-free',
         'crash_address': '0x1337',
@@ -227,6 +230,10 @@ class IssueFilerTests(unittest.TestCase):
         job_type='job', additional_metadata='invalid', **testcase_args)
     self.testcase6.put()
 
+    self.testcase7 = data_types.Testcase(
+        job_type='ios_job4', **testcase_args)
+    self.testcase7.put()
+
     data_types.ExternalUserPermission(
         email='user@example.com',
         entity_name='job2',
@@ -259,6 +266,13 @@ class IssueFilerTests(unittest.TestCase):
     self.assertEqual('Untriaged', issue_tracker._itm.last_issue.status)
     self.assertNotIn('Restrict-View-SecurityTeam',
                      issue_tracker._itm.last_issue.labels)
+
+  def test_filed_issues_chromium_ios(self):
+    """Tests issue filing for chromium iOS."""
+    self.mock.get.return_value = CHROMIUM_POLICY
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_filer.file_issue(self.testcase7, issue_tracker)
+    self.assertIn('OS-iOS', issue_tracker._itm.last_issue.labels)
 
   def test_filed_issues_chromium_security(self):
     """Tests issue filing for chromium."""
