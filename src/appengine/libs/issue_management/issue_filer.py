@@ -80,6 +80,10 @@ def platform_substitution(label, testcase, _):
     # ChromeOS fuzzers run on Linux platform, so use correct OS-Chrome for
     # tracking.
     platform = 'Chrome'
+  elif environment.is_ios_job(testcase.job_type):
+    # iOS fuzzers run on macOS platform, so use correct OS-iOS for
+    # tracking.
+    platform = 'iOS'
   elif testcase.platform_id:
     platform = testcase.platform_id.split(':')[0].capitalize()
 
