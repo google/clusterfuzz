@@ -97,6 +97,11 @@ class IssueTrackerPolicy(object):
     """Get the component for unreproducible bugs, if it exists."""
     return self._data.get('unreproducible_component')
 
+  @property
+  def fallback_component(self):
+    """Get the component for fallback (when save fails) issues, if it exists."""
+    return self._data.get('fallback_component')
+
   def get_new_issue_properties(self, is_security, is_crash):
     """Get the properties to apply to a new issue."""
     policy = NewIssuePolicy()

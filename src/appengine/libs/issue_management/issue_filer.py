@@ -418,8 +418,15 @@ def file_issue(testcase,
     issue.components.add(policy.unreproducible_component)
 
   issue.reporter = user_email
-  issue.save()
 
+  try:
+    issue.save()
+  except:
+    if policy.fallback_component:
+      issue.components.clear()
+      issue.components.add(policy.fallback_component)
+      issue.save()
+     
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
   testcase.put()

@@ -76,6 +76,48 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     'unreproducible_component': 'Unreproducible>Component'
 })
 
+CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
+    'status': {
+        'assigned': 'Assigned',
+        'duplicate': 'Duplicate',
+        'verified': 'Verified',
+        'new': 'Untriaged',
+        'wontfix': 'WontFix',
+        'fixed': 'Fixed'
+    },
+    'all': {
+        'status': 'new',
+        'labels': ['ClusterFuzz', 'Stability-%SANITIZER%']
+    },
+    'non_security': {
+        'labels': ['Type-Bug'],
+        'crash_labels': ['Stability-Crash', 'Pri-1'],
+        'non_crash_labels': ['Pri-2']
+    },
+    'labels': {
+        'ignore': 'ClusterFuzz-Ignore',
+        'verified': 'ClusterFuzz-Verified',
+        'security_severity': 'Security_Severity-%SEVERITY%',
+        'needs_feedback': 'Needs-Feedback',
+        'invalid_fuzzer': 'ClusterFuzz-Invalid-Fuzzer',
+        'reported': None,
+        'wrong': 'ClusterFuzz-Wrong',
+        'fuzz_blocker': 'Fuzz-Blocker',
+        'reproducible': 'Reproducible',
+        'auto_cc_from_owners': 'ClusterFuzz-Auto-CC',
+        'os': 'OS-%PLATFORM%',
+        'unreproducible': 'Unreproducible',
+        'restrict_view': 'Restrict-View-SecurityTeam'
+    },
+    'security': {
+        'labels': ['Type-Bug-Security']
+    },
+    'existing': {
+        'labels': ['Stability-%SANITIZER%']
+    },
+    'fallback_component': 'fallback>component'
+})
+
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     'status': {
         'assigned': 'Assigned',
@@ -365,6 +407,36 @@ class IssueFilerTests(unittest.TestCase):
         self,
         ['ClusterFuzz', 'Reproducible', 'Pri-1', 'Stability-Crash', 'Type-Bug'],
         issue_tracker._itm.last_issue.labels)
+
+  def test_testcase_save_exception(self):
+    """Tests issue filing when issue.save exception"""
+    self.mock.get.return_value = CHROMIUM_POLICY_FALLBACK
+    original_save = monorail.issue.Issue.save
+    helpers.patch(self, ['libs.issue_management.monorail.issue.Issue.save'])
+    
+    def my_save(*args, **kwargs):
+        if getattr(my_save, 'count', 1):
+            setattr(my_save, 'count', None)            
+            raise Exception("Booom!")
+        else:
+            return original_save(*args, **kwargs) 
+
+    self.mock.save.side_effect = my_save
+
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+
+    six.assertCountEqual(self, ['fallback>component'],
+                          issue_tracker._itm.last_issue.components)
+
+    # call without fallback_component in policy
+    # Expected result: no issue is added to itm    
+    setattr(my_save, 'count', 1) 
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    self.mock.get.return_value = CHROMIUM_POLICY   
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    
+    self.assertIsNone(issue_tracker._itm.last_issue)    
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
