@@ -36,6 +36,9 @@ definition.
   values used by ClusterFuzz. The same type of variable is available for the
   other sanitizers, i.e. **ADDITIONAL_MSAN_OPTIONS** or
   **ADDITIONAL_UBSAN_OPTIONS** (see an example below on this page).
+* **ISSUE_TRACKER**: flag for setting up an issue tracker. 
+		     monrail and jira are available.
+		     (in local deployment flag must be set to test-project)
 
 ### LibFuzzer and AFL specific
 

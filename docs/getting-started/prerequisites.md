@@ -79,7 +79,7 @@ and macOS.
 
 Our supported systems include:
 
-- **Ubuntu** (14.04, 16.04, 17.10, 18.04, 18.10)
+- **Ubuntu** (14.04, 16.04, 17.10, 18.04, 18.10,20.04)
 - **Debian** 8 (jessie) or later
 - Recent versions of **macOS** with [homebrew] (experimental)
 
