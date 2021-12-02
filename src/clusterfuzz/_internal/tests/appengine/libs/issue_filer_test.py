@@ -118,7 +118,7 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
     'fallback_component': 'fallback>component',
     'fallback_policy_message':
         '**NOTE**: This bug was filed into this component due to permission '
-        'or configuration issues with the specified component(s) {}'
+        'or configuration issues with the specified component(s) %COMPONENTS%'
 })
 
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({

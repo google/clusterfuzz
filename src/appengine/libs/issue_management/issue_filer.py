@@ -426,8 +426,8 @@ def file_issue(testcase,
       issue.components.clear()
       issue.components.add(policy.fallback_component)
       if policy.fallback_policy_message:
-        message = policy.fallback_policy_message.format(
-            ' '.join(metadata_components))
+        message = policy.fallback_policy_message.replace(
+            '%COMPONENTS%', ' '.join(metadata_components))
         issue.body += '\n\n' + message
       issue.save()
 
