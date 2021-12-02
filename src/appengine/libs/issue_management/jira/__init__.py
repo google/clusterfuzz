@@ -13,8 +13,9 @@
 # limitations under the License.
 """Jira issue tracker."""
 
-from dateutil import parser
 from urllib.parse import urljoin
+
+from dateutil import parser
 
 from clusterfuzz._internal.config import db_config
 from libs.issue_management import issue_tracker
