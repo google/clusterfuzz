@@ -30,6 +30,7 @@ from flask import Response
 from flask.views import MethodView
 from google.cloud import ndb
 import jinja2
+import jira
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import db_config
@@ -68,6 +69,9 @@ class JsonEncoder(json.JSONEncoder):
       return str(obj)
     if isinstance(obj, bytes):
       return obj.decode('utf-8')
+    if isinstance(obj, jira.resources.Resource):
+      if obj.raw:
+        return obj.raw
 
     return json.JSONEncoder.default(self, obj)
 

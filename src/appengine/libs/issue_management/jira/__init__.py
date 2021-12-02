@@ -165,7 +165,7 @@ class IssueTracker(issue_tracker.IssueTracker):
   def find_issues(self, keywords=None, only_open=False):
     """Find issues."""
     search_text = 'project = {project_name}' + _get_search_text(keywords)
-    search_text.format(project_name=self._itm.project_name)
+    search_text = search_text.format(project_name=self._itm.project_name)
     if only_open:
       search_text += ' AND resolution = Unresolved'
     issues = self._itm.get_issues(search_text)
@@ -177,9 +177,13 @@ class IssueTracker(issue_tracker.IssueTracker):
     url = config.jira_url + '/browse/' + str(issue_id)
     return url
 
-  # FIXME: Add support for keywords and only_open arguments
-  def find_issues_url(self, keywords=None, only_open=None):  # pylint: disable=unused-argument
-    pass
+  def find_issues_url(self, keywords=None, only_open=None):
+    search_text = 'project = {project_name}' + _get_search_text(keywords)
+    search_text = search_text.format(project_name=self._itm.project_name)
+    if only_open:
+      search_text += ' AND resolution = Unresolved'
+    config = db_config.get()
+    return urljoin(config.jira_url, f'/issues/?jql={search_text}')
 
 
 def _get_issue_tracker_manager_for_project(project_name):
