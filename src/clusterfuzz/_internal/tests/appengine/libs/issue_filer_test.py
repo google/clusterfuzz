@@ -118,7 +118,7 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
     'fallback_component': 'fallback>component',
     'fallback_policy_message': 
         '**NOTE**: This bug was filed into this component due to permission '
-        'or configuration issues with the specified component(s) <components>'
+        'or configuration issues with the specified component(s) {}'
 })
 
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
@@ -427,10 +427,15 @@ class IssueFilerTests(unittest.TestCase):
     self.mock.save.side_effect = my_save
 
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
-    issue_filer.file_issue(self.testcase1, issue_tracker)
+    issue_filer.file_issue(self.testcase5, issue_tracker)
 
+    print("-*****-")
+    print(issue_tracker._itm.last_issue.components)
+    print(issue_tracker._itm.last_issue.body)
     six.assertCountEqual(self, ['fallback>component'],
                          issue_tracker._itm.last_issue.components)
+    self.assertTrue(issue_tracker._itm.last_issue.body.find('**NOTE**: This bug was') != -1)
+
 
     # call without fallback_component in policy
     # Expected result: no issue is added to itm
