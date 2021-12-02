@@ -421,8 +421,7 @@ class IssueFilerTests(unittest.TestCase):
       if getattr(my_save, 'raise_exception', True):
         setattr(my_save, 'raise_exception', False)
         raise Exception("Boom!")
-      else:
-        return original_save(*args, **kwargs)
+      return original_save(*args, **kwargs)
 
     self.mock.save.side_effect = my_save
 
