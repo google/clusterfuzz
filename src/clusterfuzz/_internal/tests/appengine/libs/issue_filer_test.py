@@ -116,7 +116,7 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
         'labels': ['Stability-%SANITIZER%']
     },
     'fallback_component': 'fallback>component',
-    'fallback_policy_message': 
+    'fallback_policy_message':
         '**NOTE**: This bug was filed into this component due to permission '
         'or configuration issues with the specified component(s) {}'
 })
@@ -418,24 +418,28 @@ class IssueFilerTests(unittest.TestCase):
     helpers.patch(self, ['libs.issue_management.monorail.issue.Issue.save'])
 
     def my_save(*args, **kwargs):
-        if getattr(my_save, 'raise_exception', True):
-            setattr(my_save, 'raise_exception', False)
-            raise Exception("Boom!")
-        else:
-            return original_save(*args, **kwargs)
+      if getattr(my_save, 'raise_exception', True):
+        setattr(my_save, 'raise_exception', False)
+        raise Exception("Boom!")
+      else:
+        return original_save(*args, **kwargs)
 
     self.mock.save.side_effect = my_save
 
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase5, issue_tracker)
 
-    print("-*****-")
-    print(issue_tracker._itm.last_issue.components)
-    print(issue_tracker._itm.last_issue.body)
-    six.assertCountEqual(self, ['fallback>component'],
+    six.assertCountEqual(self,
+                         ['fallback>component', '-component1', '-component2'],
                          issue_tracker._itm.last_issue.components)
-    self.assertTrue(issue_tracker._itm.last_issue.body.find('**NOTE**: This bug was') != -1)
+    self.assertTrue(
+        issue_tracker._itm.last_issue.body.find('**NOTE**: This bug was') != -1)
 
+    metadata_components = issue_filer._get_from_metadata(
+        self.testcase5, 'issue_components')
+    self.assertTrue(
+        issue_tracker._itm.last_issue.body.endswith(
+            ' '.join(metadata_components)))
 
     # call without fallback_component in policy
     # Expected result: no issue is added to itm

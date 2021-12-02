@@ -418,22 +418,18 @@ def file_issue(testcase,
     issue.components.add(policy.unreproducible_component)
 
   issue.reporter = user_email
-  print("\nBEFORE\n", issue.components.added, issue.components.removed)
-  for v in issue.components.__iter__():
-    print(v)
+
   try:
     issue.save()
   except:
     if policy.fallback_component:
-      issue.components.clear() 
+      issue.components.clear()
       issue.components.add(policy.fallback_component)
       if policy.fallback_policy_message:
-        message = policy.fallback_policy_message.format(' '.join(metadata_components))
+        message = policy.fallback_policy_message.format(
+            ' '.join(metadata_components))
         issue.body += '\n\n' + message
       issue.save()
-      print("AFTER\n", issue.components.added, issue.components.removed)
-      for v in issue.components.__iter__():
-        print(v)
 
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
