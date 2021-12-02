@@ -14,6 +14,7 @@
 """Jira issue tracker."""
 
 from dateutil import parser
+from urllib.parse import urljoin
 
 from clusterfuzz._internal.config import db_config
 from libs.issue_management import issue_tracker
@@ -174,7 +175,7 @@ class IssueTracker(issue_tracker.IssueTracker):
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
     config = db_config.get()
-    url = config.jira_url + '/browse/' + str(issue_id)
+    url = urljoin(config.jira_url, f'/browse/{str(issue_id)}')
     return url
 
   def find_issues_url(self, keywords=None, only_open=None):
