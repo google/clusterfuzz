@@ -432,14 +432,10 @@ class IssueFilerTests(unittest.TestCase):
     six.assertCountEqual(self,
                          ['fallback>component', '-component1', '-component2'],
                          issue_tracker._itm.last_issue.components)
-    self.assertTrue(
-        issue_tracker._itm.last_issue.body.find('**NOTE**: This bug was') != -1)
-
-    metadata_components = issue_filer._get_from_metadata(
-        self.testcase5, 'issue_components')
-    self.assertTrue(
-        issue_tracker._itm.last_issue.body.endswith(
-            ' '.join(metadata_components)))
+    self.assertIn(
+        '**NOTE**: This bug was filed into this component due to permission or '
+        'configuration issues with the specified component(s) component1 component2',
+        issue_tracker._itm.last_issue.body)
 
     # call without fallback_component in policy
     # Expected result: no issue is added to itm
