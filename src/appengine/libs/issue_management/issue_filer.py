@@ -425,8 +425,10 @@ def file_issue(testcase,
     if policy.fallback_component:
       issue.components.clear()
       issue.components.add(policy.fallback_component)
+      if policy.fallback_policy_message:
+        issue.body += '\n\n' + policy.fallback_policy_message
       issue.save()
-     
+
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
   testcase.put()

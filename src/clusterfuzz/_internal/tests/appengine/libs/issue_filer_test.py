@@ -115,7 +115,10 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
     'existing': {
         'labels': ['Stability-%SANITIZER%']
     },
-    'fallback_component': 'fallback>component'
+    'fallback_component': 'fallback>component',
+    'fallback_policy_message': 
+        '**NOTE**: This bug was filed into this component due to permission '
+        'or configuration issues with the specified component(s) <components>'
 })
 
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
@@ -413,13 +416,13 @@ class IssueFilerTests(unittest.TestCase):
     self.mock.get.return_value = CHROMIUM_POLICY_FALLBACK
     original_save = monorail.issue.Issue.save
     helpers.patch(self, ['libs.issue_management.monorail.issue.Issue.save'])
-    
+
     def my_save(*args, **kwargs):
-        if getattr(my_save, 'count', 1):
-            setattr(my_save, 'count', None)            
-            raise Exception("Booom!")
+        if getattr(my_save, 'raise_exception', True):
+            setattr(my_save, 'raise_exception', False)
+            raise Exception("Boom!")
         else:
-            return original_save(*args, **kwargs) 
+            return original_save(*args, **kwargs)
 
     self.mock.save.side_effect = my_save
 
@@ -427,16 +430,16 @@ class IssueFilerTests(unittest.TestCase):
     issue_filer.file_issue(self.testcase1, issue_tracker)
 
     six.assertCountEqual(self, ['fallback>component'],
-                          issue_tracker._itm.last_issue.components)
+                         issue_tracker._itm.last_issue.components)
 
     # call without fallback_component in policy
-    # Expected result: no issue is added to itm    
-    setattr(my_save, 'count', 1) 
+    # Expected result: no issue is added to itm
+    setattr(my_save, 'raise_exception', True)
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
-    self.mock.get.return_value = CHROMIUM_POLICY   
+    self.mock.get.return_value = CHROMIUM_POLICY
     issue_filer.file_issue(self.testcase1, issue_tracker)
-    
-    self.assertIsNone(issue_tracker._itm.last_issue)    
+
+    self.assertIsNone(issue_tracker._itm.last_issue)
 
   @parameterized.parameterized.expand([
       ('chromium', CHROMIUM_POLICY),
