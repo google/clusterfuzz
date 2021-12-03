@@ -423,21 +423,29 @@ def file_issue(testcase,
 
   issue.reporter = user_email
 
+  recovered_exception = None
   try:
     issue.save()
-  except:
+  except Exception as e:
     if policy.fallback_component:
+      # If a fallback component is set, try clearing the existing components
+      # and filing again.
+      # Also save the exception we recovered from.
+      recovered_exception = e
       issue.components.clear()
       issue.components.add(policy.fallback_component)
+
       if policy.fallback_policy_message:
         message = policy.fallback_policy_message.replace(
             '%COMPONENTS%', ' '.join(metadata_components))
         issue.body += '\n\n' + message
       issue.save()
+    else:
+      raise
 
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
   testcase.put()
 
   data_handler.update_group_bug(testcase.group_id)
-  return issue.id
+  return issue.id, recovered_exception

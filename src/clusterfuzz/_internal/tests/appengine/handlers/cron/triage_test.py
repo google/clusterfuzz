@@ -351,3 +351,40 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
     self.assertEqual(
         'Delaying filing a bug since similar testcase (2) in issue (1) '
         'was just fixed.', testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class FileIssue(unittest.TestCase):
+  """Tests for _file_issue."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'libs.issue_management.issue_filer.file_issue',
+    ])
+
+    self.testcase = test_utils.create_generic_testcase()
+    self.issue = appengine_test_utils.create_generic_issue()
+    self.issue_tracker = self.issue.issue_tracker
+
+  def test_no_exception(self):
+    """Test no exception."""
+    self.mock.file_issue.return_value = 'ID', None
+    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker))
+    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertIsNone(testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+  def test_recovered_exception(self):
+    """Test recovered exception."""
+    self.mock.file_issue.return_value = 'ID', Exception('recovered')
+    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker))
+    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual('Failed to file issue due to exception: recovered',
+                     testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+  def test_unrecovered_exception(self):
+    """Test recovered exception."""
+    self.mock.file_issue.side_effect = Exception('unrecovered')
+    self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker))
+    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual('Failed to file issue due to exception: unrecovered',
+                     testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
