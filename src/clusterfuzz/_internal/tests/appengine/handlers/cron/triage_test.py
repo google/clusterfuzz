@@ -354,7 +354,7 @@ class CheckAndUpdateSimilarBug(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class FileIssue(unittest.TestCase):
+class FileIssueTest(unittest.TestCase):
   """Tests for _file_issue."""
 
   def setUp(self):
