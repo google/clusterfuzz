@@ -53,7 +53,7 @@ class HandlerTest(unittest.TestCase):
     """Create issue successfully."""
     issue_tracker = mock.Mock()
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
-    self.mock.file_issue.return_value = 100
+    self.mock.file_issue.return_value = 100, None
 
     resp = self.app.post_json(
         '/', {
@@ -113,7 +113,7 @@ class HandlerTest(unittest.TestCase):
     """Invalid severity."""
     issue_tracker = mock.Mock()
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
-    self.mock.file_issue.return_value = 100
+    self.mock.file_issue.return_value = 100, None
 
     resp = self.app.post_json(
         '/', {
@@ -129,7 +129,7 @@ class HandlerTest(unittest.TestCase):
     """Fail to create issue."""
     issue_tracker = mock.Mock()
     self.mock.get_issue_tracker_for_testcase.return_value = issue_tracker
-    self.mock.file_issue.return_value = None
+    self.mock.file_issue.return_value = None, None
 
     resp = self.app.post_json(
         '/', {

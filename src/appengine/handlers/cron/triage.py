@@ -238,6 +238,26 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
   return False
 
 
+def _file_issue(testcase, issue_tracker):
+  """File an issue for the testcase."""
+  filed = False
+  file_exception = None
+
+  try:
+    _, file_exception = issue_filer.file_issue(testcase, issue_tracker)
+    filed = True
+  except Exception as e:
+    file_exception = e
+
+  if file_exception:
+    logs.log_error(f'Failed to file issue for testcase {testcase.key.id()}.')
+    _add_triage_message(
+        testcase,
+        f'Failed to file issue due to exception: {str(file_exception)}')
+
+  return filed
+
+
 class Handler(base_handler.Handler):
   """Triage testcases."""
 
@@ -322,13 +342,7 @@ class Handler(base_handler.Handler):
       testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
       # File the bug first and then create filed bug metadata.
-      try:
-        issue_filer.file_issue(testcase, issue_tracker)
-      except Exception as e:
-        logs.log_error('Failed to file issue for testcase %d.' % testcase_id)
-        _add_triage_message(testcase,
-                            f'Failed to file issue due to exception: {str(e)}')
-
+      if not _file_issue(testcase, issue_tracker):
         continue
 
       _create_filed_bug_metadata(testcase)

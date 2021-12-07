@@ -304,7 +304,8 @@ class IssueFilerTests(unittest.TestCase):
     """Tests issue filing for chromium."""
     self.mock.get.return_value = CHROMIUM_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
-    issue_filer.file_issue(self.testcase4, issue_tracker)
+    _, exception = issue_filer.file_issue(self.testcase4, issue_tracker)
+    self.assertIsNone(exception)
     self.assertIn('OS-Chrome', issue_tracker._itm.last_issue.labels)
     self.assertEqual('Untriaged', issue_tracker._itm.last_issue.status)
     self.assertNotIn('Restrict-View-SecurityTeam',
@@ -438,7 +439,8 @@ class IssueFilerTests(unittest.TestCase):
     self.mock.save.side_effect = my_save
 
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
-    issue_filer.file_issue(self.testcase5, issue_tracker)
+    _, exception = issue_filer.file_issue(self.testcase5, issue_tracker)
+    self.assertIsInstance(exception, Exception)
 
     six.assertCountEqual(self,
                          ['fallback>component', '-component1', '-component2'],
@@ -453,7 +455,8 @@ class IssueFilerTests(unittest.TestCase):
     setattr(my_save, 'raise_exception', True)
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     self.mock.get.return_value = CHROMIUM_POLICY
-    issue_filer.file_issue(self.testcase1, issue_tracker)
+    with self.assertRaises(Exception):
+      issue_filer.file_issue(self.testcase1, issue_tracker)
 
     self.assertIsNone(issue_tracker._itm.last_issue)
 
