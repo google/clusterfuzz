@@ -127,10 +127,6 @@ def _check_fixed_for_custom_binary(testcase, job_type, testcase_file_path):
 
 def _update_issue_metadata(testcase):
   """Update issue metadata."""
-  if testcase.uploader_email:
-    # Trust the uploader specified metadata.
-    return
-
   metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
   if not metadata:
     return
