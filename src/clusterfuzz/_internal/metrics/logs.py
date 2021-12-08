@@ -95,12 +95,20 @@ def get_handler_config(filename, backup_count):
 def get_logging_config_dict(name):
   """Get config dict for the logger `name`."""
   logging_handler = {
-      'run_bot': get_handler_config('bot/logs/bot.log', 3),
-      'run': get_handler_config('bot/logs/run.log', 1),
-      'run_heartbeat': get_handler_config('bot/logs/run_heartbeat.log', 1),
-      'heartbeat': get_handler_config('bot/logs/heartbeat.log', 1),
-      'run_fuzzer': get_handler_config('bot/logs/run_fuzzer.log', 1),
-      'run_testcase': get_handler_config('bot/logs/run_testcase.log', 1),
+      'run_bot':
+          get_handler_config('bot/logs/bot.log', 3),
+      'run':
+          get_handler_config('bot/logs/run.log', 1),
+      'run_heartbeat':
+          get_handler_config('bot/logs/run_heartbeat.log', 1),
+      'heartbeat':
+          get_handler_config('bot/logs/heartbeat.log', 1),
+      'run_fuzzer':
+          get_handler_config('bot/logs/run_fuzzer.log', 1),
+      'run_testcase':
+          get_handler_config('bot/logs/run_testcase.log', 1),
+      'android_heartbeat':
+          get_handler_config('bot/logs/android_heartbeat.log', 1),
   }
 
   return {
