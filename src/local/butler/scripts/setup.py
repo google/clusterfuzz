@@ -13,6 +13,7 @@
 # limitations under the License.
 """Initial datastore setup."""
 
+from google.api_core import exceptions
 from google.cloud import monitoring_v3
 import six
 
@@ -360,7 +361,12 @@ def setup_metrics(non_dry_run):
 
     if non_dry_run:
       print('Creating metric', descriptor)
-      client.create_metric_descriptor(project_path, descriptor)
+      try:
+        client.create_metric_descriptor(project_path, descriptor)
+      except exceptions.AlreadyExists:
+        client.delete_metric_descriptor(name=project_path +
+                                        '/metricDescriptors/' + descriptor.type)
+        client.create_metric_descriptor(project_path, descriptor)
     else:
       print('Skip creating metric', descriptor, '(dry-run mode)')
 
