@@ -61,9 +61,7 @@ def download_artifact_if_needed(
         break
 
 
-def check_symbols_cached(symbols_directory, build_params):
-  build_params_check_path = os.path.join(symbols_directory,
-                                         '.cached_build_params')
+def check_symbols_cached(build_params_check_path, build_params):
   # Check if we already have the symbols locally.
   cached_build_params = utils.read_data_from_file(
       build_params_check_path, eval_data=True)
@@ -83,8 +81,9 @@ def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
       'target': cache_target,
       'type': cache_type
   }
-
-  if check_symbols_cached(symbols_directory, build_params):
+  build_params_check_path = os.path.join(symbols_directory,
+                                         '.cached_build_params')
+  if check_symbols_cached(build_params_check_path, build_params):
     return
 
   symbols_archive_path = os.path.join(symbols_directory,
@@ -139,7 +138,9 @@ def download_system_symbols_if_needed(symbols_directory):
     logs.log_error('Unable to determine build parameters.')
     return
 
-  if check_symbols_cached(symbols_directory, build_params):
+  build_params_check_path = os.path.join(symbols_directory,
+                                         '.cached_build_params')
+  if check_symbols_cached(build_params_check_path, build_params):
     return
 
   build_id = build_params.get('build_id')
