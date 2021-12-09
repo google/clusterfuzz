@@ -26,6 +26,7 @@ import time
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
@@ -34,22 +35,28 @@ from clusterfuzz._internal.system import environment
 
 def main():
   """Run a cycle of heartbeat checks to ensure Android device is running."""
+  logs.configure('android_heartbeat')
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
   monitor.initialize()
 
   if environment.is_android_cuttlefish():
     android.adb.set_cuttlefish_device_serial()
-    android.adb.connect_to_cuttlefish_device()
-
   device_serial = environment.get_value('ANDROID_SERIAL')
 
   while True:
-    state = int(android.adb.get_device_state() == 'device')
-    monitoring_metrics.ANDROID_UPTIME.set(state, {
-        'serial': device_serial,
-        'platform ': environment.platform(),
-    })
+    state = android.adb.get_device_state()
+    if state == android.adb.DEVICE_NOT_FOUND_STRING.format(
+        serial=device_serial):
+      android.adb.connect_to_cuttlefish_device()
+      state = android.adb.get_device_state()
+    logs.log('Android device %s state: %s' % (device_serial, state))
+
+    monitoring_metrics.ANDROID_UPTIME.increment_by(
+        int(state == 'device'), {
+            'serial': device_serial,
+            'platform ': environment.platform(),
+        })
     time.sleep(data_types.ANDROID_HEARTBEAT_WAIT_INTERVAL)
 
     if data_handler.bot_run_timed_out():
@@ -58,3 +65,4 @@ def main():
 
 if __name__ == '__main__':
   main()
+  monitor.stop()
