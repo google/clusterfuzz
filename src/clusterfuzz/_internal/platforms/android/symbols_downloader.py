@@ -44,16 +44,8 @@ def should_download_symbols():
 
 def download_artifact_if_needed(
     build_id, artifact_directory, artifact_archive_path,
-    targets_with_type_and_san, artifact_file_name, output_filename_override,
-    build_params, build_params_check_path):
+    targets_with_type_and_san, artifact_file_name, output_filename_override):
   """Downloads artifact to actifacts_archive_path if needed"""
-  # Check if we already have the symbols in cache.
-  cached_build_params = utils.read_data_from_file(
-      build_params_check_path, eval_data=True)
-  if cached_build_params and cached_build_params == build_params:
-    # No work to do, same system symbols already in cache.
-    return
-
   # Delete existing symbols directory first.
   shell.remove_directory(artifact_directory, recreate=True)
 
@@ -69,6 +61,13 @@ def download_artifact_if_needed(
         break
 
 
+def check_symbols_cached(build_params_check_path, build_params):
+  # Check if we already have the symbols locally.
+  cached_build_params = utils.read_data_from_file(
+      build_params_check_path, eval_data=True)
+  return cached_build_params and cached_build_params == build_params
+
+
 def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
                                  targets_with_type_and_san, cache_type):
   """Downloads the repo.prop for a branch"""
@@ -82,16 +81,16 @@ def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
       'target': cache_target,
       'type': cache_type
   }
-
   build_params_check_path = os.path.join(symbols_directory,
                                          '.cached_build_params')
+  if check_symbols_cached(build_params_check_path, build_params):
+    return
 
   symbols_archive_path = os.path.join(symbols_directory,
                                       symbols_archive_filename)
   download_artifact_if_needed(build_id, symbols_directory, symbols_archive_path,
                               targets_with_type_and_san, artifact_file_name,
-                              output_filename_override, build_params,
-                              build_params_check_path)
+                              output_filename_override)
   if not os.path.exists(symbols_archive_path):
     logs.log_error('Unable to locate repo.prop %s.' % symbols_archive_path)
     return
@@ -141,6 +140,9 @@ def download_system_symbols_if_needed(symbols_directory):
 
   build_params_check_path = os.path.join(symbols_directory,
                                          '.cached_build_params')
+  if check_symbols_cached(build_params_check_path, build_params):
+    return
+
   build_id = build_params.get('build_id')
   target = build_params.get('target')
   build_type = build_params.get('type')
@@ -164,8 +166,7 @@ def download_system_symbols_if_needed(symbols_directory):
                                       symbols_archive_filename)
   download_artifact_if_needed(build_id, symbols_directory, symbols_archive_path,
                               targets_with_type_and_san, artifact_file_name,
-                              output_filename_override, build_params,
-                              build_params_check_path)
+                              output_filename_override)
   if not os.path.exists(symbols_archive_path):
     logs.log_error(
         'Unable to locate symbols archive %s.' % symbols_archive_path)
