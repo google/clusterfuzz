@@ -53,7 +53,17 @@ class FuzzResult(object):
 
 
 class ReproduceResult(object):
-  """Results from running a testcase against a target."""
+  """Results from running reproce (syz-crush) against a testcase."""
+
+  def __init__(self, command, return_code, time_executed, output):
+    self.command = command
+    self.return_code = return_code
+    self.time_executed = time_executed
+    self.output = output
+
+
+class MinimizeResult(object):
+  """Results from running minimization (syz-repro) against a testcast."""
 
   def __init__(self, command, return_code, time_executed, output):
     self.command = command

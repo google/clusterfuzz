@@ -555,6 +555,19 @@ def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
   return result
 
 
+def engine_minimize_testcase(engine_impl: engine.Engine, target_name,
+                             testcase_path, arguments,
+                             timeout) -> engine.MinimizeResult:
+  """Do engine minimization."""
+  build_dir = environment.get_value('BUILD_DIR')
+  target_path = engine_common.find_fuzzer_path(build_dir, target_name)
+  if not target_path:
+    raise TargetNotFoundError('Failed to find target ' + target_name)
+
+  return engine_impl.minimize_testcase(target_path, testcase_path,
+                                       list(arguments), timeout)
+
+
 class TestcaseRunner(object):
   """Testcase runner."""
 
@@ -627,9 +640,9 @@ class TestcaseRunner(object):
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
       logs.log(
-          'No crash occurred (round {round_number}).'.format(
-              round_number=round_number),
-          output=output)
+          f'No crash occurred (round {round_number}).',
+          output=output,
+      )
 
     return crash_result
 
