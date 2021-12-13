@@ -120,6 +120,47 @@ class GetComponentSourceAndRelativePathTest(unittest.TestCase):
             r'/src/not_existent', revisions_dict),
         source_mapper.ComponentPath())
 
+  def test_get_component_source_and_relative_path_android_modem(self):
+    """Test get comnponent source and relative path for OSS-Fuzz."""
+    revisions_dict = {
+        'googleplex-polygon-android/fuzz/modem_extn': {
+            'url':
+                'https://googleplex-polygon-android.googlesource.com/polygon-hammersmith-modem/common/modem_extn',
+            'rev':
+                'ff54d2e1e175aac737ffcd4f7a833c8cbd79fa18',
+            'type':
+                'git'
+        },
+        'googleplex-polygon-android/fuzz/modem': {
+            'url':
+                'https://googleplex-polygon-android.googlesource.com/polygon-hammersmith-modem/modem/private/exynos-slsi',
+            'rev':
+                '1d0c200f72212e15489fcdeeee6d3dd4a9e09bcb',
+            'type':
+                'git'
+        }
+    }
+
+    self.assertEqual(
+        source_mapper.get_component_source_and_relative_path(
+            r'/usr/local/google/buildbot/src/googleplex-polygon-android/fuzz/modem/PSS/StackService/SYNTAX/CD/Code/Src/cd_codec.c',
+            revisions_dict),
+        source_mapper.ComponentPath(
+            'googleplex-polygon-android/fuzz/modem',
+            'PSS/StackService/SYNTAX/CD/Code/Src/cd_codec.c',
+            'googleplex-polygon-android/fuzz/modem/PSS/StackService/SYNTAX/CD/Code/Src/cd_codec.c'
+        ))
+
+    self.assertEqual(
+        source_mapper.get_component_source_and_relative_path(
+            r'/usr/local/google/buildbot/src/googleplex-polygon-android/fuzz/modem_extn/fuzzing/sw_fuzzers/CdParseMsg/CdParseMsg_Fuzzer.c',
+            revisions_dict),
+        source_mapper.ComponentPath(
+            'googleplex-polygon-android/fuzz/modem_extn',
+            'fuzzing/sw_fuzzers/CdParseMsg/CdParseMsg_Fuzzer.c',
+            'googleplex-polygon-android/fuzz/modem_extn/fuzzing/sw_fuzzers/CdParseMsg/CdParseMsg_Fuzzer.c'
+        ))
+
 
 class NormalizeSourcePathTest(unittest.TestCase):
   """Tests for normalize_source_path."""
@@ -147,6 +188,12 @@ class NormalizeSourcePathTest(unittest.TestCase):
         source_mapper.normalize_source_path(
             '../../third_party/WebKit/Source/platform/heap/Member.h'),
         'third_party/WebKit/Source/platform/heap/Member.h')
+    self.assertEqual(
+        source_mapper.normalize_source_path(
+            '/usr/local/google/buildbot/src/googleplex-polygon-android/fuzz/modem/PSS/StackService/SYNTAX/CD/Code/Src/cd_codec.c'
+        ),
+        'googleplex-polygon-android/fuzz/modem/PSS/StackService/SYNTAX/CD/Code/Src/cd_codec.c'
+    )
 
 
 class VCSViewerTest(unittest.TestCase):
