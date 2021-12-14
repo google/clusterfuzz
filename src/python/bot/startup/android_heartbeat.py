@@ -54,8 +54,8 @@ def main():
 
     monitoring_metrics.ANDROID_UPTIME.increment_by(
         int(state == 'device'), {
-            'serial': device_serial,
-            'platform': environment.platform(),
+            'serial': device_serial or '',
+            'platform': environment.get_platform_group() or '',
         })
     time.sleep(data_types.ANDROID_HEARTBEAT_WAIT_INTERVAL)
 
