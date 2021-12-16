@@ -14,10 +14,14 @@
 """Class for helping manage a crash result."""
 
 # pylint: disable=unpacking-non-sequence
+import re
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
+from clusterfuzz.stacktraces.__init__ import CrashInfo
+
+IGNORE_REPRODUCED_CRASH_TYPE = re.compile(r'lost connection to test machine')
 
 
 class CrashResult(object):
@@ -38,7 +42,7 @@ class CrashResult(object):
     """Return the crash time."""
     return self.crash_time
 
-  def get_symbolized_data(self):
+  def get_symbolized_data(self) -> CrashInfo:
     """Compute symbolized crash data if necessary or return cached result."""
     if self._symbolized_crash_data:
       return self._symbolized_crash_data
@@ -47,7 +51,7 @@ class CrashResult(object):
         self.output, symbolize_flag=True)
     return self._symbolized_crash_data
 
-  def get_unsymbolized_data(self):
+  def get_unsymbolized_data(self) -> CrashInfo:
     """Compute unsymbolized crash data if necessary or return cached result."""
     if self._unsymbolized_crash_data:
       return self._unsymbolized_crash_data
@@ -74,7 +78,7 @@ class CrashResult(object):
 
     return state.crash_stacktrace
 
-  def get_type(self):
+  def get_type(self) -> str:
     """Return the crash type."""
     # It does not matter whether we use symbolized or unsymbolized data.
     state = self.get_unsymbolized_data()
@@ -95,6 +99,10 @@ class CrashResult(object):
     """Return True if this crash should be ignored."""
     state = self.get_symbolized_data()
     return crash_analyzer.ignore_stacktrace(state.crash_stacktrace)
+
+  def should_ignore_during_repro(self) -> bool:
+    """Return True if this crash should be ignored during repro."""
+    return bool(re.search(IGNORE_REPRODUCED_CRASH_TYPE, self.get_type()))
 
   def is_security_issue(self):
     """Return True if this crash is a security issue."""

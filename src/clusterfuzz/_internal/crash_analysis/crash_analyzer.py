@@ -120,7 +120,7 @@ def has_marker(stacktrace, marker_list):
   return False
 
 
-def ignore_stacktrace(crash_stacktrace):
+def ignore_stacktrace(crash_stacktrace: str) -> bool:
   """Return whether the stacktrace needs to be ignored."""
   # Filter crash based on search exclude pattern specified in job definition.
   search_excludes = environment.get_value('SEARCH_EXCLUDES')

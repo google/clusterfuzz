@@ -19,6 +19,7 @@ from clusterfuzz._internal.platforms.android import \
     kernel_utils as android_kernel
 from clusterfuzz._internal.platforms.linux.lkl import kernel_utils as lkl_kernel
 from clusterfuzz._internal.system import environment
+from clusterfuzz.stacktraces.__init__ import CrashInfo
 
 MAX_REDZONE_SIZE_FOR_OOMS_AND_HANGS = 64
 
@@ -56,7 +57,7 @@ def get_crash_data(crash_data,
                    symbolize_flag=True,
                    fuzz_target=None,
                    already_symbolized=False,
-                   detect_ooms_and_hangs=None):
+                   detect_ooms_and_hangs=None) -> CrashInfo:
   """Get crash parameters from crash data.
   Crash parameters include crash type, address, state and stacktrace.
   If the stacktrace is not already symbolized, we will try to symbolize it

@@ -38,6 +38,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
+from clusterfuzz.stacktraces.__init__ import CrashInfo
 
 # Testcase filename prefixes and suffixes.
 CRASH_PREFIX = 'crash-'
@@ -75,6 +76,8 @@ BAD_STATE_HINTS = [
     # Android logging issues.
     'logging service has stopped',
 ]
+
+DEFAULT_RETRY_REPRO = 10
 
 
 class TestcaseManagerError(Exception):
@@ -593,7 +596,7 @@ class TestcaseRunner(object):
       self._command = get_command_line_for_application(
           testcase_path, needs_http=needs_http)
 
-  def run(self, round_number):
+  def run(self, round_number: int) -> CrashResult:
     """Run the testcase once."""
     app_directory = environment.get_value('APP_DIR')
     warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
@@ -625,10 +628,7 @@ class TestcaseRunner(object):
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
-      logs.log(
-          'No crash occurred (round {round_number}).'.format(
-              round_number=round_number),
-          output=output)
+      logs.log(f'No crash occurred (round {round_number}).', output=output)
 
     return crash_result
 
@@ -641,25 +641,23 @@ class TestcaseRunner(object):
     process_handler.terminate_stale_application_instances()
     shell.clear_temp_directory()
 
-  def _get_crash_state(self, round_number, crash_result):
+  def _get_crash_state(self, round_number: int,
+                       crash_result: CrashResult) -> CrashInfo:
     """Get crash state from a CrashResult."""
     state = crash_result.get_symbolized_data()
     if crash_result.is_crash():
       logs.log(
-          ('Crash occurred in {crash_time} seconds (round {round_number}). '
-           'State:\n{crash_state}').format(
-               crash_time=crash_result.crash_time,
-               round_number=round_number,
-               crash_state=state.crash_state),
+          (f'Crash occurred in {crash_result.crash_time} seconds '
+           f'(round {round_number}). State:\n{state.crash_state}'),
           output=state.crash_stacktrace)
 
     return state
 
   def reproduce_with_retries(self,
-                             retries,
+                             retries: int,
                              expected_state=None,
                              expected_security_flag=None,
-                             flaky_stacktrace=False):
+                             flaky_stacktrace=False) -> CrashResult:
     """Try reproducing a crash with retries."""
     self._pre_run_cleanup()
     crash_result = None
@@ -678,6 +676,10 @@ class TestcaseRunner(object):
 
       if crash_result.should_ignore():
         logs.log('Crash stacktrace matched ignore signatures, ignored.')
+        continue
+
+      if crash_result.should_ignore_during_repro():
+        logs.log('Crash matched ignore signatures for repro. Ignoring.')
         continue
 
       if crash_result.is_security_issue() != expected_security_flag:
@@ -705,23 +707,41 @@ class TestcaseRunner(object):
         unexpected_crash=unexpected_crash)
 
   def test_reproduce_reliability(self, retries, expected_state,
-                                 expected_security_flag):
-    """Test to see if a crash is fully reproducible or is a one-time crasher."""
+                                 expected_security_flag) -> bool:
+    """Test to see if a crash is fully reproducible or is a one-time crasher.
+
+    Retries the run to test if a crash is reliably reproducible.
+    It does not count crashes to ignore.
+    If too many crashes are ignored, stop retrying.
+    """
     self._pre_run_cleanup()
 
     reproducible_crash_target_count = retries * REPRODUCIBILITY_FACTOR
-    round_number = 0
+    max_rounds = retries * 10
+    valid_run_count = 0
     crash_count = 0
-    for round_number in range(1, retries + 1):
+
+    for round_number in range(max_rounds):  # prevent infinite loop
+      max_possible_crash_count = retries - valid_run_count + crash_count
+
       # Bail out early if there is no hope of finding a reproducible crash.
-      if (retries - round_number + crash_count + 1 <
-          reproducible_crash_target_count):
+      if (max_possible_crash_count < reproducible_crash_target_count or
+          valid_run_count >= retries):
         break
 
-      crash_result = self.run(round_number)
-      state = self._get_crash_state(round_number, crash_result)
+      valid_run_count += 1
+      crash_result = self.run(valid_run_count)
+      state = self._get_crash_state(valid_run_count, crash_result)
 
       if not crash_result.is_crash():
+        continue
+
+      if crash_result.should_ignore_during_repro():
+        # do not count this round's crash result against reproducibility
+        logs.log(('Crash to ignore during repro detected. '
+                  f'Re-running round {valid_run_count}.'))
+        if valid_run_count > 0:
+          valid_run_count -= 1
         continue
 
       # If we don't have an expected crash state, set it to the one from initial
@@ -745,12 +765,14 @@ class TestcaseRunner(object):
         logs.log('Crash is reproducible.')
         return True
 
-    logs.log('Crash is not reproducible. Crash count: %d/%d.' % (crash_count,
-                                                                 round_number))
+    logs.log('Crash is not reproducible.')
+    logs.log(f'Crash count: {crash_count}')
+    logs.log(f'Valid runs: {valid_run_count}')
+    logs.log(f'Attempted runs: {round_number}.')
     return False
 
 
-def test_for_crash_with_retries(testcase,
+def test_for_crash_with_retries(testcase: data_types.Testcase,
                                 testcase_path,
                                 test_timeout,
                                 http_flag=False,
@@ -794,7 +816,7 @@ def test_for_reproducibility(fuzzer_name,
                              test_timeout,
                              http_flag,
                              gestures,
-                             arguments=None):
+                             arguments=None) -> bool:
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
   try:
     fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
@@ -809,7 +831,8 @@ def test_for_reproducibility(fuzzer_name,
         http_flag,
         arguments=arguments)
 
-    crash_retries = environment.get_value('CRASH_RETRIES')
+    crash_retries = (
+        environment.get_value('CRASH_RETRIES') or DEFAULT_RETRY_REPRO)
     return runner.test_reproduce_reliability(crash_retries, expected_state,
                                              expected_security_flag)
   except TargetNotFoundError:
