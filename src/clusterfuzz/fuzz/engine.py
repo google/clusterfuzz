@@ -115,7 +115,8 @@ class Engine(object):
     """
     raise NotImplementedError
 
-  def reproduce(self, target_path, input_path, arguments, max_time):
+  def reproduce(self, target_path, input_path, arguments,
+                max_time) -> ReproduceResult:
     """Reproduce a crash given an input.
 
     Args:

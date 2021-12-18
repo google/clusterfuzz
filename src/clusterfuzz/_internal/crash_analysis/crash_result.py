@@ -18,6 +18,7 @@
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
+from src.clusterfuzz.stacktraces import CrashInfo
 
 
 class CrashResult(object):
@@ -38,7 +39,7 @@ class CrashResult(object):
     """Return the crash time."""
     return self.crash_time
 
-  def get_symbolized_data(self):
+  def get_symbolized_data(self) -> CrashInfo:
     """Compute symbolized crash data if necessary or return cached result."""
     if self._symbolized_crash_data:
       return self._symbolized_crash_data
@@ -47,7 +48,7 @@ class CrashResult(object):
         self.output, symbolize_flag=True)
     return self._symbolized_crash_data
 
-  def get_unsymbolized_data(self):
+  def get_unsymbolized_data(self) -> CrashInfo:
     """Compute unsymbolized crash data if necessary or return cached result."""
     if self._unsymbolized_crash_data:
       return self._unsymbolized_crash_data

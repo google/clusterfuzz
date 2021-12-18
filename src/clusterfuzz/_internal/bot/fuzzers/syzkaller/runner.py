@@ -19,6 +19,7 @@ import re
 import tempfile
 import threading
 import time
+from typing import List
 
 import requests
 
@@ -35,7 +36,8 @@ from clusterfuzz.fuzz import engine
 
 LOCAL_HOST = '127.0.0.1'
 RAWCOVER_RETRIEVE_INTERVAL = 180  # retrieve rawcover every 180 seconds
-REPRODUCE_REGEX = re.compile(r'reproduced (\d+) crashes')
+
+REPRODUCE_DONE_PATTERN = re.compile(r'all done. reproduced (\d+) crashes')
 
 
 def get_work_dir():
@@ -163,15 +165,16 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     _, path = tempfile.mkstemp(dir=fuzzer_utils.get_temp_dir())
     return path
 
-  def _crash_was_reproducible(self, output):
-    reproducible = False
-    if 'all done.' in output:
-      search = REPRODUCE_REGEX.search(output)
-      if search and search.group(1) and search.group(1) > '0':
-        reproducible = True
-    return int(reproducible)
+  def _crash_was_reproducible(self, output: str) -> bool:
+    search = REPRODUCE_DONE_PATTERN.search(output)
 
-  def repro(self, repro_timeout, repro_args):
+    if search is None or int(search.group(1)) == 0:
+      return False
+
+    return True
+
+  def repro(self, repro_timeout: int,
+            repro_args: List[str]) -> engine.ReproduceResult:
     """This is where crash repro'ing is done.
     Args:
       repro_timeout: The maximum time in seconds that repro job is allowed
