@@ -37,7 +37,10 @@ from clusterfuzz.fuzz import engine
 LOCAL_HOST = '127.0.0.1'
 RAWCOVER_RETRIEVE_INTERVAL = 180  # retrieve rawcover every 180 seconds
 
+REPRO_RETRY_MAX = 10
 REPRODUCE_DONE_PATTERN = re.compile(r'all done. reproduced (\d+) crashes')
+REPRODUCE_LOG_LOCATION_PATTERN = re.compile(
+    r'saving crash (.*)? with index (\d+) in (.*)?')
 
 
 def get_work_dir():
@@ -183,16 +186,37 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     """
     logs.log('Running Syzkaller testcase.')
     additional_args = copy.copy(repro_args)
-    result = self.run_and_wait(additional_args, timeout=repro_timeout)
-    result.return_code = self._crash_was_reproducible(result.output)
 
-    if result.return_code:
-      logs.log('Successfully reproduced crash.')
-    else:
-      logs.log('Failed to reproduce crash.')
-    logs.log('Syzkaller repro testcase stopped.')
-    return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, result.output)
+    for retry_count in range(REPRO_RETRY_MAX):
+      result = self.run_and_wait(additional_args, timeout=repro_timeout)
+      log_location = re.search(REPRODUCE_LOG_LOCATION_PATTERN, result.output)
+
+      # syz-crush stopped before capturing crash output
+      if not log_location:
+        continue
+
+      # syz-crush did not reproduce any crash
+      if not self._crash_was_reproducible(result.output):
+        continue
+
+      _type, log_index, log_dir = log_location.groups()  # pylint: disable=invalid-name
+
+      try:
+        with open(f'{log_dir}/reproducer{log_index}', 'r') as f:
+          logs.log('Successfully reproduced crash.')
+          return engine.ReproduceResult(
+              command=result.command,
+              return_code=1,
+              time_executed=result.time_executed,
+              output=f.read(),
+          )
+      except FileNotFoundError as e:
+        logs.log('Reproducer log was not found. Rerunning syz-crush', e)
+        continue
+
+    logs.log(f'Failed to reproduce crash after {retry_count} attempts.')
+    result.return_code = 0
+    return result
 
   def save_rawcover_output(self, pid: int):
     """Find syzkaller port and write rawcover data to a file."""

@@ -180,14 +180,11 @@ class Engine(engine.Engine):
     """
     binary_dir = self.prepare_binary_path()
     syzkaller_runner = runner.get_runner(
-        os.path.join(binary_dir, constants.SYZ_REPRO))
+        os.path.join(binary_dir, constants.SYZ_CRUSH))
     repro_args = runner.get_config()
     repro_args.extend(
         ['-infinite=false', '-restart_time={}s'.format(REPRO_TIME), input_path])
-    result = syzkaller_runner.repro(max_time, repro_args=repro_args)
-
-    return engine.ReproduceResult(result.command, result.return_code,
-                                  result.time_executed, result.output)
+    return syzkaller_runner.repro(max_time, repro_args=repro_args)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       unused_reproducers_dir, unused_max_time):
