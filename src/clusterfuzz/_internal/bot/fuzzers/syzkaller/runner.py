@@ -217,10 +217,10 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
     logs.log(f'Failed to reproduce crash after {retry_count} attempts.')
     result.return_code = 0
     return engine.ReproduceResult(
-      command=result.command,
-      return_code=0,
-      time_executed=result.time_executed,
-      output=result.output,
+        command=result.command,
+        return_code=0,
+        time_executed=result.time_executed,
+        output=result.output,
     )
 
   def save_rawcover_output(self, pid: int):
