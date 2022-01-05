@@ -170,11 +170,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
   def _crash_was_reproducible(self, output: str) -> bool:
     search = REPRODUCE_DONE_PATTERN.search(output)
-
-    if search is None or int(search.group(1)) == 0:
-      return False
-
-    return True
+    return search and int(search.group(1)) != 0
 
   def repro(self, repro_timeout: int,
             repro_args: List[str]) -> engine.ReproduceResult:
@@ -200,9 +196,9 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
         continue
 
       _type, log_index, log_dir = log_location.groups()  # pylint: disable=invalid-name
-
       try:
-        with open(f'{log_dir}/reproducer{log_index}', 'r') as f:
+        reproducer_log_path = os.path.join(log_dir, f'reproducer{log_index}')
+        with open(reproducer_log_path, 'r') as f:
           logs.log('Successfully reproduced crash.')
           return engine.ReproduceResult(
               command=result.command,
