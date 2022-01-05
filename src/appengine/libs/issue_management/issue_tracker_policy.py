@@ -134,7 +134,7 @@ class IssueTrackerPolicy(object):
       policy.status = self._data['status'][issue_type['status']]
 
     if 'ccs' in issue_type:
-      policy.labels.extend(issue_type['ccs'])
+      policy.ccs.extend(issue_type['ccs'])
 
     labels = issue_type.get('labels')
     if labels:
