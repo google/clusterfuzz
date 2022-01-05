@@ -211,7 +211,6 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
         continue
 
     logs.log(f'Failed to reproduce crash after {retry_count} attempts.')
-    result.return_code = 0
     return engine.ReproduceResult(
         command=result.command,
         return_code=0,
