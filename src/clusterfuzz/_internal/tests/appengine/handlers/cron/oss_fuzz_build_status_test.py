@@ -288,7 +288,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         id='proj2',
         project_name='proj2',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
-        consecutive_failures=1,
+        consecutive_failures=2,
         build_type='fuzzing').put()
 
     data_types.OssFuzzBuildFailure(
@@ -303,7 +303,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         project_name='proj4',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='1337',
-        consecutive_failures=2,
+        consecutive_failures=3,
         build_type='fuzzing').put()
 
     data_types.OssFuzzBuildFailure(
@@ -319,7 +319,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         project_name='proj6',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id=None,
-        consecutive_failures=1,
+        consecutive_failures=2,
         build_type='coverage').put()
 
     data_types.OssFuzzProject(
@@ -338,7 +338,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         },
         {
             'build_type': 'fuzzing',
-            'consecutive_failures': 2,
+            'consecutive_failures': 3,
             'issue_id': '1',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
             'project_name': u'proj2'
@@ -352,7 +352,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         },
         {
             'build_type': 'fuzzing',
-            'consecutive_failures': 3,
+            'consecutive_failures': 4,
             'issue_id': '1337',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
             'project_name': u'proj4'
@@ -366,7 +366,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         },
         {
             'build_type': 'coverage',
-            'consecutive_failures': 2,
+            'consecutive_failures': 3,
             'issue_id': '2',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
             'project_name': u'proj6'
@@ -381,7 +381,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual('New', issue.status)
     self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
-        'The last 2 builds for proj2 have been failing.\n'
+        'The last 3 builds for proj2 have been failing.\n'
         '<b>Build log:</b> '
         'https://oss-fuzz-build-logs.storage.googleapis.com/'
         'log-proj2-id-f.txt\n'
@@ -403,7 +403,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertEqual('New', issue.status)
     self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
-        'The last 2 builds for proj6 have been failing.\n'
+        'The last 3 builds for proj6 have been failing.\n'
         '<b>Build log:</b> '
         'https://oss-fuzz-build-logs.storage.googleapis.com/'
         'log-proj6-id-c.txt\n'
@@ -544,14 +544,14 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         id='disabled_proj',
         project_name='disabled_proj',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
-        consecutive_failures=1,
+        consecutive_failures=2,
         build_type='fuzzing').put()
 
     self.app.get('/build-status')
     six.assertCountEqual(self, [
         {
             'build_type': 'fuzzing',
-            'consecutive_failures': 1,
+            'consecutive_failures': 2,
             'issue_id': None,
             'last_checked_timestamp': datetime.datetime(2018, 1, 31, 0, 0),
             'project_name': u'disabled_proj',
@@ -596,7 +596,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         project_name='proj0',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='1',
-        consecutive_failures=7,
+        consecutive_failures=8,
         build_type='fuzzing').put()
     data_types.OssFuzzProject(
         id='proj1', name='proj1', ccs=['a@user.com']).put()
@@ -605,7 +605,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         project_name='proj1',
         last_checked_timestamp=datetime.datetime(2018, 1, 31),
         issue_id='2',
-        consecutive_failures=3,
+        consecutive_failures=4,
         build_type='fuzzing').put()
 
     self.itm.issues[1] = Issue()
