@@ -49,7 +49,7 @@ TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
 NO_BUILDS_THRESHOLD = datetime.timedelta(days=2)
 
 # Minimum number of consecutive build failures before filing a bug.
-MIN_CONSECUTIVE_BUILD_FAILURES = 2
+MIN_CONSECUTIVE_BUILD_FAILURES = 3
 
 # Number of failures after the last reminder/initial filing to send a reminder.
 # This used to be 3 days, but now we may have up to two failures a day since
