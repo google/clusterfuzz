@@ -181,7 +181,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       repro_args: A sequence of arguments to be passed to the executable.
     """
     logs.log('Running Syzkaller (syz-crush) against testcase.')
-    additional_args = copy.copy(repro_args)
+    additional_args = repro_args.copy()
 
     for retry_count in range(REPRO_RETRY_MAX):
       result = self.run_and_wait(additional_args, timeout=repro_timeout)
@@ -218,13 +218,13 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
         output=result.output,
     )
 
-  def minimize(self, minimize_args: List[str]) -> engine.MinimizeResult:
+  def minimize(self, minimize_args: List[str]) -> engine.ReproduceResult:
     """Minimizing crash testcase.
     Args:
       minimize_args: list of arguments to be passed to syz-repro.
     """
     logs.log('Running Syzkaller Minimization (syz-repro) against testcase.')
-    additional_args = copy.copy(minimize_args)
+    additional_args = minimize_args.copy()
     result = self.run_and_wait(additional_args)
 
     if result.return_code:
@@ -233,8 +233,8 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       logs.log('Failed to minimize crash.')
     logs.log('Syzkaller minimize testcase stopped.')
 
-    return engine.MinimizeResult(result.command, result.return_code,
-                                 result.time_executed, result.output)
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def save_rawcover_output(self, pid: int):
     """Find syzkaller port and write rawcover data to a file."""

@@ -26,8 +26,7 @@ from clusterfuzz._internal.bot.fuzzers.syzkaller.engine import \
     Engine as SyzkallerEngine
 from clusterfuzz._internal.bot.fuzzers.syzkaller.engine import REPRO_TIME
 from clusterfuzz._internal.system import environment
-from src.clusterfuzz.fuzz.engine import MinimizeResult
-from src.clusterfuzz.fuzz.engine import ReproduceResult
+from clusterfuzz.fuzz.engine import ReproduceResult
 
 sep = os.path.sep
 TEST_PATH = sep.join(os.path.abspath(os.path.dirname(__file__)).split(sep)[:-1])
@@ -64,7 +63,7 @@ class EngineTest(unittest.TestCase):
 
     self.mock_repro_runner = mock.Mock()
     self.mock_repro_runner.repro = mock.Mock(
-        return_value=MinimizeResult(
+        return_value=ReproduceResult(
             command=SYZ_REPRO_COMMAND,
             return_code=1,
             time_executed=None,

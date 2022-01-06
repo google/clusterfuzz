@@ -224,7 +224,7 @@ class Engine(engine.Engine):
       input_path: str,
       output_path,  # pylint: disable=unused-argument
       max_time,  # pylint: disable=unused-argument
-  ) -> engine.MinimizeResult:
+  ) -> engine.ReproduceResult:
     """Optional (but recommended): Minimize a testcase.
     Example: ./bin/syz-repro -config ./{config file}
       {syzkaller workdir}/crashes/{crash hash}/{execution.log}
