@@ -18,7 +18,7 @@
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
-from src.clusterfuzz.stacktraces import CrashInfo
+from clusterfuzz.stacktraces import CrashInfo
 
 
 class CrashResult(object):
