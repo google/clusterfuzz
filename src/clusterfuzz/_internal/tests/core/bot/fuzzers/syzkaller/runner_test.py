@@ -21,12 +21,43 @@ import mock
 from clusterfuzz._internal.bot.fuzzers.syzkaller import runner
 from clusterfuzz._internal.bot.fuzzers.syzkaller.runner import \
     AndroidSyzkallerRunner
+from clusterfuzz._internal.bot.fuzzers.syzkaller.runner import REPRO_RETRY_MAX
+from clusterfuzz._internal.system import new_process
 
 EXECUTABLE_PATH = '/usr/local/google/home/username/syzkaller'
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEMP_DIR = os.path.join(TEST_PATH, 'temp')
 BUILD_DIR = os.path.join(TEST_PATH, 'build')
 INPUT_DIR = os.path.join(TEST_PATH, 'input')
+
+SYZ_CRUSH_COMMAND = (
+    './bin/syz-crush -infinite=false -restart_time=70s '
+    '-config ./cuttlefish_config.json '
+    '/usr/local/google/home/username/syzkaller_workdir/test_crash.log')
+SYZ_CRUSH_OUTPUT_TEMPLATE = '''
+  2021/12/16 13:56:38 running until crash is found or till 1m10s
+  2021/12/16 13:56:39 reproducing from log file: /usr/local/google/home/username/syzkaller_workdir/test_crash.log
+  2021/12/16 13:56:39 booting 1 test machines...
+  2021/12/16 13:56:39 vm-0: starting
+  2021/12/16 13:57:01 failed to associate adb device 0.0.0.0:6520 with console: no unassociated console devices left
+  2021/12/16 13:57:01 falling back to 'adb shell dmesg -w'
+  2021/12/16 13:57:01 note: some bugs may be detected as 'lost connection to test machine' with no kernel output
+  2021/12/16 13:57:01 associating adb device 0.0.0.0:6520 with console adb
+  2021/12/16 13:57:01 device 0.0.0.0:6520: battery level 85%, OK
+  2021/12/16 13:57:02 vm-0: crushing...
+  2021/12/16 13:57:16 vm-0: crash: kernel BUG in add_timer
+  2021/12/16 13:57:16 vm-0: closing channel
+  2021/12/16 13:57:16 vm-0: done
+  2021/12/16 13:57:16 {reproduce_log}
+  2021/12/16 13:57:16 instances executed: 1, crashes: {crash}
+  2021/12/16 13:57:16 all done. reproduced {crash} crashes. reproduce rate 100.00%
+'''
+SYZ_CRUSH_LOG_LOCATION = ('saving crash \'kernel BUG in add_timer\' '
+                          f'with index 11 in {TEST_PATH}')
+SYZ_CRUSH_OUTPUT_NO_REPRODUCE = SYZ_CRUSH_OUTPUT_TEMPLATE.format(
+    reproduce_log=SYZ_CRUSH_LOG_LOCATION,
+    crash=0,
+)
 
 
 class RunnerTest(unittest.TestCase):
@@ -98,3 +129,70 @@ class RunnerTest(unittest.TestCase):
     with open(f'{TEMP_DIR}/config.json', 'r') as file:
       actual_config = file.read()
       self.assertIn('"devices": ["172.18.0.2:6520"]', actual_config)
+
+  @mock.patch('clusterfuzz._internal.system.new_process.ProcessRunner')
+  def test_repro_successful(self, mock_process_runner):
+    """Repro successfully finds crash log."""
+    output = SYZ_CRUSH_OUTPUT_TEMPLATE.format(
+        reproduce_log=SYZ_CRUSH_LOG_LOCATION,
+        crash=1,
+    )
+
+    mock_process_runner.run_and_wait = mock.Mock(
+        return_value=new_process.ProcessResult(
+            command=SYZ_CRUSH_COMMAND,
+            return_code=1,
+            output=output,
+        ))
+
+    with open(f'{TEST_PATH}/reproducer11', 'r') as file:
+      actual = self.target.repro(0, [])
+      self.assertEqual(actual.command, SYZ_CRUSH_COMMAND)
+      self.assertEqual(actual.return_code, 1)
+      self.assertEqual(actual.output, file.read())
+
+  @mock.patch('clusterfuzz._internal.system.new_process.ProcessRunner')
+  def test_repro_no_log(self, mock_process_runner):
+    """Repro retries when crash log not found."""
+    output = SYZ_CRUSH_OUTPUT_TEMPLATE.format(
+        reproduce_log='',
+        crash=1,
+    )
+
+    mock_process_runner.run_and_wait = mock.Mock(
+        return_value=new_process.ProcessResult(
+            command=SYZ_CRUSH_COMMAND,
+            return_code=1,
+            output=output,
+        ))
+
+    actual = self.target.repro(0, [])
+    self.assertEqual(actual.return_code, 0)
+
+    self.assertEqual(
+        mock_process_runner.run_and_wait.call_count,
+        REPRO_RETRY_MAX,
+    )
+
+  @mock.patch('clusterfuzz._internal.system.new_process.ProcessRunner')
+  def test_repro_no_crash(self, mock_process_runner):
+    """Repro retries when crash fails to reproduce."""
+    output = SYZ_CRUSH_OUTPUT_TEMPLATE.format(
+        reproduce_log=SYZ_CRUSH_LOG_LOCATION,
+        crash=0,
+    )
+
+    mock_process_runner.run_and_wait = mock.Mock(
+        return_value=new_process.ProcessResult(
+            command=SYZ_CRUSH_COMMAND,
+            return_code=1,
+            output=output,
+        ))
+
+    actual = self.target.repro(0, [])
+    self.assertEqual(actual.return_code, 0)
+
+    self.assertEqual(
+        mock_process_runner.run_and_wait.call_count,
+        REPRO_RETRY_MAX,
+    )
