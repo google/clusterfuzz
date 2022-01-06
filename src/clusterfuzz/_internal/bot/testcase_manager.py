@@ -38,6 +38,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
+from clusterfuzz.stacktraces import CrashInfo
 
 # Testcase filename prefixes and suffixes.
 CRASH_PREFIX = 'crash-'
@@ -530,8 +531,8 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
                    'run_testcase_and_return_result_in_queue.')
 
 
-def engine_reproduce(engine_impl, target_name, testcase_path, arguments,
-                     timeout):
+def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
+                     arguments, timeout) -> engine.ReproduceResult:
   """Do engine reproduction."""
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
@@ -593,7 +594,7 @@ class TestcaseRunner(object):
       self._command = get_command_line_for_application(
           testcase_path, needs_http=needs_http)
 
-  def run(self, round_number):
+  def run(self, round_number: int) -> CrashResult:
     """Run the testcase once."""
     app_directory = environment.get_value('APP_DIR')
     warmup_timeout = environment.get_value('WARMUP_TIMEOUT')
@@ -641,7 +642,8 @@ class TestcaseRunner(object):
     process_handler.terminate_stale_application_instances()
     shell.clear_temp_directory()
 
-  def _get_crash_state(self, round_number, crash_result):
+  def _get_crash_state(self, round_number: int,
+                       crash_result: CrashResult) -> CrashInfo:
     """Get crash state from a CrashResult."""
     state = crash_result.get_symbolized_data()
     if crash_result.is_crash():
@@ -705,7 +707,7 @@ class TestcaseRunner(object):
         unexpected_crash=unexpected_crash)
 
   def test_reproduce_reliability(self, retries, expected_state,
-                                 expected_security_flag):
+                                 expected_security_flag) -> bool:
     """Test to see if a crash is fully reproducible or is a one-time crasher."""
     self._pre_run_cleanup()
 
@@ -794,7 +796,7 @@ def test_for_reproducibility(fuzzer_name,
                              test_timeout,
                              http_flag,
                              gestures,
-                             arguments=None):
+                             arguments=None) -> bool:
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
   try:
     fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)

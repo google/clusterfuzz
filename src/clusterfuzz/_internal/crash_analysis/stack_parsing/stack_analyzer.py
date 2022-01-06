@@ -56,7 +56,7 @@ def get_crash_data(crash_data,
                    symbolize_flag=True,
                    fuzz_target=None,
                    already_symbolized=False,
-                   detect_ooms_and_hangs=None):
+                   detect_ooms_and_hangs=None) -> stacktraces.CrashInfo:
   """Get crash parameters from crash data.
   Crash parameters include crash type, address, state and stacktrace.
   If the stacktrace is not already symbolized, we will try to symbolize it
