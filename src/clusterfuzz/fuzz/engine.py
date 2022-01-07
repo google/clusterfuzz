@@ -53,7 +53,7 @@ class FuzzResult(object):
 
 
 class ReproduceResult(object):
-  """Results from running a testcase against a target."""
+  """Results from running syz-crush, syz-repro against a testcase."""
 
   def __init__(self, command, return_code, time_executed, output):
     self.command = command
