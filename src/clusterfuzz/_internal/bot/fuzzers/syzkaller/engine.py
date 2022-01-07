@@ -189,6 +189,7 @@ class Engine(engine.Engine):
     result = syzcrush_runner.repro(max_time, repro_args=syzcrush_args)
 
     if result.return_code:
+      # TODO: upload minimized output to clusterfuzz bucket. Fix #2525
       self.minimize_testcase(
           target_path=None,
           arguments=None,
