@@ -627,9 +627,9 @@ class TestcaseRunner(object):
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
       logs.log(
-          'No crash occurred (round {round_number}).'.format(
-              round_number=round_number),
-          output=output)
+          f'No crash occurred (round {round_number}).',
+          output=output,
+      )
 
     return crash_result
 
