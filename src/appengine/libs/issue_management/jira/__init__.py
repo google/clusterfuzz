@@ -134,9 +134,11 @@ class Issue(issue_tracker.Issue):
 
     self.itm.save(self)
 
+  @property
   def actions(self):
     pass
 
+  @property
   def merged_into(self):
     pass
 
