@@ -16,12 +16,11 @@ import copy
 import fnmatch
 import os
 import re
+import requests
 import tempfile
 import threading
 import time
 from typing import List
-
-import requests
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -246,7 +245,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
     try:
       rawcover = requests.get(f'http://localhost:{port}/rawcover').text
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.RequestException:
       logs.log_warn('Connection to Syzkaller Failed')
       return
 
