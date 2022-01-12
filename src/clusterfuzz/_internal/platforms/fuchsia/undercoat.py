@@ -24,6 +24,12 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 
+# Maximum number of bytes to report from the QEMU log on error.
+# We only report the tail of the log because otherwise we would only end up
+# seeing the beginning of it once the logging library later truncates it to the
+# STACKDRIVER_LOG_MESSAGE_LIMIT.
+QEMU_LOG_LIMIT = 64 * 1024
+
 # In order to properly clean up any stale instances, we keep track of handles in
 # the persistent cache. We assume that only one instance of a bot will be
 # accessing this cache at a time.
@@ -131,7 +137,7 @@ def dump_instance_logs(handle):
   """Dump logs from an undercoat instance."""
   qemu_log = undercoat_instance_command(
       'get_logs', handle, abort_on_error=False).output
-  logs.log_warn(qemu_log)
+  logs.log_warn(qemu_log[-QEMU_LOG_LIMIT:])
 
 
 def start_instance():
