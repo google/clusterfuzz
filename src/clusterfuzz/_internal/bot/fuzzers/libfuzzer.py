@@ -740,7 +740,10 @@ class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
       with open(QemuProcess.LOG_PATH) as f:
         # Strip non-printable characters at beginning of qemu log
         qemu_log = ''.join(c for c in f.read() if c in string.printable)
-        logs.log_warn(qemu_log)
+        # Only report the tail of the log; otherwise we would only end up seeing
+        # the beginning of it once the logging library later truncates it to the
+        # STACKDRIVER_LOG_MESSAGE_LIMIT.
+        logs.log_warn(qemu_log[-64 * 1024:])
     else:
       logs.log_error('Qemu log not found in {}'.format(QemuProcess.LOG_PATH))
 

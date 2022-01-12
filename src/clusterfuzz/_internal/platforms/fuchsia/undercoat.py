@@ -131,7 +131,10 @@ def dump_instance_logs(handle):
   """Dump logs from an undercoat instance."""
   qemu_log = undercoat_instance_command(
       'get_logs', handle, abort_on_error=False).output
-  logs.log_warn(qemu_log)
+  # Only report the tail of the log; otherwise we would only end up seeing the
+  # beginning of it once the logging library later truncates it to the
+  # STACKDRIVER_LOG_MESSAGE_LIMIT.
+  logs.log_warn(qemu_log[-64 * 1024:])
 
 
 def start_instance():
