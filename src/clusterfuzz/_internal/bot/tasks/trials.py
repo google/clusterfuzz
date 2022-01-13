@@ -17,8 +17,8 @@ import json
 import os
 import random
 from warnings import warn
-from collections import OrderedDict
 
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -71,11 +71,11 @@ class Trials:
       logs.log_warn('Unable to parse config file: %s' % str(e))
       return
 
-    self.trials = OrderedDict()
+    self.trials = dict()
     for trial in db_trials:
       self.trials[trial.app_args] = trial.probability
 
-    trials_config_file = environment.get_value('SOURCE_SIDE_TRIALS')
+    trials_config_file = environment.get_value('TRIALS_CONFIG_FILENAME')
     app_dir = environment.get_value('APP_DIR')
     if not trials_config_file or not app_dir:
       return
@@ -91,8 +91,9 @@ class Trials:
         if config['app_name'] != app_name:
           continue
         self.trials[config['app_args']] = config['probability']
-    except:
-      warn('Unable to parse config file')
+    except Exception:
+      logs.log_warn('Unable to parse config file because of the following error:')
+      logs.log_warn(Exception)
       return
 
   def setup_additional_args_for_app(self):
