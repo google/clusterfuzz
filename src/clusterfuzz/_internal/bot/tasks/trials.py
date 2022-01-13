@@ -73,12 +73,11 @@ class Trials:
     for trial in data_types.Trial.query(data_types.Trial.app_name == app_name):
       self.trials[trial.app_args] = trial.probability
 
-    trials_config_file = environment.get_value('TRIALS_CONFIG_FILENAME')
     app_dir = environment.get_value('APP_DIR')
-    if not trials_config_file or not app_dir:
+    if not app_dir:
       return
 
-    trials_config_path = os.path.join(app_dir, trials_config_file)
+    trials_config_path = os.path.join(app_dir, TRIALS_CONFIG_FILENAME)
     if not os.path.exists(trials_config_path):
       return
 

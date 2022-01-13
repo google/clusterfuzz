@@ -60,6 +60,13 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(environment.get_value('APP_ARGS'), app_args)
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), trial_app_args)
 
+    self.mock.random.return_value = probability
+    environment.set_value('APP_NAME', app_name)
+    trial_selector = trials.Trials()
+    trial_selector.setup_additional_args_for_app()
+    self.assertEqual(environment.get_value('APP_ARGS'), app_args)
+    self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), trial_app_args)
+
   def test_no_effect_on_no_match(self):
     """Ensure that no additional flags are added if a binary has no trials."""
     self.mock.random.return_value = 0.0
