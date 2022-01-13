@@ -16,11 +16,11 @@
 import json
 import os
 import random
-from warnings import warn
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
@@ -29,7 +29,8 @@ class Trials:
 
   def __init__(self):
     self.trials = []
-    environment.set_value('TRIALS_CONFIG_FILENAME', 'clusterfuzz_trials_config.json')
+    environment.set_value('TRIALS_CONFIG_FILENAME',
+                          'clusterfuzz_trials_config.json')
 
     app_name = environment.get_value('APP_NAME')
     if not app_name:
@@ -67,15 +68,16 @@ class Trials:
           continue
         self.trials[config['app_args']] = config['probability']
     except Exception:
-      logs.log_warn('Unable to parse config file because of the following error:')
+      logs.log_warn("""
+      Unable to parse config file because of the following error:
+      """)
       logs.log_warn(Exception)
       return
 
   def setup_additional_args_for_app(self):
     """Select additional args for the specified app at random."""
     trial_args = [
-        app_args
-        for app_args, probability in self.trials.items()
+        app_args for app_args, probability in self.trials.items()
         if random.random() < probability
     ]
     if not trial_args:
