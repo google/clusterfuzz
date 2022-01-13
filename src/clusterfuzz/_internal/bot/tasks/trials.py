@@ -16,7 +16,6 @@
 import json
 import os
 import random
-from warnings import warn
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.base import utils
@@ -92,7 +91,9 @@ class Trials:
           continue
         self.trials[config['app_args']] = config['probability']
     except Exception:
-      logs.log_warn('Unable to parse config file because of the following error:')
+      logs.log_warn("""
+      Unable to parse config file because of the following error:
+      """)
       logs.log_warn(Exception)
       return
 
