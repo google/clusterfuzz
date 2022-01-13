@@ -246,7 +246,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
 
     try:
       rawcover = requests.get(f'http://localhost:{port}/rawcover').text
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.RequestException:
       logs.log_warn('Connection to Syzkaller Failed')
       return
 
