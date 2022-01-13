@@ -14,7 +14,6 @@
 """Tests for app specific trials and experiments."""
 
 from pyfakefs import fake_filesystem_unittest
-from clusterfuzz._internal.tests.test_libs import test_utils
 
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.datastore import data_types
@@ -42,13 +41,12 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     test_helpers.patch(self, ['random.random'])
 
   def source_side_setup(self, config_file_content):
-    environment.set_value('SOURCE_SIDE_TRIALS', 'trials_config.json')
     environment.set_value('APP_DIR', '/src')
 
     test_utils.set_up_pyfakefs(self)
-    self.fs.create_file('/src/trials_config.json')
+    self.fs.create_file('/src/clusterfuzz_trials_config.json')
 
-    with open('/src/trials_config.json', 'w') as f:
+    with open('/src/clusterfuzz_trials_config.json', 'w') as f:
       f.write(config_file_content)
 
   def test_no_effect_on_no_match(self):
