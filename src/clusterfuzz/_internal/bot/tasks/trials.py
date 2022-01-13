@@ -43,7 +43,7 @@ class Trials:
     for extension in extensions_to_strip:
       app_name = utils.strip_from_right(app_name, extension)
 
-    self.trials = dict()
+    self.trials = {}
     for trial in data_types.Trial.query(data_types.Trial.app_name == app_name):
       self.trials[trial.app_args] = trial.probability
 
