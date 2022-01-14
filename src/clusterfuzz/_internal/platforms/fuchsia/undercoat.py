@@ -80,7 +80,7 @@ def undercoat_api_command(*args):
   with tempfile.TemporaryFile() as undercoat_log:
     result = undercoat.run_and_wait(
         stderr=undercoat_log, extra_env={'TMPDIR': get_temp_dir()})
-    result.output = result.output.decode('utf-8')
+    result.output = result.output.decode('utf-8', errors='backslashreplace')
 
     if result.return_code != 0:
       # Dump the undercoat log to assist in debugging
