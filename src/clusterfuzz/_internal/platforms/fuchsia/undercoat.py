@@ -80,12 +80,12 @@ def undercoat_api_command(*args):
   with tempfile.TemporaryFile() as undercoat_log:
     result = undercoat.run_and_wait(
         stderr=undercoat_log, extra_env={'TMPDIR': get_temp_dir()})
-    result.output = result.output.decode('utf-8', errors='backslashreplace')
+    result.output = utils.decode_to_unicode(result.output)
 
     if result.return_code != 0:
       # Dump the undercoat log to assist in debugging
       log_data = utils.read_from_handle_truncated(undercoat_log, 1024 * 1024)
-      logs.log_warn('Log output from undercoat: ' + log_data.decode('utf-8'))
+      logs.log_warn('Log output from undercoat: ' + utils.decode_to_unicode(log_data))
 
       # The API error message is returned on stdout
       raise UndercoatError(
