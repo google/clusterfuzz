@@ -85,7 +85,8 @@ def undercoat_api_command(*args):
     if result.return_code != 0:
       # Dump the undercoat log to assist in debugging
       log_data = utils.read_from_handle_truncated(undercoat_log, 1024 * 1024)
-      logs.log_warn('Log output from undercoat: ' + utils.decode_to_unicode(log_data))
+      logs.log_warn('Log output from undercoat: ' +
+                    utils.decode_to_unicode(log_data))
 
       # The API error message is returned on stdout
       raise UndercoatError(
