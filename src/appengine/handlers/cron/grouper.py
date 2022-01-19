@@ -203,8 +203,7 @@ def _shrink_large_groups_if_needed(testcase_map):
     else:
       group_id_with_testcases_map[testcase.group_id].append(testcase)
 
-  for group_id in group_id_with_testcases_map:
-    testcases_in_group = group_id_with_testcases_map[group_id]
+  for testcases_in_group in group_id_with_testcases_map.values():
     if len(testcases_in_group) <= GROUP_MAX_TESTCASE_LIMIT:
       continue
 
