@@ -13,6 +13,7 @@
 # limitations under the License.
 """Variant task for analyzing testcase variants with a different job."""
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
@@ -20,6 +21,7 @@ from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
@@ -76,7 +78,11 @@ def execute_task(testcase_id, job_type):
 
   # Set up a custom or regular build. We explicitly omit the crash revision
   # since we want to test against the latest build here.
-  build_manager.setup_build()
+  try:
+    build_manager.setup_build()
+  except errors.BuildNotFoundError:
+    logs.log_warn('Matching build not found.')
+    return
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
