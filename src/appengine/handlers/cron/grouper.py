@@ -347,8 +347,9 @@ def group_testcases():
         (testcase.group_bug_information != updated_group_bug_information) or
         (testcase.is_leader != updated_is_leader))
 
+    testcase.set_metadata('ran_grouper', True, update_testcase=False)
     if not is_changed:
-      # If nothing is changed, no more work to do. It's faster this way.
+      testcase.put()
       continue
 
     testcase.group_bug_information = updated_group_bug_information
