@@ -790,6 +790,10 @@ class AflRunnerCommon(object):
       # Always CMPLOG only new finds.
       environment.set_value(constants.CMPLOG_ONLY_NEW_ENV_VAR, 1)
 
+      # Projects should rather be set up they work effectivly with afl++
+      # though for the time being lets allow bad setups to continue working:
+      environment.set_value(constants.IGNORE_PROBLEMS_ENV_VAR, 1)
+
       # Randomly set new vs. old queue selection mechanism.
       if engine_common.decide_with_probability(
           self.strategies.QUEUE_OLD_STRATEGY_PROB):
