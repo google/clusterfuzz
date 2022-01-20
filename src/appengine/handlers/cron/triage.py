@@ -224,6 +224,17 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
               ignore_label=ignore_label))
       return True
 
+    # If this testcase is not reproducible, and a previous similar
+    # non-reproducible bug was previously filed, don't file it again to avoid
+    # spam.
+    if (testcase.one_time_crasher_flag and
+        similar_testcase.one_time_crasher_flag):
+      _add_triage_message(
+          testcase,
+          'Skipping filing unreproducible bug since one was already filed '
+          f'({similar_testcase.key.id()}).')
+      return True
+
     # If the issue is recently closed, wait certain time period to make sure
     # our fixed verification has completed.
     if (issue.closed_time and not dates.time_has_expired(
