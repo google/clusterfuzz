@@ -276,7 +276,9 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handle a get request."""
     try:
+      logs.log('Grouping testcases.')
       grouper.group_testcases()
+      logs.log('Grouping done.')
     except:
       logs.log_error('Error occurred while grouping test cases.')
       return
@@ -332,8 +334,14 @@ class Handler(base_handler.Handler):
       # to account for that.
       # FIXME: In future, grouping might be dependent on regression range, so we
       # would have to add an additional wait time.
+      # TODO(ochang): Remove this after verifying that the `ran_grouper`
+      # metadata works well.
       if not testcase.group_id and not dates.time_has_expired(
           testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
+        continue
+
+      if not testcase.get_metadata('ran_grouper'):
+        # Testcase should be considered by the grouper first before filing.
         continue
 
       # If this project does not have an associated issue tracker, we cannot
