@@ -13,11 +13,16 @@
 # limitations under the License.
 """Helper functions for app-specific trials/experiments."""
 
+import json
+import os
 import random
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+TRIALS_CONFIG_FILENAME = 'clusterfuzz_trials_config.json'
 
 
 class Trials:
@@ -38,15 +43,34 @@ class Trials:
     for extension in extensions_to_strip:
       app_name = utils.strip_from_right(app_name, extension)
 
-    self.trials = list(
-        data_types.Trial.query(data_types.Trial.app_name == app_name))
+    self.trials = {}
+    for trial in data_types.Trial.query(data_types.Trial.app_name == app_name):
+      self.trials[trial.app_args] = trial.probability
+
+    app_dir = environment.get_value('APP_DIR')
+    if not app_dir:
+      return
+
+    trials_config_path = os.path.join(app_dir, TRIALS_CONFIG_FILENAME)
+    if not os.path.exists(trials_config_path):
+      return
+
+    try:
+      with open(trials_config_path) as json_file:
+        trials_config = json.load(json_file)
+      for config in trials_config:
+        if config['app_name'] != app_name:
+          continue
+        self.trials[config['app_args']] = config['probability']
+    except Exception as e:
+      logs.log_warn('Unable to parse config file: %s' % str(e))
+      return
 
   def setup_additional_args_for_app(self):
     """Select additional args for the specified app at random."""
     trial_args = [
-        trial.app_args
-        for trial in self.trials
-        if random.random() < trial.probability
+        app_args for app_args, probability in self.trials.items()
+        if random.random() < probability
     ]
     if not trial_args:
       return
