@@ -347,8 +347,7 @@ def group_testcases():
         (testcase.is_leader != updated_is_leader))
 
     if not testcase.get_metadata('ran_grouper'):
-      testcase.set_metadata(
-          'ran_grouper', True, update_testcase=not is_changed)
+      testcase.set_metadata('ran_grouper', True, update_testcase=not is_changed)
 
     if not is_changed:
       continue
