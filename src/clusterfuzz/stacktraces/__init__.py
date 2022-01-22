@@ -816,12 +816,12 @@ class StackParser:
 
       # GPU Failure.
       self.update_state_on_match(
-        GPU_PROCESS_FAILURE,
-        line,
-        state,
-        new_type='GPU failure',
-        new_state='',
-        reset=True)
+          GPU_PROCESS_FAILURE,
+          line,
+          state,
+          new_type='GPU failure',
+          new_state='',
+          reset=True)
 
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
