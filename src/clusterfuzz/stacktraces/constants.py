@@ -103,6 +103,7 @@ GENERIC_SEGV_HANDLER_REGEX = re.compile(
 GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                         r'\s*Check failed[:]\s*(.*)')
 GOOGLE_LOG_FATAL_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX + r'\s*(.*)')
+GPU_PROCESS_FAILURE = re.compile(r'.*GPU process exited unexpectedly.*')
 HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
