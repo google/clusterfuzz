@@ -565,6 +565,13 @@ def terminate_stale_application_instances():
     # Artifical sleep to let the processes get terminated.
     time.sleep(1)
 
+  elif platform == 'FUCHSIA':
+    processes_to_kill += [
+        'undercoat',
+        llvm_symbolizer_filename,
+    ]
+    terminate_processes_matching_names(processes_to_kill, kill=True)
+
   else:
     # Handle Linux and Mac platforms.
     processes_to_kill += [
