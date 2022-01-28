@@ -742,8 +742,8 @@ class ProjectSetup(object):
         if job_name not in fuzzer_entity.jobs and not job.is_external():
           # Enable new job.
           fuzzer_entity.jobs.append(job_name)
+          fuzzer_entity.put()
 
-      fuzzer_entity.put()
       job.name = job_name
       if self._segregate_projects:
         job.platform = untrusted.platform_name(project, 'linux')
