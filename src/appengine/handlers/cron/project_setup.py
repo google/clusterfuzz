@@ -438,33 +438,35 @@ def ccs_from_info(info):
 
 def update_fuzzer_jobs(fuzzer_entities, job_names):
   """Update fuzzer job mappings."""
-  to_delete = []
+  to_delete = {}
 
-  for job in data_types.Job.query():
-    if not job.environment_string:
-      continue
+  for fuzzer_entity_key in fuzzer_entities:
+    fuzzer_entity = fuzzer_entity_key.get()
 
-    job_environment = job.get_environment()
-    if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
-      continue
+    for job in data_types.Job.query():
+      if not job.environment_string:
+        continue
 
-    if job.name in job_names:
-      continue
+      job_environment = job.get_environment()
+      if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
+        continue
 
-    logs.log('Deleting job %s' % job.name)
-    to_delete.append(job.key)
-    for fuzzer_entity in fuzzer_entities:
+      if job.name in job_names:
+        continue
+
+      logs.log('Deleting job %s' % job.name)
+      to_delete[job.name] = job.key
+
       try:
         fuzzer_entity.jobs.remove(job.name)
       except ValueError:
         pass
 
-  for fuzzer_entity in fuzzer_entities:
     fuzzer_entity.put()
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
 
   if to_delete:
-    ndb_utils.delete_multi(to_delete)
+    ndb_utils.delete_multi(to_delete.values())
 
 
 def cleanup_old_projects_settings(project_names):
@@ -671,11 +673,13 @@ class ProjectSetup(object):
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
 
     data_bundles = {
-        fuzzer_entity.data_bundle_name
+        fuzzer_entity.get().data_bundle_name
         for fuzzer_entity in six.itervalues(self._fuzzer_entities)
-        if fuzzer_entity.data_bundle_name
     }
     for data_bundle in data_bundles:
+      if not data_bundle:
+        continue
+
       # Workers also need to be able to set up these global bundles.
       data_bundle_bucket_name = data_handler.get_data_bundle_bucket_name(
           data_bundle)
@@ -711,7 +715,7 @@ class ProjectSetup(object):
         # Engine-less jobs are not automatically managed.
         continue
 
-      fuzzer_entity = self._fuzzer_entities.get(template.engine)
+      fuzzer_entity = self._fuzzer_entities.get(template.engine).get()
       if not fuzzer_entity:
         raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
 
@@ -739,6 +743,7 @@ class ProjectSetup(object):
           # Enable new job.
           fuzzer_entity.jobs.append(job_name)
 
+      fuzzer_entity.put()
       job.name = job_name
       if self._segregate_projects:
         job.platform = untrusted.platform_name(project, 'linux')
@@ -978,10 +983,10 @@ class Handler(base_handler.Handler):
     job_names = set()
 
     fuzzer_entities = {
-        'afl': afl,
-        'honggfuzz': honggfuzz,
-        'googlefuzztest': gft,
-        'libfuzzer': libfuzzer,
+        'afl': afl.key,
+        'honggfuzz': honggfuzz.key,
+        'googlefuzztest': gft.key,
+        'libfuzzer': libfuzzer.key,
     }
 
     for setup_config in project_setup_configs:
