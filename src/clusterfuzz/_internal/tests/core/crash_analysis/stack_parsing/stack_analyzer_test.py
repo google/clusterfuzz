@@ -193,6 +193,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_gpu_failure(self):
+    """Basic test for GPU failure."""
+    data = self._read_test_data('gpu_failure.txt')
+    expected_type = 'GPU failure'
+    expected_address = ''
+    expected_stacktrace = data
+    expected_state = 'NULL'
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_android_kernel(self):
     """Basic test for Android kernel format."""
     data = self._read_test_data('android_kernel.txt')

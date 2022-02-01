@@ -224,6 +224,17 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
               ignore_label=ignore_label))
       return True
 
+    # If this testcase is not reproducible, and a previous similar
+    # non-reproducible bug was previously filed, don't file it again to avoid
+    # spam.
+    if (testcase.one_time_crasher_flag and
+        similar_testcase.one_time_crasher_flag):
+      _add_triage_message(
+          testcase,
+          'Skipping filing unreproducible bug since one was already filed '
+          f'({similar_testcase.key.id()}).')
+      return True
+
     # If the issue is recently closed, wait certain time period to make sure
     # our fixed verification has completed.
     if (issue.closed_time and not dates.time_has_expired(
@@ -265,7 +276,9 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handle a get request."""
     try:
+      logs.log('Grouping testcases.')
       grouper.group_testcases()
+      logs.log('Grouping done.')
     except:
       logs.log_error('Error occurred while grouping test cases.')
       return
@@ -321,8 +334,14 @@ class Handler(base_handler.Handler):
       # to account for that.
       # FIXME: In future, grouping might be dependent on regression range, so we
       # would have to add an additional wait time.
+      # TODO(ochang): Remove this after verifying that the `ran_grouper`
+      # metadata works well.
       if not testcase.group_id and not dates.time_has_expired(
           testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
+        continue
+
+      if not testcase.get_metadata('ran_grouper'):
+        # Testcase should be considered by the grouper first before filing.
         continue
 
       # If this project does not have an associated issue tracker, we cannot

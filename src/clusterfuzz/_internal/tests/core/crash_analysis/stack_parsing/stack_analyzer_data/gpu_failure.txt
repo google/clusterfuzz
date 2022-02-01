@@ -1,0 +1,126 @@
+[18532:13028:0110/144722.249:VERBOSE1:webrtc_event_log_manager.cc(96)] WebRTC remote-bound event logging enabled.
+[18532:13028:0110/144722.249:VERBOSE1:pref_proxy_config_tracker_impl.cc(186)] 000011C250FA3F80: set chrome proxy config service to 000011BE50FAA580
+[18532:6872:0110/144722.358:VERBOSE1:media_stream_manager.cc(873)] MSM::InitializeMaybeAsync([this=000011BC50FA8880])
+[18532:6872:0110/144722.358:VERBOSE1:media_stream_manager.cc(873)] MDM::MediaDevicesManager()
+[18532:6872:0110/144722.358:VERBOSE1:media_stream_manager.cc(873)] MSM::MediaStreamManager([this=000011BC50FA8880]))
+[18532:13028:0110/144722.374:VERBOSE1:install_util.cc(218)] No existing Chrome install found.
+[18532:13028:0110/144722.608:VERBOSE1:pref_proxy_config_tracker_impl.cc(186)] 000011C250FA7400: set chrome proxy config service to 000011BE51014480
+[18532:13028:0110/144722.640:VERBOSE1:device_event_log_impl.cc(216)] [14:47:22.637] Bluetooth: EVENT: bluetooth_api.cc:82 BluetoothAPI: 000011BE50FE8D80
+[18532:13028:0110/144722.640:VERBOSE1:mutable_profile_oauth2_token_service_delegate.cc(220)] MutablePO2TS::MutablePO2TS
+[18532:13028:0110/144722.640:VERBOSE1:gaia_auth_util.cc(46)] Canonicalized @gmail.com to @gmail.com
+[18532:13028:0110/144722.640:VERBOSE1:gaia_auth_util.cc(46)] Canonicalized @gmail.com to @gmail.com
+[18532:13028:0110/144722.640:VERBOSE1:bluetooth_low_energy_event_router.cc(273)] Initializing BluetoothLowEnergyEventRouter.
+[18532:13028:0110/144722.749:VERBOSE1:account_reconcilor.cc(183)] AccountReconcilor::AccountReconcilor
+[18532:13028:0110/144722.749:VERBOSE1:account_reconcilor.cc(207)] AccountReconcilor::Initialize
+[18532:13028:0110/144722.749:VERBOSE1:account_reconcilor.cc(246)] AccountReconcilor::RegisterWithContentSettings
+[18532:13028:0110/144722.749:VERBOSE1:account_reconcilor.cc(267)] AccountReconcilor::RegisterWithIdentityManager
+[18532:13028:0110/144722.796:VERBOSE1:extension_service.cc(1451)] AddComponentExtension Web Store
+[18532:13028:0110/144722.812:VERBOSE1:extension_service.cc(1451)] AddComponentExtension Chromium PDF Viewer
+[18532:13028:0110/144722.812:VERBOSE1:extension_service.cc(1451)] AddComponentExtension CryptoTokenExtension
+[18532:13028:0110/144723.030:VERBOSE1:profile_manager.cc(2174)] ForceSigninCheck: 0, 0, 1
+[18532:13028:0110/144723.030:VERBOSE1:pref_proxy_config_tracker_impl.cc(186)] 000011C250FA9A80: set chrome proxy config service to 000011BE5109CB00
+[18532:18508:0110/144723.124:VERBOSE1:token_service_table.cc(152)] Loaded tokens: result = 3 ; number of tokens loaded = 0
+[18532:13028:0110/144723.124:VERBOSE1:profile_manager.cc(1442)] AddKeepAlive(Default, kBrowserWindow). keep_alives=[kWaitingForFirstBrowserWindow (1), kBrowserWindow (1)]
+[18532:13028:0110/144723.124:VERBOSE1:profile_manager.cc(1493)] ClearFirstBrowserWindowKeepAlive(Default). keep_alives=[kBrowserWindow (1)]
+[18532:13028:0110/144724.327:VERBOSE1:mutable_profile_oauth2_token_service_delegate.cc(328)] MutablePO2TS::RefreshTokenIsAvailable
+[17788:7976:0110/144724.530:INFO:cpu_info.cc(53)] Available number of cores:2
+[17540:15516:0110/144724.702:INFO:cpu_info.cc(53)] Available number of cores:2
+[18532:13028:0110/144724.952:VERBOSE1:mutable_profile_oauth2_token_service_delegate.cc(414)] MutablePO2TS::OnWebDataServiceRequestDone. Result type:6
+[18532:13028:0110/144724.952:VERBOSE1:mutable_profile_oauth2_token_service_delegate.cc(474)] MutablePO2TS::LoadAllCredentialsIntoMemory; 0 Credential(s).
+[18532:13028:0110/144724.952:VERBOSE1:account_reconcilor.cc(322)] AccountReconcilor::OnEndBatchOfRefreshTokenStateChanges. Reconcilor state:0
+[18532:13028:0110/144724.952:VERBOSE1:account_reconcilor.cc(399)] AccountReconcilor::StartReconcile: token service *not* ready yet.
+[18532:13028:0110/144724.952:VERBOSE1:gaia_auth_util.cc(46)] Canonicalized @gmail.com to @gmail.com
+[18532:13028:0110/144724.952:VERBOSE1:gaia_auth_util.cc(46)] Canonicalized @gmail.com to @gmail.com
+[18532:13028:0110/144724.992:VERBOSE1:gaia_cookie_manager_service.cc(1052)] GaiaCookieManagerService::ListAccounts
+[9424:22228:0110/144725.003:VERBOSE1:network_delegate.cc(34)] NetworkDelegate::NotifyBeforeURLRequest: https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard
+[18532:13028:0110/144725.330:VERBOSE1:mutable_profile_oauth2_token_service_delegate.cc(328)] MutablePO2TS::RefreshTokenIsAvailable
+[18532:6872:0110/144725.346:VERBOSE1:media_stream_manager.cc(873)] RFAOSF::Core() [process_id=5, frame_id=1]
+[18532:19816:0110/144725.374:VERBOSE1:file_url_loader_factory.cc(455)] FileURLLoader::Start: file:///C:/clusterfuzz/bot/inputs/fuzzer-testcases/poc1.html
+[18532:13028:0110/144725.575:VERBOSE1:gaia_cookie_manager_service.cc(890)] ListAccounts successful
+[18532:13028:0110/144725.575:VERBOSE1:gaia_cookie_manager_service.cc(1088)] GaiaCookieManagerService::HandleNextRequest
+[18532:13028:0110/144725.576:VERBOSE1:gaia_cookie_manager_service.cc(1104)] GaiaCookieManagerService::HandleNextRequest: no more
+[18532:13028:0110/144725.577:VERBOSE1:account_reconcilor.cc(538)] AccountReconcilor::OnAccountsInCookieUpdated: CookieJar 0 accounts, Reconcilor's state is 1, Error was
+[18532:13028:0110/144725.577:VERBOSE1:account_reconcilor.cc(658)] AccountReconcilor::LoadValidAccountsFromTokenService: Chrome 0 accounts
+[18532:13028:0110/144725.578:VERBOSE1:account_reconcilor.cc(741)] AccountReconcilor::CalculateIfMultiloginReconcileIsDone: Error was
+[18532:13028:0110/144725.578:VERBOSE1:account_reconcilor.cc(692)] AccountReconcilor::StartReconcileIfChromeAccountsChanged
+[17788:7976:0110/144725.825:VERBOSE1:script_context.cc(203)] Created context:
+  extension id:           (none)
+  frame:                  00007EAB003C20B0
+  URL:
+  context_type:           WEB_PAGE
+  effective extension id: (none)
+  effective context type: WEB_PAGE
+[17788:7976:0110/144725.833:VERBOSE1:script_context.cc(203)] Created context:
+  extension id:           (none)
+  frame:0000000000000000
+  URL:
+  context_type:           UNSPECIFIED
+  effective extension id: (none)
+  effective context type: UNSPECIFIED
+[17788:7976:0110/144725.836:VERBOSE1:dispatcher.cc(449)] Num tracked contexts:1
+[18532:6872:0110/144725.903:VERBOSE1:media_stream_manager.cc(873)] RFAOSF::Core() [process_id=5, frame_id=1]
+[18532:13028:0110/144726.087:INFO:CONSOLE(48)] "WebGL: INVALID_OPERATION: getAttribLocation: program not linked", source: file:///C:/clusterfuzz/bot/inputs/fuzzer-testcases/poc1.html (48)
+[17788:7976:0110/144726.156:ERROR:command_buffer_proxy_impl.cc(328)] GPU state invalid after WaitForGetOffsetInRange.
+[18532:13028:0110/144726.168:ERROR:gpu_process_host.cc(972)] GPU process exited unexpectedly: exit_code=-1073741819
+[18532:13028:0110/144726.168:WARNING:gpu_process_host.cc(1277)] The GPU process has crashed 1 time(s)
+[18532:13028:0110/144726.229:INFO:CONSOLE(0)] "WebGL: CONTEXT_LOST_WEBGL: loseContext: context lost", source: file:///C:/clusterfuzz/bot/inputs/fuzzer-testcases/poc1.html (0)
+[18532:13028:0110/144726.765:WARNING:gpu_process_host.cc(1000)] Reinitialized the GPU process after a crash. The reported initialization time was 167 ms
+[18532:13028:0110/144728.657:VERBOSE1:profile_manager.cc(1442)] AddKeepAlive(Default, kExtensionUpdater). keep_alives=[kBrowserWindow (1), kExtensionUpdater (1)]
+[18532:13028:0110/144728.660:VERBOSE1:profile_manager.cc(1472)] RemoveKeepAlive(Default, kExtensionUpdater). keep_alives=[kBrowserWindow (1)]
+[18532:13028:0110/144728.661:ERROR:device_event_log_impl.cc(214)] [14:47:28.661] Bluetooth: bluetooth_adapter_winrt.cc:715 GetBluetoothAdapterStaticsActivationFactory failed: Class not registered (0x80040154)
+[6520:19964:0110/144729.187:VERBOSE1:statistics_recorder.cc(473)] Collections of all histograms
+Histogram: ChildProcess.FieldTrials.CreateFromShmemSuccess recorded 1 samples, mean = 1.0 (flags = 0x1)
+0  O                                                                         (0 = 0.0%)
+1  -O                                                                        (1 = 100.0%) {0.0%}
+2  O                                                                         (0 = 0.0%) {100.0%}
+Histogram: SharedMemory.MapBlockedForSecurity recorded 2 samples, mean = 0.0 (flags = 0x1)
+0  --O                                                                       (2 = 100.0%)
+1  ...
+Histogram: ThreadPool.NumTasksBeforeDetach.ContentChild.Background recorded 0 samples (flags = 0x1)
+0 ...
+Histogram: ThreadPool.NumTasksBeforeDetach.ContentChild.Foreground recorded 0 samples (flags = 0x1)
+0 ...
+Histogram: UMA.PersistentAllocator.UtilityMetrics.Errors recorded 0 samples (flags = 0x41)
+Histogram: UMA.PersistentAllocator.UtilityMetrics.UsedPct recorded 0 samples (flags = 0x41)
+0 ...
+Histogram: V8.Initializer.OpenV8File.Result recorded 1 samples, mean = 0.0 (flags = 0x1)
+0  -O                                                                        (1 = 100.0%)
+1  ...
+Histogram: Windows.CetAvailable recorded 1 samples, mean = 0.0 (flags = 0x41)
+0  -O                                                                        (1 = 100.0%)
+1  ...
+Histogram: Windows.ChromeDllPrefetchResult recorded 1 samples, mean = 0.0 (flags = 0x1)
+0  -O                                                                        (1 = 100.0%)
+1  ...
+Histogram: Windows.HypervPresent recorded 1 samples, mean = 1.0 (flags = 0x41)
+0  O                                                                         (0 = 0.0%)
+1  -O                                                                        (1 = 100.0%) {0.0%}
+2  O                                                                         (0 = 0.0%) {100.0%}
+Histogram: Windows.ProcessorFamily recorded 1 samples (flags = 0x41)
+1  -O                                                                        (1 = 100.0%)
+Histogram: Windows.ProcessorVirtualizationFirmwareEnabled recorded 1 samples, mean = 0.0 (flags = 0x41)
+0  -O                                                                        (1 = 100.0%)
+1  ...
+[21584:27304:0110/144745.077:VERBOSE1:statistics_recorder.cc(473)] Collections of all histograms
+Histogram: ChildProcess.FieldTrials.CreateFromShmemSuccess recorded 1 samples, mean = 1.0 (flags = 0x1)
+0  O                                                                         (0 = 0.0%)
+1  -O                                                                        (1 = 100.0%) {0.0%}
+2  O                                                                         (0 = 0.0%) {100.0%}
+Histogram: LevelDBEnv.DeleteTableBackupFile recorded 0 samples (flags = 0x41)
+0 ...
+Histogram: SharedMemory.MapBlockedForSecurity recorded 2 samples, mean = 0.0 (flags = 0x1)
+0  --O                                                                       (2 = 100.0%)
+1  ...
+Histogram: ThreadPool.NumTasksBeforeDetach.ContentChild.Background recorded 0 samples (flags = 0x1)
+0 ...
+Histogram: ThreadPool.NumTasksBeforeDetach.ContentChild.Foreground recorded 0 samples (flags = 0x1)
+0 ...
+Histogram: UMA.PersistentAllocator.UtilityMetrics.Errors recorded 0 samples (flags = 0x41)
+Histogram: UMA.PersistentAllocator.UtilityMetrics.UsedPct recorded 0 samples (flags = 0x41)
+0 ...
+Histogram: V8.Initializer.OpenV8File.Result recorded 1 samples, mean = 0.0 (flags = 0x1)
+0  -O                                                                        (1 = 100.0%)
+1  ...
+Histogram: Windows.ChromeDllPrefetchResult recorded 1 samples, mean = 0.0 (flags = 0x1)
+0  -O                                                                        (1 = 100.0%)
+1  ...
