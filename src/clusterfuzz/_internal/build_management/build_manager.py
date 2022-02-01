@@ -826,10 +826,6 @@ class FuchsiaBuild(RegularBuild):
     rollout_level = environment.get_value('FUCHSIA_UNDERCOAT_ROLLOUT_LEVEL', 0)
     self.use_undercoat = random.random() < rollout_level
 
-    # Initially, only use undercoat for fuzz tasks
-    if environment.get_value('TASK_NAME') != 'fuzz':
-      self.use_undercoat = False
-
     # Used by platforms.fuchsia.util
     environment.set_value(
         'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
