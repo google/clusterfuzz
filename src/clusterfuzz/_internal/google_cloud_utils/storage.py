@@ -87,7 +87,7 @@ _local = threading.local()
 
 # Urls for web viewer.
 OBJECT_URL = 'https://storage.cloud.google.com'
-DIRECTORY_URL = 'https://console.cloud.google.com/storage'
+DIRECTORY_URL = 'https://console.cloud.google.com/storage/browser'
 
 
 class StorageProvider(object):
