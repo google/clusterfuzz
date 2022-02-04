@@ -19,6 +19,8 @@ from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+# Retry every task for 3 times by default to capture non-deterministic crashes.
+_NUM_RETRIES = 3
 
 def add_external_task(command, testcase_id, job):
   """Add external task."""
@@ -58,6 +60,7 @@ def add_external_task(command, testcase_id, job):
       'testcaseId': str(testcase_id),
       'buildPath': build_path,
       'minRevisionAbove': str(min_revision),
+      'numRetries': _NUM_RETRIES,
   }
 
   reproducer = blobs.read_key(testcase.fuzzed_keys)
