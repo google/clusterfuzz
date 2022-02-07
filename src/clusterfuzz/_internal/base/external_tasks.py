@@ -60,7 +60,7 @@ def add_external_task(command, testcase_id, job):
       'testcaseId': str(testcase_id),
       'buildPath': build_path,
       'minRevisionAbove': str(min_revision),
-      'numRetries': _NUM_RETRIES,
+      'numRetries': str(_NUM_RETRIES),
   }
 
   reproducer = blobs.read_key(testcase.fuzzed_keys)
