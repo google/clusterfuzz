@@ -15,9 +15,8 @@
 
 import datetime
 import unittest
-import pytz
 
-from dateutil import tz
+import pytz
 import six
 
 from clusterfuzz._internal.tests.test_libs import helpers

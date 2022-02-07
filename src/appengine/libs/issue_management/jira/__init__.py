@@ -14,7 +14,6 @@
 """Jira issue tracker."""
 
 import datetime
-
 from urllib.parse import urljoin
 
 from dateutil import parser
@@ -71,7 +70,8 @@ class Issue(issue_tracker.Issue):
 
   @property
   def closed_time(self):
-    return datetime.datetime.fromtimestamp(parser.parse(self.jira_issue.fields.resolutiondate).timestamp())
+    return datetime.datetime.fromtimestamp(
+        parser.parse(self.jira_issue.fields.resolutiondate).timestamp())
 
   @property
   def status(self):
