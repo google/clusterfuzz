@@ -22,6 +22,7 @@ from clusterfuzz._internal.system import environment
 # Retry every task for 3 times by default to capture non-deterministic crashes.
 _NUM_TRIALS = 3
 
+
 def add_external_task(command, testcase_id, job):
   """Add external task."""
   if command != 'progression':

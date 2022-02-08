@@ -77,13 +77,11 @@ def handle_update(testcase, revision, stacktraces, error):
           fuzz_target=fuzz_target_name,
           symbolize_flag=False,
           already_symbolized=True,
-          detect_ooms_and_hangs=True)
-      for stacktrace in stacktraces
+          detect_ooms_and_hangs=True) for stacktrace in stacktraces
   ]
 
   crash_comparers = [
-      CrashComparer(state.crash_state, testcase.crash_state)
-      for state in states
+      CrashComparer(state.crash_state, testcase.crash_state) for state in states
   ]
   all_not_similar = True
   similar_indices = set()
@@ -100,9 +98,8 @@ def handle_update(testcase, revision, stacktraces, error):
     return
 
   are_security_issues = [
-      crash_analyzer.is_security_issue(
-          state.crash_stacktrace, state.crash_type, state.crash_address)
-      for state in states
+      crash_analyzer.is_security_issue(state.crash_stacktrace, state.crash_type,
+                                       state.crash_address) for state in states
   ]
   all_not_security_issue = True
   issue_indices = set()
@@ -118,12 +115,13 @@ def handle_update(testcase, revision, stacktraces, error):
   logs.log(f'{testcase.key.id()} still crashes.')
   crashed_indices = similar_indices.intersection(issue_indices)
   if not crashed_indices:
-    logs.log_error(f"No intersection between:"
-                   f"State indices failed similarity check: {similar_indices}"
-                   f"State indices failed security issue check: {issue_indices}")
+    logs.log_error(
+        f"No intersection between:"
+        f"State indices failed similarity check: {similar_indices}"
+        f"State indices failed security issue check: {issue_indices}")
   testcase.last_tested_crash_stacktrace = [
-      stacktraces[stacktrace_index]
-      for stacktrace_index in crashed_indices][-1]
+      stacktraces[stacktrace_index] for stacktrace_index in crashed_indices
+  ][-1]
   data_handler.update_progression_completion_metadata(
       testcase, revision, is_crash=True)
 

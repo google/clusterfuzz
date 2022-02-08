@@ -286,7 +286,7 @@ class ExternalUpdatesTest(unittest.TestCase):
   def test_update_multiple_crashed(self):
     """Test an update that has multiple trials and all crashed."""
     stacktrace = self._read_test_data('asan_uaf.txt')
-    stacktraces = [stacktrace.decode()]*3
+    stacktraces = [stacktrace.decode()] * 3
     stacktraces_bytes = json.dumps(stacktraces).encode()
     self.app.post(
         '/external-update',
