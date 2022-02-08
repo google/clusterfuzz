@@ -13,6 +13,7 @@
 # limitations under the License.
 """Jira issue tracker."""
 
+import datetime
 from urllib.parse import urljoin
 
 from dateutil import parser
@@ -65,11 +66,12 @@ class Issue(issue_tracker.Issue):
   @property
   def is_open(self):
     """Whether the issue is open."""
-    return self.jira_issue.resolution not in ['Closed', 'Done', 'Resolved']
+    return self.jira_issue.fields.resolution is None
 
   @property
   def closed_time(self):
-    return parser.parse(self.jira_issue.fields.resolutiondate)
+    return datetime.datetime.fromtimestamp(
+        parser.parse(self.jira_issue.fields.resolutiondate).timestamp())
 
   @property
   def status(self):
@@ -138,7 +140,7 @@ class Issue(issue_tracker.Issue):
 
   @property
   def actions(self):
-    pass
+    return ()
 
   @property
   def merged_into(self):
