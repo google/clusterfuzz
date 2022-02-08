@@ -13,7 +13,6 @@
 # limitations under the License.
 """External reproduction updates."""
 import json
-import pdb
 
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
