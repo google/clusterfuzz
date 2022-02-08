@@ -30,6 +30,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 # Retry every task for 3 times by default to capture non-deterministic crashes.
 _NUM_TRIALS = 3
 
+
 class RedoTestcaseTest(unittest.TestCase):
   """Test redo_testcase()."""
 
