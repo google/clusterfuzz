@@ -19,7 +19,7 @@ import sys
 
 # Chromedriver related constants.
 CHROMEDRIVER_VERSION_URL = (
-    'https://commondatastorage.googleapis.com/chromedriver/LATEST_RELEASE_91')
+    'https://commondatastorage.googleapis.com/chromedriver/LATEST_RELEASE_98')
 CHROMEDRIVER_DOWNLOAD_PATTERN = (
     'https://commondatastorage.googleapis.com/chromedriver/{version}/'
     '{archive_name}')
