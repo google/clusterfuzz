@@ -66,7 +66,7 @@ class Issue(issue_tracker.Issue):
   @property
   def is_open(self):
     """Whether the issue is open."""
-    return self.jira_issue.resolution not in ['Closed', 'Done', 'Resolved']
+    return self.jira_issue.fields.resolution is None
 
   @property
   def closed_time(self):
@@ -140,7 +140,7 @@ class Issue(issue_tracker.Issue):
 
   @property
   def actions(self):
-    pass
+    return ()
 
   @property
   def merged_into(self):
