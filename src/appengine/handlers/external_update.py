@@ -116,9 +116,14 @@ def handle_update(testcase, revision, stacktraces, error):
     return
 
   logs.log(f'{testcase.key.id()} still crashes.')
+  crashed_indices = similar_indices.intersection(issue_indices)
+  if not crashed_indices:
+    logs.log_error(f"No intersection between:"
+                   f"State indices failed similarity check: {similar_indices}"
+                   f"State indices failed security issue check: {issue_indices}")
   testcase.last_tested_crash_stacktrace = [
       stacktraces[stacktrace_index]
-      for stacktrace_index in similar_indices.intersection(issue_indices)][-1]
+      for stacktrace_index in crashed_indices][-1]
   data_handler.update_progression_completion_metadata(
       testcase, revision, is_crash=True)
 
