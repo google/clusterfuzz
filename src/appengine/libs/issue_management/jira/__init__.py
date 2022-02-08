@@ -189,9 +189,7 @@ class IssueTracker(issue_tracker.IssueTracker):
       return None
 
     config = db_config.get()
-    jira_url = local_config.ProjectConfig().get('env.ACTUAL_JIRA_URL',
-                                                config.jira_url)
-    url = urljoin(jira_url, f'/browse/{str(issue.key)}')
+    url = urljoin(config.jira_url, f'/browse/{str(issue.key)}')
     return url
 
   def find_issues_url(self, keywords=None, only_open=None):
