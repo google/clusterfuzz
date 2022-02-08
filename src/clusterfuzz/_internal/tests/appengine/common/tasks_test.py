@@ -27,6 +27,8 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
+# Retry every task for 3 times by default to capture non-deterministic crashes.
+_NUM_TRIALS = 3
 
 class RedoTestcaseTest(unittest.TestCase):
   """Test redo_testcase()."""
@@ -345,6 +347,7 @@ class ExternalTasksTest(unittest.TestCase):
         'sanitizer': 'address',
         'target': 'abc',
         'testcaseId': str(self.testcase_0.key.id()),
+        'numTrials': str(_NUM_TRIALS),
     }, message.attributes)
 
   def test_progression_1(self):
@@ -367,6 +370,7 @@ class ExternalTasksTest(unittest.TestCase):
         'sanitizer': 'memory',
         'target': 'abc',
         'testcaseId': str(self.testcase_1.key.id()),
+        'numTrials': str(_NUM_TRIALS),
     }, message.attributes)
 
   def test_not_progression(self):
