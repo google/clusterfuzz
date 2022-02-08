@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """External reproduction updates."""
+import json
+import pdb
 
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -45,7 +47,7 @@ def _mark_errored(testcase, revision, error):
       testcase, revision, message=message)
 
 
-def handle_update(testcase, revision, stacktrace, error):
+def handle_update(testcase, revision, stacktraces, error):
   """Handle update."""
   logs.log('Got external update for testcase.', testcase_id=testcase.key.id())
   if error:
@@ -70,31 +72,54 @@ def handle_update(testcase, revision, stacktrace, error):
   # not run).
   data_handler.record_fuzz_target(fuzz_target.engine, fuzz_target.binary,
                                   testcase.job_type)
+  states = [
+      stack_analyzer.get_crash_data(
+          stacktrace,
+          fuzz_target=fuzz_target_name,
+          symbolize_flag=False,
+          already_symbolized=True,
+          detect_ooms_and_hangs=True)
+      for stacktrace in stacktraces
+  ]
 
-  state = stack_analyzer.get_crash_data(
-      stacktrace,
-      fuzz_target=fuzz_target_name,
-      symbolize_flag=False,
-      already_symbolized=True,
-      detect_ooms_and_hangs=True)
-  crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
-  if not crash_comparer.is_similar():
+  crash_comparers = [
+      CrashComparer(state.crash_state, testcase.crash_state)
+      for state in states
+  ]
+  all_not_similar = True
+  similar_indices = set()
+  for comparer_index, crash_comparer in enumerate(crash_comparers):
+    if crash_comparer.is_similar():
+      all_not_similar = False
+      similar_indices.add(comparer_index)
+  if all_not_similar:
     logs.log(f'State no longer similar ('
              f'testcase_id={testcase.key.id()}, '
              f'old_state={testcase.crash_state}, '
-             f'new_state={state.crash_state})')
+             f'new_state={states[-1].crash_state})')
     _mark_as_fixed(testcase, revision)
     return
 
-  is_security = crash_analyzer.is_security_issue(
-      state.crash_stacktrace, state.crash_type, state.crash_address)
-  if is_security != testcase.security_flag:
+  are_security_issues = [
+      crash_analyzer.is_security_issue(
+          state.crash_stacktrace, state.crash_type, state.crash_address)
+      for state in states
+  ]
+  all_not_security_issue = True
+  issue_indices = set()
+  for issue_index, is_security_issue in enumerate(are_security_issues):
+    if is_security_issue == testcase.security_flag:
+      all_not_security_issue = False
+      issue_indices.add(issue_index)
+  if all_not_security_issue:
     logs.log(f'Security flag for {testcase.key.id()} no longer matches.')
     _mark_as_fixed(testcase, revision)
     return
 
   logs.log(f'{testcase.key.id()} still crashes.')
-  testcase.last_tested_crash_stacktrace = stacktrace
+  testcase.last_tested_crash_stacktrace = [
+      stacktraces[stacktrace_index]
+      for stacktrace_index in similar_indices.intersection(issue_indices)][-1]
   data_handler.update_progression_completion_metadata(
       testcase, revision, is_crash=True)
 
@@ -125,6 +150,20 @@ class Handler(base_handler.Handler):
       logs.log(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
+    try:
+      # New: stacktrace is a JSON array.
+      stacktraces = json.loads(stacktrace)
+      logs.log(f'New format stacktrace JSON list provided '
+               f'(testcase_id={testcase_id}).')
+      if not stacktrace:
+        logs.log_error(f'Empty JSON stacktrace list provided '
+                       f'(testcase_id={testcase_id}).')
+    except json.decoder.JSONDecodeError:
+      # Old: stacktrace is a str.
+      stacktraces = [stacktrace]
+      logs.log(f'Old format stacktrace string provided '
+               f'(testcase_id={testcase_id}).')
+
     error = message.attributes.get('error')
-    handle_update(testcase, revision, stacktrace, error)
+    handle_update(testcase, revision, stacktraces, error)
     return 'OK'
