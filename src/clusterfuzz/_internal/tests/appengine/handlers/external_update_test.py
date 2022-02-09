@@ -29,6 +29,9 @@ from handlers import external_update
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'external_update_data')
 
+OLD_PROTOCOL = "1"  # Old message format: Data is a stacktrace.
+NEW_PROTOCOL = "2"  # New message format: Data is a JSON array of stracktraces.
+
 
 @test_utils.with_cloud_emulators('datastore')
 class ExternalUpdatesTest(unittest.TestCase):
@@ -243,7 +246,8 @@ class ExternalUpdatesTest(unittest.TestCase):
             data=b'["", "", ""]',
             attributes={
                 'testcaseId': self.testcase.key.id(),
-                'revision': '1337'
+                'revision': '1337',
+                'protocol_version': NEW_PROTOCOL,
             }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
@@ -266,10 +270,12 @@ class ExternalUpdatesTest(unittest.TestCase):
     stacktraces_bytes = json.dumps(stacktraces).encode()
     self.app.post(
         '/external-update',
-        params=self._make_message(stacktraces_bytes, {
-            'testcaseId': self.testcase.key.id(),
-            'revision': '1337'
-        }),
+        params=self._make_message(
+            stacktraces_bytes, {
+                'testcaseId': self.testcase.key.id(),
+                'revision': '1337',
+                'protocol_version': NEW_PROTOCOL,
+            }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
 
@@ -290,10 +296,12 @@ class ExternalUpdatesTest(unittest.TestCase):
     stacktraces_bytes = json.dumps(stacktraces).encode()
     self.app.post(
         '/external-update',
-        params=self._make_message(stacktraces_bytes, {
-            'testcaseId': self.testcase.key.id(),
-            'revision': '1337'
-        }),
+        params=self._make_message(
+            stacktraces_bytes, {
+                'testcaseId': self.testcase.key.id(),
+                'revision': '1337',
+                'protocol_version': NEW_PROTOCOL,
+            }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
 
