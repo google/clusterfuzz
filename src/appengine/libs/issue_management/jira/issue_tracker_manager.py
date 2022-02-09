@@ -82,6 +82,7 @@ class IssueTrackerManager(object):
         'components': components,
     }
 
+    # Brittle - we should be pulling the equivalent of 'new' from the policy.
     if issue.status != 'Open':
       # This assumes the following:
       # 1. If issue.status is an instance of Resource, the value comes from
