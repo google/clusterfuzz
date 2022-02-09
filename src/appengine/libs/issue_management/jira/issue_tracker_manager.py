@@ -106,6 +106,7 @@ class IssueTrackerManager(object):
     # Jira weirdness, update watchers this way.
     for watcher in watchers:
       self.client.add_watcher(issue.jira_issue, watcher)
+
     issue.jira_issue.update(fields=update_fields)
 
   def get_watchers(self, issue):
