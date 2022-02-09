@@ -53,9 +53,8 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
   """Handle update."""
 
   def is_still_crashing(st_index, stacktrace):
-    """
-    Check if the the given stackstrace indicates the testcase is still crashing
-    """
+    """Check if the the given stackstrace indicates
+      the testcase is still crashing"""
     state = stack_analyzer.get_crash_data(
         stacktrace,
         fuzz_target=fuzz_target_name,
