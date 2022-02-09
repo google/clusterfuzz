@@ -121,7 +121,6 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.testcase.put()
 
     stacktrace = self._read_test_data('asan_uaf.txt')
-    print(DATA_DIRECTORY)
     self.app.post(
         '/external-update',
         params=self._make_message(stacktrace, {
