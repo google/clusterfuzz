@@ -67,7 +67,7 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
     if not crash_comparer.is_similar():
       return False
 
-    logs.log(f'State for trial {st_index} of {testcase.key.id()} '
+    logs.log(f'State for trial {st_index} of {testcase_id} '
              f'remains similar'
              f'(old_state={testcase.crash_state}, '
              f'new_state={state.crash_state}).')
@@ -77,12 +77,13 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
     if is_security != testcase.security_flag:
       return False
 
-    logs.log(f'Security flag for trial {st_index} of {testcase.key.id()} '
+    logs.log(f'Security flag for trial {st_index} of {testcase_id} '
              f'still matches'
              f'({testcase.security_flag}).')
     return True
 
-  logs.log('Got external update for testcase.', testcase_id=testcase.key.id())
+  testcase_id = testcase.key.id()
+  logs.log('Got external update for testcase.', testcase_id=testcase_id)
   if error:
     _mark_errored(testcase, revision, error)
     return
@@ -99,12 +100,12 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
     logs.log_error(f'Invalid protocol_version provided: '
                    f'{protocol_version} '
                    f'is not one of {{{OLD_PROTOCOL, NEW_PROTOCOL}}} '
-                   f'(testcase_id={testcase.key.id()}).')
+                   f'(testcase_id={testcase_id}).')
     return
 
   if not stacktraces:
     logs.log_error(f'Empty JSON stacktrace list provided '
-                   f'(testcase_id={testcase.key.id()}).')
+                   f'(testcase_id={testcase_id}).')
     return
 
   fuzz_target = testcase.get_fuzz_target()
@@ -120,14 +121,14 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
 
   for st_index, stacktrace in enumerate(stacktraces):
     if is_still_crashing(st_index, stacktrace):
-      logs.log(f'stacktrace {st_index} of {testcase.key.id()} still crashes.')
+      logs.log(f'stacktrace {st_index} of {testcase_id} still crashes.')
       testcase.last_tested_crash_stacktrace = stacktrace
       data_handler.update_progression_completion_metadata(
           testcase, revision, is_crash=True)
       return
 
   # All trials resulted in a non-crash. Close the testcase.
-  logs.log(f'No matching crash detected in {testcase.key.id()} '
+  logs.log(f'No matching crash detected in {testcase_id} '
            f'over {len(stacktraces)} trials, marking as fixed.')
   _mark_as_fixed(testcase, revision)
 
