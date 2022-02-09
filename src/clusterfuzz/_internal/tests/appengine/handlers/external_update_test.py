@@ -29,8 +29,8 @@ from handlers import external_update
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'external_update_data')
 
-OLD_PROTOCOL = "1"  # Old message format: Data is a stacktrace.
-NEW_PROTOCOL = "2"  # New message format: Data is a JSON array of stracktraces.
+OLD_PROTOCOL = '1'  # Old message format: Data is a stacktrace.
+NEW_PROTOCOL = '2'  # New message format: Data is a JSON array of stracktraces.
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -247,7 +247,7 @@ class ExternalUpdatesTest(unittest.TestCase):
             attributes={
                 'testcaseId': self.testcase.key.id(),
                 'revision': '1337',
-                'protocol_version': "0",
+                'protocol_version': '0',
             }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
@@ -289,7 +289,7 @@ class ExternalUpdatesTest(unittest.TestCase):
     """Test an update that that has multiple trials with inconsistent results
     (some crashed, some did not)."""
     stacktrace = self._read_test_data('asan_uaf.txt')
-    stacktraces = ["", stacktrace.decode(), ""]
+    stacktraces = ['', stacktrace.decode(), '']
     stacktraces_bytes = json.dumps(stacktraces).encode()
     self.app.post(
         '/external-update',

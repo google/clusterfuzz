@@ -24,8 +24,8 @@ from handlers import base_handler
 from libs import handler
 from libs import helpers
 
-OLD_PROTOCOL = "1"  # Old message format: Data is a stacktrace.
-NEW_PROTOCOL = "2"  # New message format: Data is a JSON array of stracktraces.
+OLD_PROTOCOL = '1'  # Old message format: Data is a stacktrace.
+NEW_PROTOCOL = '2'  # New message format: Data is a JSON array of stracktraces.
 
 
 def _mark_as_fixed(testcase, revision):
@@ -131,9 +131,9 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
   crashed_indices = similar_indices.intersection(issue_indices)
   if not crashed_indices:
     logs.log_error(
-        f"No intersection between:"
-        f"State indices failed similarity check: {similar_indices}"
-        f"State indices failed security issue check: {issue_indices}")
+        f'No intersection between:'
+        f'State indices failed similarity check: {similar_indices}'
+        f'State indices failed security issue check: {issue_indices}')
   testcase.last_tested_crash_stacktrace = [
       stacktraces[stacktrace_index] for stacktrace_index in crashed_indices
   ][-1]
@@ -167,7 +167,7 @@ class Handler(base_handler.Handler):
       logs.log(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
-    protocol_version = message.attributes.get("protocol_version", OLD_PROTOCOL)
+    protocol_version = message.attributes.get('protocol_version', OLD_PROTOCOL)
     if protocol_version == OLD_PROTOCOL:
       # Old: stacktrace is a str.
       stacktraces = [stacktrace]
