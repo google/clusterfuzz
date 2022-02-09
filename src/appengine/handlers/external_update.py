@@ -24,6 +24,9 @@ from handlers import base_handler
 from libs import handler
 from libs import helpers
 
+OLD_PROTOCOL = "1"  # Old message format: Data is a stacktrace.
+NEW_PROTOCOL = "2"  # New message format: Data is a JSON array of stracktraces.
+
 
 def _mark_as_fixed(testcase, revision):
   """Mark bug as fixed."""
@@ -46,7 +49,7 @@ def _mark_errored(testcase, revision, error):
       testcase, revision, message=message)
 
 
-def handle_update(testcase, revision, stacktraces, error):
+def handle_update(testcase, revision, stacktraces, error, protocol_version):
   """Handle update."""
   logs.log('Got external update for testcase.', testcase_id=testcase.key.id())
   if error:
@@ -59,6 +62,18 @@ def handle_update(testcase, revision, stacktraces, error):
   if revision < last_tested_revision:
     logs.log_warn(f'Revision {revision} less than previously tested '
                   f'revision {last_tested_revision}.')
+    return
+
+  if protocol_version not in [OLD_PROTOCOL, NEW_PROTOCOL]:
+    logs.log_error(f'Invalid protocol_version provided: '
+                   f'{protocol_version} '
+                   f'is not one of {{{OLD_PROTOCOL, NEW_PROTOCOL}}} '
+                   f'(testcase_id={testcase.key.id()}).')
+    return
+
+  if not stacktraces:
+    logs.log_error(f'Empty JSON stacktrace list provided '
+                   f'(testcase_id={testcase.key.id()}).')
     return
 
   fuzz_target = testcase.get_fuzz_target()
@@ -152,20 +167,21 @@ class Handler(base_handler.Handler):
       logs.log(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
-    try:
-      # New: stacktrace is a JSON array.
-      stacktraces = json.loads(stacktrace)
-      logs.log(f'New format stacktrace JSON list provided '
-               f'(testcase_id={testcase_id}).')
-      if not stacktrace:
-        logs.log_error(f'Empty JSON stacktrace list provided '
-                       f'(testcase_id={testcase_id}).')
-    except json.decoder.JSONDecodeError:
+    protocol_version = message.attributes.get("protocol_version", OLD_PROTOCOL)
+    if protocol_version == OLD_PROTOCOL:
       # Old: stacktrace is a str.
       stacktraces = [stacktrace]
       logs.log(f'Old format stacktrace string provided '
                f'(testcase_id={testcase_id}).')
+    elif protocol_version == NEW_PROTOCOL:
+      # New: stacktrace is a JSON array.
+      stacktraces = json.loads(stacktrace)
+      logs.log(f'New format stacktrace JSON list provided '
+               f'(testcase_id={testcase_id}).')
+    else:
+      # Invalid: stacktrace is presumably ill-formed.
+      stacktraces = []
 
     error = message.attributes.get('error')
-    handle_update(testcase, revision, stacktraces, error)
+    handle_update(testcase, revision, stacktraces, error, protocol_version)
     return 'OK'
