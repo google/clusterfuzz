@@ -82,16 +82,19 @@ class IssueTrackerManager(object):
         'components': components,
     }
 
-    # This assumes the following:
-    # 1. If issue.status is an instance of Resource, the value comes from
-    #    Jira directly and has not been changed.
-    # 2. If issue.status is not an instance of Resource, the value is a
-    #    string and the issue status should be updated.
-    if not isinstance(issue.status, jira.Resource):
-      self.client.transition_issue(issue.jira_issue, transition=issue.status)
+    # Brittle - we should be pulling the equivalent of 'new' from the policy.
+    if issue.status != 'Open':
+      # This assumes the following:
+      # 1. If issue.status is an instance of Resource, the value comes from
+      #    Jira directly and has not been changed.
+      # 2. If issue.status is not an instance of Resource, the value is a
+      #    string and the issue status should be updated.
+      # Brittle - we should be pulling the equivalent of 'new' from the policy.
+      if not isinstance(issue.status, jira.resources.Resource):
+        self.client.transition_issue(issue.jira_issue, transition=issue.status)
 
     if issue.assignee is not None:
-      if isinstance(issue.assignee, jira.Resource):
+      if isinstance(issue.assignee, jira.resources.Resource):
         assignee = {'name': issue.assignee.name}
       else:
         assignee = {'name': issue.assignee}
