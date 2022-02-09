@@ -51,6 +51,37 @@ def _mark_errored(testcase, revision, error):
 
 def handle_update(testcase, revision, stacktraces, error, protocol_version):
   """Handle update."""
+
+  def is_still_crashing(st_index, stacktrace):
+    """
+    Check if the the given stackstrace indicates the testcase is still crashing
+    """
+    state = stack_analyzer.get_crash_data(
+        stacktrace,
+        fuzz_target=fuzz_target_name,
+        symbolize_flag=False,
+        already_symbolized=True,
+        detect_ooms_and_hangs=True)
+
+    crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
+    if not crash_comparer.is_similar():
+      return False
+
+    logs.log(f'State for trial {st_index} of {testcase.key.id()} '
+             f'remains similar'
+             f'(old_state={testcase.crash_state}, '
+             f'new_state={state.crash_state}).')
+
+    is_security = crash_analyzer.is_security_issue(
+        state.crash_stacktrace, state.crash_type, state.crash_address)
+    if is_security != testcase.security_flag:
+      return False
+
+    logs.log(f'Security flag for trial {st_index} of {testcase.key.id()} '
+             f'still matches'
+             f'({testcase.security_flag}).')
+    return True
+
   logs.log('Got external update for testcase.', testcase_id=testcase.key.id())
   if error:
     _mark_errored(testcase, revision, error)
@@ -86,59 +117,19 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
   # not run).
   data_handler.record_fuzz_target(fuzz_target.engine, fuzz_target.binary,
                                   testcase.job_type)
-  states = [
-      stack_analyzer.get_crash_data(
-          stacktrace,
-          fuzz_target=fuzz_target_name,
-          symbolize_flag=False,
-          already_symbolized=True,
-          detect_ooms_and_hangs=True) for stacktrace in stacktraces
-  ]
 
-  crash_comparers = [
-      CrashComparer(state.crash_state, testcase.crash_state) for state in states
-  ]
-  all_not_similar = True
-  similar_indices = set()
-  for comparer_index, crash_comparer in enumerate(crash_comparers):
-    if crash_comparer.is_similar():
-      all_not_similar = False
-      similar_indices.add(comparer_index)
-  if all_not_similar:
-    logs.log(f'State no longer similar ('
-             f'testcase_id={testcase.key.id()}, '
-             f'old_state={testcase.crash_state}, '
-             f'new_state={states[-1].crash_state})')
-    _mark_as_fixed(testcase, revision)
-    return
+  for st_index, stacktrace in enumerate(stacktraces):
+    if is_still_crashing(st_index, stacktrace):
+      logs.log(f'stacktrace {st_index} of {testcase.key.id()} still crashes.')
+      testcase.last_tested_crash_stacktrace = stacktrace
+      data_handler.update_progression_completion_metadata(
+          testcase, revision, is_crash=True)
+      return
 
-  are_security_issues = [
-      crash_analyzer.is_security_issue(state.crash_stacktrace, state.crash_type,
-                                       state.crash_address) for state in states
-  ]
-  all_not_security_issue = True
-  issue_indices = set()
-  for issue_index, is_security_issue in enumerate(are_security_issues):
-    if is_security_issue == testcase.security_flag:
-      all_not_security_issue = False
-      issue_indices.add(issue_index)
-  if all_not_security_issue:
-    logs.log(f'Security flag for {testcase.key.id()} no longer matches.')
-    _mark_as_fixed(testcase, revision)
-    return
-
-  logs.log(f'{testcase.key.id()} still crashes.')
-  crashed_indices = similar_indices.intersection(issue_indices)
-  if not crashed_indices:
-    logs.log_error(
-        f'No intersection between:'
-        f'State indices failed similarity check: {similar_indices}'
-        f'State indices failed security issue check: {issue_indices}')
-  testcase.last_tested_crash_stacktrace = [
-      stacktraces[stacktrace_index] for stacktrace_index in crashed_indices
-  ][-1]
-  data_handler.update_progression_completion_metadata(
-      testcase, revision, is_crash=True)
+  # All trials resulted in a non-crash. Close the testcase.
+  logs.log(f'No matching crash detected in {testcase.key.id()} '
+           f'over {len(stacktraces)} trials, marking as fixed.')
+  _mark_as_fixed(testcase, revision)
 
 
 class Handler(base_handler.Handler):
