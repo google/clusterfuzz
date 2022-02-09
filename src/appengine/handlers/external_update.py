@@ -159,7 +159,7 @@ class Handler(base_handler.Handler):
       logs.log(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
-    protocol_version = message.attributes.get('protocol_version', OLD_PROTOCOL)
+    protocol_version = message.attributes.get('protocolVersion', OLD_PROTOCOL)
     if protocol_version == OLD_PROTOCOL:
       # Old: stacktrace is a str.
       stacktraces = [stacktrace]

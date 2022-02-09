@@ -247,7 +247,7 @@ class ExternalUpdatesTest(unittest.TestCase):
             attributes={
                 'testcaseId': self.testcase.key.id(),
                 'revision': '1337',
-                'protocol_version': '0',
+                'protocolVersion': '0',
             }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
@@ -270,7 +270,7 @@ class ExternalUpdatesTest(unittest.TestCase):
             attributes={
                 'testcaseId': self.testcase.key.id(),
                 'revision': '1337',
-                'protocol_version': NEW_PROTOCOL,
+                'protocolVersion': NEW_PROTOCOL,
             }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
@@ -297,7 +297,7 @@ class ExternalUpdatesTest(unittest.TestCase):
             stacktraces_bytes, {
                 'testcaseId': self.testcase.key.id(),
                 'revision': '1337',
-                'protocol_version': NEW_PROTOCOL,
+                'protocolVersion': NEW_PROTOCOL,
             }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
@@ -323,7 +323,7 @@ class ExternalUpdatesTest(unittest.TestCase):
             stacktraces_bytes, {
                 'testcaseId': self.testcase.key.id(),
                 'revision': '1337',
-                'protocol_version': NEW_PROTOCOL,
+                'protocolVersion': NEW_PROTOCOL,
             }),
         headers={'Authorization': 'Bearer fake'},
         content_type='application/octet-stream')
