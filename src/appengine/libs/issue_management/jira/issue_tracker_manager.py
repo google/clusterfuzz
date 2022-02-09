@@ -87,11 +87,11 @@ class IssueTrackerManager(object):
     #    Jira directly and has not been changed.
     # 2. If issue.status is not an instance of Resource, the value is a
     #    string and the issue status should be updated.
-    if not isinstance(issue.status, jira.Resource):
+    if not isinstance(issue.status, jira.resources.Resource):
       self.client.transition_issue(issue.jira_issue, transition=issue.status)
 
     if issue.assignee is not None:
-      if isinstance(issue.assignee, jira.Resource):
+      if isinstance(issue.assignee, jira.resources.Resource):
         assignee = {'name': issue.assignee.name}
       else:
         assignee = {'name': issue.assignee}
@@ -106,7 +106,6 @@ class IssueTrackerManager(object):
     # Jira weirdness, update watchers this way.
     for watcher in watchers:
       self.client.add_watcher(issue.jira_issue, watcher)
-
     issue.jira_issue.update(fields=update_fields)
 
   def get_watchers(self, issue):

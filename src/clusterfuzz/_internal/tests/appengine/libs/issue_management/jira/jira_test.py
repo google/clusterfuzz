@@ -70,6 +70,9 @@ class JiraIssue(object):
     self.id = key.split('-')[-1]
     self.fields = Fields()
 
+  def update(self, **kwargs):
+    pass
+
 
 class JiraTests(unittest.TestCase):
   """Tests for the jira issue tracker."""
@@ -82,7 +85,9 @@ class JiraTests(unittest.TestCase):
         'IssueTrackerManager.get_issues',
         'libs.issue_management.jira.IssueTracker.get_issue',
         'libs.issue_management.jira.IssueTracker.new_issue',
-        'clusterfuzz._internal.config.db_config.get'
+        'clusterfuzz._internal.config.db_config.get',
+        'libs.issue_management.jira.issue_tracker_manager.'
+        'IssueTrackerManager.client'
     ])
 
     self.itm = issue_tracker_manager.IssueTrackerManager('VSEC')
@@ -160,3 +165,11 @@ class JiraTests(unittest.TestCase):
     self.mock.get_issue.return_value = self.mock_issue
     issue_url = self.issue_tracker.issue_url('VSEC-3112')
     self.assertEqual('https://jira.company.com/browse/VSEC-3112', issue_url)
+
+  def test_issue_save(self):
+    """Test save."""
+    self.mock.get_issue.return_value = self.mock_issue
+    issue = self.issue_tracker.get_issue('VSEC-3112')
+    issue.status = 'Closed'
+    issue.save()
+    self.assertEqual(issue.status, 'Closed')
