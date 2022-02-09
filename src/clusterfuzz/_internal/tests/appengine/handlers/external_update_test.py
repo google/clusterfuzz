@@ -238,6 +238,29 @@ class ExternalUpdatesTest(unittest.TestCase):
     self.assertIsNotNone(fuzz_target_job)
     self.assertEqual(datetime.datetime(2021, 1, 1), fuzz_target_job.last_run)
 
+  def test_update_invalid_protocol_version(self):
+    """Test an update that has an invalid protocol version."""
+    self.app.post(
+        '/external-update',
+        params=self._make_message(
+            data=b'["", "", ""]',
+            attributes={
+                'testcaseId': self.testcase.key.id(),
+                'revision': '1337',
+                'protocol_version': "0",
+            }),
+        headers={'Authorization': 'Bearer fake'},
+        content_type='application/octet-stream')
+
+    updated_testcase = self.testcase.key.get()
+    self.assertTrue(updated_testcase.open)
+    self.assertEqual('', updated_testcase.fixed)
+    self.assertEqual('last_tested',
+                     updated_testcase.last_tested_crash_stacktrace)
+    self.assertIsNone(updated_testcase.get_metadata('last_tested_revision'))
+    self.assertIsNone(
+        updated_testcase.get_metadata('last_tested_crash_revision'))
+
   def test_update_multiple_fixed(self):
     """Test an update that has multiple trials with no crash."""
     self.app.post(
