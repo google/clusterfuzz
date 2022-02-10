@@ -11,8 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Fuchsia initialization."""
+"""Helper functions common to all Fuchsia-specific code."""
 
-from . import device
-from . import errors
-from . import undercoat
+
+class FuchsiaConfigError(Exception):
+  """Exception for unrecoverable Fuchsia-related misconfigrations."""
+
+
+class FuchsiaSdkError(Exception):
+  """Exception for errors downloading, building, or using the Fuchsia SDK,
+	in such a way that execution cannot continue."""
+
+
+class FuchsiaConnectionError(Exception):
+  """Exception for errors connecting to Fuchsia instances."""
