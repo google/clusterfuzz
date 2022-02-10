@@ -16,6 +16,7 @@
 from collections import namedtuple
 from distutils import spawn
 import os
+import random
 import re
 import subprocess
 import time
@@ -739,32 +740,69 @@ class RegularBuild(Build):
 class FuchsiaBuild(RegularBuild):
   """Represents a Fuchsia build."""
 
+  SYMBOLIZE_REL_PATH = os.path.join('build', 'zircon', 'prebuilt', 'downloads',
+                                    'symbolize')
+  LLVM_SYMBOLIZER_REL_PATH = os.path.join('build', 'buildtools', 'linux-x64',
+                                          'clang', 'bin', 'llvm-symbolizer')
+  FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
+  FUCHSIA_DIR_REL_PATH = 'build'
+
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """No-op, since Fuchsia builds pick targets later than other build types
     and we aren't ready at the point that this is called by the superclass's
     setup()."""
 
   def _get_fuzz_targets_from_dir(self, build_dir):
-    """A running instance is required to enumerate targets so this is a
-    no-op."""
-    return []
+    """Returns a list of fuzz targets in a legacy Fuchsia build. For
+    undercoat-driven Fuchsia builds, a running instance is required to
+    enumerate targets so this is a no-op."""
 
-  def setup(self):
-    """Fuchsia build setup."""
+    if self.use_undercoat:
+      return []
+
+    # Prevent App Engine import issues.
+    from clusterfuzz._internal.platforms.fuchsia.util.fuzzer import Fuzzer
+    from clusterfuzz._internal.platforms.fuchsia.util.host import Host
+    host = Host.from_dir(os.path.join(build_dir, self.FUCHSIA_BUILD_REL_PATH))
+
+    sanitizer = environment.get_memory_tool_name(
+        environment.get_value('JOB_NAME')).lower()
+    return [
+        str(target[0] + '/' + target[1]) for target in Fuzzer.filter(
+            host.fuzzers, '', sanitizer, example_fuzzers=False)
+    ]
+
+  def _setup_legacy_build(self):
+    """setup() for builds that don't use undercoat."""
     # Prevent App Engine import issues.
     from clusterfuzz._internal.platforms import fuchsia
 
-    environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
+    # Select a fuzzer, as we skipped doing so in the superclass's setup()
+    _set_random_fuzz_target_for_fuzzing_if_needed(
+        self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
-    # Allow superclass's setup() to unpack the build
-    assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES'), \
-        'Fuchsia does not support partial unpacks'
-    result = super().setup()
-    if not result:
-      return result
+    # We set these values here, rather than in initial_qemu_setup, since
+    # SYMBOLIZE_REL_PATH and LLVM_SYMBOLIZER_REL_PATH are properties of the
+    # Build object.
+    symbolize_path = os.path.join(self.build_dir, self.SYMBOLIZE_REL_PATH)
+    os.chmod(symbolize_path, 0o777)
+    llvm_symbolizer_path = os.path.join(self.build_dir,
+                                        self.LLVM_SYMBOLIZER_REL_PATH)
+    os.chmod(llvm_symbolizer_path, 0o777)
 
-    # Verify that undercoat is available in this build
-    fuchsia.undercoat.validate_api_version()
+    logs.log('Initializing QEMU.')
+
+    # Kill any stale processes that may be left over from previous build.
+    fuchsia.device.stop_qemu()
+
+    fuchsia.device.initial_qemu_setup()
+
+    fuchsia.device.start_qemu()
+
+  def _setup_undercoat_build(self):
+    """setup() for builds that do use undercoat."""
+    # Prevent App Engine import issues.
+    from clusterfuzz._internal.platforms import fuchsia
 
     # Kill any stale undercoat instances (currently, this is in fact the only
     # path through which instances are shut down)
@@ -778,6 +816,46 @@ class FuchsiaBuild(RegularBuild):
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
     _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
                                                   self.target_weights)
+
+  def setup(self):
+    """Fuchsia build setup."""
+    # Prevent App Engine import issues.
+    from clusterfuzz._internal.platforms import fuchsia
+
+    # Decide per-build whether to use undercoat, based on rollout level
+    rollout_level = environment.get_value('FUCHSIA_UNDERCOAT_ROLLOUT_LEVEL', 0)
+    self.use_undercoat = random.random() < rollout_level
+
+    # Used by platforms.fuchsia.util
+    environment.set_value(
+        'FUCHSIA_DIR', os.path.join(self.build_dir, self.FUCHSIA_DIR_REL_PATH))
+
+    environment.set_value('FUCHSIA_RESOURCES_DIR', self.build_dir)
+
+    # Allow superclass's setup() to unpack the build
+    assert environment.get_value('UNPACK_ALL_FUZZ_TARGETS_AND_FILES'), \
+        'Fuchsia does not support partial unpacks'
+    result = super().setup()
+    if not result:
+      return result
+
+    # If selected, verify that undercoat is available in this build
+    if self.use_undercoat:
+      try:
+        fuchsia.undercoat.validate_api_version()
+      except (OSError, fuchsia.undercoat.UndercoatError) as e:
+        # Log an error and fall back to the legacy implementation
+        logs.log_warn('Undercoat selected but cannot be used: %s' % e)
+        self.use_undercoat = False
+
+    logs.log('Undercoat enabled: %s' % self.use_undercoat)
+    environment.set_value('FUCHSIA_USE_UNDERCOAT', self.use_undercoat)
+
+    # Finally, delegate to appropriate setup method
+    if self.use_undercoat:
+      self._setup_undercoat_build()
+    else:
+      self._setup_legacy_build()
 
     return True
 

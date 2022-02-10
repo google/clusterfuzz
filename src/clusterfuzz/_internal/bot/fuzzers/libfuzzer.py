@@ -23,7 +23,9 @@ import re
 import shutil
 import string
 import sys
+import tempfile
 
+from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -35,11 +37,19 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.platforms import fuchsia
 from clusterfuzz._internal.platforms.fuchsia import undercoat
+from clusterfuzz._internal.platforms.fuchsia.device import QemuProcess
+from clusterfuzz._internal.platforms.fuchsia.device import start_qemu
+from clusterfuzz._internal.platforms.fuchsia.device import stop_qemu
+from clusterfuzz._internal.platforms.fuchsia.util.device import Device
+from clusterfuzz._internal.platforms.fuchsia.util.fuzzer import Fuzzer
+from clusterfuzz._internal.platforms.fuchsia.util.host import Host
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import minijail
 from clusterfuzz._internal.system import new_process
+from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
 # Maximum length of a random chosen length for `-max_len`.
@@ -600,6 +610,390 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     shutil.move(os.path.join(output_dir, target_minimized_file), output_path)
 
     return result
+
+
+class FuchsiaQemuLibFuzzerRunner(new_process.UnicodeProcessRunner,
+                                 LibFuzzerCommon):
+  """libFuzzer runner (when Fuchsia is the target platform)."""
+
+  FUCHSIA_BUILD_REL_PATH = os.path.join('build', 'out', 'default')
+
+  SSH_RETRIES = 3
+  SSH_WAIT = 5
+
+  FUZZER_TEST_DATA_REL_PATH = os.path.join('test_data', 'fuzzing')
+
+  def _setup_device_and_fuzzer(self):
+    """Build a Device and Fuzzer object based on QEMU's settings."""
+    # These environment variables are set when start_qemu is run.
+    # We need them in order to ssh / otherwise communicate with the VM.
+    fuchsia_pkey_path = environment.get_value('FUCHSIA_PKEY_PATH')
+    fuchsia_portnum = environment.get_value('FUCHSIA_PORTNUM')
+    fuchsia_resources_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
+    if (not fuchsia_pkey_path or not fuchsia_portnum or
+        not fuchsia_resources_dir):
+      raise fuchsia.errors.FuchsiaConfigError(
+          ('FUCHSIA_PKEY_PATH, FUCHSIA_PORTNUM, or FUCHSIA_RESOURCES_DIR was '
+           'not set'))
+
+    # Fuzzer objects communicate with the VM via a Device object,
+    # which we set up here.
+    fuchsia_resources_dir_plus_build = os.path.join(fuchsia_resources_dir,
+                                                    self.FUCHSIA_BUILD_REL_PATH)
+    self.host = Host.from_dir(fuchsia_resources_dir_plus_build)
+    self.device = Device(self.host, 'localhost', fuchsia_portnum)
+    self.device.set_ssh_option('StrictHostKeyChecking no')
+    self.device.set_ssh_option('UserKnownHostsFile=/dev/null')
+    self.device.set_ssh_identity(fuchsia_pkey_path)
+
+    # Fuchsia fuzzer names have the format {package_name}/{binary_name}.
+    package, target = self.executable_path.split('/')
+    test_data_dir = os.path.join(fuchsia_resources_dir_plus_build,
+                                 self.FUZZER_TEST_DATA_REL_PATH, package,
+                                 target)
+
+    # Finally, we set up the Fuzzer object itself, which will run our fuzzer!
+    sanitizer = environment.get_memory_tool_name(
+        environment.get_value('JOB_NAME')).lower()
+    self.fuzzer = Fuzzer(
+        self.device,
+        package,
+        target,
+        output=test_data_dir,
+        foreground=True,
+        sanitizer=sanitizer)
+
+  def __init__(self, executable_path, default_args=None):
+    # We always assume QEMU is running on __init__, since build_manager sets
+    # it up initially. If this isn't the case, _test_ssh will detect and
+    # restart QEMU anyway.
+    super().__init__(executable_path=executable_path, default_args=default_args)
+    self._setup_device_and_fuzzer()
+
+  def process_logs_and_crash(self, artifact_prefix):
+    """Fetch symbolized logs and crashes."""
+    if not artifact_prefix:
+      return
+
+    # Clusterfuzz assumes that the Libfuzzer output points to an absolute path,
+    # where it can find the crash file.
+    # This doesn't work in our case due to how Fuchsia is run.
+    # So, we make a new file, change the appropriate line with a regex to point
+    # to the true location. Apologies for the hackery.
+    crash_location_regex = r'(.*)(Test unit written to )(data/.*)'
+    _, processed_log_path = tempfile.mkstemp()
+    with open(processed_log_path, mode='w', encoding='utf-8') as new_file:
+      with open(
+          self.fuzzer.logfile, encoding='utf-8', errors='ignore') as old_file:
+        for line in old_file:
+          line_match = re.match(crash_location_regex, line)
+          if line_match:
+            # We now know the name of our crash file.
+            crash_name = line_match.group(3).replace('data/', '')
+            # Save the crash locally.
+            self.device.fetch(
+                self.fuzzer.data_path(crash_name), artifact_prefix)
+            # Then update the crash report to point to that file.
+            crash_testcase_file_path = os.path.join(artifact_prefix, crash_name)
+            line = re.sub(crash_location_regex,
+                          r'\1\2' + crash_testcase_file_path, line)
+          new_file.write(line)
+    os.remove(self.fuzzer.logfile)
+    shutil.move(processed_log_path, self.fuzzer.logfile)
+
+  def _test_ssh(self):
+    """Test the ssh connection."""
+    # Test the connection.  If this works, proceed.
+    # - If we fail, restart QEMU and test the connection again.
+    # - If that fails, throw the error; we can't seem to recover.
+    try:
+      self._test_qemu_ssh()
+    except fuchsia.errors.FuchsiaConnectionError:
+      self._restart_qemu()
+      self._test_qemu_ssh()
+
+  @retry.wrap(retries=SSH_RETRIES, delay=SSH_WAIT, function='_test_qemu_ssh')
+  def _test_qemu_ssh(self):
+    """Tests that a VM is up and can be successfully SSH'd into.
+    Raises an exception if no success after MAX_SSH_RETRIES."""
+    ssh_test_process = new_process.ProcessRunner(
+        'ssh',
+        self.device.get_ssh_cmd(
+            ['ssh', 'localhost', 'echo running on fuchsia!'])[1:])
+    result = ssh_test_process.run_and_wait()
+    if result.return_code or result.timed_out:
+      raise fuchsia.errors.FuchsiaConnectionError(
+          'Failed to establish initial SSH connection: ' +
+          str(result.return_code) + " , " + str(result.command) + " , " +
+          str(result.output))
+    return result
+
+  def _restart_qemu(self):
+    """Restart QEMU."""
+    logs.log_warn(
+        'Connection to fuzzing VM lost. Restarting.',
+        processes=process_handler.get_runtime_snapshot())
+    stop_qemu()
+
+    # Do this after the stop, to make sure everything is flushed
+    if os.path.exists(QemuProcess.LOG_PATH):
+      with open(QemuProcess.LOG_PATH) as f:
+        # Strip non-printable characters at beginning of qemu log
+        qemu_log = ''.join(c for c in f.read() if c in string.printable)
+        logs.log_warn(qemu_log[-undercoat.QEMU_LOG_LIMIT:])
+    else:
+      logs.log_error('Qemu log not found in {}'.format(QemuProcess.LOG_PATH))
+
+    start_qemu()
+    self._setup_device_and_fuzzer()
+
+  def _corpus_target_subdir(self, relpath):
+    """ Returns the absolute path of the corpus subdirectory on the target,
+    given "relpath", the name of the specific corpus. """
+    return os.path.join(self._corpus_directories_target(), relpath)
+
+  def _corpus_directories_libfuzzer(self, corpus_directories):
+    """ Returns the corpus directory paths expected by libfuzzer itself. """
+    corpus_directories_libfuzzer = []
+    for corpus_dir in corpus_directories:
+      corpus_directories_libfuzzer.append(
+          os.path.join('data', 'corpus', os.path.basename(corpus_dir)))
+    return corpus_directories_libfuzzer
+
+  def _new_corpus_dir_host(self, corpus_directories):
+    """ Returns the path of the 'new' corpus directory on the host. """
+    return corpus_directories[0]
+
+  def _new_corpus_dir_target(self, corpus_directories):
+    """ Returns the path of the 'new' corpus directory on the target. """
+    new_corpus_dir_host = self._new_corpus_dir_host(corpus_directories)
+    return self.fuzzer.data_path(
+        os.path.join('corpus', os.path.basename(new_corpus_dir_host)))
+
+  def _corpus_directories_target(self):
+    """ Returns the path of the root corpus directory on the target. """
+    return self.fuzzer.data_path('corpus')
+
+  def _push_corpora_from_host_to_target(self, corpus_directories):
+    # Push corpus directories to the device.
+    self._clear_all_target_corpora()
+    logs.log('Push corpora from host to target.')
+    for corpus_dir in corpus_directories:
+      # Appending '/*' indicates we want all the *files* in the corpus_dir's.
+      self.fuzzer.device.store(
+          corpus_dir + '/*',
+          self._corpus_target_subdir(os.path.basename(corpus_dir)))
+
+  def _pull_new_corpus_from_target_to_host(self, corpus_directories,
+                                           artifact_prefix):
+    """ Pull corpus directories from device to host. """
+    # Appending '/*' indicates we want all the *files* in the target's
+    # directory, rather than the directory itself.
+    logs.log('Fuzzer ran; pull down corpus')
+    files_in_new_corpus_dir_target = self._new_corpus_dir_target(
+        corpus_directories) + "/*"
+    self.fuzzer.device.fetch(files_in_new_corpus_dir_target,
+                             self._new_corpus_dir_host(corpus_directories))
+
+    # TODO(flowerhack): While this should fetch all the "bad units" after the
+    # merge, the *ideal* solution is that we move all these bad units to a
+    # directory *on* the target, so that we can just sync/pull that one
+    # directory automagically. Since we're moving to the Go-based
+    # Clusterfuchsia interface soon, and since setting that up is nontrivial
+    # on the Fuchsia end, we just pull each type of bad unit manually for now.
+    # Note this wouldn't work if we ran more than one merge task per run (we'd
+    # be double-copying crashes etc.)
+    if artifact_prefix:
+      self.device.fetch(self.fuzzer.data_path('crash*'), artifact_prefix)
+      self.device.fetch(self.fuzzer.data_path('oom*'), artifact_prefix)
+      self.device.fetch(self.fuzzer.data_path('timeout*'), artifact_prefix)
+      self.device.fetch(self.fuzzer.data_path('leak*'), artifact_prefix)
+
+  def _clear_all_target_corpora(self):
+    """ Clears out all the corpora on the target. """
+    logs.log('Clearing corpora on target')
+    self.fuzzer.device.ssh(['rm', '-rf', self._corpus_directories_target()])
+
+  def fuzz(self,
+           corpus_directories,
+           fuzz_timeout,
+           artifact_prefix=None,
+           additional_args=None,
+           extra_env=None):
+    """LibFuzzerCommon.fuzz override."""
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+
+    self._test_ssh()
+    self._push_corpora_from_host_to_target(corpus_directories)
+
+    max_total_time = fuzz_timeout
+    if any(arg.startswith(constants.FORK_FLAG) for arg in additional_args):
+      max_total_time -= self.LIBFUZZER_FORK_MODE_CLEAN_EXIT_TIME
+    assert max_total_time > 0
+
+    additional_args.extend([
+        '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, max_total_time),
+        constants.PRINT_FINAL_STATS_ARGUMENT,
+    ])
+
+    # Run the fuzzer.
+    # TODO: actually we want new_corpus_relative_dir_target for *each* corpus
+    return_code = self.fuzzer.start(
+        self._corpus_directories_libfuzzer(corpus_directories) +
+        additional_args)
+    self.fuzzer.monitor(return_code)
+    self.process_logs_and_crash(artifact_prefix)
+    with open(
+        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
+      symbolized_output = logfile.read()
+
+    self._pull_new_corpus_from_target_to_host(corpus_directories,
+                                              artifact_prefix)
+    self._clear_all_target_corpora()
+
+    # TODO(flowerhack): Would be nice if we could figure out a way to make
+    # the "fuzzer start" code return its own ProcessResult. For now, we simply
+    # craft one by hand here.
+    fuzzer_process_result = new_process.ProcessResult()
+    fuzzer_process_result.return_code = 0
+    fuzzer_process_result.output = symbolized_output
+    fuzzer_process_result.time_executed = 0
+    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
+    return fuzzer_process_result
+
+  def merge(self,
+            corpus_directories,
+            merge_timeout,
+            artifact_prefix=None,
+            tmp_dir=None,
+            additional_args=None,
+            merge_control_file=None):
+    self._push_corpora_from_host_to_target(corpus_directories)
+
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+    max_total_time_flag = constants.MAX_TOTAL_TIME_FLAG + str(merge_timeout)
+    additional_args.append(max_total_time_flag)
+
+    target_merge_control_file = None
+    if merge_control_file:
+      merge_control_dir = os.path.dirname(merge_control_file)
+      target_merge_control_dir = self._corpus_target_subdir(
+          os.path.basename(merge_control_dir))
+      self.fuzzer.device.rm(target_merge_control_dir, recursive=True)
+      self.fuzzer.device.store(merge_control_dir, target_merge_control_dir)
+      target_merge_control_file = os.path.join(
+          target_merge_control_dir,
+          os.path.relpath(merge_control_file, merge_control_dir))
+
+    # Run merge.
+    _, _ = self.fuzzer.merge(
+        self._corpus_directories_libfuzzer(corpus_directories) +
+        additional_args,
+        merge_control_file=target_merge_control_file)
+
+    self._pull_new_corpus_from_target_to_host(corpus_directories,
+                                              artifact_prefix)
+    if merge_control_file:
+      # Fetch artifacts from the merge control file dir.
+      self.fuzzer.device.fetch(target_merge_control_dir, merge_control_dir)
+      self.fuzzer.device.rm(target_merge_control_dir, recursive=True)
+
+    self._clear_all_target_corpora()
+
+    # TODO(flowerhack): Return actual output for accurate stats tracking.
+    merge_result = new_process.ProcessResult()
+    merge_result.return_code = 0
+    merge_result.timed_out = False
+    merge_result.output = ''
+    merge_result.time_executed = 0
+    merge_result.command = ''
+    return merge_result
+
+  def run_single_testcase(self,
+                          testcase_path,
+                          timeout=None,
+                          additional_args=None):
+    """Run a single testcase."""
+    self._test_ssh()
+
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+
+    # We need to push the testcase to the device and pass in the name.
+    testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
+    self.device.store(testcase_path, self.fuzzer.data_path())
+
+    return_code = self.fuzzer.start(['repro', 'data/' + testcase_path_name] +
+                                    additional_args)
+    self.fuzzer.monitor(return_code)
+
+    with open(
+        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
+      symbolized_output = logfile.read()
+
+    fuzzer_process_result = new_process.ProcessResult()
+    fuzzer_process_result.return_code = 0
+    fuzzer_process_result.output = symbolized_output
+    fuzzer_process_result.time_executed = 0
+    fuzzer_process_result.command = self.fuzzer.last_fuzz_cmd
+    return fuzzer_process_result
+
+  def minimize_crash(self,
+                     testcase_path,
+                     output_path,
+                     timeout,
+                     artifact_prefix=None,
+                     additional_args=None):
+    self._test_ssh()
+
+    additional_args = copy.copy(additional_args)
+    if additional_args is None:
+      additional_args = []
+    additional_args.append(constants.MINIMIZE_CRASH_ARGUMENT)
+    max_total_time = self.get_minimize_total_time(timeout)
+    max_total_time_arg = constants.MAX_TOTAL_TIME_FLAG + str(max_total_time)
+    additional_args.append(max_total_time_arg)
+
+    # TODO(flowerhack): libfuzzer-on-Fuchsia believes that all files are in
+    # the directory 'data/'.  We bake that 'data/' assumption into this file
+    # in a few places--may need to move it into constants?
+    target_artifact_prefix = 'data/'
+    target_minimized_file = 'final-minimized-crash'
+    min_file_fullpath = target_artifact_prefix + target_minimized_file
+    exact_artifact_arg = constants.EXACT_ARTIFACT_PATH_FLAG + min_file_fullpath
+    additional_args.append(exact_artifact_arg)
+
+    # We need to push the testcase to the device and pass in the name.
+    testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
+    self.device.store(testcase_path, self.fuzzer.data_path())
+
+    return_code = self.fuzzer.start(
+        additional_args + [target_artifact_prefix + testcase_path_name])
+    self.fuzzer.monitor(return_code)
+
+    with open(
+        self.fuzzer.logfile, encoding='utf-8', errors='ignore') as logfile:
+      symbolized_output = logfile.read()
+
+    output_dir = os.path.dirname(output_path)
+    self.device.fetch(self.fuzzer.data_path(target_minimized_file), output_dir)
+    shutil.move(os.path.join(output_dir, target_minimized_file), output_path)
+
+    fuzzer_process_result = new_process.ProcessResult()
+    fuzzer_process_result.return_code = return_code
+    fuzzer_process_result.output = symbolized_output
+    fuzzer_process_result.time_executed = 0
+    # It's not a standard fuzzer command, so don't save it.
+    fuzzer_process_result.command = None
+    return fuzzer_process_result
+
+  def ssh_command(self, *args):
+    return ['ssh'] + self.ssh_root + list(args)
 
 
 class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
@@ -1215,10 +1609,13 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
 
     runner = MinijailLibFuzzerRunner(fuzzer_path, minijail_chroot)
   elif is_fuchsia:
-    instance_handle = environment.get_value('FUCHSIA_INSTANCE_HANDLE')
-    if not instance_handle:
-      raise undercoat.UndercoatError('Instance handle not provided.')
-    runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
+    if environment.get_value('FUCHSIA_USE_UNDERCOAT'):
+      instance_handle = environment.get_value('FUCHSIA_INSTANCE_HANDLE')
+      if not instance_handle:
+        raise undercoat.UndercoatError('Instance handle not provided.')
+      runner = FuchsiaUndercoatLibFuzzerRunner(fuzzer_path, instance_handle)
+    else:
+      runner = FuchsiaQemuLibFuzzerRunner(fuzzer_path)
   elif environment.is_android_emulator():
     runner = AndroidEmulatorLibFuzzerRunner(fuzzer_path, build_dir)
   elif is_android:
