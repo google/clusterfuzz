@@ -13,6 +13,4 @@
 # limitations under the License.
 """Fuchsia initialization."""
 
-from . import device
-from . import errors
 from . import undercoat

@@ -34,6 +34,7 @@ from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.platforms import fuchsia
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import process_handler
@@ -1069,15 +1070,13 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # Force termination
     process_handler.terminate_processes_matching_names('qemu-system-x86_64')
 
-    # Try to fuzz against the dead qemu to trigger log dump (and automatic
-    # recovery behavior, when undercoat is disabled)
+    # Try to fuzz against the dead qemu to trigger log dump
     try:
       engine_impl.reproduce('example-fuzzers/overflow_fuzzer', testcase_path,
                             ['-timeout=25', '-rss_limit_mb=2560'], 30)
-    except:
-      # With undercoat, this is expected to dump logs but ultimately fail to run
-      if not environment.get_value('FUCHSIA_USE_UNDERCOAT'):
-        raise
+    except fuchsia.undercoat.UndercoatError:
+      # This is expected to dump logs but ultimately fail to run
+      pass
 
     # Check the logs for syslog presence
     self.assertIn('{{{reset}}}', self.mock.log_warn.call_args[0][0])
