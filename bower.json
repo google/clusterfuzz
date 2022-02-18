@@ -43,9 +43,7 @@
     "polymer": "Polymer/polymer#^2.1.0",
     "test-fixture": "PolymerElements/test-fixture#^3.0.0",
     "web-component-tester": "Polymer/web-component-tester#^6.5.1",
-    "shadycss": "^1.0.6",
-    "firebaseui": "^3.6.0",
-    "firebase": "^5.9.4"
+    "shadycss": "^1.0.6"
   },
   "resolutions": {
     "iron-flex-layout": "^2.0.0",
@@ -65,7 +63,6 @@
     "iron-collapse": "^2.0.0",
     "polymer": "^2.1.0",
     "iron-selector": "^2.0.0",
-    "paper-ripple": "^2.0.0",
-    "firebase": "^5.9.4"
+    "paper-ripple": "^2.0.0"
   }
 }
