@@ -172,6 +172,10 @@ def create_variant_tasks_if_needed(testcase):
     if utils.string_is_true(job_environment.get('EXPERIMENTAL')):
       continue
 
+    # Skip jobs for which variant tasks are disabled.
+    if utils.string_is_true(job_environment.get('DISABLE_VARIANT')):
+      continue
+
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
