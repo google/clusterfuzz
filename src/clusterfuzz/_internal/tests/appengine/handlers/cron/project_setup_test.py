@@ -295,12 +295,13 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('lib7', {
             'homepage': 'http://example.com',
             'primary_contact': 'primary@example.com',
-            'auto_ccs': [
-                'User@example.com',
-            ],
+            'auto_ccs': ['User@example.com',],
             'fuzzing_engines': ['libfuzzer',],
             'sanitizers': ['address'],
-            'labels': {'*': ['custom'], 'per-target': ['ignore']},
+            'labels': {
+                '*': ['custom'],
+                'per-target': ['ignore']
+            },
         }),
     ]
 
