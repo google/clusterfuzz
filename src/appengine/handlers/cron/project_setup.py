@@ -790,11 +790,14 @@ class ProjectSetup(object):
             backup_bucket=backup_bucket_name)
 
       if self._add_info_labels:
-        job.environment_string += (
-            'AUTOMATIC_LABELS = Proj-{project},Engine-{engine}\n'.format(
-                project=project,
-                engine=template.engine,
-            ))
+        automatic_labels = 'Proj-{project},Engine-{engine}'.format(
+            project=project,
+            engine=template.engine,
+        )
+        labels = info.get('labels')
+        if labels and '*' in labels:
+          automatic_labels += ',%s' % ','.join(labels['*'])
+        job.environment_string += ('AUTOMATIC_LABELS = %s\n' % automatic_labels)
 
       help_url = info.get('help_url')
       if help_url:
