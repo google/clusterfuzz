@@ -117,7 +117,10 @@ def process_proc_output(proc, print_output=True):
   return b''.join(lines)
 
 
-def execute_async(command, extra_environments=None, cwd=None):
+def execute_async(command,
+                  extra_environments=None,
+                  cwd=None,
+                  stderr=subprocess.STDOUT):
   """Execute a bash command asynchronously. Returns a subprocess.Popen."""
   environments = os.environ.copy()
   if extra_environments is not None:
@@ -127,7 +130,7 @@ def execute_async(command, extra_environments=None, cwd=None):
       command,
       shell=True,
       stdout=subprocess.PIPE,
-      stderr=subprocess.STDOUT,
+      stderr=stderr,
       env=environments,
       cwd=cwd)
 
@@ -136,7 +139,8 @@ def execute(command,
             print_output=True,
             exit_on_error=True,
             extra_environments=None,
-            cwd=None):
+            cwd=None,
+            stderr=subprocess.STDOUT):
   """Execute a bash command."""
 
   def _print(s):
@@ -148,7 +152,7 @@ def execute(command,
     print_string += " (cwd='%s')" % cwd
   _print(print_string)
 
-  proc = execute_async(command, extra_environments, cwd=cwd)
+  proc = execute_async(command, extra_environments, cwd=cwd, stderr=stderr)
   output = process_proc_output(proc, print_output)
 
   proc.wait()
@@ -225,6 +229,24 @@ def _pip():
   return 'pip3'
 
 
+def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
+  """Output a requirements.txt given a locked Pipfile."""
+  dev_arg = ''
+  if dev:
+    dev_arg = '--dev'
+
+  return_code, output = execute(
+      f'python -m pipenv lock -r --no-header {dev_arg}',
+      cwd=pipfile_dir,
+      extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
+      stderr=subprocess.DEVNULL)
+  if return_code != 0:
+    raise Exception('Failed to generate requirements from Pipfile.')
+
+  with open(requirements_path, 'wb') as f:
+    f.write(output)
+
+
 def _install_pip(requirements_path, target_path):
   """Perform pip install using requirements_path onto target_path."""
   if os.path.exists(target_path):
@@ -288,6 +310,11 @@ def _remove_invalid_files():
 
 def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
   """Install dependencies for bots."""
+  _pipfile_to_requirements('src', 'src/requirements.txt')
+  # Hack: Use "dev-packages" to specify App Engine only packages.
+  _pipfile_to_requirements(
+      'src', 'src/appengine/gae_requirements.txt', dev=True)
+
   _install_pip('src/requirements.txt', 'src/third_party')
   if platform_name:
     _install_platform_pip(
@@ -295,12 +322,8 @@ def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
         'src/third_party',
         platform_name=platform_name)
 
-  with tempfile.NamedTemporaryFile() as f:
-    f.write(open('src/requirements.txt', 'rb').read())
-    f.write(open('src/appengine/gae_requirements.txt', 'rb').read())
-    f.flush()
-
-    _install_pip(f.name, 'src/appengine/third_party')
+  _install_pip('src/appengine/gae_requirements.txt',
+               'src/appengine/third_party')
 
   # Only the previous dependencies are needed for reproduce tool installation.
   if is_reproduce_tool_setup:
