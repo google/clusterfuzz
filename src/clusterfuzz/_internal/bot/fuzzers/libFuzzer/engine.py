@@ -388,7 +388,8 @@ class Engine(engine.Engine):
         input_path, timeout=max_time, additional_args=arguments)
 
     if result.timed_out:
-      raise TimeoutError('Reproducing timed out\n' + result.output)
+      logs.log_error('Reproducing timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Reproducing timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -442,7 +443,9 @@ class Engine(engine.Engine):
     # Adjust the time limit for the time we spent on the first merge step.
     max_time -= result_1.time_executed
     if max_time <= 0:
-      raise TimeoutError('Merging new testcases timed out\n' + result_1.logs)
+      logs.log_error(
+          'Merging new testcases timed out.', fuzzer_output=result_1.logs)
+      raise TimeoutError('Merging new testcases timed out.')
 
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
@@ -504,10 +507,14 @@ class Engine(engine.Engine):
         merge_control_file=getattr(self, '_merge_control_file', None))
 
     if result.timed_out:
-      raise TimeoutError('Merging new testcases timed out\n' + result.output)
+      logs.log_error(
+          'Merging new testcases timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Merging new testcases timed out.')
 
     if result.return_code != 0:
-      raise MergeError('Merging new testcases failed: ' + result.output)
+      logs.log_error(
+          'Merging new testcases timed out.', fuzzer_output=result.output)
+      raise MergeError('Merging new testcases failed.')
 
     merge_output = result.output
     merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
@@ -545,7 +552,8 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise TimeoutError('Minimization timed out\n' + result.output)
+      logs.log_error('Minimization timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -578,7 +586,8 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise TimeoutError('Cleanse timed out\n' + result.output)
+      logs.log_error('Cleanse timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Cleanse timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
