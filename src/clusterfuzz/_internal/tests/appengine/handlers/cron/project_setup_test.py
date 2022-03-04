@@ -292,6 +292,17 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'auto_ccs': 'User@example.com',
             'vendor_ccs': ['vendor1@example.com', 'vendor2@example.com'],
         }),
+        ('lib7', {
+            'homepage': 'http://example.com',
+            'primary_contact': 'primary@example.com',
+            'auto_ccs': ['User@example.com',],
+            'fuzzing_engines': ['libfuzzer',],
+            'sanitizers': ['address'],
+            'labels': {
+                '*': ['custom'],
+                'per-target': ['ignore']
+            },
+        }),
     ]
 
     mock_storage.buckets().get.side_effect = mock_bucket_get
@@ -477,6 +488,27 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'DATAFLOW_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-dataflow/lib6/lib6-dataflow-([0-9]+).zip\n')
 
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_lib7').get()
+    self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib7')
+    self.assertEqual(job.platform, 'LIB7_LINUX')
+    six.assertCountEqual(self, job.templates,
+                         ['engine_asan', 'libfuzzer', 'prune'])
+    self.assertEqual(
+        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds/lib7/lib7-address-([0-9]+).zip\n'
+        'PROJECT_NAME = lib7\n'
+        'SUMMARY_PREFIX = lib7\n'
+        'MANAGED = True\n'
+        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds/lib7/lib7-address-%s.srcmap.json\n'
+        'FUZZ_LOGS_BUCKET = lib7-logs.clusterfuzz-external.appspot.com\n'
+        'CORPUS_BUCKET = lib7-corpus.clusterfuzz-external.appspot.com\n'
+        'QUARANTINE_BUCKET = lib7-quarantine.clusterfuzz-external.appspot.com\n'
+        'BACKUP_BUCKET = lib7-backup.clusterfuzz-external.appspot.com\n'
+        'AUTOMATIC_LABELS = Proj-lib7,Engine-libfuzzer,custom\n')
+
     self.maxDiff = None  # pylint: disable=invalid-name
 
     libfuzzer = data_types.Fuzzer.query(
@@ -492,6 +524,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'libfuzzer_asan_lib6',
         'libfuzzer_msan_lib6',
         'libfuzzer_ubsan_lib6',
+        'libfuzzer_asan_lib7',
     ])
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
@@ -1311,6 +1344,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB6_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib6'),
         ('LIB6_LINUX', 'afl', 'afl_asan_lib6'),
         ('LIB1_LINUX', 'honggfuzz', 'honggfuzz_asan_lib1'),
+        ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
     ])
 
     all_permissions = [
@@ -1492,6 +1526,18 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'email': u'user2@googlemail.com',
         'entity_name': u'honggfuzz_asan_lib1',
         'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'primary@example.com',
+        'entity_name': u'libfuzzer_asan_lib7',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': u'user@example.com',
+        'entity_name': u'libfuzzer_asan_lib7',
+        'auto_cc': 1
     }])
 
     expected_topics = [
@@ -1502,6 +1548,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib4-linux',
         'projects/clusterfuzz-external/topics/jobs-lib5-linux',
         'projects/clusterfuzz-external/topics/jobs-lib6-linux',
+        'projects/clusterfuzz-external/topics/jobs-lib7-linux',
     ]
     six.assertCountEqual(self, expected_topics,
                          list(pubsub_client.list_topics('projects/' + app_id)))
