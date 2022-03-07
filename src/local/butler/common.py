@@ -14,6 +14,9 @@
 """common.py contains common methods and variables that are used by multiple
    commands."""
 
+# TODO(ochang): Fix these.
+# pylint: disable=consider-using-f-string
+
 import datetime
 from distutils import dir_util
 import io
