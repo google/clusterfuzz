@@ -359,7 +359,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'feature_coverage': 1873,
         'fuzzing_time_percent': 0.05555555555555555,
         'initial_edge_coverage': 410,
-        'initial_feature_coverage': 1869,
+        'initial_feature_coverage': 18610,
         'leak_count': 0,
         'log_lines_from_engine': 2,
         'log_lines_ignored': 67,
