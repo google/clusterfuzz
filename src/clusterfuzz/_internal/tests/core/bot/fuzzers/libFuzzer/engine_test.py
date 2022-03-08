@@ -517,7 +517,7 @@ class IntegrationTests(BaseIntegrationTest):
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     result = engine_impl.reproduce(target_path, testcase_path,
-                                   ['-timeout=60', '-rss_limit_mb=2560'], 65)
+                                   ['-timeout=65', '-rss_limit_mb=2560'], 65)
     self.compare_arguments(
         os.path.join(DATA_DIR, 'test_fuzzer'),
         ['-timeout=60', '-rss_limit_mb=2560', '-runs=100'], [testcase_path],
