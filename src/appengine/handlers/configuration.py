@@ -116,6 +116,8 @@ class Handler(base_handler.Handler):
     contact_string = request.get('contact_string')
     documentation_url = request.get('documentation_url')
     github_credentials = request.get('github_credentials')
+    oss_fuzz_robot_github_personal_access_token = request.get(
+        'oss_fuzz_robot_github_personal_access_token')
     platform_group_mappings = request.get('platform_group_mappings')
     privileged_users = request.get('privileged_users')
     blacklisted_users = request.get('blacklisted_users')
@@ -140,6 +142,8 @@ class Handler(base_handler.Handler):
     config.contact_string = contact_string
     config.documentation_url = documentation_url
     config.github_credentials = github_credentials
+    config.oss_fuzz_robot_github_personal_access_token = (
+        oss_fuzz_robot_github_personal_access_token)
     config.jira_credentials = jira_credentials
     config.jira_url = jira_url
     config.platform_group_mappings = platform_group_mappings
