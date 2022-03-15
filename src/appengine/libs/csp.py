@@ -92,6 +92,7 @@ def get_default_builder():
   builder.add('img-src', 'www.gstatic.com')
   builder.add('connect-src', 'securetoken.googleapis.com')
   builder.add('connect-src', 'www.googleapis.com')
+  builder.add('connect-src', 'identitytoolkit.googleapis.com')
   builder.add('frame-src', auth.auth_domain())
 
   # External style. Used for fonts, charting libraries.
