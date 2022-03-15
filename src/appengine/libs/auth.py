@@ -154,7 +154,21 @@ def get_current_user():
     logs.log_warn('Invalid session cookie.')
     return None
 
-  if not decoded_claims.get('email_verified'):
+  allowed_firebase_providers = local_config.ProjectConfig().get(
+      'firebase.auth_providers', ['google.com'])
+  firebase_info = decoded_claims.get('firebase', {})
+  sign_in_provider = firebase_info.get('sign_in_provider')
+
+  if sign_in_provider not in allowed_firebase_providers:
+    logs.log_error(f'Firebase provider {sign_in_provider} is not enabled.')
+    return None
+
+  # Per https://docs.github.com/en/authentication/
+  #       keeping-your-account-and-data-secure/authorizing-oauth-apps
+  # GitHub requires emails to be verified before an OAuth app can be
+  # authorized, so we make an exception.
+  if (not decoded_claims.get('email_verified') and
+      sign_in_provider != 'github.com'):
     return None
 
   email = decoded_claims.get('email')
