@@ -808,6 +808,9 @@ class Config(Model):
   # For GitHub API.
   github_credentials = ndb.StringProperty(default='')
 
+  # For filing issues to GitHub repositories under test.
+  oss_fuzz_robot_github_personal_access_token = ndb.StringProperty(default='')
+
   # OAuth2 client id for the reproduce tool.
   reproduce_tool_client_id = ndb.StringProperty(default='')
 
@@ -1314,6 +1317,13 @@ class FiledBug(Model):
 
   # Platform id.
   platform_id = ndb.StringProperty()
+
+  # Github repository id
+  github_repo_id = ndb.IntegerProperty()
+
+  # Github issue number.
+  # Note that the number is specific to the repository.
+  github_issue_num = ndb.IntegerProperty()
 
 
 class CoverageInformation(Model):
