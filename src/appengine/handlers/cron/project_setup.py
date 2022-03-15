@@ -829,6 +829,9 @@ class ProjectSetup(object):
       if main_repo:
         job.environment_string += f'MAIN_REPO = {main_repo}\n'
 
+      file_github_issue = info.get('file_github_issue', False)
+      job.environment_string += f'FILE_GITHUB_ISSUE = {file_github_issue}\n'
+
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and
           'dataflow' in info.get('fuzzing_engines', DEFAULT_ENGINES)):
