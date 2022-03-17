@@ -471,13 +471,17 @@ def file_github_issue(testcase):
   def github_filing_enabled():
     """Check if the project YAML file requires to file a github issue."""
     require_github_issue = data_handler.get_value_from_job_definition(
-        'FILE_GITHUB_ISSUE', 'False')
+        testcase.job_type,
+        'FILE_GITHUB_ISSUE',
+        default='False')
     return require_github_issue.lower() == 'true'
 
   def get_github_repo():
     """Get the GitHub repository to file the issue"""
     github_repo_url = data_handler.get_value_from_job_definition(
-        'MAIN_REPO', '')
+        testcase.job_type,
+        'MAIN_REPO',
+        '')
     if not github_repo_url:
       logs.log_error("Unable to fetch the MAIN_REPO URL from job definition.")
       return None
