@@ -13,9 +13,10 @@
 # limitations under the License.
 """Helper functions to file issues."""
 
-import github
 import itertools
 import re
+
+import github
 
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import utils
@@ -468,20 +469,17 @@ def get_github_access():
 
 
 def file_github_issue(testcase):
+
   def github_filing_enabled():
     """Check if the project YAML file requires to file a github issue."""
     require_github_issue = data_handler.get_value_from_job_definition(
-        testcase.job_type,
-        'FILE_GITHUB_ISSUE',
-        default='False')
+        testcase.job_type, 'FILE_GITHUB_ISSUE', default='False')
     return require_github_issue.lower() == 'true'
 
   def get_github_repo():
     """Get the GitHub repository to file the issue"""
     github_repo_url = data_handler.get_value_from_job_definition(
-        testcase.job_type,
-        'MAIN_REPO',
-        '')
+        testcase.job_type, 'MAIN_REPO', '')
     if not github_repo_url:
       logs.log_error("Unable to fetch the MAIN_REPO URL from job definition.")
       return None
@@ -500,8 +498,7 @@ def file_github_issue(testcase):
     github_issue_title = data_handler.get_github_issue_title(testcase)
     github_issue_body = data_handler.get_github_issue_body(testcase)
     return github_repo.create_issue(
-        title=github_issue_title,
-        body=github_issue_body)
+        title=github_issue_title, body=github_issue_body)
 
   def update_testcase_properties():
     """Update the github-related properties in the FiledBug entity."""
@@ -525,6 +522,7 @@ def file_github_issue(testcase):
 
 def close_github_issue(testcase):
   """Close the issue on github, when the same issue is closed on Monorail."""
+
   def issue_recorded():
     """Verify the issue has been filed."""
     return hasattr(testcase, 'github_repo_id') \

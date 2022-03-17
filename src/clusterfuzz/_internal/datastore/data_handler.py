@@ -96,8 +96,7 @@ FuzzerDisplay = collections.namedtuple(
     'FuzzerDisplay', ['engine', 'target', 'name', 'fully_qualified_name'])
 
 MONORAIL_URL = (
-    "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}"
-)
+    "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}")
 OSS_FUZZ_ISSUE_URL = "https://github.com/google/oss-fuzz/issues/new"
 
 GithubIssueTittleText = "OSS-Fuzz issue {bug_information}"
@@ -113,14 +112,11 @@ GithubIssueContentText = (
     "\n\n"
     "If you have trouble accessing this report, "
     f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
-    "\n"
-)
+    "\n")
 
-GithubIssueCloseCommentText = (
-    "OSS-Fuzz has closed this bug. Please see "
-    f"{MONORAIL_URL} "
-    "for details."
-)
+GithubIssueCloseCommentText = ("OSS-Fuzz has closed this bug. Please see "
+                               f"{MONORAIL_URL} "
+                               "for details.")
 
 # ------------------------------------------------------------------------------
 # Testcase, TestcaseUploadMetadata database related functions
@@ -599,23 +595,19 @@ def get_issue_description(testcase,
 
 
 def get_github_issue_title(testcase):
-  return GithubIssueTittleText.format(
-      bug_information=testcase.bug_information
-  )
+  return GithubIssueTittleText.format(bug_information=testcase.bug_information)
 
 
 def get_github_issue_body(testcase):
   return GithubIssueContentText.format(
       domain=get_domain(),
       testcase_id=testcase.key.id,
-      bug_information=testcase.bug_information
-  )
+      bug_information=testcase.bug_information)
 
 
 def get_github_issue_close_comment(testcase):
   return GithubIssueCloseCommentText.format(
-      bug_information=testcase.bug_information
-  )
+      bug_information=testcase.bug_information)
 
 
 def get_stacktrace(testcase, stack_attribute='crash_stacktrace'):

@@ -23,6 +23,7 @@ import mock
 import parameterized
 import six
 
+from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -193,6 +194,31 @@ QUESTIONS_NOTE = (
     'other feedback, please file an issue at '
     'https://github.com/google/oss-fuzz/issues.')
 
+TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
+
+MONORAIL_URL = (
+    "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}")
+OSS_FUZZ_ISSUE_URL = "https://github.com/google/oss-fuzz/issues/new"
+
+GithubIssueTittleText = "OSS-Fuzz issue {bug_information}"
+
+GithubIssueContentText = (
+    "OSS-Fuzz has found a bug in this project. Please see "
+    f"{TESTCASE_REPORT_URL}"
+    "for details and reproducers."
+    "\n\n"
+    "This issue is mirrored from "
+    f"{MONORAIL_URL} "
+    "and will auto-close if the status changes there."
+    "\n\n"
+    "If you have trouble accessing this report, "
+    f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
+    "\n")
+
+GithubIssueCloseCommentText = ("OSS-Fuzz has closed this bug. Please see "
+                               f"{MONORAIL_URL} "
+                               "for details.")
+
 
 class IssueTrackerManager(object):
   """Mock issue tracker manager."""
@@ -276,6 +302,16 @@ class IssueFilerTests(unittest.TestCase):
 
     self.testcase7 = data_types.Testcase(job_type='ios_job4', **testcase_args)
     self.testcase7.put()
+
+    self.testcases = [
+        self.testcase1,
+        self.testcase2,
+        self.testcase3,
+        self.testcase4,
+        self.testcase5,
+        self.testcase6,
+        self.testcase7,
+    ]
 
     data_types.ExternalUserPermission(
         email='user@example.com',
@@ -643,6 +679,29 @@ class IssueFilerTests(unittest.TestCase):
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Target: target, Project: proj',
                   issue_tracker._itm.last_issue.body)
+
+  def test_github_issue_title(self):
+    for testcase in self.testcases:
+      actual_title = data_handler.get_github_issue_title(testcase)
+      expected_title = GithubIssueTittleText.format(
+          bug_information=testcase.bug_information)
+      self.assertEqual(actual_title, expected_title)
+
+  def test_github_issue_body(self):
+    for testcase in self.testcases:
+      actual_body = data_handler.get_github_issue_body(testcase)
+      expected_body = GithubIssueContentText.format(
+          domain=data_handler.get_domain(),
+          testcase_id=testcase.key.id,
+          bug_information=testcase.bug_information)
+      self.assertEqual(actual_body, expected_body)
+
+  def test_github_issue_close(self):
+    for testcase in self.testcases:
+      actual_comment = data_handler.get_github_issue_close_comment(testcase)
+      expected_comment = GithubIssueCloseCommentText.format(
+          bug_information=testcase.bug_information)
+      self.assertEqual(actual_comment, expected_comment)
 
 
 class MemoryToolLabelsTest(unittest.TestCase):
