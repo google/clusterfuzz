@@ -608,7 +608,7 @@ def get_github_issue_body(testcase):
   return GithubIssueContentText.format(
       domain=get_domain(),
       testcase_id=testcase.key.id,
-      bug_inforamtion=testcase.bug_information
+      bug_information=testcase.bug_information
   )
 
 
