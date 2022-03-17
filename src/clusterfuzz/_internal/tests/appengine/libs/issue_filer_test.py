@@ -681,6 +681,7 @@ class IssueFilerTests(unittest.TestCase):
                   issue_tracker._itm.last_issue.body)
 
   def test_github_issue_title(self):
+    """Test the title format of new GitHub issues."""
     for testcase in self.testcases:
       actual_title = data_handler.get_github_issue_title(testcase)
       expected_title = GithubIssueTittleText.format(
@@ -688,6 +689,7 @@ class IssueFilerTests(unittest.TestCase):
       self.assertEqual(actual_title, expected_title)
 
   def test_github_issue_body(self):
+    """Test the body format of new GitHub issues."""
     for testcase in self.testcases:
       actual_body = data_handler.get_github_issue_body(testcase)
       expected_body = GithubIssueContentText.format(
@@ -697,6 +699,7 @@ class IssueFilerTests(unittest.TestCase):
       self.assertEqual(actual_body, expected_body)
 
   def test_github_issue_close(self):
+    """Test the closing message format of GitHub issues filed."""
     for testcase in self.testcases:
       actual_comment = data_handler.get_github_issue_close_comment(testcase)
       expected_comment = GithubIssueCloseCommentText.format(
