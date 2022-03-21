@@ -26,9 +26,9 @@ MONORAIL_URL = (
     "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}")
 OSS_FUZZ_ISSUE_URL = "https://github.com/google/oss-fuzz/issues/new"
 
-GithubIssueTittleText = "OSS-Fuzz issue {bug_information}"
+IssueTittleText = "OSS-Fuzz issue {bug_information}"
 
-GithubIssueContentText = (
+IssueContentText = (
     "OSS-Fuzz has found a bug in this project. Please see "
     f"{TESTCASE_REPORT_URL}"
     "for details and reproducers."
@@ -41,31 +41,31 @@ GithubIssueContentText = (
     f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
     "\n")
 
-GithubIssueCloseCommentText = ("OSS-Fuzz has closed this bug. Please see "
+IssueCloseCommentText = ("OSS-Fuzz has closed this bug. Please see "
                                f"{MONORAIL_URL} "
                                "for details.")
 
 
-def get_github_issue_title(testcase):
+def get_issue_title(testcase):
   """Generate the title of the issue"""
-  return GithubIssueTittleText.format(bug_information=testcase.bug_information)
+  return IssueTittleText.format(bug_information=testcase.bug_information)
 
 
-def get_github_issue_body(testcase):
+def get_issue_body(testcase):
   """Generate the body of the issue"""
-  return GithubIssueContentText.format(
+  return IssueContentText.format(
       domain=data_handler.get_domain(),
       testcase_id=testcase.key.id,
       bug_information=testcase.bug_information)
 
 
-def get_github_issue_close_comment(testcase):
+def get_issue_close_comment(testcase):
   """Generate the closing comment of the issue"""
-  return GithubIssueCloseCommentText.format(
+  return IssueCloseCommentText.format(
       bug_information=testcase.bug_information)
 
 
-def get_github_access():
+def get_access():
   """Get access to GitHub with the oss-fuzz personal access token"""
   token = db_config.get_value("oss_fuzz_robot_github_personal_access_token")
   if not token:
@@ -74,109 +74,109 @@ def get_github_access():
   return github.Github(token)
 
 
-def github_filing_enabled(testcase):
-  """Check if the project YAML file requires to file a github issue."""
-  require_github_issue = data_handler.get_value_from_job_definition(
+def filing_enabled(testcase):
+  """Check if the project YAML file requires to file a GitHub issue."""
+  require_issue = data_handler.get_value_from_job_definition(
       testcase.job_type, 'FILE_GITHUB_ISSUE', default='False')
-  return require_github_issue.lower() == 'true'
+  return require_issue.lower() == 'true'
 
 
-def get_github_repo(testcase, github_access):
+def get_repo(testcase, access):
   """Get the GitHub repository to file the issue"""
-  github_repo_url = data_handler.get_value_from_job_definition(
+  repo_url = data_handler.get_value_from_job_definition(
       testcase.job_type, 'MAIN_REPO', '')
-  if not github_repo_url:
+  if not repo_url:
     logs.log_error("Unable to fetch the MAIN_REPO URL from job definition.")
     return None
-  github_repo_name = github_repo_url.removeprefix('https://github.com/')
+  repo_name = repo_url.removeprefix('https://github.com/')
 
   try:
-    target_repo = github_access.get_repo(github_repo_name)
+    target_repo = access.get_repo(repo_name)
   except github.UnknownObjectException as e:
     logs.log_error(f"Unable to locate GitHub repository "
-                   f"named {github_repo_name} from URL: {github_repo_url}.")
+                   f"named {repo_name} from URL: {repo_url}.")
     target_repo = None
   return target_repo
 
 
-def file_issue_to_github(github_repo, testcase):
+def post_issue(repo, testcase):
   """Post the issue to the Github repo of the project."""
-  github_issue_title = get_github_issue_title(testcase)
-  github_issue_body = get_github_issue_body(testcase)
-  return github_repo.create_issue(
-      title=github_issue_title, body=github_issue_body)
+  issue_title = get_issue_title(testcase)
+  issue_body = get_issue_body(testcase)
+  return repo.create_issue(
+      title=issue_title, body=issue_body)
 
 
-def update_testcase_properties(testcase, github_repo, github_issue):
-  """Update the github-related properties in the FiledBug entity."""
-  testcase.github_repo_id = github_repo.id
-  testcase.github_issue_num = github_issue.number
+def update_testcase_properties(testcase, repo, issue):
+  """Update the GitHub-related properties in the FiledBug entity."""
+  testcase.repo_id = repo.id
+  testcase.issue_num = issue.number
 
 
-def file_github_issue(testcase):
-  """File a github issue to the GitHub repo of the project"""
-  if not github_filing_enabled(testcase):
+def file_issue(testcase):
+  """File an issue to the GitHub repo of the project"""
+  if not filing_enabled(testcase):
     return
 
-  github_access = get_github_access()
-  if not github_access:
-    logs.log_error("Unable to access github account and file the issue.")
+  access = get_access()
+  if not access:
+    logs.log_error("Unable to access GitHub account and file the issue.")
     return
-  github_repo = get_github_repo(testcase, github_access)
-  if not github_repo:
-    logs.log_error("Unable to locate github repository and file the issue.")
+  repo = get_repo(testcase, access)
+  if not repo:
+    logs.log_error("Unable to locate GitHub repository and file the issue.")
     return
-  github_issue = file_issue_to_github(github_repo, testcase)
-  update_testcase_properties(testcase, github_repo, github_issue)
+  issue = post_issue(repo, testcase)
+  update_testcase_properties(testcase, repo, issue)
 
 
 def issue_recorded(testcase):
   """Verify the issue has been filed."""
   return hasattr(testcase, 'github_repo_id') \
-         and testcase.github_repo_id is not None \
-         and hasattr(testcase, 'github_issue_num') \
-         and testcase.github_issue_num is not None
+      and testcase.github_repo_id is not None \
+      and hasattr(testcase, 'github_issue_num') \
+      and testcase.github_issue_num is not None
 
 
-def get_github_issue(testcase, github_access):
+def get_issue(testcase, access):
   """Locate the issue of the testcase."""
-  github_repo_id = testcase.github_repo_id
-  github_issue_num = testcase.github_issue_num
+  repo_id = testcase.github_repo_id
+  issue_num = testcase.github_issue_num
   try:
-    github_repo = github_access.get_repo(github_repo_id)
+    repo = access.get_repo(repo_id)
   except github.UnknownObjectException as e:
-    logs.log_error("Unable to locate the github repository "
-                   f"id {github_repo_id}.")
+    logs.log_error("Unable to locate the GitHub repository "
+                   f"id {repo_id}.")
     return None
 
   try:
-    target_issue = github_repo.get_issue(github_issue_num)
+    target_issue = repo.get_issue(issue_num)
   except github.UnknownObjectException as e:
-    logs.log_error("Unable to locate the github issue "
-                   f"number {github_issue_num}.")
+    logs.log_error("Unable to locate the GitHub issue "
+                   f"number {issue_num}.")
     target_issue = None
   return target_issue
 
 
-def close_issue_with_comment(testcase, github_issue):
+def close_issue_with_comment(testcase, issue):
   """Generate closing comment, comment, and close the GitHub issue."""
-  issue_close_comment = data_handler.get_github_issue_close_comment(testcase)
-  github_issue.create_comment(issue_close_comment)
-  github_issue.edit(state='closed')
+  issue_close_comment = get_issue_close_comment(testcase)
+  issue.create_comment(issue_close_comment)
+  issue.edit(state='closed')
 
 
-def close_github_issue(testcase):
-  """Close the issue on github, when the same issue is closed on Monorail."""
+def close_issue(testcase):
+  """Close the issue on GitHub, when the same issue is closed on Monorail."""
   if not issue_recorded(testcase):
     return
-  github_access = get_github_access()
-  if not github_access:
-    logs.log_error("Unable to access github account and close the issue.")
+  access = get_access()
+  if not access:
+    logs.log_error("Unable to access GitHub account and close the issue.")
     return
-  github_issue = get_github_issue(testcase, github_access)
-  if not github_issue:
+  issue = get_issue(testcase, access)
+  if not issue:
     logs.log_error("Unable to locate and close the issue.")
     return
-  close_issue_with_comment(testcase, github_issue)
+  close_issue_with_comment(testcase, issue)
   logs.log(f"Closed issue number {testcase.github_issue_num} "
            f"in GitHub repository {testcase.github_repo_id}.")
