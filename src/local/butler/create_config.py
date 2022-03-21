@@ -19,9 +19,9 @@ import shutil
 import subprocess
 import sys
 
+import google_auth_httplib2
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient import discovery
-import google_auth_httplib2
 import httplib2
 
 from local.butler import appengine
