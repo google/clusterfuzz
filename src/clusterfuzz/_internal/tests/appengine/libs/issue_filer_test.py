@@ -29,6 +29,7 @@ from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
+from libs.issue_management import github
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import monorail
@@ -683,7 +684,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_github_issue_title(self):
     """Test the title format of new GitHub issues."""
     for testcase in self.testcases:
-      actual_title = data_handler.get_github_issue_title(testcase)
+      actual_title = github.get_github_issue_title(testcase)
       expected_title = GithubIssueTittleText.format(
           bug_information=testcase.bug_information)
       self.assertEqual(actual_title, expected_title)
@@ -691,7 +692,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_github_issue_body(self):
     """Test the body format of new GitHub issues."""
     for testcase in self.testcases:
-      actual_body = data_handler.get_github_issue_body(testcase)
+      actual_body = github.get_github_issue_body(testcase)
       expected_body = GithubIssueContentText.format(
           domain=data_handler.get_domain(),
           testcase_id=testcase.key.id,
@@ -701,7 +702,7 @@ class IssueFilerTests(unittest.TestCase):
   def test_github_issue_close(self):
     """Test the closing message format of GitHub issues filed."""
     for testcase in self.testcases:
-      actual_comment = data_handler.get_github_issue_close_comment(testcase)
+      actual_comment = github.get_github_issue_close_comment(testcase)
       expected_comment = GithubIssueCloseCommentText.format(
           bug_information=testcase.bug_information)
       self.assertEqual(actual_comment, expected_comment)
