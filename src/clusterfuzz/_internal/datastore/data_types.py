@@ -569,6 +569,13 @@ class Testcase(Model):
   # Uploader email address.
   uploader_email = ndb.StringProperty()
 
+  # Github repository id
+  github_repo_id = ndb.IntegerProperty()
+
+  # Github issue number.
+  # Note that the number is specific to the repository.
+  github_issue_num = ndb.IntegerProperty()
+
   def has_blame(self):
     return self.project_name == 'chromium'
 
@@ -1317,13 +1324,6 @@ class FiledBug(Model):
 
   # Platform id.
   platform_id = ndb.StringProperty()
-
-  # Github repository id
-  github_repo_id = ndb.IntegerProperty()
-
-  # Github issue number.
-  # Note that the number is specific to the repository.
-  github_issue_num = ndb.IntegerProperty()
 
 
 class CoverageInformation(Model):
