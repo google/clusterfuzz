@@ -20,6 +20,8 @@ from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.metrics import logs
 
+GITHUB_PREFIX = 'https://github.com/'
+
 TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 
 MONORAIL_URL = (
@@ -88,7 +90,7 @@ def _get_repo(testcase, access):
   if not repo_url:
     logs.log_error('Unable to fetch the MAIN_REPO URL from job definition.')
     return None
-  repo_name = repo_url.removeprefix('https://github.com/')
+  repo_name = repo_url.removeprefix(GITHUB_PREFIX)
 
   try:
     target_repo = access.get_repo(repo_name)
