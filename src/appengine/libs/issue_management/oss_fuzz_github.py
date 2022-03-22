@@ -174,4 +174,3 @@ def close_issue(testcase):
   close_issue_with_comment(testcase, issue)
   logs.log(f'Closed issue number {testcase.github_issue_num} '
            f'in GitHub repository {testcase.github_repo_id}.')
-
