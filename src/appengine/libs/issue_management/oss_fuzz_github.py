@@ -185,6 +185,11 @@ def close_issue(testcase):
   if not issue:
     logs.log_error('Unable to locate and close the issue.')
     return
+  if issue.state == 'closed':
+    logs.log(f'issue number {testcase.github_issue_num} '
+             f'in GitHub repository {testcase.github_repo_id} '
+             'is already closed.')
+    return
   _close_issue_with_comment(testcase, issue)
   logs.log(f'Closed issue number {testcase.github_issue_num} '
            f'in GitHub repository {testcase.github_repo_id}.')
