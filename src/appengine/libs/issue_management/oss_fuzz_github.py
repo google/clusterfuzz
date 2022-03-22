@@ -130,8 +130,8 @@ def file_issue(testcase):
 
 def issue_recorded(testcase):
   """Verify the issue has been filed."""
-  return testcase.github_repo_id is not None \
-      and testcase.github_issue_num is not None
+  return testcase.github_repo_id \
+      and testcase.github_issue_num
 
 
 def get_issue(testcase, access):
