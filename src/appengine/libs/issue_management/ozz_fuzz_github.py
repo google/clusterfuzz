@@ -22,26 +22,27 @@ from clusterfuzz._internal.metrics import logs
 TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 
 MONORAIL_URL = (
-    "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}")
-OSS_FUZZ_ISSUE_URL = "https://github.com/google/oss-fuzz/issues/new"
+    'https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}')
 
-ISSUE_TITTLE_TEXT = "OSS-Fuzz issue {bug_information}"
+OSS_FUZZ_ISSUE_URL = 'https://github.com/google/oss-fuzz/issues/new'
 
-ISSUE_CONTENT_TEXT = ("OSS-Fuzz has found a bug in this project. Please see "
-                      f"{TESTCASE_REPORT_URL}"
-                      "for details and reproducers."
-                      "\n\n"
-                      "This issue is mirrored from "
-                      f"{MONORAIL_URL} "
-                      "and will auto-close if the status changes there."
-                      "\n\n"
-                      "If you have trouble accessing this report, "
-                      f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
-                      "\n")
+ISSUE_TITTLE_TEXT = 'OSS-Fuzz issue {bug_information}'
 
-ISSUE_ClOSE_COMMENT_TEXT = ("OSS-Fuzz has closed this bug. Please see "
-                            f"{MONORAIL_URL} "
-                            "for details.")
+ISSUE_CONTENT_TEXT = ('OSS-Fuzz has found a bug in this project. Please see '
+                      f'{TESTCASE_REPORT_URL}'
+                      'for details and reproducers.'
+                      '\n\n'
+                      'This issue is mirrored from '
+                      f'{MONORAIL_URL} '
+                      'and will auto-close if the status changes there.'
+                      '\n\n'
+                      'If you have trouble accessing this report, '
+                      f'please file an issue at {OSS_FUZZ_ISSUE_URL}.'
+                      '\n')
+
+ISSUE_ClOSE_COMMENT_TEXT = ('OSS-Fuzz has closed this bug. Please see '
+                            f'{MONORAIL_URL} '
+                            'for details.')
 
 
 def get_issue_title(testcase):
@@ -65,9 +66,9 @@ def get_issue_close_comment(testcase):
 
 def get_access():
   """Get access to GitHub with the oss-fuzz personal access token"""
-  token = db_config.get_value("oss_fuzz_robot_github_personal_access_token")
+  token = db_config.get_value('oss_fuzz_robot_github_personal_access_token')
   if not token:
-    logs.log_error("Unable to get oss-fuzz-robot's personal access token.")
+    logs.log_error('Unable to get oss-fuzz-robot personal access token.')
     return None
   return github.Github(token)
 
@@ -84,15 +85,15 @@ def get_repo(testcase, access):
   repo_url = data_handler.get_value_from_job_definition(testcase.job_type,
                                                         'MAIN_REPO', '')
   if not repo_url:
-    logs.log_error("Unable to fetch the MAIN_REPO URL from job definition.")
+    logs.log_error('Unable to fetch the MAIN_REPO URL from job definition.')
     return None
   repo_name = repo_url.removeprefix('https://github.com/')
 
   try:
     target_repo = access.get_repo(repo_name)
   except github.UnknownObjectException:
-    logs.log_error(f"Unable to locate GitHub repository "
-                   f"named {repo_name} from URL: {repo_url}.")
+    logs.log_error(f'Unable to locate GitHub repository '
+                   f'named {repo_name} from URL: {repo_url}.')
     target_repo = None
   return target_repo
 
@@ -117,11 +118,11 @@ def file_issue(testcase):
 
   access = get_access()
   if not access:
-    logs.log_error("Unable to access GitHub account and file the issue.")
+    logs.log_error('Unable to access GitHub account and file the issue.')
     return
   repo = get_repo(testcase, access)
   if not repo:
-    logs.log_error("Unable to locate GitHub repository and file the issue.")
+    logs.log_error('Unable to locate GitHub repository and file the issue.')
     return
   issue = post_issue(repo, testcase)
   update_testcase_properties(testcase, repo, issue)
@@ -142,13 +143,13 @@ def get_issue(testcase, access):
   try:
     repo = access.get_repo(repo_id)
   except github.UnknownObjectException:
-    logs.log_error("Unable to locate the GitHub repository " f"id {repo_id}.")
+    logs.log_error(f'Unable to locate the GitHub repository id {repo_id}.')
     return None
 
   try:
     target_issue = repo.get_issue(issue_num)
   except github.UnknownObjectException:
-    logs.log_error("Unable to locate the GitHub issue " f"number {issue_num}.")
+    logs.log_error(f'Unable to locate the GitHub issue number {issue_num}.')
     target_issue = None
   return target_issue
 
@@ -166,12 +167,13 @@ def close_issue(testcase):
     return
   access = get_access()
   if not access:
-    logs.log_error("Unable to access GitHub account and close the issue.")
+    logs.log_error(f'Unable to access GitHub account and close the issue.')
     return
   issue = get_issue(testcase, access)
   if not issue:
-    logs.log_error("Unable to locate and close the issue.")
+    logs.log_error(f'Unable to locate and close the issue.')
     return
   close_issue_with_comment(testcase, issue)
-  logs.log(f"Closed issue number {testcase.github_issue_num} "
-           f"in GitHub repository {testcase.github_repo_id}.")
+  logs.log(f'Closed issue number {testcase.github_issue_num} '
+           f'in GitHub repository {testcase.github_repo_id}.')
+

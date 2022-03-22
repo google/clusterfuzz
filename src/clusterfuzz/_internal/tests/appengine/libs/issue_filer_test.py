@@ -198,27 +198,28 @@ QUESTIONS_NOTE = (
 TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 
 MONORAIL_URL = (
-    "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}")
-OSS_FUZZ_ISSUE_URL = "https://github.com/google/oss-fuzz/issues/new"
+    'https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}')
 
-GITHUB_ISSUE_TITTLE_TEXT = "OSS-Fuzz issue {bug_information}"
+OSS_FUZZ_ISSUE_URL = 'https://github.com/google/oss-fuzz/issues/new'
+
+GITHUB_ISSUE_TITTLE_TEXT = 'OSS-Fuzz issue {bug_information}'
 
 GITHUB_ISSUE_CONTENT_TEXT = (
-    "OSS-Fuzz has found a bug in this project. Please see "
-    f"{TESTCASE_REPORT_URL}"
-    "for details and reproducers."
-    "\n\n"
-    "This issue is mirrored from "
-    f"{MONORAIL_URL} "
-    "and will auto-close if the status changes there."
-    "\n\n"
-    "If you have trouble accessing this report, "
-    f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
-    "\n")
+    'OSS-Fuzz has found a bug in this project. Please see '
+    f'{TESTCASE_REPORT_URL}'
+    'for details and reproducers.'
+    '\n\n'
+    'This issue is mirrored from '
+    f'{MONORAIL_URL} '
+    'and will auto-close if the status changes there.'
+    '\n\n'
+    'If you have trouble accessing this report, '
+    f'please file an issue at {OSS_FUZZ_ISSUE_URL}.'
+    '\n')
 
-GITHUB_ISSUE_CLOSE_COMMENT_TEXT = ("OSS-Fuzz has closed this bug. Please see "
-                                   f"{MONORAIL_URL} "
-                                   "for details.")
+GITHUB_ISSUE_CLOSE_COMMENT_TEXT = ('OSS-Fuzz has closed this bug. Please see '
+                                   f'{MONORAIL_URL} '
+                                   'for details.')
 
 
 class IssueTrackerManager(object):
@@ -470,7 +471,7 @@ class IssueFilerTests(unittest.TestCase):
     def my_save(*args, **kwargs):
       if getattr(my_save, 'raise_exception', True):
         setattr(my_save, 'raise_exception', False)
-        raise Exception("Boom!")
+        raise Exception('Boom!')
       return original_save(*args, **kwargs)
 
     self.mock.save.side_effect = my_save
