@@ -121,8 +121,7 @@ def file_issue(testcase):
 
   access_token = _get_access_token()
   if not access_token:
-    logs.log_error('Unable to access GitHub account and file the issue.')
-    return
+    raise RuntimeError('Unable to access GitHub account and file the issue.')
   repo = _get_repo(testcase, access_token)
   if not repo:
     logs.log_error('Unable to locate GitHub repository and file the issue.')
@@ -168,8 +167,7 @@ def close_issue(testcase):
     return
   access_token = _get_access_token()
   if not access_token:
-    logs.log_error('Unable to access GitHub account and close the issue.')
-    return
+    raise RuntimeError('Unable to access GitHub account and close the issue.')
   issue = _get_issue(testcase, access_token)
   if not issue:
     logs.log_error('Unable to locate and close the issue.')
