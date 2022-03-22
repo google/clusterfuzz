@@ -201,9 +201,9 @@ MONORAIL_URL = (
     "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}")
 OSS_FUZZ_ISSUE_URL = "https://github.com/google/oss-fuzz/issues/new"
 
-GithubIssueTittleText = "OSS-Fuzz issue {bug_information}"
+GITHUB_ISSUE_TITTLE_TEXT = "OSS-Fuzz issue {bug_information}"
 
-GithubIssueContentText = (
+GITHUB_ISSUE_CONTENT_TEXT = (
     "OSS-Fuzz has found a bug in this project. Please see "
     f"{TESTCASE_REPORT_URL}"
     "for details and reproducers."
@@ -216,9 +216,9 @@ GithubIssueContentText = (
     f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
     "\n")
 
-GithubIssueCloseCommentText = ("OSS-Fuzz has closed this bug. Please see "
-                               f"{MONORAIL_URL} "
-                               "for details.")
+GITHUB_ISSUE_CLOSE_COMMENT_TEXT = ("OSS-Fuzz has closed this bug. Please see "
+                                   f"{MONORAIL_URL} "
+                                   "for details.")
 
 
 class IssueTrackerManager(object):
@@ -685,7 +685,7 @@ class IssueFilerTests(unittest.TestCase):
     """Test the title format of new GitHub issues."""
     for testcase in self.testcases:
       actual_title = github.get_issue_title(testcase)
-      expected_title = GithubIssueTittleText.format(
+      expected_title = GITHUB_ISSUE_TITTLE_TEXT.format(
           bug_information=testcase.bug_information)
       self.assertEqual(actual_title, expected_title)
 
@@ -693,7 +693,7 @@ class IssueFilerTests(unittest.TestCase):
     """Test the body format of new GitHub issues."""
     for testcase in self.testcases:
       actual_body = github.get_issue_body(testcase)
-      expected_body = GithubIssueContentText.format(
+      expected_body = GITHUB_ISSUE_CONTENT_TEXT.format(
           domain=data_handler.get_domain(),
           testcase_id=testcase.key.id,
           bug_information=testcase.bug_information)
@@ -703,7 +703,7 @@ class IssueFilerTests(unittest.TestCase):
     """Test the closing message format of GitHub issues filed."""
     for testcase in self.testcases:
       actual_comment = github.get_issue_close_comment(testcase)
-      expected_comment = GithubIssueCloseCommentText.format(
+      expected_comment = GITHUB_ISSUE_CLOSE_COMMENT_TEXT.format(
           bug_information=testcase.bug_information)
       self.assertEqual(actual_comment, expected_comment)
 

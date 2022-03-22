@@ -25,33 +25,33 @@ MONORAIL_URL = (
     "https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}")
 OSS_FUZZ_ISSUE_URL = "https://github.com/google/oss-fuzz/issues/new"
 
-IssueTittleText = "OSS-Fuzz issue {bug_information}"
+ISSUE_TITTLE_TEXT = "OSS-Fuzz issue {bug_information}"
 
-IssueContentText = ("OSS-Fuzz has found a bug in this project. Please see "
-                    f"{TESTCASE_REPORT_URL}"
-                    "for details and reproducers."
-                    "\n\n"
-                    "This issue is mirrored from "
-                    f"{MONORAIL_URL} "
-                    "and will auto-close if the status changes there."
-                    "\n\n"
-                    "If you have trouble accessing this report, "
-                    f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
-                    "\n")
+ISSUE_CONTENT_TEXT = ("OSS-Fuzz has found a bug in this project. Please see "
+                      f"{TESTCASE_REPORT_URL}"
+                      "for details and reproducers."
+                      "\n\n"
+                      "This issue is mirrored from "
+                      f"{MONORAIL_URL} "
+                      "and will auto-close if the status changes there."
+                      "\n\n"
+                      "If you have trouble accessing this report, "
+                      f"please file an issue at {OSS_FUZZ_ISSUE_URL}."
+                      "\n")
 
-IssueCloseCommentText = ("OSS-Fuzz has closed this bug. Please see "
-                         f"{MONORAIL_URL} "
-                         "for details.")
+ISSUE_ClOSE_COMMENT_TEXT = ("OSS-Fuzz has closed this bug. Please see "
+                            f"{MONORAIL_URL} "
+                            "for details.")
 
 
 def get_issue_title(testcase):
   """Generate the title of the issue"""
-  return IssueTittleText.format(bug_information=testcase.bug_information)
+  return ISSUE_TITTLE_TEXT.format(bug_information=testcase.bug_information)
 
 
 def get_issue_body(testcase):
   """Generate the body of the issue"""
-  return IssueContentText.format(
+  return ISSUE_CONTENT_TEXT.format(
       domain=data_handler.get_domain(),
       testcase_id=testcase.key.id,
       bug_information=testcase.bug_information)
@@ -59,7 +59,8 @@ def get_issue_body(testcase):
 
 def get_issue_close_comment(testcase):
   """Generate the closing comment of the issue"""
-  return IssueCloseCommentText.format(bug_information=testcase.bug_information)
+  return ISSUE_ClOSE_COMMENT_TEXT.format(
+      bug_information=testcase.bug_information)
 
 
 def get_access():
@@ -89,7 +90,7 @@ def get_repo(testcase, access):
 
   try:
     target_repo = access.get_repo(repo_name)
-  except github.UnknownObjectException as e:
+  except github.UnknownObjectException:
     logs.log_error(f"Unable to locate GitHub repository "
                    f"named {repo_name} from URL: {repo_url}.")
     target_repo = None
@@ -140,13 +141,13 @@ def get_issue(testcase, access):
   issue_num = testcase.github_issue_num
   try:
     repo = access.get_repo(repo_id)
-  except github.UnknownObjectException as e:
+  except github.UnknownObjectException:
     logs.log_error("Unable to locate the GitHub repository " f"id {repo_id}.")
     return None
 
   try:
     target_issue = repo.get_issue(issue_num)
-  except github.UnknownObjectException as e:
+  except github.UnknownObjectException:
     logs.log_error("Unable to locate the GitHub issue " f"number {issue_num}.")
     target_issue = None
   return target_issue
