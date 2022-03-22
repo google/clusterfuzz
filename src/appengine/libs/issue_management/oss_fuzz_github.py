@@ -165,11 +165,11 @@ def close_issue(testcase):
     return
   access = get_access()
   if not access:
-    logs.log_error(f'Unable to access GitHub account and close the issue.')
+    logs.log_error('Unable to access GitHub account and close the issue.')
     return
   issue = get_issue(testcase, access)
   if not issue:
-    logs.log_error(f'Unable to locate and close the issue.')
+    logs.log_error('Unable to locate and close the issue.')
     return
   close_issue_with_comment(testcase, issue)
   logs.log(f'Closed issue number {testcase.github_issue_num} '
