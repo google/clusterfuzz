@@ -101,11 +101,21 @@ def _get_repo(testcase, access):
   return target_repo
 
 
+def _find_existing_issue(repo, issue_title):
+  """Checking if there is an existing open issue under the same name"""
+  for issue in repo.get_issues():
+    if issue.title == issue_title:
+      logs.log(f'Issue ({issue_title}) already exists in Repo ({repo.id}).')
+      return issue
+  return None
+
+
 def _post_issue(repo, testcase):
   """Post the issue to the Github repo of the project."""
   issue_title = get_issue_title(testcase)
   issue_body = get_issue_body(testcase)
-  return repo.create_issue(title=issue_title, body=issue_body)
+  return _find_existing_issue(repo, issue_title) \
+      or repo.create_issue(title=issue_title, body=issue_body)
 
 
 def _update_testcase_properties(testcase, repo, issue):
@@ -118,7 +128,10 @@ def file_issue(testcase):
   """File an issue to the GitHub repo of the project"""
   if not _filing_enabled(testcase):
     return
-
+  if testcase.repo_id and testcase.issue_num:
+    logs.log('Issue already filed under'
+             f'issue number {testcase.issue_num} in Repo {testcase.repo_id}.')
+    return
   access_token = _get_access_token()
   if not access_token:
     raise RuntimeError('Unable to access GitHub account and file the issue.')
