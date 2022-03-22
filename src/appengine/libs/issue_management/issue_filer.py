@@ -25,7 +25,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
-from libs.issue_management import github
+from libs.issue_management import oss_fuzz_github
 from libs.issue_management import issue_tracker_policy
 
 NON_CRASH_TYPES = [
@@ -291,7 +291,7 @@ def notify_issue_update(testcase, status):
               })
       ])
   if status == 'verified':
-    github.close_issue(testcase)
+    ozz_fuzz_github.close_issue(testcase)
 
 
 def file_issue(testcase,
@@ -446,7 +446,7 @@ def file_issue(testcase,
     else:
       raise
 
-  github.file_issue(testcase)
+  ozz_fuzz_github.file_issue(testcase)
 
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
