@@ -241,9 +241,9 @@ class AddExternalUserPermission(base_handler.Handler):
     template_values = {
         'title':
             'Success',
-        'message':
-            ('User %s permission for entity %s is successfully added. '
-             'Redirecting to the configuration page...') % (email, entity_name),
+        'message': (f'User {email} permission for entity {entity_name} '
+                    'is successfully added. '
+                    'Redirecting to the configuration page...'),
         'redirect_url':
             '/configuration',
     }
@@ -291,9 +291,9 @@ class DeleteExternalUserPermission(base_handler.Handler):
     template_values = {
         'title':
             'Success',
-        'message':
-            ('User %s permission for entity %s is successfully deleted. '
-             'Redirecting to the configuration page...') % (email, entity_name),
+        'message': (f'User {email} permission for entity {entity_name} '
+                    'is successfully deleted. '
+                    'Redirecting to the configuration page...'),
         'redirect_url':
             '/configuration',
     }

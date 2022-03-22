@@ -649,8 +649,9 @@ class Testcase(Model):
       # Failed put. An exception will be thrown automatically afterwards.
       return
 
-    logs.log('Updated testcase %d (bug %s).' % (self.key.id(),
-                                                self.bug_information or '-'))
+    logs.log(
+        f'Updated testcase {self.key.id()} (bug {self.bug_information or "-"}).'
+    )
 
   def set_impacts_as_na(self):
     self.impact_stable_version = self.impact_beta_version = None
@@ -979,7 +980,7 @@ class Job(Model):
     environment_string = ''
     job_environment = self.get_environment()
     for key, value in six.iteritems(job_environment):
-      environment_string += '%s = %s\n' % (key, value)
+      environment_string += f'{key} = {value}\n'
 
     return environment_string
 
@@ -1278,7 +1279,7 @@ class FuzzStrategyProbability(Model):
 
 def fuzz_target_job_key(fuzz_target_name, job):
   """Return the key for FuzzTargetJob."""
-  return '{}/{}'.format(fuzz_target_name, job)
+  return f'{fuzz_target_name}/{job}'
 
 
 class ExternalUserPermission(Model):

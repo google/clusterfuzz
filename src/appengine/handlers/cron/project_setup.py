@@ -193,7 +193,7 @@ def get_github_url(url):
   response = requests.get(url, auth=(client_id, client_secret))
   if response.status_code != 200:
     logs.log_error(
-        'Failed to get github url: %s' % url, status_code=response.status_code)
+        f'Failed to get github url: {url}.', status_code=response.status_code)
     response.raise_for_status()
 
   return json.loads(response.text)
@@ -279,7 +279,7 @@ def get_jobs_for_project(project, info):
   sanitizers = _process_sanitizers_field(
       info.get('sanitizers', DEFAULT_SANITIZERS))
   if not sanitizers:
-    logs.log_error('Invalid sanitizers field for %s.' % project)
+    logs.log_error(f'Invalid sanitizers field for {project}.')
     return []
 
   engines = info.get('fuzzing_engines', DEFAULT_ENGINES)
@@ -350,7 +350,7 @@ def _add_users_to_bucket(info, client, bucket_name, iam_policy):
     if cc in binding['members']:
       continue
 
-    logs.log('Adding %s to bucket IAM for %s' % (cc, bucket_name))
+    logs.log(f'Adding {cc} to bucket IAM for {bucket_name}.')
     # Add CCs one at a time since the API does not work with invalid or
     # non-Google emails.
     modified_iam_policy = storage.add_single_bucket_iam(
@@ -424,9 +424,7 @@ def ccs_from_info(info):
     if isinstance(field_value, str):
       return [field_value]
 
-    raise ProjectSetupError(
-        'Bad value for field {field_name}: {field_value}.'.format(
-            field_name=field_name, field_value=field_value))
+    raise ProjectSetupError(f'Bad value for field {field_name}: {field_value}.')
 
   ccs = []
   ccs.extend(_get_ccs('primary_contact', allow_list=False))
@@ -454,7 +452,7 @@ def update_fuzzer_jobs(fuzzer_entities, job_names):
       if job.name in job_names:
         continue
 
-      logs.log('Deleting job %s' % job.name)
+      logs.log(f'Deleting job {job.name}')
       to_delete[job.name] = job.key
 
       try:
@@ -475,7 +473,7 @@ def cleanup_old_projects_settings(project_names):
 
   for project in data_types.OssFuzzProject.query():
     if project.name not in project_names:
-      logs.log('Deleting project %s' % project.name)
+      logs.log(f'Deleting project {project.name}.')
       to_delete.append(project.key)
 
   if to_delete:
@@ -611,7 +609,7 @@ class ProjectSetup(object):
 
   def _deployment_bucket_name(self):
     """Deployment bucket name."""
-    return '{project}-deployment'.format(project=utils.get_application_id())
+    return f'{utils.get_application_id()}-deployment'
 
   def _shared_corpus_bucket_name(self):
     """Shared corpus bucket name."""
@@ -661,7 +659,7 @@ class ProjectSetup(object):
       add_bucket_iams(info, client, logs_bucket_name, service_account)
       add_bucket_iams(info, client, quarantine_bucket_name, service_account)
     except Exception as e:
-      logs.log_error('Failed to add bucket IAMs for %s: %s' % (project, e))
+      logs.log_error(f'Failed to add bucket IAMs for {project}: {e}.')
 
     # Grant the service account read access to deployment, shared corpus and
     # mutator plugin buckets.
@@ -768,26 +766,20 @@ class ProjectSetup(object):
                                           template.architecture),
             sanitizer=template.memory_tool)
 
-        job.environment_string += (
-            'REVISION_VARS_URL = {revision_vars_url}\n'.format(
-                revision_vars_url=revision_vars_url))
+        job.environment_string += f'REVISION_VARS_URL = {revision_vars_url}\n'
 
       if logs_bucket_name:
-        job.environment_string += 'FUZZ_LOGS_BUCKET = {logs_bucket}\n'.format(
-            logs_bucket=logs_bucket_name)
+        job.environment_string += f'FUZZ_LOGS_BUCKET = {logs_bucket_name}\n'
 
       if corpus_bucket_name:
-        job.environment_string += 'CORPUS_BUCKET = {corpus_bucket}\n'.format(
-            corpus_bucket=corpus_bucket_name)
+        job.environment_string += f'CORPUS_BUCKET = {corpus_bucket_name}\n'
 
       if quarantine_bucket_name:
         job.environment_string += (
-            'QUARANTINE_BUCKET = {quarantine_bucket}\n'.format(
-                quarantine_bucket=quarantine_bucket_name))
+            f'QUARANTINE_BUCKET = {quarantine_bucket_name}\n')
 
       if backup_bucket_name:
-        job.environment_string += 'BACKUP_BUCKET = {backup_bucket}\n'.format(
-            backup_bucket=backup_bucket_name)
+        job.environment_string += f'BACKUP_BUCKET = {backup_bucket_name}\n'
 
       if self._add_info_labels:
         automatic_labels = [f'Proj-{project}', f'Engine-{template.engine}']
@@ -799,7 +791,7 @@ class ProjectSetup(object):
 
       help_url = info.get('help_url')
       if help_url:
-        job.environment_string += 'HELP_URL = %s\n' % help_url
+        job.environment_string += f'HELP_URL = {help_url}\n'
 
       if (template.experimental or
           (self._experimental_sanitizers and
@@ -810,16 +802,17 @@ class ProjectSetup(object):
         minimize_job_override = template.minimize_job_override.job_name(
             project, self._config_suffix)
         job.environment_string += (
-            'MINIMIZE_JOB_OVERRIDE = %s\n' % minimize_job_override)
+            f'MINIMIZE_JOB_OVERRIDE = {minimize_job_override}\n')
 
       view_restrictions = info.get('view_restrictions')
       if view_restrictions:
         if view_restrictions in ALLOWED_VIEW_RESTRICTIONS:
           job.environment_string += (
-              'ISSUE_VIEW_RESTRICTIONS = %s\n' % view_restrictions)
+              f'ISSUE_VIEW_RESTRICTIONS = {view_restrictions}\n')
         else:
-          logs.log_error('Invalid view restriction setting %s for project %s.' %
-                         (view_restrictions, project))
+          logs.log_error(
+              f'Invalid view restriction setting {view_restrictions} '
+              f'for project {project}.')
 
       selective_unpack = info.get('selective_unpack')
       if selective_unpack:
@@ -844,7 +837,7 @@ class ProjectSetup(object):
             memory_tool='dataflow',
             architecture=template.architecture)
         job.environment_string += (
-            'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
+            f'DATAFLOW_BUILD_BUCKET_PATH = {dataflow_build_bucket_path}\n')
 
       if self._additional_vars:
         additional_vars = {}
@@ -855,9 +848,9 @@ class ProjectSetup(object):
         additional_vars.update(engine_sanitizer_vars)
 
         for key, value in sorted(six.iteritems(additional_vars)):
-          job.environment_string += ('{} = {}\n'.format(
-              key,
-              str(value).encode('unicode-escape').decode('utf-8')))
+          job.environment_string += (
+              f'{key} = {str(value).encode("unicode-escape").decode("utf-8")}\n'
+          )
 
       job.put()
 
@@ -904,7 +897,7 @@ class ProjectSetup(object):
     up."""
     job_names = []
     for project, info in projects:
-      logs.log('Syncing configs for %s.' % project)
+      logs.log(f'Syncing configs for {project}.')
 
       backup_bucket_name = None
       corpus_bucket_name = None

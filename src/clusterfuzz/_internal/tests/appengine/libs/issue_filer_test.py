@@ -605,7 +605,7 @@ class IssueFilerTests(unittest.TestCase):
     for entry in issue_filer.MEMORY_TOOLS_LABELS:
       issue_tracker = monorail.IssueTracker(IssueTrackerManager(project_name))
 
-      self.testcase1.crash_stacktrace = '\n\n%s\n' % entry['token']
+      self.testcase1.crash_stacktrace = f'\n\n{entry["token"]}\n'
       self.testcase1.put()
       issue_filer.file_issue(self.testcase1, issue_tracker)
       self.assertIn('Stability-' + entry['label'],
@@ -715,7 +715,8 @@ class MemoryToolLabelsTest(unittest.TestCase):
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
-    with open(os.path.join(self.DATA_DIRECTORY, name)) as handle:
+    with open(
+        os.path.join(self.DATA_DIRECTORY, name), encoding='utf-8') as handle:
       return handle.read()
 
   def test_memory_tools_labels_asan(self):
