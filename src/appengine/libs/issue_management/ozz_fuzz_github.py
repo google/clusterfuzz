@@ -130,9 +130,7 @@ def file_issue(testcase):
 
 def issue_recorded(testcase):
   """Verify the issue has been filed."""
-  return hasattr(testcase, 'github_repo_id') \
-      and testcase.github_repo_id is not None \
-      and hasattr(testcase, 'github_issue_num') \
+  return testcase.github_repo_id is not None \
       and testcase.github_issue_num is not None
 
 
