@@ -15,6 +15,7 @@
 
 import github
 
+from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.metrics import logs
@@ -77,7 +78,7 @@ def _filing_enabled(testcase):
   """Check if the project YAML file requires to file a GitHub issue."""
   require_issue = data_handler.get_value_from_job_definition(
       testcase.job_type, 'FILE_GITHUB_ISSUE', default='False')
-  return require_issue.lower() == 'true'
+  return utils.string_is_true(require_issue)
 
 
 def _get_repo(testcase, access):
