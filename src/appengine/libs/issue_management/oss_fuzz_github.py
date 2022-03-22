@@ -64,7 +64,7 @@ def get_issue_close_comment(testcase):
       bug_information=testcase.bug_information)
 
 
-def get_access():
+def _get_access_token():
   """Get access to GitHub with the oss-fuzz personal access token"""
   token = db_config.get_value('oss_fuzz_robot_github_personal_access_token')
   if not token:
@@ -73,14 +73,14 @@ def get_access():
   return github.Github(token)
 
 
-def filing_enabled(testcase):
+def _filing_enabled(testcase):
   """Check if the project YAML file requires to file a GitHub issue."""
   require_issue = data_handler.get_value_from_job_definition(
       testcase.job_type, 'FILE_GITHUB_ISSUE', default='False')
   return require_issue.lower() == 'true'
 
 
-def get_repo(testcase, access):
+def _get_repo(testcase, access):
   """Get the GitHub repository to file the issue"""
   repo_url = data_handler.get_value_from_job_definition(testcase.job_type,
                                                         'MAIN_REPO', '')
@@ -98,14 +98,14 @@ def get_repo(testcase, access):
   return target_repo
 
 
-def post_issue(repo, testcase):
+def _post_issue(repo, testcase):
   """Post the issue to the Github repo of the project."""
   issue_title = get_issue_title(testcase)
   issue_body = get_issue_body(testcase)
   return repo.create_issue(title=issue_title, body=issue_body)
 
 
-def update_testcase_properties(testcase, repo, issue):
+def _update_testcase_properties(testcase, repo, issue):
   """Update the GitHub-related properties in the FiledBug entity."""
   testcase.repo_id = repo.id
   testcase.issue_num = issue.number
@@ -113,28 +113,28 @@ def update_testcase_properties(testcase, repo, issue):
 
 def file_issue(testcase):
   """File an issue to the GitHub repo of the project"""
-  if not filing_enabled(testcase):
+  if not _filing_enabled(testcase):
     return
 
-  access = get_access()
-  if not access:
+  access_token = _get_access_token()
+  if not access_token:
     logs.log_error('Unable to access GitHub account and file the issue.')
     return
-  repo = get_repo(testcase, access)
+  repo = _get_repo(testcase, access_token)
   if not repo:
     logs.log_error('Unable to locate GitHub repository and file the issue.')
     return
-  issue = post_issue(repo, testcase)
-  update_testcase_properties(testcase, repo, issue)
+  issue = _post_issue(repo, testcase)
+  _update_testcase_properties(testcase, repo, issue)
 
 
-def issue_recorded(testcase):
+def _issue_recorded(testcase):
   """Verify the issue has been filed."""
   return testcase.github_repo_id \
       and testcase.github_issue_num
 
 
-def get_issue(testcase, access):
+def _get_issue(testcase, access):
   """Locate the issue of the testcase."""
   repo_id = testcase.github_repo_id
   issue_num = testcase.github_issue_num
@@ -152,7 +152,7 @@ def get_issue(testcase, access):
   return target_issue
 
 
-def close_issue_with_comment(testcase, issue):
+def _close_issue_with_comment(testcase, issue):
   """Generate closing comment, comment, and close the GitHub issue."""
   issue_close_comment = get_issue_close_comment(testcase)
   issue.create_comment(issue_close_comment)
@@ -161,16 +161,16 @@ def close_issue_with_comment(testcase, issue):
 
 def close_issue(testcase):
   """Close the issue on GitHub, when the same issue is closed on Monorail."""
-  if not issue_recorded(testcase):
+  if not _issue_recorded(testcase):
     return
-  access = get_access()
-  if not access:
+  access_token = _get_access_token()
+  if not access_token:
     logs.log_error('Unable to access GitHub account and close the issue.')
     return
-  issue = get_issue(testcase, access)
+  issue = _get_issue(testcase, access_token)
   if not issue:
     logs.log_error('Unable to locate and close the issue.')
     return
-  close_issue_with_comment(testcase, issue)
+  _close_issue_with_comment(testcase, issue)
   logs.log(f'Closed issue number {testcase.github_issue_num} '
            f'in GitHub repository {testcase.github_repo_id}.')
