@@ -291,7 +291,7 @@ def notify_issue_update(testcase, status):
               })
       ])
   if status == 'verified':
-    github.close_github_issue(testcase)
+    github.close_issue(testcase)
 
 
 def file_issue(testcase,
@@ -446,7 +446,7 @@ def file_issue(testcase,
     else:
       raise
 
-  github.file_github_issue(testcase)
+  github.file_issue(testcase)
 
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
