@@ -569,10 +569,10 @@ class Testcase(Model):
   # Uploader email address.
   uploader_email = ndb.StringProperty()
 
-  # Github repository id
+  # Identifies the GitHub repository to mirror the issue of the testcase.
   github_repo_id = ndb.IntegerProperty()
 
-  # Github issue number.
+  # Identifies the issue of the testcase in the repo above.
   # Note that the number is specific to the repository.
   github_issue_num = ndb.IntegerProperty()
 
