@@ -291,7 +291,7 @@ def notify_issue_update(testcase, status):
               })
       ])
 
-  if status in ['verified', 'wontfix']:
+  if status in ('verified', 'wontfix'):
     logs.log(f'Closing issue {testcase.github_issue_num} '
              f'in GitHub repo {testcase.github_id}: '
              f'Testcase {testcase.key.id()} is marked as {status}.')
