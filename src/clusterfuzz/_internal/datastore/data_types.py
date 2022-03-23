@@ -569,6 +569,13 @@ class Testcase(Model):
   # Uploader email address.
   uploader_email = ndb.StringProperty()
 
+  # Identifies the GitHub repository to mirror the issue of the testcase.
+  github_repo_id = ndb.IntegerProperty()
+
+  # Identifies the issue of the testcase in the repo above.
+  # Note that the number is specific to the repository.
+  github_issue_num = ndb.IntegerProperty()
+
   def has_blame(self):
     return self.project_name == 'chromium'
 
@@ -642,8 +649,9 @@ class Testcase(Model):
       # Failed put. An exception will be thrown automatically afterwards.
       return
 
-    logs.log('Updated testcase %d (bug %s).' % (self.key.id(),
-                                                self.bug_information or '-'))
+    logs.log(
+        f'Updated testcase {self.key.id()} (bug {self.bug_information or "-"}).'
+    )
 
   def set_impacts_as_na(self):
     self.impact_stable_version = self.impact_beta_version = None
@@ -808,6 +816,9 @@ class Config(Model):
   # For GitHub API.
   github_credentials = ndb.StringProperty(default='')
 
+  # For filing issues to GitHub repositories under test.
+  oss_fuzz_robot_github_personal_access_token = ndb.StringProperty(default='')
+
   # OAuth2 client id for the reproduce tool.
   reproduce_tool_client_id = ndb.StringProperty(default='')
 
@@ -969,7 +980,7 @@ class Job(Model):
     environment_string = ''
     job_environment = self.get_environment()
     for key, value in six.iteritems(job_environment):
-      environment_string += '%s = %s\n' % (key, value)
+      environment_string += f'{key} = {value}\n'
 
     return environment_string
 
@@ -1268,7 +1279,7 @@ class FuzzStrategyProbability(Model):
 
 def fuzz_target_job_key(fuzz_target_name, job):
   """Return the key for FuzzTargetJob."""
-  return '{}/{}'.format(fuzz_target_name, job)
+  return f'{fuzz_target_name}/{job}'
 
 
 class ExternalUserPermission(Model):
