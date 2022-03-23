@@ -25,7 +25,7 @@ jobs:
       run:
         working-directory: src
     steps:
-    - uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f # v2.3.4
+    - uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846 # v2.3.4
       with:
         fetch-depth: 0
     - name: Set up Python 3
