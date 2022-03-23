@@ -87,7 +87,10 @@ def _get_repo(testcase, access):
   repo_url = data_handler.get_value_from_job_definition(testcase.job_type,
                                                         'MAIN_REPO', '')
   if not repo_url:
-    logs.log_error('Unable to fetch the MAIN_REPO URL from job definition.')
+    logs.log('Unable to fetch the MAIN_REPO URL from job definition.')
+    return None
+  if not repo_url.startswith(GITHUB_PREFIX):
+    logs.log(f'MAIN REPO is not a GitHub url: {repo_url}.')
     return None
   repo_name = repo_url.removeprefix(GITHUB_PREFIX)
 
@@ -137,7 +140,7 @@ def file_issue(testcase):
 
   repo = _get_repo(testcase, access_token)
   if not repo:
-    logs.log_error('Unable to locate GitHub repository and file the issue.')
+    logs.log('Unable to file issues to the main repo of the project')
     return
 
   issue = _post_issue(repo, testcase)
