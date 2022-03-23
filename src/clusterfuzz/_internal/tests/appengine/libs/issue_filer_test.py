@@ -696,7 +696,7 @@ class IssueFilerTests(unittest.TestCase):
       actual_body = oss_fuzz_github.get_issue_body(testcase)
       expected_body = GITHUB_ISSUE_CONTENT_TEXT.format(
           domain=data_handler.get_domain(),
-          testcase_id=testcase.key.id,
+          testcase_id=testcase.key.id(),
           bug_information=testcase.bug_information)
       self.assertEqual(actual_body, expected_body)
 

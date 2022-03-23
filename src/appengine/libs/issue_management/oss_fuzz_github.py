@@ -57,7 +57,7 @@ def get_issue_body(testcase):
   """Generate the body of the issue"""
   return ISSUE_CONTENT_TEXT.format(
       domain=data_handler.get_domain(),
-      testcase_id=testcase.key.id,
+      testcase_id=testcase.key.id(),
       bug_information=testcase.bug_information)
 
 
