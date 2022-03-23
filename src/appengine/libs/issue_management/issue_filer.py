@@ -290,7 +290,11 @@ def notify_issue_update(testcase, status):
                   'testcase_id': str(testcase.key.id()),
               })
       ])
-  if status == 'verified':
+
+  if status in ['verified', 'wontfix']:
+    logs.log(f'Closing issue {testcase.github_issue_num} '
+             f'in GitHub repo {testcase.github_id}: '
+             f'Testcase {testcase.key.id()} is marked as {status}.')
     oss_fuzz_github.close_issue(testcase)
 
 

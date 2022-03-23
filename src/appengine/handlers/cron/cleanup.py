@@ -591,6 +591,8 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
   testcase.open = False
   testcase.put()
 
+  issue_filer.notify_issue_update(testcase, 'wontfix')
+
   logs.log('Closed unreproducible testcase %d and associated issue.' %
            testcase.key.id())
 
@@ -633,6 +635,9 @@ def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
   issue.status = policy.status('wontfix')
 
   issue.save(new_comment=comment, notify=True)
+
+  issue_filer.notify_issue_update(testcase, 'wontfix')
+
   logs.log(
       f'Closing issue {issue.id} for invalid testcase {testcase.key.id()}.')
 
