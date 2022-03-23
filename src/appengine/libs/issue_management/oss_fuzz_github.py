@@ -114,8 +114,8 @@ def _post_issue(repo, testcase):
   """Post the issue to the Github repo of the project."""
   issue_title = get_issue_title(testcase)
   issue_body = get_issue_body(testcase)
-  return _find_existing_issue(repo, issue_title) \
-      or repo.create_issue(title=issue_title, body=issue_body)
+  return (_find_existing_issue(repo, issue_title) or
+          repo.create_issue(title=issue_title, body=issue_body))
 
 
 def _update_testcase_properties(testcase, repo, issue):
@@ -128,17 +128,21 @@ def file_issue(testcase):
   """File an issue to the GitHub repo of the project"""
   if not _filing_enabled(testcase):
     return
+
   if testcase.repo_id and testcase.issue_num:
     logs.log('Issue already filed under'
              f'issue number {testcase.issue_num} in Repo {testcase.repo_id}.')
     return
+
   access_token = _get_access_token()
   if not access_token:
     raise RuntimeError('Unable to access GitHub account and file the issue.')
+
   repo = _get_repo(testcase, access_token)
   if not repo:
     logs.log_error('Unable to locate GitHub repository and file the issue.')
     return
+
   issue = _post_issue(repo, testcase)
   _update_testcase_properties(testcase, repo, issue)
 
@@ -177,9 +181,11 @@ def close_issue(testcase):
   """Close the issue on GitHub, when the same issue is closed on Monorail."""
   if not _issue_recorded(testcase):
     return
+
   access_token = _get_access_token()
   if not access_token:
     raise RuntimeError('Unable to access GitHub account and close the issue.')
+
   issue = _get_issue(testcase, access_token)
   if not issue:
     logs.log_error('Unable to locate and close the issue.')
@@ -189,6 +195,7 @@ def close_issue(testcase):
              f'in GitHub repository {testcase.github_repo_id} '
              'is already closed.')
     return
+
   _close_issue_with_comment(testcase, issue)
   logs.log(f'Closed issue number {testcase.github_issue_num} '
            f'in GitHub repository {testcase.github_repo_id}.')
