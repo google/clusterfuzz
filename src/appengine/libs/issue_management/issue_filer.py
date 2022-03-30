@@ -450,10 +450,9 @@ def file_issue(testcase,
     else:
       raise
 
-  oss_fuzz_github.file_issue(testcase)
-
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
+  oss_fuzz_github.file_issue(testcase)
   testcase.put()
 
   data_handler.update_group_bug(testcase.group_id)
