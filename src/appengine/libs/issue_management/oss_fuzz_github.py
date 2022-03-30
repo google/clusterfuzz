@@ -92,7 +92,7 @@ def _get_repo(testcase, access):
   if not repo_url.startswith(GITHUB_PREFIX):
     logs.log(f'MAIN REPO is not a GitHub url: {repo_url}.')
     return None
-  repo_name = repo_url.lstrip(GITHUB_PREFIX)
+  repo_name = repo_url[len(GITHUB_PREFIX):]
 
   try:
     target_repo = access.get_repo(repo_name)
