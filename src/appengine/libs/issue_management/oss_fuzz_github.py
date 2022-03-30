@@ -122,8 +122,8 @@ def _post_issue(repo, testcase):
 
 def _update_testcase_properties(testcase, repo, issue):
   """Update the GitHub-related properties in the FiledBug entity."""
-  testcase.repo_id = repo.id
-  testcase.issue_num = issue.number
+  testcase.github_repo_id = repo.id
+  testcase.github_issue_num = issue.number
 
 
 def file_issue(testcase):
@@ -131,9 +131,10 @@ def file_issue(testcase):
   if not _filing_enabled(testcase):
     return
 
-  if testcase.repo_id and testcase.issue_num:
+  if testcase.github_repo_id and testcase.github_issue_num:
     logs.log('Issue already filed under'
-             f'issue number {testcase.issue_num} in Repo {testcase.repo_id}.')
+             f'issue number {testcase.github_issue_num} in '
+             f'Repo {testcase.github_repo_id}.')
     return
 
   access_token = _get_access_token()
