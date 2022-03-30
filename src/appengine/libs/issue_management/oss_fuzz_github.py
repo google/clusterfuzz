@@ -32,7 +32,7 @@ OSS_FUZZ_ISSUE_URL = 'https://github.com/google/oss-fuzz/issues/new'
 ISSUE_TITTLE_TEXT = 'OSS-Fuzz issue {bug_information}'
 
 ISSUE_CONTENT_TEXT = ('OSS-Fuzz has found a bug in this project. Please see '
-                      f'{TESTCASE_REPORT_URL}'
+                      f'{TESTCASE_REPORT_URL} '
                       'for details and reproducers.'
                       '\n\n'
                       'This issue is mirrored from '
