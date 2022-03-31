@@ -191,8 +191,10 @@
       </div>
       <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
         <div class="warning">
-          <b>WARNING</b>: Please be mindful of what you upload, as ClusterFuzz doesn't support untrusted workloads.<br/>
-          Unless the PoC is very obviously harmless, please only upload them to the following sandboxed job types:<br/>
+          <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
+          Only upload testcases that you trust enough to run on your own
+          machine. Note that some jobs do not use the Chrome sandbox, the
+          following jobs do:<br>
           [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
         </div>
       </template>
