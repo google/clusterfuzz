@@ -189,7 +189,7 @@
           </paper-dropdown-menu>
         </template>
       </div>
-      <template>
+      <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
         <div class="warning">
           <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
           Only upload testcases that you trust enough to run on your own
