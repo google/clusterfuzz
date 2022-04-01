@@ -26,7 +26,7 @@ jobs:
           git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/master
 
       - name: Setup python environment
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@9c644ca2ab8e57ea0a487b5ec2f8290740378bfd
         with:
           python-version: 3.7
 
