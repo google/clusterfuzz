@@ -48,3 +48,4 @@ bazel-*
 /src/build
 *.egg-info
 /src/clusterfuzz/lib-config
+.DS_Store
