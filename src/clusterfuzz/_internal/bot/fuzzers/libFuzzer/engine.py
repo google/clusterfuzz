@@ -148,7 +148,7 @@ class Engine(engine.Engine):
     dict_path = fuzzer_utils.extract_argument(
         arguments, constants.DICT_FLAG, remove=False)
     if dict_path and not os.path.exists(dict_path):
-      logs.log_error('Invalid dict %s for %s.' % (dict_path, target_path))
+      logs.log_error(f'Invalid dict {dict_path} for {target_path}.')
       fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
@@ -235,7 +235,7 @@ class Engine(engine.Engine):
     # Record the stats to make them easily searchable in stackdriver.
     logs.log('Stats calculated.', stats=stat_overrides)
     if new_units_added:
-      logs.log('New units added to corpus: %d.' % new_units_added)
+      logs.log(f'New units added to corpus: {new_units_added}.')
     else:
       logs.log('No new units found.')
 
@@ -275,9 +275,9 @@ class Engine(engine.Engine):
     dict_error_match = DICT_PARSING_FAILED_REGEX.search(fuzz_result.output)
     if dict_error_match:
       logs.log_error(
-          'Dictionary parsing failed (target={target}, line={line}).'.format(
-              target=project_qualified_fuzzer_name,
-              line=dict_error_match.group(1)),
+          'Dictionary parsing failed '
+          f'(target={project_qualified_fuzzer_name}, '
+          f'line={dict_error_match.group(1)}).',
           engine_output=fuzz_result.output)
     elif (not environment.get_value('USE_MINIJAIL') and
           fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
@@ -285,8 +285,7 @@ class Engine(engine.Engine):
       # Otherwise: we can assume that a return code of 1 means that libFuzzer
       # itself ran into an error.
       logs.log_error(
-          ENGINE_ERROR_MESSAGE +
-          ' (target={target}).'.format(target=project_qualified_fuzzer_name),
+          ENGINE_ERROR_MESSAGE + f' (target={project_qualified_fuzzer_name}).',
           engine_output=fuzz_result.output)
 
     log_lines = fuzz_result.output.splitlines()
