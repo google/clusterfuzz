@@ -25,7 +25,7 @@ GITHUB_PREFIX = 'https://github.com/'
 TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 
 MONORAIL_URL = (
-    'https://bugs.chromium.org/p/oss-fuzz/detail?id={bug_information}')
+    'https://bugs.chromium.org/p/oss-fuzz/issues/detail?id={bug_information}')
 
 OSS_FUZZ_ISSUE_URL = 'https://github.com/google/oss-fuzz/issues/new'
 
