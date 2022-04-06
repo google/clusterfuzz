@@ -24,17 +24,17 @@ from libs.issue_management import oss_fuzz_github
 
 REPO_NAME = 'sample/sample.git'
 MAIN_REPO = f'https://github.com/{REPO_NAME}'
-JOB1_ENVIRONMENT = f"MAIN_REPO = {MAIN_REPO}\n" \
-                   "FILE_GITHUB_ISSUE = True"
+JOB1_ENVIRONMENT = f'MAIN_REPO = {MAIN_REPO}\n' \
+                   'FILE_GITHUB_ISSUE = True'
 
-JOB2_ENVIRONMENT = f"MAIN_REPO = {MAIN_REPO}\n" \
-                   "FILE_GITHUB_ISSUE = False"
+JOB2_ENVIRONMENT = f'MAIN_REPO = {MAIN_REPO}\n' \
+                   'FILE_GITHUB_ISSUE = False'
 
-JOB3_ENVIRONMENT = f"MAIN_REPO = {MAIN_REPO}\n"
+JOB3_ENVIRONMENT = f'MAIN_REPO = {MAIN_REPO}\n'
 
 GITHUB_REPO_ID = 100
 GITHUB_ISSUE_NUM = 200
-GITHUB_ACCESS_TOKEN = "SECRET"
+GITHUB_ACCESS_TOKEN = 'SECRET'
 
 
 @test_utils.with_cloud_emulators('datastore')
