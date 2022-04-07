@@ -29,7 +29,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Set up Python 3
-      uses: actions/setup-python@dc73133d4da04e56a135ae2246682783cc7c7cb6 # v2.2.2
+      uses: actions/setup-python@21c0493ecfd34b1217f0a90ec19a327f3cc0a048 # v2.2.2
       with:
         python-version: 3.7
     - name: Install pypa/build
