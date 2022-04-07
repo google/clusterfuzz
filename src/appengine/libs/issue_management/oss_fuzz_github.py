@@ -71,7 +71,8 @@ def _get_access_token():
   """Get access to GitHub with the oss-fuzz personal access token"""
   token = db_config.get_value('oss_fuzz_robot_github_personal_access_token')
   if not token:
-    raise RuntimeError('Unable to access GitHub account and close the issue.')
+    raise RuntimeError('Unable to access GitHub account to '
+                       'file/close the issue.')
   return github.Github(token)
 
 
