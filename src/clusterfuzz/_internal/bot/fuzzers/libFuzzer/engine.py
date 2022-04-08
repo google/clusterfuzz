@@ -148,7 +148,7 @@ class Engine(engine.Engine):
     dict_path = fuzzer_utils.extract_argument(
         arguments, constants.DICT_FLAG, remove=False)
     if dict_path and not os.path.exists(dict_path):
-      logs.log_error('Invalid dict %s for %s.' % (dict_path, target_path))
+      logs.log_error(f'Invalid dict {dict_path} for {target_path}.')
       fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
@@ -235,7 +235,7 @@ class Engine(engine.Engine):
     # Record the stats to make them easily searchable in stackdriver.
     logs.log('Stats calculated.', stats=stat_overrides)
     if new_units_added:
-      logs.log('New units added to corpus: %d.' % new_units_added)
+      logs.log(f'New units added to corpus: {new_units_added}.')
     else:
       logs.log('No new units found.')
 
@@ -275,9 +275,9 @@ class Engine(engine.Engine):
     dict_error_match = DICT_PARSING_FAILED_REGEX.search(fuzz_result.output)
     if dict_error_match:
       logs.log_error(
-          'Dictionary parsing failed (target={target}, line={line}).'.format(
-              target=project_qualified_fuzzer_name,
-              line=dict_error_match.group(1)),
+          'Dictionary parsing failed '
+          f'(target={project_qualified_fuzzer_name}, '
+          f'line={dict_error_match.group(1)}).',
           engine_output=fuzz_result.output)
     elif (not environment.get_value('USE_MINIJAIL') and
           fuzz_result.return_code == constants.LIBFUZZER_ERROR_EXITCODE):
@@ -285,8 +285,7 @@ class Engine(engine.Engine):
       # Otherwise: we can assume that a return code of 1 means that libFuzzer
       # itself ran into an error.
       logs.log_error(
-          ENGINE_ERROR_MESSAGE +
-          ' (target={target}).'.format(target=project_qualified_fuzzer_name),
+          ENGINE_ERROR_MESSAGE + f' (target={project_qualified_fuzzer_name}).',
           engine_output=fuzz_result.output)
 
     log_lines = fuzz_result.output.splitlines()
@@ -388,7 +387,8 @@ class Engine(engine.Engine):
         input_path, timeout=max_time, additional_args=arguments)
 
     if result.timed_out:
-      raise TimeoutError('Reproducing timed out\n' + result.output)
+      logs.log_error('Reproducing timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Reproducing timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -442,7 +442,9 @@ class Engine(engine.Engine):
     # Adjust the time limit for the time we spent on the first merge step.
     max_time -= result_1.time_executed
     if max_time <= 0:
-      raise TimeoutError('Merging new testcases timed out\n' + result_1.logs)
+      logs.log_error(
+          'Merging new testcases timed out.', fuzzer_output=result_1.logs)
+      raise TimeoutError('Merging new testcases timed out.')
 
     # Step 2. Process the new corpus units as well.
     result_2 = self.minimize_corpus(
@@ -504,10 +506,14 @@ class Engine(engine.Engine):
         merge_control_file=getattr(self, '_merge_control_file', None))
 
     if result.timed_out:
-      raise TimeoutError('Merging new testcases timed out\n' + result.output)
+      logs.log_error(
+          'Merging new testcases timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Merging new testcases timed out.')
 
     if result.return_code != 0:
-      raise MergeError('Merging new testcases failed: ' + result.output)
+      logs.log_error(
+          'Merging new testcases timed out.', fuzzer_output=result.output)
+      raise MergeError('Merging new testcases failed.')
 
     merge_output = result.output
     merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
@@ -545,7 +551,8 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise TimeoutError('Minimization timed out\n' + result.output)
+      logs.log_error('Minimization timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
@@ -578,7 +585,8 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      raise TimeoutError('Cleanse timed out\n' + result.output)
+      logs.log_error('Cleanse timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Cleanse timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)

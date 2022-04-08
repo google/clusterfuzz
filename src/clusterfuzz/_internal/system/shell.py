@@ -219,9 +219,6 @@ def clear_testcase_directories():
   if environment.is_android() and environment.get_value('ANDROID_SERIAL'):
     from clusterfuzz._internal.platforms import android
     android.device.clear_testcase_directory()
-  if environment.platform() == 'FUCHSIA':
-    from clusterfuzz._internal.platforms import fuchsia
-    fuchsia.device.clear_testcase_directory()
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import file_host
     file_host.clear_testcase_directories()

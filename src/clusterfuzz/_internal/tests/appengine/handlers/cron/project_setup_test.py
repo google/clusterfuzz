@@ -41,7 +41,8 @@ EXISTING_BUCKETS = set(['lib1-logs.clusterfuzz-external.appspot.com'])
 
 def _read_data_file(data_file):
   """Helper function to read the contents of a data file."""
-  with open(os.path.join(DATA_DIRECTORY, data_file)) as handle:
+  with open(
+      os.path.join(DATA_DIRECTORY, data_file), encoding='utf-8') as handle:
     return handle.read()
 
 
@@ -292,6 +293,17 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'auto_ccs': 'User@example.com',
             'vendor_ccs': ['vendor1@example.com', 'vendor2@example.com'],
         }),
+        ('lib7', {
+            'homepage': 'http://example.com',
+            'primary_contact': 'primary@example.com',
+            'auto_ccs': ['User@example.com',],
+            'fuzzing_engines': ['libfuzzer',],
+            'sanitizers': ['address'],
+            'labels': {
+                '*': ['custom'],
+                'per-target': ['ignore']
+            },
+        }),
     ]
 
     mock_storage.buckets().get.side_effect = mock_bucket_get
@@ -320,7 +332,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'CORPUS_BUCKET = lib1-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib1-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib1-backup.clusterfuzz-external.appspot.com\n'
-        'AUTOMATIC_LABELS = Proj-lib1,Engine-libfuzzer\n')
+        'AUTOMATIC_LABELS = Proj-lib1,Engine-libfuzzer\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib2').get()
@@ -346,7 +359,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib3-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib3,Engine-libfuzzer\n'
-        'ISSUE_VIEW_RESTRICTIONS = none\n')
+        'ISSUE_VIEW_RESTRICTIONS = none\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_i386_lib3').get()
@@ -367,7 +381,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib3-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib3,Engine-libfuzzer\n'
-        'ISSUE_VIEW_RESTRICTIONS = none\n')
+        'ISSUE_VIEW_RESTRICTIONS = none\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_msan_lib3').get()
@@ -389,7 +404,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'BACKUP_BUCKET = lib3-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib3,Engine-libfuzzer\n'
         'EXPERIMENTAL = True\n'
-        'ISSUE_VIEW_RESTRICTIONS = none\n')
+        'ISSUE_VIEW_RESTRICTIONS = none\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_ubsan_lib3').get()
@@ -410,7 +426,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib3-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib3-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib3,Engine-libfuzzer\n'
-        'ISSUE_VIEW_RESTRICTIONS = none\n')
+        'ISSUE_VIEW_RESTRICTIONS = none\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(data_types.Job.name == 'afl_asan_lib1').get()
     self.assertIsNotNone(job)
@@ -430,7 +447,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib1-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib1-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib1,Engine-afl\n'
-        'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_lib1\n')
+        'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_lib1\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     # Engine-less job. Manually managed.
     job = data_types.Job.query(data_types.Job.name == 'asan_lib4').get()
@@ -455,7 +473,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'AUTOMATIC_LABELS = Proj-lib5,Engine-libfuzzer\n'
         'EXPERIMENTAL = True\n'
         'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
-        'MAIN_REPO = https://github.com/google/main-repo\n')
+        'MAIN_REPO = https://github.com/google/main-repo\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib6').get()
@@ -474,8 +493,31 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'QUARANTINE_BUCKET = lib6-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib6-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib6,Engine-libfuzzer\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'DATAFLOW_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-dataflow/lib6/lib6-dataflow-([0-9]+).zip\n')
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_asan_lib7').get()
+    self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib7')
+    self.assertEqual(job.platform, 'LIB7_LINUX')
+    six.assertCountEqual(self, job.templates,
+                         ['engine_asan', 'libfuzzer', 'prune'])
+    self.assertEqual(
+        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds/lib7/lib7-address-([0-9]+).zip\n'
+        'PROJECT_NAME = lib7\n'
+        'SUMMARY_PREFIX = lib7\n'
+        'MANAGED = True\n'
+        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds/lib7/lib7-address-%s.srcmap.json\n'
+        'FUZZ_LOGS_BUCKET = lib7-logs.clusterfuzz-external.appspot.com\n'
+        'CORPUS_BUCKET = lib7-corpus.clusterfuzz-external.appspot.com\n'
+        'QUARANTINE_BUCKET = lib7-quarantine.clusterfuzz-external.appspot.com\n'
+        'BACKUP_BUCKET = lib7-backup.clusterfuzz-external.appspot.com\n'
+        'AUTOMATIC_LABELS = Proj-lib7,Engine-libfuzzer,custom\n'
+        'FILE_GITHUB_ISSUE = False\n')
 
     self.maxDiff = None  # pylint: disable=invalid-name
 
@@ -492,6 +534,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'libfuzzer_asan_lib6',
         'libfuzzer_msan_lib6',
         'libfuzzer_ubsan_lib6',
+        'libfuzzer_asan_lib7',
     ])
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
@@ -1014,7 +1057,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib1@serviceaccount.com']
                 }]
             },
-            bucket=u'global-corpus.clusterfuzz-external.appspot.com'),
+            bucket='global-corpus.clusterfuzz-external.appspot.com'),
         mock.call(
             body={
                 'resourceId':
@@ -1126,7 +1169,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib2@serviceaccount.com']
                 }]
             },
-            bucket=u'global-corpus.clusterfuzz-external.appspot.com'),
+            bucket='global-corpus.clusterfuzz-external.appspot.com'),
         mock.call(
             body={
                 'resourceId':
@@ -1292,7 +1335,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib3@serviceaccount.com']
                 }]
             },
-            bucket=u'global-corpus.clusterfuzz-external.appspot.com')
+            bucket='global-corpus.clusterfuzz-external.appspot.com')
     ])
 
     mappings = data_types.FuzzerJob.query()
@@ -1311,6 +1354,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB6_LINUX', 'libFuzzer', 'libfuzzer_ubsan_lib6'),
         ('LIB6_LINUX', 'afl', 'afl_asan_lib6'),
         ('LIB1_LINUX', 'honggfuzz', 'honggfuzz_asan_lib1'),
+        ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
     ])
 
     all_permissions = [
@@ -1322,175 +1366,187 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_asan_lib1',
-        'email': u'primary@example.com'
+        'entity_name': 'libfuzzer_asan_lib1',
+        'email': 'primary@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_ubsan_lib1',
-        'email': u'primary@example.com'
+        'entity_name': 'libfuzzer_ubsan_lib1',
+        'email': 'primary@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_ubsan_lib1',
-        'email': u'user@example.com'
+        'entity_name': 'libfuzzer_ubsan_lib1',
+        'email': 'user@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_ubsan_lib1',
-        'email': u'user2@googlemail.com'
+        'entity_name': 'libfuzzer_ubsan_lib1',
+        'email': 'user2@googlemail.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_asan_lib1',
-        'email': u'user@example.com'
+        'entity_name': 'libfuzzer_asan_lib1',
+        'email': 'user@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_asan_lib1',
-        'email': u'user2@googlemail.com'
+        'entity_name': 'libfuzzer_asan_lib1',
+        'email': 'user2@googlemail.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'afl_asan_lib1',
-        'email': u'primary@example.com'
+        'entity_name': 'afl_asan_lib1',
+        'email': 'primary@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'afl_asan_lib1',
-        'email': u'user@example.com'
+        'entity_name': 'afl_asan_lib1',
+        'email': 'user@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'afl_asan_lib1',
-        'email': u'user2@googlemail.com'
+        'entity_name': 'afl_asan_lib1',
+        'email': 'user2@googlemail.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_msan_lib3',
-        'email': u'user@example.com'
+        'entity_name': 'libfuzzer_msan_lib3',
+        'email': 'user@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_ubsan_lib3',
-        'email': u'user@example.com'
+        'entity_name': 'libfuzzer_ubsan_lib3',
+        'email': 'user@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'libfuzzer_asan_lib3',
-        'email': u'user@example.com'
+        'entity_name': 'libfuzzer_asan_lib3',
+        'email': 'user@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'auto_cc': 1,
-        'entity_name': u'asan_lib4',
-        'email': u'user@example.com'
+        'entity_name': 'asan_lib4',
+        'email': 'user@example.com'
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'user@example.com',
-        'entity_name': u'libfuzzer_asan_i386_lib3',
+        'email': 'user@example.com',
+        'entity_name': 'libfuzzer_asan_i386_lib3',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'user@example.com',
-        'entity_name': u'libfuzzer_msan_lib6',
+        'email': 'user@example.com',
+        'entity_name': 'libfuzzer_msan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'user@example.com',
-        'entity_name': u'libfuzzer_ubsan_lib6',
+        'email': 'user@example.com',
+        'entity_name': 'libfuzzer_ubsan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'user@example.com',
-        'entity_name': u'libfuzzer_asan_lib6',
+        'email': 'user@example.com',
+        'entity_name': 'libfuzzer_asan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'user@example.com',
-        'entity_name': u'afl_asan_lib6',
+        'email': 'user@example.com',
+        'entity_name': 'afl_asan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor1@example.com',
-        'entity_name': u'libfuzzer_msan_lib6',
+        'email': 'vendor1@example.com',
+        'entity_name': 'libfuzzer_msan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor1@example.com',
-        'entity_name': u'libfuzzer_ubsan_lib6',
+        'email': 'vendor1@example.com',
+        'entity_name': 'libfuzzer_ubsan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor1@example.com',
-        'entity_name': u'libfuzzer_asan_lib6',
+        'email': 'vendor1@example.com',
+        'entity_name': 'libfuzzer_asan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor1@example.com',
-        'entity_name': u'afl_asan_lib6',
+        'email': 'vendor1@example.com',
+        'entity_name': 'afl_asan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor2@example.com',
-        'entity_name': u'libfuzzer_msan_lib6',
+        'email': 'vendor2@example.com',
+        'entity_name': 'libfuzzer_msan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor2@example.com',
-        'entity_name': u'libfuzzer_ubsan_lib6',
+        'email': 'vendor2@example.com',
+        'entity_name': 'libfuzzer_ubsan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor2@example.com',
-        'entity_name': u'libfuzzer_asan_lib6',
+        'email': 'vendor2@example.com',
+        'entity_name': 'libfuzzer_asan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'vendor2@example.com',
-        'entity_name': u'afl_asan_lib6',
+        'email': 'vendor2@example.com',
+        'entity_name': 'afl_asan_lib6',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'primary@example.com',
-        'entity_name': u'honggfuzz_asan_lib1',
+        'email': 'primary@example.com',
+        'entity_name': 'honggfuzz_asan_lib1',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'user@example.com',
-        'entity_name': u'honggfuzz_asan_lib1',
+        'email': 'user@example.com',
+        'entity_name': 'honggfuzz_asan_lib1',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
-        'email': u'user2@googlemail.com',
-        'entity_name': u'honggfuzz_asan_lib1',
+        'email': 'user2@googlemail.com',
+        'entity_name': 'honggfuzz_asan_lib1',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'primary@example.com',
+        'entity_name': 'libfuzzer_asan_lib7',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'user@example.com',
+        'entity_name': 'libfuzzer_asan_lib7',
         'auto_cc': 1
     }])
 
@@ -1502,6 +1558,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib4-linux',
         'projects/clusterfuzz-external/topics/jobs-lib5-linux',
         'projects/clusterfuzz-external/topics/jobs-lib6-linux',
+        'projects/clusterfuzz-external/topics/jobs-lib7-linux',
     ]
     six.assertCountEqual(self, expected_topics,
                          list(pubsub_client.list_topics('projects/' + app_id)))
@@ -1510,7 +1567,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
       lib = posixpath.basename(topic).split('-')[1]
       six.assertCountEqual(self, [
           'projects/clusterfuzz-external/subscriptions/'
-          'jobs-{}-linux'.format(lib),
+          f'jobs-{lib}-linux',
       ], pubsub_client.list_topic_subscriptions(topic))
 
     self.assertIsNotNone(pubsub_client.get_topic(unmanaged_topic_name))
@@ -1727,6 +1784,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
@@ -1744,6 +1802,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket/a-b/libfuzzer/memory/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
         'EXPERIMENTAL = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'MSAN_VAR = VAL\n'
@@ -1759,6 +1818,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/c-d/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
@@ -1779,6 +1839,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-dbg/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL-dbg\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
@@ -1798,6 +1859,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket/a-b/honggfuzz/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_a-b\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
@@ -1813,6 +1875,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket-dbg/a-b/honggfuzz/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_a-b_dbg\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-dbg\n', job.environment_string)
@@ -1829,6 +1892,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/c-d/googlefuzztest/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)

@@ -16,7 +16,7 @@
 import datetime
 import unittest
 
-from dateutil import tz
+import pytz
 import six
 
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -59,7 +59,7 @@ class Fields(object):
     self.status = Status()
     self.labels = []
     self.components = []
-    self.resolutiondate = '2020-01-14T11:46:34.000-0800'
+    self.resolutiondate = '2020-01-14T11:46:34.000-0000'
 
 
 class JiraIssue(object):
@@ -67,7 +67,11 @@ class JiraIssue(object):
 
   def __init__(self, key):
     self.key = key
+    self.id = key.split('-')[-1]
     self.fields = Fields()
+
+  def update(self, **kwargs):
+    pass
 
 
 class JiraTests(unittest.TestCase):
@@ -81,7 +85,9 @@ class JiraTests(unittest.TestCase):
         'IssueTrackerManager.get_issues',
         'libs.issue_management.jira.IssueTracker.get_issue',
         'libs.issue_management.jira.IssueTracker.new_issue',
-        'clusterfuzz._internal.config.db_config.get'
+        'clusterfuzz._internal.config.db_config.get',
+        'libs.issue_management.jira.issue_tracker_manager.'
+        'IssueTrackerManager.client'
     ])
 
     self.itm = issue_tracker_manager.IssueTrackerManager('VSEC')
@@ -105,7 +111,8 @@ class JiraTests(unittest.TestCase):
     self.mock.get_issue.return_value = self.mock_issue
     issue = self.issue_tracker.get_issue('VSEC-3112')
 
-    self.assertEqual('VSEC-3112', issue.id)
+    self.assertEqual(3112, issue.id)
+    self.assertEqual('VSEC-3112', issue.key)
     self.assertEqual('summary', issue.title)
     self.assertEqual('body', issue.body)
     self.assertEqual('Unassigned', issue.assignee)
@@ -125,11 +132,10 @@ class JiraTests(unittest.TestCase):
     ], issue.ccs)
 
     issue = self.issue_tracker.get_issue('VSEC-3112')
-    self.assertEqual('VSEC-3112', issue.id)
+    self.assertEqual('VSEC-3112', issue.key)
     self.assertEqual(
-        datetime.datetime(
-            2020, 1, 14, 11, 46, 34, tzinfo=tz.tzoffset(None, -28800)),
-        issue.closed_time)
+        datetime.datetime(2020, 1, 14, 11, 46, 34, tzinfo=pytz.utc).timestamp(),
+        issue.closed_time.timestamp())
 
   def test_modify_labels(self):
     """Test modifying labels."""
@@ -151,10 +157,19 @@ class JiraTests(unittest.TestCase):
     """Test find_issues."""
     self.mock.get_issues.return_value = [self.jira_issue]
     issues = self.issue_tracker.find_issues(keywords=['body'], only_open=True)
-    six.assertCountEqual(self, ['VSEC-3112'], [issue.id for issue in issues])
+    six.assertCountEqual(self, ['VSEC-3112'], [issue.key for issue in issues])
 
   def test_issue_url(self):
     """Test issue_url."""
     self.mock.get.return_value = Config()
+    self.mock.get_issue.return_value = self.mock_issue
     issue_url = self.issue_tracker.issue_url('VSEC-3112')
     self.assertEqual('https://jira.company.com/browse/VSEC-3112', issue_url)
+
+  def test_issue_save(self):
+    """Test save."""
+    self.mock.get_issue.return_value = self.mock_issue
+    issue = self.issue_tracker.get_issue('VSEC-3112')
+    issue.status = 'Closed'
+    issue.save()
+    self.assertEqual(issue.status, 'Closed')

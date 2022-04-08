@@ -13,6 +13,7 @@
 # limitations under the License.
 """Jira issue tracker."""
 
+import datetime
 from urllib.parse import urljoin
 
 from dateutil import parser
@@ -42,6 +43,11 @@ class Issue(issue_tracker.Issue):
   @property
   def id(self):
     """The issue identifier."""
+    return int(self.jira_issue.id)
+
+  @property
+  def key(self):
+    """The issue key (e.g. FUZZ-123)."""
     return self.jira_issue.key
 
   @property
@@ -65,11 +71,12 @@ class Issue(issue_tracker.Issue):
   @property
   def is_open(self):
     """Whether the issue is open."""
-    return self.jira_issue.resolution not in ['Closed', 'Done', 'Resolved']
+    return self.jira_issue.fields.resolution is None
 
   @property
   def closed_time(self):
-    return parser.parse(self.jira_issue.fields.resolutiondate)
+    return datetime.datetime.fromtimestamp(
+        parser.parse(self.jira_issue.fields.resolutiondate).timestamp())
 
   @property
   def status(self):
@@ -138,7 +145,7 @@ class Issue(issue_tracker.Issue):
 
   @property
   def actions(self):
-    pass
+    return ()
 
   @property
   def merged_into(self):
@@ -177,8 +184,12 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
+    issue = self.get_issue(issue_id)
+    if not issue:
+      return None
+
     config = db_config.get()
-    url = urljoin(config.jira_url, f'/browse/{str(issue_id)}')
+    url = urljoin(config.jira_url, f'/browse/{str(issue.key)}')
     return url
 
   def find_issues_url(self, keywords=None, only_open=None):

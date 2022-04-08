@@ -26,6 +26,7 @@ from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from libs.issue_management import issue_tracker_policy
+from libs.issue_management import oss_fuzz_github
 
 NON_CRASH_TYPES = [
     'Data race',
@@ -290,6 +291,12 @@ def notify_issue_update(testcase, status):
               })
       ])
 
+  if status in ('verified', 'wontfix'):
+    logs.log(f'Closing issue {testcase.github_issue_num} '
+             f'in GitHub repo {testcase.github_repo_id}: '
+             f'Testcase {testcase.key.id()} is marked as {status}.')
+    oss_fuzz_github.close_issue(testcase)
+
 
 def file_issue(testcase,
                issue_tracker,
@@ -297,7 +304,7 @@ def file_issue(testcase,
                user_email=None,
                additional_ccs=None):
   """File an issue for the given test case."""
-  logs.log('Filing new issue for testcase: %d' % testcase.key.id())
+  logs.log(f'Filing new issue for testcase: {testcase.key.id()}.')
 
   policy = issue_tracker_policy.get(issue_tracker.project)
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
@@ -445,6 +452,7 @@ def file_issue(testcase,
 
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
+  oss_fuzz_github.file_issue(testcase)
   testcase.put()
 
   data_handler.update_group_bug(testcase.group_id)

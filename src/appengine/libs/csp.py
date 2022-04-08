@@ -28,28 +28,25 @@ class CSPBuilder(object):
     # Some values for sources are expected to be quoted. No escaping is done
     # since these are specific literal values that don't require it.
     if quote:
-      source = '\'{}\''.format(source)
+      source = f'\'{source}\''
 
     assert source not in self.directives[directive], (
-        'Duplicate source "{source}" for directive "{directive}"'.format(
-            source=source, directive=directive))
+        f'Duplicate source "{source}" for directive "{directive}"')
     self.directives[directive].append(source)
 
   def add_sourceless(self, directive):
     assert directive not in self.directives, (
-        'Sourceless directive "{directive}" already exists.'.format(
-            directive=directive))
+        f'Sourceless directive "{directive}" already exists.')
 
     self.directives[directive] = []
 
   def remove(self, directive, source, quote=False):
     """Remove a source for a given directive."""
     if quote:
-      source = '\'{}\''.format(source)
+      source = f'\'{source}\''
 
     assert source in self.directives[directive], (
-        'Removing nonexistent "{source}" for directive "{directive}"'.format(
-            source=source, directive=directive))
+        f'Removing nonexistent "{source}" for directive "{directive}"')
     self.directives[directive].remove(source)
 
   def __str__(self):
@@ -92,6 +89,7 @@ def get_default_builder():
   builder.add('img-src', 'www.gstatic.com')
   builder.add('connect-src', 'securetoken.googleapis.com')
   builder.add('connect-src', 'www.googleapis.com')
+  builder.add('connect-src', 'identitytoolkit.googleapis.com')
   builder.add('frame-src', auth.auth_domain())
 
   # External style. Used for fonts, charting libraries.

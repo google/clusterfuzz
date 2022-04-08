@@ -29,6 +29,9 @@ from handlers import external_update
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'external_update_data')
 
+OLD_PROTOCOL = '1'  # Old message format: Data is a stacktrace.
+NEW_PROTOCOL = '2'  # New message format: Data is a JSON array of stracktraces.
+
 
 @test_utils.with_cloud_emulators('datastore')
 class ExternalUpdatesTest(unittest.TestCase):
@@ -233,3 +236,103 @@ class ExternalUpdatesTest(unittest.TestCase):
         'libFuzzer_fuzzer/libfuzzer_external_job')
     self.assertIsNotNone(fuzz_target_job)
     self.assertEqual(datetime.datetime(2021, 1, 1), fuzz_target_job.last_run)
+
+  def test_update_invalid_protocol_version(self):
+    """Test an update that has an invalid protocol version."""
+    self.app.post(
+        '/external-update',
+        params=self._make_message(
+            data=b'["", "", ""]',
+            attributes={
+                'testcaseId': self.testcase.key.id(),
+                'revision': '1337',
+                'protocolVersion': '0',
+            }),
+        headers={'Authorization': 'Bearer fake'},
+        content_type='application/octet-stream')
+
+    updated_testcase = self.testcase.key.get()
+    self.assertTrue(updated_testcase.open)
+    self.assertEqual('', updated_testcase.fixed)
+    self.assertEqual('last_tested',
+                     updated_testcase.last_tested_crash_stacktrace)
+    self.assertIsNone(updated_testcase.get_metadata('last_tested_revision'))
+    self.assertIsNone(
+        updated_testcase.get_metadata('last_tested_crash_revision'))
+
+  def test_update_multiple_fixed(self):
+    """Test an update that has multiple trials with no crash."""
+    self.app.post(
+        '/external-update',
+        params=self._make_message(
+            data=b'["", "", ""]',
+            attributes={
+                'testcaseId': self.testcase.key.id(),
+                'revision': '1337',
+                'protocolVersion': NEW_PROTOCOL,
+            }),
+        headers={'Authorization': 'Bearer fake'},
+        content_type='application/octet-stream')
+
+    updated_testcase = self.testcase.key.get()
+    self.assertFalse(updated_testcase.open)
+    self.assertEqual('1336:1337', updated_testcase.fixed)
+    self.assertEqual('last_tested',
+                     updated_testcase.last_tested_crash_stacktrace)
+    self.assertEqual(1337,
+                     updated_testcase.get_metadata('last_tested_revision'))
+    self.assertIsNone(
+        updated_testcase.get_metadata('last_tested_crash_revision'))
+
+  def test_update_multiple_inconsistent(self):
+    """Test an update that that has multiple trials with inconsistent results
+    (some crashed, some did not)."""
+    stacktrace = self._read_test_data('asan_uaf.txt')
+    stacktraces = ['', stacktrace.decode(), '']
+    stacktraces_bytes = json.dumps(stacktraces).encode()
+    self.app.post(
+        '/external-update',
+        params=self._make_message(
+            stacktraces_bytes, {
+                'testcaseId': self.testcase.key.id(),
+                'revision': '1337',
+                'protocolVersion': NEW_PROTOCOL,
+            }),
+        headers={'Authorization': 'Bearer fake'},
+        content_type='application/octet-stream')
+
+    updated_testcase = self.testcase.key.get()
+    self.assertTrue(updated_testcase.open)
+    self.assertEqual('', updated_testcase.fixed)
+    self.assertEqual(stacktrace.decode(),
+                     updated_testcase.last_tested_crash_stacktrace)
+    self.assertEqual(1337,
+                     updated_testcase.get_metadata('last_tested_revision'))
+    self.assertEqual(
+        1337, updated_testcase.get_metadata('last_tested_crash_revision'))
+
+  def test_update_multiple_crashed(self):
+    """Test an update that has multiple trials and all crashed."""
+    stacktrace = self._read_test_data('asan_uaf.txt')
+    stacktraces = [stacktrace.decode()] * 3
+    stacktraces_bytes = json.dumps(stacktraces).encode()
+    self.app.post(
+        '/external-update',
+        params=self._make_message(
+            stacktraces_bytes, {
+                'testcaseId': self.testcase.key.id(),
+                'revision': '1337',
+                'protocolVersion': NEW_PROTOCOL,
+            }),
+        headers={'Authorization': 'Bearer fake'},
+        content_type='application/octet-stream')
+
+    updated_testcase = self.testcase.key.get()
+    self.assertTrue(updated_testcase.open)
+    self.assertEqual('', updated_testcase.fixed)
+    self.assertEqual(stacktrace.decode(),
+                     updated_testcase.last_tested_crash_stacktrace)
+    self.assertEqual(1337,
+                     updated_testcase.get_metadata('last_tested_revision'))
+    self.assertEqual(
+        1337, updated_testcase.get_metadata('last_tested_crash_revision'))

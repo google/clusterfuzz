@@ -88,7 +88,7 @@ test-clusterfuzz:
         metadata:
           items:
             - key: docker-image
-              value: gcr.io/clusterfuzz-images/base:ce67e3c-202004060711
+              value: gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654
             - key: user-data
               value: file://linux-init.yaml
         serviceAccounts:
@@ -116,7 +116,7 @@ test-clusterfuzz:
         metadata:
           items:
             - key: docker-image
-              value: gcr.io/clusterfuzz-images/base:ce67e3c-202004060711
+              value: gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654
             - key: user-data
               value: file://linux-init.yaml
         serviceAccounts:
@@ -146,7 +146,7 @@ test-clusterfuzz:
         metadata:
           items:
             - key: docker-image
-              value: gcr.io/clusterfuzz-images/high-end:ce67e3c-202004060711
+              value: gcr.io/clusterfuzz-images/high-end:a2f4dd6-202202070654
             - key: user-data
               value: file://linux-init.yaml
         serviceAccounts:
@@ -174,7 +174,7 @@ test-clusterfuzz:
         metadata:
           items:
             - key: docker-image
-              value: gcr.io/clusterfuzz-images/ml-with-gpu:ce67e3c-202004060711
+              value: gcr.io/clusterfuzz-images/ml-with-gpu:a2f4dd6-202202070654
             - key: user-data
               value: file://linux-init-ml-with-gpu.yaml
         serviceAccounts:

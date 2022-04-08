@@ -24,6 +24,7 @@
 /local/bin/android-sdk/*
 /local/storage
 /paramiko.log
+/src/appengine/gae_requirements.txt
 /src/appengine/app.yaml
 /src/appengine/cron-service.yaml
 /src/appengine/cron.yaml
@@ -40,9 +41,11 @@
 /src/local/remote/generated.remmina
 /src/protos/ENV
 /src/third_party
+/src/requirements.txt
 _test_data
 bazel-*
 /src/dist
 /src/build
 *.egg-info
 /src/clusterfuzz/lib-config
+.DS_Store

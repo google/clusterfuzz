@@ -34,6 +34,7 @@ from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.platforms import fuchsia
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import process_handler
@@ -120,7 +121,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
 
   def test_prepare_invalid_dict(self):
     """Test prepare with an invalid dict path."""
-    with open('/path/target.options', 'w') as f:
+    with open('/path/target.options', 'w', encoding='utf-8') as f:
       f.write('[libfuzzer]\n'
               'max_len=31337\n'
               'timeout=11\n'
@@ -134,7 +135,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
 
   def test_prepare_auto_add_dict(self):
     """Test prepare automatically adding dict argument."""
-    with open('/path/target.options', 'w') as f:
+    with open('/path/target.options', 'w', encoding='utf-8') as f:
       f.write('[libfuzzer]\n' 'max_len=31337\n' 'timeout=11\n')
     self.fs.create_file('/path/target.dict')
 
@@ -248,7 +249,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
         '-use_value_profile=1',
     ], [], ['/corpus'], {}, False, False)
 
-    with open(os.path.join(TEST_DIR, 'crash.txt')) as f:
+    with open(os.path.join(TEST_DIR, 'crash.txt'), encoding='utf-8') as f:
       fuzz_output = f.read()
 
     def mock_fuzz(*args, **kwargs):  # pylint: disable=unused-argument
@@ -271,8 +272,9 @@ class FuzzTest(fake_fs_unittest.TestCase):
       mock_merge_calls.append(self.mock.merge.mock_calls[-1])
       self.assertTrue(len(mock_merge_calls) <= 2)
 
-      merge_output_file = 'merge_step_%d.txt' % len(mock_merge_calls)
-      with open(os.path.join(TEST_DIR, merge_output_file)) as f:
+      merge_output_file = f'merge_step_{len(mock_merge_calls)}.txt'
+      with open(
+          os.path.join(TEST_DIR, merge_output_file), encoding='utf-8') as f:
         merge_output = f.read()
 
       self.fs.create_file('/fuzz-inputs/temp-9001/merge-corpus/A')
@@ -624,8 +626,7 @@ class IntegrationTests(BaseIntegrationTest):
         '-timeout=60',
     ], results.crashes[0].reproduce_args)
 
-    self.assertIn('Test unit written to {0}/crash-'.format(self.crash_dir),
-                  results.logs)
+    self.assertIn(f'Test unit written to {self.crash_dir}/crash-', results.logs)
     self.assertIn(
         'ERROR: AddressSanitizer: SEGV on unknown address '
         '0x000000000000', results.logs)
@@ -668,7 +669,7 @@ class IntegrationTests(BaseIntegrationTest):
                                            minimize_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(minimize_output_path))
-    with open(minimize_output_path) as f:
+    with open(minimize_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertEqual('A', result)
 
@@ -684,7 +685,7 @@ class IntegrationTests(BaseIntegrationTest):
                                  cleanse_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(cleanse_output_path))
-    with open(cleanse_output_path) as f:
+    with open(cleanse_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
 
@@ -788,12 +789,12 @@ class IntegrationTests(BaseIntegrationTest):
       minimal_unit_path = os.path.join(new_corpus_directory_path,
                                        minimal_unit_hash)
 
-      with open(minimal_unit_path, 'w+') as file_handle:
+      with open(minimal_unit_path, 'w+', encoding='utf-8') as file_handle:
         file_handle.write(minimal_unit_contents)
 
       # Write the nonminimal unit to the corpus directory.
       nonminimal_unit_path = os.path.join(corpus_path, nonminimal_unit_hash)
-      with open(nonminimal_unit_path, 'w+') as file_handle:
+      with open(nonminimal_unit_path, 'w+', encoding='utf-8') as file_handle:
         file_handle.write(nonminimal_unit_contents)
 
       return merge_directory_path
@@ -1069,15 +1070,13 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     # Force termination
     process_handler.terminate_processes_matching_names('qemu-system-x86_64')
 
-    # Try to fuzz against the dead qemu to trigger log dump (and automatic
-    # recovery behavior, when undercoat is disabled)
+    # Try to fuzz against the dead qemu to trigger log dump
     try:
       engine_impl.reproduce('example-fuzzers/overflow_fuzzer', testcase_path,
                             ['-timeout=25', '-rss_limit_mb=2560'], 30)
-    except:
-      # With undercoat, this is expected to dump logs but ultimately fail to run
-      if not environment.get_value('FUCHSIA_USE_UNDERCOAT'):
-        raise
+    except fuchsia.undercoat.UndercoatError:
+      # This is expected to dump logs but ultimately fail to run
+      pass
 
     # Check the logs for syslog presence
     self.assertIn('{{{reset}}}', self.mock.log_warn.call_args[0][0])
@@ -1098,7 +1097,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     result = engine_impl.minimize_testcase('example-fuzzers/crash_fuzzer',
                                            ['-runs=1000000'], testcase_path,
                                            minimize_output_path, 30)
-    with open(minimize_output_path) as f:
+    with open(minimize_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertEqual('HI!', result)
 
@@ -1121,8 +1120,8 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
 
     self.crash_dir = TEMP_DIR
     self.adb_path = android.adb.get_adb_path()
-    self.hwasan_options = 'HWASAN_OPTIONS="%s"' % quote(
-        environment.get_value('HWASAN_OPTIONS'))
+    hwasan_options = quote(environment.get_value('HWASAN_OPTIONS'))
+    self.hwasan_options = f'HWASAN_OPTIONS="{hwasan_options}"'
 
   def device_path(self, local_path):
     """Return device path for a local path."""
@@ -1236,8 +1235,8 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     ], results.crashes[0].reproduce_args)
 
     self.assertIn(
-        'Test unit written to {0}/crash-'.format(
-            self.device_path(self.crash_dir)), results.logs)
+        f'Test unit written to {self.device_path(self.crash_dir)}/crash-',
+        results.logs)
     self.assertIn(
         'ERROR: HWAddressSanitizer: SEGV on unknown address '
         '0x000000000000', results.logs)
@@ -1288,7 +1287,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
                                            minimize_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(minimize_output_path))
-    with open(minimize_output_path) as f:
+    with open(minimize_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertEqual('A', result)
 
@@ -1304,7 +1303,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
                                  cleanse_output_path, 120)
     self.assertTrue(result)
     self.assertTrue(os.path.exists(cleanse_output_path))
-    with open(cleanse_output_path) as f:
+    with open(cleanse_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
 

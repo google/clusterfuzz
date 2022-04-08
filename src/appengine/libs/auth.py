@@ -76,13 +76,13 @@ def _get_iap_key(key_id):
   """
   resp = requests.get('https://www.gstatic.com/iap/verify/public_key')
   if resp.status_code != 200:
-    raise AuthError('Unable to fetch IAP keys: {} / {} / {}'.format(
-        resp.status_code, resp.headers, resp.text))
+    raise AuthError('Unable to fetch IAP keys: '
+                    f'{resp.status_code} / {resp.headers} / {resp.text}')
 
   result = resp.json()
   key = result.get(key_id)
   if not key:
-    raise AuthError('Key {!r} not found'.format(key_id))
+    raise AuthError(f'Key {repr(key_id)} not found')
 
   return key
 
@@ -90,8 +90,8 @@ def _get_iap_key(key_id):
 def _validate_iap_jwt(iap_jwt):
   """Validate JWT assertion."""
   project_id = utils.get_application_id()
-  expected_audience = '/projects/{}/apps/{}'.format(
-      _project_number_from_id(project_id), project_id)
+  expected_audience = f'/projects/{_project_number_from_id(project_id)}' \
+                      f'/apps/{project_id}'
 
   try:
     key_id = jwt.get_unverified_header(iap_jwt).get('kid')
@@ -154,7 +154,21 @@ def get_current_user():
     logs.log_warn('Invalid session cookie.')
     return None
 
-  if not decoded_claims.get('email_verified'):
+  allowed_firebase_providers = local_config.ProjectConfig().get(
+      'firebase.auth_providers', ['google.com'])
+  firebase_info = decoded_claims.get('firebase', {})
+  sign_in_provider = firebase_info.get('sign_in_provider')
+
+  if sign_in_provider not in allowed_firebase_providers:
+    logs.log_error(f'Firebase provider {sign_in_provider} is not enabled.')
+    return None
+
+  # Per https://docs.github.com/en/authentication/
+  #       keeping-your-account-and-data-secure/authorizing-oauth-apps
+  # GitHub requires emails to be verified before an OAuth app can be
+  # authorized, so we make an exception.
+  if (not decoded_claims.get('email_verified') and
+      sign_in_provider != 'github.com'):
     return None
 
   email = decoded_claims.get('email')

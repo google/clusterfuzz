@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """External reproduction updates."""
+import json
 
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -22,6 +23,9 @@ from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import helpers
+
+OLD_PROTOCOL = '1'  # Old message format: Data is a stacktrace.
+NEW_PROTOCOL = '2'  # New message format: Data is a JSON array of stracktraces.
 
 
 def _mark_as_fixed(testcase, revision):
@@ -45,9 +49,40 @@ def _mark_errored(testcase, revision, error):
       testcase, revision, message=message)
 
 
-def handle_update(testcase, revision, stacktrace, error):
+def handle_update(testcase, revision, stacktraces, error, protocol_version):
   """Handle update."""
-  logs.log('Got external update for testcase.', testcase_id=testcase.key.id())
+
+  def is_still_crashing(st_index, stacktrace):
+    """Check if the the given stackstrace indicates
+      the testcase is still crashing"""
+    state = stack_analyzer.get_crash_data(
+        stacktrace,
+        fuzz_target=fuzz_target_name,
+        symbolize_flag=False,
+        already_symbolized=True,
+        detect_ooms_and_hangs=True)
+
+    crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
+    if not crash_comparer.is_similar():
+      return False
+
+    logs.log(f'State for trial {st_index} of {testcase_id} '
+             f'remains similar'
+             f'(old_state={testcase.crash_state}, '
+             f'new_state={state.crash_state}).')
+
+    is_security = crash_analyzer.is_security_issue(
+        state.crash_stacktrace, state.crash_type, state.crash_address)
+    if is_security != testcase.security_flag:
+      return False
+
+    logs.log(f'Security flag for trial {st_index} of {testcase_id} '
+             f'still matches'
+             f'({testcase.security_flag}).')
+    return True
+
+  testcase_id = testcase.key.id()
+  logs.log('Got external update for testcase.', testcase_id=testcase_id)
   if error:
     _mark_errored(testcase, revision, error)
     return
@@ -58,6 +93,18 @@ def handle_update(testcase, revision, stacktrace, error):
   if revision < last_tested_revision:
     logs.log_warn(f'Revision {revision} less than previously tested '
                   f'revision {last_tested_revision}.')
+    return
+
+  if protocol_version not in [OLD_PROTOCOL, NEW_PROTOCOL]:
+    logs.log_error(f'Invalid protocol_version provided: '
+                   f'{protocol_version} '
+                   f'is not one of {{{OLD_PROTOCOL, NEW_PROTOCOL}}} '
+                   f'(testcase_id={testcase_id}).')
+    return
+
+  if not stacktraces:
+    logs.log_error(f'Empty JSON stacktrace list provided '
+                   f'(testcase_id={testcase_id}).')
     return
 
   fuzz_target = testcase.get_fuzz_target()
@@ -71,32 +118,18 @@ def handle_update(testcase, revision, stacktrace, error):
   data_handler.record_fuzz_target(fuzz_target.engine, fuzz_target.binary,
                                   testcase.job_type)
 
-  state = stack_analyzer.get_crash_data(
-      stacktrace,
-      fuzz_target=fuzz_target_name,
-      symbolize_flag=False,
-      already_symbolized=True,
-      detect_ooms_and_hangs=True)
-  crash_comparer = CrashComparer(state.crash_state, testcase.crash_state)
-  if not crash_comparer.is_similar():
-    logs.log(f'State no longer similar ('
-             f'testcase_id={testcase.key.id()}, '
-             f'old_state={testcase.crash_state}, '
-             f'new_state={state.crash_state})')
-    _mark_as_fixed(testcase, revision)
-    return
+  for st_index, stacktrace in enumerate(stacktraces):
+    if is_still_crashing(st_index, stacktrace):
+      logs.log(f'stacktrace {st_index} of {testcase_id} still crashes.')
+      testcase.last_tested_crash_stacktrace = stacktrace
+      data_handler.update_progression_completion_metadata(
+          testcase, revision, is_crash=True)
+      return
 
-  is_security = crash_analyzer.is_security_issue(
-      state.crash_stacktrace, state.crash_type, state.crash_address)
-  if is_security != testcase.security_flag:
-    logs.log(f'Security flag for {testcase.key.id()} no longer matches.')
-    _mark_as_fixed(testcase, revision)
-    return
-
-  logs.log(f'{testcase.key.id()} still crashes.')
-  testcase.last_tested_crash_stacktrace = stacktrace
-  data_handler.update_progression_completion_metadata(
-      testcase, revision, is_crash=True)
+  # All trials resulted in a non-crash. Close the testcase.
+  logs.log(f'No matching crash detected in {testcase_id} '
+           f'over {len(stacktraces)} trials, marking as fixed.')
+  _mark_as_fixed(testcase, revision)
 
 
 class Handler(base_handler.Handler):
@@ -125,6 +158,21 @@ class Handler(base_handler.Handler):
       logs.log(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
+    protocol_version = message.attributes.get('protocolVersion', OLD_PROTOCOL)
+    if protocol_version == OLD_PROTOCOL:
+      # Old: stacktrace is a str.
+      stacktraces = [stacktrace]
+      logs.log(f'Old format stacktrace string provided '
+               f'(testcase_id={testcase_id}).')
+    elif protocol_version == NEW_PROTOCOL:
+      # New: stacktrace is a JSON array.
+      stacktraces = json.loads(stacktrace)
+      logs.log(f'New format stacktrace JSON list provided '
+               f'(testcase_id={testcase_id}).')
+    else:
+      # Invalid: stacktrace is presumably ill-formed.
+      stacktraces = []
+
     error = message.attributes.get('error')
-    handle_update(testcase, revision, stacktrace, error)
+    handle_update(testcase, revision, stacktraces, error, protocol_version)
     return 'OK'
