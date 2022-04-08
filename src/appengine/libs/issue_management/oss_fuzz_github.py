@@ -169,6 +169,11 @@ def _get_issue(testcase, access):
     logs.log_error(f'Unable to locate the GitHub repository id {repo_id}.')
     return None
 
+  if not repo.has_issues:
+    logs.log_warn('Unable to close issues of the main repo: '
+                  'Repo has disabled issues.')
+    return None
+
   try:
     target_issue = repo.get_issue(issue_num)
   except github.UnknownObjectException:
