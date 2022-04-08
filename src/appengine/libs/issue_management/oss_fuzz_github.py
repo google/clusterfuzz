@@ -145,6 +145,10 @@ def file_issue(testcase):
     logs.log('Unable to file issues to the main repo of the project')
     return
 
+  if not repo.has_issues:
+    logs.log_warn('Unable to file issues to the main repo: '
+                  'Repo has disabled issues.')
+
   issue = _post_issue(repo, testcase)
   _update_testcase_properties(testcase, repo, issue)
 
