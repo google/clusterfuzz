@@ -131,7 +131,7 @@ class AflConfig(object):
 
       afl_option = self.LIBFUZZER_TO_AFL_OPTIONS[libfuzzer_name]
       if afl_option.type == AflOptionType.ARG:
-        self.additional_afl_arguments.append('%s%s' % (afl_option.name, value))
+        self.additional_afl_arguments.append(f'{afl_option.name}{value}')
       else:
         assert afl_option.type == AflOptionType.ENV_VAR
         self.additional_env_vars[afl_option.name] = value
@@ -550,7 +550,8 @@ class AflRunnerCommon(object):
     print('Running command:', engine_common.get_command_quoted(result.command))
     if result.return_code not in [0, 1, -6]:
       logs.log_error(
-          'AFL target exited with abnormal exit code: %s.' % result.return_code,
+          f'AFL target exited with abnormal exit code: %d.',
+          result.return_code,
           output=result.output)
 
     return result
@@ -704,15 +705,15 @@ class AflRunnerCommon(object):
     (calculated using |max_total_time|).
     """
     if max_total_time <= 0:
-      logs.log_error('Tried fuzzing for {0} seconds. Not retrying'.format(
-          self.initial_max_total_time))
+      logs.log_error('Tried fuzzing for %d seconds. Not retrying.',
+                     self.initial_max_total_time)
 
       return False
 
     if num_retries > self.MAX_FUZZ_RETRIES:
       logs.log_error(
-          'Tried to retry fuzzing {0} times. Fuzzer is likely broken'.format(
-              num_retries))
+          'Tried to retry fuzzing %d times. Fuzzer is likely broken.',
+          num_retries)
 
       return False
 
@@ -889,8 +890,8 @@ class AflRunnerCommon(object):
       # If we can't do anything useful about the error, log it and don't try to
       # fuzz again.
       logs.log_error(
-          ('Afl exited with a non-zero exitcode: %s. Cannot recover.' %
-           fuzz_result.return_code),
+          'Afl exited with a non-zero exitcode: %d. Cannot recover.',
+          fuzz_result.return_code,
           engine_output=fuzz_result.output)
 
       break
@@ -914,9 +915,10 @@ class AflRunnerCommon(object):
         constants.NO_AFFINITY_ENV_VAR)
 
     if current_no_affinity_value is not None:
-      logs.log_warn(('Already tried fixing CPU bind error\n'
-                     '$AFL_NO_AFFINITY: %s\n'
-                     'Not retrying.') % current_no_affinity_value)
+      logs.log_warn(
+          'Already tried fixing CPU bind error\n'
+          '$AFL_NO_AFFINITY: %s\n'
+          'Not retrying.', current_no_affinity_value)
 
       return False  # return False so this error is considered unhandled.
 
@@ -925,7 +927,8 @@ class AflRunnerCommon(object):
     logs.log_error(
         'CPU binding error encountered by afl-fuzz\n'
         'Check bot: %s for zombies\n'
-        'Trying again with AFL_NO_AFFINITY=1' % BOT_NAME,
+        'Trying again with AFL_NO_AFFINITY=1',
+        BOT_NAME,
         afl_output=fuzz_result.output)
     environment.set_value(constants.NO_AFFINITY_ENV_VAR, 1)
     return True
@@ -996,18 +999,14 @@ class AflRunnerCommon(object):
     if not os.path.exists(self.showmap_output_path):
       if not self.showmap_no_output_logged:
         self.showmap_no_output_logged = True
-        logs.log_error(('afl-showmap didn\'t output any coverage for '
-                        'file {file_path} ({file_size} bytes).\n'
-                        'Command: {command}\n'
-                        'Return code: {return_code}\n'
-                        'Time executed: {time_executed}\n'
-                        'Output: {output}').format(
-                            file_path=input_file_path,
-                            file_size=os.path.getsize(input_file_path),
-                            command=showmap_result.command,
-                            return_code=showmap_result.return_code,
-                            time_executed=showmap_result.time_executed,
-                            output=showmap_result.output))
+        logs.log_error('afl-showmap didn\'t output any coverage for '
+                       f'file {input_file_path} '
+                       f'({os.path.getsize(input_file_path)} bytes).\n'
+                       f'Command: {showmap_result.command}\n'
+                       f'Return code: {showmap_result.return_code}\n'
+                       f'Time executed: {showmap_result.time_executed}\n'
+                       f'Output: {showmap_result.output}')
+
       return None, True
 
     showmap_output = engine_common.read_data_from_file(self.showmap_output_path)
@@ -1281,20 +1280,19 @@ def _verify_system_config():
     if not os.path.exists(constants.CORE_PATTERN_FILE_PATH):
       return False
 
-    with open(constants.CORE_PATTERN_FILE_PATH, 'rb') as f:
-      return f.read().strip() == b'core'
+    with open(constants.CORE_PATTERN_FILE_PATH, 'rb') as fp:
+      return fp.read().strip() == b'core'
 
   if _check_core_pattern_file():
     return
 
   return_code = subprocess.call(
-      'sudo -n bash -c "echo core > {path}"'.format(
-          path=constants.CORE_PATTERN_FILE_PATH),
+      f'sudo -n bash -c "echo core > {constants.CORE_PATTERN_FILE_PATH}"',
       shell=True)
   if return_code or not _check_core_pattern_file():
     logs.log_fatal_and_exit(
-        'Failed to set {path}. AFL needs {path} to be set to core.'.format(
-            path=constants.CORE_PATTERN_FILE_PATH))
+        f'Failed to set {constants.CORE_PATTERN_FILE_PATH}. AFL needs '
+        f'{constants.CORE_PATTERN_FILE_PATH} to be set to core.')
 
 
 def load_testcase_if_exists(fuzzer_runner, testcase_file_path):
@@ -1575,7 +1573,8 @@ def main(argv):
   # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
     logs.log(
-        'New units added to corpus: %d.' % new_units_added,
+        'New units added to corpus: %d.',
+        new_units_added,
         stats=stats_getter.stats)
   else:
     logs.log('No new units found.', stats=stats_getter.stats)
