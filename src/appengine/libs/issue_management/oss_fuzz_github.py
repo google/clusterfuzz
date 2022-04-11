@@ -145,6 +145,11 @@ def file_issue(testcase):
     logs.log('Unable to file issues to the main repo of the project')
     return
 
+  if not repo.has_issues:
+    logs.log_warn('Unable to file issues to the main repo: '
+                  'Repo has disabled issues.')
+    return
+
   issue = _post_issue(repo, testcase)
   _update_testcase_properties(testcase, repo, issue)
 
@@ -162,6 +167,11 @@ def _get_issue(testcase, access):
     repo = access.get_repo(repo_id)
   except github.UnknownObjectException:
     logs.log_error(f'Unable to locate the GitHub repository id {repo_id}.')
+    return None
+
+  if not repo.has_issues:
+    logs.log_warn('Unable to close issues of the main repo: '
+                  'Repo has disabled issues.')
     return None
 
   try:

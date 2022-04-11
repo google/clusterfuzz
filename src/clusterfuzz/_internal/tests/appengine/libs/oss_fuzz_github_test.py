@@ -111,6 +111,16 @@ class OSSFuzzGithubTests(unittest.TestCase):
     mock_github.Github().get_repo().create_issue.assert_not_called()
 
   @mock.patch('libs.issue_management.oss_fuzz_github.github')
+  def test_file_issue_to_repo_disabled_issues(self, mock_github):
+    """File an issue to a repo that has disabled issues."""
+    mock_github.Github().get_repo.return_value = mock.MagicMock(
+        has_issues=False)
+
+    oss_fuzz_github.file_issue(self.testcase1)
+
+    mock_github.Github().get_repo().create_issue.assert_not_called()
+
+  @mock.patch('libs.issue_management.oss_fuzz_github.github')
   def test_close_issue(self, mock_github):
     """Close GitHub testcase."""
     mock_github.Github().get_repo.return_value = mock.MagicMock(
@@ -125,6 +135,16 @@ class OSSFuzzGithubTests(unittest.TestCase):
         oss_fuzz_github.get_issue_close_comment(self.testcase4))
     mock_github.Github().get_repo().get_issue().edit.assert_called_once_with(
         state='closed')
+
+  @mock.patch('libs.issue_management.oss_fuzz_github.github')
+  def test_close_issue_of_repo_disabled_issues(self, mock_github):
+    """Close an issue of a repo that has disabled issues."""
+    mock_github.Github().get_repo.return_value = mock.MagicMock(
+        has_issues=False)
+
+    oss_fuzz_github.file_issue(self.testcase1)
+
+    mock_github.Github().get_repo().get_issue.assert_not_called()
 
   @mock.patch('libs.issue_management.oss_fuzz_github.github')
   def test_close_closed_issue(self, mock_github):
