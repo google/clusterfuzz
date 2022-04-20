@@ -77,6 +77,11 @@ BAD_STATE_HINTS = [
     'logging service has stopped',
 ]
 
+# Flaky crash types for which crash comparison does not make sense.
+IGNORE_STATE_CRASH_TYPES = [
+    'Stack-overflow',
+]
+
 
 class TestcaseManagerError(Exception):
   """Base exception."""
@@ -198,7 +203,7 @@ def read_resource_list(resource_file_path):
 
   resources = []
   base_directory = os.path.dirname(resource_file_path)
-  with open(resource_file_path) as file_handle:
+  with open(resource_file_path, encoding='utf-8') as file_handle:
     resource_file_contents = file_handle.read()
     for line in resource_file_contents.splitlines():
       resource = os.path.join(base_directory, line.strip())
@@ -773,7 +778,7 @@ def test_for_crash_with_retries(testcase,
     if crash_retries is None:
       crash_retries = environment.get_value('CRASH_RETRIES')
 
-    if compare_crash:
+    if compare_crash and testcase.crash_type not in IGNORE_STATE_CRASH_TYPES:
       expected_state = testcase.crash_state
       expected_security_flag = testcase.security_flag
     else:

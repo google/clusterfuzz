@@ -64,7 +64,8 @@ class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
         'cc.txt',
         'aa/dd.txt',
     ])
-    actual_files_list = set(open(testcase_list_file_path).read().splitlines())
+    actual_files_list = set(
+        open(testcase_list_file_path, encoding='utf-8').read().splitlines())
     self.assertEqual(expected_files_list, actual_files_list)
 
 
@@ -601,6 +602,44 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('Crash stacktrace comparison skipped.')
     ])
 
+  def test_test_for_crash_with_retries_blackbox_stack_overflow(self):
+    """Test test_for_crash_with_retries reproducing a Stack-overflow crash."""
+    self.mock.run_process.side_effect = [
+        (0, 0, 'output'),
+        (1, 1, 'crash'),
+    ]
+
+    self.blackbox_testcase.crash_type = 'Stack-overflow'
+    self.blackbox_testcase.put()
+
+    # compare_crash should be overridden to False.
+    crash_result = testcase_manager.test_for_crash_with_retries(
+        self.blackbox_testcase, '/fuzz-testcase', 10, compare_crash=True)
+    self.assertEqual(1, crash_result.return_code)
+    self.assertEqual(1, crash_result.crash_time)
+    self.assertEqual('crash', crash_result.output)
+    self.assertEqual(2, self.mock.run_process.call_count)
+
+    self.mock.run_process.assert_has_calls([
+        mock.call(
+            '/build_dir/app_name -arg1 -arg2',
+            current_working_directory='/build_dir',
+            gestures=[],
+            timeout=120),
+        mock.call(
+            '/build_dir/app_name -arg1 -arg2',
+            current_working_directory='/build_dir',
+            gestures=[],
+            timeout=10),
+    ])
+    self.mock.log.assert_has_calls([
+        mock.call('No crash occurred (round 1).', output='output'),
+        mock.call(
+            'Crash occurred in 1 seconds (round 2). State:\nstate',
+            output='crash'),
+        mock.call('Crash stacktrace comparison skipped.')
+    ])
+
   def test_test_for_crash_with_retries_greybox_succeed(self):
     """Test test_for_crash_with_retries reproducing a crash (greybox)."""
     mock_engine = mock.Mock()
@@ -672,7 +711,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ]
     self.mock.get.return_value = mock_engine
 
-    with open('/flags-testcase', 'w') as f:
+    with open('/flags-testcase', 'w', encoding='utf-8') as f:
       f.write('%TESTCASE% target -arg1 -arg2')
 
     testcase_manager.test_for_crash_with_retries(self.greybox_testcase,
