@@ -124,7 +124,7 @@ class ReproduceTest(unittest.TestCase):
     self.mock._get_testcase.side_effect = _fake_get_echo_testcase
 
     binary_path = os.path.join(self.build_directory, 'echo')
-    with open(binary_path, 'w') as f:
+    with open(binary_path, 'w', encoding='utf-8') as f:
       f.write('test')
 
     crash_retries = 3
