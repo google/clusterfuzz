@@ -33,6 +33,7 @@ from local.butler.reproduce_tool import errors
 def _fake_get_echo_testcase(*_):
   """Fake test case output intended to run "echo -n"."""
   testcase_map = {
+      'crash_type': 'type',
       'crash_state': 'state',
       'security_flag': False,
       'gestures': [],
@@ -58,6 +59,7 @@ def _fake_get_echo_testcase(*_):
 def _fake_get_libfuzzer_testcase(*_):
   """Fake test case output intended to run "echo -n"."""
   testcase_map = {
+      'crash_type': 'type',
       'crash_state': 'state',
       'security_flag': False,
       'gestures': [],
