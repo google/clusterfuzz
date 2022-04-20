@@ -16,6 +16,7 @@
 
 import importlib
 import os
+import sys
 
 from local.butler import constants
 from src.clusterfuzz._internal.config import local_config
@@ -25,6 +26,7 @@ from src.clusterfuzz._internal.datastore import ndb_init
 def execute(args):
   """Run Python unit tests under v2. For unittests involved appengine, sys.path
      needs certain modification."""
+  sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
   local_config.ProjectConfig().set_environment()
 
