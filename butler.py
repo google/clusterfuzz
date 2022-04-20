@@ -44,7 +44,7 @@ class _ArgumentParser(argparse.ArgumentParser):
 
   def error(self, message):
     """Override to print full help for ever error."""
-    sys.stderr.write('error: %s\n' % message)
+    sys.stderr.write(f'error: {message}\n')
     self.print_help()
     sys.exit(2)
 
@@ -299,7 +299,7 @@ def main():
     return
 
   _setup()
-  command = importlib.import_module('local.butler.%s' % args.command)
+  command = importlib.import_module(f'local.butler.{args.command}')
   command.execute(args)
 
 

@@ -39,8 +39,7 @@ def execute(args):
           'For permanent modifications, re-run with --non-dry-run.')
 
   with ndb_init.context():
-    script = importlib.import_module(
-        'local.butler.scripts.%s' % args.script_name)
+    script = importlib.import_module(f'local.butler.scripts.{args.script_name}')
     script.execute(args)
 
   if not args.local:
