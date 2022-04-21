@@ -16,15 +16,18 @@
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
-from clusterfuzz._internal.metrics import logs
 from libs.issue_management import oss_fuzz_github
 
 
 def execute(args):
   """Query Testcases of the given projects,
     and conditionally file them to the corresponding GitHub repo."""
-  for project_name in args.project_name:
-    logs.log(f'Back filing project {project_name}')
+  if not args.script_args:
+    print('Need at least one project name (with -p) '
+          'when running the backfiler.')
+    return
+  for project_name in args.script_args:
+    print(f'Back filing project {project_name}')
     for testcase in data_types.Testcase.query(
         ndb_utils.is_true(data_types.Testcase.open),
         ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
@@ -32,7 +35,8 @@ def execute(args):
         data_types.Testcase.project_name == project_name,
     ):
       if not testcase.bug_information:
-        logs.log("Skip testcases without bugs.")
+        print(f'Skip testcase without bugs: {testcase.key.id()}')
         continue
-      logs.log(f'Back filing testcase id {testcase.key.id()}')
-      oss_fuzz_github.file_issue(testcase)
+      print(f'Back filing testcase id: {testcase.key.id()}')
+      if args.non_dry_run:
+        oss_fuzz_github.file_issue(testcase)

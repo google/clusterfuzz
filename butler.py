@@ -191,6 +191,8 @@ def main():
       'script_name',
       help='The script module name under `./local/butler/scripts`.')
   parser_run.add_argument(
+      '--script_args', action='append', help='Script specific arguments')
+  parser_run.add_argument(
       '--non-dry-run',
       action='store_true',
       help='Run with actual datastore writes. Default to dry-run.')
@@ -198,13 +200,6 @@ def main():
       '-c', '--config-dir', required=True, help='Path to application config.')
   parser_run.add_argument(
       '--local', action='store_true', help='Run against local server instance.')
-  parser_run.add_argument(
-      '-p',
-      '--project_name',
-      required=False,
-      action='append',
-      help='project names to back file GitHub issues.\n'
-      'Needed and only needed with the sbackfiler.')
 
   parser_run_bot = subparsers.add_parser(
       'run_bot', help='Run a local clusterfuzz bot.')
@@ -303,14 +298,6 @@ def main():
   args = parser.parse_args()
   if not args.command:
     parser.print_help()
-    return
-
-  if args.command == 'run' and \
-      ((args.script_name == 'backfiler') != (bool(args.project_name))):
-    print(args.script_name)
-    print(args.project_name)
-    print("Need at least one project name (with -p) when running the backfiler."
-          "\nDo not use the flag otherwise.")
     return
 
   _setup()
