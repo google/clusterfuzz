@@ -21,6 +21,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.metrics import logs
 
 GITHUB_PREFIX = 'https://github.com/'
+GITHUB_SUFFIX = '.git'
 
 TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 
@@ -94,6 +95,8 @@ def _get_repo(testcase, access):
     logs.log(f'MAIN REPO is not a GitHub url: {repo_url}.')
     return None
   repo_name = repo_url[len(GITHUB_PREFIX):]
+  if repo_url[-len(GITHUB_SUFFIX):] == GITHUB_SUFFIX:
+    repo_name = repo_name[:-len(GITHUB_SUFFIX)]
 
   try:
     target_repo = access.get_repo(repo_name)
