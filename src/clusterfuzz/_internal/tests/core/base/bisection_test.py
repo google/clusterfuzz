@@ -70,6 +70,10 @@ class RequestBisectionTest(unittest.TestCase):
         additional_metadata='{"last_tested_crash_revision": 4}')
     self.testcase.put()
 
+    data_types.Job(
+        name='libfuzzer_asan_proj',
+        environment_string='MAIN_REPO = https://repo_url').put()
+
     self.mock.read_key.return_value = b'reproducer'
     self.mock.get_component_range_list.return_value = [
         {
@@ -77,7 +81,7 @@ class RequestBisectionTest(unittest.TestCase):
         },
     ]
 
-  def _test(self, sanitizer, old_commit='old', new_commit='new'):
+  def _test(self, sanitizer, old_commit='old', new_commit='new', repo_url=''):
     """Test task publication."""
     bisection.request_bisection(self.testcase)
     publish_calls = self.mock.publish.call_args_list
@@ -98,6 +102,7 @@ class RequestBisectionTest(unittest.TestCase):
           'new_commit': new_commit,
           'old_commit': old_commit,
           'project_name': 'proj',
+          'repo_url': repo_url,
           'sanitizer': sanitizer,
           'testcase_id': '1',
           'issue_id': '1337',
@@ -113,7 +118,7 @@ class RequestBisectionTest(unittest.TestCase):
     """Basic regressed test (asan)."""
     self.testcase.job_type = 'libfuzzer_asan_proj'
     self.testcase.put()
-    self._test('address')
+    self._test('address', repo_url='https://repo_url')
 
   def test_request_bisection_msan(self):
     """Basic regressed test (asan)."""
@@ -199,7 +204,11 @@ class RequestBisectionTest(unittest.TestCase):
         },
     ]
     bisection.request_bisection(self.testcase)
-    self._test('address', old_commit='one', new_commit='one')
+    self._test(
+        'address',
+        old_commit='one',
+        new_commit='one',
+        repo_url='https://repo_url')
     self.mock.get_component_range_list.assert_has_calls([
         mock.call(123, 456, 'libfuzzer_asan_proj'),
         mock.call(0, 3, 'libfuzzer_asan_proj'),

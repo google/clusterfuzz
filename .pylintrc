@@ -39,7 +39,8 @@ disable=
   raise-missing-from,
   super-with-arguments,
   use-a-generator,
-  consider-using-generator
+  consider-using-generator,
+  consider-using-f-string  # Too much legacy usages.
 
 [BASIC]
 

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/clusterfuzz-images/base@sha256:1110514de5bb678562b75e5cf65130923bd22bb9371dcbc9e99483fd277ac135
+FROM gcr.io/clusterfuzz-images/base
 
 ENV RUN_CMD \
    "python3.7 $ROOT_DIR/src/python/other-bots/chromium-builder/run.py"
