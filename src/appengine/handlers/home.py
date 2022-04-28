@@ -13,6 +13,10 @@
 # limitations under the License.
 """Home page handler."""
 
+import json
+
+from google.cloud import storage
+
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
@@ -23,6 +27,9 @@ from handlers import base_handler
 from libs import access
 from libs import handler
 from libs import helpers
+
+INTROSPECTOR_BUCKET = 'oss-fuzz-introspector'
+INTROSPECTOR_INDEX_JSON = 'build_status.json'
 
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
 
@@ -60,9 +67,22 @@ def get_single_fuzz_target_or_none(project, engine_name):
   return fuzz_target_name
 
 
+def get_introspector_index():
+  """Return introspector projects status"""
+  introspector_bucket = storage.Client().get_bucket(INTROSPECTOR_BUCKET)
+  index_blob = introspector_bucket.blob(INTROSPECTOR_INDEX_JSON)
+  if index_blob.exists():
+    introspector_index = json.loads(index_blob.download_as_string())
+  else:
+    introspector_index = {}
+
+  return introspector_index
+
+
 def _get_project_results_for_jobs(jobs):
   """Return projects for jobs."""
   projects = {}
+  introspector_index = get_introspector_index()
   for job in sorted(jobs, key=lambda j: j.name):
     project_name = job.get_environment().get('PROJECT_NAME', job.name)
     if project_name not in projects:
@@ -70,6 +90,10 @@ def _get_project_results_for_jobs(jobs):
 
     if utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       projects[project_name]['coverage_job'] = job.name
+
+    if project_name in introspector_index:
+      projects[project_name]['introspector_report'] = introspector_index[
+          project_name]
 
     engine_display_name, engine_name = _get_engine_names(job.name)
     projects[project_name]['jobs'].append({
