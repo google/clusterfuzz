@@ -105,10 +105,13 @@ if [ ! $only_reproduce ]; then
         stable"
 
     export CLOUD_SDK_REPO="cloud-sdk"
-    echo "deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main" | \
-        sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    export APT_FILE=/etc/apt/sources.list.d/google-cloud-sdk.list
+    export APT_LINE="deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main"
+    sudo bash -c "grep -x \"$APT_LINE\" $APT_FILE || (echo $APT_LINE | tee -a $APT_FILE)"
+
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
         sudo apt-key add -
+
   fi
 
   # Install apt-get packages.
