@@ -68,9 +68,9 @@
         <a href="/testcases?project=[[project.name]]&open=yes"><paper-button raised>Open crashes</paper-button></a>
         <a href="/crash-stats?project=[[project.name]]"><paper-button raised>Crash stats</paper-button></a>
         <a href="/coverage-report/job/[[project.coverage_job]]/latest"><paper-button raised>Total coverage</paper-button></a>
-        <if-else condition="[[project.introspector_report]]">
+        <!-- <if-else condition="[[project.introspector_report]]"> -->
           <a href="[[project.introspector_report]]"><paper-button raised>Fuzz Introspector Report</paper-button></a>
-        </if-else>
+        <!-- </if-else> -->
       </div>
       <div class="layout horizontal wrap">
         <template is="dom-repeat" items="[[project.jobs]]" as ="job">
