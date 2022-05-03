@@ -785,7 +785,7 @@ class AflRunnerCommon(object):
       # Randomly enable expanded havoc mutation.
       if engine_common.decide_with_probability(
           self.strategies.EXPAND_HAVOC_PROB):
-        environment.set_value(constants.EXPAND_HAVOC_ENV_VAR, 1)
+        environment.set_value(constants.EXPAND_HAVOC_NOW_VAR, 1)
 
       # Always CMPLOG only new finds.
       environment.set_value(constants.CMPLOG_ONLY_NEW_ENV_VAR, 1)
