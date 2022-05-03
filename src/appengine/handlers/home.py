@@ -51,7 +51,7 @@ def _get_engine_names(job_name):
   return 'Unknown', 'Unknown'
 
 
-@memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
+# @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def get_single_fuzz_target_or_none(project, engine_name):
   """Return the name of the single child fuzzer for the project, or None."""
   fuzz_targets = data_handler.get_fuzz_targets(
