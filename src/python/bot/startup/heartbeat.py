@@ -25,7 +25,7 @@ import os
 import sys
 import time
 
-from health_check_responser import run_server as run_health_check_responser_server
+from health_check_responser import run_server as run_health_responser_server
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import tasks
@@ -115,7 +115,7 @@ def main():
   except Exception:
     logs.log_error('Failed to beat.')
 
-  run_health_check_responser_server()
+  run_health_responser_server()
 
   time.sleep(data_types.HEARTBEAT_WAIT_INTERVAL)
 
