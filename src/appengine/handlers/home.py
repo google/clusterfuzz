@@ -14,7 +14,7 @@
 """Home page handler."""
 
 import json
-
+import logging
 from google.cloud import storage
 
 from clusterfuzz._internal.base import external_users
@@ -33,6 +33,7 @@ INTROSPECTOR_INDEX_JSON = 'build_status.json'
 
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
 
+logging.basicConfig(level=logging.INFO)
 
 def _sort_by_name(item):
   """Sort key function."""
@@ -75,7 +76,7 @@ def get_introspector_index():
     introspector_index = json.loads(index_blob.download_as_string())
   else:
     introspector_index = {}
-  print("NNNNN: %d"%len(introspector_index))
+  logging.info('Loaded introspector status %d', len(introspector_index))
   return introspector_index
 
 
