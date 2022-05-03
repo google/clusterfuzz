@@ -649,3 +649,19 @@ def terminate_processes_matching_cmd_line(match_strings,
     if any(x in process_path for x in match_strings):
       if not any([x in process_path for x in exclude_strings]):
         terminate_process(process_info['pid'], kill)
+
+
+def processes_are_healthy(expected_processes):
+  """Check if all target processes are all running as expected."""
+  # Note: run_bot.py is expected to go down during source updates
+  #   (which can take a few minutes)
+  # Health checks should be resilient to this
+  # and set a threshold / check interval to account for this.
+  processes_left = expected_processes.copy()
+  for process in psutil.process_iter():
+    for expected_process in processes_left:
+      if any(expected_process in cmdline for cmdline in process.cmdline()):
+        processes_left.remove(expected_process)
+        if not processes_left:
+          return True
+  return False

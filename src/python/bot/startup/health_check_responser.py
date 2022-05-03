@@ -16,7 +16,8 @@
 
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
-import os
+
+from clusterfuzz._internal.system import process_handler
 
 RESPONSER_IP = 'localhost'
 RESPONSER_PORT = 7123
@@ -29,21 +30,10 @@ NOT_HEALTHY = 500
 class RequestHandler(BaseHTTPRequestHandler):
   """Handler for GET request form the health checker"""
 
-  def _is_healthy(self):
-    """Check if all processes are running as expected"""
-    # Note: run_bot.py is expected to go down during source updates
-    #   (which can take a few minutes)
-    # Health checks should be resilient to this
-    # and set a threshold / check interval to account for this.
-    running_processes = os.popen("ps -eo command").read()
-    for process in EXPECTED_PROCESSES:
-      if process not in running_processes:
-        return False
-    return True
-
   def do_GET(self):  # pylint: disable=invalid-name
     """Handle a GET request"""
-    response_code = IS_HEALTHY if self._is_healthy() else NOT_HEALTHY
+    response_code = IS_HEALTHY if process_handler.processes_are_healthy(
+        EXPECTED_PROCESSES) else NOT_HEALTHY
     self.send_response(response_code)
     self.end_headers()
 
