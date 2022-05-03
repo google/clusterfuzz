@@ -120,7 +120,7 @@ def _get_project_results_for_jobs(jobs):
   return projects
 
 
-@memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
+# @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
 def _get_all_project_results():
   """Return all results."""
   jobs = list(data_types.Job.query())
