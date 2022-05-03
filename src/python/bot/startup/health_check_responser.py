@@ -28,10 +28,10 @@ NOT_HEALTHY = 500
 
 
 class RequestHandler(BaseHTTPRequestHandler):
-  """Handler for GET request form the health checker"""
+  """Handler for GET request form the health checker."""
 
   def do_GET(self):  # pylint: disable=invalid-name
-    """Handle a GET request"""
+    """Handle a GET request."""
     response_code = IS_HEALTHY if process_handler.processes_are_healthy(
         EXPECTED_PROCESSES) else NOT_HEALTHY
     self.send_response(response_code)
@@ -39,6 +39,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 def run_server():
+  """Start a HTTP server to respond to the health checker."""
   health_check_responser_server = HTTPServer((RESPONSER_IP, RESPONSER_PORT),
                                              RequestHandler)
   health_check_responser_server.serve_forever()

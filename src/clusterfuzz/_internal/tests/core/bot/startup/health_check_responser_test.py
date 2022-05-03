@@ -31,6 +31,7 @@ class HealthCheckResponserTest(unittest.TestCase):
   """Test health check responser."""
 
   def setUp(self):
+    """Prepare mock processes and start the responder server thread."""
     self.mock_run_process = mock.MagicMock()
     self.mock_run_process.cmdline.return_value = [EXPECTED_PROCESSES[0]]
     self.mock_run_bot_process = mock.MagicMock()
@@ -43,6 +44,7 @@ class HealthCheckResponserTest(unittest.TestCase):
   @mock.patch(
       'python.bot.startup.health_check_responser.process_handler.psutil')
   def test_healthy(self, mock_psutil):
+    """Testcase for both processes are running."""
     mock_psutil.process_iter.return_value = [
         self.mock_run_process, self.mock_run_bot_process
     ]
@@ -52,6 +54,7 @@ class HealthCheckResponserTest(unittest.TestCase):
   @mock.patch(
       'python.bot.startup.health_check_responser.process_handler.psutil')
   def test_run_terminated(self, mock_psutil):
+    """Testcase for only the run process is running."""
     mock_psutil.process_iter.return_value = [self.mock_run_process]
 
     self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
@@ -59,6 +62,7 @@ class HealthCheckResponserTest(unittest.TestCase):
   @mock.patch(
       'python.bot.startup.health_check_responser.process_handler.psutil')
   def test_run_bot_terminated(self, mock_psutil):
+    """Testcase for only the run_bot process is running."""
     mock_psutil.process_iter.return_value = [self.mock_run_bot_process]
 
     self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
@@ -66,5 +70,6 @@ class HealthCheckResponserTest(unittest.TestCase):
   @mock.patch(
       'python.bot.startup.health_check_responser.process_handler.psutil')
   def test_both_terminated(self, mock_psutil):
+    """Testcase for neither process is running."""
     mock_psutil.process_iter.return_value = []
     self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
