@@ -75,7 +75,7 @@ def get_introspector_index():
     introspector_index = json.loads(index_blob.download_as_string())
   else:
     introspector_index = {}
-
+  print("NNNNN: %d"%len(introspector_index))
   return introspector_index
 
 
