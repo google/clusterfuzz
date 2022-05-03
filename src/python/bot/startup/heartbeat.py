@@ -25,7 +25,7 @@ import os
 import sys
 import time
 
-from health_responser import run_server as run_health_check_responser_server
+from health_check_responser import run_server as run_health_check_responser_server
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import tasks
