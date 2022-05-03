@@ -31,26 +31,40 @@ class HealthCheckResponserTest(unittest.TestCase):
   """Test health check responser."""
 
   def setUp(self):
+    self.mock_run_process = mock.MagicMock()
+    self.mock_run_process.cmdline.return_value = [EXPECTED_PROCESSES[0]]
+    self.mock_run_bot_process = mock.MagicMock()
+    self.mock_run_bot_process.cmdline.return_value = [EXPECTED_PROCESSES[1]]
+
     self.server_thread = threading.Thread(target=run_server)
     self.server_thread.daemon = True
     self.server_thread.start()
 
-  @mock.patch('python.bot.startup.health_check_responser.os')
-  def test_healthy(self, mock_os):
-    mock_os.popen().read.return_value = ' '.join(EXPECTED_PROCESSES)
+  @mock.patch(
+      'python.bot.startup.health_check_responser.process_handler.psutil')
+  def test_healthy(self, mock_psutil):
+    mock_psutil.process_iter.return_value = [
+        self.mock_run_process, self.mock_run_bot_process
+    ]
+
     self.assertEqual(200, requests.get(f'{RESPONSER_ADDR}').status_code)
 
-  @mock.patch('python.bot.startup.health_check_responser.os')
-  def test_run_terminated(self, mock_os):
-    mock_os.popen().read.return_value = EXPECTED_PROCESSES[0]
+  @mock.patch(
+      'python.bot.startup.health_check_responser.process_handler.psutil')
+  def test_run_terminated(self, mock_psutil):
+    mock_psutil.process_iter.return_value = [self.mock_run_process]
+
     self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
 
-  @mock.patch('python.bot.startup.health_check_responser.os')
-  def test_run_bot_terminated(self, mock_os):
-    mock_os.popen().read.return_value = EXPECTED_PROCESSES[1]
+  @mock.patch(
+      'python.bot.startup.health_check_responser.process_handler.psutil')
+  def test_run_bot_terminated(self, mock_psutil):
+    mock_psutil.process_iter.return_value = [self.mock_run_bot_process]
+
     self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
 
-  @mock.patch('python.bot.startup.health_check_responser.os')
-  def test_both_terminated(self, mock_os):
-    mock_os.popen().read.return_value = ''
+  @mock.patch(
+      'python.bot.startup.health_check_responser.process_handler.psutil')
+  def test_both_terminated(self, mock_psutil):
+    mock_psutil.process_iter.return_value = []
     self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
