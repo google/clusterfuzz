@@ -31,6 +31,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 
   def _is_healthy(self):
     """Check if all processes are running as expected"""
+    # Note: run_bot.py is expected to go down during source updates
+    #   (which can take a few minutes)
+    # Health checks should be resilient to this
+    # and set a threshold / check interval to account for this.
     running_processes = os.popen("ps -eo command").read()
     for process in EXPECTED_PROCESSES:
       if process not in running_processes:
