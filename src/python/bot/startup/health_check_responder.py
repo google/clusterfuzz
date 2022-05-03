@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Health check responser that checks if all processes are running as expected
+"""Health check responder that checks if all processes are running as expected
    and response to health checks."""
 
 from http.server import BaseHTTPRequestHandler
@@ -19,8 +19,8 @@ from http.server import HTTPServer
 
 from clusterfuzz._internal.system import process_handler
 
-RESPONSER_IP = 'localhost'
-RESPONSER_PORT = 7123
+RESPONDER_IP = 'localhost'
+RESPONDER_PORT = 7123
 EXPECTED_PROCESSES = ['run.py', 'run_bot.py']
 
 IS_HEALTHY = 200
@@ -40,6 +40,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def run_server():
   """Start a HTTP server to respond to the health checker."""
-  health_check_responser_server = HTTPServer((RESPONSER_IP, RESPONSER_PORT),
+  health_check_responder_server = HTTPServer((RESPONDER_IP, RESPONDER_PORT),
                                              RequestHandler)
-  health_check_responser_server.serve_forever()
+  health_check_responder_server.serve_forever()

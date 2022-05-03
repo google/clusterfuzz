@@ -19,16 +19,16 @@ import unittest
 import mock
 import requests
 
-from python.bot.startup.health_check_responser import EXPECTED_PROCESSES
-from python.bot.startup.health_check_responser import RESPONSER_IP
-from python.bot.startup.health_check_responser import RESPONSER_PORT
-from python.bot.startup.health_check_responser import run_server
+from python.bot.startup.health_check_responder import EXPECTED_PROCESSES
+from python.bot.startup.health_check_responder import RESPONDER_IP
+from python.bot.startup.health_check_responder import RESPONDER_PORT
+from python.bot.startup.health_check_responder import run_server
 
-RESPONSER_ADDR = f'http://{RESPONSER_IP}:{RESPONSER_PORT}'
+RESPONDER_ADDR = f'http://{RESPONDER_IP}:{RESPONDER_PORT}'
 
 
-class HealthCheckResponserTest(unittest.TestCase):
-  """Test health check responser."""
+class HealthCheckResponderTest(unittest.TestCase):
+  """Test health check responder."""
 
   def setUp(self):
     """Prepare mock processes and start the responder server thread."""
@@ -42,34 +42,34 @@ class HealthCheckResponserTest(unittest.TestCase):
     self.server_thread.start()
 
   @mock.patch(
-      'python.bot.startup.health_check_responser.process_handler.psutil')
+      'python.bot.startup.health_check_responder.process_handler.psutil')
   def test_healthy(self, mock_psutil):
     """Testcase for both processes are running."""
     mock_psutil.process_iter.return_value = [
         self.mock_run_process, self.mock_run_bot_process
     ]
 
-    self.assertEqual(200, requests.get(f'{RESPONSER_ADDR}').status_code)
+    self.assertEqual(200, requests.get(f'{RESPONDER_ADDR}').status_code)
 
   @mock.patch(
-      'python.bot.startup.health_check_responser.process_handler.psutil')
+      'python.bot.startup.health_check_responder.process_handler.psutil')
   def test_run_terminated(self, mock_psutil):
     """Testcase for only the run process is running."""
     mock_psutil.process_iter.return_value = [self.mock_run_process]
 
-    self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
+    self.assertEqual(500, requests.get(f'{RESPONDER_ADDR}').status_code)
 
   @mock.patch(
-      'python.bot.startup.health_check_responser.process_handler.psutil')
+      'python.bot.startup.health_check_responder.process_handler.psutil')
   def test_run_bot_terminated(self, mock_psutil):
     """Testcase for only the run_bot process is running."""
     mock_psutil.process_iter.return_value = [self.mock_run_bot_process]
 
-    self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
+    self.assertEqual(500, requests.get(f'{RESPONDER_ADDR}').status_code)
 
   @mock.patch(
-      'python.bot.startup.health_check_responser.process_handler.psutil')
+      'python.bot.startup.health_check_responder.process_handler.psutil')
   def test_both_terminated(self, mock_psutil):
     """Testcase for neither process is running."""
     mock_psutil.process_iter.return_value = []
-    self.assertEqual(500, requests.get(f'{RESPONSER_ADDR}').status_code)
+    self.assertEqual(500, requests.get(f'{RESPONDER_ADDR}').status_code)
