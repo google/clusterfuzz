@@ -92,7 +92,9 @@ def _get_project_results_for_jobs(jobs):
     if utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       projects[project_name]['coverage_job'] = job.name
 
+    projects[project_name]['has_introspector'] = False
     if project_name in introspector_index:
+      projects[project_name]['has_introspector'] = True
       projects[project_name]['introspector_report'] = introspector_index[
           project_name]
 
