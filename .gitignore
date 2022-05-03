@@ -49,8 +49,3 @@ bazel-*
 *.egg-info
 /src/clusterfuzz/lib-config
 .DS_Store
-.vscode/
-myBot/
-myEnv/
-src/myEnv2/
-tmp.txt
