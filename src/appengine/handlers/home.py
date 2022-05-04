@@ -14,26 +14,23 @@
 """Home page handler."""
 
 import json
-import logging
-from google.cloud import storage
 
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import access
 from libs import handler
 from libs import helpers
 
-INTROSPECTOR_BUCKET = 'oss-fuzz-introspector'
-INTROSPECTOR_INDEX_JSON = 'build_status.json'
+INTROSPECTOR_INDEX_JSON_URL = 'gs://oss-fuzz-introspector/build_status.json'
 
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
-
-logging.basicConfig(level=logging.INFO)
 
 def _sort_by_name(item):
   """Sort key function."""
@@ -70,13 +67,11 @@ def get_single_fuzz_target_or_none(project, engine_name):
 
 def get_introspector_index():
   """Return introspector projects status"""
-  introspector_bucket = storage.Client().get_bucket(INTROSPECTOR_BUCKET)
-  index_blob = introspector_bucket.blob(INTROSPECTOR_INDEX_JSON)
-  if index_blob.exists():
-    introspector_index = json.loads(index_blob.download_as_string())
+  if storage.exists(INTROSPECTOR_INDEX_JSON_URL):
+    introspector_index = json.loads(storage.read_data(INTROSPECTOR_INDEX_JSON_URL))
   else:
     introspector_index = {}
-  logging.info('Loaded introspector status %d', len(introspector_index))
+  logs.log('Loaded introspector status: %d' % len(introspector_index))
   return introspector_index
 
 
