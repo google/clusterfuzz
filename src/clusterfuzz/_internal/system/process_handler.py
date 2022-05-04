@@ -649,3 +649,16 @@ def terminate_processes_matching_cmd_line(match_strings,
     if any(x in process_path for x in match_strings):
       if not any([x in process_path for x in exclude_strings]):
         terminate_process(process_info['pid'], kill)
+
+
+def scripts_are_running(expected_scripts):
+  """Check if all target scripts are running as expected."""
+  scripts_left = expected_scripts.copy()
+  for process in psutil.process_iter():
+    for expected_script in scripts_left:
+      if any(expected_script == os.path.basename(cmdline)
+             for cmdline in process.cmdline()):
+        scripts_left.remove(expected_script)
+        if not scripts_left:
+          return True
+  return False
