@@ -69,10 +69,8 @@
         <a href="/crash-stats?project=[[project.name]]"><paper-button raised>Crash stats</paper-button></a>
         <a href="/coverage-report/job/[[project.coverage_job]]/latest"><paper-button raised>Total coverage</paper-button></a>
         <template is="dom-if" if="{{project.has_introspector}}">
-          <!-- <if-else condition="[[project.has_introspector]]"> -->
-            <a href="[[project.introspector_report]]"><paper-button raised>Fuzz Introspector Report</paper-button></a>
-          <!-- </if-else> -->
-      </template>
+          <a href="[[project.introspector_report]]"><paper-button raised>Fuzz Introspector Report</paper-button></a>
+        </template>
       </div>
       <div class="layout horizontal wrap">
         <template is="dom-repeat" items="[[project.jobs]]" as ="job">
