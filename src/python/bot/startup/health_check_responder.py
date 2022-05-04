@@ -11,35 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Health check responder that checks if all processes are running as expected
-   and response to health checks."""
-
-from http.server import BaseHTTPRequestHandler
-from http.server import HTTPServer
+"""Health check responder that checks if all scripts are running as expected
+   and responds to health checks."""
+import http
 
 from clusterfuzz._internal.system import process_handler
 
 RESPONDER_IP = 'localhost'
 RESPONDER_PORT = 7123
-EXPECTED_PROCESSES = ['run.py', 'run_bot.py']
-
-IS_HEALTHY = 200
-NOT_HEALTHY = 500
+EXPECTED_SCRIPTS = ['run.py', 'run_bot.py']
 
 
-class RequestHandler(BaseHTTPRequestHandler):
+class RequestHandler(http.server.BaseHTTPRequestHandler):
   """Handler for GET request form the health checker."""
 
   def do_GET(self):  # pylint: disable=invalid-name
     """Handle a GET request."""
-    response_code = IS_HEALTHY if process_handler.processes_are_healthy(
-        EXPECTED_PROCESSES) else NOT_HEALTHY
+    if process_handler.scripts_are_running(EXPECTED_SCRIPTS):
+      # Note: run_bot.py is expected to go down during source updates
+      #   (which can take a few minutes)
+      # Health checks should be resilient to this
+      # and set a threshold / check interval to account for this.
+      response_code = http.HTTPStatus.OK
+    else:
+      response_code = http.HTTPStatus.INTERNAL_SERVER_ERROR
     self.send_response(response_code)
     self.end_headers()
 
 
 def run_server():
   """Start a HTTP server to respond to the health checker."""
-  health_check_responder_server = HTTPServer((RESPONDER_IP, RESPONDER_PORT),
-                                             RequestHandler)
+  health_check_responder_server = http.server.HTTPServer(
+      (RESPONDER_IP, RESPONDER_PORT), RequestHandler)
   health_check_responder_server.serve_forever()
