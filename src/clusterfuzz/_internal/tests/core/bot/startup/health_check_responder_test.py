@@ -13,6 +13,7 @@
 # limitations under the License.
 """health check reposnser tests."""
 
+from http.server import HTTPServer
 import threading
 import unittest
 
@@ -20,9 +21,9 @@ import mock
 import requests
 
 from python.bot.startup.health_check_responder import EXPECTED_PROCESSES
+from python.bot.startup.health_check_responder import RequestHandler
 from python.bot.startup.health_check_responder import RESPONDER_IP
 from python.bot.startup.health_check_responder import RESPONDER_PORT
-from python.bot.startup.health_check_responder import run_server
 
 RESPONDER_ADDR = f'http://{RESPONDER_IP}:{RESPONDER_PORT}'
 
@@ -37,9 +38,15 @@ class HealthCheckResponderTest(unittest.TestCase):
     self.mock_run_bot_process = mock.MagicMock()
     self.mock_run_bot_process.cmdline.return_value = [EXPECTED_PROCESSES[1]]
 
-    self.server_thread = threading.Thread(target=run_server)
-    self.server_thread.daemon = True
-    self.server_thread.start()
+    self.health_check_responder_server = HTTPServer(
+        (RESPONDER_IP, RESPONDER_PORT), RequestHandler)
+    server_thread = threading.Thread(
+        target=self.health_check_responder_server.serve_forever)
+    server_thread.start()
+
+  def tearDown(self):
+    self.health_check_responder_server.shutdown()
+    self.health_check_responder_server.server_close()
 
   @mock.patch(
       'python.bot.startup.health_check_responder.process_handler.psutil')
