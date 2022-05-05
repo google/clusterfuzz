@@ -94,6 +94,8 @@ class HomeTests(unittest.TestCase):
         'libfuzzer_asan_lib', 'libfuzzer_msan_lib'
     ]
     self.mock.get_access.return_value = access.UserAccess.Denied
+    self.mock.read_data.return_value = '{"lib": "lib_url"}'
+    self.mock.exists.return_value = True
 
     results = home.get_results()
     self.assertEqual(
@@ -120,7 +122,9 @@ class HomeTests(unittest.TestCase):
                     'coverage_job':
                         'libfuzzer_asan_lib',
                     'has_introspector':
-                        False,
+                        True,
+                    'introspector_report':
+                        'lib_url'
                 }],
                 'is_internal_user':
                     False,
@@ -164,7 +168,9 @@ class HomeTests(unittest.TestCase):
                     'coverage_job':
                         'libfuzzer_asan_lib',
                     'has_introspector':
-                        False,
+                        True,
+                    'introspector_report':
+                        'lib_url'
                 }, {
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
