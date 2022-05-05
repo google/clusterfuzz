@@ -33,8 +33,10 @@ class HomeTests(unittest.TestCase):
         'libs.access.get_access',
         'clusterfuzz._internal.base.external_users.allowed_jobs_for_user',
         'libs.helpers.get_user_email',
+        'clusterfuzz._internal.google_cloud_utils.storage.read_data'
     ])
 
+    self.mock.read_data.return_value = ""
     data_types.Job(
         name='libfuzzer_asan_lib',
         environment_string=('PROJECT_NAME = lib\n'
