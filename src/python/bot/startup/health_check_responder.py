@@ -14,6 +14,7 @@
 """Health check responder that checks if all scripts are running as expected
    and responds to health checks."""
 import http
+import threading
 
 from clusterfuzz._internal.system import process_handler
 
@@ -43,4 +44,6 @@ def run_server():
   """Start a HTTP server to respond to the health checker."""
   health_check_responder_server = http.server.HTTPServer(
       (RESPONDER_IP, RESPONDER_PORT), RequestHandler)
-  health_check_responder_server.serve_forever()
+  server_thread = threading.Thread(
+      target=health_check_responder_server.serve_forever)
+  server_thread.start()
