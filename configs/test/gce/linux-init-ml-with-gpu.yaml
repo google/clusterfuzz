@@ -31,7 +31,6 @@ bootcmd:
   - echo never > /sys/kernel/mm/transparent_hugepage/defrag
   - echo core > /proc/sys/kernel/core_pattern # for AFL
   - swapon -a
-  - iptables -w -A INPUT -p tcp --dport 7123 -j ACCEPT # health check port
 
   # Note that NVIDIA_DRIVER_VERSION can be used with a particular CUDA version
   # only, e.g. CUDA 9.0 needs drivers version 384.130. CUDA and TensorFlow are

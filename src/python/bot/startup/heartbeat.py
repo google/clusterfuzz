@@ -25,8 +25,6 @@ import os
 import sys
 import time
 
-from health_check_responder import run_server as run_health_responder_server
-
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_handler
@@ -114,8 +112,6 @@ def main():
     sys.stdout.write(str(beat(previous_state, log_filename)))
   except Exception:
     logs.log_error('Failed to beat.')
-
-  run_health_responder_server()
 
   time.sleep(data_types.HEARTBEAT_WAIT_INTERVAL)
 
