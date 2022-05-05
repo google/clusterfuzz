@@ -17,7 +17,7 @@ import http
 
 from clusterfuzz._internal.system import process_handler
 
-RESPONDER_IP = 'localhost'
+RESPONDER_IP = '0.0.0.0'
 RESPONDER_PORT = 7123
 EXPECTED_SCRIPTS = ['run.py', 'run_bot.py']
 
