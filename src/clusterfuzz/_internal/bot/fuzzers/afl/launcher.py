@@ -1274,7 +1274,8 @@ def _verify_system_config():
     if not os.path.exists(constants.CORE_PATTERN_FILE_PATH):
       return False
 
-    return open(constants.CORE_PATTERN_FILE_PATH).read().strip() == 'core'
+    with open(constants.CORE_PATTERN_FILE_PATH, 'rb') as f:
+      return f.read().strip() == b'core'
 
   if _check_core_pattern_file():
     return
