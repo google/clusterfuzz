@@ -24,13 +24,13 @@ import os
 import subprocess
 import sys
 
-from health_check_responder import run_server as run_health_responser_server
-
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
+from python.bot.startup.health_check_responder import \
+    run_server as run_health_responser_server
 
 BEAT_SCRIPT = 'heartbeat.py'
 
