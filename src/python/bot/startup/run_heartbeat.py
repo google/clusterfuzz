@@ -29,6 +29,8 @@ from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
+from python.bot.startup.health_check_responder import \
+    run_server as run_health_responser_server
 
 BEAT_SCRIPT = 'heartbeat.py'
 
@@ -50,6 +52,8 @@ def main():
   beat_script_path = os.path.join(startup_scripts_directory, BEAT_SCRIPT)
   beat_interpreter = shell.get_interpreter(beat_script_path)
   assert beat_interpreter
+
+  run_health_responser_server()
 
   while True:
     beat_command = [
