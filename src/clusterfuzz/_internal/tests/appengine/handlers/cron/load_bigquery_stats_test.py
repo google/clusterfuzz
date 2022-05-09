@@ -20,6 +20,7 @@ import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.cron import load_bigquery_stats
@@ -76,6 +77,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                     'tableId': 'JobRun',
                     'datasetId': 'fuzzer_stats',
                 },
+                'schema': fuzzer_stats.JobRun.SCHEMA,
             },
             datasetId='fuzzer_stats',
             projectId='test-clusterfuzz'),
