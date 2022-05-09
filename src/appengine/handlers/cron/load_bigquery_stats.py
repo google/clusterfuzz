@@ -89,8 +89,10 @@ class Handler(base_handler.Handler):
         'timePartitioning': {
             'type': 'DAY',
         },
-        'schema': schema,
     }
+
+    if schema is not None:
+      table_body['schema'] = schema
 
     table_insert = bigquery.tables().insert(
         projectId=project_id, datasetId=dataset_id, body=table_body)
