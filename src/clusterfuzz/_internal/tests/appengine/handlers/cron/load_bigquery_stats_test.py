@@ -20,9 +20,9 @@ import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from clusterfuzz._internal.metrics import fuzzer_stats
 from handlers.cron import load_bigquery_stats
 
 
