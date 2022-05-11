@@ -93,6 +93,8 @@ class BotManagerTest(unittest.TestCase):
     expected_properties = {
         'disks': [{
             'boot': True,
+            'deviceName': 'persistent-disk-0',
+            'index': 0,
             'initializeParams': {
                 'diskSizeGb':
                     '10',
@@ -110,6 +112,8 @@ class BotManagerTest(unittest.TestCase):
         'networkInterfaces': [{
             'kind':
                 'compute#networkInterface',
+            'name':
+                'nic0',
             'network': ('https://www.googleapis.com/compute/v1/projects/'
                         '%s/global/networks/default' % TEST_PROJECT),
         }],
