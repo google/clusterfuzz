@@ -73,6 +73,24 @@ test-clusterfuzz:
     #   instance_template: clusterfuzz-android-device
     #   distribute: False
 
+    # clusterfuzz-linux-rhel8-pre:
+    #   gce_zone: gce-zone  # Change to actual GCE zone (e.g. us-central1-a).
+    #   instance_count: 1   # Change to actual number of instances needed.
+    #   instance_template: clusterfuzz-linux-rhel8
+    #   distribute: False
+
+    # clusterfuzz-linux-fedora35-pre:
+    #   gce_zone: gce-zone  # Change to actual GCE zone (e.g. us-central1-a).
+    #   instance_count: 1   # Change to actual number of instances needed.
+    #   instance_template: clusterfuzz-linux-fedora35
+    #   distribute: False
+
+    # clusterfuzz-linux-fedora36-pre:
+    #   gce_zone: gce-zone  # Change to actual GCE zone (e.g. us-central1-a).
+    #   instance_count: 1   # Change to actual number of instances needed.
+    #   instance_template: clusterfuzz-linux-fedora36
+    #   distribute: False
+
   instance_templates:
     - name: clusterfuzz-linux
       description: '{"version": 1}'
@@ -117,6 +135,96 @@ test-clusterfuzz:
           items:
             - key: docker-image
               value: gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654
+            - key: user-data
+              value: file://linux-init.yaml
+        serviceAccounts:
+          - email: test-clusterfuzz-service-account-email
+            scopes:
+              - https://www.googleapis.com/auth/cloud-platform
+              - https://www.googleapis.com/auth/prodxmon
+        networkInterfaces:
+          - network: global/networks/default
+            accessConfigs:
+              - type: ONE_TO_ONE_NAT
+                name: 'External NAT'
+        scheduling:
+          preemptible: true
+
+    - name: clusterfuzz-linux-rhel8-pre
+      description: '{"version": 1}'
+      properties:
+        machineType: n1-standard-1
+        disks:
+          - boot: true
+            autoDelete: true
+            initializeParams:
+              sourceImage: projects/cos-cloud/global/images/family/cos-stable
+              diskSizeGb: 100
+              diskType: pd-standard
+        metadata:
+          items:
+            - key: docker-image
+              value: TODO-add-container-image-here
+            - key: user-data
+              value: file://linux-init.yaml
+        serviceAccounts:
+          - email: test-clusterfuzz-service-account-email
+            scopes:
+              - https://www.googleapis.com/auth/cloud-platform
+              - https://www.googleapis.com/auth/prodxmon
+        networkInterfaces:
+          - network: global/networks/default
+            accessConfigs:
+              - type: ONE_TO_ONE_NAT
+                name: 'External NAT'
+        scheduling:
+          preemptible: true
+
+    - name: clusterfuzz-linux-fedora35-pre
+      description: '{"version": 1}'
+      properties:
+        machineType: n1-standard-1
+        disks:
+          - boot: true
+            autoDelete: true
+            initializeParams:
+              sourceImage: projects/cos-cloud/global/images/family/cos-stable
+              diskSizeGb: 100
+              diskType: pd-standard
+        metadata:
+          items:
+            - key: docker-image
+              value: TODO-add-container-image-here
+            - key: user-data
+              value: file://linux-init.yaml
+        serviceAccounts:
+          - email: test-clusterfuzz-service-account-email
+            scopes:
+              - https://www.googleapis.com/auth/cloud-platform
+              - https://www.googleapis.com/auth/prodxmon
+        networkInterfaces:
+          - network: global/networks/default
+            accessConfigs:
+              - type: ONE_TO_ONE_NAT
+                name: 'External NAT'
+        scheduling:
+          preemptible: true
+
+    - name: clusterfuzz-linux-fedora36-pre
+      description: '{"version": 1}'
+      properties:
+        machineType: n1-standard-1
+        disks:
+          - boot: true
+            autoDelete: true
+            initializeParams:
+              sourceImage: projects/cos-cloud/global/images/family/cos-stable
+              diskSizeGb: 100
+              diskType: pd-standard
+        metadata:
+          items:
+            - key: docker-image
+              value: TODO-add-container-image-here
             - key: user-data
               value: file://linux-init.yaml
         serviceAccounts:
