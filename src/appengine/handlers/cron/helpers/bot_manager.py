@@ -233,6 +233,7 @@ class InstanceGroup(Resource):
              base_instance_name,
              instance_template,
              size=0,
+             auto_healing_policies=None,
              wait_for_instances=True):
     """Create this instance group."""
     manager_body = {
@@ -241,7 +242,10 @@ class InstanceGroup(Resource):
         'name': self.name,
         'targetSize': size,
     }
-
+    if isinstance(auto_healing_policies, list) and len(
+        auto_healing_policies) == 1 and auto_healing_policies[0] != {}:
+      manager_body['autoHealingPolicies'] = auto_healing_policies
+    print(manager_body.get('autoHealingPolicies', '{}'))
     result_proc = None
     if wait_for_instances:
       result_proc = self._handle_size_change

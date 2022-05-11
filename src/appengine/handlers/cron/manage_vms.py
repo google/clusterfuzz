@@ -268,6 +268,7 @@ class ClustersManager(object):
           resource_name,
           resource_name,
           size=cpu_count,
+          auto_healing_policies=[cluster.auto_healing_policy],
           wait_for_instances=False)
     except bot_manager.OperationError as e:
       logging.error('Failed to create instance group %s: %s', resource_name,
