@@ -255,6 +255,24 @@ class InstanceGroup(Resource):
             project=self.project_id, zone=self.zone, body=manager_body),
         result_proc=result_proc)
 
+  def patch_auto_healing_policies(self,
+                                  auto_healing_policies=None,
+                                  wait_for_instances=True):
+    """Update the health check url of this instance group."""
+    request_body = {'autoHealingPolicies': auto_healing_policies or []}
+
+    result_proc = None
+    if wait_for_instances:
+      result_proc = self._handle_size_change
+
+    self.execute(
+        self.compute.instanceGroupManagers().patch(
+            project=self.project_id,
+            zone=self.zone,
+            instanceGroupManager=self.name,
+            body=request_body),
+        result_proc=result_proc)
+
   def resize(self, new_size, wait_for_instances=True):
     """Resize this instance group."""
     result_proc = None

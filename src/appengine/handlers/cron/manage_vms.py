@@ -255,6 +255,39 @@ class ClustersManager(object):
         else:
           logging.info('No instance group size changes needed.')
 
+        auto_healing_policy = {}
+        # Check if needs to update health check URL.
+        old_url = instance_group_body.get('auto_healing_policy', {}).get(
+            'health_check', None)
+        new_url = cluster.auto_healing_policy.get('health_check', None)
+
+        if new_url is not None and new_url != old_url:
+          logging.info(
+              'Updating the health check URL of instance group %s '
+              'from %s to %s.', resource_name, old_url, new_url)
+          auto_healing_policy['healthCheck'] = new_url
+
+        # Check if needs to update health check initial delay.
+        old_delay = instance_group_body.get('auto_healing_policy', {}).get(
+            'initial_delay_sec', None)
+        new_delay = cluster.auto_healing_policy.get('initial_delay_sec', None)
+
+        if new_delay is not None and new_delay != old_delay:
+          logging.info(
+              'Updating the health check initial delay of '
+              'instance group %s from %d to %d.', resource_name, old_delay,
+              new_delay)
+          auto_healing_policy['initialDelaySec'] = new_delay
+
+        # Send one request to update either or both if needed
+        if auto_healing_policy:
+          try:
+            instance_group.patch_auto_healing_policies(
+                auto_healing_policies=[auto_healing_policy],
+                wait_for_instances=False)
+          except bot_manager.OperationError as e:
+            logging.error('Failed to create instance group %s: %s',
+                          resource_name, str(e))
         return
 
     if template_needs_update:
