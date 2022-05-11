@@ -210,20 +210,24 @@ class IssueFilerTests(unittest.TestCase):
   """Tests for the issue filer."""
 
   def setUp(self):
-    data_types.Job(
+    self.job1 = data_types.Job(
         name='job1',
-        environment_string='ISSUE_VIEW_RESTRICTIONS = all\nPROJECT_NAME = proj',
-        platform='linux').put()
+        environment_string=('ISSUE_VIEW_RESTRICTIONS = all\n'
+                            'PROJECT_NAME = proj\n'),
+        platform='linux')
+    self.job1.put()
 
-    data_types.Job(
+    self.job2 = data_types.Job(
         name='job2',
-        environment_string='ISSUE_VIEW_RESTRICTIONS = security',
-        platform='linux').put()
+        environment_string='ISSUE_VIEW_RESTRICTIONS = security\n',
+        platform='linux')
+    self.job2.put()
 
-    data_types.Job(
+    self.job3 = data_types.Job(
         name='job3',
-        environment_string='ISSUE_VIEW_RESTRICTIONS = none',
-        platform='linux').put()
+        environment_string='ISSUE_VIEW_RESTRICTIONS = none\n',
+        platform='linux')
+    self.job3.put()
 
     data_types.Job(
         name='chromeos_job4', environment_string='', platform='linux').put()
@@ -390,6 +394,24 @@ class IssueFilerTests(unittest.TestCase):
         issue_tracker._itm.last_issue.has_label_matching(
             'restrict-view-commit'))
     self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
+    self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)
+    self.assertIn(QUESTIONS_NOTE, issue_tracker._itm.last_issue.body)
+
+  def test_filed_issues_oss_fuzz_disable_disclose(self):
+    """Test filing oss-fuzz issues with disclosure disabled."""
+    self.job2.environment_string += 'DISABLE_DISCLOSURE = True\n'
+    self.job2.put()
+
+    self.mock.get.return_value = OSS_FUZZ_POLICY
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('oss-fuzz'))
+
+    issue_filer.file_issue(self.testcase2_security, issue_tracker)
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching(
+            'restrict-view-commit'))
+    self.assertFalse(
         issue_tracker._itm.last_issue.has_label_matching('reported-2016-01-01'))
     self.assertNotIn(DEADLINE_NOTE, issue_tracker._itm.last_issue.body)
     self.assertIn(FIX_NOTE, issue_tracker._itm.last_issue.body)

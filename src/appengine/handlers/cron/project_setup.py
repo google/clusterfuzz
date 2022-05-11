@@ -410,6 +410,11 @@ def add_service_account_to_bucket(client, bucket_name, service_account, role):
   storage.set_bucket_iam_policy(client, bucket_name, iam_policy)
 
 
+def has_maintainer(info):
+  """Return whether or not a project has at least one maintainer."""
+  return info.get('primary_contact') or info.get('auto_ccs')
+
+
 def ccs_from_info(info):
   """Get list of CC's from project info."""
 
@@ -813,6 +818,9 @@ class ProjectSetup(object):
           logs.log_error(
               f'Invalid view restriction setting {view_restrictions} '
               f'for project {project}.')
+
+      if not has_maintainer(info):
+        job.environment_string += 'DISABLE_DISCLOSURE = True\n'
 
       selective_unpack = info.get('selective_unpack')
       if selective_unpack:
