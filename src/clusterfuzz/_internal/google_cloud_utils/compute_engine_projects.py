@@ -68,7 +68,8 @@ def _process_instance_template(instance_template):
         item['value'].startswith(FILE_SCHEME)):
       file_path = item['value'][len(FILE_SCHEME):]
       with open(
-          os.path.join(environment.get_gce_config_directory(), file_path)) as f:
+          os.path.join(environment.get_gce_config_directory(), file_path),
+          encoding='utf-8') as f:
         item['value'] = f.read()
 
 
