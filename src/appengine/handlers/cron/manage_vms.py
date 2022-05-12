@@ -283,6 +283,12 @@ class ClustersManager(object):
         if auto_healing_policy:
           if new_url is None or new_delay is None:
             auto_healing_policy = {}
+            if new_url is not None or new_delay is not None:
+              logging.warning(
+                  'Deleting auto_healing_policy '
+                  'because its two values (health_check, initial_delay_sec) '
+                  'should never exist independently: (%s, %s)', new_url,
+                  new_delay)
           try:
             instance_group.patch_auto_healing_policies(
                 auto_healing_policy=auto_healing_policy,
