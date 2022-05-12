@@ -258,9 +258,10 @@ class InstanceGroup(Resource):
                                   auto_healing_policy=None,
                                   wait_for_instances=True):
     """Update the health check url of this instance group."""
-    if not auto_healing_policy:
-      return
-    request_body = {'autoHealingPolicies': [auto_healing_policy]}
+    if auto_healing_policy:
+      request_body = {'autoHealingPolicies': [auto_healing_policy]}
+    else:
+      request_body = {'autoHealingPolicies': []}
 
     result_proc = None
     if wait_for_instances:

@@ -281,6 +281,8 @@ class ClustersManager(object):
 
         # Send one request to update either or both if needed
         if auto_healing_policy:
+          if new_url is None or new_delay is None:
+            auto_healing_policy = {}
           try:
             instance_group.patch_auto_healing_policies(
                 auto_healing_policy=auto_healing_policy,
