@@ -255,28 +255,30 @@ class ClustersManager(object):
         else:
           logging.info('No instance group size changes needed.')
 
+        # Check if needs to update autoHealingPolicies.
         auto_healing_policy = {}
-        # Check if needs to update health check URL.
+        # Check if needs to update health check URL in autoHealingPolicies.
         old_url = instance_group_body.get('auto_healing_policy',
                                           {}).get('health_check')
         new_url = cluster.auto_healing_policy.get('health_check')
 
         if new_url != old_url:
           logging.info(
-              'Updating the health check URL of instance group %s '
-              'from %s to %s.', resource_name, old_url, new_url)
+              'Updating the health check URL in auto_healing_policy'
+              'of instance group %s from %s to %s.', resource_name, old_url,
+              new_url)
           auto_healing_policy['healthCheck'] = new_url
 
-        # Check if needs to update health check initial delay.
+        # Check if needs to update initial delay in autoHealingPolicies.
         old_delay = instance_group_body.get('auto_healing_policy',
                                             {}).get('initial_delay_sec')
         new_delay = cluster.auto_healing_policy.get('initial_delay_sec')
 
         if new_delay != old_delay:
           logging.info(
-              'Updating the health check initial delay of '
-              'instance group %s from %s seconds to %s seconds.', resource_name,
-              old_delay, new_delay)
+              'Updating the health check initial delay in auto_healing_policy'
+              'of instance group %s from %s seconds to %s seconds.',
+              resource_name, old_delay, new_delay)
           auto_healing_policy['initialDelaySec'] = new_delay
 
         # Send one request to update either or both if needed
