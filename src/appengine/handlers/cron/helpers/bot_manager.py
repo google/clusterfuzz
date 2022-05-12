@@ -233,7 +233,7 @@ class InstanceGroup(Resource):
              base_instance_name,
              instance_template,
              size=0,
-             auto_healing_policies=None,
+             auto_healing_policy=None,
              wait_for_instances=True):
     """Create this instance group."""
     manager_body = {
@@ -242,9 +242,8 @@ class InstanceGroup(Resource):
         'name': self.name,
         'targetSize': size,
     }
-    if isinstance(auto_healing_policies, list) and len(
-        auto_healing_policies) == 1 and auto_healing_policies[0] != {}:
-      manager_body['autoHealingPolicies'] = auto_healing_policies
+    if auto_healing_policy:
+      manager_body['autoHealingPolicies'] = [auto_healing_policy]
 
     result_proc = None
     if wait_for_instances:
@@ -256,10 +255,12 @@ class InstanceGroup(Resource):
         result_proc=result_proc)
 
   def patch_auto_healing_policies(self,
-                                  auto_healing_policies=None,
+                                  auto_healing_policy=None,
                                   wait_for_instances=True):
     """Update the health check url of this instance group."""
-    request_body = {'autoHealingPolicies': auto_healing_policies or []}
+    if not auto_healing_policy:
+      return
+    request_body = {'autoHealingPolicies': [auto_healing_policy]}
 
     result_proc = None
     if wait_for_instances:
