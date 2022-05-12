@@ -261,7 +261,7 @@ class ClustersManager(object):
                                           {}).get('health_check')
         new_url = cluster.auto_healing_policy.get('health_check')
 
-        if new_url is not None and new_url != old_url:
+        if new_url != old_url:
           logging.info(
               'Updating the health check URL of instance group %s '
               'from %s to %s.', resource_name, old_url, new_url)
@@ -272,11 +272,11 @@ class ClustersManager(object):
                                             {}).get('initial_delay_sec')
         new_delay = cluster.auto_healing_policy.get('initial_delay_sec')
 
-        if new_delay is not None and new_delay != old_delay:
+        if new_delay != old_delay:
           logging.info(
               'Updating the health check initial delay of '
-              'instance group %s from %d to %d.', resource_name, old_delay,
-              new_delay)
+              'instance group %s from %s seconds to %s seconds.', resource_name,
+              old_delay, new_delay)
           auto_healing_policy['initialDelaySec'] = new_delay
 
         # Send one request to update either or both if needed
