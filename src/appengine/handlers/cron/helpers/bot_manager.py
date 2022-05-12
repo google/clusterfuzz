@@ -245,7 +245,7 @@ class InstanceGroup(Resource):
     if isinstance(auto_healing_policies, list) and len(
         auto_healing_policies) == 1 and auto_healing_policies[0] != {}:
       manager_body['autoHealingPolicies'] = auto_healing_policies
-    print(manager_body.get('autoHealingPolicies', '{}'))
+
     result_proc = None
     if wait_for_instances:
       result_proc = self._handle_size_change

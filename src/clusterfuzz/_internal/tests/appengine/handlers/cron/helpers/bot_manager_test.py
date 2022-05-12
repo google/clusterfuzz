@@ -210,9 +210,6 @@ class BotManagerTest(unittest.TestCase):
             auto_healing_policies[0]['initialDelaySec']
     }]
 
-    print(expected_message)
-    print(actual_message)
-
     self.assertEqual(expected_message, actual_message)
 
     auto_healing_policies = [{
@@ -247,6 +244,4 @@ class BotManagerTest(unittest.TestCase):
             auto_healing_policies[0]['initialDelaySec']
     }]
 
-    print(expected_message)
-    print(actual_message)
     self.assertEqual(expected_message, actual_message)
