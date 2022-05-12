@@ -67,7 +67,7 @@ RUN curl -sS https://www.python.org/ftp/python/$PYVER/Python-$PYVER.tgz | tar -C
     rm -rf /tmp/Python-$PYVER
 
 # Note - separate RUN command needed here for the pip install
-RUN pip3.7 install pipenv &&
+RUN pip3.7 install pipenv && \
     pip3.7 install psutil
 
 
