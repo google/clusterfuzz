@@ -1,0 +1,137 @@
+# 
+# Based on https://github.com/google/clusterfuzz/tree/master/docker/base
+# and modified to create a rhel8 (ubi8) fuzzing container for use.
+#
+# Note RHEL based container images have restrictions upon re-distribution
+# so this is based on UBI.
+#
+
+FROM registry.access.redhat.com/ubi8
+
+MAINTAINER Dave Baker <dbaker@redhat.com>
+
+RUN mkdir /data
+WORKDIR /data
+
+# Custom queue (versus "LINUX" for regular ubuntu fuzzing bot)
+ENV QUEUE_OVERRIDE LINUX_RHEL8
+
+
+RUN set -x && \
+    rpm -e vim-minimal                                                                && \
+    dnf -y install --setopt=skip_missing_names_on_install=False                          \
+                   curl wget make vim-enhanced less findutils iputils net-tools procps-ng     \
+                   binutils which gdb-headless sudo bzip2 bzip2-devel libffi-devel openssl-devel gcc gcc-c++ zlib-devel  \
+                   readline socat ncurses-devel sqlite-libs sqlite-devel sqlite python3 unzip xz xz-devel xz-libs     && \
+    dnf -y update             && \
+    dnf clean all             && \
+    rm -rf /var/cache/yum
+
+# UBI doesn't have mkfs.ext4 so we need some hackery to get the container operable.  For now, we'll
+# grab centos8 packages that work, but long term there should be a better solution.
+ENV CENTOSBASE=http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/Packages/
+RUN mkdir /tmp/rpm && cd /tmp/rpm && \
+    wget $CENTOSBASE/e2fsprogs-1.45.6-4.el8.x86_64.rpm \
+         $CENTOSBASE/e2fsprogs-libs-1.45.6-4.el8.x86_64.rpm \
+         $CENTOSBASE/libcom_err-1.45.6-4.el8.x86_64.rpm \
+         $CENTOSBASE/libcom_err-devel-1.45.6-4.el8.x86_64.rpm \
+         $CENTOSBASE/libss-1.45.6-4.el8.x86_64.rpm            && \
+    dnf install -y --disableplugin=subscription-manager *.rpm
+
+
+
+# Install patchelf.
+RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
+    cd /tmp/patchelf-*/ && \
+    ./configure --prefix=/usr && \
+    make install
+
+
+# Install OpenJDK 15 for Jazzer (Java fuzzer).
+# Copied from gcr.io/oss-fuzz-base/base-runner.
+ENV JAVA_HOME=/usr/lib/jvm/java-15-openjdk-amd64
+ENV JVM_LD_LIBRARY_PATH=$JAVA_HOME/lib/server
+ENV PATH=$PATH:$JAVA_HOME/bin
+RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db48ee2/7/GPL/openjdk-15.0.2_linux-x64_bin.tar.gz -O /tmp/openjdk-15.0.2_linux-x64_bin.tar.gz && \
+    cd /tmp && \
+    mkdir -p $JAVA_HOME && \
+    tar -xzv --strip-components=1 -f openjdk-15.0.2_linux-x64_bin.tar.gz --directory $JAVA_HOME && \
+    rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
+
+
+# Install Python 3.
+ARG PYVER=3.7.13
+RUN curl -sS https://www.python.org/ftp/python/$PYVER/Python-$PYVER.tgz | tar -C /tmp -xzv && \
+    cd /tmp/Python-$PYVER && \
+    ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
+    rm -rf /tmp/Python-$PYVER
+
+# Note - separate RUN command needed here for the pip install
+RUN pip3.7 install pipenv &&
+    pip3.7 install psutil
+
+
+# Update for RHEL from https://cloud.google.com/sdk/docs/downloads-interactive
+# -- synlink into /usr/bin so avoid messing with $PATH
+RUN curl https://sdk.cloud.google.com > /tmp/install-sdk && \
+    bash /tmp/install-sdk --disable-prompts --install-dir=/opt && \
+    rm -f /tmp/install-sdk && \
+    find /opt/google-cloud-sdk/bin -type f -exec ln -s {} /usr/bin/ \;
+
+
+
+## See: https://cloud.google.com/logging/docs/agent/logging/installation - this package is deprecated
+RUN curl https://dl.google.com/cloudagents/add-logging-agent-repo.sh > /tmp/add-logging-agent-repo.sh && \
+    bash /tmp/add-logging-agent-repo.sh --also-install && \
+    rm -f /tmp/add-logging-agent-repo.sh && \
+    sed -i 's/flush_interval 5s/flush_interval 60s/' /etc/google-fluentd/google-fluentd.conf
+
+
+
+COPY clusterfuzz-fluentd.conf /etc/google-fluentd/config.d/clusterfuzz.conf
+
+# Common environment variables.
+ENV USER=clusterfuzz
+ENV INSTALL_DIRECTORY /mnt/scratch0
+ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
+ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
+ENV UPDATE_WEB_TESTS True
+ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
+ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
+ENV DEPLOYMENT_ZIP "linux-3.zip"
+
+# Passwordless sudo (needed for AFL launcher).
+RUN groupadd nopwsudo && \
+    echo "%nopwsudo ALL=(ALL:ALL) NOPASSWD:ALL" > /etc/sudoers.d/mysudoers
+
+# Make sure GSUtil uses the GCE service account.
+RUN echo '[GoogleCompute]\nservice_account = default' > /etc/boto.cfg
+
+VOLUME $INSTALL_DIRECTORY
+WORKDIR $INSTALL_DIRECTORY
+
+# RHEL -- tbd
+# RUN localectl set-locale LANG=en_US.UTF-8
+
+
+ENV LANG en_US.UTF-8
+ENV PYTHONIOENCODING UTF-8
+
+# COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile Pipfile.lock /data/
+#
+# ... copied Pipfile in manually; it's not in the github repo
+   ##  pipenv install --deploy --system
+COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile /data/
+RUN cd /data && \
+    # Make pip3.7 the default so that pipenv install --system works.
+    ln -s $( which pip3.7 )  /usr/local/bin/pip   && \
+    pipenv install
+    # Install tensorflow here as it's not included in the Pipfile due to
+    # strict python version requirements.
+RUN cd /data && \
+    pip install tensorflow==2.3.1
+
+
+
+CMD ["bash", "-ex", "/data/start.sh"]
+
