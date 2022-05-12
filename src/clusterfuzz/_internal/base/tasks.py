@@ -59,9 +59,10 @@ TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX': 'Linux',
     'LINUX_WITH_GPU': 'Linux (with GPU)',
     'LINUX_UNTRUSTED': 'Linux (untrusted)',
-    'LINUX_RHEL8': 'Linux (rhel/ubi8)',
-    'LINUX_FEDORA35': 'Linux (fedora35)',
-    'LINUX_FEDORA36': 'Linux (fedora36)',
+    # Uncomment if desired
+    #'LINUX_RHEL8': 'Linux (rhel/ubi8)',
+    #'LINUX_FEDORA35': 'Linux (fedora35)',
+    #'LINUX_FEDORA36': 'Linux (fedora36)',
     'ANDROID': 'Android',
     'ANDROID_KERNEL': 'Android Kernel',
     'ANDROID_KERNEL_X86': 'Android Kernel (X86)',
