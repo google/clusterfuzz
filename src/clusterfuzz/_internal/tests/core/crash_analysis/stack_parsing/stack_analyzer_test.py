@@ -53,7 +53,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
-    with open(os.path.join(DATA_DIRECTORY, name)) as handle:
+    with open(os.path.join(DATA_DIRECTORY, name), encoding='utf-8') as handle:
       return handle.read()
 
   def _validate_get_crash_data(self, data, expected_type, expected_address,
