@@ -16,6 +16,7 @@
 
 import importlib
 import os
+import sys
 
 from local.butler import constants
 from src.clusterfuzz._internal.config import local_config
@@ -25,6 +26,8 @@ from src.clusterfuzz._internal.datastore import ndb_init
 def execute(args):
   """Run Python unit tests under v2. For unittests involved appengine, sys.path
      needs certain modification."""
+  print(args.script_args)
+  sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
   local_config.ProjectConfig().set_environment()
 
@@ -39,8 +42,7 @@ def execute(args):
           'For permanent modifications, re-run with --non-dry-run.')
 
   with ndb_init.context():
-    script = importlib.import_module(
-        'local.butler.scripts.%s' % args.script_name)
+    script = importlib.import_module(f'local.butler.scripts.{args.script_name}')
     script.execute(args)
 
   if not args.local:

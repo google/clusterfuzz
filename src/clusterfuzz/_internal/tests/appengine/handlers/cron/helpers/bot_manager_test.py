@@ -17,6 +17,7 @@ import getpass
 import unittest
 
 from handlers.cron.helpers import bot_manager
+from handlers.cron.helpers.bot_manager import OperationError
 
 TEST_PROJECT = 'clusterfuzz-testing'
 TEST_ZONE = 'us-central1-b'
@@ -92,6 +93,8 @@ class BotManagerTest(unittest.TestCase):
     expected_properties = {
         'disks': [{
             'boot': True,
+            'deviceName': 'persistent-disk-0',
+            'index': 0,
             'initializeParams': {
                 'diskSizeGb':
                     '10',
@@ -109,6 +112,8 @@ class BotManagerTest(unittest.TestCase):
         'networkInterfaces': [{
             'kind':
                 'compute#networkInterface',
+            'name':
+                'nic0',
             'network': ('https://www.googleapis.com/compute/v1/projects/'
                         '%s/global/networks/default' % TEST_PROJECT),
         }],
@@ -164,3 +169,79 @@ class BotManagerTest(unittest.TestCase):
 
     group.delete()
     self.assertFalse(group.exists())
+
+  def test_auto_healing_policy(self):
+    """Test if the autoHealingPolicies are correctly sent and enforced."""
+    template = self.manager.instance_template(test_instance_template_name())
+    template.create(test_template())
+
+    group = self.manager.instance_group(test_instance_group_name())
+
+    auto_healing_policies = [{
+        'healthCheck': 'global/healthChecks/running-check',
+        'initialDelaySec': 300
+    }]
+
+    with self.assertRaises(OperationError) as op_error:
+      group.create(test_instance_group_name(), template.name, 1,
+                   auto_healing_policies)
+      expected_op_error = [{
+          'errors': [{
+              'code': 'WAITING_FOR_HEALTHY_TIMEOUT_EXCEEDED',
+              'message': 'Waiting for HEALTHY state timed out '
+                         '(autohealingPolicy.initialDelay=300 sec) '
+                         'for instance '
+                         'projects/clusterfuzz-testing/'
+                         'zones/us-central1-b/'
+                         'instances/instance-group-donggeliu-1l11 '
+                         'and health check '
+                         'projects/clusterfuzz-testing/'
+                         'global/healthChecks/running-check.'
+          }]
+      }]
+      self.assertEqual(expected_op_error, str(op_error))
+
+    actual_message = group.get()['autoHealingPolicies']
+    expected_message = [{
+        'healthCheck': ('https://www.googleapis.com/compute/v1/projects/'
+                        f'{TEST_PROJECT}/'
+                        f'{auto_healing_policies[0]["healthCheck"]}'),
+        'initialDelaySec':
+            auto_healing_policies[0]['initialDelaySec']
+    }]
+
+    self.assertEqual(expected_message, actual_message)
+
+    auto_healing_policies = [{
+        'healthCheck': 'global/healthChecks/running-check',
+        'initialDelaySec': 180
+    }]
+
+    with self.assertRaises(OperationError) as op_error:
+      group.patch_auto_healing_policies(auto_healing_policies)
+      expected_op_error = [{
+          'errors': [{
+              'code': 'WAITING_FOR_HEALTHY_TIMEOUT_EXCEEDED',
+              'message': 'Waiting for HEALTHY state timed out '
+                         '(autohealingPolicy.initialDelay=300 sec) '
+                         'for instance '
+                         'projects/clusterfuzz-testing/'
+                         'zones/us-central1-b/'
+                         'instances/instance-group-donggeliu-1l11 '
+                         'and health check '
+                         'projects/clusterfuzz-testing/'
+                         'global/healthChecks/running-check.'
+          }]
+      }]
+      self.assertEqual(expected_op_error, str(op_error))
+
+    actual_message = group.get()['autoHealingPolicies']
+    expected_message = [{
+        'healthCheck': ('https://www.googleapis.com/compute/v1/projects/'
+                        f'{TEST_PROJECT}/'
+                        f'{auto_healing_policies[0]["healthCheck"]}'),
+        'initialDelaySec':
+            auto_healing_policies[0]['initialDelaySec']
+    }]
+
+    self.assertEqual(expected_message, actual_message)

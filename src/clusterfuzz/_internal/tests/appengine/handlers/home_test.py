@@ -33,8 +33,12 @@ class HomeTests(unittest.TestCase):
         'libs.access.get_access',
         'clusterfuzz._internal.base.external_users.allowed_jobs_for_user',
         'libs.helpers.get_user_email',
+        'clusterfuzz._internal.google_cloud_utils.storage.read_data',
+        'clusterfuzz._internal.google_cloud_utils.storage.exists'
     ])
 
+    self.mock.read_data.return_value = ''
+    self.mock.exists.return_value = False
     data_types.Job(
         name='libfuzzer_asan_lib',
         environment_string=('PROJECT_NAME = lib\n'
@@ -90,6 +94,8 @@ class HomeTests(unittest.TestCase):
         'libfuzzer_asan_lib', 'libfuzzer_msan_lib'
     ]
     self.mock.get_access.return_value = access.UserAccess.Denied
+    self.mock.read_data.return_value = '{"lib": "lib_url"}'
+    self.mock.exists.return_value = True
 
     results = home.get_results()
     self.assertEqual(
@@ -115,6 +121,10 @@ class HomeTests(unittest.TestCase):
                         u'lib',
                     'coverage_job':
                         'libfuzzer_asan_lib',
+                    'has_introspector':
+                        True,
+                    'introspector_report':
+                        'lib_url'
                 }],
                 'is_internal_user':
                     False,
@@ -157,6 +167,10 @@ class HomeTests(unittest.TestCase):
                         u'lib',
                     'coverage_job':
                         'libfuzzer_asan_lib',
+                    'has_introspector':
+                        True,
+                    'introspector_report':
+                        'lib_url'
                 }, {
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
@@ -184,6 +198,8 @@ class HomeTests(unittest.TestCase):
                         u'lib2',
                     'coverage_job':
                         'libfuzzer_asan_lib2',
+                    'has_introspector':
+                        False,
                 }],
                 'is_internal_user':
                     False,
@@ -227,6 +243,8 @@ class HomeTests(unittest.TestCase):
                         u'lib',
                     'coverage_job':
                         'libfuzzer_asan_lib',
+                    'has_introspector':
+                        False,
                 }, {
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
@@ -254,6 +272,8 @@ class HomeTests(unittest.TestCase):
                         u'lib2',
                     'coverage_job':
                         'libfuzzer_asan_lib2',
+                    'has_introspector':
+                        False,
                 }],
                 'is_internal_user':
                     True,

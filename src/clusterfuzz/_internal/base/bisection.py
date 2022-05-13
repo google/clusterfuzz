@@ -131,6 +131,7 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
   old_commit, new_commit = _check_commits(testcase, bisect_type, old_commit,
                                           new_commit)
 
+  repo_url = data_handler.get_main_repo(testcase.job_type) or ''
   reproducer = blobs.read_key(testcase.minimized_keys or testcase.fuzzed_keys)
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(pubsub_topic, [
@@ -165,6 +166,8 @@ def _make_bisection_request(pubsub_topic, testcase, target, bisect_type):
                       testcase.security_severity),
               'timestamp':
                   testcase.timestamp.isoformat(),
+              'repo_url':
+                  repo_url,
           })
   ])
   return True

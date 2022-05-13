@@ -21,6 +21,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.metrics import logs
 
 GITHUB_PREFIX = 'https://github.com/'
+GIT_SUFFIX = '.git'
 
 TESTCASE_REPORT_URL = 'https://{domain}/testcase?key={testcase_id}'
 
@@ -94,6 +95,8 @@ def _get_repo(testcase, access):
     logs.log(f'MAIN REPO is not a GitHub url: {repo_url}.')
     return None
   repo_name = repo_url[len(GITHUB_PREFIX):]
+  if repo_url.endswith(GIT_SUFFIX):
+    repo_name = repo_name[:-len(GIT_SUFFIX)]
 
   try:
     target_repo = access.get_repo(repo_name)
@@ -145,6 +148,11 @@ def file_issue(testcase):
     logs.log('Unable to file issues to the main repo of the project')
     return
 
+  if not repo.has_issues:
+    logs.log_warn('Unable to file issues to the main repo: '
+                  'Repo has disabled issues.')
+    return
+
   issue = _post_issue(repo, testcase)
   _update_testcase_properties(testcase, repo, issue)
 
@@ -162,6 +170,11 @@ def _get_issue(testcase, access):
     repo = access.get_repo(repo_id)
   except github.UnknownObjectException:
     logs.log_error(f'Unable to locate the GitHub repository id {repo_id}.')
+    return None
+
+  if not repo.has_issues:
+    logs.log_warn('Unable to close issues of the main repo: '
+                  'Repo has disabled issues.')
     return None
 
   try:
