@@ -3069,6 +3069,54 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_rust_panic_fuchsia(self):
+    """Test for a panic in Rust on Fuchsia, i.e. compiled with `panic=abort`
+    instead of relying on the special panic hook installed by libfuzzer-sys.
+
+    This test covers the unwinding as done by `std::sys_common::backtrace`
+    before the abort.
+    """
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_panic_fuchsia.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'it works!\n'
+        '_toy_example_arbitrary_lib_rustc_static::toy_example::h849ed7a815da104e\n'
+        # Note: the line below is truncated by the LINE_LENGTH_CAP.
+        '_toy_example_arbitrary_lib_rustc_static::_::toy_example_arbitrary::hc517d560c714\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_rust_panic_fuchsia_asan(self):
+    """Test for a panic in Rust on Fuchsia, i.e. compiled with `panic=abort`
+    instead of relying on the special panic hook installed by libfuzzer-sys.
+
+    This test covers the unwinding as done by ASAN after libFuzzer catches the
+    abort.
+    """
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_panic_fuchsia_asan.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'it works!\n'
+        '_toy_example_arbitrary_lib_rustc_static::toy_example::h849ed7a815da104e\n'
+        # Note: the line below is truncated by the LINE_LENGTH_CAP.
+        '_toy_example_arbitrary_lib_rustc_static::_::toy_example_arbitrary::hc517d560c714\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_rust_oom(self):
     """Test for out of memory in Rust."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
