@@ -162,5 +162,7 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    # TODO(mbarbella): Implement this.
-    raise NotImplementedError
+    result = launcher.minimize_corpus(target_path, arguments, input_dirs,
+                                      output_dir, reproducers_dir, max_time)
+    return engine.FuzzResult(result.output, result.command, [], {},
+                             result.time_executed)

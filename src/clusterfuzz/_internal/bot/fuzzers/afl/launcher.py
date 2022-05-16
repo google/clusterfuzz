@@ -30,6 +30,7 @@ import signal
 import stat
 import subprocess
 import sys
+import tempfile
 
 import six
 
@@ -67,6 +68,9 @@ PERSISTENT_EXECUTIONS_OPTION = 'n'
 # Grace period for the launcher to complete any processing before it's killed.
 # This will no longer be needed when we migrate to the engine interface.
 POSTPROCESSING_TIMEOUT = 30
+
+# Window of time for afl to exit gracefully before we kill it.
+AFL_CLEAN_EXIT_TIME = 10.0
 
 
 class AflOptionType(object):
@@ -397,9 +401,6 @@ class AflFuzzInputDirectory(object):
 
 class AflRunnerCommon(object):
   """Afl runner common routines."""
-
-  # Window of time for afl to exit gracefully before we kill it.
-  AFL_CLEAN_EXIT_TIME = 10.0
 
   # Time to wait for SIGTERM handler.
   SIGTERM_WAIT_TIME = 10.0
@@ -962,7 +963,7 @@ class AflRunnerCommon(object):
     self.initial_max_total_time = (
         get_fuzz_timeout(
             self.strategies.is_mutations_run, full_timeout=self.timeout) -
-        self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
+        AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
     assert self.initial_max_total_time > 0
 
@@ -1474,6 +1475,42 @@ def prepare_runner(fuzzer_path,
   engine_common.process_sanitizer_options_overrides(fuzzer_path)
 
   return runner
+
+
+def minimize_corpus(target_path, arguments, input_dirs, output_dir,
+                    reproducers_dir, max_time):
+  """Minimizes the corpora in |input_dirs| and writes the resulting corpus to
+  |output_dir|."""
+  del arguments
+  del reproducers_dir
+
+  set_additional_sanitizer_options_for_afl_fuzz()
+
+  # AFL minimizes corpora using the afl-cmin tool.
+  afl_tools_path = os.path.dirname(target_path)
+  afl_cmin_path = os.path.join(afl_tools_path, 'afl-cmin')
+  afl_cmin_runner = new_process.UnicodeProcessRunner(afl_cmin_path)
+
+  os.chmod(target_path, 0o775)
+  os.chmod(afl_cmin_path, 0o775)
+
+  # afl-cmin only works on one directory, copy all inputs to a single directory.
+  with tempfile.TemporaryDirectory as combined_input_dir:
+    for input_dir in input_dirs:
+      for input_file in list_full_file_paths(input_dir):
+        shutil.copyfile(
+            input_file,
+            os.path.join(combined_input_dir, os.path.basename(input_file)))
+
+    arguments = [
+        '-i', combined_input_dir, '-o', output_dir, '-m', 'none', '--',
+        target_path
+    ]
+    env = {'AFL_ALLOW_TMP': '1'}
+    max_time = max_time + AFL_CLEAN_EXIT_TIME
+    # What should we do about crashes?
+    return afl_cmin_runner.run_and_wait(
+        additional_args=arguments, env=env, timeout=max_time)
 
 
 def rand_schedule(scheduler_probs):
