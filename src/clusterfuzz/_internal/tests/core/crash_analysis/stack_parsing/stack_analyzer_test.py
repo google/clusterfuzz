@@ -53,7 +53,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
-    with open(os.path.join(DATA_DIRECTORY, name)) as handle:
+    with open(os.path.join(DATA_DIRECTORY, name), encoding='utf-8') as handle:
       return handle.read()
 
   def _validate_get_crash_data(self, data, expected_type, expected_address,
@@ -3063,6 +3063,54 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'Error: could not find an available port\n'
         'libra_config::utils::get_available_port::h7d7baacfb554bae8\n'
         'libra_json_rpc::fuzzing::fuzzer::hde487212e06dd4fd\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_rust_panic_fuchsia(self):
+    """Test for a panic in Rust on Fuchsia, i.e. compiled with `panic=abort`
+    instead of relying on the special panic hook installed by libfuzzer-sys.
+
+    This test covers the unwinding as done by `std::sys_common::backtrace`
+    before the abort.
+    """
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_panic_fuchsia.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'it works!\n'
+        '_toy_example_arbitrary_lib_rustc_static::toy_example::h849ed7a815da104e\n'
+        # Note: the line below is truncated by the LINE_LENGTH_CAP.
+        '_toy_example_arbitrary_lib_rustc_static::_::toy_example_arbitrary::hc517d560c714\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_rust_panic_fuchsia_asan(self):
+    """Test for a panic in Rust on Fuchsia, i.e. compiled with `panic=abort`
+    instead of relying on the special panic hook installed by libfuzzer-sys.
+
+    This test covers the unwinding as done by ASAN after libFuzzer catches the
+    abort.
+    """
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_panic_fuchsia_asan.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        'it works!\n'
+        '_toy_example_arbitrary_lib_rustc_static::toy_example::h849ed7a815da104e\n'
+        # Note: the line below is truncated by the LINE_LENGTH_CAP.
+        '_toy_example_arbitrary_lib_rustc_static::_::toy_example_arbitrary::hc517d560c714\n'
+    )
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
