@@ -280,6 +280,9 @@ if (!(Test-Path ($fileName))) {
   net start sshd
 }
 
+# Enable health check port.
+netsh advfirewall firewall add rule name="Health check" dir=in action=allow protocol=TCP localport=7123
+
 # Update root certs. certutil called twice due to being crashy on first call.
 certutil -generateSSTFromWU roots.sst
 certutil -generateSSTFromWU roots.sst
