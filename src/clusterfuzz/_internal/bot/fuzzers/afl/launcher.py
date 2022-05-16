@@ -260,6 +260,9 @@ class FuzzingStrategies(object):
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
   DISABLE_TRIM_PROB = 0.75
 
+  # Probability to keep long running finds. (AFL_KEEP_TIMEOUTS=1)
+  KEEP_TIMEOUTS_PROB = 0.5
+
   # Probability for increased havoc intensity. (AFL_EXPAND_HAVOC_NOW=1)
   EXPAND_HAVOC_PROB = 0.5
 
@@ -781,6 +784,11 @@ class AflRunnerCommon(object):
       if engine_common.decide_with_probability(
           self.strategies.DISABLE_TRIM_PROB):
         environment.set_value(constants.DISABLE_TRIM_ENV_VAR, 1)
+
+      # Randomly keep longer running testcases with new coverage.
+      if engine_common.decide_with_probability(
+          self.strategies.KEEP_TIMEOUTS_PROB):
+        environment.set_value(constants.KEEP_TIMEOUTS_ENV_VAR, 1)
 
       # Randomly enable expanded havoc mutation.
       if engine_common.decide_with_probability(
