@@ -76,8 +76,8 @@ def execute(args):
           f'  Issue number  {issue.number}\n'
           f'  Repository ID {issue.repository.id}\n')
     if args.non_dry_run:
-      oss_fuzz_github.update_testcase_properties(
-          testcase, issue.repository, issue)
+      oss_fuzz_github.update_testcase_properties(testcase, issue.repository,
+                                                 issue)
       testcase.put()
 
     # Backclose issues.
