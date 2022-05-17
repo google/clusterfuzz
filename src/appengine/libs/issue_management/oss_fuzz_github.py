@@ -20,6 +20,8 @@ from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.metrics import logs
 
+GITHUB_HANDLE = 'oss-fuzz-robot'
+
 GITHUB_PREFIX = 'https://github.com/'
 GIT_SUFFIX = '.git'
 
@@ -30,7 +32,9 @@ MONORAIL_URL = (
 
 OSS_FUZZ_ISSUE_URL = 'https://github.com/google/oss-fuzz/issues/new'
 
-ISSUE_TITTLE_TEXT = 'OSS-Fuzz issue {bug_information}'
+ISSUE_TITTLE_TEXT_PREFIX = 'OSS-Fuzz issue'
+
+ISSUE_TITTLE_TEXT = '{issue_title_prefix} {bug_information}'
 
 ISSUE_CONTENT_TEXT = ('OSS-Fuzz has found a bug in this project. Please see '
                       f'{TESTCASE_REPORT_URL} '
@@ -51,7 +55,9 @@ ISSUE_ClOSE_COMMENT_TEXT = ('OSS-Fuzz has closed this bug. Please see '
 
 def get_issue_title(testcase):
   """Generate the title of the issue"""
-  return ISSUE_TITTLE_TEXT.format(bug_information=testcase.bug_information)
+  return ISSUE_TITTLE_TEXT.format(
+      issue_title_prefix=ISSUE_TITTLE_TEXT_PREFIX,
+      bug_information=testcase.bug_information)
 
 
 def get_issue_body(testcase):
@@ -124,7 +130,7 @@ def _post_issue(repo, testcase):
           repo.create_issue(title=issue_title, body=issue_body))
 
 
-def _update_testcase_properties(testcase, repo, issue):
+def update_testcase_properties(testcase, repo, issue):
   """Update the GitHub-related properties in the FiledBug entity."""
   testcase.github_repo_id = repo.id
   testcase.github_issue_num = issue.number
@@ -154,7 +160,7 @@ def file_issue(testcase):
     return
 
   issue = _post_issue(repo, testcase)
-  _update_testcase_properties(testcase, repo, issue)
+  update_testcase_properties(testcase, repo, issue)
 
 
 def _issue_recorded(testcase):
@@ -212,3 +218,20 @@ def close_issue(testcase):
   _close_issue_with_comment(testcase, issue)
   logs.log(f'Closed issue number {testcase.github_issue_num} '
            f'in GitHub repository {testcase.github_repo_id}.')
+
+
+def get_my_issues():
+  """Get all issues filed by oss-fuzz-robot."""
+  access_token = _get_access_token()
+  return access_token.search_issues('author:oss-fuzz-robot')
+
+
+def get_bug_information(issue):
+  """Given a GitHub issue, parse its corresponding bug information."""
+  bug_information = issue.title[len(ISSUE_TITTLE_TEXT_PREFIX) + 1:]
+  if not bug_information.isdigit():
+    logs.log(f'Invalid bug information: '
+             f'Repo {issue.repository.id} Issue {issue.number}.\n'
+             f'Issue title: {issue.title}.')
+    return None
+  return bug_information
