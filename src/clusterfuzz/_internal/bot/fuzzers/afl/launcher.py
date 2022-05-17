@@ -550,7 +550,7 @@ class AflRunnerCommon(object):
     print('Running command:', engine_common.get_command_quoted(result.command))
     if result.return_code not in [0, 1, -6]:
       logs.log_error(
-          f'AFL target exited with abnormal exit code: %d.',
+          'AFL target exited with abnormal exit code: %d.',
           result.return_code,
           output=result.output)
 
