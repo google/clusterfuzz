@@ -550,8 +550,7 @@ class AflRunnerCommon(object):
     print('Running command:', engine_common.get_command_quoted(result.command))
     if result.return_code not in [0, 1, -6]:
       logs.log_error(
-          'AFL target exited with abnormal exit code: %d.',
-          result.return_code,
+          f'AFL target exited with abnormal exit code: {result.return_code}.',
           output=result.output)
 
     return result
@@ -705,15 +704,15 @@ class AflRunnerCommon(object):
     (calculated using |max_total_time|).
     """
     if max_total_time <= 0:
-      logs.log_error('Tried fuzzing for %d seconds. Not retrying.',
-                     self.initial_max_total_time)
+      logs.log_error(f'Tried fuzzing for {self.initial_max_total_time} seconds.'
+                     ' Not retrying.')
 
       return False
 
     if num_retries > self.MAX_FUZZ_RETRIES:
       logs.log_error(
-          'Tried to retry fuzzing %d times. Fuzzer is likely broken.',
-          num_retries)
+          f'Tried to retry fuzzing {num_retries} times. '
+          'Fuzzer is likely broken.')
 
       return False
 
@@ -926,7 +925,7 @@ class AflRunnerCommon(object):
     # and then try fuzzing again, this time telling AFL not to bind.
     logs.log_error(
         'CPU binding error encountered by afl-fuzz\n'
-        'Check bot: %s for zombies\n'
+        f'Check bot: {BOT_NAME} for zombies\n'
         'Trying again with AFL_NO_AFFINITY=1',
         BOT_NAME,
         afl_output=fuzz_result.output)
@@ -1573,8 +1572,7 @@ def main(argv):
   # Record the stats to make them easily searchable in stackdriver.
   if new_units_added:
     logs.log(
-        'New units added to corpus: %d.',
-        new_units_added,
+        f'New units added to corpus: {new_units_added}.',
         stats=stats_getter.stats)
   else:
     logs.log('No new units found.', stats=stats_getter.stats)
