@@ -63,7 +63,7 @@ class Engine(engine.Engine):
     return engine.FuzzOptions(corpus_dir, arguments, strategies)
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):
-    """Run a fuzz session.
+    """Runs a fuzz session.
 
     Args:
       target_path: Path to the target.
@@ -119,7 +119,7 @@ class Engine(engine.Engine):
                              time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
-    """Reproduce a crash given an input.
+    """Reproduces a crash given an input.
 
     Args:
       target_path: Path to the target.
@@ -148,7 +148,7 @@ class Engine(engine.Engine):
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
-    """Optional (but recommended): run corpus minimization.
+    """Minimizes the corpus.
 
     Args:
       target_path: Path to the target.
@@ -166,3 +166,40 @@ class Engine(engine.Engine):
                                       output_dir, reproducers_dir, max_time)
     return engine.FuzzResult(result.output, result.command, [], {},
                              result.time_executed)
+
+  def minimize_testcase(self, target_path, arguments, input_path, output_path,
+                        max_time):
+    """Minimizes a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase minimization.
+      input_path: Path to the reproducer input.
+      output_path: Path to the minimized output.
+      max_time: Maximum allowed time for the minimization.
+
+    Returns:
+      A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the testcase minimization exceeds max_time.
+    """
+    raise NotImplementedError
+
+  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+    """Cleanses a testcase.
+
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase cleanse.
+      input_path: Path to the reproducer input.
+      output_path: Path to the cleansed output.
+      max_time: Maximum allowed time for the cleanse.
+
+    Returns:
+      A ReproduceResult.
+
+    Raises:
+      TimeoutError: If the cleanse exceeds max_time.
+    """
+    raise NotImplementedError
