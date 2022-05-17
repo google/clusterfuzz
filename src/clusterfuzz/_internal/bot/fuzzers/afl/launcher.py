@@ -710,9 +710,8 @@ class AflRunnerCommon(object):
       return False
 
     if num_retries > self.MAX_FUZZ_RETRIES:
-      logs.log_error(
-          f'Tried to retry fuzzing {num_retries} times. '
-          'Fuzzer is likely broken.')
+      logs.log_error(f'Tried to retry fuzzing {num_retries} times. '
+                     'Fuzzer is likely broken.')
 
       return False
 
