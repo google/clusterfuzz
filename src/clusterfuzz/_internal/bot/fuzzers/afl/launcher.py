@@ -566,7 +566,6 @@ class AflRunnerCommon(object):
     environment.set_value(constants.SKIP_CRASHES_ENV_VAR, 1)
     environment.set_value(constants.SKIP_CPUFREQ_ENV_VAR, 1)
     environment.set_value(constants.BENCH_UNTIL_CRASH_ENV_VAR, 1)
-    environment.set_value(constants.EXPAND_HAVOC_NOW_VAR, 1)
     environment.set_value(constants.STDERR_FILENAME_ENV_VAR,
                           self.stderr_file_path)
 
