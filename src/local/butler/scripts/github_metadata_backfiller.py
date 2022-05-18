@@ -77,7 +77,8 @@ def execute(args):
     if not bug_information:
       print('Unable to extract bug information: '
             f'Repo {issue.repository.id} Issue {issue.number}.\n'
-            f'Issue title: {issue.title}.')
+            f'Issue title: {issue.title}.\n'
+            f'Issue url: {issue.url}.')
       continue
     testcase = _get_testcase(bug_information)
 
