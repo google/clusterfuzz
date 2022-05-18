@@ -22,3 +22,4 @@ __pycache__/
 private/
 _internal/bot/
 _internal/tests/
+third_party/
