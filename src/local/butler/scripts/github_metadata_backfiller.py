@@ -69,6 +69,7 @@ def execute(args):
   """Backtrack GitHub issues filed in the past,
     update their information in gcloud, and close them when necessary."""
   for issue in oss_fuzz_github.get_my_issues():
+    print('========================================')
     # Track testcase.
     bug_information = _get_bug_information(issue)
     if not bug_information:
