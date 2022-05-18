@@ -16,6 +16,7 @@
         and close issues when necessary."""
 
 from clusterfuzz._internal.datastore import data_types
+from libs.issue_management import issue_tracker_utils
 from libs.issue_management import oss_fuzz_github
 
 
@@ -68,6 +69,7 @@ def _testcase_information_verified(testcase, issue):
 def execute(args):
   """Backtrack GitHub issues filed in the past,
     update their information in gcloud, and close them when necessary."""
+  issue_tracker = issue_tracker_utils.get_issue_tracker('oss-fuzz')
   for issue in oss_fuzz_github.get_my_issues():
     print('========================================')
     # Track testcase.
@@ -91,10 +93,10 @@ def execute(args):
       testcase.put()
 
     # Backclose issues.
-    if testcase.open:
-      continue
-    print(f'Closing testcase (bug information: {testcase.bug_information}):\n'
-          f'  Issue number  {issue.number}\n'
-          f'  Repository ID {issue.repository.id}\n')
-    if args.non_dry_run:
-      oss_fuzz_github.close_issue(testcase)
+    monorail_issue = issue_tracker.get_original_issue(testcase.bug_information)
+    if not monorail_issue.is_open:
+        print(f'Closing testcase (bug information: {testcase.bug_information}):\n'
+              f'  Issue number  {issue.number}\n'
+              f'  Repository ID {issue.repository.id}\n')
+        if args.non_dry_run:
+            oss_fuzz_github.close_issue(testcase)
