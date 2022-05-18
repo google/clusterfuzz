@@ -37,6 +37,15 @@ def _get_testcase(bug_information):
   return None
 
 
+def _get_bug_information(issue):
+  """Given a GitHub issue, parse its corresponding bug information."""
+  bug_information = issue.title[len(oss_fuzz_github.ISSUE_TITTLE_TEXT_PREFIX) +
+                                1:]
+  if bug_information.isdigit():
+    return bug_information
+  return None
+
+
 def _testcase_information_verified(testcase, issue):
   """Verify if a testcase correctly stores its GitHub issue information."""
   if testcase.github_repo_id == issue.repository.id and \
@@ -61,7 +70,7 @@ def execute(args):
     update their information in gcloud, and close them when necessary."""
   for issue in oss_fuzz_github.get_my_issues():
     # Track testcase.
-    bug_information = oss_fuzz_github.get_bug_information(issue)
+    bug_information = _get_bug_information(issue)
     if bug_information is None:
       print('Unable to extract bug information: '
             f'Repo {issue.repository.id} Issue {issue.number}.\n'

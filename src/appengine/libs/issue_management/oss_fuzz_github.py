@@ -224,14 +224,3 @@ def get_my_issues():
   """Get all issues filed by oss-fuzz-robot."""
   access_token = _get_access_token()
   return access_token.search_issues('author:oss-fuzz-robot')
-
-
-def get_bug_information(issue):
-  """Given a GitHub issue, parse its corresponding bug information."""
-  bug_information = issue.title[len(ISSUE_TITTLE_TEXT_PREFIX) + 1:]
-  if not bug_information.isdigit():
-    logs.log(f'Invalid bug information: '
-             f'Repo {issue.repository.id} Issue {issue.number}.\n'
-             f'Issue title: {issue.title}.')
-    return None
-  return bug_information
