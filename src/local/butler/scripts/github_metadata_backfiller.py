@@ -81,6 +81,15 @@ def execute(args):
       continue
     testcase = _get_testcase(bug_information)
 
+    # Backclose issues.
+    monorail_issue = issue_tracker.get_original_issue(testcase.bug_information)
+    if not monorail_issue.is_open:
+        print(f'Closing testcase (bug information: {testcase.bug_information}):\n'
+              f'  Issue number  {issue.number}\n'
+              f'  Repository ID {issue.repository.id}\n')
+        if args.non_dry_run:
+            oss_fuzz_github.close_issue(testcase)
+
     # Update testcase.
     if _testcase_information_verified(testcase, issue):
       continue
@@ -91,12 +100,3 @@ def execute(args):
       oss_fuzz_github.update_testcase_properties(testcase, issue.repository,
                                                  issue)
       testcase.put()
-
-    # Backclose issues.
-    monorail_issue = issue_tracker.get_original_issue(testcase.bug_information)
-    if not monorail_issue.is_open:
-        print(f'Closing testcase (bug information: {testcase.bug_information}):\n'
-              f'  Issue number  {issue.number}\n'
-              f'  Repository ID {issue.repository.id}\n')
-        if args.non_dry_run:
-            oss_fuzz_github.close_issue(testcase)
