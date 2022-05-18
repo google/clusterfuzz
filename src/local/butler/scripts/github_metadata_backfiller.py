@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""backtracker.py backtracks GitHub issues filed in the past,
+"""github_metadata_backfiller.py backtracks GitHub issues filed in the past,
         update their information to cloud storage if missing
         and close issues when necessary."""
 
