@@ -28,6 +28,8 @@ def execute(args):
      needs certain modification."""
   print(args.script_args)
   sys.path.insert(0, os.path.abspath(os.path.join('src', 'appengine')))
+  sys.path.insert(
+      0, os.path.abspath(os.path.join('src', 'appengine', 'third_party')))
   os.environ['CONFIG_DIR_OVERRIDE'] = args.config_dir
   local_config.ProjectConfig().set_environment()
 
