@@ -71,7 +71,7 @@ def execute(args):
   for issue in oss_fuzz_github.get_my_issues():
     # Track testcase.
     bug_information = _get_bug_information(issue)
-    if bug_information is None:
+    if not bug_information:
       print('Unable to extract bug information: '
             f'Repo {issue.repository.id} Issue {issue.number}.\n'
             f'Issue title: {issue.title}.')
