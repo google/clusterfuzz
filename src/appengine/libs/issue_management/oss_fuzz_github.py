@@ -223,4 +223,4 @@ def close_issue(testcase):
 def get_my_issues():
   """Get all issues filed by oss-fuzz-robot."""
   access_token = _get_access_token()
-  return access_token.search_issues('author:oss-fuzz-robot')
+  return access_token.search_issues(f'author:{GITHUB_HANDLE}')
