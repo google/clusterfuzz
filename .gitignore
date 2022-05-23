@@ -24,7 +24,7 @@
 /local/bin/android-sdk/*
 /local/storage
 /paramiko.log
-/src/appengine/gae_requirements.txt
+/src/appengine/requirements.txt
 /src/appengine/app.yaml
 /src/appengine/cron-service.yaml
 /src/appengine/cron.yaml
