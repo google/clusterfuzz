@@ -17,6 +17,8 @@ on:
   release:
     types: [published]
 
+permissions: read-all
+
 jobs:
   publish:
     name: Publish
