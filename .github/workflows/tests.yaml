@@ -15,6 +15,8 @@
 name: Run basic tests
 on: [pull_request]
 
+permissions: read-all
+
 jobs:
   build:
     runs-on: ubuntu-20.04
