@@ -174,6 +174,7 @@ def execute(_):
   pythonpath = os.getenv('PYTHONPATH', '')
   os.environ['PYTHONPATH'] = appengine.find_sdk_path() + ':' + pythonpath
   print('debug ', os.getcwd())
+  common.execute('ls -la')
 
   if 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
