@@ -529,6 +529,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*Inline Function @',
     r'^<unknown>$',
     r'^\[vdso\]$',
+    r'^linux-gate.so.*$',
 
     # Golang specific frames to ignore.
     r'^panic$',

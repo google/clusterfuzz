@@ -3244,3 +3244,15 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_ignore_linux_gate(self):
+    """Test ignore linux-gate.so.1"""
+    data = self._read_test_data('linux_gate.txt')
+    expected_type = 'CHECK failure'
+    expected_state = 'iteration++ < NUMBER in flags.cc\n'
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
