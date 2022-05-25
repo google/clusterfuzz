@@ -173,6 +173,7 @@ def execute(_):
   """Lint changed code."""
   pythonpath = os.getenv('PYTHONPATH', '')
   os.environ['PYTHONPATH'] = appengine.find_sdk_path() + ':' + pythonpath
+  print('debug ', os.getcwd())
 
   if 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
