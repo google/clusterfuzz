@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a86b0640b6f069522736dbd6d41a048a31f8a111e33a184afdb9c582f28936e4"
+            "sha256": "4ab0c0917da565acbc57418e06085b05eb898224f28239e531655641baa2a109"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -84,7 +84,7 @@
         },
         "google-api-core": {
             "extras": [
-                "grpc"
+
             ],
             "hashes": [
                 "sha256:6815207a8b422e9da42c200681603f304b25f98c98b675a9db9fdc3717e44280",
@@ -124,6 +124,22 @@
             "index": "pypi",
             "version": "==0.4.1"
         },
+        "google-cloud-appengine-logging": {
+            "hashes": [
+                "sha256:361450ed7d7bfd8efd0ef253e21680aeb6f6df3cf057e5e8253f5851f8cbbca7",
+                "sha256:cc94f3ce12131091fc478cfc5a6e7e93261b43440c71294b3a0aa894ef1e90f5"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==1.1.1"
+        },
+        "google-cloud-audit-log": {
+            "hashes": [
+                "sha256:d0852f525ad65705f9fbff6288be4493e1449a7906fb5e01bd71c8d1e424d1fc",
+                "sha256:ecc7f5f2168ad4014331d6397fcea3750b2d41900f0ef6d1081cd78b3a6420e9"
+            ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "version": "==0.2.0"
+        },
         "google-cloud-core": {
             "hashes": [
                 "sha256:4c9e457fcfc026fdde2e492228f04417d4c717fb0f29f070122fb0ab89e34ebd",
@@ -142,11 +158,11 @@
         },
         "google-cloud-logging": {
             "hashes": [
-                "sha256:5f7142a28f017ace6b6031e99c26ae1510d55330c9560bd81e308ebfdadfb76a",
-                "sha256:d46f5f5c1d40f35fe42818962471f8d1735810e8e1fa5ee741355718bfdcab1d"
+                "sha256:623476a5d11611687ce278b137f9433b81ecb0394d37c09f857d533a6067b10b",
+                "sha256:7054d5668076ac6d0b3025e1ab09cb829622be925ad664b4e9e0f0f6f8ad7fe9"
             ],
             "index": "pypi",
-            "version": "==1.15.0"
+            "version": "==3.1.1"
         },
         "google-cloud-monitoring": {
             "hashes": [
@@ -194,6 +210,14 @@
             ],
             "markers": "python_version >= '3.6'",
             "version": "==1.56.1"
+        },
+        "grpc-google-iam-v1": {
+            "hashes": [
+                "sha256:312801ae848aeb8408c099ea372b96d253077e7851aae1a9e745df984f81f20c",
+                "sha256:3f0ac2c940b9a855d7ce7e31fde28bddb0d9ac362d32d07c67148306931a0e30"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==0.12.4"
         },
         "grpcio": {
             "hashes": [
@@ -391,6 +415,14 @@
             "markers": "python_version >= '3.6'",
             "version": "==21.3"
         },
+        "proto-plus": {
+            "hashes": [
+                "sha256:3cfaac30676793d5ee764a0982bc30481beb5059f315e2a2422d7c73ded5b601",
+                "sha256:6653541c2f1209e4d5268d3e6302791f72a95cc5f8bdcf3e60d943edc657e70a"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==1.20.4"
+        },
         "protobuf": {
             "hashes": [
                 "sha256:01a0645ef3acddfbc90237e1cdfae1086130fc7cb480b5874656193afd657083",
@@ -536,7 +568,7 @@
                 "sha256:5c6bd9dc7a543b7fe4304a631f8a8a3b674e2bbfc49c2ae96200cdbe55df6b17",
                 "sha256:95c5d300c4e879ee69708c428ba566c59478fd653cc3a22243eeb8ed846950bb"
             ],
-            "markers": "python_version >= '3.6' and python_version < '4'",
+            "markers": "python_version >= '3.6'",
             "version": "==4.8"
         },
         "setuptools": {
@@ -820,7 +852,7 @@
         },
         "google-api-core": {
             "extras": [
-                "grpc"
+
             ],
             "hashes": [
                 "sha256:6815207a8b422e9da42c200681603f304b25f98c98b675a9db9fdc3717e44280",
@@ -1333,7 +1365,7 @@
                 "sha256:5c6bd9dc7a543b7fe4304a631f8a8a3b674e2bbfc49c2ae96200cdbe55df6b17",
                 "sha256:95c5d300c4e879ee69708c428ba566c59478fd653cc3a22243eeb8ed846950bb"
             ],
-            "markers": "python_version >= '3.6' and python_version < '4'",
+            "markers": "python_version >= '3.6'",
             "version": "==4.8"
         },
         "sendgrid": {
