@@ -218,6 +218,10 @@ def create_buckets(project_id, buckets):
     except common.GsutilError:
       # Create the bucket if it does not exist.
       gsutil.run('mb', '-p', project_id, 'gs://' + bucket)
+    finally:
+      # Disable uniform bucket-level access. Otherwise setting legacy fine
+      # grained ACLs will fail.
+      gsutil.run('bucketpolicyonly', 'set', 'off', 'gs://' + bucket)
 
 
 def set_cors(config_dir, buckets):
