@@ -184,7 +184,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'mac.zip'),
         mock.call('gsutil cp /linux.zip gs://test-deployment-bucket/'
                   'linux.zip'),
-        mock.call('gsutil cp -a public-read src/appengine/resources/'
+        mock.call('gsutil cp src/appengine/resources/'
                   'clusterfuzz-source.manifest '
                   'gs://test-deployment-bucket/' + self.manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
@@ -266,7 +266,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
                   'mac.zip'),
         mock.call('gsutil cp /linux.zip gs://test-deployment-bucket/'
                   'linux.zip'),
-        mock.call('gsutil cp -a public-read src/appengine/resources/'
+        mock.call('gsutil cp src/appengine/resources/'
                   'clusterfuzz-source.manifest '
                   'gs://test-deployment-bucket/' + self.manifest_target),
         mock.call('python butler.py run setup --config-dir /config_dir '
