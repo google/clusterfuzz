@@ -225,7 +225,7 @@ def _deploy_manifest(bucket_name, manifest_path):
   else:
     manifest_suffix = ''
 
-  common.execute('gsutil cp -a public-read %s '
+  common.execute('gsutil cp %s '
                  'gs://%s/clusterfuzz-source.manifest%s' %
                  (manifest_path, bucket_name, manifest_suffix))
 
