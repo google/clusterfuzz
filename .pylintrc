@@ -40,7 +40,8 @@ disable=
   super-with-arguments,
   use-a-generator,
   consider-using-generator,
-  consider-using-f-string  # Too much legacy usages.
+  consider-using-f-string,  # Too much legacy usages.
+  unspecified-encoding  # Too much legacy usage.
 
 [BASIC]
 
