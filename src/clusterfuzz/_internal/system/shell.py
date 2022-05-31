@@ -343,6 +343,10 @@ def get_free_disk_space(path='/'):
   if not os.path.exists(path):
     return None
 
+  if psutil is None:
+    logs.log_error(
+        'Attempted to get free disk space, but \'psutil\' was not found.')
+    return None
   return psutil.disk_usage(path).free
 
 
