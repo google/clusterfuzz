@@ -120,9 +120,13 @@ class Issue(issue_tracker.Issue):
     """The issue component list."""
     return self._components
 
-  # FIXME: Add support for new_comment and notify arguments
+  # FIXME: Add support for notify arguments
   def save(self, new_comment=None, notify=True):  # pylint: disable=unused-argument
     """Save the issue."""
+    # add new comment to issue
+    if new_comment:
+      self.itm.client.add_comment(self.jira_issue, new_comment)
+
     for added in self._components.added:
       self.components.add(added)
     for removed in self._components.removed:

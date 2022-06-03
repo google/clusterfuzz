@@ -171,5 +171,6 @@ class JiraTests(unittest.TestCase):
     self.mock.get_issue.return_value = self.mock_issue
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.status = 'Closed'
-    issue.save()
+    issue.save(new_comment='test comments')
+    self.mock.client.add_comment.assert_called_with(self.mock_issue.jira_issue, 'test comments')
     self.assertEqual(issue.status, 'Closed')
