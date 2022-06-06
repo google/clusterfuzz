@@ -224,7 +224,8 @@ def _get_search_text(keywords):
   jira_special_characters = '+-&|!(){}[]^~*?\\:'
   search_text = ''
   for keyword in keywords:
-    # Replace special characters with whitespace as they are not allowed and can't be searched for.
+    # Replace special characters with whitespace as they are not allowed and
+    # can't be searched for.
     stripped_keyword = keyword
     for special_character in jira_special_characters:
       stripped_keyword = stripped_keyword.replace(special_character, ' ')

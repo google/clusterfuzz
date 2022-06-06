@@ -169,8 +169,11 @@ class JiraTests(unittest.TestCase):
   def test_find_issues_url(self):
     """Test find_issues_url."""
     self.mock.get.return_value = Config()
-    issue_url = self.issue_tracker.find_issues_url(keywords=['keyword+-&|!(){}[]^~*?:+-&|!(){}[]^~*?:test'])
-    self.assertEqual('https://jira.company.com/issues/?jql=project = VSEC AND text ~ "keyword test"', issue_url)
+    issue_url = self.issue_tracker.find_issues_url(
+        keywords=['keyword+-&|!(){}[]^~*?:+-&|!(){}[]^~*?:test'])
+    self.assertEqual(
+        'https://jira.company.com/issues/?jql=project = VSEC AND text ~ "keyword test"',
+        issue_url)
 
   def test_issue_save(self):
     """Test save."""
