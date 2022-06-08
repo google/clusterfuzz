@@ -49,3 +49,4 @@ bazel-*
 *.egg-info
 /src/clusterfuzz/lib-config
 .DS_Store
+.vscode
