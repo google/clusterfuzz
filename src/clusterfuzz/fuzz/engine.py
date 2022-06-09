@@ -202,7 +202,7 @@ def register(name, engine_class):
 
 
 def get(name):
-  """Get an implemntation of a fuzzing engine, or None if one does not exist."""
+  """Get an implementation of a fuzzing engine, or None if one does not exist."""
   engine_class = _ENGINES.get(name)
   if engine_class:
     return engine_class()
