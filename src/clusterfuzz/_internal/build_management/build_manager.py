@@ -1513,7 +1513,7 @@ def setup_build(revision=0, target_weights=None):
     if bucket_path:
       bucket_paths.append(bucket_path)
     else:
-      logs.log('Bucket path not found for %s', env_var)
+      logs.log('Bucket path not found for %s' % env_var)
 
   if len(bucket_paths) == 0:
     logs.log_error('Attempted a trunk build, but no bucket paths were found.')
