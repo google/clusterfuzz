@@ -890,8 +890,9 @@ class AflRunnerCommon(object):
       # If we can't do anything useful about the error, log it and don't try to
       # fuzz again.
       logs.log_error(
-          ('Afl exited with a non-zero exitcode: %s. Cannot recover.' %
-           fuzz_result.return_code),
+          f'Afl exited with a non-zero exitcode: {fuzz_result.return_code}.'
+          'Cannot recover.',
+          fuzz_result.return_code),
           engine_output=fuzz_result.output)
 
       break
@@ -915,9 +916,9 @@ class AflRunnerCommon(object):
         constants.NO_AFFINITY_ENV_VAR)
 
     if current_no_affinity_value is not None:
-      logs.log_warn(('Already tried fixing CPU bind error\n'
-                     '$AFL_NO_AFFINITY: %s\n'
-                     'Not retrying.') % current_no_affinity_value)
+      logs.log_warn('Already tried fixing CPU bind error\n'
+                    f'$AFL_NO_AFFINITY: {current_no_affinity_value}\n'
+                    'Not retrying.')
 
       return False  # return False so this error is considered unhandled.
 
