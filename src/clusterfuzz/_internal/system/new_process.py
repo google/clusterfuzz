@@ -446,7 +446,7 @@ class ModifierProcessRunnerMixin(object):
     if additional_args:
       command.extend(additional_args)
 
-    return self.tool_prefix('unshare') + command
+    return self.tool_prefix('unshare') + self.tool_prefix('inj') + command
 
 
 class ModifierProcessRunner(ModifierProcessRunnerMixin, ProcessRunner):
