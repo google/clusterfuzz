@@ -29,6 +29,13 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+TOOL_ARGS = {
+    'unshare': [
+        '-c',  # Map current user to same user in user namespace.
+        '-n',  # Enter network namespace.
+    ],
+}
+
 
 def _end_process(terminate_function, process_result):
   """Ends a running process.
@@ -414,36 +421,37 @@ class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
   """ProcessRunner which always returns unicode output."""
 
 
-class UnshareProcessRunnerMixin(object):
-  """ProcessRunner mixin which unshares."""
+class ModifierProcessRunnerMixin(object):
+  """ProcessRunner mixin with modifiers."""
+
+  def tool_prefix(self, tool):
+    """Prefix the command with a tool and its args"""
+    if not environment.get_value(f'USE_{tool.upper()}'):
+      return []
+
+    tool_path = environment.get_default_tool_path(tool)
+    if not tool_path:
+      raise RuntimeError(f'f{tool} not found')
+
+    return [tool_path] + TOOL_ARGS.get(tool, [])
 
   def get_command(self, additional_args=None):
     """Overridden get_command."""
     if environment.platform() != 'LINUX':
       raise RuntimeError('UnshareProcessRunner only supported on Linux')
 
-    unshare_path = environment.get_default_tool_path('unshare')
-    if not unshare_path:
-      raise RuntimeError('unshare not found')
-
-    command = [
-        unshare_path,
-        '-c',  # Map current user to same user in user namespace.
-        '-n',  # Enter network namespace.
-    ]
-
-    command.append(self._executable_path)
+    command = [self._executable_path]
     command.extend(self._default_args)
 
     if additional_args:
       command.extend(additional_args)
 
-    return command
+    return self.tool_prefix('unshare') + command
 
 
-class UnshareProcessRunner(UnshareProcessRunnerMixin, ProcessRunner):
-  """ProcessRunner which unshares."""
+class ModifierProcessRunner(ModifierProcessRunnerMixin, ProcessRunner):
+  """ProcessRunner with modifiers."""
 
 
-class UnicodeUnshareRunner(UnshareProcessRunnerMixin, UnicodeProcessRunner):
-  """Unicode unshare runner."""
+class UnicodeModifierRunner(ModifierProcessRunnerMixin, UnicodeProcessRunner):
+  """Unicode modifiers runner."""
