@@ -3256,3 +3256,15 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_capture_shell_bug(self):
+    """Test capturing shell bugs detected by extra sanitisers"""
+    data = self._read_test_data('shell_bug.txt')
+    expected_type = 'Shell bug'
+    expected_address = ''
+    expected_state = 'wait4\ndo_system\ntarget.cpp\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
