@@ -19,6 +19,7 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.request
 
 try:
   import psutil
@@ -34,6 +35,11 @@ TOOL_ARGS = {
         '-c',  # Map current user to same user in user namespace.
         '-n',  # Enter network namespace.
     ],
+}
+
+TOOL_URLS = {
+    'extra_sanitizers':
+        'https://storage.googleapis.com/oss-fuzz-sanitizers/latest'
 }
 
 
@@ -430,7 +436,9 @@ class ModifierProcessRunnerMixin(object):
       return []
 
     tool_path = environment.get_default_tool_path(tool)
-    if not tool_path:
+    if not os.path.exists(tool_path) and tool in TOOL_URLS:
+      urllib.request.urlretrieve(TOOL_URLS.get(tool), tool_path)
+    if not os.path.exists(tool_path):
       raise RuntimeError(f'f{tool} not found')
 
     return [tool_path] + TOOL_ARGS.get(tool, [])
@@ -446,7 +454,8 @@ class ModifierProcessRunnerMixin(object):
     if additional_args:
       command.extend(additional_args)
 
-    return self.tool_prefix('unshare') + self.tool_prefix('extra_sanitizers') + command
+    return self.tool_prefix('unshare') + self.tool_prefix(
+        'extra_sanitizers') + command
 
 
 class ModifierProcessRunner(ModifierProcessRunnerMixin, ProcessRunner):
