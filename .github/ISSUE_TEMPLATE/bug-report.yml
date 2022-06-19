@@ -1,4 +1,4 @@
-name: Bug report
+name: '🐞 Bug report'
 description: Let us know about functionality that is not working as expected
 title: "Bug report: <short description>"
 labels: ["bug"]
