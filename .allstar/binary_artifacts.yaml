@@ -1,0 +1,4 @@
+# Exemption reason: This repo uses binary artifacts that are not practical to
+# build from source (e.g. from LLVM).
+optConfig:
+  optOut: true
