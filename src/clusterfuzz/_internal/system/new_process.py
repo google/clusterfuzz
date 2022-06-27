@@ -451,7 +451,7 @@ class ModifierProcessRunnerMixin(object):
     if os.path.exists(tool_path) and not self.is_expected_mode(tool_path, tool):
       os.chmod(tool_path, TOOL_MODES.get(tool))
     if not os.path.exists(tool_path):
-      raise RuntimeError(f'f{tool} not found')
+      raise RuntimeError(f'{tool} not found')
 
     return [tool_path] + TOOL_ARGS.get(tool, [])
 
