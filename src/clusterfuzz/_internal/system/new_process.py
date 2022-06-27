@@ -14,6 +14,7 @@
 """Process handling utilities."""
 
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -40,6 +41,10 @@ TOOL_ARGS = {
 TOOL_URLS = {
     'extra_sanitizers':
         'https://storage.googleapis.com/oss-fuzz-sanitizers/latest'
+}
+
+TOOL_MODES = {
+    'extra_sanitizers': stat.S_IXUSR
 }
 
 
@@ -430,6 +435,11 @@ class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
 class ModifierProcessRunnerMixin(object):
   """ProcessRunner mixin with modifiers."""
 
+  def is_expected_mode(self, tool_path, tool):
+    actual_mode = stat.S_IMODE(os.stat(tool_path).st_mode)
+    expected_mode = TOOL_MODES.get(tool, actual_mode)
+    return actual_mode == expected_mode
+
   def tool_prefix(self, tool):
     """Prefix the command with a tool and its args"""
     if not environment.get_value(f'USE_{tool.upper()}'):
@@ -438,6 +448,8 @@ class ModifierProcessRunnerMixin(object):
     tool_path = environment.get_default_tool_path(tool)
     if not os.path.exists(tool_path) and tool in TOOL_URLS:
       urllib.request.urlretrieve(TOOL_URLS.get(tool), tool_path)
+    if os.path.exists(tool_path) and not self.is_expected_mode(tool_path, tool):
+      os.chmod(tool_path, TOOL_MODES.get(tool))
     if not os.path.exists(tool_path):
       raise RuntimeError(f'f{tool} not found')
 
