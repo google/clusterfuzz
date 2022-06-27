@@ -823,7 +823,7 @@ class StackParser:
           new_state='',
           reset=True)
 
-      # Shell bugs detected by extra sanitisers.
+      # Shell bugs detected by extra sanitizers.
       self.update_state_on_match(
           EXTRA_SANITIZERS_SHELL_BUG_REGEX, line, state, new_type='Shell bug')
 

@@ -3258,7 +3258,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_capture_shell_bug(self):
-    """Test capturing shell bugs detected by extra sanitisers"""
+    """Test capturing shell bugs detected by extra sanitizers"""
     data = self._read_test_data('shell_bug.txt')
     expected_type = 'Shell bug'
     expected_address = ''
