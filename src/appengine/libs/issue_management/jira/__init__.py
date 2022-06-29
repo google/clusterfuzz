@@ -225,8 +225,16 @@ def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
 
 def _get_search_text(keywords):
   """Get search text."""
+  jira_special_characters = '+-&|!(){}[]^~*?\\:'
   search_text = ''
   for keyword in keywords:
-    search_text += ' AND text ~ "%s"' % keyword
+    # Replace special characters with whitespace as they are not allowed and
+    # can't be searched for.
+    stripped_keyword = keyword
+    for special_character in jira_special_characters:
+      stripped_keyword = stripped_keyword.replace(special_character, ' ')
+    # coalesce multiple spaces into one.
+    stripped_keyword = ' '.join(stripped_keyword.split())
+    search_text += f' AND text ~ "{stripped_keyword}"'
 
   return search_text
