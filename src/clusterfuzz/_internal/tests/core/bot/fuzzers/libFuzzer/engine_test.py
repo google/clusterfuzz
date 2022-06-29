@@ -907,6 +907,25 @@ class UnshareIntegrationTests(IntegrationTests):
 
 
 @test_utils.integration
+class ExtraSanitizerIntegrationTests(IntegrationTests):
+  """Extra sanitizers integration tests."""
+
+  def setUp(self):
+    super().setUp()
+    os.environ['USE_EXTRA_SANITIZERS'] = 'True'
+    os.environ['ASAN_OPTIONS'] = 'detect_leaks=0'
+
+  def compare_arguments(self, target_path, arguments, corpora_or_testcase,
+                        actual):
+    """Compare expected arguments."""
+    self.assertListEqual(actual, [
+        os.path.join(
+            environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
+            'extra_sanitizers'), target_path
+    ] + arguments + corpora_or_testcase)
+
+
+@test_utils.integration
 class MinijailIntegrationTests(IntegrationTests):
   """Minijail integration tests."""
 

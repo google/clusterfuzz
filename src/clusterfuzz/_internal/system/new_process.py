@@ -19,6 +19,7 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.request
 
 try:
   import psutil
@@ -28,6 +29,18 @@ except ImportError:
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+TOOL_ARGS = {
+    'unshare': [
+        '-c',  # Map current user to same user in user namespace.
+        '-n',  # Enter network namespace.
+    ],
+}
+
+TOOL_URLS = {
+    'extra_sanitizers':
+        'https://storage.googleapis.com/oss-fuzz-sanitizers/latest'
+}
 
 
 def _end_process(terminate_function, process_result):
@@ -414,36 +427,42 @@ class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
   """ProcessRunner which always returns unicode output."""
 
 
-class UnshareProcessRunnerMixin(object):
-  """ProcessRunner mixin which unshares."""
+class ModifierProcessRunnerMixin(object):
+  """ProcessRunner mixin with modifiers."""
+
+  def tool_prefix(self, tool):
+    """Prefix the command with a tool and its args"""
+    if not environment.get_value(f'USE_{tool.upper()}'):
+      return []
+
+    tool_path = environment.get_default_tool_path(tool)
+    if not os.path.exists(tool_path) and tool in TOOL_URLS:
+      urllib.request.urlretrieve(TOOL_URLS.get(tool), tool_path)
+    if os.path.exists(tool_path):
+      os.chmod(tool_path, 0o755)
+    if not os.path.exists(tool_path):
+      raise RuntimeError(f'{tool} not found')
+
+    return [tool_path] + TOOL_ARGS.get(tool, [])
 
   def get_command(self, additional_args=None):
     """Overridden get_command."""
     if environment.platform() != 'LINUX':
       raise RuntimeError('UnshareProcessRunner only supported on Linux')
 
-    unshare_path = environment.get_default_tool_path('unshare')
-    if not unshare_path:
-      raise RuntimeError('unshare not found')
-
-    command = [
-        unshare_path,
-        '-c',  # Map current user to same user in user namespace.
-        '-n',  # Enter network namespace.
-    ]
-
-    command.append(self._executable_path)
+    command = [self._executable_path]
     command.extend(self._default_args)
 
     if additional_args:
       command.extend(additional_args)
 
-    return command
+    return self.tool_prefix('unshare') + self.tool_prefix(
+        'extra_sanitizers') + command
 
 
-class UnshareProcessRunner(UnshareProcessRunnerMixin, ProcessRunner):
-  """ProcessRunner which unshares."""
+class ModifierProcessRunner(ModifierProcessRunnerMixin, ProcessRunner):
+  """ProcessRunner with modifiers."""
 
 
-class UnicodeUnshareRunner(UnshareProcessRunnerMixin, UnicodeProcessRunner):
-  """Unicode unshare runner."""
+class UnicodeModifierRunner(ModifierProcessRunnerMixin, UnicodeProcessRunner):
+  """Unicode modifiers runner."""
