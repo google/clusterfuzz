@@ -375,7 +375,8 @@ class LibFuzzerCommon(object):
 
 # False positive.
 # pylint: disable=unexpected-keyword-arg
-class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
+class LibFuzzerRunner(new_process.ModifierProcessRunnerMixin,
+                      new_process.UnicodeProcessRunner, LibFuzzerCommon):
   """libFuzzer runner (when minijail is not used)."""
 
   def __init__(self, executable_path, default_args=None):
@@ -400,11 +401,6 @@ class LibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
     return LibFuzzerCommon.fuzz(self, corpus_directories, fuzz_timeout,
                                 artifact_prefix, additional_args, extra_env)
-
-
-class UnshareLibFuzzerRunner(new_process.UnshareProcessRunnerMixin,
-                             new_process.UnicodeProcessRunner, LibFuzzerCommon):
-  """LibFuzzerRunner which unshares."""
 
 
 class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
@@ -1148,13 +1144,10 @@ class AndroidEmulatorLibFuzzerRunner(AndroidLibFuzzerRunner):
   cleanse_crash = wrap_emulator(AndroidLibFuzzerRunner.cleanse_crash)
 
 
-def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
+def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   """Get a libfuzzer runner."""
   if use_minijail is None:
     use_minijail = environment.get_value('USE_MINIJAIL')
-
-  if use_unshare is None:
-    use_unshare = environment.get_value('USE_UNSHARE')
 
   if use_minijail is False:
     # If minijail is explicitly disabled, set the environment variable as well.
@@ -1223,8 +1216,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None, use_unshare=None):
     runner = AndroidEmulatorLibFuzzerRunner(fuzzer_path, build_dir)
   elif is_android:
     runner = AndroidLibFuzzerRunner(fuzzer_path, build_dir)
-  elif use_unshare:
-    runner = UnshareLibFuzzerRunner(fuzzer_path)  # pylint: disable=too-many-function-args
   else:
     runner = LibFuzzerRunner(fuzzer_path)
 

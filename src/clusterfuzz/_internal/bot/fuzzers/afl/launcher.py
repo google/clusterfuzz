@@ -1151,7 +1151,7 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     new_process.ProcessRunner.__init__(self, self.afl_fuzz_path)
 
 
-class UnshareAflRunner(new_process.UnshareProcessRunnerMixin, AflRunner):
+class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
 
 

@@ -148,7 +148,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
     asan_options['quarantine_size_mb'] = quarantine_size_mb
 
   # Test for leaks if this is an LSan-enabled job type.
-  if get_value('LSAN') and leaks:
+  if get_value('LSAN') and leaks and not get_value('USE_EXTRA_SANITIZERS'):
     lsan_options = join_memory_tool_options(get_lsan_options())
     set_value('LSAN_OPTIONS', lsan_options)
     asan_options['detect_leaks'] = 1
