@@ -44,7 +44,7 @@ TOOL_URLS = {
 }
 
 TOOL_MODES = {
-    'extra_sanitizers': stat.S_IXUSR
+    'extra_sanitizers': stat.S_IRUSR | stat.S_IXUSR
 }
 
 
