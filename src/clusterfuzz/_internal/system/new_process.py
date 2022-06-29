@@ -43,9 +43,7 @@ TOOL_URLS = {
         'https://storage.googleapis.com/oss-fuzz-sanitizers/latest'
 }
 
-TOOL_MODES = {
-    'extra_sanitizers': stat.S_IRUSR | stat.S_IXUSR
-}
+TOOL_MODES = {'extra_sanitizers': stat.S_IRUSR | stat.S_IXUSR}
 
 
 def _end_process(terminate_function, process_result):

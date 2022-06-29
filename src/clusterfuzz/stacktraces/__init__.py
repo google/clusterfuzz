@@ -825,7 +825,10 @@ class StackParser:
 
       # Shell bugs detected by extra sanitizers.
       self.update_state_on_match(
-          EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX, line, state, new_type='Shell bug')
+          EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX,
+          line,
+          state,
+          new_type='Shell bug')
 
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
