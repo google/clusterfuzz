@@ -91,7 +91,7 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
-EXTRA_SANITIZERS_SHELL_BUG_REGEX = re.compile(
+EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX = re.compile(
     r'===BUG DETECTED: Shell (corruption|injection)===')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
