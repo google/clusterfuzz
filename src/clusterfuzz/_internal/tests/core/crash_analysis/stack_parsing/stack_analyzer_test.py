@@ -3257,10 +3257,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_capture_shell_bug(self):
-    """Test capturing shell bugs detected by extra sanitizers"""
-    data = self._read_test_data('shell_bug.txt')
-    expected_type = 'Shell bug'
+  def test_capture_command_injection(self):
+    """Test capturing command injection bugs detected by extra sanitizers"""
+    data = self._read_test_data('command_injection_bug.txt')
+    expected_type = 'Command injection'
     expected_address = ''
     expected_state = 'wait4\ndo_system\ntarget.cpp\n'
     expected_stacktrace = data
