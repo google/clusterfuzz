@@ -913,6 +913,7 @@ class ExtraSanitizerIntegrationTests(IntegrationTests):
   def setUp(self):
     super().setUp()
     os.environ['USE_EXTRA_SANITIZERS'] = 'True'
+    os.environ['ASAN_OPTIONS'] = 'detect_leaks=0'
 
   def compare_arguments(self, target_path, arguments, corpora_or_testcase,
                         actual):
