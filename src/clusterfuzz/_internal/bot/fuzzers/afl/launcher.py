@@ -1030,7 +1030,7 @@ class AflRunnerCommon(object):
     self._executable_path = self.afl_showmap_path
     # Hack around minijail.
     showmap_args = self._fuzz_args
-    showmap_args[-1] = '1'
+    showmap_args[-1] = '-'
     # Remove arguments that are just for afl-fuzz.
     self.remove_arg(showmap_args, constants.DICT_FLAG)
     self.remove_arg(showmap_args, constants.INPUT_FLAG)
