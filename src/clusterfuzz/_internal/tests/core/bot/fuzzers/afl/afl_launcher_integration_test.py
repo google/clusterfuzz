@@ -207,9 +207,6 @@ class BaseLauncherTest(unittest.TestCase):
             # 'idCOLON000000,larger_same_cov_idCOLON000001,non_initial_cov'.
             # This filename is the hash of idCOLON000001,non_initial_cov.
             '3dce8306f3c1810d5d81ed5ebb0ccea947277a61',
-            # This file reaches unique paths and should therefore be merged.
-            # This filename is the hash of idCOLON000002,unique_cov.
-            '4c1fe29b1a967d34a6fcc078b8fb653dd807dee7',
             # Ensure we aren't removing anything from the input corpus. Thus
             # even though 'in1' and 'nearly_empty' are redundant they should
             # both be here Similarly, even though 'in1' and 'nearly_empty' have
