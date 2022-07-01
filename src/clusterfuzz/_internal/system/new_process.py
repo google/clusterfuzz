@@ -435,6 +435,9 @@ class ModifierProcessRunnerMixin(object):
     if not environment.get_value(f'USE_{tool.upper()}'):
       return []
 
+    if environment.platform() != 'LINUX':
+      raise RuntimeError('Modifiers only supported on Linux')
+
     tool_path = environment.get_default_tool_path(tool)
     if not os.path.exists(tool_path) and tool in TOOL_URLS:
       urllib.request.urlretrieve(TOOL_URLS.get(tool), tool_path)
@@ -447,9 +450,6 @@ class ModifierProcessRunnerMixin(object):
 
   def get_command(self, additional_args=None):
     """Overridden get_command."""
-    if environment.platform() != 'LINUX':
-      raise RuntimeError('UnshareProcessRunner only supported on Linux')
-
     command = [self._executable_path]
     command.extend(self._default_args)
 
