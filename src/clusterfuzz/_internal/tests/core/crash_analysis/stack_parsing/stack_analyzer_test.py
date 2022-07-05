@@ -3262,7 +3262,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('command_injection_bug.txt')
     expected_type = 'Command injection'
     expected_address = ''
-    expected_state = 'wait4\ndo_system\ntarget.cpp\n'
+    expected_state = 'Foo\nBar\n'
     expected_stacktrace = data
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,
