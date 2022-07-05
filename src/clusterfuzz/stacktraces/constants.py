@@ -566,6 +566,7 @@ STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'ASSERT',
     'CHECK failure',
+    'Command injection',
     'DCHECK failure',
     'Fatal error',
     'Security CHECK failure',
