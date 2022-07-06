@@ -1670,7 +1670,7 @@ def pick_strategies(strategy_pool,
       use_radamsa_mutator_plugin(extra_env)):
     fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
 
-  if (environment.platform() == 'LINUX' and
+  if (environment.platform() == 'LINUX' and utils.is_oss_fuzz() and
       strategy_pool.do_strategy(strategy.USE_EXTRA_SANITIZERS_STRATEGY)):
     fuzzing_strategies.append(strategy.USE_EXTRA_SANITIZERS_STRATEGY.name)
 
