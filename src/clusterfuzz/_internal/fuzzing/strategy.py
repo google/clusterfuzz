@@ -48,6 +48,8 @@ VALUE_PROFILE_STRATEGY = Strategy(
     name='value_profile', probability=0.33, manually_enable=False)
 PEACH_GRAMMAR_MUTATION_STRATEGY = Strategy(
     name='peach_grammar_mutation', probability=0.90, manually_enable=True)
+USE_EXTRA_SANITIZERS_STRATEGY = Strategy(
+    name='extra_sanitizers', probability=0.10, manually_enable=False)
 
 # Keep this strategy order for strategy combination tracking as strategy
 # combinations are tracked as strings.
@@ -63,6 +65,7 @@ LIBFUZZER_STRATEGY_LIST = [
     MUTATOR_PLUGIN_STRATEGY,
     MUTATOR_PLUGIN_RADAMSA_STRATEGY,
     PEACH_GRAMMAR_MUTATION_STRATEGY,
+    USE_EXTRA_SANITIZERS_STRATEGY,
 ]
 
 # TODO: Add more syzkaller strategies.
@@ -98,6 +101,7 @@ LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     RANDOM_MAX_LENGTH_STRATEGY,
     RECOMMENDED_DICTIONARY_STRATEGY,
     VALUE_PROFILE_STRATEGY,
+    USE_EXTRA_SANITIZERS_STRATEGY,
 ]
 
 # To ensure that all strategies present in |strategy_list| are parsed for stats.
