@@ -384,6 +384,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_subset': 0,
         'strategy_dataflow_tracing': 0,
+        'strategy_extra_sanitizers': 0,
         'strategy_fork': 0,
         'strategy_mutator_plugin': 0,
         'strategy_mutator_plugin_radamsa': 0,
@@ -489,6 +490,8 @@ class BaseIntegrationTest(unittest.TestCase):
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
 
+    self.strategies = []
+
 
 @test_utils.integration
 class IntegrationTests(BaseIntegrationTest):
@@ -531,7 +534,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_no_crash(self):
     """Tests fuzzing (no crash)."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.VALUE_PROFILE_STRATEGY])
+        self.strategies + [strategy.VALUE_PROFILE_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
@@ -565,7 +568,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_no_crash_with_old_libfuzzer(self):
     """Tests fuzzing (no crash) with an old version of libFuzzer."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.VALUE_PROFILE_STRATEGY])
+        self.strategies + [strategy.VALUE_PROFILE_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
@@ -597,6 +600,8 @@ class IntegrationTests(BaseIntegrationTest):
 
   def test_fuzz_crash(self):
     """Tests fuzzing (crash)."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        self.strategies)
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
 
@@ -634,7 +639,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_from_subset(self):
     """Tests fuzzing from corpus subset."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.CORPUS_SUBSET_STRATEGY])
+        self.strategies + [strategy.CORPUS_SUBSET_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
@@ -912,8 +917,14 @@ class ExtraSanitizerIntegrationTests(IntegrationTests):
 
   def setUp(self):
     super().setUp()
-    os.environ['USE_EXTRA_SANITIZERS'] = 'True'
     os.environ['ASAN_OPTIONS'] = 'detect_leaks=0'
+    os.environ['USE_EXTRA_SANITIZERS'] = 'True'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_oss_fuzz',
+    ])
+
+    self.mock.is_oss_fuzz.return_value = True
+    self.strategies = [strategy.USE_EXTRA_SANITIZERS_STRATEGY]
 
   def compare_arguments(self, target_path, arguments, corpora_or_testcase,
                         actual):
@@ -1179,7 +1190,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
   def test_fuzz_no_crash(self):
     """Tests fuzzing (no crash)."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.VALUE_PROFILE_STRATEGY])
+        self.strategies + [strategy.VALUE_PROFILE_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
