@@ -600,6 +600,8 @@ class IntegrationTests(BaseIntegrationTest):
 
   def test_fuzz_crash(self):
     """Tests fuzzing (crash)."""
+    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
+        self.strategies)
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
 
@@ -637,7 +639,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_from_subset(self):
     """Tests fuzzing from corpus subset."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.CORPUS_SUBSET_STRATEGY])
+        self.strategies + [strategy.CORPUS_SUBSET_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
@@ -916,7 +918,12 @@ class ExtraSanitizerIntegrationTests(IntegrationTests):
   def setUp(self):
     super().setUp()
     os.environ['ASAN_OPTIONS'] = 'detect_leaks=0'
+    os.environ['USE_EXTRA_SANITIZERS'] = 'True'
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_oss_fuzz',
+    ])
 
+    self.mock.is_oss_fuzz.return_value = True
     self.strategies = [strategy.USE_EXTRA_SANITIZERS_STRATEGY]
 
   def compare_arguments(self, target_path, arguments, corpora_or_testcase,
