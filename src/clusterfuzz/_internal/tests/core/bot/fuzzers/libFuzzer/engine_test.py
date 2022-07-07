@@ -490,6 +490,8 @@ class BaseIntegrationTest(unittest.TestCase):
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
 
+    self.strategies = []
+
 
 @test_utils.integration
 class IntegrationTests(BaseIntegrationTest):
@@ -532,7 +534,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_no_crash(self):
     """Tests fuzzing (no crash)."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.VALUE_PROFILE_STRATEGY])
+        self.strategies + [strategy.VALUE_PROFILE_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
@@ -566,7 +568,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_no_crash_with_old_libfuzzer(self):
     """Tests fuzzing (no crash) with an old version of libFuzzer."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.VALUE_PROFILE_STRATEGY])
+        self.strategies + [strategy.VALUE_PROFILE_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
@@ -913,8 +915,9 @@ class ExtraSanitizerIntegrationTests(IntegrationTests):
 
   def setUp(self):
     super().setUp()
-    os.environ['USE_EXTRA_SANITIZERS'] = 'True'
     os.environ['ASAN_OPTIONS'] = 'detect_leaks=0'
+
+    self.strategies = [strategy.USE_EXTRA_SANITIZERS_STRATEGY]
 
   def compare_arguments(self, target_path, arguments, corpora_or_testcase,
                         actual):
@@ -1180,7 +1183,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
   def test_fuzz_no_crash(self):
     """Tests fuzzing (no crash)."""
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.VALUE_PROFILE_STRATEGY])
+        self.strategies + [strategy.VALUE_PROFILE_STRATEGY])
 
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
