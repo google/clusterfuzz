@@ -3293,10 +3293,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('go_braces.txt')
     expected_type = 'Slice bounds out of range'
     expected_address = ''
-    expected_state = (
-        'regexp.(*Regexp).Split\n'
-        'gonids.(*Rule).option\n'
-        'gonids.parseRuleAux\n')
+    expected_state = ('regexp.(*Regexp).Split\n'
+                      'gonids.(*Rule).option\n'
+                      'gonids.parseRuleAux\n')
 
     expected_stacktrace = data
     expected_security_flag = False
