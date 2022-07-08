@@ -3268,3 +3268,38 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_sanitizer_out_of_memory(self):
+    """Test sanitizer out of memory."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    data = self._read_test_data('sanitizer_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = (
+        'v8::internal::wasm::AsyncStreamingDecoder::SectionBuffer::'
+        'SectionBuffer\n'
+        'v8::internal::wasm::AsyncStreamingDecoder::CreateNewBuffer\n'
+        'v8::internal::wasm::AsyncStreamingDecoder::DecodeSectionLength::'
+        'NextWithValue\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_go_braces(self):
+    """Test Go stacktrace parsing (with braces in the frame string)."""
+    data = self._read_test_data('go_braces.txt')
+    expected_type = 'Slice bounds out of range'
+    expected_address = ''
+    expected_state = (
+        'regexp.(*Regexp).Split\n'
+        'gonids.(*Rule).option\n'
+        'gonids.parseRuleAux\n')
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
