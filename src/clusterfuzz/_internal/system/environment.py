@@ -122,6 +122,16 @@ def copy():
   return environment_copy
 
 
+def disable_lsan():
+  """Disable leak detection (if enabled)."""
+  if get_current_memory_tool_var() != 'ASAN_OPTIONS':
+    return
+
+  sanitizer_options = get_memory_tool_options('ASAN_OPTIONS', {})
+  sanitizer_options['detect_leaks'] = 0
+  set_memory_tool_options('ASAN_OPTIONS', sanitizer_options)
+
+
 def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
                      bot_platform, leaks, disable_ubsan):
   """Generates default ASAN options."""
