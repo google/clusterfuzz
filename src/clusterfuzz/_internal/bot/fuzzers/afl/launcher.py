@@ -1014,23 +1014,11 @@ class AflRunnerCommon(object):
     except KeyError:
       pass
     self._executable_path = self.afl_showmap_path
-    # TODO(metzman): Remove this hack around minijail.
-    showmap_args = self._fuzz_args
-    showmap_args[-1] = '-'
-    # Remove arguments that are just for afl-fuzz.
-    self.remove_arg(showmap_args, constants.DICT_FLAG)
-    self.remove_arg(showmap_args, constants.INPUT_FLAG)
-    self.remove_arg(showmap_args, constants.INSTANCE_ID_FLAG)
-    self.remove_arg(showmap_args, constants.MOPT_FLAG)
-    self.remove_arg(showmap_args, constants.CMPLOG_LEVEL_FLAG)
-    self.remove_arg(showmap_args, constants.QUEUE_OLD_STRATEGY_FLAG)
-    self.remove_arg(showmap_args, constants.SCHEDULER_FLAG)
-    self.remove_arg(showmap_args, constants.CMPLOG_FLAG)
-
-    idx = self.get_arg_index(showmap_args, constants.OUTPUT_FLAG)
-    assert idx != -1
-    self.set_arg(showmap_args, constants.OUTPUT_FLAG, self.showmap_output_path)
-
+    showmap_args = [
+        f'{constants.OUTPUT_FLAG}{self.showmap_output_path}',
+        f'{constants.MEMORY_LIMIT_FLAG}{constants.MAX_MEMORY_LIMIT}',
+        self.target_path, '-'
+    ]
     input_dir = self.afl_input.input_directory
     corpus = Corpus()
     input_inodes = set()
