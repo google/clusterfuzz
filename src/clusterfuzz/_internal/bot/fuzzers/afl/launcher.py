@@ -1394,8 +1394,8 @@ def main(argv):
 
   # Print info for the fuzzer logs.
   print(
-      engine_common.get_log_header(
-          fuzz_result.command, fuzz_result.time_executed))
+      engine_common.get_log_header(fuzz_result.command,
+                                   fuzz_result.time_executed))
 
   print(fuzz_result.output)
 
