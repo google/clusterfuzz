@@ -64,7 +64,7 @@ class Trials:
           continue
         self.trials[config['app_args']] = {'probability': config['probability']}
         if 'contradicts' in config:
-          self.trials[trial.app_args]['contradicts'] = config['contradicts']
+          self.trials[config['app_args']]['contradicts'] = config['contradicts']
     except Exception as e:
       logs.log_warn('Unable to parse config file: %s' % str(e))
       return
@@ -74,7 +74,8 @@ class Trials:
     trial_args = []
     contradicts = []
     for app_args, flag_data in self.trials.items():
-      if random.random() < flag_data['probability'] and app_args not in contradicts:
+      if random.random(
+      ) < flag_data['probability'] and app_args not in contradicts:
         trial_args.append(app_args)
         if 'contradicts' in flag_data:
           for contradiction in flag_data['contradicts']:
