@@ -29,7 +29,7 @@ class Trials:
   """Helper class for selecting app-specific extra flags."""
 
   def __init__(self):
-    self.trials = []
+    self.trials = {}
 
     app_name = environment.get_value('APP_NAME')
     if not app_name:
@@ -43,9 +43,10 @@ class Trials:
     for extension in extensions_to_strip:
       app_name = utils.strip_from_right(app_name, extension)
 
-    self.trials = {}
     for trial in data_types.Trial.query(data_types.Trial.app_name == app_name):
-      self.trials[trial.app_args] = trial.probability
+      self.trials[trial.app_args] = {'probability': trial.probability}
+      if hasattr(trial, 'contradicts'):
+        self.trials[trial.app_args]['contradicts'] = trial.contradicts
 
     app_dir = environment.get_value('APP_DIR')
     if not app_dir:
@@ -61,17 +62,24 @@ class Trials:
       for config in trials_config:
         if config['app_name'] != app_name:
           continue
-        self.trials[config['app_args']] = config['probability']
+        self.trials[config['app_args']] = {'probability': config['probability']}
+        if 'contradicts' in config:
+          self.trials[trial.app_args]['contradicts'] = config['contradicts']
     except Exception as e:
       logs.log_warn('Unable to parse config file: %s' % str(e))
       return
 
   def setup_additional_args_for_app(self):
     """Select additional args for the specified app at random."""
-    trial_args = [
-        app_args for app_args, probability in self.trials.items()
-        if random.random() < probability
-    ]
+    trial_args = []
+    contradicts = []
+    for app_args, flag_data in self.trials.items():
+      if random.random() < flag_data['probability'] and app_args not in contradicts:
+        trial_args.append(app_args)
+        if 'contradicts' in flag_data:
+          for contradiction in flag_data['contradicts']:
+            contradicts.append(contradiction)
+
     if not trial_args:
       return
 
