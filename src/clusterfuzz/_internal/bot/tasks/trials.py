@@ -27,7 +27,7 @@ TRIALS_CONFIG_FILENAME = 'clusterfuzz_trials_config.json'
 
 class AppArgs:
 
-  def __init__(self, probability, contradicts = None):
+  def __init__(self, probability, contradicts=None):
     self.probability = probability
     self.contradicts = contradicts or []
 
@@ -76,15 +76,10 @@ class Trials:
 
   def doesnt_asymmetrically_contradicts(self, app_args, existing_contradictions,
                                         trial_args):
-    return (
-      app_args not in existing_contradictions and
-      (
-        not self.trials[app_args].contradicts or
-        not any(flag in self.trials[app_args].contradicts for flag in
-                trial_args)
-      )
-    )
-
+    return (app_args not in existing_contradictions and
+            (not self.trials[app_args].contradicts or
+             not any(flag in self.trials[app_args].contradicts
+                     for flag in trial_args)))
 
   def setup_additional_args_for_app(self, shuffle=True):
     """Select additional args for the specified app at random."""

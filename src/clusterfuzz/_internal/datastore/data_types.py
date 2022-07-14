@@ -1393,6 +1393,7 @@ class Trial(Model):
   # Flags that contradict the app args (separated by spaces).
   contradicts = ndb.TextProperty(default='')
 
+
 # TODO(ochang): Make this generic.
 class OssFuzzProject(Model):
   """Represents a project that has been set up for OSS-Fuzz."""
