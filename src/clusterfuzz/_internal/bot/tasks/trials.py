@@ -90,12 +90,11 @@ class Trials:
         if app_args in contradicts:
           continue
         # Check if the flag contradicts an already added flag
-        if any(
+        if self.trials[app_args].contradicts and any(
             flag in self.trials[app_args].contradicts for flag in trial_args):
           continue
         trial_args.append(app_args)
-        for contradiction in self.trials[app_args].contradicts:
-          contradicts.add(contradiction)
+        contradicts.update(self.trials[app_args].contradicts)
     if not trial_args:
       return
 
