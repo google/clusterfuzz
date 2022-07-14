@@ -52,7 +52,7 @@ class Trials:
 
     for trial in data_types.Trial.query(data_types.Trial.app_name == app_name):
       self.trials[trial.app_args] = AppArgs(trial.probability,
-                                            [trial.contradicts])
+                                            trial.contradicts)
 
     app_dir = environment.get_value('APP_DIR')
     if not app_dir:
@@ -74,13 +74,6 @@ class Trials:
       logs.log_warn('Unable to parse config file: %s' % str(e))
       return
 
-  def doesnt_asymmetrically_contradicts(self, app_args, existing_contradictions,
-                                        trial_args):
-    return (app_args not in existing_contradictions and
-            (not self.trials[app_args].contradicts or
-             not any(flag in self.trials[app_args].contradicts
-                     for flag in trial_args)))
-
   def setup_additional_args_for_app(self, shuffle=True):
     """Select additional args for the specified app at random."""
     trial_args = []
@@ -92,9 +85,14 @@ class Trials:
       random.shuffle(trial_keys)
 
     for app_args in trial_keys:
-      if (random.random() < self.trials[app_args].probability and
-          self.doesnt_asymmetrically_contradicts(app_args, contradicts,
-                                                 trial_args)):
+      if random.random() < self.trials[app_args].probability:
+        # Check if the flag is contradicted by an already added flag
+        if app_args in contradicts:
+          continue
+        # Check if the flag contradicts an already added flag
+        if any(
+            flag in self.trials[app_args].contradicts for flag in trial_args):
+          continue
         trial_args.append(app_args)
         for contradiction in self.trials[app_args].contradicts:
           contradicts.add(contradiction)

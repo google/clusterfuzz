@@ -1391,7 +1391,8 @@ class Trial(Model):
   app_args = ndb.TextProperty()
 
   # Flags that contradict the app args (separated by spaces).
-  contradicts = ndb.TextProperty(default='')
+  contradicts = ndb.StringProperty(repeated=True)
+
 
 
 # TODO(ochang): Make this generic.
