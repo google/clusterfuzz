@@ -1390,7 +1390,7 @@ class Trial(Model):
   # Additional arguments to apply if selected.
   app_args = ndb.TextProperty()
 
-  # flags that contradict the app args (separated by spaces).
+  # Flags that contradict the app args (separated by spaces).
   contradicts = ndb.TextProperty(default='')
 
 # TODO(ochang): Make this generic.

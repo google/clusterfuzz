@@ -27,9 +27,9 @@ TRIALS_CONFIG_FILENAME = 'clusterfuzz_trials_config.json'
 
 class AppArgs:
 
-  def __init__(self, probability, contradicts):
+  def __init__(self, probability, contradicts = None):
     self.probability = probability
-    self.contradicts = contradicts
+    self.contradicts = contradicts or []
 
 
 class Trials:
@@ -52,7 +52,7 @@ class Trials:
 
     for trial in data_types.Trial.query(data_types.Trial.app_name == app_name):
       self.trials[trial.app_args] = AppArgs(trial.probability,
-                                            trial.contradicts.split())
+                                            [trial.contradicts])
 
     app_dir = environment.get_value('APP_DIR')
     if not app_dir:
@@ -74,18 +74,34 @@ class Trials:
       logs.log_warn('Unable to parse config file: %s' % str(e))
       return
 
-  def setup_additional_args_for_app(self):
+  def doesnt_asymmetrically_contradicts(self, app_args, existing_contradictions,
+                                        trial_args):
+    return (
+      app_args not in existing_contradictions and
+      (
+        not self.trials[app_args].contradicts or
+        not any(flag in self.trials[app_args].contradicts for flag in
+                trial_args)
+      )
+    )
+
+
+  def setup_additional_args_for_app(self, shuffle=True):
     """Select additional args for the specified app at random."""
     trial_args = []
     contradicts = set()
 
-    for app_args, flag_data in sorted(
-        self.trials.items(), key=lambda x: random.random()):
-      if (random.random() < flag_data.probability and
-          app_args not in contradicts and
-          not any(flag in flag_data.contradicts for flag in trial_args)):
+    trial_keys = list(self.trials.keys())
+
+    if shuffle:
+      random.shuffle(trial_keys)
+
+    for app_args in trial_keys:
+      if (random.random() < self.trials[app_args].probability and
+          self.doesnt_asymmetrically_contradicts(app_args, contradicts,
+                                                 trial_args)):
         trial_args.append(app_args)
-        for contradiction in flag_data.contradicts:
+        for contradiction in self.trials[app_args].contradicts:
           contradicts.add(contradiction)
     if not trial_args:
       return
