@@ -1394,7 +1394,6 @@ class Trial(Model):
   contradicts = ndb.StringProperty(repeated=True)
 
 
-
 # TODO(ochang): Make this generic.
 class OssFuzzProject(Model):
   """Represents a project that has been set up for OSS-Fuzz."""
