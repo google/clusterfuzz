@@ -24,10 +24,13 @@ from clusterfuzz._internal.system import environment
 
 TRIALS_CONFIG_FILENAME = 'clusterfuzz_trials_config.json'
 
+
 class AppArgs:
-    def __init__(self, probability, contradicts = []):
-      self.probability = probability
-      self.contradicts = contradicts
+
+  def __init__(self, probability, contradicts):
+    self.probability = probability
+    self.contradicts = contradicts
+
 
 class AppArgs:
 
