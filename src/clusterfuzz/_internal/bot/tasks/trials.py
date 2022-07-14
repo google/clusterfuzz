@@ -32,13 +32,6 @@ class AppArgs:
     self.contradicts = contradicts
 
 
-class AppArgs:
-
-  def __init__(self, probability, contradicts=[]):
-    self.probability = probability
-    self.contradicts = contradicts
-
-
 class Trials:
   """Helper class for selecting app-specific extra flags."""
 
