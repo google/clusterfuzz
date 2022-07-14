@@ -207,7 +207,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     config_file_content = '[{"app_args": "--a1", "app_name": "app_1", "probability": 0.8]'
     self.source_side_test(config_file_content, 0.7, 'app_1', '-x', None)
 
-  def test_trial_ignored_if_there_is_contradiction(self):
+  def test_trial_ignored_if_there_is_symmetrical_contradiction(self):
     """Ensure that a flag is not added if it contradicts an already added flag."""
     config_file_content = [{
         "app_args": "--c4",
@@ -217,6 +217,21 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     }, {
         "app_args": "--c5",
         "app_name": "app_4",
+        "probability": 1.0,
+        "contradicts": ["--c4"]
+    }]
+    self.source_side_test(config_file_content, 0.1, 'app_4', '-x --c4', '--c4')
+
+  def test_trial_ignored_if_there_is_asymmetrical_contradiction(self):
+    """Ensure that a flag is not added if it contradicts an already added flag."""
+    config_file_content = [{
+        "app_args": "--c4",
+        "app_name": "app_4",
         "probability": 1.0
+    }, {
+        "app_args": "--c5",
+        "app_name": "app_4",
+        "probability": 1.0,
+        "contradicts": ["--c4"]
     }]
     self.source_side_test(config_file_content, 0.1, 'app_4', '-x --c4', '--c4')
