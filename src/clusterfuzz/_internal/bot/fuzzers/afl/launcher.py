@@ -23,6 +23,7 @@ except ImportError:
 
 import atexit
 import collections
+import enum
 import os
 import re
 import shutil
@@ -48,7 +49,6 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.system import minijail
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import shell
 
@@ -70,7 +70,7 @@ PERSISTENT_EXECUTIONS_OPTION = 'n'
 POSTPROCESSING_TIMEOUT = 30
 
 
-class AflOptionType(object):
+class AflOptionType(enum.Enum):
   ARG = 0
   ENV_VAR = 1
 
@@ -503,7 +503,8 @@ class AflRunnerCommon(object):
     for env_var, value in six.iteritems(config.additional_env_vars):
       environment.set_value(env_var, value)
 
-    self._showmap_output_path = None
+    self.showmap_output_path = os.path.join(fuzzer_utils.get_temp_dir(),
+                                            self.SHOWMAP_FILENAME)
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
     self._fuzz_args = []
@@ -514,11 +515,7 @@ class AflRunnerCommon(object):
     # Initialize _showmap_output_path lazily since MiniJailRunner needs to
     # execute its __init__ before it can be set.
     if self._showmap_output_path is None:
-      if environment.get_value('USE_MINIJAIL'):
-        self._showmap_output_path = os.path.join(self.chroot.directory,
-                                                 self.SHOWMAP_FILENAME)
-
-      elif environment.is_android():
+      if environment.is_android():
         self._showmap_output_path = os.path.join(
             android.constants.DEVICE_FUZZING_DIR, self.SHOWMAP_FILENAME)
 
@@ -1081,30 +1078,12 @@ class AflRunnerCommon(object):
       del os.environ[constants.STDERR_FILENAME_ENV_VAR]
     except KeyError:
       pass
-    self.set_afl_showmap_executable()
-    # Hack around minijail.
-    showmap_args = self._fuzz_args
-    showmap_args[-1] = '-'
-    # Remove arguments that are just for afl-fuzz.
-    self.remove_arg(showmap_args, constants.DICT_FLAG)
-    self.remove_arg(showmap_args, constants.INPUT_FLAG)
-    self.remove_arg(showmap_args, constants.INSTANCE_ID_FLAG)
-    self.remove_arg(showmap_args, constants.MOPT_FLAG)
-    self.remove_arg(showmap_args, constants.CMPLOG_LEVEL_FLAG)
-    self.remove_arg(showmap_args, constants.QUEUE_OLD_STRATEGY_FLAG)
-    self.remove_arg(showmap_args, constants.SCHEDULER_FLAG)
-    self.remove_arg(showmap_args, constants.CMPLOG_FLAG)
-    self.remove_arg(showmap_args, constants.FUZZING_TIMEOUT_FLAG)
-
-    # Replace -o argument.
-    if environment.get_value('USE_MINIJAIL'):
-      showmap_output_path = '/' + self.SHOWMAP_FILENAME
-    else:
-      showmap_output_path = self.showmap_output_path
-    idx = self.get_arg_index(showmap_args, constants.OUTPUT_FLAG)
-    assert idx != -1
-    self.set_arg(showmap_args, constants.OUTPUT_FLAG, showmap_output_path)
-
+    self._executable_path = self.afl_showmap_path
+    showmap_args = [
+        f'{constants.OUTPUT_FLAG}{self.showmap_output_path}',
+        f'{constants.MEMORY_LIMIT_FLAG}{constants.MAX_MEMORY_LIMIT}',
+        self.target_path, '-'
+    ]
     input_dir = self.afl_input.input_directory
     corpus = Corpus()
     input_inodes = set()
@@ -1158,19 +1137,6 @@ class AflRunnerCommon(object):
     """Make corpus directories libFuzzer compatible, merge new testcases
     if needed and return the number of new testcases added to corpus.
     """
-    # Remove the input directory binding as it isn't needed for merging and
-    # may actually break merging if it was temporary and gets deleted.
-    if environment.get_value('USE_MINIJAIL'):
-      input_directory = self.afl_input.input_directory
-      input_bindings = [
-          binding for binding in self.chroot.bindings
-          if binding.src_path == input_directory
-      ]
-
-      assert len(input_bindings) == 1
-      input_binding = input_bindings[0]
-      self.chroot.bindings.remove(input_binding)
-
     self.afl_input.restore_if_needed()
     # Number of new units created during fuzzing.
     new_units_generated = self.afl_output.count_new_units(self.afl_output.queue)
@@ -1407,87 +1373,6 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
 class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
 
-
-class MinijailAflRunner(AflRunnerCommon, new_process.UnicodeProcessRunnerMixin,
-                        engine_common.MinijailEngineFuzzerRunner):
-  """Minijail AFL runner."""
-
-  def __init__(self,
-      chroot,
-      target_path,
-      config,
-      testcase_file_path,
-      input_directory,
-      timeout=None,
-      afl_tools_path=None,
-      strategy_dict=None):
-    super().__init__(target_path, config, testcase_file_path, input_directory,
-                     timeout, afl_tools_path, strategy_dict)
-
-    minijail.MinijailProcessRunner.__init__(self, chroot, self.afl_fuzz_path)
-
-  def _get_or_create_chroot_binding(self, corpus_directory):
-    """Return chroot relative paths for the given corpus directories.
-
-    Args:
-      corpus_directories: A list of host corpus directories.
-
-    Returns:
-      A list of chroot relative paths.
-    """
-    chroot_rel_dir = os.path.relpath(corpus_directory, self.chroot.directory)
-    if not chroot_rel_dir.startswith(os.pardir):
-      # Already in chroot.
-      return '/' + chroot_rel_dir
-
-    binding = self.chroot.get_binding(corpus_directory)
-    if binding:
-      return binding.dest_path
-
-    dest_path = '/' + os.path.basename(corpus_directory)
-    self.chroot.add_binding(
-        minijail.ChrootBinding(corpus_directory, dest_path, True))
-
-    return dest_path
-
-  def run_single_testcase(self, testcase_path):
-    with self._chroot_testcase(testcase_path) as chroot_testcase_path:
-      return super().run_single_testcase(chroot_testcase_path)
-
-  def generate_afl_args(self,
-      afl_input=None,
-      afl_output=None,
-      mem_limit=constants.MAX_MEMORY_LIMIT):
-    """Overriden generate_afl_args."""
-    if afl_input:
-      minijail_afl_input = self._get_or_create_chroot_binding(afl_input)
-    else:
-      minijail_afl_input = self._get_or_create_chroot_binding(
-          self.afl_input.input_directory)
-
-    if afl_output:
-      minijail_afl_output = self._get_or_create_chroot_binding(afl_output)
-    else:
-      minijail_afl_output = self._get_or_create_chroot_binding(
-          self.afl_output.output_directory)
-
-    return super().generate_afl_args(
-        afl_input=minijail_afl_input,
-        afl_output=minijail_afl_output,
-        mem_limit=mem_limit)
-
-  @property
-  def stderr_file_path(self):
-    """Overriden stderr_file_path."""
-    return os.path.join(self.chroot.directory, STDERR_FILENAME)
-
-  def set_environment_variables(self):
-    """Overridden set_environment_variables."""
-    super().set_environment_variables()
-    environment.set_value(constants.STDERR_FILENAME_ENV_VAR,
-                          '/' + STDERR_FILENAME)
-
-
 class CorpusElement(object):
   """An element (file) in a corpus."""
 
@@ -1669,61 +1554,21 @@ def prepare_runner(fuzzer_path,
   """Common initialization code shared by the new pipeline and main."""
   # Set up temp dir.
   engine_common.recreate_directory(fuzzer_utils.get_temp_dir())
-
-  if environment.get_value('USE_MINIJAIL'):
-    # Set up chroot and runner.
-    minijail_chroot = minijail.MinijailChroot(
-        base_dir=fuzzer_utils.get_temp_dir())
-
-    build_dir = environment.get_value('BUILD_DIR')
-
-    # While it's possible for dynamic binaries to run without this, they need to
-    # be accessible for symbolization etc. For simplicity we bind BUILD_DIR to
-    # the same location within the chroot, which leaks the directory structure
-    # of CF but this shouldn't be a big deal.
-    minijail_chroot.add_binding(
-        minijail.ChrootBinding(build_dir, build_dir, False))
-
-    # AFL expects various things in /bin.
-    minijail_chroot.add_binding(minijail.ChrootBinding('/bin', '/bin', False))
-
-    # And /usr/bin.
-    minijail_chroot.add_binding(
-        minijail.ChrootBinding('/usr/bin', '/usr/bin', False))
-
-    # Also bind the build dir to /out to make it easier to hardcode references
-    # to data files.
-    minijail_chroot.add_binding(
-        minijail.ChrootBinding(build_dir, '/out', False))
-
-    # map /proc/self/fd -> /dev/fd
-    os.symlink('/proc/self/fd',
-               os.path.join(minijail_chroot.directory, 'dev', 'fd'))
-
-    runner = MinijailAflRunner(
-        minijail_chroot,
-        fuzzer_path,
-        config,
-        testcase_file_path,
-        input_directory,
-        timeout=timeout,
-        strategy_dict=strategy_dict)
+  if environment.get_value('USE_UNSHARE'):
+    runner_class = UnshareAflRunner
   else:
-    if environment.get_value('USE_UNSHARE'):
-      runner_class = UnshareAflRunner
+    if environment.is_android():
+      runner_class = AflAndroidRunner
     else:
-      if environment.is_android():
-        runner_class = AflAndroidRunner
-      else:
-        runner_class = AflRunner
+      runner_class = AflRunner
 
-    runner = runner_class(
-        fuzzer_path,
-        config,
-        testcase_file_path,
-        input_directory,
-        timeout=timeout,
-        strategy_dict=strategy_dict)
+  runner = runner_class(
+      fuzzer_path,
+      config,
+      testcase_file_path,
+      input_directory,
+      timeout=timeout,
+      strategy_dict=strategy_dict)
 
   # Make sure afl won't exit because of bad sanitizer options.
   set_additional_sanitizer_options_for_afl_fuzz()
@@ -1800,12 +1645,10 @@ def main(argv):
   # Execute afl-fuzz on the fuzzing target.
   fuzz_result = runner.fuzz()
 
-  command = fuzz_result.command
-  if environment.get_value('USE_MINIJAIL'):
-    command = engine_common.strip_minijail_command(command,
-                                                   runner.afl_fuzz_path)
   # Print info for the fuzzer logs.
-  print(engine_common.get_log_header(command, fuzz_result.time_executed))
+  print(
+      engine_common.get_log_header(fuzz_result.command,
+                                   fuzz_result.time_executed))
 
   print(fuzz_result.output)
 
@@ -1825,7 +1668,7 @@ def main(argv):
                            runner.fuzzer_stderr, fuzz_result.output)
 
     engine_common.dump_big_query_data(stats_getter.stats, testcase_file_path,
-                                      command)
+                                      fuzz_result.command)
 
   finally:
     print(runner.fuzzer_stderr)
