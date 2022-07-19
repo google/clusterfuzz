@@ -567,12 +567,15 @@ class AflRunnerCommon(object):
 
     return afl_environment_vars
 
-  def verify_return_code(self, result):
-    if result.return_code not in [0, 1, -6]:
+  def verify_return_code(self, result, additional_return_codes=None):
+    expected_return_codes = [0, 1, -6]
+    if additional_return_codes:
+      expected_return_codes += additional_return_codes
+
+    if result.return_code not in expected_return_codes:
       logs.log_error(
           'AFL target exited with abnormal exit code: %s.' % result.return_code,
           output=result.output)
-
 
   def run_single_testcase(self, testcase_path):
     """Runs a single testcase.
@@ -1250,12 +1253,12 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
 
     result = self.run_and_wait(additional_args=[device_target_path])
 
-    #copy error to local
+    # Copy error to local.
     android.adb.copy_remote_file_to_local(
         android.util.get_device_path(self.stderr_file_path),
         self.stderr_file_path)
 
-    self.verify_return_code(result)
+    self.verify_return_code(result, [134])
     return result
 
   def get_file_features(self, input_file_path, showmap_args):
@@ -1299,10 +1302,9 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
         additional_args=[constants.FUZZING_TIMEOUT_FLAG + str(on_device_fuzzing_timeout)],
         target_path=android.util.get_device_path(self.target_path))
 
-    # fuzz binary
     fuzz_result = self.run_afl_fuzz(self._fuzz_args)
 
-    # generate file features from fuzzing results
+    # Generate file features from fuzzing results.
     device_script_path = os.path.join(
         android.constants.DEVICE_FUZZING_DIR, "run.sh")
 
@@ -1334,12 +1336,13 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                                   root=True,
                                   log_output=True)
 
-    #copy all results from device to local
+    # Copy all results from device to local.
     self._copy_directories_from_device(
         [
             self.afl_output.output_directory,
             self._showmap_results_dir
         ])
+        
     android.adb.copy_remote_file_to_local(
         android.util.get_device_path(self.stderr_file_path),
         self.stderr_file_path)
