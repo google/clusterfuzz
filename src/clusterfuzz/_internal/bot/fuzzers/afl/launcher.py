@@ -503,8 +503,7 @@ class AflRunnerCommon(object):
     for env_var, value in six.iteritems(config.additional_env_vars):
       environment.set_value(env_var, value)
 
-    self.showmap_output_path = os.path.join(fuzzer_utils.get_temp_dir(),
-                                            self.SHOWMAP_FILENAME)
+    self._showmap_output_path = None
     self.merge_timeout = engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT)
     self.showmap_no_output_logged = False
     self._fuzz_args = []
@@ -512,8 +511,7 @@ class AflRunnerCommon(object):
   @property
   def showmap_output_path(self):
     """Returns the showmap output path."""
-    # Initialize _showmap_output_path lazily since MiniJailRunner needs to
-    # execute its __init__ before it can be set.
+    # Initialize _showmap_output_path lazily
     if self._showmap_output_path is None:
       if environment.is_android():
         self._showmap_output_path = os.path.join(
