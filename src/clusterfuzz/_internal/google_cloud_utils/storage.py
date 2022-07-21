@@ -932,7 +932,7 @@ def get_file_size_from_cache_if_exists(file_path):
 def get_cache_file_path(file_path):
   """Return cache file path given a local file path."""
   # TODO(ochang): Completely remove NFS support.
-  if (environment.get_value('NFS_ROOT') or
+  if (not environment.get_value('NFS_ROOT') or
       environment.get_value('DISABLE_NFS')):
     return None
 
