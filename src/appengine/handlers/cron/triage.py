@@ -20,6 +20,7 @@ import json
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -253,6 +254,13 @@ def _file_issue(testcase, issue_tracker):
   """File an issue for the testcase."""
   filed = False
   file_exception = None
+
+  if crash_analyzer.is_experimental_crash(testcase.crash_type):
+    logs.log(f'Skipping bug filing for {testcase.key.id()} as it '
+             'has an experimental crash type.')
+    _add_triage_message(
+        testcase, 'Skipping filing as this is an experimental crash type.')
+    return False
 
   try:
     _, file_exception = issue_filer.file_issue(testcase, issue_tracker)
