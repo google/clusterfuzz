@@ -102,6 +102,10 @@ EXTRA_SANITIZERS_SECURITY = [
     'Command injection',
 ]
 
+EXPERIMENTAL_CRASH_TYPES = [
+    'Command injection',
+]
+
 # Default page size of 4KB.
 NULL_DEREFERENCE_BOUNDARY = 0x1000
 
@@ -414,3 +418,8 @@ def has_ubsan_error(stacktrace):
       return True
 
   return False
+
+
+def is_experimental_crash(crash_type):
+  """Return whether or not the crash type is experimental."""
+  return crash_type in EXPERIMENTAL_CRASH_TYPES
