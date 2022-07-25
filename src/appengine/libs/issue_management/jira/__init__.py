@@ -120,9 +120,13 @@ class Issue(issue_tracker.Issue):
     """The issue component list."""
     return self._components
 
-  # FIXME: Add support for new_comment and notify arguments
+  # FIXME: Add support for notify arguments
   def save(self, new_comment=None, notify=True):  # pylint: disable=unused-argument
     """Save the issue."""
+    # add new comment to issue
+    if new_comment:
+      self.itm.client.add_comment(self.jira_issue, new_comment)
+
     for added in self._components.added:
       self.components.add(added)
     for removed in self._components.removed:
@@ -221,8 +225,16 @@ def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
 
 def _get_search_text(keywords):
   """Get search text."""
+  jira_special_characters = '+-&|!(){}[]^~*?\\:'
   search_text = ''
   for keyword in keywords:
-    search_text += ' AND text ~ "%s"' % keyword
+    # Replace special characters with whitespace as they are not allowed and
+    # can't be searched for.
+    stripped_keyword = keyword
+    for special_character in jira_special_characters:
+      stripped_keyword = stripped_keyword.replace(special_character, ' ')
+    # coalesce multiple spaces into one.
+    stripped_keyword = ' '.join(stripped_keyword.split())
+    search_text += f' AND text ~ "{stripped_keyword}"'
 
   return search_text

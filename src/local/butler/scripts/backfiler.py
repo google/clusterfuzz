@@ -40,3 +40,4 @@ def execute(args):
       print(f'Back filing testcase id: {testcase.key.id()}')
       if args.non_dry_run:
         oss_fuzz_github.file_issue(testcase)
+        testcase.put()

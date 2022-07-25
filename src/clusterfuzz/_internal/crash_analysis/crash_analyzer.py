@@ -98,6 +98,9 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
     'Slice bounds out of range',
     'Stack overflow',
 ]
+EXTRA_SANITIZERS_SECURITY = [
+    'Command injection',
+]
 
 # Default page size of 4KB.
 NULL_DEREFERENCE_BOUNDARY = 0x1000
@@ -346,6 +349,9 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
 
   # Kernel Failures are security bugs
   if crash_type.startswith('Kernel failure'):
+    return True
+
+  if crash_type in EXTRA_SANITIZERS_SECURITY:
     return True
 
   # No crash type, can't process.

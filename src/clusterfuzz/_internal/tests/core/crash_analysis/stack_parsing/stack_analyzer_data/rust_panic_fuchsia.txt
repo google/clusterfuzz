@@ -1,0 +1,37 @@
+Running: data/e0f06482a21e8fb5a954fb8e756d685ec22f5c7a767b1d384c73f1c1824b21cd
+thread '<unnamed>' panicked at 'it works!', ../../examples/fuzzers/rust/src/lib.rs:22:17
+stack backtrace:
+ [[[ELF module #0x0 "" BuildID=09859c99ea115fa1 0x21132082b000]]]
+ [[[ELF module #0x1 "libfdio.so" BuildID=e795d657eb8d3c19 0x206fd6a73000]]]
+ [[[ELF module #0x2 "libbackend_fuchsia_globals.so" BuildID=9828c1d683c8d43a 0x21ea2ea66000]]]
+ [[[ELF module #0x3 "libasync-default.so" BuildID=520f230d3ec745c8 0x226238638000]]]
+ [[[ELF module #0x4 "libsyslog.so" BuildID=5085240952d988ac 0x237ab3317000]]]
+ [[[ELF module #0x5 "<vDSO>" BuildID=188404363a224a9d 0x42278383b000]]]
+ [[[ELF module #0x6 "libclang_rt.asan.so" BuildID=69f31659ccec7b61 0x23e390af7000]]]
+ [[[ELF module #0x7 "libc++abi.so.1" BuildID=d3fce6078f5a221e 0x22fd96567000]]]
+ [[[ELF module #0x8 "libunwind.so.1" BuildID=67d749428ce97dd5 0x203dd3522000]]]
+ [[[ELF module #0x9 "libc.so" BuildID=881f5d29c6d74df8 0x4070f5931000]]]
+ [[[ELF module #0a "libc++.so.2" BuildID=c0ef4606a41f39d3 0x212ff3ae2000]]]
+    #0.3  0x00002113208e3bff in std::backtrace_rs::backtrace::libunwind::trace::h9331d8ca7346313e rustlib/src/rust/library/std/src/../../backtrace/src/backtrace/libunwind.rs:93 <>+0xb8bff
+    #0.2  0x00002113208e3bff in std::backtrace_rs::backtrace::trace_unsynchronized::h7825eb88601c046f rustlib/src/rust/library/std/src/../../backtrace/src/backtrace/mod.rs:66 <>+0xb8bff
+    #0.1  0x00002113208e3bff in std::sys_common::backtrace::_print_fmt::h758163dba6d37832 rustlib/src/rust/library/std/src/sys_common/backtrace.rs:66 <>+0xb8bff
+    #0    0x00002113208e3bff in _$LT$std..sys_common..backtrace.._print..DisplayBacktrace$u20$as$u20$core..fmt..Display$GT$::fmt::h50f7b755f1835a1b rustlib/src/rust/library/std/src/sys_common/backtrace.rs:45 <>+0xb8bff
+    #1    0x00002113208eef6c in core::fmt::write::hece5b1e8316a9b39 rustlib/src/rust/library/core/src/fmt/mod.rs:1190 <>+0xc3f6c
+    #2    0x00002113208e1fc2 in std::io::Write::write_fmt::h2006c69a75a9a243 rustlib/src/rust/library/std/src/io/mod.rs:1655 <>+0xb6fc2
+    #3    0x00002113208e4f47 in std::panicking::default_hook::_$u7b$$u7b$closure$u7d$$u7d$::hfcc7e77f4c3e5676 rustlib/src/rust/library/std/src/sys_common/backtrace.rs:0 <>+0xb9f47
+    #4    0x00002113208e4c2a in std::panicking::default_hook::h92f56a405a92068e rustlib/src/rust/library/std/src/panicking.rs:314 <>+0xb9c2a
+    #5    0x00002113208e53c2 in std::panicking::rust_panic_with_hook::h60d2be52ae0a40b6 rustlib/src/rust/library/std/src/panicking.rs:698 <>+0xba3c2
+    #6    0x00002113209032d2 in std::panicking::begin_panic::_$u7b$$u7b$closure$u7d$$u7d$::hf265b39b77351b6e ./rustlib/src/rust/library/std/src/panicking.rs:617 <>+0xd82d2
+    #7    0x00002113208ffcc5 in std::sys_common::backtrace::__rust_end_short_backtrace::hd2a414e0cab36784 ./rustlib/src/rust/library/std/src/sys_common/backtrace.rs:138 <>+0xd4cc5
+    #8    0x0000211320902af8 in std::panicking::begin_panic::hc8e5a28c0db54738 ./rustlib/src/rust/library/std/src/panicking.rs:616 <>+0xd7af8
+    #9    0x00002113208ccbd9 in _toy_example_arbitrary_lib_rustc_static::toy_example::h849ed7a815da104e ./../../examples/fuzzers/rust/src/lib.rs:22 <>+0xa1bd9
+    #10   0x00002113208ce678 in _toy_example_arbitrary_lib_rustc_static::_::toy_example_arbitrary::hc517d560c71405e4 ./../../examples/fuzzers/rust/src/lib.rs:35 <>+0xa3678
+    #11   0x00002113208cf187 in LLVMFuzzerTestOneInput ./../../examples/fuzzers/rust/src/lib.rs:33 <>+0xa4187
+    #12   0x0000211320882cb3 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) ../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:611 <>+0x57cb3
+    #13   0x000021132086e564 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) ../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:324 <>+0x43564
+    #14   0x0000211320873c96 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) ../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:860 <>+0x48c96
+    #15   0x000021132089cdc3 in main ../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/../staging/llvm_build/tools/clang/stage2-bins/runtimes/runtimes-x86_64-unknown-fuchsia-bins/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20 <>+0x71dc3
+    #16   0x00004070f59c940e in start_main ././../../zircon/third_party/ulib/musl/src/env/__libc_start_main.c:140 <libc.so>+0x9840e
+    #17   0x00004070f59c99c5 in __libc_start_main ././../../zircon/third_party/ulib/musl/src/env/__libc_start_main.c:215 <libc.so>+0x989c5
+    #18   0x0000211320863af1 in _start ././../../zircon/system/ulib/c/Scrt1.cc:7 <>+0x38af1
+==1== ERROR: libFuzzer: deadly signal

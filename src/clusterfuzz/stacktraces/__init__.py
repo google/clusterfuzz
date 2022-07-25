@@ -823,6 +823,13 @@ class StackParser:
           new_state='',
           reset=True)
 
+      # Command injection bugs detected by extra sanitizers.
+      self.update_state_on_match(
+          EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX,
+          line,
+          state,
+          new_type='Command injection')
+
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
       update_kasan_crash_details(state, line)

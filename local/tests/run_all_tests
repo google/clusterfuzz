@@ -4,7 +4,8 @@ SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 export PYTHONUNBUFFERED=1
 INTEGRATION=1 $SCRIPT_DIR/run_tests
 $SCRIPT_DIR/run_reproduce_tool_tests
-$SCRIPT_DIR/run_js_tests
+# https://github.com/google/clusterfuzz/issues/2678.
+# $SCRIPT_DIR/run_js_tests
 $SCRIPT_DIR/run_untrusted_test untrusted_runner_integration
 $SCRIPT_DIR/run_untrusted_test corpus_pruning
 $SCRIPT_DIR/run_untrusted_test testcase_manager

@@ -1263,6 +1263,11 @@ def _get_latest_revision(bucket_paths):
 
     build_urls.append(BuildUrls(bucket_path=bucket_path, urls_list=urls_list))
 
+  if len(build_urls) == 0:
+    logs.log_error(
+        'Attempted to get latest revision, but no build urls were found.')
+    return None
+
   main_build_urls = build_urls[0]
   other_build_urls = build_urls[1:]
 
@@ -1507,6 +1512,12 @@ def setup_build(revision=0, target_weights=None):
     bucket_path = get_bucket_path(env_var)
     if bucket_path:
       bucket_paths.append(bucket_path)
+    else:
+      logs.log('Bucket path not found for %s' % env_var)
+
+  if len(bucket_paths) == 0:
+    logs.log_error('Attempted a trunk build, but no bucket paths were found.')
+    return None
 
   return setup_trunk_build(bucket_paths, target_weights=target_weights)
 
