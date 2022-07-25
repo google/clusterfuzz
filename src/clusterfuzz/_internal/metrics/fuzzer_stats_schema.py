@@ -403,6 +403,10 @@ _LIBFUZZER_SCHEMA = [{
     'mode': 'NULLABLE',
     'name': 'edge_coverage_count',
     'type': 'INTEGER'
+}, {
+    'mode': 'NULLABLE',
+    'name': 'strategy_extra_sanitizers',
+    'type': 'INTEGER'
 }] + _COMMON_COLUMNS
 
 _HONGGFUZZ_SCHEMA = [{
