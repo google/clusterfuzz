@@ -62,7 +62,7 @@ def _get_runner():
 
   os.chmod(honggfuzz_path, 0o755)
   if environment.get_value('USE_UNSHARE'):
-    return new_process.UnicodeUnshareRunner(honggfuzz_path)
+    return new_process.UnicodeModifierRunner(honggfuzz_path)
 
   return new_process.UnicodeProcessRunner(honggfuzz_path)
 
