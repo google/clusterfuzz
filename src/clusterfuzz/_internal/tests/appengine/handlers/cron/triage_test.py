@@ -390,7 +390,7 @@ class FileIssueTest(unittest.TestCase):
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_no_experimental_bugs(self):
-    """Test no exception."""
+    """Tests not filing experimental bugs."""
     self.mock.file_issue.return_value = 'ID', None
     self.testcase.crash_type = 'Command injection'
     self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker))
