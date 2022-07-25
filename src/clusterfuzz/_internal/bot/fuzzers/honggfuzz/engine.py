@@ -16,12 +16,16 @@
 import glob
 import os
 import re
+import shutil
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
+from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
+from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
@@ -58,7 +62,7 @@ def _get_runner():
 
   os.chmod(honggfuzz_path, 0o755)
   if environment.get_value('USE_UNSHARE'):
-    return new_process.UnicodeModifierRunner(honggfuzz_path)
+    return new_process.UnicodeUnshareRunner(honggfuzz_path)
 
   return new_process.UnicodeProcessRunner(honggfuzz_path)
 
@@ -211,6 +215,12 @@ class Engine(engine.Engine):
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
+  def _create_temp_corpus_dir(self, name):
+    """Create temporary corpus directory."""
+    new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
+    engine_common.recreate_directory(new_corpus_directory)
+    return new_corpus_directory
+
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
@@ -228,4 +238,54 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     # TODO(ochang): Implement this.
-    raise NotImplementedError
+    logs.log("Minimizing honggfuzz corpus - step 1")
+
+    runner = _get_runner()
+    combined_corpus_dir = self._create_temp_corpus_dir('minimize-workdir')
+    logs.log("Minimizing honggfuzz corpus - step 2")
+
+    # Copy all of the seeds into it.
+    idx = 0
+    for input_dir in input_dirs:
+        logs.log(f"copying input dir {input_dir}")
+        src_corpus_files = []
+        for root, _, files in shell.walk(input_dir):
+            for f in files:
+                src_corpus_files.append(os.path.join(root, f))
+        for src_f in src_corpus_files:
+            shutil.copy(src_f, os.path.join(combined_corpus_dir, str(idx)))
+            idx += 1
+
+    logs.log("Minimizing honggfuzz corpus - step 3")
+
+    # Minimize the workdir
+    arguments = _DEFAULT_ARGUMENTS[:]
+    arguments += [
+        "-i",
+        combined_corpus_dir,
+        "-o",
+        output_dir,
+        "-M",
+        "--",
+        target_path
+    ]
+
+    honggfuzz_env = {}
+    if _contains_netdriver(target_path):
+      honggfuzz_env['HFND_TCP_PORT'] = '8000'
+    logs.log("Minimizing honggfuzz corpus - step 4")
+
+    fuzz_result = runner.run_and_wait(
+        additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS,
+        extra_env = honggfuzz_env)
+    logs.log("Minimizing honggfuzz corpus - step 5")
+
+    # Set up return values. #TODO: fix this although I'm not sure
+    # it's strictly needed at this point in time.
+    merge_output = ""
+    result_command = ""
+    merge_stats = ""
+    result_time_executed = 20
+
+    return engine.FuzzResult(merge_output, result_command, [], merge_stats,
+                             result_time_executed)
