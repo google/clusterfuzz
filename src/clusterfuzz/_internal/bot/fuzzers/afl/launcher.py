@@ -1182,7 +1182,7 @@ class AflRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
 
 
 class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
-  """Afl Android runner"""
+  """Afl Android runner."""
 
   # Time that we need to remove from timeout command to ensure a clean exit
   # while fuzzing on device
