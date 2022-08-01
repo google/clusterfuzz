@@ -386,7 +386,9 @@ def file_issue(testcase,
       issue_restrictions == 'all' or
       (issue_restrictions == 'security' and testcase.security_flag))
 
-  has_accountable_people = bool(ccs)
+  has_accountable_people = (
+      bool(ccs) and not data_handler.get_value_from_job_definition(
+          testcase.job_type, 'DISABLE_DISCLOSURE', False))
 
   # Check for labels with special logic.
   additional_labels = []

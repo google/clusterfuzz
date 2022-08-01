@@ -57,6 +57,7 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^TSAN_OPTIONS$',
         r'^UBSAN_OPTIONS$',
         r'^UNPACK_ALL_FUZZ_TARGETS_AND_FILES$',
+        r'^USE_EXTRA_SANITIZERS$',
         r'^USE_MINIJAIL$',
         r'^USER$',
     )

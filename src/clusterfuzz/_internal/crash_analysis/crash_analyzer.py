@@ -98,6 +98,13 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
     'Slice bounds out of range',
     'Stack overflow',
 ]
+EXTRA_SANITIZERS_SECURITY = [
+    'Command injection',
+]
+
+EXPERIMENTAL_CRASH_TYPES = [
+    'Command injection',
+]
 
 # Default page size of 4KB.
 NULL_DEREFERENCE_BOUNDARY = 0x1000
@@ -348,6 +355,9 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type.startswith('Kernel failure'):
     return True
 
+  if crash_type in EXTRA_SANITIZERS_SECURITY:
+    return True
+
   # No crash type, can't process.
   if not crash_type:
     return False
@@ -408,3 +418,8 @@ def has_ubsan_error(stacktrace):
       return True
 
   return False
+
+
+def is_experimental_crash(crash_type):
+  """Return whether or not the crash type is experimental."""
+  return crash_type in EXPERIMENTAL_CRASH_TYPES

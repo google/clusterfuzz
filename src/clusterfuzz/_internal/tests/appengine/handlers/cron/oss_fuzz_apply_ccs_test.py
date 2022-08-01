@@ -129,6 +129,9 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.mock.get.return_value = OSS_FUZZ_POLICY
     self.mock.get_original_issue.side_effect = get_original_issue
 
+    self.job = data_types.Job(name='job', environment_string='')
+    self.job.put()
+
     data_types.Testcase(
         open=True, status='Processed', bug_information='1337',
         job_type='job').put()
@@ -177,4 +180,40 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     ])
     self.assertTrue(issue_1340.has_label_matching('reported-2015-01-01'))
     self.assertFalse(issue_1340.has_label_matching('reported-2016-01-01'))
+    self.assertEqual(issue_1340.comment, '')
+
+  def test_execute_disabled_disclosure(self):
+    """Test executing of cron with disclosure disabled."""
+    self.job.environment_string += 'DISABLE_DISCLOSURE = True\n'
+    self.job.put()
+
+    self.app.get('/apply-ccs')
+    self.assertEqual(len(self.itm.modified_issues), 3)
+
+    issue_1337 = self.itm.modified_issues[1337]
+    six.assertCountEqual(self, issue_1337.cc, [
+        'user@example.com',
+        'user2@example.com',
+    ])
+
+    self.assertFalse(issue_1337.has_label_matching('reported-2016-01-01'))
+    self.assertEqual('', issue_1337.comment)
+
+    self.assertNotIn(1338, self.itm.modified_issues)
+
+    issue_1339 = self.itm.modified_issues[1339]
+    six.assertCountEqual(self, issue_1339.cc, [
+        'user@example.com',
+        'user2@example.com',
+    ])
+
+    self.assertFalse(issue_1339.has_label_matching('reported-2016-01-01'))
+    self.assertEqual('', issue_1339.comment)
+
+    issue_1340 = self.itm.modified_issues[1340]
+    six.assertCountEqual(self, issue_1340.cc, [
+        'user@example.com',
+        'user2@example.com',
+    ])
+    self.assertTrue(issue_1340.has_label_matching('reported-2015-01-01'))
     self.assertEqual(issue_1340.comment, '')

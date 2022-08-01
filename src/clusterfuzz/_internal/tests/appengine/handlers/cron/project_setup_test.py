@@ -117,6 +117,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
   """Test project_setup for OSS-Fuzz."""
 
   def setUp(self):
+    self.maxDiff = None  # pylint: disable=invalid-name
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/setup', view_func=project_setup.Handler.as_view('/setup'))
@@ -472,6 +473,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'BACKUP_BUCKET = lib5-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib5,Engine-libfuzzer\n'
         'EXPERIMENTAL = True\n'
+        'DISABLE_DISCLOSURE = True\n'
         'UNPACK_ALL_FUZZ_TARGETS_AND_FILES = False\n'
         'MAIN_REPO = https://github.com/google/main-repo\n'
         'FILE_GITHUB_ISSUE = False\n')
@@ -1664,6 +1666,7 @@ class GenericProjectSetupTest(unittest.TestCase):
   """Test generic project setup."""
 
   def setUp(self):
+    self.maxDiff = None  # pylint: disable=invalid-name
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/setup', view_func=project_setup.Handler.as_view('/setup'))
@@ -1784,6 +1787,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL\n'
         'BOOL_VAR = True\n'
@@ -1802,6 +1806,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket/a-b/libfuzzer/memory/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
         'EXPERIMENTAL = True\n'
+        'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
@@ -1818,6 +1823,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/c-d/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL\n'
         'BOOL_VAR = True\n'
@@ -1839,6 +1845,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-dbg/a-b/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'ASAN_VAR = VAL-dbg\n'
         'BOOL_VAR = True\n'
@@ -1859,6 +1866,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket/a-b/honggfuzz/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_a-b\n'
+        'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
@@ -1875,6 +1883,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'gs://bucket-dbg/a-b/honggfuzz/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //a/b\nSUMMARY_PREFIX = //a/b\nMANAGED = True\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_a-b_dbg\n'
+        'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
@@ -1892,6 +1901,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket/c-d/googlefuzztest/address/%TARGET%/([0-9]+).zip\n'
         'PROJECT_NAME = //c/d\nSUMMARY_PREFIX = //c/d\nMANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'

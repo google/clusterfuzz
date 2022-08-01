@@ -1,4 +1,4 @@
-# Copyright 2020 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,27 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-name: Run basic tests
-on: [pull_request]
-
-permissions: read-all
-
-jobs:
-  build:
-    runs-on: ubuntu-20.04
-
-    steps:
-      - uses: actions/checkout@v2
-      - run: |  # Needed for git diff to work.
-          git fetch origin master --depth 1
-          git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/master
-
-      - name: Setup python environment
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.7
-
-      - name: Run basic tests
-        run: ./local/tests/ci_tests.bash
-
+# Exemption reason: This repo uses binary artifacts that are not practical to
+# build from source (e.g. from LLVM).
+optConfig:
+  optOut: true

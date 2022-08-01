@@ -45,10 +45,12 @@ class Project(object):
                 None)
 
 
-Cluster = namedtuple('Cluster', [
-    'name', 'gce_zone', 'instance_count', 'instance_template', 'distribute',
-    'worker', 'high_end'
-])
+Cluster = namedtuple(
+    'Cluster', [
+        'name', 'gce_zone', 'instance_count', 'instance_template', 'distribute',
+        'worker', 'high_end', 'auto_healing_policy'
+    ],
+    defaults=[{}])
 
 HostWorkerAssignment = namedtuple('HostWorkerAssignment',
                                   ['host', 'worker', 'workers_per_host'])
@@ -66,7 +68,8 @@ def _process_instance_template(instance_template):
         item['value'].startswith(FILE_SCHEME)):
       file_path = item['value'][len(FILE_SCHEME):]
       with open(
-          os.path.join(environment.get_gce_config_directory(), file_path)) as f:
+          os.path.join(environment.get_gce_config_directory(), file_path),
+          encoding='utf-8') as f:
         item['value'] = f.read()
 
 
@@ -82,6 +85,7 @@ def _config_to_project(name, config):
             instance_count=zone['instance_count'],
             instance_template=zone['instance_template'],
             distribute=zone.get('distribute', False),
+            auto_healing_policy=zone.get('auto_healing_policy', {}),
             worker=zone.get('worker', False),
             high_end=zone.get('high_end', False)))
 

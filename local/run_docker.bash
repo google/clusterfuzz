@@ -46,4 +46,5 @@ sudo docker run -e COMMAND_OVERRIDE="$COMMAND_OVERRIDE" -e SETUP_NFS= -e HOST_UI
               -e LOCAL_SRC=$LOCAL_SRC \
               -e CONFIG_DIR_OVERRIDE=$CONFIG_DIR_OVERRIDE \
               --hostname test-bot-$USER \
+              -p 7123:7123 \
               -ti --privileged --cap-add=all $IMAGE "$@"
