@@ -216,7 +216,7 @@ class Engine(engine.Engine):
                                   result.time_executed, result.output)
 
   def _create_temp_corpus_dir(self, name):
-    """Create temporary corpus directory."""
+    """Creates temporary corpus directory."""
     new_corpus_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_corpus_directory)
     return new_corpus_directory
@@ -238,16 +238,16 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     # TODO(ochang): Implement this.
-    logs.log("Minimizing honggfuzz corpus - step 1")
+    logs.log('Minimizing honggfuzz corpus - step 1.')
 
     runner = _get_runner()
     combined_corpus_dir = self._create_temp_corpus_dir('minimize-workdir')
-    logs.log("Minimizing honggfuzz corpus - step 2")
+    logs.log('Minimizing honggfuzz corpus - step 2.')
 
-    # Copy all of the seeds into it.
+    # Copy all of the seeds into corpus.
     idx = 0
     for input_dir in input_dirs:
-        logs.log(f"copying input dir {input_dir}")
+        logs.log(f'Copying input dir {input_dir}.')
         src_corpus_files = []
         for root, _, files in shell.walk(input_dir):
             for f in files:
@@ -256,35 +256,36 @@ class Engine(engine.Engine):
             shutil.copy(src_f, os.path.join(combined_corpus_dir, str(idx)))
             idx += 1
 
-    logs.log("Minimizing honggfuzz corpus - step 3")
+    logs.log('Minimizing honggfuzz corpus - step 3.')
 
-    # Minimize the workdir
+    # Minimize the workdir.
     arguments = _DEFAULT_ARGUMENTS[:]
     arguments += [
-        "-i",
+        '-i',
         combined_corpus_dir,
-        "-o",
+        '-o',
         output_dir,
-        "-M",
-        "--",
+        '-M',
+        '--',
         target_path
     ]
 
     honggfuzz_env = {}
     if _contains_netdriver(target_path):
       honggfuzz_env['HFND_TCP_PORT'] = '8000'
-    logs.log("Minimizing honggfuzz corpus - step 4")
+    logs.log('Minimizing honggfuzz corpus - step 4.')
 
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS,
-        extra_env = honggfuzz_env)
-    logs.log("Minimizing honggfuzz corpus - step 5")
+        extra_env=honggfuzz_env)
+    logs.log('Minimizing honggfuzz corpus - step 5.')
 
-    # Set up return values. #TODO: fix this although I'm not sure
+    # Set up return values.
+    # TODO(DavidKorczynski): Fix this although I'm not sure
     # it's strictly needed at this point in time.
-    merge_output = ""
-    result_command = ""
-    merge_stats = ""
+    merge_output = ''
+    result_command = ''
+    merge_stats = ''
     result_time_executed = 20
 
     return engine.FuzzResult(merge_output, result_command, [], merge_stats,
