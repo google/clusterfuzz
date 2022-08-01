@@ -56,7 +56,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.mock.random.return_value = probability
     environment.set_value('APP_NAME', app_name)
     trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
+    trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), app_args)
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), trial_app_args)
 
@@ -65,7 +65,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.mock.random.return_value = 0.0
     environment.set_value('APP_NAME', 'app_0')
     trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
+    trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x')
     self.assertIsNone(environment.get_value('TRIAL_APP_ARGS'))
 
@@ -74,7 +74,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.mock.random.return_value = 0.3
     environment.set_value('APP_NAME', 'app_1')
     trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
+    trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --a1')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--a1')
 
@@ -83,7 +83,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.mock.random.return_value = 0.5
     environment.set_value('APP_NAME', 'app_2')
     trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
+    trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x')
     self.assertIsNone(environment.get_value('TRIAL_APP_ARGS'))
 
@@ -92,7 +92,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.mock.random.return_value = 0.1
     environment.set_value('APP_NAME', 'app_3')
     trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
+    trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --c1 --c2 --c3')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--c1 --c2 --c3')
 
@@ -101,7 +101,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.mock.random.return_value = 0.3
     environment.set_value('APP_NAME', 'app_1.exe')
     trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
+    trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --a1')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--a1')
 
@@ -110,7 +110,7 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     self.mock.random.return_value = 0.3
     environment.set_value('APP_NAME', 'App_1.apk')
     trial_selector = trials.Trials()
-    trial_selector.setup_additional_args_for_app()
+    trial_selector.setup_additional_args_for_app(shuffle=False)
     self.assertEqual(environment.get_value('APP_ARGS'), '-x --a1')
     self.assertEqual(environment.get_value('TRIAL_APP_ARGS'), '--a1')
 
@@ -206,3 +206,32 @@ class TrialsTest(fake_filesystem_unittest.TestCase):
     """Ensure that a trial probability will not be overriden using a corrupted config file."""
     config_file_content = '[{"app_args": "--a1", "app_name": "app_1", "probability": 0.8]'
     self.source_side_test(config_file_content, 0.7, 'app_1', '-x', None)
+
+  def test_trial_ignored_if_there_is_symmetrical_contradiction(self):
+    """Ensure that a flag is not added if it contradicts an already added flag."""
+    config_file_content = [{
+        "app_args": "--c4",
+        "app_name": "app_4",
+        "probability": 1.0,
+        "contradicts": ["--c5"]
+    }, {
+        "app_args": "--c5",
+        "app_name": "app_4",
+        "probability": 1.0,
+        "contradicts": ["--c4"]
+    }]
+    self.source_side_test(config_file_content, 0.1, 'app_4', '-x --c4', '--c4')
+
+  def test_trial_ignored_if_there_is_asymmetrical_contradiction(self):
+    """Ensure that a flag is not added if it contradicts an already added flag."""
+    config_file_content = [{
+        "app_args": "--c4",
+        "app_name": "app_4",
+        "probability": 1.0
+    }, {
+        "app_args": "--c5",
+        "app_name": "app_4",
+        "probability": 1.0,
+        "contradicts": ["--c4"]
+    }]
+    self.source_side_test(config_file_content, 0.1, 'app_4', '-x --c4', '--c4')

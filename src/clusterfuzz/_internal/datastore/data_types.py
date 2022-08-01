@@ -1390,6 +1390,9 @@ class Trial(Model):
   # Additional arguments to apply if selected.
   app_args = ndb.TextProperty()
 
+  # Flags that contradict the app args.
+  contradicts = ndb.StringProperty(repeated=True)
+
 
 # TODO(ochang): Make this generic.
 class OssFuzzProject(Model):

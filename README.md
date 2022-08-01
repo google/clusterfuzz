@@ -1,3 +1,5 @@
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz/badge)](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz)
+
 # ClusterFuzz
 
 <p align="center">
