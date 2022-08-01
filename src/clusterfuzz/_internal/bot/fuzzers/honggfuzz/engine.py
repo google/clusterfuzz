@@ -173,7 +173,7 @@ class Engine(engine.Engine):
 
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS,
-        extra_env = honggfuzz_env)
+        extra_env=honggfuzz_env)
     log_lines = fuzz_result.output.splitlines()
     sanitizer_stacktrace = _find_sanitizer_stacktrace(reproducers_dir)
 
