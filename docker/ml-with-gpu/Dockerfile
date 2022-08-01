@@ -26,27 +26,27 @@ WORKDIR /data
 #
 # Add NVIDIA package repositories.
 # Add HTTPS support for apt-key.
-RUN apt-get install -y gnupg-curl && \
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/cuda-repo-ubuntu1604_10.1.243-1_amd64.deb && \
-    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub && \
-    dpkg -i cuda-repo-ubuntu1604_10.1.243-1_amd64.deb && \
+RUN apt-get install -y gnupg && \
+    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb && \
+    sudo dpkg -i cuda-keyring_1.0-1_all.deb && \
     apt-get update && \
-    wget https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/nvidia-machine-learning-repo-ubuntu1604_1.0.0-1_amd64.deb && \
-    apt install -y ./nvidia-machine-learning-repo-ubuntu1604_1.0.0-1_amd64.deb && \
+    apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/7fa2af80.pub && \
+    wget https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/nvidia-machine-learning-repo-ubuntu2004_1.0.0-1_amd64.deb && \
+    apt-get install -y ./nvidia-machine-learning-repo-ubuntu2004_1.0.0-1_amd64.deb && \
     apt-get update && \
-    rm -f cuda-repo-* nvidia-machine-learning-repo-*
+    rm -f cuda-keyring-* nvidia-machine-learning-repo-*
 
 # Install development and runtime libraries (~4GB).
 RUN apt-get install -y --no-install-recommends \
-    cuda-10-1 \
-    libcudnn7=7.6.4.38-1+cuda10.1  \
-    libcudnn7-dev=7.6.4.38-1+cuda10.1
+    cuda-11-7 \
+    libcudnn8 \
+    libcudnn8-dev
 
 # Install TensorRT. Requires that libcudnn7 is installed above.
 RUN apt-get install -y --no-install-recommends \
-    libnvinfer6=6.0.1-1+cuda10.1 \
-    libnvinfer-dev=6.0.1-1+cuda10.1 \
-    libnvinfer-plugin6=6.0.1-1+cuda10.1
+    libnvinfer8 \
+    libnvinfer-dev \
+    libnvinfer-plugin8
 
 # Replace TensorFlow CPU version with GPU version. Also the version number
 # needs to match cuda and cuDNN version above.

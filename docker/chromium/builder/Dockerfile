@@ -32,16 +32,12 @@ RUN apt-get update && \
         subversion \
         zip
 
-# Install Chromium build dependencies.
+# Note: snapcraft installation seems to always fail.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    curl 'https://chromium.googlesource.com/chromium/src/+/master/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
+    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
+    sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.sh && \ 
     chmod u+x /tmp/install-build-deps.sh && \
     /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms
-
-# 16.04's pyOpenSSL (installed by install-build-deps.sh) is too old for
-# Google Cloud SDK.
-RUN sudo apt-get remove -y python-openssl && \
-    sudo pip2 install cryptography==3.3.2 pyOpenSSL==19.0.0
 
 RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git \
     /data/depot_tools
