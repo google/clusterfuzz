@@ -107,10 +107,10 @@ def _get_stats(line):
   return stats
 
 def _contains_netdriver(target_path):
-  """Returns whether target contains netdriver string"""
+  """Returns whether |target_path| contains netdriver string."""
   with open(target_path, 'rb') as f:
     data = f.read()
-  return data.find(b"\x01_LIBHFUZZ_NETDRIVER_BINARY_SIGNATURE_\x02\xff") != -1
+  return data.find(b'\x01_LIBHFUZZ_NETDRIVER_BINARY_SIGNATURE_\x02\xff') != -1
 
 
 class Engine(engine.Engine):
