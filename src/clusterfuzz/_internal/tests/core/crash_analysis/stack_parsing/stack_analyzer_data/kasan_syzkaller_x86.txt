@@ -1,0 +1,34 @@
+general protection fault, probably for non-canonical address 0xdffffc0000000011: 0000 [#1] PREEMPT SMP KASAN PTI
+KASAN: null-ptr-deref in range [0x0000000000000088-0x000000000000008f]
+CPU: 1 PID: 4285 Comm: syz-executor Tainted: G           O      5.10.43-android12-9-00082-gb683931b2a63-ab7681925 #1
+Hardware name: ChromiumOS crosvm, BIOS 0
+RIP: 0010:io_uring_create+0x1a63/0x30f0
+Code: 03 49 bc 00 00 00 00 00 fc ff df 42 80 3c 20 00 74 08 4c 89 f7 e8 5d c1 e1 ff 41 bf 88 00 00 00 4d 03 3e 4c 89 f8 48 c1 e8 03 <42> 80 3c 20 00 74 08 4c 89 ff e8 3e c1 e1 ff 4d 8b 37 4d 85 f6 74
+RSP: 0018:ffff888008c2fd50 EFLAGS: 00010206
+RAX: 0000000000000011 RBX: dffffc0000000000 RCX: ffffffff840ccb81
+RDX: 0000000000000001 RSI: 0000000000000008 RDI: ffff888008c2fd08
+RBP: ffff888008c2fe80 R08: dffffc0000000000 R09: ffffed1001185fa2
+R10: ffffed1001185fa2 R11: 0000000000000000 R12: dffffc0000000000
+R13: 00000000fffffffc R14: ffff888015a800e8 R15: 0000000000000088
+FS:  00007da641089700(0000) GS:ffff888066500000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007da641046db8 CR3: 000000005e074006 CR4: 0000000000170ea0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+Call Trace:
+? io_free_work+0x5f0/0x5f0
+? io_sq_wake_function+0xe0/0xe0
+__x64_sys_io_uring_setup+0x157/0x200
+do_syscall_64+0x37/0x50
+entry_SYSCALL_64_after_hwframe+0x44/0xa9
+RIP: 0033:0x46a1b9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 bc ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007da641088bd8 EFLAGS: 00000202 ORIG_RAX: 00000000000001a9
+RAX: ffffffffffffffda RBX: 0000000020000040 RCX: 000000000046a1b9
+RDX: 0000000020fff000 RSI: 0000000020000040 RDI: 00000000000052b2
+RBP: 00000000004b9d4e R08: 0000000020000100 R09: 0000000020000100
+R10: 00000000200000c0 R11: 0000000000000202 R12: 0000000020fff000
+R13: 0000000020ffc000 R14: 0000000020000100 R15: 00000000200000c0
+Modules linked in: virt_wifi_sim(O) virtio_gpu(O) goldfish_sync(O) goldfish_pipe(O) goldfish_battery(O) goldfish_address_space(O) vmw_vsock_virtio_transport snd_intel8x0 snd_hda_intel snd_intel_dspcfg snd_hda_codec_realtek snd_hda_codec_generic snd_hda_codec snd_hda_core snd_ac97_codec ac97_bus gnss_cmdline gnss_serial ledtrig_audio dummy_cpufreq hci_vhci md_mod pulse8_cec rtc_test psmouse virtio_net net_failover failover virt_wifi mac80211_hwsim mac80211 cfg80211 slcan vcan gs_usb system_heap virtio_pmem nd_virtio zram virtio_blk tpm_vtpm_proxy tpm virtio_console virtio_rng virtio_dma_buf virtio_mem virtio_input virtio_balloon virtio_pci virtio_mmio test_meminit test_stackinit lzo_rle lzo zsmalloc
+---[ end trace f110a649e41b2fb7 ]---
+RIP: 0010:io_uring_create+0x1a63/0x30f0

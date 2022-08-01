@@ -18,27 +18,27 @@ import collections
 import copy
 import json
 import re
+
+from google.cloud import ndb
 import requests
 import six
 import yaml
 
-from google.cloud import ndb
-
-from base import tasks
-from base import untrusted
-from base import utils
-from config import db_config
-from config import local_config
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import fuzzer_selection
-from google_cloud_utils import pubsub
-from google_cloud_utils import storage
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import untrusted
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import fuzzer_selection
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import handler
-from metrics import logs
-from system import environment
 
 from . import service_accounts
 
@@ -130,6 +130,13 @@ HONGGFUZZ_ASAN_JOB = JobInfo(
     'address', ['honggfuzz', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
 
+GFT_ASAN_JOB = JobInfo('googlefuzztest_asan_', 'googlefuzztest', 'address',
+                       ['googlefuzztest', 'engine_asan'])
+GFT_MSAN_JOB = JobInfo('googlefuzztest_msan_', 'googlefuzztest', 'memory',
+                       ['googlefuzztest', 'engine_msan'])
+GFT_UBSAN_JOB = JobInfo('googlefuzztest_ubsan_', 'googlefuzztest', 'undefined',
+                        ['googlefuzztest', 'engine_ubsan'])
+
 JOB_MAP = {
     'libfuzzer': {
         'x86_64': {
@@ -149,6 +156,13 @@ JOB_MAP = {
     'honggfuzz': {
         'x86_64': {
             'address': HONGGFUZZ_ASAN_JOB,
+        },
+    },
+    'googlefuzztest': {
+        'x86_64': {
+            'address': GFT_ASAN_JOB,
+            'memory': GFT_MSAN_JOB,
+            'undefined': GFT_UBSAN_JOB,
         },
     },
     'none': {
@@ -179,7 +193,7 @@ def get_github_url(url):
   response = requests.get(url, auth=(client_id, client_secret))
   if response.status_code != 200:
     logs.log_error(
-        'Failed to get github url: %s' % url, status_code=response.status_code)
+        f'Failed to get github url: {url}.', status_code=response.status_code)
     response.raise_for_status()
 
   return json.loads(response.text)
@@ -265,7 +279,7 @@ def get_jobs_for_project(project, info):
   sanitizers = _process_sanitizers_field(
       info.get('sanitizers', DEFAULT_SANITIZERS))
   if not sanitizers:
-    logs.log_error('Invalid sanitizers field for %s.' % project)
+    logs.log_error(f'Invalid sanitizers field for {project}.')
     return []
 
   engines = info.get('fuzzing_engines', DEFAULT_ENGINES)
@@ -336,7 +350,7 @@ def _add_users_to_bucket(info, client, bucket_name, iam_policy):
     if cc in binding['members']:
       continue
 
-    logs.log('Adding %s to bucket IAM for %s' % (cc, bucket_name))
+    logs.log(f'Adding {cc} to bucket IAM for {bucket_name}.')
     # Add CCs one at a time since the API does not work with invalid or
     # non-Google emails.
     modified_iam_policy = storage.add_single_bucket_iam(
@@ -396,6 +410,11 @@ def add_service_account_to_bucket(client, bucket_name, service_account, role):
   storage.set_bucket_iam_policy(client, bucket_name, iam_policy)
 
 
+def has_maintainer(info):
+  """Return whether or not a project has at least one maintainer."""
+  return info.get('primary_contact') or info.get('auto_ccs')
+
+
 def ccs_from_info(info):
   """Get list of CC's from project info."""
 
@@ -410,9 +429,7 @@ def ccs_from_info(info):
     if isinstance(field_value, str):
       return [field_value]
 
-    raise ProjectSetupError(
-        'Bad value for field {field_name}: {field_value}.'.format(
-            field_name=field_name, field_value=field_value))
+    raise ProjectSetupError(f'Bad value for field {field_name}: {field_value}.')
 
   ccs = []
   ccs.extend(_get_ccs('primary_contact', allow_list=False))
@@ -424,33 +441,35 @@ def ccs_from_info(info):
 
 def update_fuzzer_jobs(fuzzer_entities, job_names):
   """Update fuzzer job mappings."""
-  to_delete = []
+  to_delete = {}
 
-  for job in data_types.Job.query():
-    if not job.environment_string:
-      continue
+  for fuzzer_entity_key in fuzzer_entities:
+    fuzzer_entity = fuzzer_entity_key.get()
 
-    job_environment = job.get_environment()
-    if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
-      continue
+    for job in data_types.Job.query():
+      if not job.environment_string:
+        continue
 
-    if job.name in job_names:
-      continue
+      job_environment = job.get_environment()
+      if not utils.string_is_true(job_environment.get('MANAGED', 'False')):
+        continue
 
-    logs.log('Deleting job %s' % job.name)
-    to_delete.append(job.key)
-    for fuzzer_entity in fuzzer_entities:
+      if job.name in job_names:
+        continue
+
+      logs.log(f'Deleting job {job.name}')
+      to_delete[job.name] = job.key
+
       try:
         fuzzer_entity.jobs.remove(job.name)
       except ValueError:
         pass
 
-  for fuzzer_entity in fuzzer_entities:
     fuzzer_entity.put()
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer_entity)
 
   if to_delete:
-    ndb_utils.delete_multi(to_delete)
+    ndb_utils.delete_multi(to_delete.values())
 
 
 def cleanup_old_projects_settings(project_names):
@@ -459,7 +478,7 @@ def cleanup_old_projects_settings(project_names):
 
   for project in data_types.OssFuzzProject.query():
     if project.name not in project_names:
-      logs.log('Deleting project %s' % project.name)
+      logs.log(f'Deleting project {project.name}.')
       to_delete.append(project.key)
 
   if to_delete:
@@ -563,6 +582,7 @@ class ProjectSetup(object):
                config_suffix='',
                external_config=None,
                segregate_projects=False,
+               experimental_sanitizers=None,
                engine_build_buckets=None,
                fuzzer_entities=None,
                add_info_labels=False,
@@ -574,6 +594,7 @@ class ProjectSetup(object):
     self._build_bucket_path_template = build_bucket_path_template
     self._revision_url_template = revision_url_template
     self._segregate_projects = segregate_projects
+    self._experimental_sanitizers = experimental_sanitizers
     self._engine_build_buckets = engine_build_buckets
     self._fuzzer_entities = fuzzer_entities
     self._add_info_labels = add_info_labels
@@ -593,7 +614,7 @@ class ProjectSetup(object):
 
   def _deployment_bucket_name(self):
     """Deployment bucket name."""
-    return '{project}-deployment'.format(project=utils.get_application_id())
+    return f'{utils.get_application_id()}-deployment'
 
   def _shared_corpus_bucket_name(self):
     """Shared corpus bucket name."""
@@ -643,7 +664,7 @@ class ProjectSetup(object):
       add_bucket_iams(info, client, logs_bucket_name, service_account)
       add_bucket_iams(info, client, quarantine_bucket_name, service_account)
     except Exception as e:
-      logs.log_error('Failed to add bucket IAMs for %s: %s' % (project, e))
+      logs.log_error(f'Failed to add bucket IAMs for {project}: {e}.')
 
     # Grant the service account read access to deployment, shared corpus and
     # mutator plugin buckets.
@@ -655,11 +676,13 @@ class ProjectSetup(object):
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
 
     data_bundles = {
-        fuzzer_entity.data_bundle_name
+        fuzzer_entity.get().data_bundle_name
         for fuzzer_entity in six.itervalues(self._fuzzer_entities)
-        if fuzzer_entity.data_bundle_name
     }
     for data_bundle in data_bundles:
+      if not data_bundle:
+        continue
+
       # Workers also need to be able to set up these global bundles.
       data_bundle_bucket_name = data_handler.get_data_bundle_bucket_name(
           data_bundle)
@@ -695,7 +718,7 @@ class ProjectSetup(object):
         # Engine-less jobs are not automatically managed.
         continue
 
-      fuzzer_entity = self._fuzzer_entities.get(template.engine)
+      fuzzer_entity = self._fuzzer_entities.get(template.engine).get()
       if not fuzzer_entity:
         raise ProjectSetupError('Invalid fuzzing engine ' + template.engine)
 
@@ -713,12 +736,16 @@ class ProjectSetup(object):
             'reproduction_topic']
         job.external_updates_subscription = self._external_config[
             'updates_subscription']
+      else:
+        job.external_reproduction_topic = None
+        job.external_updates_subscription = None
 
       if not info.get('disabled', False):
         job_names.append(job_name)
         if job_name not in fuzzer_entity.jobs and not job.is_external():
           # Enable new job.
           fuzzer_entity.jobs.append(job_name)
+          fuzzer_entity.put()
 
       job.name = job_name
       if self._segregate_projects:
@@ -744,55 +771,56 @@ class ProjectSetup(object):
                                           template.architecture),
             sanitizer=template.memory_tool)
 
-        job.environment_string += (
-            'REVISION_VARS_URL = {revision_vars_url}\n'.format(
-                revision_vars_url=revision_vars_url))
+        job.environment_string += f'REVISION_VARS_URL = {revision_vars_url}\n'
 
       if logs_bucket_name:
-        job.environment_string += 'FUZZ_LOGS_BUCKET = {logs_bucket}\n'.format(
-            logs_bucket=logs_bucket_name)
+        job.environment_string += f'FUZZ_LOGS_BUCKET = {logs_bucket_name}\n'
 
       if corpus_bucket_name:
-        job.environment_string += 'CORPUS_BUCKET = {corpus_bucket}\n'.format(
-            corpus_bucket=corpus_bucket_name)
+        job.environment_string += f'CORPUS_BUCKET = {corpus_bucket_name}\n'
 
       if quarantine_bucket_name:
         job.environment_string += (
-            'QUARANTINE_BUCKET = {quarantine_bucket}\n'.format(
-                quarantine_bucket=quarantine_bucket_name))
+            f'QUARANTINE_BUCKET = {quarantine_bucket_name}\n')
 
       if backup_bucket_name:
-        job.environment_string += 'BACKUP_BUCKET = {backup_bucket}\n'.format(
-            backup_bucket=backup_bucket_name)
+        job.environment_string += f'BACKUP_BUCKET = {backup_bucket_name}\n'
 
       if self._add_info_labels:
-        job.environment_string += (
-            'AUTOMATIC_LABELS = Proj-{project},Engine-{engine}\n'.format(
-                project=project,
-                engine=template.engine,
-            ))
+        automatic_labels = [f'Proj-{project}', f'Engine-{template.engine}']
+        labels = info.get('labels')
+        if labels and '*' in labels:
+          automatic_labels.extend(labels['*'])
+        automatic_labels = ','.join(automatic_labels)
+        job.environment_string += f'AUTOMATIC_LABELS = {automatic_labels}\n'
 
       help_url = info.get('help_url')
       if help_url:
-        job.environment_string += 'HELP_URL = %s\n' % help_url
+        job.environment_string += f'HELP_URL = {help_url}\n'
 
-      if template.experimental:
+      if (template.experimental or
+          (self._experimental_sanitizers and
+           template.memory_tool in self._experimental_sanitizers)):
         job.environment_string += 'EXPERIMENTAL = True\n'
 
       if template.minimize_job_override:
         minimize_job_override = template.minimize_job_override.job_name(
             project, self._config_suffix)
         job.environment_string += (
-            'MINIMIZE_JOB_OVERRIDE = %s\n' % minimize_job_override)
+            f'MINIMIZE_JOB_OVERRIDE = {minimize_job_override}\n')
 
       view_restrictions = info.get('view_restrictions')
       if view_restrictions:
         if view_restrictions in ALLOWED_VIEW_RESTRICTIONS:
           job.environment_string += (
-              'ISSUE_VIEW_RESTRICTIONS = %s\n' % view_restrictions)
+              f'ISSUE_VIEW_RESTRICTIONS = {view_restrictions}\n')
         else:
-          logs.log_error('Invalid view restriction setting %s for project %s.' %
-                         (view_restrictions, project))
+          logs.log_error(
+              f'Invalid view restriction setting {view_restrictions} '
+              f'for project {project}.')
+
+      if not has_maintainer(info):
+        job.environment_string += 'DISABLE_DISCLOSURE = True\n'
 
       selective_unpack = info.get('selective_unpack')
       if selective_unpack:
@@ -801,6 +829,9 @@ class ProjectSetup(object):
       main_repo = info.get('main_repo')
       if main_repo:
         job.environment_string += f'MAIN_REPO = {main_repo}\n'
+
+      file_github_issue = info.get('file_github_issue', False)
+      job.environment_string += f'FILE_GITHUB_ISSUE = {file_github_issue}\n'
 
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and
@@ -814,7 +845,7 @@ class ProjectSetup(object):
             memory_tool='dataflow',
             architecture=template.architecture)
         job.environment_string += (
-            'DATAFLOW_BUILD_BUCKET_PATH = %s\n' % dataflow_build_bucket_path)
+            f'DATAFLOW_BUILD_BUCKET_PATH = {dataflow_build_bucket_path}\n')
 
       if self._additional_vars:
         additional_vars = {}
@@ -825,9 +856,9 @@ class ProjectSetup(object):
         additional_vars.update(engine_sanitizer_vars)
 
         for key, value in sorted(six.iteritems(additional_vars)):
-          job.environment_string += ('{} = {}\n'.format(
-              key,
-              str(value).encode('unicode-escape').decode('utf-8')))
+          job.environment_string += (
+              f'{key} = {str(value).encode("unicode-escape").decode("utf-8")}\n'
+          )
 
       job.put()
 
@@ -874,7 +905,7 @@ class ProjectSetup(object):
     up."""
     job_names = []
     for project, info in projects:
-      logs.log('Syncing configs for %s.' % project)
+      logs.log(f'Syncing configs for {project}.')
 
       backup_bucket_name = None
       corpus_bucket_name = None
@@ -944,11 +975,24 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get honggfuzz Fuzzer entity.')
       return
 
+    gft = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'googlefuzztest').get()
+    if not gft:
+      logs.log_error('Failed to get googlefuzztest Fuzzer entity.')
+      return
+
     project_config = local_config.ProjectConfig()
     segregate_projects = project_config.get('segregate_projects')
     project_setup_configs = project_config.get('project_setup')
     project_names = set()
     job_names = set()
+
+    fuzzer_entities = {
+        'afl': afl.key,
+        'honggfuzz': honggfuzz.key,
+        'googlefuzztest': gft.key,
+        'libfuzzer': libfuzzer.key,
+    }
 
     for setup_config in project_setup_configs:
       bucket_config = setup_config.get('build_buckets')
@@ -963,19 +1007,18 @@ class Handler(base_handler.Handler):
           config_suffix=setup_config.get('job_suffix', ''),
           external_config=setup_config.get('external_config', ''),
           segregate_projects=segregate_projects,
+          experimental_sanitizers=setup_config.get('experimental_sanitizers',
+                                                   []),
           engine_build_buckets={
               'libfuzzer': bucket_config.get('libfuzzer'),
               'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
               'afl': bucket_config.get('afl'),
               'honggfuzz': bucket_config.get('honggfuzz'),
+              'googlefuzztest': bucket_config.get('googlefuzztest'),
               'none': bucket_config.get('no_engine'),
               'dataflow': bucket_config.get('dataflow'),
           },
-          fuzzer_entities={
-              'libfuzzer': libfuzzer,
-              'honggfuzz': honggfuzz,
-              'afl': afl,
-          },
+          fuzzer_entities=fuzzer_entities,
           add_info_labels=setup_config.get('add_info_labels', False),
           add_revision_mappings=setup_config.get('add_revision_mappings',
                                                  False),
@@ -996,5 +1039,6 @@ class Handler(base_handler.Handler):
       project_names.update(result.project_names)
       job_names.update(result.job_names)
 
-    cleanup_stale_projects([libfuzzer, afl, honggfuzz], project_names,
-                           job_names, segregate_projects)
+    cleanup_stale_projects(
+        list(fuzzer_entities.values()), project_names, job_names,
+        segregate_projects)

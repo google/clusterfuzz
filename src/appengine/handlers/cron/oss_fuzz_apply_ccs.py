@@ -15,10 +15,11 @@
 
 import logging
 
-from base import external_users
-from base import memoize
-from datastore import data_types
-from datastore import ndb_utils
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from handlers import base_handler
 from libs import handler
 from libs.issue_management import issue_filer
@@ -85,7 +86,9 @@ class Handler(base_handler.Handler):
 
       comment = None
 
-      if not issue.labels.has_with_pattern(reported_pattern):
+      if (not issue.labels.has_with_pattern(reported_pattern) and
+          not data_handler.get_value_from_job_definition(
+              testcase.job_type, 'DISABLE_DISCLOSURE', False)):
         # Add reported label and deadline comment if necessary.
         for result in issue_filer.apply_substitutions(policy, reported_label,
                                                       testcase):

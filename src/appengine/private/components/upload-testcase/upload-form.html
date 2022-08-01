@@ -191,8 +191,10 @@
       </div>
       <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
         <div class="warning">
-          <b>WARNING</b>: Please be mindful of what you upload, as ClusterFuzz doesn't support untrusted workloads.<br/>
-          Unless the PoC is very obviously harmless, please only upload them to the following sandboxed job types:<br/>
+          <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
+          Only upload testcases that you trust enough to run on your own
+          machine. Note that some jobs do not use the Chrome sandbox, the
+          following jobs do:<br>
           [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
         </div>
       </template>
@@ -338,10 +340,13 @@
         if (!job)
           return false;
 
-        let jobLower = job.toLowerCase();
-        return (jobLower.includes('libfuzzer') ||
-                jobLower.includes('afl') ||
-                jobLower.includes('honggfuzz'));
+        for (const key in this.fieldValues.targets) {
+          if (job.toLowerCase().includes(key.toLowerCase())) {
+            return true;
+          }
+        }
+
+        return false;
       }
 
       shouldShowFuzzers(job) {
@@ -356,15 +361,13 @@
           return [];
 
         let jobLower = job.toLowerCase();
-        if (jobLower.includes('libfuzzer')) {
-          return this.fieldValues.libfuzzerTargets;
-        } else if (jobLower.includes('afl')) {
-          return this.fieldValues.aflTargets;
-        } else if (jobLower.includes('honggfuzz')) {
-          return this.fieldValues.honggfuzzTargets;
-        } else {
-          return [];
+        for (const [engine, targets] of Object.entries(this.fieldValues.targets)) {
+          if (jobLower.includes(engine.toLowerCase())) {
+            return targets;
+          }
         }
+
+        return [];
       }
 
       isAndroid(job) {

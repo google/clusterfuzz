@@ -15,7 +15,7 @@
 
 from flask import request
 
-from datastore import data_handler
+from clusterfuzz._internal.datastore import data_handler
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler

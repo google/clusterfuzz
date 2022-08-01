@@ -61,7 +61,7 @@ class Handler(object):
 
   def _powershell(self, command, powershell_option='command'):
     """Wrap a command with powershell."""
-    # Seting TMP is necessary to solve the flakiness problem.
+    # Setting TMP is necessary to solve the flakiness problem.
     # See @tanin47's comment on:
     # https://github.com/PowerShell/PowerShell/issues/1746
     api.run(r'cmd /c set TMP=%USERPROFILE%\appdata\local\temp'

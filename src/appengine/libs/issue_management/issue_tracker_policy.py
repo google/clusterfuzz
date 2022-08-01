@@ -14,7 +14,7 @@
 
 from collections import namedtuple
 
-from config import local_config
+from clusterfuzz._internal.config import local_config
 
 Status = namedtuple('Status',
                     ['assigned', 'duplicate', 'wontfix', 'fixed', 'verified'])
@@ -97,6 +97,16 @@ class IssueTrackerPolicy(object):
     """Get the component for unreproducible bugs, if it exists."""
     return self._data.get('unreproducible_component')
 
+  @property
+  def fallback_component(self):
+    """Get the component for fallback (when save fails) issues, if it exists."""
+    return self._data.get('fallback_component')
+
+  @property
+  def fallback_policy_message(self):
+    """Get the fallback policy message, if it exists."""
+    return self._data.get('fallback_policy_message')
+
   def get_new_issue_properties(self, is_security, is_crash):
     """Get the properties to apply to a new issue."""
     policy = NewIssuePolicy()
@@ -124,7 +134,7 @@ class IssueTrackerPolicy(object):
       policy.status = self._data['status'][issue_type['status']]
 
     if 'ccs' in issue_type:
-      policy.labels.extend(issue_type['ccs'])
+      policy.ccs.extend(issue_type['ccs'])
 
     labels = issue_type.get('labels')
     if labels:

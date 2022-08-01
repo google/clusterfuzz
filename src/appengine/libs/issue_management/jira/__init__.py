@@ -13,12 +13,14 @@
 # limitations under the License.
 """Jira issue tracker."""
 
-from libs.issue_management import issue_tracker
-from libs.issue_management.jira.issue_tracker_manager import (
-    IssueTrackerManager)
-from config import db_config
+import datetime
+from urllib.parse import urljoin
 
 from dateutil import parser
+
+from clusterfuzz._internal.config import db_config
+from libs.issue_management import issue_tracker
+from libs.issue_management.jira.issue_tracker_manager import IssueTrackerManager
 
 
 class Issue(issue_tracker.Issue):
@@ -41,6 +43,11 @@ class Issue(issue_tracker.Issue):
   @property
   def id(self):
     """The issue identifier."""
+    return int(self.jira_issue.id)
+
+  @property
+  def key(self):
+    """The issue key (e.g. FUZZ-123)."""
     return self.jira_issue.key
 
   @property
@@ -64,11 +71,12 @@ class Issue(issue_tracker.Issue):
   @property
   def is_open(self):
     """Whether the issue is open."""
-    return self.jira_issue.resolution not in ['Closed', 'Done', 'Resolved']
+    return self.jira_issue.fields.resolution is None
 
   @property
   def closed_time(self):
-    return parser.parse(self.jira_issue.fields.resolutiondate)
+    return datetime.datetime.fromtimestamp(
+        parser.parse(self.jira_issue.fields.resolutiondate).timestamp())
 
   @property
   def status(self):
@@ -112,9 +120,13 @@ class Issue(issue_tracker.Issue):
     """The issue component list."""
     return self._components
 
-  # FIXME: Add support for new_comment and notify arguments
+  # FIXME: Add support for notify arguments
   def save(self, new_comment=None, notify=True):  # pylint: disable=unused-argument
     """Save the issue."""
+    # add new comment to issue
+    if new_comment:
+      self.itm.client.add_comment(self.jira_issue, new_comment)
+
     for added in self._components.added:
       self.components.add(added)
     for removed in self._components.removed:
@@ -135,9 +147,11 @@ class Issue(issue_tracker.Issue):
 
     self.itm.save(self)
 
+  @property
   def actions(self):
-    pass
+    return ()
 
+  @property
   def merged_into(self):
     pass
 
@@ -166,7 +180,7 @@ class IssueTracker(issue_tracker.IssueTracker):
   def find_issues(self, keywords=None, only_open=False):
     """Find issues."""
     search_text = 'project = {project_name}' + _get_search_text(keywords)
-    search_text.format(project_name=self._itm.project_name)
+    search_text = search_text.format(project_name=self._itm.project_name)
     if only_open:
       search_text += ' AND resolution = Unresolved'
     issues = self._itm.get_issues(search_text)
@@ -174,13 +188,21 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
+    issue = self.get_issue(issue_id)
+    if not issue:
+      return None
+
     config = db_config.get()
-    url = config.jira_url + '/browse/' + str(issue_id)
+    url = urljoin(config.jira_url, f'/browse/{str(issue.key)}')
     return url
 
-  # FIXME: Add support for keywords and only_open arguments
-  def find_issues_url(self, keywords=None, only_open=None):  # pylint: disable=unused-argument
-    pass
+  def find_issues_url(self, keywords=None, only_open=None):
+    search_text = 'project = {project_name}' + _get_search_text(keywords)
+    search_text = search_text.format(project_name=self._itm.project_name)
+    if only_open:
+      search_text += ' AND resolution = Unresolved'
+    config = db_config.get()
+    return urljoin(config.jira_url, f'/issues/?jql={search_text}')
 
 
 def _get_issue_tracker_manager_for_project(project_name):
@@ -203,8 +225,16 @@ def get_issue_tracker(project_name, config):  # pylint: disable=unused-argument
 
 def _get_search_text(keywords):
   """Get search text."""
+  jira_special_characters = '+-&|!(){}[]^~*?\\:'
   search_text = ''
   for keyword in keywords:
-    search_text += ' AND text ~ "%s"' % keyword
+    # Replace special characters with whitespace as they are not allowed and
+    # can't be searched for.
+    stripped_keyword = keyword
+    for special_character in jira_special_characters:
+      stripped_keyword = stripped_keyword.replace(special_character, ' ')
+    # coalesce multiple spaces into one.
+    stripped_keyword = ' '.join(stripped_keyword.split())
+    search_text += f' AND text ~ "{stripped_keyword}"'
 
   return search_text

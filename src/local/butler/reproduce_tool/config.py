@@ -15,7 +15,7 @@
 
 from urllib import parse
 
-from base import json_utils
+from clusterfuzz._internal.base import json_utils
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import http_utils
 

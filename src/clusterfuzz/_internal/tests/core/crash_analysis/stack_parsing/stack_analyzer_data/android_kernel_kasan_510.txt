@@ -1,0 +1,613 @@
+==================================================================
+BUG: KASAN: use-after-free in f2fs_register_inmem_page+0x208/0x390
+Write of size 8 at addr ffffffc05b5c4d28 by task bgExecutor #3/8262
+
+CPU: 4 PID: 8262 Comm: bgExecutor #3 Tainted: G           O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000d321dc19>] print_address_description+0x80/0x2d8
+[<000000004a825fc4>] kasan_report_error+0x1e8/0x204
+[<000000000aee7e49>] kasan_report+0xa4/0xa8
+[<00000000d8a509ac>] __asan_store8+0x60/0x7c
+[<00000000cdab1de8>] f2fs_register_inmem_page+0x208/0x390
+[<00000000743e9cdb>] f2fs_set_data_page_dirty+0x110/0x2bc
+[<00000000c8eff0d0>] set_page_dirty+0xc8/0x14c
+[<00000000ff9790d2>] f2fs_write_end+0xc8/0x530
+[<000000008976da33>] generic_perform_write+0x238/0x360
+[<00000000e4e43698>] __generic_file_write_iter+0x12c/0x258
+[<000000006f9eabb8>] f2fs_file_write_iter+0x23c/0x6d0
+[<00000000fade31a1>] __vfs_write+0x270/0x324
+[<000000000b0d00bb>] vfs_write+0x118/0x248
+[<000000007b4ba906>] SyS_pwrite64+0x104/0x15c
+[<000000005305407e>] __sys_trace_return+0x0/0x4
+
+Allocated by task 11872:
+ kasan_kmalloc+0xf0/0x1c8
+ kasan_slab_alloc+0x14/0x1c
+ kmem_cache_alloc+0x144/0x23c
+ f2fs_alloc_inode+0x2c/0x18c
+ new_inode_pseudo+0x3c/0x124
+ new_inode+0x2c/0xd4
+ f2fs_new_inode+0xa4/0xb98
+ f2fs_create+0xa8/0x42c
+ path_openat+0x9e8/0x1d74
+ do_filp_open+0x14c/0x290
+ do_sys_open+0x21c/0x3d8
+ SyS_openat+0x38/0x48
+ __sys_trace_return+0x0/0x4
+
+Freed by task 50:
+ kasan_slab_free+0xc4/0x1ac
+ kmem_cache_free+0x74/0x5b8
+ f2fs_i_callback+0x30/0x3c
+ rcu_nocb_kthread+0x73c/0x7cc
+ kthread+0x24c/0x25c
+ ret_from_fork+0x10/0x50
+
+The buggy address belongs to the object at ffffffc05b5c4a10
+ which belongs to the cache f2fs_inode_cache of size 1136
+The buggy address is located 792 bytes inside of
+ 1136-byte region [ffffffc05b5c4a10, ffffffc05b5c4e80)
+The buggy address belongs to the page:
+page:ffffffbf016d7000 count:1 mapcount:0 mapping:          (null) index:0x0 compound_mapcount: 0
+flags: 0x10200(slab|head)
+page dumped because: kasan: bad access detected
+
+Memory state around the buggy address:
+ ffffffc05b5c4c00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+type=1400 audit(1629153875.783:1707): avc: denied { ioctl } for comm="syz-executor" path="/proc/12254/map_files" dev="proc" ino=129927 ioctlcmd=0x9422 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:r:untrusted_app:s0:c512,c768 tclass=dir permissive=0
+ ffffffc05b5c4c80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+>ffffffc05b5c4d00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+   
+ ffffffc05b5c4d80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+ ffffffc05b5c4e00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+==================================================================
+Disabling lock debugging due to kernel taint
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 4 PID: 8262 Comm: bgExecutor #3 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+binder: 12247:12247 ioctl 40046210 7fdc511534 returned -22
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<0000000019c202a4>] panic+0x218/0x604
+[<000000004e54696e>] kasan_save_enable_multi_shot+0x0/0x28
+[<0000000017cd8204>] __asan_report_load1_noabort+0x0/0xa4
+type=1400 audit(1629153875.926:1708): avc: denied { search } for comm="syz-executor" name="irq" dev="proc" ino=4026531873 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:object_r:proc_irq:s0 tclass=dir permissive=0
+[<000000000aee7e49>] kasan_report+0xa4/0xa8
+[<00000000d8a509ac>] __asan_store8+0x60/0x7c
+[<00000000cdab1de8>] f2fs_register_inmem_page+0x208/0x390
+[<00000000743e9cdb>] f2fs_set_data_page_dirty+0x110/0x2bc
+[<00000000c8eff0d0>] set_page_dirty+0xc8/0x14c
+[<00000000ff9790d2>] f2fs_write_end+0xc8/0x530
+[<000000008976da33>] generic_perform_write+0x238/0x360
+[<00000000e4e43698>] __generic_file_write_iter+0x12c/0x258
+[<000000006f9eabb8>] f2fs_file_write_iter+0x23c/0x6d0
+[<00000000fade31a1>] __vfs_write+0x270/0x324
+[<000000000b0d00bb>] vfs_write+0x118/0x248
+[<000000007b4ba906>] SyS_pwrite64+0x104/0x15c
+[<000000005305407e>] __sys_trace_return+0x0/0x4
+SMP: stopping secondary CPUs
+CPU2: stopping
+CPU: 2 PID: 12247 Comm: gearhead:shared Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+task: 00000000c72ae366 task.stack: 000000003706def7
+PC is at __asan_load8+0x24/0x7c
+LR is at unwind_frame+0x1f0/0x334
+pc : [<ffffff900834ae14>] lr : [<ffffff900808fb04>] pstate: 20400145
+sp : ffffffc0256366f0
+x29: ffffffc0256366f0 x28: ffffffc025637880 
+x27: ffffffc0256378e0 x26: 0000000000000000 
+x25: ffffffc03afd2000 x24: ffffff8804ac6ce0 
+x23: ffffffc025636740 x22: ffffffc025636720 
+x21: ffffffc025636808 x20: ffffffc0256378d0 
+x19: ffffffc025636800 x18: 0000000000000003 
+x17: 0000000000000000 x16: 0000000000000000 
+x15: 0000000000000000 x14: f2f2f200f1f1f1f1 
+x13: dfffff9000000000 x12: 0000000000090df2 
+x11: ffffffc025636700 x10: 00000000001f0100 
+x9 : dfffff9000000000 x8 : 1ffffff804ac6ce4 
+x7 : fcfcfcfcfcfcfcfc x6 : ffffffc0256370c0 
+x5 : 0000000000000040 x4 : 000000000000000e 
+x3 : 0000000000000020 x2 : 0000000000000000 
+x1 : ffffffc025636720 x0 : ffffffc025636720 
+
+PC: 0xffffff900834add4:
+add4  d65f03c0 92400929 f100093f 54fffde8 72001d1f 54fffda0 17fffff5 a9bf7bfd
+adf4  910003fd 92c01008 d50320ff eb08001f 540001e9 d2dff209 d343fc08 f2fbffe9
+ae14  78696908 35000068 a8c17bfd d65f03c0 91001c0a d343fd4b 38e96969 34000149
+ae34  1200094a 6b09015f 540000eb 52800101 2a1f03e2 aa1e03e3 94000261 a8c17bfd
+
+LR: 0xffffff900808fac4:
+fac4  540008a3 eb08029f 54000868 910003e8 aa1503e0 91008116 91010117 9100429b
+fae4  940aece2 aa1403e0 aa1603e1 f900067b 3900131f 94000054 aa1603e0 940aecbc
+fb04  f94013f6 52801f1b aa1303e0 3900131b 940aecd6 91002280 aa1703e1 f9000276
+fb24  3900231f 94000048 aa1703e0 940aecb0 f94023f6 91004274 aa1403e0 3900231b
+
+SP: 0xffffffc0256366b0:
+66b0  0808fb04 ffffff90 256366f0 ffffffc0 0834ae14 ffffff90 20400145 00000000
+66d0  0808fc60 ffffff90 ffffffff ffffffff ffffffff 0000007f 0808fafc ffffff90
+66f0  25636780 ffffffc0 0808fb04 ffffff90 41b58ab3 00000000 0b0026c5 ffffff90
+6710  0808f914 ffffff90 d7988e20 ffffffc0 256379a0 ffffffc0 0b00be29 ffffff90
+CPU: 2 PID: 12247 Comm: gearhead:shared Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000c8b144b6>] ipi_cpu_stop+0x98/0xc8
+[<00000000e2a94597>] handle_IPI+0x290/0x4d0
+[<0000000058c50f22>] gic_handle_irq+0x140/0x1e4
+Exception stack(0xffffffc0256365c0 to 0xffffffc0256366f0)
+65c0: ffffffc025636720 ffffffc025636720 0000000000000000 0000000000000020
+65e0: 000000000000000e 0000000000000040 ffffffc0256370c0 fcfcfcfcfcfcfcfc
+6600: 1ffffff804ac6ce4 dfffff9000000000 00000000001f0100 ffffffc025636700
+6620: 0000000000090df2 dfffff9000000000 f2f2f200f1f1f1f1 0000000000000000
+6640: 0000000000000000 0000000000000000 0000000000000003 ffffffc025636800
+6660: ffffffc0256378d0 ffffffc025636808 ffffffc025636720 ffffffc025636740
+6680: ffffff8804ac6ce0 ffffffc03afd2000 0000000000000000 ffffffc0256378e0
+66a0: ffffffc025637880 ffffffc0256366f0 ffffff900808fb04 ffffffc0256366f0
+66c0: ffffff900834ae14 0000000020400145 ffffff900808fc60 ffffffffffffffff
+66e0: 0000007fffffffff ffffff900808fafc
+[<000000006981bd14>] el1_irq+0xb0/0x124
+[<00000000c7dc9357>] __asan_load8+0x24/0x7c
+[<00000000a9b192db>] unwind_frame+0x1f0/0x334
+[<00000000e116ea05>] __save_stack_trace+0x228/0x300
+[<000000009fe3765c>] save_stack_trace+0x24/0x30
+[<00000000873f4468>] kasan_kmalloc+0xf0/0x1c8
+[<00000000625679ee>] kasan_slab_alloc+0x14/0x1c
+[<0000000077f64251>] kmem_cache_alloc+0x144/0x23c
+[<000000006eb00aa0>] alloc_request_struct+0x24/0x30
+[<00000000c34afb68>] mempool_alloc+0xc4/0x370
+[<00000000f3ff92e3>] __get_request+0x4c4/0xca4
+[<0000000037248ad9>] get_request+0x21c/0x684
+[<0000000082503c01>] blk_queue_bio+0x164/0x834
+[<000000006fec927c>] generic_make_request+0x1cc/0x490
+[<00000000fe1a1584>] submit_bio+0x290/0x41c
+[<00000000031ba67b>] ext4_submit_bio_read+0xac/0x388
+[<000000000b249c08>] ext4_mpage_readpages+0xc6c/0xcfc
+[<00000000500ca24c>] ext4_readpages+0x78/0x88
+[<000000009d156618>] __do_page_cache_readahead+0x294/0x464
+[<00000000d78234c3>] filemap_fault+0x44c/0xa04
+[<00000000d7dc669e>] ext4_filemap_fault+0x4c/0x6c
+[<00000000dd80de34>] __do_fault+0x21c/0x334
+[<00000000ca851df7>] handle_pte_fault+0x1020/0x13f0
+[<00000000563a8fc4>] handle_mm_fault+0x1f4/0x30c
+[<000000007e18eb52>] do_page_fault+0x2f8/0x534
+[<0000000010af98ad>] do_translation_fault+0x64/0xfc
+[<0000000047a3fc3d>] do_mem_abort+0xcc/0x1c4
+Exception stack(0xffffffc025637e70 to 0xffffffc025637fa0)
+7e60:                                   ffffffc03afd2000 000000000000003e
+7e80: 0000007a50cd9f48 0000000092000006 0000000000000024 0000000020000000
+7ea0: 0000007d66d23fe8 ffffffffffffffff 00000030f29cd000 0000000000000800
+7ec0: 0000000000000000 0000007fdc510c40 0000000000cac7a0 0000007fdc510c80
+7ee0: 0000000000000000 0000007b1a6481d6 746375646f72702f 70612d766972702f
+7f00: 0000007fdc510c80 0000007a50cd9f44 000000000070d094 0000000000000000
+7f20: 0000000000cac7a0 6c6975626572506c d00bc21c61657223 7e46869f4ee71ede
+7f40: 0000007d66d56340 0000007d66d23f50 0000007d81d86000 0000007fdc510c28
+7f60: 0000007fdc510c70 0000007d8110b000 0000000000000001 0000007aea687ca8
+7f80: 0000000000000000 0000007d66cf75ad 0000007d66cf5eab 0000007d8110b000
+[<0000000052a1bdee>] el0_da+0x20/0x24
+CPU1: stopping
+CPU: 1 PID: 12274 Comm: syz-executor Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+task: 000000001b8f992d task.stack: 00000000837d2b86
+PC is at 0x40ed44
+LR is at 0x3d
+pc : [<000000000040ed44>] lr : [<000000000000003d>] pstate: 20000000
+sp : 0000007ff6e90b10
+x29: 0000007ff6e90b10 x28: 0000000000000001 
+x27: 0000007ff6e90d78 x26: 0000000000000080 
+x25: 0000000000000062 x24: 0000007892d06000 
+x23: 0000001b2e323b9c x22: 0000000000000001 
+x21: 0000007892d06008 x20: 0000001b2e323bb0 
+x19: 0000000000640000 x18: 0000000000000000 
+x17: 0000000027d4eb2d x16: 0000000000000100 
+x15: 000000000003fe78 x14: 0000001b2e323fb8 
+x13: 00000000ecc570fd x12: 000000000003478d 
+x11: 00000000ecc570f9 x10: 0000000000640b60 
+x9 : 00000000e498cac9 x8 : ffffff90ecc570f9 
+x7 : 000000000000055e x6 : 00000000d3d1255e 
+x5 : 00000000ecc570f9 x4 : 00000000085db250 
+x3 : 0000001b2f320000 x2 : 0000001b2e320000 
+x1 : 0000001b2e323bac x0 : 00000000006401d0 
+CPU: 1 PID: 12274 Comm: syz-executor Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000c8b144b6>] ipi_cpu_stop+0x98/0xc8
+[<00000000e2a94597>] handle_IPI+0x290/0x4d0
+[<0000000058c50f22>] gic_handle_irq+0x140/0x1e4
+Exception stack(0xffffffc018517ec0 to 0xffffffc018517ff0)
+7ec0: 00000000006401d0 0000001b2e323bac 0000001b2e320000 0000001b2f320000
+7ee0: 00000000085db250 00000000ecc570f9 00000000d3d1255e 000000000000055e
+7f00: ffffff90ecc570f9 00000000e498cac9 0000000000640b60 00000000ecc570f9
+7f20: 000000000003478d 00000000ecc570fd 0000001b2e323fb8 000000000003fe78
+7f40: 0000000000000100 0000000027d4eb2d 0000000000000000 0000000000640000
+7f60: 0000001b2e323bb0 0000007892d06008 0000000000000001 0000001b2e323b9c
+7f80: 0000007892d06000 0000000000000062 0000000000000080 0000007ff6e90d78
+7fa0: 0000000000000001 0000007ff6e90b10 000000000000003d 0000007ff6e90b10
+7fc0: 000000000040ed44 0000000020000000 0000000000640154 ffffffffffffffff
+7fe0: 0000000000000000 0000000000000000
+[<00000000ab457a4f>] el0_irq_naked+0x54/0x64
+CPU0: stopping
+CPU: 0 PID: 0 Comm: swapper/0 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+task: 00000000f40d207f task.stack: 00000000b30f925d
+PC is at lpm_cpuidle_enter+0x330/0x580
+LR is at lpm_cpuidle_enter+0x310/0x580
+pc : [<ffffff90093c0cbc>] lr : [<ffffff90093c0c9c>] pstate: 80c00145
+sp : ffffff900b807d60
+x29: ffffff900b807d80 x28: 00000083dc616090 
+x27: 0000000000000001 x26: ffffffc0d1634658 
+x25: ffffff900b828600 x24: ffffffc0d16343f8 
+x23: ffffff900a026a48 x22: ffffff900b6cde10 
+x21: ffffffc0d172d518 x20: ffffffc0d172dcc8 
+x19: 0000000000000000 x18: f8f8f8f8f2f2f2f2 
+x17: f2f8f8f8f2f2f2f8 x16: f2f2f2f2f8f8f8f8 
+x15: f8f8f8f8f8f8f2f2 x14: fffffffffffffda7 
+x13: 00000000000283e4 x12: 0000000000000485 
+x11: 0000000000000003 x10: 00000000001f0100 
+x9 : 0000000000000000 x8 : ffffff900b828600 
+x7 : 0000000000000000 x6 : ffffffc0682b7050 
+x5 : ffffffc0682b6ef0 x4 : 00000083dc616090 
+x3 : 0000000000000001 x2 : 0000000000000001 
+x1 : 00000000000001c0 [  567.460320] c4   8262 SMP: failed to stop secondary CPUs 0-7
+x0 : ffffffc0d172dcc8 
+
+PC: 0xffffff90093c0c7c:
+0c7c  91210100 2a1f03e1 97b7bdc2 f10f9c1f 540000ac 97b962cb 14000009 97b962c9
+0c9c  14000007 97b962c7 aa1403e0 97be2852 f9400288 91210100 97b7bc7e d50342ff
+0cbc  2a1303e0 a9474ff4 a94657f6 a9455ff8 a94467fa a9436ffc a9427bfd 910203ff
+0cdc  d65f03c0 90011809 91006129 d538d088 8b090119 aa1903e0 97be27ff b940033b
+
+LR: 0xffffff90093c0c5c:
+0c5c  97b7bc94 14000002 97b962d6 911ec2b4 aa1403e0 97be2860 f943daa8 b4000108
+0c7c  91210100 2a1f03e1 97b7bdc2 f10f9c1f 540000ac 97b962cb 14000009 97b962c9
+0c9c  14000007 97b962c7 aa1403e0 97be2852 f9400288 91210100 97b7bc7e d50342ff
+0cbc  2a1303e0 a9474ff4 a94657f6 a9455ff8 a94467fa a9436ffc a9427bfd 910203ff
+
+SP: 0xffffff900b807d20:
+7d20  093c0c9c ffffff90 0b807d60 ffffff90 093c0cbc ffffff90 80c00145 00000000
+7d40  0b6cde10 ffffff90 d172d518 ffffffc0 ffffffff ffffffff 093c0c74 ffffff90
+7d60  0b807d80 ffffff90 081cbfe4 ffffff90 081cc040 ffffff90 0b6cddc8 ffffff90
+7d80  0b807df0 ffffff90 093b4978 ffffff90 0c39e000 ffffff90 00000000 00000000
+CPU: 0 PID: 0 Comm: swapper/0 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000c8b144b6>] ipi_cpu_stop+0x98/0xc8
+[<00000000e2a94597>] handle_IPI+0x290/0x4d0
+[<0000000058c50f22>] gic_handle_irq+0x140/0x1e4
+Exception stack(0xffffff900b807c30 to 0xffffff900b807d60)
+7c20:                                   ffffffc0d172dcc8 00000000000001c0
+7c40: 0000000000000001 0000000000000001 00000083dc616090 ffffffc0682b6ef0
+7c60: ffffffc0682b7050 0000000000000000 ffffff900b828600 0000000000000000
+7c80: 00000000001f0100 0000000000000003 0000000000000485 00000000000283e4
+7ca0: fffffffffffffda7 f8f8f8f8f8f8f2f2 f2f2f2f2f8f8f8f8 f2f8f8f8f2f2f2f8
+7cc0: f8f8f8f8f2f2f2f2 0000000000000000 ffffffc0d172dcc8 ffffffc0d172d518
+7ce0: ffffff900b6cde10 ffffff900a026a48 ffffffc0d16343f8 ffffff900b828600
+7d00: ffffffc0d1634658 0000000000000001 00000083dc616090 ffffff900b807d80
+7d20: ffffff90093c0c9c ffffff900b807d60 ffffff90093c0cbc 0000000080c00145
+7d40: ffffff900b6cde10 ffffffc0d172d518 ffffffffffffffff ffffff90093c0c74
+[<000000006981bd14>] el1_irq+0xb0/0x124
+[<0000000092107bf1>] lpm_cpuidle_enter+0x330/0x580
+[<00000000bb34446a>] cpuidle_enter_state+0x1e4/0x588
+[<000000002ab0962d>] cpuidle_enter+0x30/0x40
+[<00000000b3401c8f>] cpu_idle_loop+0x1a8/0x250
+[<000000002f7add36>] cpu_idle_loop+0x0/0x250
+[<000000001b80b1eb>] rest_init+0x90/0x9c
+[<0000000051b39db7>] start_kernel+0x514/0x5c0
+[<000000008a562f90>] __primary_switched+0x6c/0x70
+CPU5: stopping
+CPU: 5 PID: 12250 Comm: Db-scheduler_ma Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+task: 00000000d19c2c69 task.stack: 00000000aebc18be
+PC is at _raw_spin_lock+0x4c/0x64
+LR is at _raw_spin_lock+0x1c/0x64
+pc : [<ffffff9009e4d7e0>] lr : [<ffffff9009e4d7b0>] pstate: 20400145
+sp : ffffffc001d778d0
+x29: ffffffc001d778d0 x28: ffffffc08b0379a8 
+x27: ffffffc0c65c8000 x26: ffffffc08b0379a8 
+x25: ffffffc08b0379b0 x24: ffffffc0a05236c8 
+x23: ffffffc0c65c836c x22: ffffffc08b0379c0 
+x21: ffffffc08b037680 x20: ffffffc0804a7000 
+x19: ffffffc0c65c836c x18: f2f8f8f8f8f8f2f2 
+x17: 0000000000000000 x16: 0000000000000000 
+x15: 0000000000000000 x14: ffffff90080821d4 
+x13: 000000000548af54 x12: ffffffffffffffff 
+x11: 0000000000000040 x10: 0000000000001b62 
+x9 : 0000000000000001 x8 : 000000001b631b62 
+x7 : ffffffffffffffff x6 : 0000000000000000 
+x5 : ffffffbf02743680 x4 : 5c42080890ffffff 
+x3 : 000000000000005c x2 : 0000000000000000 
+x1 : ffffffc04da222a8 x0 : ffffffc0804a7010 
+
+PC: 0xffffff9009e4d7a0:
+d7a0  aa0003f3 d5384114 91004280 9793f551 b9401288 11000508 b9001288 f9800271
+d7c0  885ffe68 11404109 880a7e69 35ffffaa 4ac84109 340000c9 d50320bf d503205f
+d7e0  485ffe6a 4a484149 35ffffa9 a9414ff4 a8c27bfd d65f03c0 a9bd7bfd f9000bf5
+d800  a9024ff4 910003fd d53b4234 d50342df aa0003f3 d5384115 910042a0 9793f535
+
+LR: 0xffffff9009e4d770:
+d770  aa1e03e0 978a1a9b 2a1f03e0 14000002 52800020 a9424ff4 f9400bf5 a8c37bfd
+d790  d65f03c0 a9be7bfd a9014ff4 910003fd aa0003f3 d5384114 91004280 9793f551
+d7b0  b9401288 11000508 b9001288 f9800271 885ffe68 11404109 880a7e69 35ffffaa
+d7d0  4ac84109 340000c9 d50320bf d503205f 485ffe6a 4a484149 35ffffa9 a9414ff4
+
+SP: 0xffffffc001d77890:
+7890  09e4d7b0 ffffff90 01d778d0 ffffffc0 09e4d7e0 ffffff90 20400145 00000000
+78b0  01d778f0 ffffffc0 0860dd38 ffffff90 ffffffff 0000007f 09e4d7b0 ffffff90
+78d0  01d778f0 ffffffc0 0860de10 ffffff90 8b0376a8 ffffffc0 02743680 ffffffbf
+78f0  01d77950 ffffffc0 085f5f50 ffffff90 00001000 00000000 00001000 00000000
+CPU: 5 PID: 12250 Comm: Db-scheduler_ma Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000c8b144b6>] ipi_cpu_stop+0x98/0xc8
+[<00000000e2a94597>] handle_IPI+0x290/0x4d0
+[<0000000058c50f22>] gic_handle_irq+0x140/0x1e4
+Exception stack(0xffffffc001d777a0 to 0xffffffc001d778d0)
+77a0: ffffffc0804a7010 ffffffc04da222a8 0000000000000000 000000000000005c
+77c0: 5c42080890ffffff ffffffbf02743680 0000000000000000 ffffffffffffffff
+77e0: 000000001b631b62 0000000000000001 0000000000001b62 0000000000000040
+7800: ffffffffffffffff 000000000548af54 ffffff90080821d4 0000000000000000
+7820: 0000000000000000 0000000000000000 f2f8f8f8f8f8f2f2 ffffffc0c65c836c
+7840: ffffffc0804a7000 ffffffc08b037680 ffffffc08b0379c0 ffffffc0c65c836c
+7860: ffffffc0a05236c8 ffffffc08b0379b0 ffffffc08b0379a8 ffffffc0c65c8000
+7880: ffffffc08b0379a8 ffffffc001d778d0 ffffff9009e4d7b0 ffffffc001d778d0
+78a0: ffffff9009e4d7e0 0000000020400145 ffffffc001d778f0 ffffff900860dd38
+78c0: 0000007fffffffff ffffff9009e4d7b0
+[<000000006981bd14>] el1_irq+0xb0/0x124
+[<00000000482af46c>] _raw_spin_lock+0x4c/0x64
+[<0000000027958bb8>] f2fs_register_inmem_page+0x1a4/0x390
+[<00000000743e9cdb>] f2fs_set_data_page_dirty+0x110/0x2bc
+[<00000000c8eff0d0>] set_page_dirty+0xc8/0x14c
+[<00000000ff9790d2>] f2fs_write_end+0xc8/0x530
+[<000000008976da33>] generic_perform_write+0x238/0x360
+[<00000000e4e43698>] __generic_file_write_iter+0x12c/0x258
+[<000000006f9eabb8>] f2fs_file_write_iter+0x23c/0x6d0
+[<00000000fade31a1>] __vfs_write+0x270/0x324
+[<000000000b0d00bb>] vfs_write+0x118/0x248
+[<000000007b4ba906>] SyS_pwrite64+0x104/0x15c
+[<000000005305407e>] __sys_trace_return+0x0/0x4
+CPU6: stopping
+CPU: 6 PID: 1347 Comm: kworker/u16:16 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Workqueue: devfreq_wq devfreq_monitor
+task: 000000002f13d2d2 task.stack: 00000000d1cd3f31
+PC is at smp_call_function_single+0x1b8/0x300
+LR is at smp_call_function_single+0x1c4/0x300
+pc : [<ffffff90081d8564>] lr : [<ffffff90081d8570>] pstate: 80c00145
+sp : ffffffc0bdb57600
+x29: ffffffc0bdb57680 x28: 0000000000000006 
+x27: ffffff8817b6aec0 x26: ffffff900b811e48 
+x25: ffffffc0bdb57620 x24: 0000000000000001 
+x23: 0000000000000003 x22: ffffffc0bdb57638 
+x21: 0000000000000000 x20: ffffffc0c7886010 
+x19: ffffffc0c7886000 x18: f8f8f8f8f2f2f2f2 
+x17: f2f8f8f8f2f2f2f8 x16: f2f2f2f2f8f8f8f8 
+x15: f8f8f8f8f8f8f2f2 x14: f3f3f3f8f1f1f1f1 
+x13: f3f3f8f8f1f1f1f1 x12: dfffff9000000000 
+x11: 0000000000000005 x10: 00000000001f0100 
+x9 : 0000000000000000 x8 : 0000000000000003 
+x7 : 0000000000000000 x6 : ffffffc0bdb57640 
+x5 : ffffffc00a66eb30 x4 : 0000000000000008 
+x3 : ffffffc0bdb57700 x2 : 0000000000000005 
+x1 : 0000000000000008 x0 : 0000000000000000 
+
+PC: 0xffffff90081d8524:
+8524  aa1503e3 94000061 910003e8 9100e116 88dffed7 2a0003f5 37000077 9401049f
+8544  14000034 2a1703e8 d50320bf d503205f 885f7ec9 4a080129 35000049 d503205f
+8564  88dffed7 36000077 94010494 17fffff6 94010492 14000027 94010490 52800028
+8584  391b8b48 d4210000 35fffc78 9001a7c9 91180129 d538d088 8b090118 91006319
+
+LR: 0xffffff90081d8530:
+8530  9100e116 88dffed7 2a0003f5 37000077 9401049f 14000034 2a1703e8 d50320bf
+8550  d503205f 885f7ec9 4a080129 35000049 d503205f 88dffed7 36000077 94010494
+8570  17fffff6 94010492 14000027 94010490 52800028 391b8b48 d4210000 35fffc78
+8590  9001a7c9 91180129 d538d088 8b090118 91006319 88dfff3a 3700007a 94010484
+
+SP: 0xffffffc0bdb575c0:
+75c0  081d8570 ffffff90 bdb57600 ffffffc0 081d8564 ffffff90 80c00145 00000000
+75e0  082a33c4 ffffff90 bdb57700 ffffffc0 ffffffff ffffffff c7886000 ffffffc0
+7600  41b58ab3 00000000 0b011fda ffffff90 081d83ac ffffff90 0b9fdd15 ffffff90
+7620  00000000 00000000 082a33c4 ffffff90 bdb57700 ffffffc0 00000003 00000000
+CPU: 6 PID: 1347 Comm: kworker/u16:16 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Workqueue: devfreq_wq devfreq_monitor
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000c8b144b6>] ipi_cpu_stop+0x98/0xc8
+[<00000000e2a94597>] handle_IPI+0x290/0x4d0
+[<0000000058c50f22>] gic_handle_irq+0x140/0x1e4
+Exception stack(0xffffffc0bdb574d0 to 0xffffffc0bdb57600)
+74c0:                                   0000000000000000 0000000000000008
+74e0: 0000000000000005 ffffffc0bdb57700 0000000000000008 ffffffc00a66eb30
+7500: ffffffc0bdb57640 0000000000000000 0000000000000003 0000000000000000
+7520: 00000000001f0100 0000000000000005 dfffff9000000000 f3f3f8f8f1f1f1f1
+7540: f3f3f3f8f1f1f1f1 f8f8f8f8f8f8f2f2 f2f2f2f2f8f8f8f8 f2f8f8f8f2f2f2f8
+7560: f8f8f8f8f2f2f2f2 ffffffc0c7886000 ffffffc0c7886010 0000000000000000
+7580: ffffffc0bdb57638 0000000000000003 0000000000000001 ffffffc0bdb57620
+75a0: ffffff900b811e48 ffffff8817b6aec0 0000000000000006 ffffffc0bdb57680
+75c0: ffffff90081d8570 ffffffc0bdb57600 ffffff90081d8564 0000000080c00145
+75e0: ffffff90082a33c4 ffffffc0bdb57700 ffffffffffffffff ffffffc0c7886000
+[<000000006981bd14>] el1_irq+0xb0/0x124
+[<0000000017de68e2>] smp_call_function_single+0x1b8/0x300
+[<00000000c84e5654>] perf_event_read+0x45c/0x4b8
+[<0000000072161450>] perf_event_read_value+0x58/0x224
+[<00000000bff50a91>] get_cnt+0x20c/0x4a8
+[<000000006deffe8f>] devfreq_memlat_get_freq+0x5c/0x6b0
+[<00000000dbbf212b>] update_devfreq+0xec/0x590
+[<00000000896e552b>] devfreq_monitor+0x30/0xa8
+[<00000000c84c48bc>] process_one_work+0x34c/0x990
+[<00000000923b0ad9>] worker_thread+0x520/0xa7c
+[<00000000f8122a1d>] kthread+0x24c/0x25c
+[<00000000f4d28968>] ret_from_fork+0x10/0x50
+CPU3: stopping
+CPU: 3 PID: 0 Comm: swapper/3 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+task: 0000000037957f11 task.stack: 0000000035140d7d
+set_restart_msg: set restart msg = `KP: panic_on_warn set ...
+'
+ipa ipa3_active_clients_panic_notifier:259 
+---- Active Clients Table ----
+IPA_CLIENT_APPS_WAN_CONS                 3   ENDPOINT
+TRANSPORT_RESOURCE                       -3  SPECIAL
+TAG_PROCESS                              -18 SPECIAL
+
+Total active clients count: 0
+
+Kernel Offset: disabled
+Memory Limit: none
+PC is at lpm_cpuidle_enter+0x330/0x580
+LR is at lpm_cpuidle_enter+0x310/0x580
+pc : [<ffffff90093c0cbc>] lr : [<ffffff90093c0c9c>] pstate: 80c00145
+sp : ffffffc0d825fe00
+x29: ffffffc0d825fe20 [  569.[  569.038603358]635] x28 :x 208: 0000000000
+x27: 0000000000000001 x26: ffffffc0d1634658 
+x25: ffffffc0d8249000 x24: ffffffc0d16343f8 
+x23: ffffff900a026a60 x22: ffffff900b6cde10 
+x21: ffffffc0d172d518 x20: ffffffc0d172dcc8 
+x19: 0000000000000000 x18: f8f8f8f8f2f2f2f2 
+x17: f2f8f8f8f2f2f2f8 x16: f2f2f2f2f8f8f8f8 
+x15: f8f8f8f8f8f8f2f2 x14: 0000000200000002 
+x13: 000000000004ca3c x12: 0000000000000bd8 
+x11: 0000000000000003 x10: 00000000001f0100 
+x9 : 0000000000000000 x8 : ffffffc0d8249000 
+x7 : 0000000000000000 x6 : ffffffc05a58f050 
+x5 : ffffffc05a58eef0 x4 : 00000083dc617892 
+x3 : 0000000000000001 x2 : 0000000000000000 
+x1 : 00000000000001c0 x0 : ffffffc0d172dcc8 
+
+PC: 0xffffff90093c0c7c:
+0c7c  91210100 2a1f03e1 97b7bdc2 f10f9c1f 540000ac 97b962cb 14000009 97b962c9
+0c9c  14000007 97b962c7 aa1403e0 97be2852 f9400288 91210100 97b7bc7e d50342ff
+0cbc  2a1303e0 a9474ff4 a94657f6 a9455ff8 a94467fa a9436ffc a9427bfd 910203ff
+0cdc  d65f03c0 90011809 91006129 d538d088 8b090119 aa1903e0 97be27ff b940033b
+
+LR: 0xffffff90093c0c5c:
+0c5c  97b7bc94 14000002 97b962d6 911ec2b4 aa1403e0 97be2860 f943daa8 b4000108
+0c7c  91210100 2a1f03e1 97b7bdc2 f10f9c1f 540000ac 97b962cb 14000009 97b962c9
+0c9c  14000007 97b962c7 aa1403e0 97be2852 f9400288 91210100 97b7bc7e d50342ff
+0cbc  2a1303e0 a9474ff4 a94657f6 a9455ff8 a94467fa a9436ffc a9427bfd 910203ff
+
+SP: 0xffffffc0d825fdc0:
+fdc0  093c0c9c ffffff90 d825fe00 ffffffc0 093c0cbc ffffff90 80c00145 00000000
+fde0  0b6cde10 ffffff90 d172d518 ffffffc0 ffffffff ffffffff 093c0c74 ffffff90
+fe00  d825fe20 ffffffc0 081cbfe4 ffffff90 081cc040 ffffff90 0b6cddc8 ffffff90
+fe20  d825fe90 ffffffc0 093b4978 ffffff90 0c39e000 ffffff90 00000000 00000000
+CPU: 3 PID: 0 Comm: swapper/3 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000c8b144b6>] ipi_cpu_stop+0x98/0xc8
+[<00000000e2a94597>] handle_IPI+0x290/0x4d0
+[<0000000058c50f22>] gic_handle_irq+0x140/0x1e4
+Exception stack(0xffffffc0d825fcd0 to 0xffffffc0d825fe00)
+fcc0:                                   ffffffc0d172dcc8 00000000000001c0
+fce0: 0000000000000000 0000000000000001 00000083dc617892 ffffffc05a58eef0
+fd00: ffffffc05a58f050 0000000000000000 ffffffc0d8249000 0000000000000000
+fd20: 00000000001f0100 0000000000000003 0000000000000bd8 000000000004ca3c
+fd40: 0000000200000002 f8f8f8f8f8f8f2f2 f2f2f2f2f8f8f8f8 f2f8f8f8f2f2f2f8
+fd60: f8f8f8f8f2f2f2f2 0000000000000000 ffffffc0d172dcc8 ffffffc0d172d518
+fd80: ffffff900b6cde10 ffffff900a026a60 ffffffc0d16343f8 ffffffc0d8249000
+fda0: ffffffc0d1634658 0000000000000001 00000083dc617892 ffffffc0d825fe20
+fdc0: ffffff90093c0c9c ffffffc0d825fe00 ffffff90093c0cbc 0000000080c00145
+fde0: ffffff900b6cde10 ffffffc0d172d518 ffffffffffffffff ffffff90093c0c74
+[<000000006981bd14>] el1_irq+0xb0/0x124
+[<0000000092107bf1>] lpm_cpuidle_enter+0x330/0x580
+[<00000000bb34446a>] cpuidle_enter_state+0x1e4/0x588
+[<000000002ab0962d>] cpuidle_enter+0x30/0x40
+[<00000000b3401c8f>] cpu_idle_loop+0x1a8/0x250
+[<000000002f7add36>] cpu_idle_loop+0x0/0x250
+[<000000000c22ca99>] secondary_start_kernel+0x2a4/0x2e4
+[<00000000bba7cb25>] 0xb1e501a8
+CPU7: stopping
+CPU: 7 PID: 0 Comm: swapper/7 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+task: 00000000d602b6bf task.stack: 00000000ea0d12bf
+PC is at lpm_cpuidle_enter+0x330/0x580
+LR is at lpm_cpuidle_enter+0x310/0x580
+pc : [<ffffff90093c0cbc>] lr : [<ffffff90093c0c9c>] pstate: 80c00145
+sp : ffffffc0d827fe00
+x29: ffffffc0d827fe20 x28: 00000083dc642081 
+x27: 0000000000000001 x26: ffffffc0d1634ad8 
+x25: ffffffc0d824d000 x24: ffffffc0d1634918 
+x23: ffffff900a026a80 x22: ffffff900b6cde10 
+x21: ffffffc0d172d518 x20: ffffffc0d172dcc8 
+x19: 0000000000000002 x18: f8f8f8f8f2f2f2f2 
+x17: 0000000000000000 x16: 0000000000000000 
+x15: 0000000000000000 x14: ffffffc0d824d000 
+x13: 00000030f2a4f000 x12: 000000000000006c 
+x11: 1ffffff2019e4477 x10: 00000000001f0100 
+x9 : 0000000000000000 x8 : ffffffc0d824d000 
+x7 : 0000000000000000 x6 : 000000000000003f 
+x5 : 0000000000000000 x4 : 0000000000000000 
+x3 : 00000000ffffffff x2 : 0000000000000000 
+x1 : 00000000000001c0 x0 : ffffffc0d172dcc8 
+
+PC: 0xffffff90093c0c7c:
+0c7c  91210100 2a1f03e1 97b7bdc2 f10f9c1f 540000ac 97b962cb 14000009 97b962c9
+0c9c  14000007 97b962c7 aa1403e0 97be2852 f9400288 91210100 97b7bc7e d50342ff
+0cbc  2a1303e0 a9474ff4 a94657f6 a9455ff8 a94467fa a9436ffc a9427bfd 910203ff
+0cdc  d65f03c0 90011809 91006129 d538d088 8b090119 aa1903e0 97be27ff b940033b
+
+LR: 0xffffff90093c0c5c:
+0c5c  97b7bc94 14000002 97b962d6 911ec2b4 aa1403e0 97be2860 f943daa8 b4000108
+0c7c  91210100 2a1f03e1 97b7bdc2 f10f9c1f 540000ac 97b962cb 14000009 97b962c9
+0c9c  14000007 97b962c7 aa1403e0 97be2852 f9400288 91210100 97b7bc7e d50342ff
+0cbc  2a1303e0 a9474ff4 a94657f6 a9455ff8 a94467fa a9436ffc a9427bfd 910203ff
+
+SP: 0xffffffc0d827fdc0:
+fdc0  093c0c9c ffffff90 d827fe00 ffffffc0 093c0cbc ffffff90 80c00145 00000000
+fde0  0b6cde10 ffffff90 d172d518 ffffffc0 ffffffff ffffffff 093c0c74 ffffff90
+fe00  d827fe20 ffffffc0 081cbfe4 ffffff90 081cc040 ffffff90 0b6cddc8 ffffff90
+fe20  d827fe90 ffffffc0 093b4978 ffffff90 0c39e000 ffffff90 00000000 00000000
+CPU: 7 PID: 0 Comm: swapper/7 Tainted: G    B      O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000c8b144b6>] ipi_cpu_stop+0x98/0xc8
+[<00000000e2a94597>] handle_IPI+0x290/0x4d0
+[<0000000058c50f22>] gic_handle_irq+0x140/0x1e4
+Exception stack(0xffffffc0d827fcd0 to 0xffffffc0d827fe00)
+fcc0:                                   ffffffc0d172dcc8 00000000000001c0
+fce0: 0000000000000000 00000000ffffffff 0000000000000000 0000000000000000
+fd00: 000000000000003f 0000000000000000 ffffffc0d824d000 0000000000000000
+fd20: 00000000001f0100 1ffffff2019e4477 000000000000006c 00000030f2a4f000
+fd40: ffffffc0d824d000 0000000000000000 0000000000000000 0000000000000000
+fd60: f8f8f8f8f2f2f2f2 0000000000000002 ffffffc0d172dcc8 ffffffc0d172d518
+fd80: ffffff900b6cde10 ffffff900a026a80 ffffffc0d1634918 ffffffc0d824d000
+fda0: ffffffc0d1634ad8 0000000000000001 00000083dc642081 ffffffc0d827fe20
+fdc0: ffffff90093c0c9c ffffffc0d827fe00 ffffff90093c0cbc 0000000080c00145
+fde0: ffffff900b6cde10 ffffffc0d172d518 ffffffffffffffff ffffff90093c0c74
+[<000000006981bd14>] el1_irq+0xb0/0x124
+[<0000000092107bf1>] lpm_cpuidle_enter+0x330/0x580
+[<00000000bb34446a>] cpuidle_enter_state+0x1e4/0x588
+[<000000002ab0962d>] cpuidle_enter+0x30/0x40
+[<00000000b3401c8f>] cpu_idle_loop+0x1a8/0x250
+[<000000002f7add36>] cpu_idle_loop+0x0/0x250
+[<000000000c22ca99>] secondary_start_kernel+0x2a4/0x2e4
+[<00000000bba7cb25>] 0xb1e501a8
+SMP: stopping secondary CPUs
+SMP: failed to stop secondary CPUs 0-7
+Going down for restart now
+qcom,qpnp-power-on c440000.qcom,spmi:qcom,pm660l@2:qcom,power-on@800: PMIC@SID2: configuring PON for reset

@@ -14,20 +14,20 @@
 """Handler used for loading bigquery data."""
 
 import datetime
-import httplib2
 import random
 import time
 
 from googleapiclient.errors import HttpError
+import httplib2
 
-from base import utils
-from datastore import data_types
-from google_cloud_utils import big_query
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.metrics import fuzzer_stats
+from clusterfuzz._internal.metrics import fuzzer_stats_schema
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from metrics import fuzzer_stats
-from metrics import fuzzer_stats_schema
-from metrics import logs
 
 STATS_KINDS = [fuzzer_stats.JobRun, fuzzer_stats.TestcaseRun]
 
@@ -77,7 +77,7 @@ class Handler(base_handler.Handler):
 
     return self._execute_insert_request(dataset_insert)
 
-  def _create_table_if_needed(self, bigquery, dataset_id, table_id):
+  def _create_table_if_needed(self, bigquery, dataset_id, table_id, schema):
     """Create a new table if needed."""
     project_id = utils.get_application_id()
     table_body = {
@@ -90,6 +90,9 @@ class Handler(base_handler.Handler):
             'type': 'DAY',
         },
     }
+
+    if schema is not None:
+      table_body['schema'] = schema
 
     table_insert = bigquery.tables().insert(
         projectId=project_id, datasetId=dataset_id, body=table_body)
@@ -110,13 +113,15 @@ class Handler(base_handler.Handler):
     for kind in STATS_KINDS:
       kind_name = kind.__name__
       table_id = kind_name
-      if not self._create_table_if_needed(bigquery, dataset_id, table_id):
-        continue
 
       if kind == fuzzer_stats.TestcaseRun:
         schema = fuzzer_stats_schema.get(fuzzer)
       else:
         schema = kind.SCHEMA
+
+      if not self._create_table_if_needed(bigquery, dataset_id, table_id,
+                                          schema):
+        continue
 
       gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
       load = {

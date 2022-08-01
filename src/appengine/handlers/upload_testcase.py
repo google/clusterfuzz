@@ -22,15 +22,18 @@ import os
 from flask import request
 from google.cloud import ndb
 
-from base import external_users
-from base import memoize
-from base import tasks
-from base import utils
-from crash_analysis.stack_parsing import stack_analyzer
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import blobs
-from google_cloud_utils import storage
+from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.system import archive
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import form
@@ -39,8 +42,6 @@ from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
-from system import archive
-from system import environment
 
 MAX_RETRIES = 50
 RUN_FILE_PATTERNS = ['run', 'fuzz-', 'index.', 'crash.']
@@ -166,12 +167,10 @@ def filter_target_names(targets, engine):
 def filter_blackbox_fuzzers(fuzzers):
   """Filter out fuzzers such that only blackbox fuzzers are included."""
 
-  def is_greybox_fuzzer(name):
-    # TODO(ochang): Generalize this check.
-    return (name.startswith('libFuzzer') or name.startswith('afl') or
-            name.startswith('honggfuzz'))
+  def is_engine_fuzzer(name):
+    return any(name.startswith(engine) for engine in fuzzing.ENGINES)
 
-  return [f for f in fuzzers if not is_greybox_fuzzer(f)]
+  return [f for f in fuzzers if not is_engine_fuzzer(f)]
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
@@ -233,28 +232,18 @@ class Handler(base_handler.Handler):
     return self.render(
         'upload.html', {
             'fieldValues': {
-                'blackboxFuzzers':
-                    filter_blackbox_fuzzers(allowed_fuzzers),
-                'jobs':
-                    allowed_jobs,
-                'libfuzzerTargets':
-                    filter_target_names(allowed_fuzzers, 'libFuzzer'),
-                'aflTargets':
-                    filter_target_names(allowed_fuzzers, 'afl'),
-                'honggfuzzTargets':
-                    filter_target_names(allowed_fuzzers, 'honggfuzz'),
-                'isChromium':
-                    utils.is_chromium(),
-                'sandboxedJobs':
-                    data_types.INTERNAL_SANDBOXED_JOB_TYPES,
-                'csrfToken':
-                    form.generate_csrf_token(),
-                'isExternalUser':
-                    not is_privileged_or_domain_user,
-                'uploadInfo':
-                    gcs.prepare_blob_upload()._asdict(),
-                'hasIssueTracker':
-                    has_issue_tracker,
+                'blackboxFuzzers': filter_blackbox_fuzzers(allowed_fuzzers),
+                'jobs': allowed_jobs,
+                'targets': {
+                    engine: filter_target_names(allowed_fuzzers, engine)
+                    for engine in fuzzing.ENGINES
+                },
+                'isChromium': utils.is_chromium(),
+                'sandboxedJobs': data_types.INTERNAL_SANDBOXED_JOB_TYPES,
+                'csrfToken': form.generate_csrf_token(),
+                'isExternalUser': not is_privileged_or_domain_user,
+                'uploadInfo': gcs.prepare_blob_upload()._asdict(),
+                'hasIssueTracker': has_issue_tracker,
             },
             'params': params,
             'result': result
@@ -333,12 +322,10 @@ class UploadHandlerCommon(object):
 
     fuzzer_name = request.get('fuzzer')
     job_type_lowercase = job_type.lower()
-    if 'libfuzzer' in job_type_lowercase:
-      fuzzer_name = 'libFuzzer'
-    elif 'afl' in job_type_lowercase:
-      fuzzer_name = 'afl'
-    elif 'honggfuzz' in job_type_lowercase:
-      fuzzer_name = 'honggfuzz'
+
+    for engine in fuzzing.ENGINES:
+      if engine.lower() in job_type_lowercase:
+        fuzzer_name = engine
 
     is_engine_job = fuzzer_name and environment.is_engine_fuzzer_job(job_type)
     target_name = request.get('target')
@@ -462,10 +449,6 @@ class UploadHandlerCommon(object):
       if gestures:
         raise helpers.EarlyExitException(
             'You are not privileged to run arbitrary gestures.', 400)
-
-    # TODO(aarya): Remove once AFL is migrated to engine pipeline.
-    if target_name:
-      additional_arguments = '%TESTCASE%'
 
     if crash_revision and crash_revision.isdigit():
       crash_revision = int(crash_revision)

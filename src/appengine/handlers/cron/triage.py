@@ -17,21 +17,22 @@ import datetime
 import itertools
 import json
 
-from . import grouper
-
-from base import dates
-from base import errors
-from base import utils
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
+from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.crash_analysis import crash_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from metrics import logs
+
+from . import grouper
 
 UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
     'Out-of-memory', 'Stack-overflow', 'Timeout'
@@ -224,6 +225,17 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
               ignore_label=ignore_label))
       return True
 
+    # If this testcase is not reproducible, and a previous similar
+    # non-reproducible bug was previously filed, don't file it again to avoid
+    # spam.
+    if (testcase.one_time_crasher_flag and
+        similar_testcase.one_time_crasher_flag):
+      _add_triage_message(
+          testcase,
+          'Skipping filing unreproducible bug since one was already filed '
+          f'({similar_testcase.key.id()}).')
+      return True
+
     # If the issue is recently closed, wait certain time period to make sure
     # our fixed verification has completed.
     if (issue.closed_time and not dates.time_has_expired(
@@ -238,6 +250,33 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
   return False
 
 
+def _file_issue(testcase, issue_tracker):
+  """File an issue for the testcase."""
+  filed = False
+  file_exception = None
+
+  if crash_analyzer.is_experimental_crash(testcase.crash_type):
+    logs.log(f'Skipping bug filing for {testcase.key.id()} as it '
+             'has an experimental crash type.')
+    _add_triage_message(
+        testcase, 'Skipping filing as this is an experimental crash type.')
+    return False
+
+  try:
+    _, file_exception = issue_filer.file_issue(testcase, issue_tracker)
+    filed = True
+  except Exception as e:
+    file_exception = e
+
+  if file_exception:
+    logs.log_error(f'Failed to file issue for testcase {testcase.key.id()}.')
+    _add_triage_message(
+        testcase,
+        f'Failed to file issue due to exception: {str(file_exception)}')
+
+  return filed
+
+
 class Handler(base_handler.Handler):
   """Triage testcases."""
 
@@ -245,7 +284,9 @@ class Handler(base_handler.Handler):
   def get(self):
     """Handle a get request."""
     try:
+      logs.log('Grouping testcases.')
       grouper.group_testcases()
+      logs.log('Grouping done.')
     except:
       logs.log_error('Error occurred while grouping test cases.')
       return
@@ -301,8 +342,14 @@ class Handler(base_handler.Handler):
       # to account for that.
       # FIXME: In future, grouping might be dependent on regression range, so we
       # would have to add an additional wait time.
+      # TODO(ochang): Remove this after verifying that the `ran_grouper`
+      # metadata works well.
       if not testcase.group_id and not dates.time_has_expired(
           testcase.timestamp, hours=data_types.MIN_ELAPSED_TIME_SINCE_REPORT):
+        continue
+
+      if not testcase.get_metadata('ran_grouper'):
+        # Testcase should be considered by the grouper first before filing.
         continue
 
       # If this project does not have an associated issue tracker, we cannot
@@ -322,10 +369,7 @@ class Handler(base_handler.Handler):
       testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
       # File the bug first and then create filed bug metadata.
-      try:
-        issue_filer.file_issue(testcase, issue_tracker)
-      except Exception:
-        logs.log_error('Failed to file issue for testcase %d.' % testcase_id)
+      if not _file_issue(testcase, issue_tracker):
         continue
 
       _create_filed_bug_metadata(testcase)

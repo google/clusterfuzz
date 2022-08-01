@@ -30,15 +30,16 @@ from flask import Response
 from flask.views import MethodView
 from google.cloud import ndb
 import jinja2
+import jira
 
-from base import utils
-from config import db_config
-from config import local_config
-from google_cloud_utils import storage
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.system import environment
 from libs import auth
 from libs import form
 from libs import helpers
-from system import environment
 
 # Pattern from
 # https://github.com/google/closure-library/blob/
@@ -55,21 +56,24 @@ class JsonEncoder(json.JSONEncoder):
   """Json encoder."""
   _EPOCH = datetime.datetime.utcfromtimestamp(0)
 
-  def default(self, obj):  # pylint: disable=arguments-differ,method-hidden
-    if isinstance(obj, ndb.Model):
-      dict_obj = obj.to_dict()
-      dict_obj['id'] = obj.key.id()
+  def default(self, o):  # pylint: disable=arguments-differ,method-hidden
+    if isinstance(o, ndb.Model):
+      dict_obj = o.to_dict()
+      dict_obj['id'] = o.key.id()
       return dict_obj
-    if isinstance(obj, datetime.datetime):
-      return int((obj - self._EPOCH).total_seconds())
-    if hasattr(obj, 'to_dict'):
-      return obj.to_dict()
-    if isinstance(obj, cgi.FieldStorage):
-      return str(obj)
-    if isinstance(obj, bytes):
-      return obj.decode('utf-8')
+    if isinstance(o, datetime.datetime):
+      return int((o - self._EPOCH).total_seconds())
+    if hasattr(o, 'to_dict'):
+      return o.to_dict()
+    if isinstance(o, cgi.FieldStorage):
+      return str(o)
+    if isinstance(o, bytes):
+      return o.decode('utf-8')
+    if isinstance(o, jira.resources.Resource):
+      if o.raw:
+        return o.raw
 
-    return json.JSONEncoder.default(self, obj)
+    return json.JSONEncoder.default(self, o)
 
 
 def format_time(dt):
@@ -248,6 +252,8 @@ class Handler(MethodView):
       return self.render('error.html', values, status)
     except Exception:
       self.handle_exception_exception()
+
+    return None
 
   def handle_exception_exception(self):
     """Catch exception in handle_exception and format it properly."""

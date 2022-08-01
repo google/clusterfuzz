@@ -24,12 +24,13 @@
 import argparse
 import importlib
 import os
-
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 # guard needs to be at the top because it checks Python dependecies.
 from local.butler import guard
+
 guard.check()
 
 
@@ -43,7 +44,7 @@ class _ArgumentParser(argparse.ArgumentParser):
 
   def error(self, message):
     """Override to print full help for ever error."""
-    sys.stderr.write('error: %s\n' % message)
+    sys.stderr.write(f'error: {message}\n')
     self.print_help()
     sys.exit(2)
 
@@ -190,6 +191,8 @@ def main():
       'script_name',
       help='The script module name under `./local/butler/scripts`.')
   parser_run.add_argument(
+      '--script_args', action='append', help='Script specific arguments')
+  parser_run.add_argument(
       '--non-dry-run',
       action='store_true',
       help='Run with actual datastore writes. Default to dry-run.')
@@ -298,7 +301,7 @@ def main():
     return
 
   _setup()
-  command = importlib.import_module('local.butler.%s' % args.command)
+  command = importlib.import_module(f'local.butler.{args.command}')
   command.execute(args)
 
 
@@ -308,7 +311,7 @@ def _setup():
   os.environ['PYTHONIOENCODING'] = 'UTF-8'
 
   sys.path.insert(0, os.path.abspath(os.path.join('src')))
-  from python.base import modules
+  from clusterfuzz._internal.base import modules
   modules.fix_module_search_paths()
 
 

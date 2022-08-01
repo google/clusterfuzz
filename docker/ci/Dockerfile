@@ -14,7 +14,7 @@
 FROM gcr.io/clusterfuzz-images/base
 
 # Use nodesource nodejs packages.
-RUN curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
+RUN curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
 
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update && \
@@ -32,7 +32,7 @@ RUN apt-get update && \
 
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \
-    curl https://bazel.build/bazel-release.pub.gpg | apt-key add - && \
+    curl https://storage.googleapis.com/www.bazel.build/bazel-release.pub.gpg | apt-key add - && \
     apt-get update && \
     apt-get install -y bazel
 
@@ -56,3 +56,6 @@ ENV PYTHONDONTWRITEBYTECODE 1
 
 COPY setup deploy /usr/local/bin/
 RUN chmod a+rx /usr/local/bin/*
+
+# The ClusterFuzz checkout is typically mounted in with a different owner UID.
+RUN git config --global --add safe.directory /workspace

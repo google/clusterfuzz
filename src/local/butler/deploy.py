@@ -27,8 +27,8 @@ from local.butler import appengine
 from local.butler import common
 from local.butler import constants
 from local.butler import package
-from src.python.config import local_config
-from src.python.system import environment
+from src.clusterfuzz._internal.config import local_config
+from src.clusterfuzz._internal.system import environment
 
 EXPECTED_BOT_COUNT_PERCENT = 0.8
 
@@ -225,7 +225,7 @@ def _deploy_manifest(bucket_name, manifest_path):
   else:
     manifest_suffix = ''
 
-  common.execute('gsutil cp -a public-read %s '
+  common.execute('gsutil cp %s '
                  'gs://%s/clusterfuzz-source.manifest%s' %
                  (manifest_path, bucket_name, manifest_suffix))
 

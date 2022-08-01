@@ -13,10 +13,11 @@
 # limitations under the License.
 """Issue tracker manager functions."""
 
-import jira
 import json
 
-from config import db_config
+import jira
+
+from clusterfuzz._internal.config import db_config
 
 
 class IssueTrackerManager(object):
@@ -81,14 +82,22 @@ class IssueTrackerManager(object):
         'components': components,
     }
 
-    # Only add status if it has changed.
     # Brittle - we should be pulling the equivalent of 'new' from the policy.
     if issue.status != 'Open':
-      status = {'name': issue.status}
-      update_fields['status'] = status
+      # This assumes the following:
+      # 1. If issue.status is an instance of Resource, the value comes from
+      #    Jira directly and has not been changed.
+      # 2. If issue.status is not an instance of Resource, the value is a
+      #    string and the issue status should be updated.
+      # Brittle - we should be pulling the equivalent of 'new' from the policy.
+      if not isinstance(issue.status, jira.resources.Resource):
+        self.client.transition_issue(issue.jira_issue, transition=issue.status)
 
     if issue.assignee is not None:
-      assignee = {'name': issue.assignee}
+      if isinstance(issue.assignee, jira.resources.Resource):
+        assignee = {'name': issue.assignee.name}
+      else:
+        assignee = {'name': issue.assignee}
       update_fields['assignee'] = assignee
 
     # Again brittle - need to pull these strings from policy.

@@ -13,16 +13,22 @@
 # limitations under the License.
 """Home page handler."""
 
-from base import external_users
-from base import memoize
-from base import utils
-from datastore import data_handler
-from datastore import data_types
+import json
+
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import handler
 from libs import helpers
-from system import environment
+
+INTROSPECTOR_INDEX_JSON_URL = 'gs://oss-fuzz-introspector/build_status.json'
 
 MEMCACHE_TTL_IN_SECONDS = 30 * 60
 
@@ -60,9 +66,21 @@ def get_single_fuzz_target_or_none(project, engine_name):
   return fuzz_target_name
 
 
+def get_introspector_index():
+  """Return introspector projects status"""
+  if storage.exists(INTROSPECTOR_INDEX_JSON_URL):
+    introspector_index = json.loads(
+        storage.read_data(INTROSPECTOR_INDEX_JSON_URL))
+  else:
+    introspector_index = {}
+  logs.log('Loaded introspector status: %d' % len(introspector_index))
+  return introspector_index
+
+
 def _get_project_results_for_jobs(jobs):
   """Return projects for jobs."""
   projects = {}
+  introspector_index = get_introspector_index()
   for job in sorted(jobs, key=lambda j: j.name):
     project_name = job.get_environment().get('PROJECT_NAME', job.name)
     if project_name not in projects:
@@ -70,6 +88,12 @@ def _get_project_results_for_jobs(jobs):
 
     if utils.string_is_true(job.get_environment().get('CORPUS_PRUNE')):
       projects[project_name]['coverage_job'] = job.name
+
+    projects[project_name]['has_introspector'] = False
+    if project_name in introspector_index:
+      projects[project_name]['has_introspector'] = True
+      projects[project_name]['introspector_report'] = introspector_index[
+          project_name]
 
     engine_display_name, engine_name = _get_engine_names(job.name)
     projects[project_name]['jobs'].append({

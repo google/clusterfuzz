@@ -13,9 +13,9 @@
 # limitations under the License.
 """Utilities for managing issue tracker instance."""
 
-from config import local_config
-from datastore import data_types
-from datastore import ndb_utils
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
 from libs import request_cache
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import jira
@@ -38,7 +38,7 @@ def register_issue_tracker(tracker_type, constructor):
 
 def _get_issue_tracker_project_name(testcase=None):
   """Return issue tracker project name given a testcase or default."""
-  from datastore import data_handler
+  from clusterfuzz._internal.datastore import data_handler
   job_type = testcase.job_type if testcase else None
   return data_handler.get_issue_tracker_name(job_type)
 
@@ -48,7 +48,7 @@ def get_issue_tracker(project_name=None):
   """Get the issue tracker with the given type and name."""
   issue_tracker_config = local_config.IssueTrackerConfig()
   if not project_name:
-    from datastore import data_handler
+    from clusterfuzz._internal.datastore import data_handler
     project_name = data_handler.get_issue_tracker_name()
 
   issue_project_config = issue_tracker_config.get(project_name)

@@ -13,12 +13,12 @@
 # limitations under the License.
 """Handler that schedules ML train jobs."""
 
-from base import tasks
-from datastore import data_types
-from datastore import fuzz_target_utils
+from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import fuzz_target_utils
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from metrics import logs
 
 MODEL_NAME_TO_TASK = {
     'rnn_generator': 'train_rnn_generator',

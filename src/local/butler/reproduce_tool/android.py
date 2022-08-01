@@ -16,12 +16,12 @@
 import os
 import time
 
+from clusterfuzz._internal.platforms.android import adb
+from clusterfuzz._internal.platforms.android import device
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import new_process
 from local.butler.reproduce_tool import errors
 from local.butler.reproduce_tool import prompts
-from platforms.android import adb
-from platforms.android import device
-from system import environment
-from system import new_process
 
 ADB_DEVICES_SEPARATOR_STRING = 'List of devices attached'
 EMULATOR_RELATIVE_PATH = os.path.join('local', 'bin', 'android-sdk', 'emulator',

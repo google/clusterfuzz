@@ -16,7 +16,8 @@
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
 # subdirectories of common so that they are shared with App Engine.
-from python.base import modules
+from clusterfuzz._internal.base import modules
+
 modules.fix_module_search_paths()
 
 import atexit
@@ -24,22 +25,24 @@ import os
 import subprocess
 import time
 
-from base import persistent_cache
-from base.untrusted import untrusted_noop
-from bot.tasks import update_task
-from datastore import data_handler
-from datastore import ndb_init
-from metrics import logs
-from system import environment
-from system import shell
+from clusterfuzz._internal.base import persistent_cache
+from clusterfuzz._internal.base.untrusted import untrusted_noop
+from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
+from clusterfuzz._internal.system import shell
 
 BOT_SCRIPT = 'run_bot.py'
 HEARTBEAT_SCRIPT = 'run_heartbeat.py'
+ANDROID_HEARTBEAT_SCRIPT = 'android_heartbeat.py'
 HEARTBEAT_START_WAIT_TIME = 60
 LOOP_SLEEP_INTERVAL = 3
 MAX_SUBPROCESS_TIMEOUT = 2**31 // 1000  # https://bugs.python.org/issue20493
 
 _heartbeat_handle = None
+_android_heartbeat_handle = None
 
 
 def start_bot(bot_command):
@@ -128,6 +131,46 @@ def stop_heartbeat():
   _heartbeat_handle = None
 
 
+def start_android_heartbeat():
+  """Start the android heartbeat (in another process)."""
+  global _android_heartbeat_handle
+  if _android_heartbeat_handle:
+    # If heartbeat is already started, no work to do. Bail out.
+    return
+
+  base_directory = environment.get_startup_scripts_directory()
+  android_beat_script_path = os.path.join(base_directory,
+                                          ANDROID_HEARTBEAT_SCRIPT)
+  android_beat_interpreter = shell.get_interpreter(android_beat_script_path)
+  assert android_beat_interpreter
+  android_beat_command = [android_beat_interpreter, android_beat_script_path]
+
+  try:
+    process_handle = subprocess.Popen(android_beat_command)
+  except Exception:
+    logs.log_error('Unable to start android heartbeat process (%s).' %
+                   android_beat_command)
+    return
+
+  # If heartbeat is successfully started, set its handle now.
+  _android_heartbeat_handle = process_handle
+
+
+def stop_android_heartbeat():
+  """Stop the android heartbeat process."""
+  global _android_heartbeat_handle
+  if not _android_heartbeat_handle:
+    # If there is no heartbeat started yet, no work to do. Bail out.
+    return
+
+  try:
+    _android_heartbeat_handle.kill()
+  except Exception as e:
+    logs.log_error('Unable to stop android heartbeat process: %s' % str(e))
+
+  _android_heartbeat_handle = None
+
+
 def update_source_code_if_needed():
   """Update source code if needed."""
   try:
@@ -147,9 +190,13 @@ def update_source_code_if_needed():
 def run_loop(bot_command, heartbeat_command):
   """Run infinite loop with bot's command."""
   atexit.register(stop_heartbeat)
+  if environment.is_android():
+    atexit.register(stop_android_heartbeat)
 
   while True:
     update_source_code_if_needed()
+    if environment.is_android():
+      start_android_heartbeat()
     start_heartbeat(heartbeat_command)
     start_bot(bot_command)
 
@@ -180,6 +227,10 @@ def main():
   environment.set_bot_environment()
   persistent_cache.initialize()
   logs.configure('run')
+
+  # Python buffering can otherwise cause exception logs in the child run_*.py
+  # processes to be lost.
+  environment.set_value('PYTHONUNBUFFERED', 1)
 
   # Create command strings to launch bot and heartbeat.
   base_directory = environment.get_startup_scripts_directory()

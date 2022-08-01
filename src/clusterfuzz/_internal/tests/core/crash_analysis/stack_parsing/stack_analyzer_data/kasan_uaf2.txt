@@ -1,0 +1,63 @@
+==================================================================
+BUG: KASAN: use-after-free in f2fs_register_inmem_page+0x208/0x390
+Write of size 8 at addr ffffffc05b5c4d28 by task bgExecutor #3/8262
+
+CPU: 4 PID: 8262 Comm: bgExecutor #3 Tainted: G           O    4.9.274-gb8fbe2f25487-ab7627803 #1
+Hardware name: Google Inc. MSM sdm670 B4 EVT v1.0 (DT)
+Call trace:
+[<0000000036c0b44e>] dump_backtrace+0x0/0x688
+[<000000009bb1931c>] show_stack+0x20/0x2c
+[<000000007d03cd22>] dump_stack+0x134/0x15c
+[<00000000d321dc19>] print_address_description+0x80/0x2d8
+[<000000004a825fc4>] kasan_report_error+0x1e8/0x204
+[<000000000aee7e49>] kasan_report+0xa4/0xa8
+[<00000000d8a509ac>] __asan_store8+0x60/0x7c
+[<00000000cdab1de8>] f2fs_register_inmem_page+0x208/0x390
+[<00000000743e9cdb>] f2fs_set_data_page_dirty+0x110/0x2bc
+[<00000000c8eff0d0>] set_page_dirty+0xc8/0x14c
+[<00000000ff9790d2>] f2fs_write_end+0xc8/0x530
+[<000000008976da33>] generic_perform_write+0x238/0x360
+[<00000000e4e43698>] __generic_file_write_iter+0x12c/0x258
+[<000000006f9eabb8>] f2fs_file_write_iter+0x23c/0x6d0
+[<00000000fade31a1>] __vfs_write+0x270/0x324
+[<000000000b0d00bb>] vfs_write+0x118/0x248
+[<000000007b4ba906>] SyS_pwrite64+0x104/0x15c
+[<000000005305407e>] __sys_trace_return+0x0/0x4
+
+Allocated by task 11872:
+ kasan_kmalloc+0xf0/0x1c8
+ kasan_slab_alloc+0x14/0x1c
+ kmem_cache_alloc+0x144/0x23c
+ f2fs_alloc_inode+0x2c/0x18c
+ new_inode_pseudo+0x3c/0x124
+ new_inode+0x2c/0xd4
+ f2fs_new_inode+0xa4/0xb98
+ f2fs_create+0xa8/0x42c
+ path_openat+0x9e8/0x1d74
+ do_filp_open+0x14c/0x290
+ do_sys_open+0x21c/0x3d8
+ SyS_openat+0x38/0x48
+ __sys_trace_return+0x0/0x4
+
+Freed by task 50:
+ kasan_slab_free+0xc4/0x1ac
+ kmem_cache_free+0x74/0x5b8
+ f2fs_i_callback+0x30/0x3c
+ rcu_nocb_kthread+0x73c/0x7cc
+ kthread+0x24c/0x25c
+ ret_from_fork+0x10/0x50
+
+The buggy address belongs to the object at ffffffc05b5c4a10
+ which belongs to the cache f2fs_inode_cache of size 1136
+The buggy address is located 792 bytes inside of
+ 1136-byte region [ffffffc05b5c4a10, ffffffc05b5c4e80)
+The buggy address belongs to the page:
+page:ffffffbf016d7000 count:1 mapcount:0 mapping:          (null) index:0x0 compound_mapcount: 0
+flags: 0x10200(slab|head)
+page dumped because: kasan: bad access detected
+
+Memory state around the buggy address:
+ ffffffc05b5c4c00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+type=1400 audit(1629153875.783:1707): avc: denied { ioctl } for comm="syz-executor" path="/proc/12254/map_files" dev="proc" ino=129927 ioctlcmd=0x9422 scontext=u:r:untrusted_app:s0:c512,c768 tcontext=u:r:untrusted_app:s0:c512,c768 tclass=dir permissive=0
+ ffffffc05b5c4c80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+>ffffffc05b5c4d00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb

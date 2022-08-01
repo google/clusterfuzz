@@ -39,7 +39,7 @@ class Handler(base_handler.Handler):
     if cc_me:
       additional_ccs.append(user_email)
 
-    issue_id = issue_filer.file_issue(
+    issue_id, _ = issue_filer.file_issue(
         testcase,
         issue_tracker,
         security_severity=severity,

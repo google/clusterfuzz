@@ -31,6 +31,7 @@ bootcmd:
   - echo never > /sys/kernel/mm/transparent_hugepage/defrag
   - echo core > /proc/sys/kernel/core_pattern # for AFL
   - swapon -a
+  - iptables -w -A INPUT -p tcp --dport 7123 -j ACCEPT # health check port
 
 write_files:
   - path: /etc/systemd/system/clusterfuzz.service

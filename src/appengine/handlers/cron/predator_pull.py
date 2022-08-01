@@ -15,13 +15,13 @@
 
 import json
 
-from base import errors
-from config import db_config
-from datastore import data_handler
-from google_cloud_utils import pubsub
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
-from metrics import logs
 
 
 class Handler(base_handler.Handler):

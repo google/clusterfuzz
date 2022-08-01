@@ -75,7 +75,8 @@ class LabelStore(object):
 
   def clear(self):
     """Clear the store, and reset tracking."""
-    self.reset_tracking()
+    self._added.clear()
+    self._removed.update(self._backing)
     self._backing.clear()
 
   def get_by_prefix(self, prefix):

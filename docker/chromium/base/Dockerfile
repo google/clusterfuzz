@@ -16,12 +16,15 @@ FROM gcr.io/clusterfuzz-images/base
 ENV UPDATE_WEB_TESTS True
 ENV NFS_ROOT /mnt/nfs/cfvolume
 
+# Note: snapcraft installation seems to always fail.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    curl 'https://chromium.googlesource.com/chromium/src/+/master/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
+    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
+    sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.sh && \ 
     chmod u+x /tmp/install-build-deps.sh && \
-    /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms
+    /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32
 
-RUN apt-get update && \
+RUN dpkg --add-architecture i386 && \
+    apt-get update && \
     apt-get install -y \
         autofs \
         dbus-x11 \
@@ -34,14 +37,9 @@ RUN apt-get update && \
         libgles2-mesa \
         nfs-common \
         nodejs \
-        nodejs-legacy \
         pulseaudio \
         xdotool \
-        xvfb && \
-    # 16.04's pyOpenSSL (installed by install-build-deps.sh) is too old for
-    # Google Cloud SDK.
-    sudo apt-get remove -y python-openssl && \
-    sudo pip2 install cryptography==3.3.2 pyOpenSSL==19.0.0
+        xvfb
 
 # Needed for older versions of Chrome.
 RUN ln -s /usr/lib/x86_64-linux-gnu/libudev.so /usr/lib/x86_64-linux-gnu/libudev.so.0

@@ -13,15 +13,15 @@
 # limitations under the License.
 """Library to manage bots using GCE instance templates and groups."""
 
-import google_auth_httplib2
-import googleapiclient
-import httplib2
 import time
 
+import google_auth_httplib2
+import googleapiclient
 from googleapiclient.discovery import build
+import httplib2
 
-from base import retry
-from google_cloud_utils import credentials
+from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.google_cloud_utils import credentials
 
 RETRY_COUNT = 8
 RETRY_DELAY = 4
@@ -233,6 +233,7 @@ class InstanceGroup(Resource):
              base_instance_name,
              instance_template,
              size=0,
+             auto_healing_policy=None,
              wait_for_instances=True):
     """Create this instance group."""
     manager_body = {
@@ -241,6 +242,8 @@ class InstanceGroup(Resource):
         'name': self.name,
         'targetSize': size,
     }
+    if auto_healing_policy:
+      manager_body['autoHealingPolicies'] = [auto_healing_policy]
 
     result_proc = None
     if wait_for_instances:
@@ -249,6 +252,27 @@ class InstanceGroup(Resource):
     self.execute(
         self.compute.instanceGroupManagers().insert(
             project=self.project_id, zone=self.zone, body=manager_body),
+        result_proc=result_proc)
+
+  def patch_auto_healing_policies(self,
+                                  auto_healing_policy=None,
+                                  wait_for_instances=True):
+    """Update the health check url of this instance group."""
+    if auto_healing_policy:
+      request_body = {'autoHealingPolicies': [auto_healing_policy]}
+    else:
+      request_body = {'autoHealingPolicies': []}
+
+    result_proc = None
+    if wait_for_instances:
+      result_proc = self._handle_size_change
+
+    self.execute(
+        self.compute.instanceGroupManagers().patch(
+            project=self.project_id,
+            zone=self.zone,
+            instanceGroupManager=self.name,
+            body=request_body),
         result_proc=result_proc)
 
   def resize(self, new_size, wait_for_instances=True):

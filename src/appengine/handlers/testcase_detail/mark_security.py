@@ -15,8 +15,8 @@
 
 from flask import request
 
-from base import bisection
-from crash_analysis import severity_analyzer
+from clusterfuzz._internal.base import bisection
+from clusterfuzz._internal.crash_analysis import severity_analyzer
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import access

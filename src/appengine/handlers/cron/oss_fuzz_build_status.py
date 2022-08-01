@@ -16,17 +16,17 @@
 import datetime
 import json
 import re
-import requests
 
 from google.cloud import ndb
+import requests
 
-from base import utils
-from datastore import data_types
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
-from metrics import logs
 
 BUCKET_URL = 'https://oss-fuzz-build-logs.storage.googleapis.com'
 FUZZING_STATUS_URL = BUCKET_URL + '/status.json'
@@ -49,7 +49,7 @@ TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
 NO_BUILDS_THRESHOLD = datetime.timedelta(days=2)
 
 # Minimum number of consecutive build failures before filing a bug.
-MIN_CONSECUTIVE_BUILD_FAILURES = 2
+MIN_CONSECUTIVE_BUILD_FAILURES = 3
 
 # Number of failures after the last reminder/initial filing to send a reminder.
 # This used to be 3 days, but now we may have up to two failures a day since

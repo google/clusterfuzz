@@ -19,9 +19,9 @@ import shutil
 import subprocess
 import sys
 
+import google_auth_httplib2
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient import discovery
-import google_auth_httplib2
 import httplib2
 
 from local.butler import appengine
@@ -36,6 +36,7 @@ _REQUIRED_SERVICES = (
     'clouderrorreporting.googleapis.com',
     'cloudprofiler.googleapis.com',
     'cloudresourcemanager.googleapis.com',
+    'cloudscheduler.googleapis.com',
     'compute.googleapis.com',
     'containerregistry.googleapis.com',
     'datastore.googleapis.com',
@@ -70,7 +71,7 @@ class DomainVerifier(object):
     flow = InstalledAppFlow.from_client_secrets_file(
         oauth_client_secrets_path,
         scopes=['https://www.googleapis.com/auth/siteverification'])
-    credentials = flow.run_console()
+    credentials = flow.run_local_server()
 
     http = google_auth_httplib2.AuthorizedHttp(
         credentials, http=httplib2.Http())
@@ -140,7 +141,7 @@ def enable_services(gcloud):
 
 def replace_file_contents(file_path, replacements):
   """Replace contents of a file."""
-  with open(file_path) as f:
+  with open(file_path, encoding='utf-8') as f:
     old_contents = f.read()
     contents = old_contents
     for find, replace in replacements:
@@ -149,14 +150,13 @@ def replace_file_contents(file_path, replacements):
   if contents == old_contents:
     return
 
-  with open(file_path, 'w') as f:
+  with open(file_path, 'w', encoding='utf-8') as f:
     f.write(contents)
 
 
 def project_bucket(project_id, bucket_name):
   """Return a project-specific bucket name."""
-  return '{name}.{project_id}.appspot.com'.format(
-      name=bucket_name, project_id=project_id)
+  return f'{bucket_name}.{project_id}.appspot.com'
 
 
 def create_new_config(gcloud, project_id, new_config_dir,

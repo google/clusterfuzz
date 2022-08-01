@@ -15,20 +15,22 @@
 
 import datetime
 import html
-import jinja2
 import re
 
 from flask import request
+import jinja2
 
-from base import utils
-from build_management import revisions
-from build_management import source_mapper
-from config import db_config
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from fuzzing import leak_blacklist
-from google_cloud_utils import blobs
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.build_management import revisions
+from clusterfuzz._internal.build_management import source_mapper
+from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.system import environment
 from handlers import base_handler
 from libs import access
 from libs import auth
@@ -36,8 +38,6 @@ from libs import form
 from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from system import environment
 
 FIND_SIMILAR_ISSUES_OPTIONS = [{
     'type': 'open',
@@ -61,6 +61,20 @@ COMPILED_CRASH_STATE_REGEXES = [
 KERNEL_LINK_REGEX = re.compile(
     r'(.+)(http:\/\/go\/pakernel\/[^;]+);([^;]+);(.*)')
 KERNEL_LINK_FORMAT = r'%s<a href="%s">%s</a>%s'
+
+STACKTRACE_MAX_LENGTH = 500000
+
+
+def _truncate_stacktrace(stacktrace):
+  """Truncate stacktrace if necessary."""
+  if len(stacktrace) > STACKTRACE_MAX_LENGTH:
+    # Read first and last |STACKTRACE_MAX_LENGTH/2| bytes.
+    truncated = len(stacktrace) - STACKTRACE_MAX_LENGTH
+    return (stacktrace[:STACKTRACE_MAX_LENGTH // 2] +
+            f'...truncated {truncated} bytes...' +
+            stacktrace[-STACKTRACE_MAX_LENGTH // 2:])
+
+  return stacktrace
 
 
 def _parse_suspected_cls(predator_result):
@@ -175,6 +189,9 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   """Clean up and format a stack trace for display."""
   if not crash_stacktrace:
     return ''
+
+  # Truncate stacktrace if it's too big.
+  crash_stacktrace = _truncate_stacktrace(crash_stacktrace)
 
   filtered_crash_lines = []
   for line in crash_stacktrace.splitlines():
@@ -302,7 +319,7 @@ def get_testcase_detail_by_id(testcase_id):
   return get_testcase_detail(testcase)
 
 
-def _get_revision_range_html_from_string(job_type, revision_range):
+def _get_revision_range_html_from_string(job_type, platform_id, revision_range):
   """Return revision range html for a revision range and job type given a range
   string."""
   try:
@@ -310,16 +327,20 @@ def _get_revision_range_html_from_string(job_type, revision_range):
   except:
     return 'Bad revision range.'
 
-  return _get_revision_range_html(job_type, start_revision, end_revision)
+  return _get_revision_range_html(job_type, platform_id, start_revision,
+                                  end_revision)
 
 
-def _get_revision_range_html(job_type, start_revision, end_revision=None):
+def _get_revision_range_html(job_type,
+                             platform_id,
+                             start_revision,
+                             end_revision=None):
   """Return revision range html for a revision range and job type."""
   if end_revision is None:
     end_revision = start_revision
 
   component_rev_list = revisions.get_component_range_list(
-      start_revision, end_revision, job_type)
+      start_revision, end_revision, job_type, platform_id=platform_id)
   if not component_rev_list:
     return ('%s:%s (No component revisions found!)' % (start_revision,
                                                        end_revision))
@@ -374,8 +395,8 @@ def get_testcase_detail(testcase):
   elif testcase.regression == 'NA':
     regression = 'NA'
   else:
-    regression = _get_revision_range_html_from_string(testcase.job_type,
-                                                      testcase.regression)
+    regression = _get_revision_range_html_from_string(
+        testcase.job_type, testcase.platform_id, testcase.regression)
 
   fixed_full = None
   if 'progression_pending' in metadata:
@@ -388,19 +409,19 @@ def get_testcase_detail(testcase):
     fixed = 'YES'
   else:
     fixed = 'YES'
-    fixed_full = _get_revision_range_html_from_string(testcase.job_type,
-                                                      testcase.fixed)
+    fixed_full = _get_revision_range_html_from_string(
+        testcase.job_type, testcase.platform_id, testcase.fixed)
 
   last_tested = None
   last_tested_revision = (
       metadata.get('last_tested_revision') or testcase.crash_revision)
   if last_tested_revision:
-    last_tested = _get_revision_range_html(testcase.job_type,
-                                           last_tested_revision)
+    last_tested = _get_revision_range_html(
+        testcase.job_type, testcase.platform_id, last_tested_revision)
 
   crash_revision = testcase.crash_revision
   crash_revisions_dict = revisions.get_component_revisions_dict(
-      crash_revision, testcase.job_type)
+      crash_revision, testcase.job_type, platform_id=testcase.platform_id)
   crash_stacktrace = data_handler.get_stacktrace(testcase)
   crash_stacktrace = filter_stacktrace(crash_stacktrace, testcase.crash_type,
                                        crash_revisions_dict, testcase.platform,
@@ -410,7 +431,9 @@ def get_testcase_detail(testcase):
 
   last_tested_crash_revision = metadata.get('last_tested_crash_revision')
   last_tested_crash_revisions_dict = revisions.get_component_revisions_dict(
-      last_tested_crash_revision, testcase.job_type)
+      last_tested_crash_revision,
+      testcase.job_type,
+      platform_id=testcase.platform_id)
   last_tested_crash_stacktrace = data_handler.get_stacktrace(
       testcase, stack_attribute='last_tested_crash_stacktrace')
   last_tested_crash_stacktrace = filter_stacktrace(
@@ -523,14 +546,20 @@ def get_testcase_detail(testcase):
               crash_stacktrace,
           'revision':
               revisions.get_real_revision(
-                  crash_revision, testcase.job_type, display=True)
+                  crash_revision,
+                  testcase.job_type,
+                  display=True,
+                  platform_id=testcase.platform_id)
       },
       'last_tested_crash_stacktrace': {
           'lines':
               last_tested_crash_stacktrace,
           'revision':
               revisions.get_real_revision(
-                  last_tested_crash_revision, testcase.job_type, display=True)
+                  last_tested_crash_revision,
+                  testcase.job_type,
+                  display=True,
+                  platform_id=testcase.platform_id)
       },
       'security_severity':
           security_severity,

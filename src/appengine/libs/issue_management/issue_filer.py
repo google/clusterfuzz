@@ -16,16 +16,17 @@
 import itertools
 import re
 
-from base import external_users
-from base import utils
-from config import local_config
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from google_cloud_utils import pubsub
+from clusterfuzz._internal.base import external_users
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 from libs.issue_management import issue_tracker_policy
-from metrics import logs
-from system import environment
+from libs.issue_management import oss_fuzz_github
 
 NON_CRASH_TYPES = [
     'Data race',
@@ -80,6 +81,10 @@ def platform_substitution(label, testcase, _):
     # ChromeOS fuzzers run on Linux platform, so use correct OS-Chrome for
     # tracking.
     platform = 'Chrome'
+  elif environment.is_ios_job(testcase.job_type):
+    # iOS fuzzers run on macOS platform, so use correct OS-iOS for
+    # tracking.
+    platform = 'iOS'
   elif testcase.platform_id:
     platform = testcase.platform_id.split(':')[0].capitalize()
 
@@ -128,7 +133,7 @@ def severity_substitution(label, testcase, security_severity):
 def impact_to_string(impact):
   """Convert an impact value to a human-readable string."""
   impact_map = {
-      data_types.SecurityImpact.EXTENDED_STABLE: 'ExtendedStable',
+      data_types.SecurityImpact.EXTENDED_STABLE: 'Extended',
       data_types.SecurityImpact.STABLE: 'Stable',
       data_types.SecurityImpact.BETA: 'Beta',
       data_types.SecurityImpact.HEAD: 'Head',
@@ -142,7 +147,7 @@ def impact_to_string(impact):
 def _get_impact_from_labels(labels):
   """Get the impact from the label list."""
   labels = [label.lower() for label in labels]
-  if 'security_impact-extendedstable' in labels:
+  if 'security_impact-extended' in labels:
     return data_types.SecurityImpact.EXTENDED_STABLE
   if 'security_impact-stable' in labels:
     return data_types.SecurityImpact.STABLE
@@ -165,8 +170,7 @@ def update_issue_impact_labels(testcase, issue):
   if testcase.regression.startswith('0:'):
     # If the regression range starts from the start of time,
     # then we assume that the bug impacts stable.
-    # TODO(yuanjunh): change to extended stable label when it's fully supported.
-    new_impact = data_types.SecurityImpact.STABLE
+    new_impact = data_types.SecurityImpact.EXTENDED_STABLE
   elif testcase.is_impact_set_flag:
     # Add impact label based on testcase's impact value.
     if testcase.impact_extended_stable_version:
@@ -287,6 +291,12 @@ def notify_issue_update(testcase, status):
               })
       ])
 
+  if status in ('verified', 'wontfix'):
+    logs.log(f'Closing issue {testcase.github_issue_num} '
+             f'in GitHub repo {testcase.github_repo_id}: '
+             f'Testcase {testcase.key.id()} is marked as {status}.')
+    oss_fuzz_github.close_issue(testcase)
+
 
 def file_issue(testcase,
                issue_tracker,
@@ -294,7 +304,7 @@ def file_issue(testcase,
                user_email=None,
                additional_ccs=None):
   """File an issue for the given test case."""
-  logs.log('Filing new issue for testcase: %d' % testcase.key.id())
+  logs.log(f'Filing new issue for testcase: {testcase.key.id()}.')
 
   policy = issue_tracker_policy.get(issue_tracker.project)
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
@@ -376,7 +386,9 @@ def file_issue(testcase,
       issue_restrictions == 'all' or
       (issue_restrictions == 'security' and testcase.security_flag))
 
-  has_accountable_people = bool(ccs)
+  has_accountable_people = (
+      bool(ccs) and not data_handler.get_value_from_job_definition(
+          testcase.job_type, 'DISABLE_DISCLOSURE', False))
 
   # Check for labels with special logic.
   additional_labels = []
@@ -419,11 +431,31 @@ def file_issue(testcase,
     issue.components.add(policy.unreproducible_component)
 
   issue.reporter = user_email
-  issue.save()
+
+  recovered_exception = None
+  try:
+    issue.save()
+  except Exception as e:
+    if policy.fallback_component:
+      # If a fallback component is set, try clearing the existing components
+      # and filing again.
+      # Also save the exception we recovered from.
+      recovered_exception = e
+      issue.components.clear()
+      issue.components.add(policy.fallback_component)
+
+      if policy.fallback_policy_message:
+        message = policy.fallback_policy_message.replace(
+            '%COMPONENTS%', ' '.join(metadata_components))
+        issue.body += '\n\n' + message
+      issue.save()
+    else:
+      raise
 
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
+  oss_fuzz_github.file_issue(testcase)
   testcase.put()
 
   data_handler.update_group_bug(testcase.group_id)
-  return issue.id
+  return issue.id, recovered_exception

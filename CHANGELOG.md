@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+## Version 2.5.0
+- Restructured internal imports to make pip package cleaner.
+- AFL++ support.
+- Many bug fixes.
+
 ## Version 2.4.0
 - Various improvements for libClusterFuzz.
 - Local development improvements.
@@ -84,7 +89,7 @@ python butler.py run -c path/to/config --non-dry-run migration.jobs_keywords
 ## Version 1.6.0
 - Added platform support for Fuchsia OS.
 - Migrated libFuzzer to the new pluggable engine pipeline.
-- Stack parsing improvments.
+- Stack parsing improvements.
 - Various bug fixes.
 
 ## Version 1.5.1

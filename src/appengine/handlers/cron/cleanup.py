@@ -16,36 +16,34 @@
 import collections
 import datetime
 import json
-import random
 
 from googleapiclient.errors import HttpError
 
-from base import dates
-from base import errors
-from base import memoize
-from base import utils
-from chrome import build_info
-from crash_analysis import crash_comparer
-from crash_analysis import severity_analyzer
-from datastore import data_handler
-from datastore import data_types
-from datastore import ndb_utils
-from fuzzing import leak_blacklist
+from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.chrome import build_info
+from clusterfuzz._internal.crash_analysis import crash_comparer
+from clusterfuzz._internal.crash_analysis import severity_analyzer
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import leak_blacklist
+from clusterfuzz._internal.metrics import crash_stats
+from clusterfuzz._internal.metrics import logs
 from handlers import base_handler
 from libs import handler
 from libs import mail
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from metrics import crash_stats
-from metrics import logs
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')
 OSS_FUZZ_INCORRECT_COMMENT = ('\n\nIf this is incorrect, please file a bug on '
                               'https://github.com/google/oss-fuzz/issues/new')
 
-AUTO_CC_LIMIT = 5
 TOP_CRASHES_LIMIT = 5
 TOP_CRASHES_DAYS_LOOKBEHIND = 7
 TOP_CRASHES_MIN_THRESHOLD = 50 * TOP_CRASHES_DAYS_LOOKBEHIND
@@ -121,7 +119,7 @@ def cleanup_testcases_and_issues():
       # Already deleted.
       continue
 
-    logs.log('Processing testcase %d.' % testcase_id)
+    logs.log(f'Processing testcase {testcase_id}.')
 
     try:
       issue = issue_tracker_utils.get_issue_for_testcase(testcase)
@@ -162,7 +160,7 @@ def cleanup_testcases_and_issues():
       # Testcase deletion rules.
       delete_unreproducible_testcase_with_no_issue(testcase)
     except Exception:
-      logs.log_error('Failed to process testcase %d.' % testcase_id)
+      logs.log_error(f'Failed to process testcase {testcase_id}.')
 
     testcases_processed += 1
     if testcases_processed % 100 == 0:
@@ -229,15 +227,10 @@ def _get_crash_occurrence_platforms_from_crash_parameters(
     # No crash stats available, skip.
     return []
 
-  where_clause = ('crash_type = {crash_type} AND '
-                  'crash_state = {crash_state} AND '
-                  'security_flag = {security_flag} AND '
-                  'project = {project}').format(
-                      crash_type=json.dumps(crash_type),
-                      crash_state=json.dumps(crash_state),
-                      security_flag=json.dumps(security_flag),
-                      project=json.dumps(project_name),
-                  )
+  where_clause = (f'crash_type = {json.dumps(crash_type)} AND '
+                  f'crash_state = {json.dumps(crash_state)} AND '
+                  f'security_flag = {json.dumps(security_flag)} AND '
+                  f'project = {json.dumps(project_name)}')
 
   _, rows = crash_stats.get(
       end=last_hour,
@@ -288,21 +281,18 @@ def get_top_crashes_for_all_projects_and_platforms():
   projects_to_jobs_and_platforms = (get_jobs_and_platforms_for_project())
   top_crashes_by_project_and_platform_map = {}
 
-  for project_name in projects_to_jobs_and_platforms:
+  for project_name, project_map in projects_to_jobs_and_platforms.items():
     top_crashes_by_project_and_platform_map[project_name] = {}
 
-    project_map = projects_to_jobs_and_platforms[project_name]
     for platform in project_map.platforms:
       where_clause = (
-          'crash_type NOT IN UNNEST(%s) AND '
-          'crash_state NOT IN UNNEST(%s) AND '
-          'job_type IN UNNEST(%s) AND '
-          'platform LIKE %s AND '
-          'project = %s' % (json.dumps(TOP_CRASHES_IGNORE_CRASH_TYPES),
-                            json.dumps(TOP_CRASHES_IGNORE_CRASH_STATES),
-                            json.dumps(list(project_map.jobs)),
-                            json.dumps(platform.lower() + '%'),
-                            json.dumps(project_name)))
+          'crash_type NOT IN UNNEST'
+          f'({json.dumps(TOP_CRASHES_IGNORE_CRASH_TYPES)}) AND '
+          'crash_state NOT IN UNNEST'
+          f'({json.dumps(TOP_CRASHES_IGNORE_CRASH_STATES)}) AND '
+          f'job_type IN UNNEST({json.dumps(list(project_map.jobs))}) AND '
+          f'platform LIKE {json.dumps(platform.lower() + "%")} AND '
+          f'project = {json.dumps(project_name)}')
 
       _, rows = crash_stats.get(
           end=last_hour,
@@ -380,7 +370,7 @@ def delete_unreproducible_testcase_with_no_issue(testcase):
 
   testcase.key.delete()
   logs.log(
-      'Deleted unreproducible testcase %d with no issue.' % testcase.key.id())
+      f'Deleted unreproducible testcase {testcase.key.id()} with no issue.')
 
 
 def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
@@ -403,7 +393,7 @@ def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
   testcase.fixed = 'NA'
   testcase.open = False
   testcase.put()
-  logs.log('Closed duplicate testcase %d with no issue.' % testcase.key.id())
+  logs.log(f'Closed duplicate testcase {testcase.key.id()} with no issue.')
 
 
 def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
@@ -458,7 +448,7 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     return
 
   issue.labels.add(verified_label)
-  comment = 'ClusterFuzz testcase %d is verified as fixed' % testcase.key.id()
+  comment = f'ClusterFuzz testcase {testcase.key.id()} is verified as fixed'
 
   fixed_range_url = data_handler.get_fixed_range_url(testcase)
   if fixed_range_url:
@@ -478,8 +468,8 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     issue.status = policy.status('verified')
 
   issue.save(new_comment=comment, notify=True)
-  logs.log('Mark issue %d as verified for fixed testcase %d.' %
-           (issue.id, testcase.key.id()))
+  logs.log(f'Mark issue {issue.id} as verified for '
+           f'fixed testcase {testcase.key.id()}.')
   issue_filer.notify_issue_update(testcase, 'verified')
 
 
@@ -505,8 +495,8 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
   testcase.fixed = 'NA'
   testcase.open = False
   testcase.put()
-  logs.log('Closed unreproducible testcase %d with issue closed.' %
-           testcase.key.id())
+  logs.log(f'Closed unreproducible testcase {testcase.key.id()} '
+           'with issue closed.')
 
 
 def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
@@ -580,26 +570,24 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
     return
 
   # Close associated issue and testcase.
-  comment = ('ClusterFuzz testcase %d is flaky and no longer crashes, '
-             'so closing issue.' % testcase.key.id())
+  comment = (f'ClusterFuzz testcase {testcase.key.id()} '
+             'is flaky and no longer crashes, so closing issue.')
   if utils.is_oss_fuzz():
     comment += OSS_FUZZ_INCORRECT_COMMENT
   else:
     comment = _append_generic_incorrect_comment(comment, policy, issue,
                                                 ' and re-open the issue.')
 
-  skip_auto_close = data_handler.get_value_from_job_definition(
-      testcase.job_type, 'SKIP_AUTO_CLOSE_ISSUE')
-  if not skip_auto_close:
-    issue.status = policy.status('wontfix')
-
+  issue.status = policy.status('wontfix')
   issue.save(new_comment=comment, notify=True)
   testcase.fixed = 'NA'
   testcase.open = False
   testcase.put()
 
-  logs.log('Closed unreproducible testcase %d and associated issue.' %
-           testcase.key.id())
+  issue_filer.notify_issue_update(testcase, 'wontfix')
+
+  logs.log(f'Closed unreproducible testcase {testcase.key.id()} '
+           'and associated issue.')
 
 
 def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
@@ -630,15 +618,19 @@ def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
   if issue_tracker_utils.was_label_added(issue, policy.label('wrong')):
     return
 
-  comment = (f'ClusterFuzz testcase {testcase.key.id()} is closed as invalid, '
-             'so closing issue.')
-
   skip_auto_close = data_handler.get_value_from_job_definition(
       testcase.job_type, 'SKIP_AUTO_CLOSE_ISSUE')
-  if not skip_auto_close:
-    issue.status = policy.status('wontfix')
+  if skip_auto_close:
+    return
+
+  comment = (f'ClusterFuzz testcase {testcase.key.id()} is closed as invalid, '
+             'so closing issue.')
+  issue.status = policy.status('wontfix')
 
   issue.save(new_comment=comment, notify=True)
+
+  issue_filer.notify_issue_update(testcase, 'wontfix')
+
   logs.log(
       f'Closing issue {issue.id} for invalid testcase {testcase.key.id()}.')
 
@@ -689,7 +681,7 @@ def mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue):
   testcase.open = False
   testcase.fixed = 'NA'
   testcase.put()
-  logs.log('Closed testcase %d with issue closed.' % testcase.key.id())
+  logs.log(f'Closed testcase {testcase.key.id()} with issue closed.')
 
 
 def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
@@ -705,7 +697,7 @@ def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
   testcase.open = False
   testcase.fixed = 'NA'
   testcase.put()
-  logs.log('Closed testcase %d with invalid job.' % testcase.key.id())
+  logs.log(f'Closed testcase {testcase.key.id()} with invalid job.')
 
 
 def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
@@ -750,35 +742,33 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
 
   if issue.status in [policy.status('fixed'), policy.status('verified')]:
     issue_comment = (
-        'ClusterFuzz testcase {id} is still reproducing on tip-of-tree build '
+        f'ClusterFuzz testcase {testcase.key.id()} is still reproducing '
+        'on tip-of-tree build '
         '(trunk).\n\nPlease re-test your fix against this testcase and if the '
-        'fix was incorrect or incomplete, please re-open the bug.'
-    ).format(id=testcase.key.id())
+        'fix was incorrect or incomplete, please re-open the bug.')
 
     wrong_label = policy.label('wrong')
     if wrong_label:
-      issue_comment += (
-          (' Otherwise, ignore this notification and add the '
-           '{label_text}.'
-          ).format(label_text=issue.issue_tracker.label_text(wrong_label)))
+      issue_comment += (' Otherwise, ignore this notification and add the '
+                        f'{issue.issue_tracker.label_text(wrong_label)}.')
   else:
     # Covers WontFix, Archived cases.
     issue_comment = (
-        'ClusterFuzz testcase {id} is still reproducing on tip-of-tree build '
+        f'ClusterFuzz testcase {testcase.key.id()} '
+        'is still reproducing on tip-of-tree build '
         '(trunk).\n\nIf this testcase was not reproducible locally or '
         'unworkable, ignore this notification and we will file another '
-        'bug soon with hopefully a better and workable testcase.\n\n'.format(
-            id=testcase.key.id()))
+        'bug soon with hopefully a better and workable testcase.\n\n')
     ignore_label = policy.label('ignore')
     if ignore_label:
       issue_comment += (
           'Otherwise, if this is not intended to be fixed (e.g. this is an '
-          'intentional crash), please add the {label_text} to '
-          'prevent future bug filing with similar crash stacktrace.'.format(
-              label_text=issue.issue_tracker.label_text(ignore_label)))
+          'intentional crash), please add the '
+          f'{issue.issue_tracker.label_text(ignore_label)} to '
+          'prevent future bug filing with similar crash stacktrace.')
 
   issue.save(new_comment=issue_comment, notify=True)
-  logs.log('Notified closed issue for open testcase %d.' % testcase.key.id())
+  logs.log(f'Notified closed issue for open testcase {testcase.key.id()}.')
 
 
 def notify_issue_if_testcase_is_invalid(policy, testcase, issue):
@@ -804,23 +794,23 @@ def notify_issue_if_testcase_is_invalid(policy, testcase, issue):
     return
 
   issue_comment = (
-      'ClusterFuzz testcase %d is associated with an obsolete fuzzer and can '
+      f'ClusterFuzz testcase {testcase.key.id()}'
+      'is associated with an obsolete fuzzer and can '
       'no longer be processed. Please close the issue if it is no longer '
-      'actionable.') % testcase.key.id()
+      'actionable.')
   issue.labels.add(invalid_fuzzer_label)
   issue.save(new_comment=issue_comment, notify=True)
 
-  logs.log('Closed issue %d for invalid testcase %d.' % (issue.id,
-                                                         testcase.key.id()))
+  logs.log(f'Closed issue {issue.id} for '
+           f'invalid testcase {testcase.key.id()}.')
 
 
 def _send_email_to_uploader(testcase_id, to_email, content):
   """Send email to uploader when all the testcase tasks are finished."""
-  subject = 'Your testcase upload %d analysis is complete.' % testcase_id
-  content_with_footer = (
-      '%s\n\n'
-      'If you suspect that the result above is incorrect, '
-      'try re-doing that job on the testcase report page.') % content.strip()
+  subject = f'Your testcase upload {testcase_id} analysis is complete.'
+  content_with_footer = (f'{content.strip()}\n\n'
+                         'If you suspect that the result above is incorrect, '
+                         'try re-doing that job on the testcase report page.')
   html_content = content_with_footer.replace('\n', '<br>')
 
   mail.send(to_email, subject, html_content)
@@ -863,10 +853,10 @@ def _update_issue_security_severity_and_get_comment(policy, testcase, issue):
     return ('\n\nA recommended severity was added to this bug. '
             'Please change the severity if it is inaccurate.')
   if issue_severity != testcase.security_severity:
-    return (
-        '\n\nThe recommended severity (%s) is different from what was assigned '
-        'to the bug. Please double check the accuracy of the assigned '
-        'severity.' % recommended_severity)
+    return ('\n\nThe recommended severity '
+            f'({recommended_severity}) is different from what was assigned '
+            'to the bug. Please double check the accuracy of the assigned '
+            'severity.')
 
   return ''
 
@@ -946,8 +936,7 @@ def update_os_labels(policy, testcase, issue):
   platforms = get_crash_occurrence_platforms(testcase)
   platforms = platforms.union(get_platforms_from_testcase_variants(testcase))
   logs.log(
-      'Found %d platforms for the testcase %d.' % (len(platforms),
-                                                   testcase.key.id()),
+      f'Found {len(platforms)} platforms for the testcase {testcase.key.id()}.',
       platforms=platforms)
   for platform in platforms:
     label = os_label.replace('%PLATFORM%', platform.capitalize())
@@ -955,7 +944,7 @@ def update_os_labels(policy, testcase, issue):
       issue.labels.add(label)
 
   issue.save(notify=False)
-  logs.log('Updated labels of issue %d.' % issue.id, labels=issue.labels)
+  logs.log(f'Updated labels of issue {issue.id}.', labels=issue.labels)
 
 
 def update_fuzz_blocker_label(policy, testcase, issue,
@@ -982,33 +971,31 @@ def update_fuzz_blocker_label(policy, testcase, issue,
     return
 
   if len(top_crash_platforms) == 1:
-    platform_message = '%s platform' % top_crash_platforms[0]
+    platform_message = f'{top_crash_platforms[0]} platform'
   else:
-    platform_message = '%s and %s platforms' % (', '.join(
-        top_crash_platforms[:-1]), top_crash_platforms[-1])
+    platform_message = f'{", ".join(top_crash_platforms[:-1])} and ' \
+                       f'{top_crash_platforms[-1]} platforms'
 
   fuzzer_name = (
       testcase.get_metadata('fuzzer_binary_name') or testcase.fuzzer_name)
   update_message = (
-      'This crash occurs very frequently on %s and is likely preventing the '
-      'fuzzer %s from making much progress. Fixing this will allow more bugs '
-      'to be found.' % (platform_message, fuzzer_name))
+      f'This crash occurs very frequently on {platform_message} and '
+      f'is likely preventing the fuzzer {fuzzer_name} '
+      'from making much progress. Fixing this will allow more bugs '
+      'to be found.')
   if utils.is_oss_fuzz():
     update_message += OSS_FUZZ_INCORRECT_COMMENT
   elif utils.is_chromium():
+    label_text = issue.issue_tracker.label_text(
+        data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
     update_message += '\n\nMarking this bug as a blocker for next Beta release.'
     update_message = _append_generic_incorrect_comment(
-        update_message,
-        policy,
-        issue,
-        ' and remove the {label_text}.'.format(
-            label_text=issue.issue_tracker.label_text(
-                data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)))
+        update_message, policy, issue, f' and remove the {label_text}.')
     issue.labels.add(data_types.CHROMIUM_ISSUE_RELEASEBLOCK_BETA_LABEL)
 
     # Update with the next beta for trunk, and remove existing milestone label.
     beta_milestone_label = (
-        'M-%d' % build_info.get_release_milestone('head', testcase.platform))
+        f'M-{build_info.get_release_milestone("head", testcase.platform)}')
     if beta_milestone_label not in issue.labels:
       issue.labels.remove_by_prefix('M-')
       issue.labels.add(beta_milestone_label)
@@ -1052,12 +1039,12 @@ def update_component_labels(testcase, issue):
     issue.components.add(filtered_component)
 
   issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)
+  label_text = issue.issue_tracker.label_text(
+      data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
   issue_comment = (
       'Automatically applying components based on crash stacktrace and '
       'information from OWNERS files.\n\n'
-      'If this is incorrect, please apply the {label_text}.'.format(
-          label_text=issue.issue_tracker.label_text(
-              data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)))
+      f'If this is incorrect, please apply the {label_text}.')
   issue.save(new_comment=issue_comment, notify=True)
 
 
@@ -1089,7 +1076,7 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
 
   ccs_added = False
   actions = list(issue.actions)
-  for cc in random.sample(ccs_list, min(AUTO_CC_LIMIT, len(ccs_list))):
+  for cc in ccs_list:
     if cc in issue.ccs:
       continue
 
@@ -1151,10 +1138,8 @@ def update_issue_labels_for_flaky_testcase(policy, testcase, issue):
 
   issue.labels.remove(reproducible_label)
   issue.labels.add(unreproducible_label)
-  comment = ('ClusterFuzz testcase {testcase_id} appears to be flaky, '
-             'updating reproducibility {label_type}.'.format(
-                 testcase_id=testcase.key.id(),
-                 label_type=issue.issue_tracker.label_type))
+  comment = (f'ClusterFuzz testcase {testcase.key.id()} appears to be flaky, '
+             f'updating reproducibility {issue.issue_tracker.label_type}.')
   issue.save(new_comment=comment)
 
 
@@ -1192,9 +1177,8 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
     description = suspected_cl.get('description')
     author = suspected_cl.get('author')
     if not url or not description or not author:
-      logs.log_error(
-          'Suspected CL for testcase %d is missing required information.' %
-          testcase.key.id())
+      logs.log_error(f'Suspected CL for testcase {testcase.key.id()} '
+                     'is missing required information.')
       return
 
   if len(suspected_cls) == 1 and not only_allow_ccs:
@@ -1212,12 +1196,11 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
     issue.status = policy.status('assigned')
     issue_comment = (
         'Automatically assigning owner based on suspected regression '
-        'changelist %s (%s).\n\n'
-        'If this is incorrect, please let us know why and apply the %s '
+        f'changelist {suspected_cl["url"]} ({suspected_cl["description"]}).\n\n'
+        'If this is incorrect, please let us know why and apply the '
+        f'{data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL} '
         'label. If you aren\'t the correct owner for this issue, please '
-        'unassign yourself as soon as possible so it can be re-triaged.' %
-        (suspected_cl['url'], suspected_cl['description'],
-         data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL))
+        'unassign yourself as soon as possible so it can be re-triaged.')
 
   else:
     if testcase.get_metadata('has_issue_ccs_from_predator_results'):
@@ -1233,8 +1216,8 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       # we're ccing the author. This might, for example, catch the attention of
       # someone who has already been cced.
       author = suspected_cl['author']
-      issue_comment += '%s by %s - %s\n\n' % (suspected_cl['description'],
-                                              author, suspected_cl['url'])
+      issue_comment += f'{suspected_cl["description"]} by ' \
+                       f'{author} - {suspected_cl["url"]}\n\n'
       if author in issue.ccs:
         continue
 
@@ -1259,12 +1242,12 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       testcase.set_metadata('has_issue_ccs_from_owners_file', True)
       return
 
+    label_text = issue.issue_tracker.label_text(
+        data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)
     issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)
-    issue_comment += ((
+    issue_comment += (
         'If this is incorrect, please let us know why and apply the '
-        '{label_text}.').format(
-            label_text=issue.issue_tracker.label_text(
-                data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)))
+        f'{label_text}.')
 
   try:
     issue.save(new_comment=issue_comment, notify=True)
@@ -1272,7 +1255,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
     # If we see such an error when we aren't setting an owner, it's unexpected.
     if only_allow_ccs or not issue.assignee:
       logs.log_error(
-          'Unable to update issue for test case %d.' % testcase.key.id())
+          f'Unable to update issue for test case {testcase.key.id()}.')
       return
 
     # Retry without setting the owner. They may not be a chromium project
