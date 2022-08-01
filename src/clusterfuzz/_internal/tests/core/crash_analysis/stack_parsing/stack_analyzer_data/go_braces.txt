@@ -1,0 +1,22 @@
+panic: runtime error: slice bounds out of range [699494522:64250]
+goroutine 17 [running, locked to thread]:
+regexp.(*Regexp).Split(0x10c0000b2640, {0x10c000ac201f, 0x962c00}, 0xffffffffffffffff)
+ regexp/regexp.go:1266 +0x617
+github.com/google/gonids.(*Rule).option(0x10c000066000, {0x0, {0x10c000ac2016, 0x10c000044000}}, 0x10c0001dc000)
+ github.com/google/gonids/parser.go:675 +0x36c5
+github.com/google/gonids.parseRuleAux({0x10c000ac2000, 0x37a78}, 0x0)
+ github.com/google/gonids/parser.go:942 +0x6b3
+github.com/google/gonids.ParseRule(...)
+ github.com/google/gonids/parser.go:971
+github.com/google/gonids.FuzzParseRule({0x7f369cb75800, 0x0, 0x10c000000601})
+ github.com/google/gonids/fuzz.go:20 +0x54
+main.LLVMFuzzerTestOneInput(...)
+ ./main.3953748960.go:21
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==16820==ERROR: AddressSanitizer: ABRT on unknown address 0x0539000041b4 (pc 0x0000005b2061 bp 0x10c0000c7160 sp 0x10c0000c7148 T0)
+SCARINESS: 10 (signal)
+    #0 0x5b2061 in runtime.raise.abi0 runtime/sys_linux_amd64.s:165
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_gonids_4fd1d07459dc0e09cc34419f8d397495d6d91ed0/revisions/fuzz_parserule+0x5b2061)
+==16820==ABORTING

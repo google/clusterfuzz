@@ -91,6 +91,8 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
+EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX = re.compile(
+    r'===BUG DETECTED: Shell (corruption|injection)===')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
@@ -155,6 +157,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'Sanitizer: calloc-overflow',
     r'Sanitizer: calloc parameters overflow',
     r'Sanitizer: requested allocation size.*exceeds maximum supported size',
+    r'Sanitizer: out of memory',
     r'TerminateBecauseOutOfMemory',
     r'allocator is out of memory trying to allocate',
     r'blinkGCOutOfMemory',
@@ -304,7 +307,7 @@ GOLANG_CRASH_TYPES_MAP = [
 GOLANG_FATAL_ERROR_REGEX = re.compile(r'^fatal error: (.*)')
 
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
-    r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
+    r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.{}]*\)$')
 
 # Python specific regular expressions.
 PYTHON_UNHANDLED_EXCEPTION = re.compile(
@@ -529,6 +532,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*Inline Function @',
     r'^<unknown>$',
     r'^\[vdso\]$',
+    r'^linux-gate.so.*$',
 
     # Golang specific frames to ignore.
     r'^panic$',
@@ -563,6 +567,7 @@ STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'ASSERT',
     'CHECK failure',
+    'Command injection',
     'DCHECK failure',
     'Fatal error',
     'Security CHECK failure',

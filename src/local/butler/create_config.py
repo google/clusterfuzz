@@ -36,6 +36,7 @@ _REQUIRED_SERVICES = (
     'clouderrorreporting.googleapis.com',
     'cloudprofiler.googleapis.com',
     'cloudresourcemanager.googleapis.com',
+    'cloudscheduler.googleapis.com',
     'compute.googleapis.com',
     'containerregistry.googleapis.com',
     'datastore.googleapis.com',
