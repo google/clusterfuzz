@@ -1,5 +1,3 @@
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz/badge)](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz)
-
 # ClusterFuzz
 
 <p align="center">
@@ -52,6 +50,8 @@ We will use [clusterfuzz-announce(#)googlegroups.com](https://groups.google.com/
 ## ClusterFuzzLite
 For a more lightweight version of ClusterFuzz that runs on CI/CD
 systems, check out [ClusterFuzzLite](http://github.com/google/clusterfuzzlite).
+
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz/badge)](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz)
 
 [Chrome]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
 [36,000+]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=-status%3AWontFix%2CDuplicate%20-component%3AInfra&can=1
