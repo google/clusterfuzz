@@ -545,8 +545,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'libfuzzer_msan_lib6',
         'libfuzzer_ubsan_lib6',
         'libfuzzer_asan_lib7',
-        'libfuzzer_none_i386_lib8',
-        'libfuzzer_none_lib8',
+        'libfuzzer_nosanitizer_i386_lib8',
+        'libfuzzer_nosanitizer_lib8',
     ])
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
@@ -1367,8 +1367,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB6_LINUX', 'afl', 'afl_asan_lib6'),
         ('LIB1_LINUX', 'honggfuzz', 'honggfuzz_asan_lib1'),
         ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
-        ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_none_i386_lib8'),
-        ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_none_lib8'),
+        ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_i386_lib8'),
+        ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_lib8'),
     ])
 
     all_permissions = [
@@ -1566,25 +1566,25 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'entity_kind': 1,
         'is_prefix': False,
         'email': 'user@example.com',
-        'entity_name': 'libfuzzer_none_lib8',
+        'entity_name': 'libfuzzer_nosanitizer_lib8',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'email': 'user@example.com',
-        'entity_name': 'libfuzzer_none_i386_lib8',
+        'entity_name': 'libfuzzer_nosanitizer_i386_lib8',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'email': 'primary@example.com',
-        'entity_name': 'libfuzzer_none_lib8',
+        'entity_name': 'libfuzzer_nosanitizer_lib8',
         'auto_cc': 1
     }, {
         'entity_kind': 1,
         'is_prefix': False,
         'email': 'primary@example.com',
-        'entity_name': 'libfuzzer_none_i386_lib8',
+        'entity_name': 'libfuzzer_nosanitizer_i386_lib8',
         'auto_cc': 1
     }])
 
@@ -1694,6 +1694,14 @@ def _mock_read_data(path):
               'fuzzing_engines': ['libfuzzer', 'googlefuzztest'],
               'sanitizers': ['address']
           },
+          {
+              'build_path':
+                  'gs://bucket/e-f/%ENGINE%/%SANITIZER%/%TARGET%/([0-9]+).zip',
+              'name':
+                  '//e/f',
+              'fuzzing_engines': ['libfuzzer'],
+              'sanitizers': ['none']
+          },
       ]
   })
 
@@ -1768,7 +1776,8 @@ class GenericProjectSetupTest(unittest.TestCase):
                         },
                         'memory': {
                             'MSAN_VAR': 'VAL',
-                        }
+                        },
+                        'none': {},
                     }
                 }
             },
@@ -1873,6 +1882,22 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertFalse(job.is_external())
 
     job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_nosanitizer_e-f').get()
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket/e-f/libfuzzer/none/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = //e/f\nSUMMARY_PREFIX = //e/f\nMANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL\n', job.environment_string)
+    six.assertCountEqual(self, [], job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+
+    job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_c-d_dbg').get()
     self.assertIsNone(job)
 
@@ -1954,6 +1979,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'libfuzzer_asan_a-b',
         'libfuzzer_asan_c-d',
         'libfuzzer_msan_a-b',
+        'libfuzzer_nosanitizer_e-f',
         'old_unmanaged',
     ], libfuzzer.jobs)
 
