@@ -132,7 +132,7 @@ class AflConfig(object):
 
       afl_option = self.LIBFUZZER_TO_AFL_OPTIONS[libfuzzer_name]
       if afl_option.type == AflOptionType.ARG:
-        self.additional_afl_arguments.append('%s%s' % (afl_option.name, value))
+        self.additional_afl_arguments.append(f'{afl_option.name}{value}')
       else:
         assert afl_option.type == AflOptionType.ENV_VAR
         self.additional_env_vars[afl_option.name] = value
@@ -567,14 +567,14 @@ class AflRunnerCommon(object):
 
     return afl_environment_vars
 
-  def verify_return_code(self, result, additional_return_codes=None):
+  def check_return_code(self, result, additional_return_codes=None):
     expected_return_codes = [0, 1, -6]
     if additional_return_codes:
       expected_return_codes += additional_return_codes
 
     if result.return_code not in expected_return_codes:
       logs.log_error(
-          'AFL target exited with abnormal exit code: %s.' % result.return_code,
+          f'AFL target exited with abnormal exit code: {result.return_code}.',
           output=result.output)
 
   def run_single_testcase(self, testcase_path):
@@ -594,7 +594,7 @@ class AflRunnerCommon(object):
     self.afl_setup()
     result = self.run_and_wait(additional_args=[testcase_path])
     print('Running command:', engine_common.get_command_quoted(result.command))
-    self.verify_return_code(result)
+    self.check_return_code(result)
 
     return result
 
@@ -853,7 +853,15 @@ class AflRunnerCommon(object):
       self.set_arg(fuzz_args, constants.CMPLOG_LEVEL_FLAG,
                    rand_cmplog_level(self.strategies))
 
-      if environment.is_android():
+      if not environment.is_android():
+        # Attempt to start the fuzzer.
+        fuzz_result = self.run_and_wait(
+            additional_args=fuzz_args,
+            timeout=max_total_time,
+            terminate_before_kill=True,
+            terminate_wait_time=self.SIGTERM_WAIT_TIME,
+        )
+      else:
         android_params = []
         android_params = self.get_afl_environment_variables()
         android_params.append(android.util.get_device_path(self.afl_fuzz_path))
@@ -861,14 +869,6 @@ class AflRunnerCommon(object):
         # Attempt to start the fuzzer.
         fuzz_result = self.run_and_wait(
             additional_args=android_params + fuzz_args,
-            timeout=max_total_time,
-            terminate_before_kill=True,
-            terminate_wait_time=self.SIGTERM_WAIT_TIME,
-        )
-      else:
-        # Attempt to start the fuzzer.
-        fuzz_result = self.run_and_wait(
-            additional_args=fuzz_args,
             timeout=max_total_time,
             terminate_before_kill=True,
             terminate_wait_time=self.SIGTERM_WAIT_TIME,
@@ -999,10 +999,10 @@ class AflRunnerCommon(object):
     reproducing testcases."""
 
     if self._afl_output is None:
-      if environment.is_android():
-        self._afl_output = AflAndroidFuzzOutputDirectory()
-      else:
+      if not environment.is_android():
         self._afl_output = AflFuzzOutputDirectory()
+      else:
+        self._afl_output = AflAndroidFuzzOutputDirectory()
 
     return self._afl_output
 
@@ -1244,9 +1244,8 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                                          ' executions by accident.')
     self.afl_setup()
     self._executable_path = android.adb.get_adb_path()
-    self._default_args = ["shell"] + \
-                         self.get_afl_environment_variables() + \
-                         [android.util.get_device_path(self.target_path)]
+    self._default_args = (['shell'] + self.get_afl_environment_variables()
+                          + [android.util.get_device_path(self.target_path)])
 
     device_target_path = android.util.get_device_path(testcase_path)
     android.adb.copy_local_file_to_remote(testcase_path, device_target_path)
@@ -1258,7 +1257,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
         android.util.get_device_path(self.stderr_file_path),
         self.stderr_file_path)
 
-    self.verify_return_code(result, [134])
+    self.check_return_code(result, [134])
     return result
 
   def get_file_features(self, input_file_path, showmap_args):
@@ -1274,7 +1273,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
 
   def fuzz(self):
     self._executable_path = android.adb.get_adb_path()
-    self._default_args = ["shell"]
+    self._default_args = ['shell']
 
     self.initial_max_total_time = (
         get_fuzz_timeout(
@@ -1308,33 +1307,25 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     device_script_path = os.path.join(
         android.constants.DEVICE_FUZZING_DIR, "run.sh")
 
-    local_script_path = environment.get_root_directory() + \
-                        "/src/clusterfuzz/_internal/" \
-                        "scripts/create_file_features_showmap.sh"
+    local_script_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                     'create_file_features_showmap.sh')
 
     android.adb.copy_local_file_to_remote(local_script_path, device_script_path)
-    android.adb.run_shell_command("chmod 0777 %s" % device_script_path,
-                                  root=True)
-    android.adb.run_shell_command("%s "
-                                  "--showmap_path %s "
-                                  "--fuzzer_path %s "
-                                  "--corpus_path %s "
-                                  "--output_path %s "
-                                  "--seed_path %s"
-                                  % (device_script_path,
-                                     android.util.get_device_path(
-                                         self.afl_showmap_path),
-                                     android.util.get_device_path(
-                                         self.target_path),
-                                     android.util.get_device_path(
-                                         self.afl_output.queue),
-                                     android.util.get_device_path(
-                                         self._showmap_results_dir),
-                                     android.util.get_device_path(
-                                         self.afl_input.input_directory)
-                                     ),
-                                  root=True,
-                                  log_output=True)
+    android.adb.run_shell_command(f'chmod 0777 {device_script_path}', root=True)
+    android.adb.run_shell_command(
+        f'{device_script_path} '
+        f'--showmap_path '
+        f'{android.util.get_device_path(self.afl_showmap_path)} '
+        f'--fuzzer_path '
+        f'{android.util.get_device_path(self.target_path)} '
+        f'--corpus_path '
+        f'{android.util.get_device_path(self.afl_output.queue)} '
+        f'--output_path '
+        f'{android.util.get_device_path(self._showmap_results_dir)} '
+        f'--seed_path '
+        f'{android.util.get_device_path(self.afl_input.input_directory)}',
+        root=True,
+        log_output=True)
 
     # Copy all results from device to local.
     self._copy_directories_from_device(
@@ -1535,10 +1526,10 @@ def prepare_runner(fuzzer_path,
   engine_common.recreate_directory(fuzzer_utils.get_temp_dir())
   if environment.get_value('USE_UNSHARE'):
     runner_class = UnshareAflRunner
-  elif environment.is_android():
-    runner_class = AflAndroidRunner
-  else:
+  elif not environment.is_android():
     runner_class = AflRunner
+  else:
+    runner_class = AflAndroidRunner
 
   runner = runner_class(
       fuzzer_path,
