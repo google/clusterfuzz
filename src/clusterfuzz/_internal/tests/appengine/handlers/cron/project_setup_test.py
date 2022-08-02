@@ -312,7 +312,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'fuzzing_engines': ['libfuzzer',],
             'sanitizers': ['none'],
             'architectures': ['i386', 'x86_64'],
-        }),        
+        }),
     ]
 
     mock_storage.buckets().get.side_effect = mock_bucket_get
