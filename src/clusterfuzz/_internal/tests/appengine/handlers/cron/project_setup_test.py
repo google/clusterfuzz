@@ -305,6 +305,14 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 'per-target': ['ignore']
             },
         }),
+        ('lib8', {
+            'homepage': 'http://example.com',
+            'primary_contact': 'primary@example.com',
+            'auto_ccs': ['User@example.com',],
+            'fuzzing_engines': ['libfuzzer',],
+            'sanitizers': ['none'],
+            'architectures': ['i386', 'x86_64'],
+        }),        
     ]
 
     mock_storage.buckets().get.side_effect = mock_bucket_get
@@ -537,6 +545,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'libfuzzer_msan_lib6',
         'libfuzzer_ubsan_lib6',
         'libfuzzer_asan_lib7',
+        'libfuzzer_none_i386_lib8',
+        'libfuzzer_none_lib8',
     ])
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
@@ -1357,6 +1367,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB6_LINUX', 'afl', 'afl_asan_lib6'),
         ('LIB1_LINUX', 'honggfuzz', 'honggfuzz_asan_lib1'),
         ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
+        ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_none_i386_lib8'),
+        ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_none_lib8'),
     ])
 
     all_permissions = [
@@ -1550,6 +1562,30 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'email': 'user@example.com',
         'entity_name': 'libfuzzer_asan_lib7',
         'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'user@example.com',
+        'entity_name': 'libfuzzer_none_lib8',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'user@example.com',
+        'entity_name': 'libfuzzer_none_i386_lib8',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'primary@example.com',
+        'entity_name': 'libfuzzer_none_lib8',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'primary@example.com',
+        'entity_name': 'libfuzzer_none_i386_lib8',
+        'auto_cc': 1
     }])
 
     expected_topics = [
@@ -1561,6 +1597,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib5-linux',
         'projects/clusterfuzz-external/topics/jobs-lib6-linux',
         'projects/clusterfuzz-external/topics/jobs-lib7-linux',
+        'projects/clusterfuzz-external/topics/jobs-lib8-linux',
     ]
     six.assertCountEqual(self, expected_topics,
                          list(pubsub_client.list_topics('projects/' + app_id)))
