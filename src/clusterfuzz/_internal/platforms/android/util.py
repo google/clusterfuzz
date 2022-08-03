@@ -18,11 +18,13 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 
+
 def get_device_path(local_path):
   """Returns device path for the given local path."""
   root_directory = environment.get_root_directory()
   return os.path.join(android.constants.DEVICE_FUZZING_DIR,
                       os.path.relpath(local_path, root_directory))
+
 
 def get_local_path(device_path):
   """Returns local path for the given device path."""

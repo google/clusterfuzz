@@ -556,14 +556,14 @@ class AflRunnerCommon(object):
     stderr_file_path = self.stderr_file_path
     if environment.is_android():
       stderr_file_path = android.util.get_device_path(self.stderr_file_path)
-    environment.set_value(constants.STDERR_FILENAME_ENV_VAR,
-                          stderr_file_path)
+    environment.set_value(constants.STDERR_FILENAME_ENV_VAR, stderr_file_path)
 
   def get_afl_environment_variables(self):
     afl_environment_vars = []
     for env_var in os.environ:
       if env_var and env_var.startswith('AFL_'):
-        afl_environment_vars.append(env_var + '=' + str(environment.get_value(env_var)))
+        afl_environment_vars.append(env_var + '=' +
+                                    str(environment.get_value(env_var)))
 
     return afl_environment_vars
 
@@ -724,8 +724,7 @@ class AflRunnerCommon(object):
 
     afl_args = [
         constants.INSTANCE_ID_FLAG + constants.DEFAULT_INSTANCE_ID,
-        constants.INPUT_FLAG + afl_input,
-        constants.OUTPUT_FLAG + afl_output,
+        constants.INPUT_FLAG + afl_input, constants.OUTPUT_FLAG + afl_output,
         constants.MEMORY_LIMIT_FLAG + str(mem_limit)
     ]
 
@@ -1191,21 +1190,22 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
   DEVICE_FUZZING_CLEAN_EXIT_TIME = 10.0
 
   def __init__(self,
-      target_path,
-      config,
-      testcase_file_path,
-      input_directory,
-      timeout=None,
-      afl_tools_path=None,
-      strategy_dict=None):
+               target_path,
+               config,
+               testcase_file_path,
+               input_directory,
+               timeout=None,
+               afl_tools_path=None,
+               strategy_dict=None):
     super().__init__(target_path, config, testcase_file_path, input_directory,
                      timeout, afl_tools_path, strategy_dict)
 
-    new_process.ProcessRunner.__init__(self, executable_path=android.adb.get_adb_path())
+    new_process.ProcessRunner.__init__(
+        self, executable_path=android.adb.get_adb_path())
     self.showmap_output_path = os.path.join(
         android.constants.DEVICE_FUZZING_DIR, self.SHOWMAP_FILENAME)
-    self._showmap_results_dir = os.path.join(
-        environment.get_root_directory(), "tmp/showmap_results")
+    self._showmap_results_dir = os.path.join(environment.get_root_directory(),
+                                             "tmp/showmap_results")
 
   def _copy_local_directories_to_device(self, local_directories):
     """Copies local directories to device."""
@@ -1244,8 +1244,8 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
                                          ' executions by accident.')
     self.afl_setup()
     self._executable_path = android.adb.get_adb_path()
-    self._default_args = (['shell'] + self.get_afl_environment_variables()
-                          + [android.util.get_device_path(self.target_path)])
+    self._default_args = (['shell'] + self.get_afl_environment_variables() +
+                          [android.util.get_device_path(self.target_path)])
 
     device_target_path = android.util.get_device_path(testcase_path)
     android.adb.copy_local_file_to_remote(testcase_path, device_target_path)
@@ -1267,8 +1267,10 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     # here.
 
     filename = os.path.basename(input_file_path)
-    intput_file_showmap_results_file = os.path.join(self._showmap_results_dir, filename)
-    showmap_output = engine_common.read_data_from_file(intput_file_showmap_results_file)
+    intput_file_showmap_results_file = os.path.join(self._showmap_results_dir,
+                                                    filename)
+    showmap_output = engine_common.read_data_from_file(
+        intput_file_showmap_results_file)
     return self.get_feature_tuple(showmap_output), False
 
   def fuzz(self):
@@ -1280,15 +1282,14 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
             self.strategies.is_mutations_run, full_timeout=self.timeout) -
         self.AFL_CLEAN_EXIT_TIME - self.SIGTERM_WAIT_TIME)
 
-    on_device_fuzzing_timeout = self.timeout - int(self.AFL_CLEAN_EXIT_TIME
-                                        + self.SIGTERM_WAIT_TIME
-                                        + self.DEVICE_FUZZING_CLEAN_EXIT_TIME)
+    on_device_fuzzing_timeout = self.timeout - int(
+        self.AFL_CLEAN_EXIT_TIME + self.SIGTERM_WAIT_TIME +
+        self.DEVICE_FUZZING_CLEAN_EXIT_TIME)
 
-    self._copy_local_directories_to_device(
-        [
-            self.afl_input.input_directory,
-            os.path.dirname(os.path.realpath(self.target_path))
-        ])
+    self._copy_local_directories_to_device([
+        self.afl_input.input_directory,
+        os.path.dirname(os.path.realpath(self.target_path))
+    ])
 
     device_output_dir = android.util.get_device_path(
         self.afl_output.output_directory)
@@ -1298,42 +1299,38 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     self._fuzz_args = self.generate_afl_args(
         afl_input=android.util.get_device_path(self.afl_input.input_directory),
         afl_output=device_output_dir,
-        additional_args=[constants.FUZZING_TIMEOUT_FLAG + str(on_device_fuzzing_timeout)],
+        additional_args=[
+            constants.FUZZING_TIMEOUT_FLAG + str(on_device_fuzzing_timeout)
+        ],
         target_path=android.util.get_device_path(self.target_path))
 
     fuzz_result = self.run_afl_fuzz(self._fuzz_args)
 
     # Generate file features from fuzzing results.
-    device_script_path = os.path.join(
-        android.constants.DEVICE_FUZZING_DIR, "run.sh")
+    device_script_path = os.path.join(android.constants.DEVICE_FUZZING_DIR,
+                                      "run.sh")
 
-    local_script_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                     'create_file_features_showmap.sh')
+    local_script_path = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)),
+        'create_file_features_showmap.sh')
 
     android.adb.copy_local_file_to_remote(local_script_path, device_script_path)
     android.adb.run_shell_command(f'chmod 0777 {device_script_path}', root=True)
     android.adb.run_shell_command(
-        device_script_path +
-        ' --showmap_path ' +
-        android.util.get_device_path(self.afl_showmap_path) +
-        ' --fuzzer_path ' +
-        android.util.get_device_path(self.target_path) +
-        ' --corpus_path ' +
-        android.util.get_device_path(self.afl_output.queue) +
-        ' --output_path ' +
-        android.util.get_device_path(self._showmap_results_dir) +
-        ' --seed_path ' +
-        android.util.get_device_path(self.afl_input.input_directory),
+        device_script_path + ' --showmap_path ' + android.util.get_device_path(
+            self.afl_showmap_path) + ' --fuzzer_path ' +
+        android.util.get_device_path(self.target_path) + ' --corpus_path ' +
+        android.util.get_device_path(self.afl_output.queue) + ' --output_path '
+        + android.util.get_device_path(self._showmap_results_dir) +
+        ' --seed_path ' + android.util.get_device_path(
+            self.afl_input.input_directory),
         root=True,
         log_output=True)
 
     # Copy all results from device to local.
     self._copy_directories_from_device(
-        [
-            self.afl_output.output_directory,
-            self._showmap_results_dir
-        ])
-        
+        [self.afl_output.output_directory, self._showmap_results_dir])
+
     android.adb.copy_remote_file_to_local(
         android.util.get_device_path(self.stderr_file_path),
         self.stderr_file_path)
@@ -1342,6 +1339,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
 
 class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
+
 
 class CorpusElement(object):
   """An element (file) in a corpus."""
