@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # This script is used to be pushed to an Android device to run afl-showmap tool
 # for each corpus file after fuzzing is complete to generate get_file_features
 # all at once, instead of individually calling afl-showmap for each corpus file

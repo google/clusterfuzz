@@ -243,12 +243,12 @@ class AflFuzzOutputDirectory(object):
 
 class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
   """Helper class used by AflAndroidRunner to deal with AFL's output directory
-  and help copy contents from device to local
+  and help copy contents from device to local.
   """
 
   def copy_crash_if_needed(self, testcase_path):
     """Copy the first crash found by AFL. Before calling super method
-    copy the crashes directory from device to local
+    copy the crashes directory from device to local.
     """
     logs.log('Copying crash directory from device to local.')
 
@@ -1313,17 +1313,17 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     android.adb.copy_local_file_to_remote(local_script_path, device_script_path)
     android.adb.run_shell_command(f'chmod 0777 {device_script_path}', root=True)
     android.adb.run_shell_command(
-        f'{device_script_path} '
-        f'--showmap_path '
-        f'{android.util.get_device_path(self.afl_showmap_path)} '
-        f'--fuzzer_path '
-        f'{android.util.get_device_path(self.target_path)} '
-        f'--corpus_path '
-        f'{android.util.get_device_path(self.afl_output.queue)} '
-        f'--output_path '
-        f'{android.util.get_device_path(self._showmap_results_dir)} '
-        f'--seed_path '
-        f'{android.util.get_device_path(self.afl_input.input_directory)}',
+        device_script_path +
+        ' --showmap_path ' +
+        android.util.get_device_path(self.afl_showmap_path) +
+        ' --fuzzer_path ' +
+        android.util.get_device_path(self.target_path) +
+        ' --corpus_path ' +
+        android.util.get_device_path(self.afl_output.queue) +
+        ' --output_path ' +
+        android.util.get_device_path(self._showmap_results_dir) +
+        ' --seed_path ' +
+        android.util.get_device_path(self.afl_input.input_directory),
         root=True,
         log_output=True)
 

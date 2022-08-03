@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Functions to help with common Android operations"""
 
 import os
 
@@ -35,7 +34,3 @@ def get_local_path(device_path):
   return os.path.join(
       root_directory,
       os.path.relpath(device_path, android.constants.DEVICE_FUZZING_DIR))
-
-def get_device_corpus_paths(self, corpus_directories):
-  """Returns device paths for the given corpus directories."""
-  return [get_device_path(path) for path in corpus_directories]
