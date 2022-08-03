@@ -106,6 +106,7 @@ def _get_stats(line):
 
   return stats
 
+
 def _contains_netdriver(target_path):
   """Returns whether |target_path| contains netdriver string."""
   with open(target_path, 'rb') as f:
@@ -172,7 +173,8 @@ class Engine(engine.Engine):
       honggfuzz_env['HFND_TCP_PORT'] = '8000'
 
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS,
+        additional_args=arguments,
+        timeout=max_time + _CLEAN_EXIT_SECS,
         extra_env=honggfuzz_env)
     log_lines = fuzz_result.output.splitlines()
     sanitizer_stacktrace = _find_sanitizer_stacktrace(reproducers_dir)
@@ -254,13 +256,7 @@ class Engine(engine.Engine):
 
     # Minimize the workdir.
     arguments = _DEFAULT_ARGUMENTS + [
-        '-i',
-        combined_corpus_dir,
-        '-o',
-        output_dir,
-        '-M',
-        '--',
-        target_path
+        '-i', combined_corpus_dir, '-o', output_dir, '-M', '--', target_path
     ]
 
     honggfuzz_env = {}
@@ -268,7 +264,8 @@ class Engine(engine.Engine):
       honggfuzz_env['HFND_TCP_PORT'] = '8000'
 
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS,
+        additional_args=arguments,
+        timeout=max_time + _CLEAN_EXIT_SECS,
         extra_env=honggfuzz_env)
 
     # Set up return values.
