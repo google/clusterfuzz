@@ -1526,10 +1526,10 @@ def prepare_runner(fuzzer_path,
   engine_common.recreate_directory(fuzzer_utils.get_temp_dir())
   if environment.get_value('USE_UNSHARE'):
     runner_class = UnshareAflRunner
-  elif not environment.is_android():
-    runner_class = AflRunner
-  else:
+  elif environment.is_android():
     runner_class = AflAndroidRunner
+  else:
+    runner_class = AflRunner
 
   runner = runner_class(
       fuzzer_path,
