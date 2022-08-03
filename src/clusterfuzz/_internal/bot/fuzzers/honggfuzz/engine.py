@@ -237,30 +237,23 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    # TODO(ochang): Implement this.
-    logs.log('Minimizing honggfuzz corpus - step 1.')
-
     runner = _get_runner()
     combined_corpus_dir = self._create_temp_corpus_dir('minimize-workdir')
-    logs.log('Minimizing honggfuzz corpus - step 2.')
 
     # Copy all of the seeds into corpus.
     idx = 0
     for input_dir in input_dirs:
-        logs.log(f'Copying input dir {input_dir}.')
-        src_corpus_files = []
-        for root, _, files in shell.walk(input_dir):
-            for f in files:
-                src_corpus_files.append(os.path.join(root, f))
-        for src_f in src_corpus_files:
-            shutil.copy(src_f, os.path.join(combined_corpus_dir, str(idx)))
-            idx += 1
-
-    logs.log('Minimizing honggfuzz corpus - step 3.')
+      logs.log(f'Copying input dir {input_dir}.')
+      src_corpus_files = []
+      for root, _, files in shell.walk(input_dir):
+        for f in files:
+          src_corpus_files.append(os.path.join(root, f))
+      for src_f in src_corpus_files:
+        shutil.copy(src_f, os.path.join(combined_corpus_dir, str(idx)))
+        idx += 1
 
     # Minimize the workdir.
-    arguments = _DEFAULT_ARGUMENTS[:]
-    arguments += [
+    arguments = _DEFAULT_ARGUMENTS + [
         '-i',
         combined_corpus_dir,
         '-o',
@@ -273,12 +266,10 @@ class Engine(engine.Engine):
     honggfuzz_env = {}
     if _contains_netdriver(target_path):
       honggfuzz_env['HFND_TCP_PORT'] = '8000'
-    logs.log('Minimizing honggfuzz corpus - step 4.')
 
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS,
         extra_env=honggfuzz_env)
-    logs.log('Minimizing honggfuzz corpus - step 5.')
 
     # Set up return values.
     # TODO(DavidKorczynski): Fix this although I'm not sure
