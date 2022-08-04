@@ -373,7 +373,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^SignalAction',
     r'^SignalHandler',
     r'^TestOneProtoInput',
-    r'^V8_Fatal',
     r'^WTF::',
     r'^WTFCrash',
     r'^X11Error',
@@ -554,6 +553,12 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # googlefuzztest specific.
     r'.*fuzztest::internal::',
+
+    # V8 specific.
+    r'^V8_Fatal',
+    # Ignore error-throwing frames, the bug is in the caller.
+    r'^blink::ReportV8FatalError',
+    r'^v8::api_internal::ToLocalEmpty',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
