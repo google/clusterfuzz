@@ -211,7 +211,7 @@ class Engine(engine.Engine):
     """
     os.chmod(target_path, 0o775)
     runner = new_process.UnicodeProcessRunner(target_path)
-    with open(input_path) as f:
+    with open(input_path, 'rb') as f:
       result = runner.run_and_wait(timeout=max_time, stdin=f)
 
     return engine.ReproduceResult(result.command, result.return_code,
@@ -224,7 +224,7 @@ class Engine(engine.Engine):
     return new_corpus_directory
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):
+                      reproducers_dir, max_time):  # pylint: disable=unused-argument
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -263,7 +263,7 @@ class Engine(engine.Engine):
     if _contains_netdriver(target_path):
       honggfuzz_env['HFND_TCP_PORT'] = '8000'
 
-    fuzz_result = runner.run_and_wait(
+    runner.run_and_wait(
         additional_args=arguments,
         timeout=max_time + _CLEAN_EXIT_SECS,
         extra_env=honggfuzz_env)
@@ -278,3 +278,34 @@ class Engine(engine.Engine):
 
     return engine.FuzzResult(merge_output, result_command, [], merge_stats,
                              result_time_executed)
+
+  def minimize_testcase(self, target_path, arguments, input_path, output_path,
+                        max_time):
+    """Optional (but recommended): Minimize a testcase.
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase minimization.
+      input_path: Path to the reproducer input.
+      output_path: Path to the minimized output.
+      max_time: Maximum allowed time for the minimization.
+    Returns:
+      A ReproduceResult.
+    Raises:
+      TimeoutError: If the testcase minimization exceeds max_time.
+    """
+    raise NotImplementedError
+
+  def cleanse(self, target_path, arguments, input_path, output_path, max_time):
+    """Optional (but recommended): Cleanse a testcase.
+    Args:
+      target_path: Path to the target.
+      arguments: Additional arguments needed for testcase cleanse.
+      input_path: Path to the reproducer input.
+      output_path: Path to the cleansed output.
+      max_time: Maximum allowed time for the cleanse.
+    Returns:
+      A ReproduceResult.
+    Raises:
+      TimeoutError: If the cleanse exceeds max_time.
+    """
+    raise NotImplementedError
