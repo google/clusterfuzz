@@ -20,8 +20,8 @@ import shutil
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
-from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
