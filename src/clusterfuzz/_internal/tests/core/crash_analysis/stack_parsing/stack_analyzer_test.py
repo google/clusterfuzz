@@ -969,6 +969,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_v8_to_local_empty(self):
+    """Test a failure in ToLocalEmpty, which is actually a bug in the caller
+    of that method."""
+    data = self._read_test_data('v8_to_local_empty.txt')
+    expected_type = 'Breakpoint'
+    expected_address = '0x7ffe91274242'
+    expected_state = (
+        'blink::V8ContextSnapshotImpl::CreateContext\n'
+        'blink::V8ContextSnapshot::CreateContextFromSnapshot\n'
+        'blink::LocalWindowProxy::CreateContext\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_v8_representation_changer_error(self):
     """Tests a v8 RepresentationChangerError."""
     data = self._read_test_data('v8_representation_changer_error.txt')
