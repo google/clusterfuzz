@@ -26,4 +26,5 @@ from . import logger
 from . import sanitizer
 from . import settings
 from . import ui
+from . import util
 from . import wifi
