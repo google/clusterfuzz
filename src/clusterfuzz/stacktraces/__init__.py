@@ -973,8 +973,7 @@ class StackParser:
 
         # V8 API errors.
         v8_error_match = self.update_state_on_match(
-            V8_ERROR_REGEX, line, state, new_type='V8 API error', reset=True,
-            new_frame_count=1)
+            V8_ERROR_REGEX, line, state, new_type='V8 API error', reset=True)
         if v8_error_match:
           state.crash_state = v8_error_match.group(1) + '\n'
 

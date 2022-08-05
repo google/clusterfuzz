@@ -977,7 +977,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_state = ('Empty MaybeLocal. (v8::ToLocalChecked)\n'
                       'blink::V8ContextSnapshotImpl::CreateContext\n'
-                      'blink::V8ContextSnapshot::CreateContextFromSnapshot\n')
+                      'blink::V8ContextSnapshot::CreateContextFromSnapshot\n'
+                      'blink::LocalWindowProxy::CreateContext\n')
     expected_stacktrace = data
     expected_security_flag = False
 
