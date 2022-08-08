@@ -973,9 +973,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test a failure in ToLocalEmpty, which is actually a bug in the caller
     of that method."""
     data = self._read_test_data('v8_to_local_empty.txt')
-    expected_type = 'Breakpoint'
-    expected_address = '0x7ffe91274242'
-    expected_state = ('blink::V8ContextSnapshotImpl::CreateContext\n'
+    expected_type = 'V8 API error'
+    expected_address = ''
+    expected_state = ('Empty MaybeLocal. (v8::ToLocalChecked)\n'
+                      'blink::V8ContextSnapshotImpl::CreateContext\n'
                       'blink::V8ContextSnapshot::CreateContextFromSnapshot\n'
                       'blink::LocalWindowProxy::CreateContext\n')
     expected_stacktrace = data

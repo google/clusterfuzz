@@ -971,6 +971,12 @@ class StackParser:
             state.crash_state = abort_error
           state.frame_count = MAX_CRASH_STATE_FRAMES
 
+        # V8 API errors.
+        v8_error_match = self.update_state_on_match(
+            V8_ERROR_REGEX, line, state, new_type='V8 API error', reset=True)
+        if v8_error_match:
+          state.crash_state = v8_error_match.group(1) + '\n'
+
         # V8 correctness failure errors.
         self.update_state_on_match(
             V8_CORRECTNESS_FAILURE_REGEX,
