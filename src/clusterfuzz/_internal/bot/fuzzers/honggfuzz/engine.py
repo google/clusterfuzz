@@ -49,7 +49,7 @@ _CRASH_REGEX = re.compile('Crash: saved as \'(.*)\'')
 _HF_SANITIZER_LOG_PREFIX = 'HF.sanitizer.log'
 _STATS_PREFIX = 'Summary '
 
-_HONGGFUZZ_NETDRIVER_PORT = '8666'
+_NETDRIVER_PORT = '8666'
 
 
 class HonggfuzzError(Exception):
@@ -172,7 +172,7 @@ class Engine(engine.Engine):
 
     honggfuzz_env = {}
     if _contains_netdriver(target_path):
-      honggfuzz_env['HFND_TCP_PORT'] = _HONGGFUZZ_NETDRIVER_PORT
+      honggfuzz_env['HFND_TCP_PORT'] = _NETDRIVER_PORT
 
     fuzz_result = runner.run_and_wait(
         additional_args=arguments,
@@ -265,7 +265,7 @@ class Engine(engine.Engine):
 
     honggfuzz_env = {}
     if _contains_netdriver(target_path):
-      honggfuzz_env['HFND_TCP_PORT'] = _HONGGFUZZ_NETDRIVER_PORT
+      honggfuzz_env['HFND_TCP_PORT'] = _NETDRIVER_PORT
 
     runner.run_and_wait(
         additional_args=arguments,
