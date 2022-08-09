@@ -267,20 +267,17 @@ class Engine(engine.Engine):
     if _contains_netdriver(target_path):
       honggfuzz_env['HFND_TCP_PORT'] = _NETDRIVER_PORT
 
-    runner.run_and_wait(
+    minimise_result = runner.run_and_wait(
         additional_args=arguments,
         timeout=max_time + _CLEAN_EXIT_SECS,
         extra_env=honggfuzz_env)
 
     # Set up return values.
-    # TODO(DavidKorczynski): Assign following output variables appropriately.
-    merge_output = ''
-    result_command = ''
+    # TODO(DavidKorczynski): Assign merge_stats output appropriately.
     merge_stats = {}
-    result_time_executed = 20
 
-    return engine.FuzzResult(merge_output, result_command, [], merge_stats,
-                             result_time_executed)
+    return engine.FuzzResult(minimise_result.output, minimise_result.command,
+                             [], merge_stats, minimise_result.time_executed)
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
