@@ -49,6 +49,8 @@ _CRASH_REGEX = re.compile('Crash: saved as \'(.*)\'')
 _HF_SANITIZER_LOG_PREFIX = 'HF.sanitizer.log'
 _STATS_PREFIX = 'Summary '
 
+_HONGGFUZZ_NETDRIVER_PORT = '8666'
+
 
 class HonggfuzzError(Exception):
   """Base exception class."""
@@ -109,8 +111,8 @@ def _get_stats(line):
 
 def _contains_netdriver(target_path):
   """Returns whether |target_path| contains netdriver string."""
-  with open(target_path, 'rb') as f:
-    data = f.read()
+  with open(target_path, 'rb') as file_handle:
+    data = file_handle.read()
   return data.find(b'\x01_LIBHFUZZ_NETDRIVER_BINARY_SIGNATURE_\x02\xff') != -1
 
 
@@ -170,7 +172,7 @@ class Engine(engine.Engine):
 
     honggfuzz_env = {}
     if _contains_netdriver(target_path):
-      honggfuzz_env['HFND_TCP_PORT'] = '8000'
+      honggfuzz_env['HFND_TCP_PORT'] = _HONGGFUZZ_NETDRIVER_PORT
 
     fuzz_result = runner.run_and_wait(
         additional_args=arguments,
@@ -224,7 +226,7 @@ class Engine(engine.Engine):
     return new_corpus_directory
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
-                      reproducers_dir, max_time):  # pylint: disable=unused-argument
+                      reproducers_dir, max_time):
     """Optional (but recommended): run corpus minimization.
 
     Args:
@@ -239,6 +241,8 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
+    del reproducers_dir
+
     runner = _get_runner()
     combined_corpus_dir = self._create_temp_corpus_dir('minimize-workdir')
 
@@ -248,8 +252,8 @@ class Engine(engine.Engine):
       logs.log(f'Copying input dir {input_dir}.')
       src_corpus_files = []
       for root, _, files in shell.walk(input_dir):
-        for f in files:
-          src_corpus_files.append(os.path.join(root, f))
+        for filename in files:
+          src_corpus_files.append(os.path.join(root, filename))
       for src_f in src_corpus_files:
         shutil.copy(src_f, os.path.join(combined_corpus_dir, str(idx)))
         idx += 1
@@ -261,7 +265,7 @@ class Engine(engine.Engine):
 
     honggfuzz_env = {}
     if _contains_netdriver(target_path):
-      honggfuzz_env['HFND_TCP_PORT'] = '8000'
+      honggfuzz_env['HFND_TCP_PORT'] = _HONGGFUZZ_NETDRIVER_PORT
 
     runner.run_and_wait(
         additional_args=arguments,
@@ -269,11 +273,10 @@ class Engine(engine.Engine):
         extra_env=honggfuzz_env)
 
     # Set up return values.
-    # TODO(DavidKorczynski): Fix this although I'm not sure
-    # it's strictly needed at this point in time.
+    # TODO(DavidKorczynski): Assign following output variables appropriately.
     merge_output = ''
     result_command = ''
-    merge_stats = ''
+    merge_stats = {}
     result_time_executed = 20
 
     return engine.FuzzResult(merge_output, result_command, [], merge_stats,
