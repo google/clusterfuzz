@@ -272,7 +272,6 @@ class Engine(engine.Engine):
         timeout=max_time + _CLEAN_EXIT_SECS,
         extra_env=honggfuzz_env)
 
-    # Set up return values.
     # TODO(DavidKorczynski): Assign merge_stats output appropriately.
     merge_stats = {}
 
