@@ -549,7 +549,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_java_manual_security_exception(self):
     """Tests for Java exceptions manually marked as security issues."""
     data = self._read_test_data('java_severity_medium_exception.txt')
-    expected_type = 'Uncaught exception'
+    expected_type = 'Security exception'
     expected_address = ''
     expected_state = ('com.example.JsonSanitizerFuzzer.fuzzerTestOneInput\n'
                       'com.google.gson.Gson.fromJson\n'

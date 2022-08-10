@@ -903,6 +903,12 @@ class StackParser:
             address_from_group=1)
 
         if self.update_state_on_match(
+            JAZZER_JAVA_SECURITY_EXCEPTION_REGEX,
+            line,
+            state,
+            new_type='Security exception'):
+          state.found_java_exception = True
+        elif self.update_state_on_match(
             JAZZER_JAVA_EXCEPTION_REGEX,
             line,
             state,
@@ -1164,7 +1170,10 @@ class StackParser:
 
       if state.found_java_exception:
         if (state.crash_type in [
-            'CHECK failure', 'Fatal Exception', 'Uncaught exception'
+            'CHECK failure',
+            'Fatal Exception',
+            'Uncaught exception',
+            'Security exception',
         ]):
           self.add_frame_on_match(
               JAVA_EXCEPTION_CRASH_STATE_REGEX, line, state, group=1)

@@ -109,6 +109,8 @@ GPU_PROCESS_FAILURE = re.compile(r'.*GPU process exited unexpectedly.*')
 HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
+JAZZER_JAVA_SECURITY_EXCEPTION_REGEX = re.compile(
+    '== Java Exception: .*FuzzerSecurityIssue')
 JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KERNEL_BUG = re.compile(r'kernel BUG at (.*)')
