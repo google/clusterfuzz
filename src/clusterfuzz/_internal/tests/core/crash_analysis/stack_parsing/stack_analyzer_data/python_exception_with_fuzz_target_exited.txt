@@ -1,0 +1,40 @@
+
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command: /mnt/scratch0/clusterfuzz/resources/platform/linux/unshare -c -n /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_g-api-python-client_80b2f5f875209e117b6a65af8b48bee444a47e99/revisions/fuzz_mimeparser -rss_limit_mb=2560 -timeout=60 -runs=100 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-724827dabea7a207bfef4d948984a2e4da9de3ab
+Time ran: 8.35143494606018
+INFO: Using preloaded libfuzzer
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1973845593
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_g-api-python-client_80b2f5f875209e117b6a65af8b48bee444a47e99/revisions/fuzz_mimeparser.pkg: Running 1 inputs 100 time(s) each.
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-724827dabea7a207bfef4d948984a2e4da9de3ab
+ === Uncaught Python exception: ===
+ValueError: not enough values to unpack (expected 2, got 1)
+Traceback (most recent call last):
+  File "fuzz_mimeparser.py", line 24, in TestOneInput
+  File "googleapiclient/mimeparse.py", line 167, in best_match
+  File "googleapiclient/mimeparse.py", line 167, in <listcomp>
+  File "googleapiclient/mimeparse.py", line 73, in parse_media_range
+  File "googleapiclient/mimeparse.py", line 54, in parse_mime_type
+INFO: Instrumenting googleapiclient
+WARNING: It looks like this module is imported by a custom loader. Atheris has experimental support for this. However, it may be incompatible with certain libraries. If you experience unusual errors or poor coverage collection, try atheris.instrument_all() instead, add enable_loader_override=False to instrument_imports(), or file an issue on GitHub.
+INFO: Instrumenting logging
+INFO: Instrumenting traceback
+INFO: Instrumenting string
+INFO: Instrumenting googleapiclient.mimeparse
+INFO: Instrumenting __future__
+INFO: Instrumenting 2391 functions...
+INFO: Instrumentation complete.
+==102299== ERROR: libFuzzer: fuzz target exited
+    #0 0x7f6249460cd1 in __sanitizer_print_stack_trace /src/llvm-project/compiler-rt/lib/asan/asan_stack.cpp:87:3
+    #1 0x7f62493a1f58 in fuzzer::PrintStackTrace() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerUtil.cpp:210:5
+    #2 0x7f624938715c in fuzzer::Fuzzer::ExitCallback() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:250:3
+    #3 0x7f624914ba26 in __run_exit_handlers /build/glibc-eX1tMB/glibc-2.31/stdlib/exit.c:108:8
+    #4 0x7f624914bbdf in exit /build/glibc-eX1tMB/glibc-2.31/stdlib/exit.c:139:3
+    #5 0x7f6247e02df8 in Py_Exit /tmp/Python-3.8.3/Python/pylifecycle.c:2299:5
+    #6 0x7f6247e07c0b in handle_system_exit /tmp/Python-3.8.3/Python/pythonrun.c:658:9
+    #7 0x7f6247e07c0b in _PyErr_PrintEx /tmp/Python-3.8.3/Python/pythonrun.c:668:5
+    #0 0x403ac2 in fuzz_mimeparser.pkg
+    #1 0x403e57 in fuzz_mimeparser.pkg
+    #10 0x7f62491290b2 in __libc_start_main /build/glibc-eX1tMB/glibc-2.31/csu/../csu/libc-start.c:308:16
+    #2 0x40249d in fuzz_mimeparser.pkg
+SUMMARY: libFuzzer: fuzz target exited
