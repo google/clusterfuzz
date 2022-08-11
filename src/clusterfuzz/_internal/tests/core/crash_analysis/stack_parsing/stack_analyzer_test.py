@@ -3299,6 +3299,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_capture_arbitrary_file_open(self):
+    """Test capturing arbitrary file open detected by extra sanitizers"""
+    data = self._read_test_data('arbitrary_file_open_bug.txt')
+    expected_type = 'Arbitrary file open'
+    expected_address = ''
+    expected_state = 'wait4\ndo_system\ntarget.cpp\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_sanitizer_out_of_memory(self):
     """Test sanitizer out of memory."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
