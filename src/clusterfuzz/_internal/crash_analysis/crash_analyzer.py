@@ -99,10 +99,12 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
     'Stack overflow',
 ]
 EXTRA_SANITIZERS_SECURITY = [
+    'Arbitrary file open',
     'Command injection',
 ]
 
 EXPERIMENTAL_CRASH_TYPES = [
+    'Arbitrary file open',
     'Command injection',
 ]
 
