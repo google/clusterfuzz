@@ -93,6 +93,8 @@ MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
 EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX = re.compile(
     r'===BUG DETECTED: Shell (corruption|injection)===')
+EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX = re.compile(
+    r'===BUG DETECTED: Arbitrary file open===')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
@@ -573,6 +575,7 @@ STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
 ]
 
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
+    'Arbitrary file open',
     'ASSERT',
     'CHECK failure',
     'Command injection',
