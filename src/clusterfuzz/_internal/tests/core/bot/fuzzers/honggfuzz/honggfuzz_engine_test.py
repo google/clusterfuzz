@@ -174,7 +174,7 @@ class IntegrationTest(unittest.TestCase):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 'fuzz_netdriver')
+                                                 'fuzz_netdriver_crash')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
     self.compare_arguments([
