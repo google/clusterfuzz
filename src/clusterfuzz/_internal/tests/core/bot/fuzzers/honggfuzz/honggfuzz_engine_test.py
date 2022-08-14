@@ -169,6 +169,48 @@ class IntegrationTest(unittest.TestCase):
 
     self.assert_has_stats(results)
 
+  def test_fuzz_netdriver_crash(self):
+    """Test netdriver fuzzing that results in a crash."""
+    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
+    engine_impl = engine.Engine()
+    target_path = engine_common.find_fuzzer_path(DATA_DIR,
+                                                 'fuzz_netdriver')
+    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 10)
+    self.compare_arguments([
+        os.path.join(DATA_DIR, 'honggfuzz'),
+        '-n',
+        '1',
+        '--exit_upon_crash',
+        '-v',
+        '-z',
+        '-P',
+        '-S',
+        '--rlimit_rss',
+        '2560',
+        '--timeout',
+        '25',
+        '--input',
+        os.path.join(TEMP_DIR, 'corpus'),
+        '--workspace',
+        TEMP_DIR,
+        '--run_time',
+        '10',
+        '--',
+        target_path,
+    ], results.command)
+
+    self.assertIn('Seen a crash. Terminating all fuzzing threads', results.logs)
+    self.assertEqual(1, len(results.crashes))
+    crash = results.crashes[0]
+    self.assertEqual(TEMP_DIR, os.path.dirname(crash.input_path))
+    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
+                  crash.stacktrace)
+
+    with open(crash.input_path, 'rb') as f:
+      self.assertEqual(b'B', f.read()[:1])
+
+    self.assert_has_stats(results)
 
 @test_utils.integration
 class UnshareIntegrationTest(IntegrationTest):
