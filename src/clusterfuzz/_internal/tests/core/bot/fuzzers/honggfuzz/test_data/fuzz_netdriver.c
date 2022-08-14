@@ -20,26 +20,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// This test must be compiled with libhfnetdriver.a, e.g.:
-// hfuzz-clang $CFLAGS $HONGGFUZZ_HOME/libhfnetdriver/libhfnetdriver.a fuzz_netdriver.c
-
-// If the server receives a message the starts with "BOOM" characters then a
-// stack-based buffer overflow will happen in this function.
 void data_handler(char *data, int len) {
-  char buf[3];
-
-  // A few conditions to give it a bit more coverage.
-  if (len == 0 || len == 1 || len == 2 || len == 4) {
-    return;
-  }
-  if (data[0] == 'B' &&
-      data[1] == 'O' &&
-      data[2] == 'O' &&
-      data[3] == 'M')
+  if (len > 0 && data[0] == 'B')
   {
-    printf("Overflow about to happen\n");
-    memcpy(buf, data, len);
-    printf("%s\n", buf);
+    char *a = (char*)malloc(1);
+    free(a);
+    *a = 'A';
   }
 }
 
