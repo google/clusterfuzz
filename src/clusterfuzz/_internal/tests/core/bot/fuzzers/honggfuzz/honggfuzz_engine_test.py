@@ -212,6 +212,7 @@ class IntegrationTest(unittest.TestCase):
 
     self.assert_has_stats(results)
 
+
 @test_utils.integration
 class UnshareIntegrationTest(IntegrationTest):
   """Integration tests."""
