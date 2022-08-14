@@ -20,7 +20,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-// This test it must be compiled with libhfnetdriver.a, e.g.:
+// This test must be compiled with libhfnetdriver.a, e.g.:
 // hfuzz-clang $CFLAGS $HONGGFUZZ_HOME/libhfnetdriver/libhfnetdriver.a fuzz_netdriver.c
 
 // If the server receives a message the starts with "BOOM" characters then a
