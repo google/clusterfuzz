@@ -860,9 +860,10 @@ def reset_current_memory_tool_options(redzone_size=0,
   set_value('MEMORY_TOOL', tool_name)
 
   bot_platform = platform()
+  tool_options = {}
 
   # Default options for memory debuggin tool used.
-  if tool_name in ['ASAN', 'HWASAN', 'NOSANITIZER']:
+  if tool_name in ['ASAN', 'HWASAN']:
     tool_options = get_asan_options(redzone_size, malloc_context_size,
                                     quarantine_size_mb, bot_platform, leaks,
                                     disable_ubsan)
