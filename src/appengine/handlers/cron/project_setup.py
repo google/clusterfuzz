@@ -137,15 +137,25 @@ GFT_MSAN_JOB = JobInfo('googlefuzztest_msan_', 'googlefuzztest', 'memory',
 GFT_UBSAN_JOB = JobInfo('googlefuzztest_ubsan_', 'googlefuzztest', 'undefined',
                         ['googlefuzztest', 'engine_ubsan'])
 
+LIBFUZZER_NONE_JOB = JobInfo('libfuzzer_nosanitizer_', 'libfuzzer', 'none',
+                             ['libfuzzer'])
+LIBFUZZER_NONE_I386_JOB = JobInfo(
+    'libfuzzer_nosanitizer_i386_',
+    'libfuzzer',
+    'none', ['libfuzzer'],
+    architecture='i386')
+
 JOB_MAP = {
     'libfuzzer': {
         'x86_64': {
             'address': LIBFUZZER_ASAN_JOB,
             'memory': LIBFUZZER_MSAN_JOB,
             'undefined': LIBFUZZER_UBSAN_JOB,
+            'none': LIBFUZZER_NONE_JOB,
         },
         'i386': {
             'address': LIBFUZZER_ASAN_I386_JOB,
+            'none': LIBFUZZER_NONE_I386_JOB,
         },
     },
     'afl': {

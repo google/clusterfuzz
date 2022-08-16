@@ -99,6 +99,12 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
     'Stack overflow',
 ]
 EXTRA_SANITIZERS_SECURITY = [
+    'Arbitrary file open',
+    'Command injection',
+]
+
+EXPERIMENTAL_CRASH_TYPES = [
+    'Arbitrary file open',
     'Command injection',
 ]
 
@@ -414,3 +420,8 @@ def has_ubsan_error(stacktrace):
       return True
 
   return False
+
+
+def is_experimental_crash(crash_type):
+  """Return whether or not the crash type is experimental."""
+  return crash_type in EXPERIMENTAL_CRASH_TYPES

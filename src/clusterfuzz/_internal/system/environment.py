@@ -30,7 +30,7 @@ from clusterfuzz._internal import fuzzing
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER'
 ]
 
 SANITIZER_NAME_MAP = {
@@ -39,6 +39,7 @@ SANITIZER_NAME_MAP = {
     'MSAN': 'memory',
     'TSAN': 'thread',
     'UBSAN': 'undefined',
+    'NOSANITIZER': 'nosanitizer',
 }
 
 COMMON_SANITIZER_OPTIONS = {
@@ -859,6 +860,7 @@ def reset_current_memory_tool_options(redzone_size=0,
   set_value('MEMORY_TOOL', tool_name)
 
   bot_platform = platform()
+  tool_options = {}
 
   # Default options for memory debuggin tool used.
   if tool_name in ['ASAN', 'HWASAN']:
