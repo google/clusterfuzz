@@ -43,6 +43,8 @@ CMPLOG_ARITH = 'A'
 
 CMPLOG_TRANS = 'T'
 
+FUZZING_TIMEOUT_FLAG = '-V'
+
 # AFL environment variables.
 AFL_MAP_SIZE_ENV_VAR = 'AFL_MAP_SIZE'
 

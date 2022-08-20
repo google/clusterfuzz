@@ -91,6 +91,10 @@ CHROME_MAC_STACK_FRAME_REGEX = re.compile(
     r'(\d+)')  # off[dec] (7)
 MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
+EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX = re.compile(
+    r'===BUG DETECTED: Shell (corruption|injection)===')
+EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX = re.compile(
+    r'===BUG DETECTED: Arbitrary file open===')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
@@ -107,6 +111,8 @@ GPU_PROCESS_FAILURE = re.compile(r'.*GPU process exited unexpectedly.*')
 HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
+JAZZER_JAVA_SECURITY_EXCEPTION_REGEX = re.compile(
+    '== Java Exception: .*FuzzerSecurityIssue')
 JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KERNEL_BUG = re.compile(r'kernel BUG at (.*)')
@@ -155,6 +161,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'Sanitizer: calloc-overflow',
     r'Sanitizer: calloc parameters overflow',
     r'Sanitizer: requested allocation size.*exceeds maximum supported size',
+    r'Sanitizer: out of memory',
     r'TerminateBecauseOutOfMemory',
     r'allocator is out of memory trying to allocate',
     r'blinkGCOutOfMemory',
@@ -265,6 +272,7 @@ V8_ABORT_METADATA_REGEX = re.compile(r'(.*) \[(.*):\d+\]$')
 V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
 V8_CORRECTNESS_METADATA_REGEX = re.compile(
     r'#\s*V8 correctness ((configs|sources|suppression): .*)')
+V8_ERROR_REGEX = re.compile(r'\s*\[[^\]]*\] V8 error: (.+)\.$')
 WINDOWS_CDB_STACK_FRAME_REGEX = re.compile(
     r'([0-9a-zA-Z`]+) '  # Child EBP or SP; remove ` if needed (1)
     r'([0-9a-zA-Z`]+) '  # RetAddr; remove ` if needed (2)
@@ -304,7 +312,7 @@ GOLANG_CRASH_TYPES_MAP = [
 GOLANG_FATAL_ERROR_REGEX = re.compile(r'^fatal error: (.*)')
 
 GOLANG_STACK_FRAME_FUNCTION_REGEX = re.compile(
-    r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.]*\)$')
+    r'^([0-9a-zA-Z\.\-\_\\\/\(\)\*]+)\([x0-9a-f\s,\.{}]*\)$')
 
 # Python specific regular expressions.
 PYTHON_UNHANDLED_EXCEPTION = re.compile(
@@ -370,7 +378,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^SignalAction',
     r'^SignalHandler',
     r'^TestOneProtoInput',
-    r'^V8_Fatal',
     r'^WTF::',
     r'^WTFCrash',
     r'^X11Error',
@@ -551,6 +558,12 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # googlefuzztest specific.
     r'.*fuzztest::internal::',
+
+    # V8 specific.
+    r'^V8_Fatal',
+    # Ignore error-throwing frames, the bug is in the caller.
+    r'^blink::ReportV8FatalError',
+    r'^v8::api_internal::ToLocalEmpty',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
@@ -562,12 +575,15 @@ STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
 ]
 
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
+    'Arbitrary file open',
     'ASSERT',
     'CHECK failure',
+    'Command injection',
     'DCHECK failure',
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'V8 API error',
 ]
 
 STATE_STOP_MARKERS = [

@@ -568,6 +568,7 @@ class OssFuzzClustersManager(ClustersManager):
         cluster_info for cluster_info in project_info.clusters
         if cluster_info.cluster in existing_cluster_names
     ]
+    project_info.put()
 
   def update_project_cluster(self,
                              project,

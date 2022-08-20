@@ -13,11 +13,13 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 
 void Foo() {
   static int count = 0;
   count++;
+  printf("%d\n", count);
 
   if (count >= 5) {
     *(volatile uint8_t*)0 = 0;

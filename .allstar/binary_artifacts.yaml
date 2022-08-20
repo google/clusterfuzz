@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,20 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Android specific modules."""
-
-from . import adb
-from . import app
-from . import battery
-from . import constants
-from . import device
-from . import emulator
-from . import fetch_artifact
-from . import flash
-from . import gestures
-from . import logger
-from . import sanitizer
-from . import settings
-from . import ui
-from . import util
-from . import wifi
+# Exemption reason: This repo uses binary artifacts that are not practical to
+# build from source (e.g. from LLVM).
+optConfig:
+  optOut: true

@@ -30,7 +30,7 @@ from clusterfuzz._internal import fuzzing
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER'
 ]
 
 SANITIZER_NAME_MAP = {
@@ -39,6 +39,7 @@ SANITIZER_NAME_MAP = {
     'MSAN': 'memory',
     'TSAN': 'thread',
     'UBSAN': 'undefined',
+    'NOSANITIZER': 'nosanitizer',
 }
 
 COMMON_SANITIZER_OPTIONS = {
@@ -122,6 +123,16 @@ def copy():
   return environment_copy
 
 
+def disable_lsan():
+  """Disable leak detection (if enabled)."""
+  if get_current_memory_tool_var() != 'ASAN_OPTIONS':
+    return
+
+  sanitizer_options = get_memory_tool_options('ASAN_OPTIONS', {})
+  sanitizer_options['detect_leaks'] = 0
+  set_memory_tool_options('ASAN_OPTIONS', sanitizer_options)
+
+
 def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
                      bot_platform, leaks, disable_ubsan):
   """Generates default ASAN options."""
@@ -148,7 +159,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
     asan_options['quarantine_size_mb'] = quarantine_size_mb
 
   # Test for leaks if this is an LSan-enabled job type.
-  if get_value('LSAN') and leaks:
+  if get_value('LSAN') and leaks and not get_value('USE_EXTRA_SANITIZERS'):
     lsan_options = join_memory_tool_options(get_lsan_options())
     set_value('LSAN_OPTIONS', lsan_options)
     asan_options['detect_leaks'] = 1
@@ -849,6 +860,7 @@ def reset_current_memory_tool_options(redzone_size=0,
   set_value('MEMORY_TOOL', tool_name)
 
   bot_platform = platform()
+  tool_options = {}
 
   # Default options for memory debuggin tool used.
   if tool_name in ['ASAN', 'HWASAN']:

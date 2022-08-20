@@ -1,0 +1,25 @@
+=================================================================
+==2314613==ERROR: AddressSanitizer: out of memory: allocator is trying to allocate 0x40000004 bytes
+==2314613==WARNING: invalid path to external symbolizer!
+==2314613==WARNING: Failed to use and restart external symbolizer!
+    #0 0x567b659f in operator new[](unsigned int) third_party/llvm/compiler-rt/lib/asan/asan_new_delete.cpp:98:3
+    #1 0xf56bd13b in NewForOverwrite v8/src/base/vector.h:257:48
+    #2 0xf56bd13b in v8::internal::wasm::AsyncStreamingDecoder::SectionBuffer::SectionBuffer(unsigned int, unsigned char, unsigned int, v8::base::Vector<unsigned char const>) v8/src/wasm/streaming-decoder.cc:58:18
+    #3 0xf56b3600 in __shared_ptr_emplace<unsigned int &, unsigned char &, unsigned int &, v8::base::Vector<const unsigned char> &> buildtools/third_party/libc++/trunk/include/__memory/shared_ptr.h:295:37
+    #4 0xf56b3600 in allocate_shared<v8::internal::wasm::AsyncStreamingDecoder::SectionBuffer, std::Cr::allocator<v8::internal::wasm::AsyncStreamingDecoder::SectionBuffer>, unsigned int &, unsigned char &, unsigned int &, v8::base::Vector<const unsigned char> &, void> buildtools/third_party/libc++/trunk/include/__memory/shared_ptr.h:954:55
+    #5 0xf56b3600 in make_shared<v8::internal::wasm::AsyncStreamingDecoder::SectionBuffer, unsigned int &, unsigned char &, unsigned int &, v8::base::Vector<const unsigned char> &, void> buildtools/third_party/libc++/trunk/include/__memory/shared_ptr.h:963:12
+    #6 0xf56b3600 in v8::internal::wasm::AsyncStreamingDecoder::CreateNewBuffer(unsigned int, unsigned char, unsigned int, v8::base::Vector<unsigned char const>) v8/src/wasm/streaming-decoder.cc:727:33
+    #7 0xf56b2858 in v8::internal::wasm::AsyncStreamingDecoder::DecodeSectionLength::NextWithValue(v8::internal::wasm::AsyncStreamingDecoder*) v8/src/wasm/streaming-decoder.cc:606:18
+    #8 0xf56b0dc9 in v8::internal::wasm::AsyncStreamingDecoder::DecodeVarInt32::Next(v8::internal::wasm::AsyncStreamingDecoder*) v8/src/wasm/streaming-decoder.cc:571:10
+    #9 0xf56abc18 in v8::internal::wasm::AsyncStreamingDecoder::OnBytesReceived(v8::base::Vector<unsigned char const>) v8/src/wasm/streaming-decoder.cc:240:24
+    #10 0x567b928d in v8::internal::wasm::CompileStreaming(v8_fuzzer::FuzzerSupport*, v8::internal::wasm::WasmFeatures, v8::base::Vector<unsigned char const>, unsigned char) v8/test/fuzzer/wasm-streaming.cc:100:15
+    #11 0x567bbc5b in LLVMFuzzerTestOneInput v8/test/fuzzer/wasm-streaming.cc:168:7
+    #12 0x5686eea0 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned int) third_party/libFuzzer/src/FuzzerLoop.cpp:556:15
+    #13 0x56811d77 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned int) third_party/libFuzzer/src/FuzzerDriver.cpp:292:6
+    #14 0x5681a559 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned int)) third_party/libFuzzer/src/FuzzerDriver.cpp:774:9
+    #15 0x568eca25 in main third_party/libFuzzer/src/FuzzerMain.cpp:19:10
+    #16 0xed7b2ed4 in __libc_start_main
+==2314613==HINT: if you don't care about these errors you may set allocator_may_return_null=1
+SUMMARY: AddressSanitizer: out-of-memory (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-libfuzzer_linux32-debug-asan-arm-sim_8549b81cb96e1c3ffd1f9971ac37f1951947d713/revisions/libfuzzer-v8-arm-linux32-debug-1021657/v8_wasm_streaming_fuzzer+0x1d959f) (BuildId: 8173722a4fa988d8)
+==2314613==ABORTING
+
