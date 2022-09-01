@@ -721,7 +721,8 @@ class Testcase(Model):
     if not target:
       binary = self.get_metadata('fuzzer_binary_name')
       if not binary:
-        raise ValueError('Fuzzer binary name not found')
+        # Not applicable.
+        return None
 
       target = FuzzTarget(
           engine=self.fuzzer_name, project=self.project_name, binary=binary)
