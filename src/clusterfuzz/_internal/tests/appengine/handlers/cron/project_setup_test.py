@@ -109,7 +109,7 @@ def mock_set_iam_policy(bucket=None, body=None):  # pylint: disable=unused-argum
 def _mock_get_or_create_service_account(project):
   return {
       'email': project + '@serviceaccount.com',
-  }
+  }, False
 
 
 @test_utils.with_cloud_emulators('datastore', 'pubsub')
