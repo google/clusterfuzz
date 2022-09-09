@@ -652,8 +652,12 @@ class ProjectSetup(object):
 
   def _create_service_accounts_and_buckets(self, project, info):
     """Create per-project service account and buckets."""
-    service_account = service_accounts.get_or_create_service_account(project)
-    service_accounts.set_service_account_roles(service_account)
+    service_account, exists = service_accounts.get_or_create_service_account(
+        project)
+    if not exists:
+      # TODO(ochang): Temporary hack to get around
+      # https://github.com/google/clusterfuzz/issues/2775.
+      service_accounts.set_service_account_roles(service_account)
 
     # Create GCS buckets.
     backup_bucket_name = self._backup_bucket_name(project)
