@@ -154,7 +154,11 @@ class AflConfig(object):
     if not os.path.exists(default_dict_path):
       return
 
-    self.dict_path = default_dict_path
+    if not environment.is_android():
+      self.dict_path = default_dict_path
+    else:
+      self.dict_path = android.util.get_device_path(default_dict_path)
+
     self.additional_afl_arguments.append(constants.DICT_FLAG + self.dict_path)
 
 
