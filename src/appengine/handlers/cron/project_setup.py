@@ -438,6 +438,8 @@ def ccs_from_info(info):
       return field_value
     if isinstance(field_value, str):
       return [field_value]
+    if field_value is None:
+      return []
 
     raise ProjectSetupError(f'Bad value for field {field_name}: {field_value}.')
 
