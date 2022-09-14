@@ -244,6 +244,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 'User@example.com',
                 'user2@googlemail.com',
             ],
+            'vendor_ccs': None,
         }),
         ('lib2', {
             'homepage': 'http://example2.com',
