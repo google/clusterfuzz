@@ -15,19 +15,14 @@
 
 import glob
 import os
-import re
-import shutil
-
 from pathlib import Path
+import re
 
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
-from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
@@ -37,7 +32,7 @@ _RSS_LIMIT = 4096
 _RLIMIT_AS = 5120
 _ADDRESS_SPACE_LIMIT = 0
 _DEFAULT_ARGUMENTS = [
-    '--exit_on_crash=1',  # I guess this should set to exit on crash?
+    '--exit_on_crash=1',
     f'--timeout={_TIMEOUT}',
     f'--fork_server={_SERVER_COUNT}',
     f'--rss_limit_mb={_RSS_LIMIT}',
@@ -102,7 +97,7 @@ class Engine(engine.Engine):
 
     # Is it OK to create workdir with this function?
     # workdir saves centipede-readable corpus&feature files, and crashes
-    workdir = _create_temp_dir('workdir')
+    workdir = self._create_temp_dir('workdir')
     # Will the workdir always exist?
     arguments.append(f'--workdir={workdir}')
 
@@ -111,17 +106,13 @@ class Engine(engine.Engine):
     arguments.append(f'--corpus_dir={corpus_dir}')
 
     # Download sanitized binaries.
-#  for stacktrace_path in glob.glob(
-#      os.path.join(reproducers_dir, _HF_SANITIZER_LOG_PREFIX + '*')):
-    sanitized_binaries = [
-        sanitized_binary for sanitized_binary in
-        glob.glob(os.path.join(build_dir, '*_*', os.path.basename(target_path)))
-    ]
+    sanitized_binaries = glob.glob(
+        os.path.join(build_dir, '*_*', os.path.basename(target_path)))
     arguments.append(f'--extra_binaries={",".join(sanitized_binaries)}')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
-  def fuzz(self, target_path, options, reproducers_dir, max_time):
+  def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
     """Run a fuzz session.
 
     Args:
@@ -142,9 +133,7 @@ class Engine(engine.Engine):
     ])
 
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments,
-        timeout=max_time + _CLEAN_EXIT_SECS,
-        extra_env=centipede_env)
+        additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS)
     log_lines = fuzz_result.output.splitlines()
     fuzz_logs = '\n'.join(log_lines)
 
@@ -155,8 +144,9 @@ class Engine(engine.Engine):
       reproducer_path = _get_reproducer_path(line)
       if reproducer_path:
 
-        crashes.append(engine.Crash(
-            reproducer_path, fuzz_logs, [], int(fuzz_result.time_executed)))
+        crashes.append(
+            engine.Crash(reproducer_path, fuzz_logs, [],
+                         int(fuzz_result.time_executed)))
         continue
 
       #stats = _get_stats(line)
@@ -209,9 +199,7 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    """Not yet implemented by Centipede"""
     raise NotImplementedError
-
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
@@ -227,7 +215,6 @@ class Engine(engine.Engine):
     Raises:
       TimeoutError: If the testcase minimization exceeds max_time.
     """
-    """Not yet implemented by Centipede"""
     raise NotImplementedError
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
@@ -243,5 +230,4 @@ class Engine(engine.Engine):
     Raises:
       TimeoutError: If the cleanse exceeds max_time.
     """
-    """Not yet implemented by Centipede"""
     raise NotImplementedError
