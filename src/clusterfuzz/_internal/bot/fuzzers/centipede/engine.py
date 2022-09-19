@@ -13,7 +13,6 @@
 # limitations under the License.
 """Centipede engine interface."""
 
-import glob
 import os
 from pathlib import Path
 import re
@@ -96,19 +95,23 @@ class Engine(engine.Engine):
       arguments.append(f'--dictionary={dict_path}')
 
     # Is it OK to create workdir with this function?
-    # workdir saves centipede-readable corpus&feature files, and crashes
+    # workdir saves centipede-readable corpus&feature files, and crashes.
     workdir = self._create_temp_dir('workdir')
     # Will the workdir always exist?
     arguments.append(f'--workdir={workdir}')
 
     # Will the corpus directory always exist?
+    # corpus_dir saves the corpus files in the format required by ClusterFuzz.
     Path(corpus_dir).mkdir(exist_ok=True)
     arguments.append(f'--corpus_dir={corpus_dir}')
 
-    # Download sanitized binaries.
-    sanitized_binaries = glob.glob(
-        os.path.join(build_dir, '*_*', os.path.basename(target_path)))
-    arguments.append(f'--extra_binaries={",".join(sanitized_binaries)}')
+    # The unsanitized binary, Centipede requires it to be the main fuzz target.
+    arguments.append(f'--binary={target_path}')
+
+    # Extra sanitized binaries, Centipede requires to build them separately.
+    # Assuming they will be in child dirs named as '__centipede_<sanitizer>'.
+    binary_name = os.path.basename(target_path)
+    arguments.append(f'--extra_binaries="__centipede_*/{binary_name}"')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
@@ -128,9 +131,6 @@ class Engine(engine.Engine):
     runner = _get_runner()
     arguments = _DEFAULT_ARGUMENTS[:]
     arguments.extend(options.arguments)
-    arguments.extend([
-        f'--binary={target_path}',
-    ])
 
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS)
@@ -138,7 +138,7 @@ class Engine(engine.Engine):
     fuzz_logs = '\n'.join(log_lines)
 
     crashes = []
-    # Stats report is not available in Centipede yet
+    # Stats report is not available in Centipede yet.
     stats = None
     for line in log_lines:
       reproducer_path = _get_reproducer_path(line)
@@ -149,6 +149,7 @@ class Engine(engine.Engine):
                          int(fuzz_result.time_executed)))
         continue
 
+      # A place holder for stats parsing once the feature is supported.
       #stats = _get_stats(line)
 
     #if stats is None:
