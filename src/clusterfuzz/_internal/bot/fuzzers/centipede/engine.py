@@ -167,7 +167,7 @@ class Engine(engine.Engine):
                                   result.time_executed, result.output)
 
   def _create_temp_dir(self, name):
-    """Creates temporary corpus directory."""
+    """Creates temporary directory for fuzzing."""
     new_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_directory)
     return new_directory
