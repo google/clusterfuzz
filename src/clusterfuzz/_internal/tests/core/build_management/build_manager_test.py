@@ -324,6 +324,62 @@ class RegularBuildTest(fake_filesystem_unittest.TestCase):
     # Non-existent revisions do not result in any builds being set up.
     self.assertIsNone(build_manager.setup_regular_build(3))
 
+  def test_setup_with_extra(self):
+    """Tests setting up a build with an extra build set."""
+    os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
+        'gs://path/file-release-([0-9]+).zip')
+    os.environ['EXTRA_BUILD_BUCKET_PATH'] = (
+        'gs://path2/file-release-([0-9]+).zip')
+
+    def mock_get_build_urls_list(bucket_path, reverse=True):
+      if 'gs://path/' in bucket_path:
+        return [
+            'gs://path/file-release-10.zip',
+            'gs://path/file-release-2.zip',
+            'gs://path/file-release-1.zip',
+        ]
+
+      return [
+          'gs://path2/file-release-10.zip',
+          'gs://path2/file-release-2.zip',
+          'gs://path2/file-release-1.zip',
+      ]
+
+    self.mock.get_build_urls_list.side_effect = mock_get_build_urls_list
+
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.mock._unpack_build.assert_has_calls([
+        mock.call(
+            mock.ANY, '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
+            'gs://path/file-release-2.zip', None),
+        mock.call(
+            mock.ANY,
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/__extra_build',
+            'gs://path2/file-release-2.zip', None)
+    ])
+
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.mock.time.return_value = 1005.0
+    self.assertIsInstance(
+        build_manager.setup_regular_build(2), build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # Already set up.
+    self.assertEqual(self.mock._unpack_build.call_count, 2)
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    # Non-existent revisions do not result in any builds being set up.
+    self.assertIsNone(build_manager.setup_regular_build(3))
+
   def test_delete(self):
     """Test deleting this build."""
     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
@@ -396,11 +452,21 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
         'gs://path/file-release-([0-9]+).zip')
 
-    self.mock.get_build_urls_list.return_value = [
-        'gs://path/file-release-10.zip',
-        'gs://path/file-release-2.zip',
-        'gs://path/file-release-1.zip',
-    ]
+    def mock_get_build_urls_list(bucket_path, reverse=True):
+      if 'gs://path/' in bucket_path:
+        return [
+            'gs://path/file-release-10.zip',
+            'gs://path/file-release-2.zip',
+            'gs://path/file-release-1.zip',
+        ]
+
+      return [
+          'gs://path2/file-release-10.zip',
+          'gs://path2/file-release-2.zip',
+          'gs://path2/file-release-1.zip',
+      ]
+
+    self.mock.get_build_urls_list.side_effect = mock_get_build_urls_list
 
   def _assert_env_vars(self):
     self.assertEqual(os.environ['BUILD_URL'], 'gs://path/file-release-2.zip')
@@ -439,6 +505,43 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(1, self.mock.unpack.call_count)
     else:
       self.assertEqual(2, self.mock.unpack.call_count)
+
+    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
+    self.assertEqual('3', os.environ['FUZZ_TARGET_COUNT'])
+
+  @parameterized.parameterized.expand(['True', 'False'])
+  def test_setup_fuzz_with_extra(self, unpack_all):
+    """Tests setting up a build during fuzzing with an extra build."""
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['EXTRA_BUILD_BUCKET_PATH'] = (
+        'gs://path2/file-release-([0-9]+).zip')
+
+    self.mock.time.return_value = 1000.0
+    build = build_manager.setup_regular_build(
+        2, target_weights=self.target_weights)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
+
+    self.assertEqual('target2', os.environ['FUZZ_TARGET'])
+    self._assert_env_vars()
+    self.assertEqual(os.environ['APP_REVISION'], '2')
+
+    self.assertEqual(2, self.mock.unpack.call_count)
+
+    # Test setting up build again.
+    os.environ['FUZZ_TARGET'] = ''
+    self.mock.time.return_value = 1005.0
+    self.assertIsInstance(
+        build_manager.setup_regular_build(
+            2, target_weights=self.target_weights), build_manager.RegularBuild)
+    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
+
+    # If it was a partial build, the unpack should be called again.
+    if unpack_all == 'True':
+      self.assertEqual(2, self.mock.unpack.call_count)
+    else:
+      self.assertEqual(4, self.mock.unpack.call_count)
 
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self.assertEqual('3', os.environ['FUZZ_TARGET_COUNT'])
@@ -495,6 +598,81 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
           '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
           file_match_callback=file_match_callback_checker,
           trusted=True)
+
+    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
+
+  @parameterized.parameterized.expand(['True', 'False'])
+  def test_setup_nonfuzz_with_extra(self, unpack_all):
+    """Test setting up a build during a non-fuzz task with an extra build."""
+    os.environ['UNPACK_ALL_FUZZ_TARGETS_AND_FILES'] = unpack_all
+    os.environ['TASK_NAME'] = 'progression'
+    os.environ['FUZZ_TARGET'] = 'target3'
+    os.environ['EXTRA_BUILD_BUCKET_PATH'] = (
+        'gs://path2/file-release-([0-9]+).zip')
+
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+
+    self.assertEqual(2, self.mock.unpack.call_count)
+    if unpack_all == 'True':
+      self.assertIsNone(build_manager._get_file_match_callback())
+    else:
+      self.assertIsNotNone(build_manager._get_file_match_callback())
+
+    class FileMatchCallbackChecker(object):
+      """Used to verify that the callback passed to unpack is what we expect."""
+
+      def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
+        if unpack_all == 'True':
+          # Ensure that |file_match_callback| is always None when we are
+          # unpacking everything.
+          self.assertIsNone(file_match_callback)
+          return True
+
+        self.assertIsNotNone(file_match_callback)
+        self.assertEqual(file_match_callback.__name__, 'file_match_callback')
+        self.assertTrue(isinstance(file_match_callback, types.FunctionType))
+        return True
+
+    file_match_callback_checker = FileMatchCallbackChecker()
+    self.mock.unpack.assert_has_calls([
+        mock.call(
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+            'revisions/file-release-2.zip',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
+            file_match_callback=file_match_callback_checker,
+            trusted=True),
+        mock.call(
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+            'revisions/__extra_build/file-release-2.zip',
+            '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
+            '__extra_build',
+            file_match_callback=file_match_callback_checker,
+            trusted=True)
+    ])
+    self.assertEqual('target3', os.environ['FUZZ_TARGET'])
+
+    build = build_manager.setup_regular_build(2)
+    self.assertIsInstance(build, build_manager.RegularBuild)
+
+    # If it was a partial build, the unpack should be called again.
+    if unpack_all != 'True':
+      self.assertEqual(4, self.mock.unpack.call_count)
+      self.mock.unpack.assert_has_calls([
+          mock.call(
+              '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+              'revisions/file-release-2.zip',
+              '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
+              file_match_callback=file_match_callback_checker,
+              trusted=True),
+          mock.call(
+              '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
+              'revisions/__extra_build/file-release-2.zip',
+              '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
+              '__extra_build',
+              file_match_callback=file_match_callback_checker,
+              trusted=True)
+      ])
 
     self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
