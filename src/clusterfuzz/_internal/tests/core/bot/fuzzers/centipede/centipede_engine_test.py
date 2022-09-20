@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for centipede engine."""
 
-import glob
 import os
 import shutil
 import unittest
@@ -104,7 +103,6 @@ class IntegrationTest(unittest.TestCase):
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
-    sanitized_targets = glob.glob(f'{DATA_DIR}/__centipede_*/test_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = (
@@ -113,7 +111,7 @@ class IntegrationTest(unittest.TestCase):
             f'--workdir={os.path.join(DATA_DIR, "workdir")}',
             f'--corpus_dir={corpus_path}',
             f'--binary={target_path}',
-            f'--extra_binaries={",".join(sanitized_targets)}',
+            f'--extra_binaries={DATA_DIR}/__extra_build/test_fuzzer',
         ])
     self.compare_arguments(expected_command, results.command)
     self.assertGreater(len(os.listdir(corpus_path)), 0)
@@ -125,8 +123,6 @@ class IntegrationTest(unittest.TestCase):
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
-    sanitized_targets = glob.glob(
-        f'{DATA_DIR}/__centipede_*/always_crash_fuzzer')
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = (
@@ -134,7 +130,7 @@ class IntegrationTest(unittest.TestCase):
             f'--workdir={WORK_DIR}',
             f'--corpus_dir={corpus_path}',
             f'--binary={target_path}',
-            f'--extra_binaries={",".join(sanitized_targets)}',
+            f'--extra_binaries={DATA_DIR}/__extra_build/always_crash_fuzzer',
         ])
     self.compare_arguments(expected_command, results.command)
 

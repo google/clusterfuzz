@@ -13,7 +13,6 @@
 # limitations under the License.
 """Centipede engine interface."""
 
-import glob
 import os
 import re
 
@@ -108,10 +107,10 @@ class Engine(engine.Engine):
     arguments.append(f'--binary={target_path}')
 
     # Extra sanitized binaries, Centipede requires to build them separately.
-    # Assuming they will be in child dirs named as '__centipede_<sanitizer>'.
+    # Assuming they will be in child dirs named as '__extra_build'.
     binary_name = os.path.basename(target_path)
-    sanitized_binaries = glob.glob(f'{build_dir}/__centipede_*/{binary_name}')
-    arguments.append(f'--extra_binaries={",".join(sanitized_binaries)}')
+    arguments.append(
+        f'--extra_binaries={build_dir}/__extra_build/{binary_name}')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
