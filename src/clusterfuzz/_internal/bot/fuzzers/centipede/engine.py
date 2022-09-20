@@ -15,7 +15,6 @@
 
 import glob
 import os
-from pathlib import Path
 import re
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager

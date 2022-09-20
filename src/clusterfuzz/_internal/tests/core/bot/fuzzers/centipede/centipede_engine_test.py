@@ -44,6 +44,7 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
+
 def clear_temp_dirs():
   """Clear temp directory."""
   for directory in [CORPUS_DIR, WORK_DIR]:
@@ -87,7 +88,6 @@ class IntegrationTest(unittest.TestCase):
     """Assert that stats exist."""
     # Centipede does not have stats report yet.
     # TODO(Dongge): Implement this when the feature is supported.
-    pass
 
   def test_reproduce(self):
     """Tests reproducing a crash."""
@@ -108,16 +108,13 @@ class IntegrationTest(unittest.TestCase):
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = (
-        [os.path.join(DATA_DIR, 'centipede')]
-        + _DEFAULT_ARGUMENTS
-        + [
+        [os.path.join(DATA_DIR, 'centipede')] + _DEFAULT_ARGUMENTS + [
             f'--dictionary={os.path.join(DATA_DIR, "test_fuzzer.dict")}',
             f'--workdir={os.path.join(DATA_DIR, "workdir")}',
             f'--corpus_dir={corpus_path}',
             f'--binary={target_path}',
             f'--extra_binaries={",".join(sanitized_targets)}',
-        ]
-    )
+        ])
     self.compare_arguments(expected_command, results.command)
     self.assertGreater(len(os.listdir(corpus_path)), 0)
     self.assert_has_stats(results)
@@ -133,15 +130,12 @@ class IntegrationTest(unittest.TestCase):
     options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = (
-        [os.path.join(DATA_DIR, 'centipede')]
-        + _DEFAULT_ARGUMENTS
-        + [
+        [os.path.join(DATA_DIR, 'centipede')] + _DEFAULT_ARGUMENTS + [
             f'--workdir={WORK_DIR}',
             f'--corpus_dir={corpus_path}',
             f'--binary={target_path}',
             f'--extra_binaries={",".join(sanitized_targets)}',
-        ]
-    )
+        ])
     self.compare_arguments(expected_command, results.command)
 
     self.assertIn('Crash detected, saving input to', results.logs)
