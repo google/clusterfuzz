@@ -174,8 +174,7 @@ class Engine(engine.Engine):
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
-    """Optional (but recommended): run corpus minimization.
-
+    """Optional: run corpus minimization.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
@@ -192,7 +191,7 @@ class Engine(engine.Engine):
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
-    """Optional (but recommended): Minimize a testcase.
+    """Optional: Minimize a testcase.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for testcase minimization.
@@ -207,7 +206,7 @@ class Engine(engine.Engine):
     raise NotImplementedError
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
-    """Optional (but recommended): Cleanse a testcase.
+    """Optional: Cleanse a testcase.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for testcase cleanse.
