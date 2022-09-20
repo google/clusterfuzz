@@ -239,7 +239,7 @@ def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
     dev_arg = '--dev'
 
   return_code, output = execute(
-      f'python -m pipenv lock -r --no-header {dev_arg}',
+      f'python -m pipenv requirements {dev_arg}',
       cwd=pipfile_dir,
       extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
       stderr=subprocess.DEVNULL)
