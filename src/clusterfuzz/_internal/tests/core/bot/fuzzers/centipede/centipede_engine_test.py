@@ -143,11 +143,6 @@ class IntegrationTest(unittest.TestCase):
         ]
     )
     self.compare_arguments(expected_command, results.command)
-    #print('================================================')
-    #print(results.command)
-    #print('================================================')
-    #print(results.logs)
-    #print('================================================')
 
     self.assertIn('Crash detected, saving input to', results.logs)
     print(results.crashes)
