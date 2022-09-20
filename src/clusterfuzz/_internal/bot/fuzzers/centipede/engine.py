@@ -100,7 +100,6 @@ class Engine(engine.Engine):
     # Will the corpus directory always exist?
     corpus_dir = self._create_temp_dir(f'{corpus_dir}')
     # corpus_dir saves the corpus files in the format required by ClusterFuzz.
-    #corpus_dir = self._create_temp_dir(f'{build_dir}/corpus_dir')
     arguments.append(f'--corpus_dir={corpus_dir}')
 
     # The unsanitized binary, Centipede requires it to be the main fuzz target.
@@ -168,7 +167,6 @@ class Engine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    os.chmod(target_path, 0o775)
     runner = new_process.UnicodeProcessRunner(target_path, [input_path])
     result = runner.run_and_wait(timeout=max_time)
 
