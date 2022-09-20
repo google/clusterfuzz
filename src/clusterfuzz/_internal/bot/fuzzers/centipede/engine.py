@@ -95,13 +95,14 @@ class Engine(engine.Engine):
 
     # Is it OK to create workdir with this function?
     # workdir saves centipede-readable corpus&feature files, and crashes.
-    workdir = self._create_temp_dir('workdir')
+    workdir = self._create_temp_dir(f'{build_dir}/workdir')
     # Will the workdir always exist?
     arguments.append(f'--workdir={workdir}')
 
     # Will the corpus directory always exist?
+    corpus_dir = self._create_temp_dir(f'{corpus_dir}')
     # corpus_dir saves the corpus files in the format required by ClusterFuzz.
-    Path(corpus_dir).mkdir(exist_ok=True)
+    #corpus_dir = self._create_temp_dir(f'{build_dir}/corpus_dir')
     arguments.append(f'--corpus_dir={corpus_dir}')
 
     # The unsanitized binary, Centipede requires it to be the main fuzz target.
