@@ -145,13 +145,6 @@ class Engine(engine.Engine):
             engine.Crash(reproducer_path, fuzz_logs, [],
                          int(fuzz_result.time_executed)))
         continue
-
-      # A place holder for stats parsing once the feature is supported.
-      #stats = _get_stats(line)
-
-    #if stats is None:
-    #  stats = {}
-
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
