@@ -127,7 +127,7 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner()
-    arguments = _DEFAULT_ARGUMENTS[:]
+    arguments = _DEFAULT_ARGUMENTS.copy()
     arguments.extend(options.arguments)
 
     fuzz_result = runner.run_and_wait(
