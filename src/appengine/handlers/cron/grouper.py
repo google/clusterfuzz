@@ -86,6 +86,50 @@ def _get_new_group_id():
   return new_group.key.id()
 
 
+def is_same_variant(variant1, variant2):
+  """Checks for the testcase variants equality"""
+  if (variant1.crash_type == variant2.crash_type and
+      variant1.crash_state == variant2.crash_state and
+      variant1.security_flag == variant2.security_flag):
+    return True
+  return False
+
+
+def _group_testcases_based_on_variants(testcase_map):
+  """Group testcases that are associated based on variant analysis"""
+  for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
+    for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
+      # Rule: Don't group the same testcase and use different combinations for
+      # comparisons.
+      if testcase_1_id <= testcase_2_id:
+        continue
+
+      # Rule: If both testcase have the same group id, then no work to do.
+      if testcase_1.group_id == testcase_2.group_id and testcase_1.group_id:
+        continue
+
+      # Rule: Check both testcase are under the same project.
+      if testcase_1.project_name != testcase_2.project_name:
+        continue
+
+      # Rule: Group testcase with similar variants
+      testcase_1_variants = data_handler.get_all_testcase_variants(
+          testcase_1_id)
+      testcase_2_variants = data_handler.get_all_testcase_variants(
+          testcase_2_id)
+      has_similar_variants = False
+      for candidate1 in testcase_1_variants + [testcase_1]:
+        for candidate2 in testcase_2_variants + [testcase_2]:
+          if is_same_variant(candidate1, candidate2):
+            has_similar_variants = True
+            break
+
+      if not has_similar_variants:
+        continue
+
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+
+
 def _group_testcases_with_same_issues(testcase_map):
   """Group testcases that are associated with same underlying issue."""
   for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
@@ -297,6 +341,7 @@ def group_testcases():
 
   _group_testcases_with_similar_states(testcase_map)
   _group_testcases_with_same_issues(testcase_map)
+  _group_testcases_based_on_variants(testcase_map)
   _shrink_large_groups_if_needed(testcase_map)
   group_leader.choose(testcase_map)
 
