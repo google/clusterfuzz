@@ -144,7 +144,6 @@ class Engine(engine.Engine):
     for line in log_lines:
       reproducer_path = _get_reproducer_path(line)
       if reproducer_path:
-
         crashes.append(
             engine.Crash(reproducer_path, fuzz_logs, [],
                          int(fuzz_result.time_executed)))
