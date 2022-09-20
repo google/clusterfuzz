@@ -171,9 +171,8 @@ class Engine(engine.Engine):
       A ReproduceResult.
     """
     os.chmod(target_path, 0o775)
-    runner = new_process.UnicodeProcessRunner(target_path)
-    with open(input_path, 'rb') as f:
-      result = runner.run_and_wait(timeout=max_time, stdin=f)
+    runner = new_process.UnicodeProcessRunner(target_path, [input_path])
+    result = runner.run_and_wait(timeout=max_time)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
