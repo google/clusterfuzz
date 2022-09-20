@@ -239,10 +239,20 @@ def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
     dev_arg = '--dev'
 
   return_code, output = execute(
-      f'python -m pipenv lock -r --no-header {dev_arg}',
+      f'python -m pipenv requirements {dev_arg}',
+      exit_on_error=False,
       cwd=pipfile_dir,
       extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
       stderr=subprocess.DEVNULL)
+  if return_code != 0:
+    # Older pipenv version.
+    return_code, output = execute(
+        f'python -m pipenv lock -r --no-header {dev_arg}',
+        exit_on_error=False,
+        cwd=pipfile_dir,
+        extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
+        stderr=subprocess.DEVNULL)
+
   if return_code != 0:
     raise Exception('Failed to generate requirements from Pipfile.')
 
