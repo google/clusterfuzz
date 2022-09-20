@@ -36,7 +36,6 @@ _DEFAULT_ARGUMENTS = [
     f'--timeout={_TIMEOUT}',
     f'--fork_server={_SERVER_COUNT}',
     f'--rss_limit_mb={_RSS_LIMIT}',
-    f'--rlimit_as_mb={_RLIMIT_AS}',
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
