@@ -137,9 +137,13 @@ GFT_MSAN_JOB = JobInfo('googlefuzztest_msan_', 'googlefuzztest', 'memory',
 GFT_UBSAN_JOB = JobInfo('googlefuzztest_ubsan_', 'googlefuzztest', 'undefined',
                         ['googlefuzztest', 'engine_ubsan'])
 
-LIBFUZZER_NONE_JOB = JobInfo("libfuzzer_nosanitizer_", "libfuzzer", "none", [])
+LIBFUZZER_NONE_JOB = JobInfo('libfuzzer_nosanitizer_', 'libfuzzer', 'none',
+                             ['libfuzzer'])
 LIBFUZZER_NONE_I386_JOB = JobInfo(
-    "libfuzzer_nosanitizer_i386_", "libfuzzer", "none", [], architecture='i386')
+    'libfuzzer_nosanitizer_i386_',
+    'libfuzzer',
+    'none', ['libfuzzer'],
+    architecture='i386')
 
 JOB_MAP = {
     'libfuzzer': {
@@ -434,6 +438,8 @@ def ccs_from_info(info):
       return field_value
     if isinstance(field_value, str):
       return [field_value]
+    if field_value is None:
+      return []
 
     raise ProjectSetupError(f'Bad value for field {field_name}: {field_value}.')
 
@@ -648,8 +654,12 @@ class ProjectSetup(object):
 
   def _create_service_accounts_and_buckets(self, project, info):
     """Create per-project service account and buckets."""
-    service_account = service_accounts.get_or_create_service_account(project)
-    service_accounts.set_service_account_roles(service_account)
+    service_account, exists = service_accounts.get_or_create_service_account(
+        project)
+    if not exists:
+      # TODO(ochang): Temporary hack to get around
+      # https://github.com/google/clusterfuzz/issues/2775.
+      service_accounts.set_service_account_roles(service_account)
 
     # Create GCS buckets.
     backup_bucket_name = self._backup_bucket_name(project)

@@ -549,7 +549,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_java_manual_security_exception(self):
     """Tests for Java exceptions manually marked as security issues."""
     data = self._read_test_data('java_severity_medium_exception.txt')
-    expected_type = 'Uncaught exception'
+    expected_type = 'Security exception'
     expected_address = ''
     expected_state = ('com.example.JsonSanitizerFuzzer.fuzzerTestOneInput\n'
                       'com.google.gson.Gson.fromJson\n'
@@ -963,6 +963,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_state = ''
     expected_stacktrace = ''
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_to_local_empty(self):
+    """Test a failure in ToLocalEmpty, which is actually a bug in the caller
+    of that method."""
+    data = self._read_test_data('v8_to_local_empty.txt')
+    expected_type = 'V8 API error'
+    expected_address = ''
+    expected_state = ('Empty MaybeLocal. (v8::ToLocalChecked)\n'
+                      'blink::V8ContextSnapshotImpl::CreateContext\n'
+                      'blink::V8ContextSnapshot::CreateContextFromSnapshot\n'
+                      'blink::LocalWindowProxy::CreateContext\n')
+    expected_stacktrace = data
     expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
@@ -3026,6 +3043,19 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_python_unhandled_exception_with_fuzz_target_exited(self):
+    """Test python stacktrace with a libFuzzer fuzz target exited error."""
+    data = self._read_test_data('python_exception_with_fuzz_target_exited.txt')
+    expected_type = 'Uncaught exception'
+    expected_address = ''
+    expected_state = 'parse_mime_type\nparse_media_range\n<listcomp>\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_gdb_sigtrap(self):
     """Test for GDB stack."""
     data = self._read_test_data('gdb_sigtrap.txt')
@@ -3263,6 +3293,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'Command injection'
     expected_address = ''
     expected_state = 'Foo\nBar\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_capture_arbitrary_file_open(self):
+    """Test capturing arbitrary file open detected by extra sanitizers"""
+    data = self._read_test_data('arbitrary_file_open_bug.txt')
+    expected_type = 'Arbitrary file open'
+    expected_address = ''
+    expected_state = 'wait4\ndo_system\ntarget.cpp\n'
     expected_stacktrace = data
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,

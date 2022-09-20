@@ -443,7 +443,15 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
   # As a last check, do the expensive call of actually checking all issue
   # comments to make sure we didn't do the verification already and we didn't
   # get called out on issue mistriage.
-  if (issue_tracker_utils.was_label_added(issue, verified_label) or
+  # If a "good" label was set, we ignore past "verified" flipping.
+  good_label = policy.label('good')
+  if good_label and good_label in issue.labels:
+    was_verified_added = verified_label in issue.labels
+  else:
+    was_verified_added = issue_tracker_utils.was_label_added(
+        issue, verified_label)
+
+  if (was_verified_added or
       issue_tracker_utils.was_label_added(issue, policy.label('wrong'))):
     return
 

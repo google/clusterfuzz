@@ -85,7 +85,7 @@ def get_or_create_service_account(project):
   service_account = get_service_account(iam, project_id, service_account_id)
   if service_account:
     logging.info('Using existing new service account for %s.', project)
-    return service_account
+    return service_account, True
 
   logging.info('Creating new service account for %s.', project)
   request = iam.projects().serviceAccounts().create(
@@ -97,7 +97,7 @@ def get_or_create_service_account(project):
           }
       })
 
-  return request.execute()
+  return request.execute(), False
 
 
 def _get_or_insert_iam_binding(policy, role):

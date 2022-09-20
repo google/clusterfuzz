@@ -109,7 +109,7 @@ def mock_set_iam_policy(bucket=None, body=None):  # pylint: disable=unused-argum
 def _mock_get_or_create_service_account(project):
   return {
       'email': project + '@serviceaccount.com',
-  }
+  }, False
 
 
 @test_utils.with_cloud_emulators('datastore', 'pubsub')
@@ -244,6 +244,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 'User@example.com',
                 'user2@googlemail.com',
             ],
+            'vendor_ccs': None,
         }),
         ('lib2', {
             'homepage': 'http://example2.com',
@@ -1892,7 +1893,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    six.assertCountEqual(self, [], job.templates)
+    self.assertCountEqual(['libfuzzer'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())

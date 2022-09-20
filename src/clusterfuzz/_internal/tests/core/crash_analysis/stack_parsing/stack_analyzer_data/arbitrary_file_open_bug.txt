@@ -1,0 +1,48 @@
+rm -f execSan /tmp/tripwire target
+clang++ -std=c++17 -Wall -Wextra -O3 -g3 -lpthread -o execSan execSan.cpp
+clang++ -std=c++17 -Wall -Wextra -O3 -g3 -fsanitize=address,fuzzer -o target target.cpp
+./execSan ./target -dict=vuln.dict
+Dictionary: 1 entries
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1387145185
+INFO: Loaded 1 modules   (18 inline 8-bit counters): 18 [0x54cf70, 0x54cf82),
+INFO: Loaded 1 PC tables (18 PCs): 18 [0x525168,0x525288),
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INPUT
+INFO: A corpus is not provided, starting from an empty corpus
+INPUT
+
+#2	INITED cov: 7 ft: 7 corp: 1/1b exec/s: 0 rss: 30Mb
+INPUT
+
+
+#3	NEW    cov: 8 ft: 8 corp: 2/3b lim: 4 exec/s: 0 rss: 31Mb L: 2/2 MS: 1 CrossOver-
+INPUT`
+
+===BUG DETECTED: Arbitrary file open===
+==2107637== ERROR: libFuzzer: deadly signal
+sh: -c: line 2: syntax error: unexpected end of file
+#0 0x4e0861 in __sanitizer_print_stack_trace (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x4e0861)
+    #1 0x45ae07 in fuzzer::PrintStackTrace() (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x45ae07)
+    #2 0x43f183 in fuzzer::Fuzzer::CrashCallback() (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x43f183)
+    #3 0x7f7fba16f1ff  (/lib/x86_64-linux-gnu/libpthread.so.0+0x121ff)
+    #4 0x7f7fba018a66 in wait4 posix/../sysdeps/unix/sysv/linux/wait4.c:30:10
+    #5 0x7f7fb9f974b2 in do_system stdlib/../sysdeps/posix/system.c:172:11
+    #6 0x50d01f in LLVMFuzzerTestOneInput /usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target.cpp:26:3
+    #7 0x440a53 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x440a53)
+    #8 0x43fe6d in fuzzer::Fuzzer::RunOne(unsigned char const*, unsigned long, bool, fuzzer::InputInfo*, bool, bool*) (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x43fe6d)
+    #9 0x441b0b in fuzzer::Fuzzer::MutateAndTestOne() (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x441b0b)
+    #10 0x442735 in fuzzer::Fuzzer::Loop(std::vector<fuzzer::SizedFile, fuzzer::fuzzer_allocator<fuzzer::SizedFile> >&) (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x442735)
+    #11 0x42f9cd in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x42f9cd)
+    #12 0x45b742 in main (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x45b742)
+    #13 0x7f7fb9f757fc in __libc_start_main csu/../csu/libc-start.c:332:16
+    #14 0x423979 in _start (/usr/local/google/home/donggeliu/Code/oss-fuzz/infra/experimental/sanitizers/ExecSan/target+0x423979)
+
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
+MS: 1 ChangeByte-; base unit: 71853c6197a6a7f222db0f1978c7cb232b87c5ee
+0x60,0xa,
+`\x0a
+artifact_prefix='./'; Test unit written to ./crash-f6460d7d9d2b32d0dbd200d75a696a0a3e3a09e1
+Base64: YAo=

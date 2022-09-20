@@ -392,8 +392,9 @@ class FileIssueTest(unittest.TestCase):
   def test_no_experimental_bugs(self):
     """Tests not filing experimental bugs."""
     self.mock.file_issue.return_value = 'ID', None
-    self.testcase.crash_type = 'Command injection'
-    self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker))
-    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
-    self.assertEqual('Skipping filing as this is an experimental crash type.',
-                     testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+    for crash_type in ['Arbitrary file open', 'Command injection']:
+      self.testcase.crash_type = crash_type
+      self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker))
+      testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+      self.assertEqual('Skipping filing as this is an experimental crash type.',
+                       testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
