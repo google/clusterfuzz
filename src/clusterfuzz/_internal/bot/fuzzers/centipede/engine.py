@@ -39,8 +39,7 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile(
-    'centipede.cc:572] ReportCrash[0]: crash detected, saving input to (.*)')
+_CRASH_REGEX = re.compile('Crash detected, saving input to (.*)')
 
 
 class CentipedeError(Exception):
@@ -62,7 +61,7 @@ def _get_runner():
 
 def _get_reproducer_path(line):
   """Get the reproducer path, if any."""
-  crash_match = _CRASH_REGEX.match(line)
+  crash_match = _CRASH_REGEX.search(line)
   if not crash_match:
     return None
 
