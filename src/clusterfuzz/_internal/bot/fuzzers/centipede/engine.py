@@ -50,7 +50,6 @@ def _get_runner():
   if not os.path.exists(centipede_path):
     raise CentipedeError('Centipede not found in build')
 
-  os.chmod(centipede_path, 0o755)
   if environment.get_value('USE_UNSHARE'):
     return new_process.UnicodeModifierRunner(centipede_path)
 
@@ -85,7 +84,6 @@ class Engine(engine.Engine):
     Returns:
       A FuzzOptions object.
     """
-    os.chmod(target_path, 0o775)
     arguments = []
     dict_path = dictionary_manager.get_default_dictionary_path(target_path)
     if os.path.exists(dict_path):
@@ -170,11 +168,10 @@ class Engine(engine.Engine):
     """Creates temporary directory for fuzzing."""
     new_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_directory)
-    return new_directory
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
-    """Optional: run corpus minimization.
+    """Run corpus minimization.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
@@ -191,7 +188,7 @@ class Engine(engine.Engine):
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
-    """Optional: Minimize a testcase.
+    """Minimize a testcase.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for testcase minimization.
@@ -206,7 +203,7 @@ class Engine(engine.Engine):
     raise NotImplementedError
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
-    """Optional: Cleanse a testcase.
+    """Cleanse a testcase.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for testcase cleanse.
