@@ -49,27 +49,23 @@ class IssueTrackerManager(object):
   def save(self, issue):
     """Save an issue."""
     if issue.id == -1:
-        return self._create(issue)
+      return self._create(issue)
     self._update(issue)
 
   def create(self):
     """Create an issue object locally."""
-    raw_fields = {
-      "id": "-1",
-      "fields": {
-        "components" : [],
-        "labels": []
-      }
-    }
+    raw_fields = {"id": "-1", "fields": {"components": [], "labels": []}}
     # Create jira issue object
-    jira_issue = jira.resources.Issue({}, jira.resilientsession.ResilientSession(), raw_fields)
+    jira_issue = jira.resources.Issue({},
+                                      jira.resilientsession.ResilientSession(),
+                                      raw_fields)
     return jira_issue
 
   def _transition_issue_status_if_updated(self, issue):
     """Transitions the status of the issue if updated. Jira has a separate endpoint to transition status."""
     # Brittle - we should be pulling the equivalent of 'new' from the policy.
     if issue.status == 'Open':
-        return
+      return
     # This assumes the following:
     # 1. If issue.status is an instance of Resource, the value comes from
     #    Jira directly and has not been changed.
@@ -125,7 +121,6 @@ class IssueTrackerManager(object):
     self._add_watchers(jira_issue)
     issue.jira_issue = jira_issue
 
-
   def _update(self, issue):
     """Update an issue."""
 
@@ -137,7 +132,7 @@ class IssueTrackerManager(object):
   def get_watchers(self, issue):
     """Retrieve list of watchers."""
     if issue.id == -1:
-        return []
+      return []
     watchlist = self.client.watchers(issue)
     watchers = []
     for watcher in watchlist.watchers:
