@@ -18,8 +18,6 @@ import itertools
 
 import six
 
-from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.system import environment
 
 
@@ -73,15 +71,10 @@ def choose(testcase_map):
       item.is_leader = False
       if not security_index and item.security_flag:
         security_index = idx
-      try:
-        testcase = data_handler.get_testcase_by_id(item.id)
-        if not asan_index and '_asan_' in testcase.job_type:
-          asan_index = idx
-        if environment.is_i386(testcase.job_type):
-          i386_indexes.append(idx)
-      except errors.InvalidTestcaseError:
-        # Already deleted.
-        continue
+      if not asan_index and item.job_type and '_asan_' in item.job_type:
+        asan_index = idx
+      if item.job_type and environment.is_i386(item.job_type):
+        i386_indexes.append(idx)
 
     leader_index = security_index
     leader_index = asan_index

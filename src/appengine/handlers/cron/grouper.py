@@ -26,7 +26,7 @@ from . import group_leader
 
 FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
                         'one_time_crasher_flag', 'project_name',
-                        'security_flag', 'timestamp')
+                        'security_flag', 'timestamp', 'job_type')
 
 GROUP_MAX_TESTCASE_LIMIT = 25
 
@@ -36,10 +36,12 @@ class TestcaseAttributes(object):
 
   __slots__ = ('id', 'is_leader', 'issue_id') + FORWARDED_ATTRIBUTES
 
-  def __init__(self, testcase_id):
+  def __init__(self, testcase_id, job_type=None, sec_flag=None):
     self.id = testcase_id
     self.is_leader = True
     self.issue_id = None
+    self.job_type = job_type
+    self.security_flag = sec_flag
 
 
 def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
@@ -110,11 +112,15 @@ def _group_testcases_based_on_variants(testcase_map):
       if testcase_1.project_name != testcase_2.project_name:
         continue
 
+      # Rule: If both testcase have same job_type, then skip variant anlysis.
+      if testcase_1.job_type == testcase_2.job_type:
+        continue
+
       # Rule: Group testcase with similar variants.
-      testcase_1_variants = data_handler.get_all_testcase_variants(
-          testcase_1_id)
-      testcase_2_variants = data_handler.get_all_testcase_variants(
-          testcase_2_id)
+      testcase_1_variants = list(
+          data_handler.get_all_testcase_variants(testcase_1_id).iter())
+      testcase_2_variants = list(
+          data_handler.get_all_testcase_variants(testcase_2_id).iter())
       has_similar_variants = False
       for candidate1 in testcase_1_variants + [testcase_1]:
         for candidate2 in testcase_2_variants + [testcase_2]:
@@ -125,7 +131,16 @@ def _group_testcases_based_on_variants(testcase_map):
       if not has_similar_variants:
         continue
 
-      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      # TODO(navidem): Temporary logging, should be replaced with the combine.
+      logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
+               '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
+               'and testcase 2 '
+               '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
+               (testcase_1.crash_type, testcase_1.crash_state,
+                testcase_1.security_flag, testcase_1.group_id,
+                testcase_2.crash_type, testcase_2.crash_state,
+                testcase_2.security_flag, testcase_2.group_id))
 
 
 def _group_testcases_with_same_issues(testcase_map):
@@ -292,7 +307,8 @@ def group_testcases():
       continue
 
     # Store needed testcase attributes into |testcase_map|.
-    testcase_map[testcase_id] = TestcaseAttributes(testcase_id)
+    testcase_map[testcase_id] = TestcaseAttributes(
+        testcase_id, testcase.job_type, testcase.security_flag)
     testcase_attributes = testcase_map[testcase_id]
     for attribute_name in FORWARDED_ATTRIBUTES:
       setattr(testcase_attributes, attribute_name,

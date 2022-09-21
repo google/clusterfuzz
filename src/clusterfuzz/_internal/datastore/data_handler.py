@@ -1537,11 +1537,8 @@ def get_testcase_variant(testcase_id, job_type):
 
 def get_all_testcase_variants(testcase_id):
   """Get all testcase variant entities based on testcase id."""
-  variants_query = data_types.TestcaseVariant.query(
+  return data_types.TestcaseVariant.query(
       data_types.TestcaseVariant.testcase_id == testcase_id)
-  if not variants_query:
-    return []
-  return list(variants_query.iter())
 
 
 # ------------------------------------------------------------------------------
