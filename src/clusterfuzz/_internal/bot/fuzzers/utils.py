@@ -27,6 +27,7 @@ ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
 FUZZ_TARGET_SEARCH_BYTES = b'LLVMFuzzerTestOneInput'
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
 BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
+EXTRA_BUILD_DIR = '__extra_build'
 
 
 def is_fuzz_target_local(file_path, file_handle=None):
@@ -86,6 +87,10 @@ def get_fuzz_targets_local(path):
 
   for root, _, files in shell.walk(path):
     for filename in files:
+      if os.path.basename(root) == EXTRA_BUILD_DIR:
+        # Ignore extra binaries.
+        continue
+
       file_path = os.path.join(root, filename)
       if is_fuzz_target_local(file_path):
         fuzz_target_paths.append(file_path)
