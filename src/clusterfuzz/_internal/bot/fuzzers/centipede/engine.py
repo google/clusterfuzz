@@ -72,7 +72,7 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
-  def prepare(self, output_dir, target_path, build_dir):  # pylint: disable=unused-argument
+  def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -90,12 +90,12 @@ class Engine(engine.Engine):
       arguments.append(f'--dictionary={dict_path}')
 
     # Dir workdir/ saves centipede-readable corpus&feature files, and crashes.
-    workdir = os.path.join(output_dir, 'workdir')
+    workdir = os.path.join(corpus_dir, 'workdir')
     self._create_temp_dir(f'{workdir}')
     arguments.append(f'--workdir={workdir}')
 
     # Dir corpus_dir saves the corpus files required by ClusterFuzz.
-    corpus_dir = os.path.join(output_dir, 'corpus_dir')
+    corpus_dir = os.path.join(corpus_dir, 'corpus_dir')
     self._create_temp_dir(f'{corpus_dir}')
     arguments.append(f'--corpus_dir={corpus_dir}')
 
