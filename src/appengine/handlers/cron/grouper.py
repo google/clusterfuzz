@@ -87,18 +87,16 @@ def _get_new_group_id():
 
 
 def is_same_variant(variant1, variant2):
-  """Checks for the testcase variants equality"""
-  if (variant1.crash_type == variant2.crash_type and
-      variant1.crash_state == variant2.crash_state and
-      variant1.security_flag == variant2.security_flag):
-    return True
-  return False
+  """Checks for the testcase variants equality."""
+  return (variant1.crash_type == variant2.crash_type and
+          variant1.crash_state == variant2.crash_state and
+          variant1.security_flag == variant2.security_flag)
 
 
 def _group_testcases_based_on_variants(testcase_map):
-  """Group testcases that are associated based on variant analysis"""
-  for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
-    for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
+  """Group testcases that are associated based on variant analysis."""
+  for testcase_1_id, testcase_1 in testcase_map.items():
+    for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:
@@ -112,7 +110,7 @@ def _group_testcases_based_on_variants(testcase_map):
       if testcase_1.project_name != testcase_2.project_name:
         continue
 
-      # Rule: Group testcase with similar variants
+      # Rule: Group testcase with similar variants.
       testcase_1_variants = data_handler.get_all_testcase_variants(
           testcase_1_id)
       testcase_2_variants = data_handler.get_all_testcase_variants(

@@ -18,6 +18,10 @@ import itertools
 
 import six
 
+from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.system import environment
+
 
 def find_index(items, condition_fn):
   """Return the index of the first item whose condition_fn is True."""
@@ -62,14 +66,35 @@ def choose(testcase_map):
 
     items = sorted(items, reverse=True, key=lambda t: t.timestamp)
 
-    for item in items:
+    asan_index = None
+    security_index = None
+    i386_indexes = []
+    for idx, item in enumerate(items):
       item.is_leader = False
+      if not security_index and item.security_flag:
+        security_index = idx
+      try:
+        testcase = data_handler.get_testcase_by_id(item.id)
+        if not asan_index and '_asan_' in testcase.job_type:
+          asan_index = idx
+        if environment.is_i386(testcase.job_type):
+          i386_indexes.append(idx)
+      except errors.InvalidTestcaseError:
+        # Already deleted.
+        continue
 
-    leader_index = find_index(items, is_reproducible_and_has_issue)
+    leader_index = security_index
+    leader_index = asan_index
+    if leader_index is None:
+      leader_index = find_index(items, is_reproducible_and_has_issue)
     if leader_index is None:
       leader_index = find_index(items, has_issue)
     if leader_index is None:
       leader_index = find_index(items, is_reproducible)
+
+    if leader_index in i386_indexes:
+      leader_index = None
+
     if leader_index is None:
       leader_index = 0
 

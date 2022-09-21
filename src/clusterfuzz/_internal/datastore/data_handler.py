@@ -1541,7 +1541,7 @@ def get_all_testcase_variants(testcase_id):
       data_types.TestcaseVariant.testcase_id == testcase_id)
   if not variants_query:
     return []
-  return  list(variants_query.iter())
+  return list(variants_query.iter())
 
 
 # ------------------------------------------------------------------------------
