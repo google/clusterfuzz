@@ -16,7 +16,6 @@
 import json
 
 import jira
-from jira.resilientsession import ResilientSession
 
 from clusterfuzz._internal.config import db_config
 
@@ -50,7 +49,7 @@ class IssueTrackerManager(object):
     """Save an issue."""
     if issue.id == -1:
       return self._create(issue)
-    self._update(issue)
+    return self._update(issue)
 
   def create(self):
     """Create an issue object locally."""
@@ -62,7 +61,8 @@ class IssueTrackerManager(object):
     return jira_issue
 
   def _transition_issue_status_if_updated(self, issue):
-    """Transitions the status of the issue if updated. Jira has a separate endpoint to transition status."""
+    """Transitions the status of the issue if updated. Jira has a separate
+    endpoint to transition status."""
     # Brittle - we should be pulling the equivalent of 'new' from the policy.
     if issue.status == 'Open':
       return
@@ -76,7 +76,8 @@ class IssueTrackerManager(object):
       self.client.transition_issue(issue.jira_issue, transition=issue.status)
 
   def _add_watchers(self, issue):
-    """Add watchers to the ticket. Jira has a separate endpoint to add watchers."""
+    """Add watchers to the ticket. Jira has a separate endpoint to
+    add watchers."""
 
     # Get watchers from LabelStore.
     watchers = list(issue.ccs)
@@ -86,6 +87,7 @@ class IssueTrackerManager(object):
       self.client.add_watcher(issue.jira_issue, watcher)
 
   def _get_issue_fields(self, issue):
+    """Get issue fields to populate the ticket"""
     # Get labels from LabelStore.
     labels = list(issue.labels)
 
