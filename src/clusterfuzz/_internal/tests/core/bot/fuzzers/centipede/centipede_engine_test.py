@@ -78,11 +78,6 @@ class IntegrationTest(unittest.TestCase):
     """Compare expected arguments."""
     self.assertListEqual(expected, actual)
 
-  def assert_has_stats(self, results):
-    """Assert that stats exist."""
-    # Centipede does not have stats report yet.
-    # TODO(Dongge): Implement this when the feature is supported.
-
   def test_reproduce(self):
     """Tests reproducing a crash."""
     testcase_path = setup_testcase('crash')
@@ -113,7 +108,6 @@ class IntegrationTest(unittest.TestCase):
         ])
     self.compare_arguments(expected_command, results.command)
     self.assertGreater(len(os.listdir(CORPUS_DIR)), 0)
-    self.assert_has_stats(results)
 
   def test_fuzz_crash(self):
     """Test fuzzing that results in a crash."""
@@ -143,8 +137,6 @@ class IntegrationTest(unittest.TestCase):
 
     with open(crash.input_path, 'rb') as f:
       self.assertEqual(b'A', f.read()[:1])
-
-    self.assert_has_stats(results)
 
 
 @test_utils.integration
