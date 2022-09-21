@@ -72,7 +72,7 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
-  def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
+  def prepare(self, output_dir, target_path, build_dir):  # pylint: disable=unused-argument
     """Prepare for a fuzzing session, by generating options. Returns a
     FuzzOptions object.
 
@@ -89,25 +89,26 @@ class Engine(engine.Engine):
     if os.path.exists(dict_path):
       arguments.append(f'--dictionary={dict_path}')
 
-    # Is it OK to create workdir with this function?
-    # workdir saves centipede-readable corpus&feature files, and crashes.
-    workdir = self._create_temp_dir(f'{build_dir}/workdir')
-    # Will the workdir always exist?
+    # Dir workdir/ saves centipede-readable corpus&feature files, and crashes.
+    workdir = os.path.join(output_dir, 'workdir')
+    self._create_temp_dir(f'{workdir}')
     arguments.append(f'--workdir={workdir}')
 
-    # Will the corpus directory always exist?
-    corpus_dir = self._create_temp_dir(f'{corpus_dir}')
-    # corpus_dir saves the corpus files in the format required by ClusterFuzz.
+    # Dir corpus_dir saves the corpus files required by ClusterFuzz.
+    corpus_dir = os.path.join(output_dir, 'corpus_dir')
+    self._create_temp_dir(f'{corpus_dir}')
     arguments.append(f'--corpus_dir={corpus_dir}')
 
     # The unsanitized binary, Centipede requires it to be the main fuzz target.
     arguments.append(f'--binary={target_path}')
 
     # Extra sanitized binaries, Centipede requires to build them separately.
-    # Assuming they will be in child dirs named as '__extra_build'.
+    # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
     binary_name = os.path.basename(target_path)
-    arguments.append(
-        f'--extra_binaries={build_dir}/__extra_build/{binary_name}')
+    binary_path = os.path.join(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
+                               binary_name)
+    if os.path.exists(binary_path):
+      arguments.append(f'--extra_binaries={binary_path}')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 

@@ -18,6 +18,7 @@ import shutil
 import unittest
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.centipede import engine
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
@@ -25,8 +26,9 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(TEST_PATH, 'test_data')
-WORK_DIR = os.path.join(DATA_DIR, 'workdir')
-CORPUS_DIR = os.path.join(DATA_DIR, 'corpus')
+OUTPUT_DIR = os.path.join(TEST_PATH, 'output')
+WORK_DIR = os.path.join(OUTPUT_DIR, 'workdir')
+CORPUS_DIR = os.path.join(OUTPUT_DIR, 'corpus_dir')
 CRASHES_DIR = os.path.join(WORK_DIR, 'crashes')
 
 # Centipede's runtime args
@@ -44,29 +46,22 @@ _DEFAULT_ARGUMENTS = [
 ]
 
 
-def clear_temp_dirs():
-  """Clear temp directory."""
-  for directory in [CORPUS_DIR, WORK_DIR]:
-    if os.path.exists(directory):
-      shutil.rmtree(directory)
-    os.mkdir(directory)
+def clear_output_dirs():
+  """Clear output directory."""
+  if os.path.exists(OUTPUT_DIR):
+    shutil.rmtree(OUTPUT_DIR)
+  os.mkdir(OUTPUT_DIR)
 
 
-def setup_testcase_and_corpus(testcase, corpus):
+def setup_testcase(testcase):
   """Setup testcase and corpus."""
-  clear_temp_dirs()
-  copied_testcase_path = os.path.join(CORPUS_DIR, testcase)
-  shutil.copy(os.path.join(DATA_DIR, testcase), copied_testcase_path)
+  clear_output_dirs()
 
-  copied_corpus_path = os.path.join(CORPUS_DIR, corpus)
-  src_corpus_path = os.path.join(DATA_DIR, corpus)
+  src_testcase_path = os.path.join(DATA_DIR, testcase)
+  copied_testcase_path = os.path.join(OUTPUT_DIR, testcase)
+  shutil.copy(src_testcase_path, copied_testcase_path)
 
-  if os.path.exists(src_corpus_path):
-    shutil.copytree(src_corpus_path, copied_corpus_path)
-  else:
-    os.mkdir(copied_corpus_path)
-
-  return copied_testcase_path, copied_corpus_path
+  return copied_testcase_path
 
 
 @test_utils.integration
@@ -90,9 +85,10 @@ class IntegrationTest(unittest.TestCase):
 
   def test_reproduce(self):
     """Tests reproducing a crash."""
-    testcase_path, _ = setup_testcase_and_corpus('crash', 'empty_corpus')
+    testcase_path = setup_testcase('crash')
     engine_impl = engine.Engine()
-    sanitized_target_path = f'{DATA_DIR}/__extra_build/test_fuzzer'
+    sanitized_target_path = os.path.join(DATA_DIR, fuzzer_utils.EXTRA_BUILD_DIR,
+                                         'test_fuzzer')
     result = engine_impl.reproduce(sanitized_target_path, testcase_path, [], 10)
     self.assertListEqual([sanitized_target_path, testcase_path], result.command)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
@@ -100,37 +96,40 @@ class IntegrationTest(unittest.TestCase):
   @test_utils.slow
   def test_fuzz_no_crash(self):
     """Test fuzzing (no crash)."""
-    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
+    dictionary = os.path.join(DATA_DIR, "test_fuzzer.dict")
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+    sanitized_target_path = os.path.join(DATA_DIR, fuzzer_utils.EXTRA_BUILD_DIR,
+                                         'test_fuzzer')
+    options = engine_impl.prepare(OUTPUT_DIR, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = (
         [os.path.join(DATA_DIR, 'centipede')] + _DEFAULT_ARGUMENTS + [
-            f'--dictionary={os.path.join(DATA_DIR, "test_fuzzer.dict")}',
-            f'--workdir={os.path.join(DATA_DIR, "workdir")}',
-            f'--corpus_dir={corpus_path}',
+            f'--dictionary={dictionary}',
+            f'--workdir={WORK_DIR}',
+            f'--corpus_dir={CORPUS_DIR}',
             f'--binary={target_path}',
-            f'--extra_binaries={DATA_DIR}/__extra_build/test_fuzzer',
+            f'--extra_binaries={sanitized_target_path}',
         ])
     self.compare_arguments(expected_command, results.command)
-    self.assertGreater(len(os.listdir(corpus_path)), 0)
+    self.assertGreater(len(os.listdir(CORPUS_DIR)), 0)
     self.assert_has_stats(results)
 
   def test_fuzz_crash(self):
     """Test fuzzing that results in a crash."""
-    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
+    sanitized_target_path = os.path.join(DATA_DIR, fuzzer_utils.EXTRA_BUILD_DIR,
+                                         'always_crash_fuzzer')
+    options = engine_impl.prepare(OUTPUT_DIR, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = (
         [os.path.join(DATA_DIR, 'centipede')] + _DEFAULT_ARGUMENTS + [
             f'--workdir={WORK_DIR}',
-            f'--corpus_dir={corpus_path}',
+            f'--corpus_dir={CORPUS_DIR}',
             f'--binary={target_path}',
-            f'--extra_binaries={DATA_DIR}/__extra_build/always_crash_fuzzer',
+            f'--extra_binaries={sanitized_target_path}',
         ])
     self.compare_arguments(expected_command, results.command)
 
