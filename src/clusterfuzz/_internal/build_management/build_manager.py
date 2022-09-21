@@ -76,6 +76,7 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-fuzz',
     'afl-showmap',
     'afl-tmin',
+    'centipede',
     'honggfuzz',
     'jazzer_agent_deploy.jar',
     'jazzer_driver',
@@ -152,12 +153,16 @@ def _evict_build(current_build_dir):
   least_recently_used_timestamp = None
 
   for build_directory in os.listdir(builds_directory):
-    absolute_build_directory = os.path.join(builds_directory, build_directory)
+    absolute_build_directory = os.path.abspath(
+        os.path.join(builds_directory, build_directory))
     if not os.path.isdir(absolute_build_directory):
       continue
 
-    if absolute_build_directory == current_build_dir:
-      # Don't evict the build we're trying to extract.
+    if os.path.commonpath(
+        [absolute_build_directory,
+         os.path.abspath(current_build_dir)]) == absolute_build_directory:
+      # Don't evict the build we're trying to extract. This could be a parent
+      # directory of where we're currently extracting to.
       continue
 
     build = BaseBuild(absolute_build_directory)
@@ -1341,6 +1346,7 @@ def setup_regular_build(revision,
         environment.is_kernel_fuzzer_job()):
     build_class = CuttlefishKernelBuild
 
+  result = None
   build = build_class(
       base_build_dir,
       revision,
@@ -1348,8 +1354,33 @@ def setup_regular_build(revision,
       target_weights=target_weights,
       build_prefix=build_prefix)
   if build.setup():
-    return build
-  return None
+    result = build
+  else:
+    return None
+
+  # Additional binaries to pull (for fuzzing engines such as Centipede).
+  extra_bucket_path = get_bucket_path('EXTRA_BUILD_BUCKET_PATH')
+  if extra_bucket_path:
+    # Import here as this path is not available in App Engine context.
+    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+    extra_build_urls = get_build_urls_list(extra_bucket_path)
+    extra_build_url = revisions.find_build_url(extra_bucket_path,
+                                               extra_build_urls, revision)
+    if not extra_build_url:
+      logs.log_error('Error getting extra build url for job %s (r%d).' %
+                     (job_type, revision))
+      return None
+
+    build = build_class(
+        build.build_dir,  # Store inside the main build.
+        revision,
+        extra_build_url,
+        target_weights=target_weights,
+        build_prefix=fuzzer_utils.EXTRA_BUILD_DIR)
+    if not build.setup():
+      return None
+
+  return result
 
 
 def setup_symbolized_builds(revision):
