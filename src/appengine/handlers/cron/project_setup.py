@@ -137,6 +137,9 @@ GFT_MSAN_JOB = JobInfo('googlefuzztest_msan_', 'googlefuzztest', 'memory',
 GFT_UBSAN_JOB = JobInfo('googlefuzztest_ubsan_', 'googlefuzztest', 'undefined',
                         ['googlefuzztest', 'engine_ubsan'])
 
+CENTIPEDE_ASAN_JOB = JobInfo('centipede_asan_', 'centipede', 'address',
+                             ['centipede', 'engine_asan'])
+
 LIBFUZZER_NONE_JOB = JobInfo('libfuzzer_nosanitizer_', 'libfuzzer', 'none',
                              ['libfuzzer'])
 LIBFUZZER_NONE_I386_JOB = JobInfo(
@@ -144,6 +147,9 @@ LIBFUZZER_NONE_I386_JOB = JobInfo(
     'libfuzzer',
     'none', ['libfuzzer'],
     architecture='i386')
+
+CENTIPEDE_NONE_JOB = JobInfo('centipede_nosanitizer_', 'centipede', 'none',
+                             ['centipede'])
 
 JOB_MAP = {
     'libfuzzer': {
@@ -179,7 +185,13 @@ JOB_MAP = {
         'x86_64': {
             'address': NO_ENGINE_ASAN_JOB,
         }
-    }
+    },
+    'centipede': {
+        'x86_64': {
+            'address': CENTIPEDE_ASAN_JOB,
+            'none': CENTIPEDE_NONE_JOB,
+        },
+    },
 }
 
 DEFAULT_ARCHITECTURES = ['x86_64']
