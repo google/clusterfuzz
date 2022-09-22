@@ -28,9 +28,17 @@ class GroupLeaderTest(unittest.TestCase):
     group_leader.choose(testcase_map)
     self.assertDictEqual({}, testcase_map)
 
-  def _make_attributes(self, testcase_id, one_time_crasher_flag, issue_id,
-                       group_id, time_in_second):
-    attributes = grouper.TestcaseAttributes(testcase_id)
+  def _make_attributes(self,
+                       testcase_id,
+                       one_time_crasher_flag,
+                       issue_id,
+                       group_id,
+                       time_in_second,
+                       job_type=None,
+                       security_flag=None):
+    """Make testcase attributes for test."""
+    attributes = grouper.TestcaseAttributes(testcase_id, job_type,
+                                            security_flag)
     attributes.is_leader = False
     attributes.one_time_crasher_flag = one_time_crasher_flag
     attributes.issue_id = issue_id
@@ -88,3 +96,52 @@ class GroupLeaderTest(unittest.TestCase):
     self.assertTrue(testcase_map[3].is_leader)
     self.assertFalse(testcase_map[1].is_leader)
     self.assertFalse(testcase_map[2].is_leader)
+
+  def test_asan_over_anything_else(self):
+    """Test choosing ASAN over other sanitizers in job_type."""
+    testcase_map = {
+        1:
+            self._make_attributes(1, True, '10', 33, 10,
+                                  'some_engine_asan_proj', True),
+        2:
+            self._make_attributes(2, False, None, 33, 9,
+                                  'some_engine_ubsan_proj', True),
+        3:
+            self._make_attributes(3, False, '10', 33, 8,
+                                  'some_engine_msan_proj'),
+    }
+    group_leader.choose(testcase_map)
+
+    self.assertTrue(testcase_map[1].is_leader)
+    self.assertFalse(testcase_map[2].is_leader)
+    self.assertFalse(testcase_map[3].is_leader)
+
+  def test_security_over_non_security(self):
+    """Test choosing security crash over non-security."""
+    testcase_map = {
+        1: self._make_attributes(1, True, '10', 33, 10, 'some_job', True),
+        2: self._make_attributes(2, False, None, 33, 9, 'some_job', False),
+    }
+    group_leader.choose(testcase_map)
+
+    self.assertTrue(testcase_map[1].is_leader)
+    self.assertFalse(testcase_map[2].is_leader)
+
+  def test_not_choosing_i386(self):
+    """Test not choosing an i386 issue as leader"""
+    testcase_map = {
+        1:
+            self._make_attributes(1, True, '10', 33, 10,
+                                  'some_engine_asan_proj_i386', True),
+        2:
+            self._make_attributes(2, False, None, 33, 9,
+                                  'some_engine_ubsan_proj', True),
+        3:
+            self._make_attributes(3, False, '10', 33, 8,
+                                  'some_engine_asan_proj'),
+    }
+    group_leader.choose(testcase_map)
+
+    self.assertTrue(testcase_map[3].is_leader)
+    self.assertFalse(testcase_map[2].is_leader)
+    self.assertFalse(testcase_map[1].is_leader)
