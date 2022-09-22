@@ -875,6 +875,19 @@ class ProjectSetup(object):
         job.environment_string += (
             f'DATAFLOW_BUILD_BUCKET_PATH = {dataflow_build_bucket_path}\n')
 
+      # Centipede requires separate binaries for sanitized targets.
+      if (template.engine == 'centipede' and
+          template.architecture == 'x86_64' and
+          template.sanitizer == 'address'):
+        sanitized_target_bucket_path = self._get_build_bucket_path(
+            project_name=project,
+            info=info,
+            engine='centipede',
+            memory_tool='address',
+            architecture=template.architecture)
+        job.environment_string += ('SANITIZED_TARGET_BUILD_BUCKET_PATH = '
+                                   f'{sanitized_target_bucket_path}\n')
+
       if self._additional_vars:
         additional_vars = {}
         additional_vars.update(self._additional_vars.get('all', {}))
@@ -1009,6 +1022,12 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get googlefuzztest Fuzzer entity.')
       return
 
+    centipede = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'centipede').get()
+    if not centipede:
+      logs.log_error('Failed to get Centipede Fuzzer entity.')
+      return
+
     project_config = local_config.ProjectConfig()
     segregate_projects = project_config.get('segregate_projects')
     project_setup_configs = project_config.get('project_setup')
@@ -1017,6 +1036,7 @@ class Handler(base_handler.Handler):
 
     fuzzer_entities = {
         'afl': afl.key,
+        'centipede': centipede.key,
         'honggfuzz': honggfuzz.key,
         'googlefuzztest': gft.key,
         'libfuzzer': libfuzzer.key,
@@ -1045,6 +1065,7 @@ class Handler(base_handler.Handler):
               'googlefuzztest': bucket_config.get('googlefuzztest'),
               'none': bucket_config.get('no_engine'),
               'dataflow': bucket_config.get('dataflow'),
+              'centipede': bucket_config.get('centipede'),
           },
           fuzzer_entities=fuzzer_entities,
           add_info_labels=setup_config.get('add_info_labels', False),

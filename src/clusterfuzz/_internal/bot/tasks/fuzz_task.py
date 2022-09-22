@@ -1803,6 +1803,13 @@ class FuzzingSession(object):
           [dataflow_bucket_path], build_prefix='DATAFLOW'):
         logs.log_error('Failed to set up dataflow build.')
 
+    # Centipede requires separate binaries for sanitized targets.
+    if environment.is_centipede_fuzzer_job():
+      sanitized_target_bucket_path = environment.get_value(
+          'SANITIZED_TARGET_BUILD_BUCKET_PATH')
+      if sanitized_target_bucket_path:
+        logs.log_error('Failed to set up sanitized_target_build.')
+
     # Save fuzz targets count to aid with CPU weighting.
     self._save_fuzz_targets_count()
 

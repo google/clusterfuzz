@@ -671,6 +671,11 @@ def is_kernel_fuzzer_job(job_name=None):
   return get_engine_for_job(job_name) == 'syzkaller'
 
 
+def is_centipede_fuzzer_job(job_name=None):
+  """Return true if the current job uses Centipede."""
+  return get_engine_for_job(job_name) == 'centipede'
+
+
 def is_engine_fuzzer_job(job_name=None):
   """Return true if this is an engine fuzzer."""
   return bool(get_engine_for_job(job_name))
