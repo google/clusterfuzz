@@ -47,14 +47,14 @@ _DEFAULT_ARGUMENTS = [
 
 
 def clear_output_dirs():
-  """Clear output directory."""
+  """Clears output directory."""
   if os.path.exists(OUTPUT_DIR):
     shutil.rmtree(OUTPUT_DIR)
   os.mkdir(OUTPUT_DIR)
 
 
 def setup_testcase(testcase):
-  """Setup testcase and corpus."""
+  """Sets up testcase and corpus."""
   clear_output_dirs()
 
   src_testcase_path = os.path.join(DATA_DIR, testcase)
@@ -75,7 +75,7 @@ class IntegrationTest(unittest.TestCase):
     os.environ['BUILD_DIR'] = DATA_DIR
 
   def compare_arguments(self, expected, actual):
-    """Compare expected arguments."""
+    """Compares expected arguments."""
     self.assertListEqual(expected, actual)
 
   def test_reproduce(self):
@@ -90,7 +90,7 @@ class IntegrationTest(unittest.TestCase):
 
   @test_utils.slow
   def test_fuzz_no_crash(self):
-    """Test fuzzing (no crash)."""
+    """Tests fuzzing (no crash)."""
     engine_impl = engine.Engine()
     dictionary = os.path.join(DATA_DIR, "test_fuzzer.dict")
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
@@ -110,7 +110,7 @@ class IntegrationTest(unittest.TestCase):
     self.assertGreater(len(os.listdir(CORPUS_DIR)), 0)
 
   def test_fuzz_crash(self):
-    """Test fuzzing that results in a crash."""
+    """Tests fuzzing that results in a crash."""
     engine_impl = engine.Engine()
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
@@ -144,7 +144,7 @@ class UnshareIntegrationTest(IntegrationTest):
   """Integration tests."""
 
   def compare_arguments(self, expected, actual):
-    """Compare expected arguments."""
+    """Compares expected arguments."""
     self.assertListEqual([
         os.path.join(
             environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',

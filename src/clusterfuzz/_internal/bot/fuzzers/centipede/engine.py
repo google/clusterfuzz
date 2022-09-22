@@ -45,7 +45,7 @@ class CentipedeError(Exception):
 
 
 def _get_runner():
-  """Get the Centipede runner."""
+  """Gets the Centipede runner."""
   centipede_path = os.path.join(environment.get_value('BUILD_DIR'), 'centipede')
   if not os.path.exists(centipede_path):
     raise CentipedeError('Centipede not found in build')
@@ -56,9 +56,9 @@ def _get_runner():
   return new_process.UnicodeProcessRunner(centipede_path)
 
 
-def _get_reproducer_path(line):
-  """Get the reproducer path, if any."""
-  crash_match = _CRASH_REGEX.search(line)
+def _get_reproducer_path(log):
+  """Gets the reproducer path, if any."""
+  crash_match = _CRASH_REGEX.search(log)
   if not crash_match:
     return None
 
@@ -73,8 +73,7 @@ class Engine(engine.Engine):
     return 'centipede'
 
   def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
-    """Prepare for a fuzzing session, by generating options. Returns a
-    FuzzOptions object.
+    """Prepares for a fuzzing session, by generating options.
 
     Args:
       corpus_dir: The main corpus directory.
@@ -89,14 +88,17 @@ class Engine(engine.Engine):
     if os.path.exists(dict_path):
       arguments.append(f'--dictionary={dict_path}')
 
-    # Dir workdir/ saves centipede-readable corpus&feature files, and crashes.
+    # Directory workdir saves:
+    # 1. Centipede-readable corpus file;
+    # 2. Centipede-readable feature file;
+    # 3. Crash reproducing inputs.
     workdir = os.path.join(corpus_dir, 'workdir')
-    self._create_temp_dir(f'{workdir}')
+    self._create_temp_dir(workdir)
     arguments.append(f'--workdir={workdir}')
 
-    # Dir corpus_dir saves the corpus files required by ClusterFuzz.
+    # Directory corpus_dir saves the corpus files required by ClusterFuzz.
     corpus_dir = os.path.join(corpus_dir, 'corpus_dir')
-    self._create_temp_dir(f'{corpus_dir}')
+    self._create_temp_dir(corpus_dir)
     arguments.append(f'--corpus_dir={corpus_dir}')
 
     # The unsanitized binary, Centipede requires it to be the main fuzz target.
@@ -104,16 +106,16 @@ class Engine(engine.Engine):
 
     # Extra sanitized binaries, Centipede requires to build them separately.
     # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
-    binary_name = os.path.basename(target_path)
-    binary_path = os.path.join(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
-                               binary_name)
-    if os.path.exists(binary_path):
-      arguments.append(f'--extra_binaries={binary_path}')
+    sanitized_target_name = os.path.basename(target_path)
+    sanitized_target_path = os.path.join(
+        build_dir, fuzzer_utils.EXTRA_BUILD_DIR, sanitized_target_name)
+    if os.path.exists(sanitized_target_path):
+      arguments.append(f'--extra_binaries={sanitized_target_path}')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
-    """Run a fuzz session.
+    """Runs a fuzz session.
 
     Args:
       target_path: Path to the target.
@@ -129,26 +131,24 @@ class Engine(engine.Engine):
     arguments = _DEFAULT_ARGUMENTS.copy()
     arguments.extend(options.arguments)
 
+    timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments, timeout=max_time + _CLEAN_EXIT_SECS)
-    log_lines = fuzz_result.output.splitlines()
-    fuzz_logs = '\n'.join(log_lines)
+        additional_args=arguments, timeout=timeout)
 
+    reproducer_path = _get_reproducer_path(fuzz_result.output)
     crashes = []
+    if reproducer_path:
+      crashes.append(
+          engine.Crash(reproducer_path, fuzz_result.output, [],
+                       int(fuzz_result.time_executed)))
+
     # Stats report is not available in Centipede yet.
     stats = None
-    for line in log_lines:
-      reproducer_path = _get_reproducer_path(line)
-      if reproducer_path:
-        crashes.append(
-            engine.Crash(reproducer_path, fuzz_logs, [],
-                         int(fuzz_result.time_executed)))
-        continue
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
-    """Reproduce a crash given an input.
+    """Reproduces a crash given an input.
 
     Args:
       target_path: Path to the target.
@@ -172,7 +172,7 @@ class Engine(engine.Engine):
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
-    """Run corpus minimization.
+    """Runs corpus minimization.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for corpus minimization.
@@ -189,7 +189,7 @@ class Engine(engine.Engine):
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
-    """Minimize a testcase.
+    """Minimizes a testcase.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for testcase minimization.
@@ -204,7 +204,7 @@ class Engine(engine.Engine):
     raise NotImplementedError
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
-    """Cleanse a testcase.
+    """Cleanses a testcase.
     Args:
       target_path: Path to the target.
       arguments: Additional arguments needed for testcase cleanse.
