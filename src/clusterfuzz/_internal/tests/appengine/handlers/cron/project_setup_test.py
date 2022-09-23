@@ -182,6 +182,10 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.gft = data_types.Fuzzer(name='googlefuzztest', jobs=[])
     self.gft.put()
 
+    self.centipede = data_types.Fuzzer(name='centipede', jobs=[])
+    self.centipede.data_bundle_name = 'global'
+    self.centipede.put()
+
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.ProjectConfig',
         ('get_application_id_2',
@@ -207,6 +211,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'add_revision_mappings': True,
             'build_buckets': {
                 'afl': 'clusterfuzz-builds-afl',
+                'centipede': 'clusterfuzz-builds-centipede',
                 'dataflow': 'clusterfuzz-builds-dataflow',
                 'honggfuzz': 'clusterfuzz-builds-honggfuzz',
                 'libfuzzer': 'clusterfuzz-builds',
@@ -1370,6 +1375,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_i386_lib8'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_lib8'),
+        ('LIB1_LINUX', 'centipede', 'centipede_asan_lib1'),
+        ('LIB8_LINUX', 'centipede', 'centipede_nosanitizer_lib8'),
     ])
 
     all_permissions = [
@@ -1587,6 +1594,18 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'email': 'primary@example.com',
         'entity_name': 'libfuzzer_nosanitizer_i386_lib8',
         'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'primary@example.com',
+        'entity_name': 'centipede_asan_lib1',
+        'auto_cc': 1
+    }, {
+        'entity_kind': 1,
+        'is_prefix': False,
+        'email': 'user@example.com',
+        'entity_name': 'centipede_nosanitizer_lib8',
+        'auto_cc': 1
     }])
 
     expected_topics = [
@@ -1737,6 +1756,9 @@ class GenericProjectSetupTest(unittest.TestCase):
 
     self.gft = data_types.Fuzzer(name='googlefuzztest', jobs=[])
     self.gft.put()
+
+    self.centipede = data_types.Fuzzer(name='centipede', jobs=[])
+    self.centipede.put()
 
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.ProjectConfig',
