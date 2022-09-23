@@ -84,6 +84,18 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
+CENTIPEDE_TEMPLATE = """MAX_FUZZ_THREADS = 1
+MAX_TESTCASES = 2
+FUZZ_TEST_TIMEOUT = 8400
+TEST_TIMEOUT = 65
+WARMUP_TIMEOUT = 65
+BAD_BUILD_CHECK = False
+THREAD_ALIVE_CHECK_INTERVAL = 1
+REPORT_OOMS_AND_HANGS = True
+ENABLE_GESTURES = False
+THREAD_DELAY = 30.0
+"""
+
 ENGINE_ASAN_TEMPLATE = ('LSAN = True\n'
                         'ADDITIONAL_ASAN_OPTIONS = '
                         'symbolize=0:'
@@ -122,6 +134,7 @@ PRUNE_TEMPLATE = 'CORPUS_PRUNE = True'
 
 TEMPLATES = {
     'afl': AFL_TEMPLATE,
+    'centipede': CENTIPEDE_TEMPLATE,
     'engine_asan': ENGINE_ASAN_TEMPLATE,
     'engine_msan': ENGINE_MSAN_TEMPLATE,
     'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
@@ -287,6 +300,15 @@ class GoogleFuzzTestDefaults(BaseBuiltinFuzzerDefaults):
     self.key_id = 1341
 
 
+class CentipedeDefaults(BaseBuiltinFuzzerDefaults):
+  """Default values for Centipede."""
+
+  def __init__(self):
+    super().__init__()
+    self.name = 'centipede'
+    self.key_id = 1342
+
+
 def setup_config(non_dry_run):
   """Set up configuration."""
   config = data_types.Config.query().get()
@@ -307,7 +329,8 @@ def setup_fuzzers(non_dry_run):
       LibFuzzerDefaults(),
       HonggfuzzDefaults(),
       GoogleFuzzTestDefaults(),
-      SyzkallerDefaults()
+      SyzkallerDefaults(),
+      CentipedeDefaults(),
   ]:
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_defaults.name).get()
