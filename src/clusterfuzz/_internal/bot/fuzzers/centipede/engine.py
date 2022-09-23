@@ -13,7 +13,7 @@
 # limitations under the License.
 """Centipede engine interface."""
 
-import os
+from pathlib import Path
 import re
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
@@ -46,13 +46,13 @@ class CentipedeError(Exception):
 
 def _get_runner():
   """Gets the Centipede runner."""
-  centipede_path = os.path.join(environment.get_value('BUILD_DIR'), 'centipede')
-  if not os.path.exists(centipede_path):
+  centipede_path = Path(environment.get_value('BUILD_DIR'), 'centipede')
+  if not centipede_path.exists():
     raise CentipedeError('Centipede not found in build')
 
+  centipede_path = str(centipede_path)
   if environment.get_value('USE_UNSHARE'):
     return new_process.UnicodeModifierRunner(centipede_path)
-
   return new_process.UnicodeProcessRunner(centipede_path)
 
 
@@ -84,20 +84,20 @@ class Engine(engine.Engine):
       A FuzzOptions object.
     """
     arguments = []
-    dict_path = dictionary_manager.get_default_dictionary_path(target_path)
-    if os.path.exists(dict_path):
+    dict_path = Path(
+        dictionary_manager.get_default_dictionary_path(target_path))
+    if dict_path.exists():
       arguments.append(f'--dictionary={dict_path}')
 
     # Directory workdir saves:
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
-    workdir = os.path.join(corpus_dir, 'workdir')
+    workdir = Path(corpus_dir).parent / 'workdir'
     self._create_temp_dir(workdir)
     arguments.append(f'--workdir={workdir}')
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
-    corpus_dir = os.path.join(corpus_dir, 'corpus_dir')
     self._create_temp_dir(corpus_dir)
     arguments.append(f'--corpus_dir={corpus_dir}')
 
@@ -106,10 +106,10 @@ class Engine(engine.Engine):
 
     # Extra sanitized binaries, Centipede requires to build them separately.
     # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
-    sanitized_target_name = os.path.basename(target_path)
-    sanitized_target_path = os.path.join(
-        build_dir, fuzzer_utils.EXTRA_BUILD_DIR, sanitized_target_name)
-    if os.path.exists(sanitized_target_path):
+    sanitized_target_name = Path(target_path).name
+    sanitized_target_path = Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
+                                 sanitized_target_name)
+    if sanitized_target_path.exists():
       arguments.append(f'--extra_binaries={sanitized_target_path}')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
@@ -167,7 +167,7 @@ class Engine(engine.Engine):
 
   def _create_temp_dir(self, name):
     """Creates temporary directory for fuzzing."""
-    new_directory = os.path.join(fuzzer_utils.get_temp_dir(), name)
+    new_directory = Path(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_directory)
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,

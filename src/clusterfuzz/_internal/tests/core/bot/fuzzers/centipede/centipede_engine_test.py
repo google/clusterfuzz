@@ -14,6 +14,7 @@
 """Tests for centipede engine."""
 
 import os
+from pathlib import Path
 import shutil
 import unittest
 
@@ -24,12 +25,12 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-TEST_PATH = os.path.abspath(os.path.dirname(__file__))
-DATA_DIR = os.path.join(TEST_PATH, 'test_data')
-OUTPUT_DIR = os.path.join(TEST_PATH, 'output')
-WORK_DIR = os.path.join(OUTPUT_DIR, 'workdir')
-CORPUS_DIR = os.path.join(OUTPUT_DIR, 'corpus_dir')
-CRASHES_DIR = os.path.join(WORK_DIR, 'crashes')
+TEST_PATH = Path(__file__).parent
+DATA_DIR = TEST_PATH / 'test_data'
+OUTPUT_DIR = TEST_PATH / 'test_output'
+WORK_DIR = OUTPUT_DIR / 'workdir'
+CORPUS_DIR = OUTPUT_DIR / 'corpus_dir'
+CRASHES_DIR = WORK_DIR / 'crashes'
 
 # Centipede's runtime args
 _TIMEOUT = 1200
@@ -48,17 +49,17 @@ _DEFAULT_ARGUMENTS = [
 
 def clear_output_dirs():
   """Clears output directory."""
-  if os.path.exists(OUTPUT_DIR):
+  if OUTPUT_DIR.exists():
     shutil.rmtree(OUTPUT_DIR)
-  os.mkdir(OUTPUT_DIR)
+  OUTPUT_DIR.mkdir()
 
 
 def setup_testcase(testcase):
   """Sets up testcase and corpus."""
   clear_output_dirs()
 
-  src_testcase_path = os.path.join(DATA_DIR, testcase)
-  copied_testcase_path = os.path.join(OUTPUT_DIR, testcase)
+  src_testcase_path = DATA_DIR / testcase
+  copied_testcase_path = OUTPUT_DIR / testcase
   shutil.copy(src_testcase_path, copied_testcase_path)
 
   return copied_testcase_path
@@ -72,18 +73,17 @@ class IntegrationTest(unittest.TestCase):
     self.maxDiff = None  # pylint: disable=invalid-name
     test_helpers.patch_environ(self)
 
-    os.environ['BUILD_DIR'] = DATA_DIR
+    os.environ['BUILD_DIR'] = str(DATA_DIR)
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
     self.assertListEqual(expected, actual)
 
-  def test_reproduce(self):
+  def reproduce(self):
     """Tests reproducing a crash."""
     testcase_path = setup_testcase('crash')
     engine_impl = engine.Engine()
-    sanitized_target_path = os.path.join(DATA_DIR, fuzzer_utils.EXTRA_BUILD_DIR,
-                                         'test_fuzzer')
+    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
     result = engine_impl.reproduce(sanitized_target_path, testcase_path, [], 10)
     self.assertListEqual([sanitized_target_path, testcase_path], result.command)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
@@ -92,46 +92,43 @@ class IntegrationTest(unittest.TestCase):
   def test_fuzz_no_crash(self):
     """Tests fuzzing (no crash)."""
     engine_impl = engine.Engine()
-    dictionary = os.path.join(DATA_DIR, "test_fuzzer.dict")
+    centipede_path = DATA_DIR / 'centipede'
+    dictionary = DATA_DIR / "test_fuzzer.dict"
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
-    sanitized_target_path = os.path.join(DATA_DIR, fuzzer_utils.EXTRA_BUILD_DIR,
-                                         'test_fuzzer')
-    options = engine_impl.prepare(OUTPUT_DIR, target_path, DATA_DIR)
+    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
+    options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
-    expected_command = (
-        [os.path.join(DATA_DIR, 'centipede')] + _DEFAULT_ARGUMENTS + [
-            f'--dictionary={dictionary}',
-            f'--workdir={WORK_DIR}',
-            f'--corpus_dir={CORPUS_DIR}',
-            f'--binary={target_path}',
-            f'--extra_binaries={sanitized_target_path}',
-        ])
+    expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
+        f'--dictionary={dictionary}',
+        f'--workdir={WORK_DIR}',
+        f'--corpus_dir={CORPUS_DIR}',
+        f'--binary={target_path}',
+        f'--extra_binaries={sanitized_target_path}',
+    ])
     self.compare_arguments(expected_command, results.command)
-    self.assertGreater(len(os.listdir(CORPUS_DIR)), 0)
+    self.assertTrue(CORPUS_DIR.iterdir())
 
   def test_fuzz_crash(self):
     """Tests fuzzing that results in a crash."""
     engine_impl = engine.Engine()
+    centipede_path = DATA_DIR / 'centipede'
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
-    sanitized_target_path = os.path.join(DATA_DIR, fuzzer_utils.EXTRA_BUILD_DIR,
-                                         'always_crash_fuzzer')
-    options = engine_impl.prepare(OUTPUT_DIR, target_path, DATA_DIR)
+    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'always_crash_fuzzer'
+    options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
-    expected_command = (
-        [os.path.join(DATA_DIR, 'centipede')] + _DEFAULT_ARGUMENTS + [
-            f'--workdir={WORK_DIR}',
-            f'--corpus_dir={CORPUS_DIR}',
-            f'--binary={target_path}',
-            f'--extra_binaries={sanitized_target_path}',
-        ])
+    expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
+        f'--workdir={WORK_DIR}',
+        f'--corpus_dir={CORPUS_DIR}',
+        f'--binary={target_path}',
+        f'--extra_binaries={sanitized_target_path}',
+    ])
     self.compare_arguments(expected_command, results.command)
 
     self.assertIn('Crash detected, saving input to', results.logs)
-    print(results.crashes)
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
-    self.assertEqual(CRASHES_DIR, os.path.dirname(crash.input_path))
+    self.assertEqual(CRASHES_DIR, Path(crash.input_path).parent)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
                   crash.stacktrace)
 
@@ -145,11 +142,10 @@ class UnshareIntegrationTest(IntegrationTest):
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
-    self.assertListEqual([
-        os.path.join(
-            environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
-            'unshare'), '-c', '-n'
-    ] + expected, actual)
+    unshare_path = Path(
+        environment.get_value('ROOT_DIR'), 'resources', 'platform', 'linux',
+        'unshare')
+    self.assertListEqual([f'{unshare_path}', '-c', '-n'] + expected, actual)
 
   def setUp(self):
     super().setUp()
