@@ -25,7 +25,7 @@ from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
-_TIMEOUT = 1200
+_TIMEOUT = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _RLIMIT_AS = 5120

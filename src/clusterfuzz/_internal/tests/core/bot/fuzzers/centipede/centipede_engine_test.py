@@ -33,7 +33,7 @@ CORPUS_DIR = OUTPUT_DIR / 'corpus_dir'
 CRASHES_DIR = WORK_DIR / 'crashes'
 
 # Centipede's runtime args
-_TIMEOUT = 1200
+_TIMEOUT = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _RLIMIT_AS = 5120
