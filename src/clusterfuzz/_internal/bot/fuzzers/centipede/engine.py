@@ -38,7 +38,7 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile('Crash detected, saving input to (.*)')
+_CRASH_REGEX = re.compile(r'Crash detected, saving input to (.*)')
 
 
 class CentipedeError(Exception):
