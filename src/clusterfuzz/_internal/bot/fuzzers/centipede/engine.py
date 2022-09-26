@@ -19,6 +19,7 @@ import re
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
@@ -111,6 +112,8 @@ class Engine(engine.Engine):
                                  sanitized_target_name)
     if sanitized_target_path.exists():
       arguments.append(f'--extra_binaries={sanitized_target_path}')
+    else:
+      logs.log_warn('Unable to find sanitized target binary.')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
