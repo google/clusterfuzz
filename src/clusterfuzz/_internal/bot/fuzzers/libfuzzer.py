@@ -408,6 +408,15 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
   """libFuzzer runner (when Fuchsia is the target platform, and undercoat
   is used)."""
 
+  # Unfortunately the time to transfer corpora cannot be distinguished from time
+  # to run the fuzzer, so we need to pad the timeouts we enforce here by an
+  # upper limit on typical corpora transfer times to avoid prematurely killing a
+  # perfectly healthy fuzz run. For some typical stats, see fxbug.dev/94029; we
+  # go much higher than that to account for variability in the virtualized
+  # environment, and because this is after all intended solely as a second line
+  # of defense.
+  TIMEOUT_PADDING = 30 * 60
+
   def __init__(self, executable_path, instance_handle, default_args=None):
     # An instance_handle from undercoat is required, and should be set up by the
     # build_manager.
@@ -460,6 +469,10 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
 
+  def get_total_timeout(self, timeout):
+    """LibFuzzerCommon.fuzz override."""
+    return super().get_total_timeout(timeout) + self.TIMEOUT_PADDING
+
   def fuzz(self,
            corpus_directories,
            fuzz_timeout,
@@ -488,9 +501,12 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # TODO(eep): Clarify comment from previous implementation: "actually we want
     # new_corpus_relative_dir_target for *each* corpus"
     result = undercoat.run_fuzzer(
-        self.handle, self.executable_path, artifact_prefix,
+        self.handle,
+        self.executable_path,
+        artifact_prefix,
         self._corpus_directories_libfuzzer(corpus_directories) +
-        additional_args)
+        additional_args,
+        timeout=self.get_total_timeout(fuzz_timeout))
 
     self._pull_new_corpus_from_target_to_host(corpus_directories)
     self._clear_all_target_corpora()
@@ -524,9 +540,12 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
         '-merge=1', '-merge_control_file=' + target_merge_control_file
     ]
     result = undercoat.run_fuzzer(
-        self.handle, self.executable_path, None,
+        self.handle,
+        self.executable_path,
+        None,
         self._corpus_directories_libfuzzer(corpus_directories) +
-        additional_args)
+        additional_args,
+        timeout=self.get_total_timeout(merge_timeout))
 
     self._pull_new_corpus_from_target_to_host(corpus_directories)
     if merge_control_file:
@@ -552,9 +571,14 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     undercoat.put_data(self.handle, self.executable_path, testcase_path,
                        'data/')
 
+    if timeout:
+      timeout = self.get_total_timeout(timeout)
+
     result = undercoat.run_fuzzer(
-        self.handle, self.executable_path, None,
-        ['data/' + testcase_path_name] + additional_args)
+        self.handle,
+        self.executable_path,
+        None, ['data/' + testcase_path_name] + additional_args,
+        timeout=timeout)
     return result
 
   def minimize_crash(self,
@@ -586,8 +610,10 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
 
     output_dir = os.path.dirname(output_path)
     result = undercoat.run_fuzzer(
-        self.handle, self.executable_path, output_dir,
-        ['data/' + testcase_path_name] + additional_args)
+        self.handle,
+        self.executable_path,
+        output_dir, ['data/' + testcase_path_name] + additional_args,
+        timeout=self.get_total_timeout(timeout))
 
     # The minimized artifact is automatically fetched if minimization succeeded,
     # but this isn't always the case so let's just always fetch a new copy
