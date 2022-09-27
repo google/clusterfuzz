@@ -53,9 +53,13 @@ def choose(testcase_map):
       testcase_map: a dict of (testcase_id, testcase). A dict contains testcases
           from multiple groups.
   """
+  scores = {}
 
   def _key_func(testcase):
     return testcase.group_id
+
+  def _get_score(id):
+    return scores[id]
 
   testcases = sorted([v for _, v in six.iteritems(testcase_map)], key=_key_func)
   for group_id, items in itertools.groupby(testcases, _key_func):
@@ -64,29 +68,24 @@ def choose(testcase_map):
 
     items = sorted(items, reverse=True, key=lambda t: t.timestamp)
 
-    asan_index = None
-    security_index = None
-    i386_indexes = []
-    for idx, item in enumerate(items):
+    for item in items:
       item.is_leader = False
-      if not security_index and item.security_flag:
-        security_index = idx
-      if not asan_index and item.job_type and '_asan_' in item.job_type:
-        asan_index = idx
-      if item.job_type and environment.is_i386(item.job_type):
-        i386_indexes.append(idx)
+      item_score = 0
+      if item.security_flag:
+        item_score += 1
+      if item.job_type and '_asan_' in item.job_type:
+        item_score += 1
+      if item.job_type and not environment.is_i386(item.job_type):
+        item_score += 1
+      scores[item.id] = item_score
 
-    leader_index = security_index
-    leader_index = asan_index
-    if leader_index is None:
-      leader_index = find_index(items, is_reproducible_and_has_issue)
+    items = sorted(items, reverse=True, key=lambda t: _get_score(t.id))
+
+    leader_index = find_index(items, is_reproducible_and_has_issue)
     if leader_index is None:
       leader_index = find_index(items, has_issue)
     if leader_index is None:
       leader_index = find_index(items, is_reproducible)
-
-    if leader_index in i386_indexes:
-      leader_index = None
 
     if leader_index is None:
       leader_index = 0

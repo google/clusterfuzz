@@ -102,7 +102,7 @@ class GroupLeaderTest(unittest.TestCase):
     """Test choosing ASAN over other sanitizers in job_type."""
     testcase_map = {
         1:
-            self._make_attributes(1, True, '10', 33, 10,
+            self._make_attributes(1, False, '10', 33, 10,
                                   'some_engine_asan_proj', True),
         2:
             self._make_attributes(2, False, None, 33, 9,
@@ -120,8 +120,8 @@ class GroupLeaderTest(unittest.TestCase):
   def test_security_over_non_security(self):
     """Test choosing security crash over non-security."""
     testcase_map = {
-        1: self._make_attributes(1, True, '10', 33, 10, 'some_job', True),
-        2: self._make_attributes(2, False, None, 33, 9, 'some_job', False),
+        1: self._make_attributes(1, False, '10', 33, 10, 'some_job', True),
+        2: self._make_attributes(2, False, '11', 33, 9, 'some_job', False),
     }
     group_leader.choose(testcase_map)
 
@@ -142,7 +142,18 @@ class GroupLeaderTest(unittest.TestCase):
                                   'some_engine_asan_proj'),
     }
     group_leader.choose(testcase_map)
-
+    print(testcase_map[1].is_leader)
     self.assertTrue(testcase_map[3].is_leader)
     self.assertFalse(testcase_map[2].is_leader)
+    self.assertFalse(testcase_map[1].is_leader)
+
+  def test_reproducible_over_non_reproducible(self):
+    """Test choosing reproducible non-security bug over non-reproducinble security bug"""
+    testcase_map = {
+        1: self._make_attributes(1, True, None, 33, 10, 'some_job', True),
+        2: self._make_attributes(2, False, None, 33, 9, 'some_job', False),
+    }
+    group_leader.choose(testcase_map)
+
+    self.assertTrue(testcase_map[2].is_leader)
     self.assertFalse(testcase_map[1].is_leader)
