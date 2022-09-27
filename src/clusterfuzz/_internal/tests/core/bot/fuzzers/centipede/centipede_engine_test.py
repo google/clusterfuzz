@@ -27,10 +27,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 TEST_PATH = Path(__file__).parent
 DATA_DIR = TEST_PATH / 'test_data'
-OUTPUT_DIR = TEST_PATH / 'test_output'
-WORK_DIR = OUTPUT_DIR / 'workdir'
-CORPUS_DIR = OUTPUT_DIR / 'corpus_dir'
-CRASHES_DIR = WORK_DIR / 'crashes'
+CORPUS_DIR = TEST_PATH / 'corpus_dir'
 
 # Centipede's runtime args
 _TIMEOUT = 25
@@ -49,9 +46,9 @@ _DEFAULT_ARGUMENTS = [
 
 def clear_output_dirs():
   """Clears output directory."""
-  if OUTPUT_DIR.exists():
-    shutil.rmtree(OUTPUT_DIR)
-  OUTPUT_DIR.mkdir()
+  if CORPUS_DIR.exists():
+    shutil.rmtree(CORPUS_DIR)
+  CORPUS_DIR.mkdir()
 
 
 def setup_testcase(testcase):
@@ -59,7 +56,7 @@ def setup_testcase(testcase):
   clear_output_dirs()
 
   src_testcase_path = DATA_DIR / testcase
-  copied_testcase_path = OUTPUT_DIR / testcase
+  copied_testcase_path = CORPUS_DIR / testcase
   shutil.copy(src_testcase_path, copied_testcase_path)
 
   return copied_testcase_path
@@ -74,6 +71,11 @@ class IntegrationTest(unittest.TestCase):
     test_helpers.patch_environ(self)
 
     os.environ['BUILD_DIR'] = str(DATA_DIR)
+
+    test_helpers.patch(self, ['os.getpid'])
+    self.mock.getpid.return_value = 1337
+
+  clear_output_dirs()
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
@@ -94,13 +96,14 @@ class IntegrationTest(unittest.TestCase):
     engine_impl = engine.Engine()
     centipede_path = DATA_DIR / 'centipede'
     dictionary = DATA_DIR / "test_fuzzer.dict"
+    work_dir = Path('/tmp/temp-1337/workdir')
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
         f'--dictionary={dictionary}',
-        f'--workdir={WORK_DIR}',
+        f'--workdir={work_dir}',
         f'--corpus_dir={CORPUS_DIR}',
         f'--binary={target_path}',
         f'--extra_binaries={sanitized_target_path}',
@@ -112,13 +115,14 @@ class IntegrationTest(unittest.TestCase):
     """Tests fuzzing that results in a crash."""
     engine_impl = engine.Engine()
     centipede_path = DATA_DIR / 'centipede'
+    work_dir = Path('/tmp/temp-1337/workdir')
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'always_crash_fuzzer'
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
     results = engine_impl.fuzz(target_path, options, None, 20)
     expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
-        f'--workdir={WORK_DIR}',
+        f'--workdir={work_dir}',
         f'--corpus_dir={CORPUS_DIR}',
         f'--binary={target_path}',
         f'--extra_binaries={sanitized_target_path}',
@@ -128,7 +132,8 @@ class IntegrationTest(unittest.TestCase):
     self.assertIn('Crash detected, saving input to', results.logs)
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
-    self.assertEqual(CRASHES_DIR, Path(crash.input_path).parent)
+    crash_dir = work_dir / 'crashes'
+    self.assertEqual(crash_dir, Path(crash.input_path).parent)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
                   crash.stacktrace)
 

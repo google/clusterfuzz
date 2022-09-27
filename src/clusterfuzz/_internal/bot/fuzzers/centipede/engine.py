@@ -94,12 +94,10 @@ class Engine(engine.Engine):
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
-    workdir = Path(corpus_dir).parent / 'workdir'
-    self._create_temp_dir(workdir)
+    workdir = self._create_temp_dir('workdir')
     arguments.append(f'--workdir={workdir}')
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
-    self._create_temp_dir(corpus_dir)
     arguments.append(f'--corpus_dir={corpus_dir}')
 
     # The unsanitized binary, Centipede requires it to be the main fuzz target.
@@ -172,6 +170,7 @@ class Engine(engine.Engine):
     """Creates temporary directory for fuzzing."""
     new_directory = Path(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_directory)
+    return new_directory
 
   def minimize_corpus(self, target_path, arguments, input_dirs, output_dir,
                       reproducers_dir, max_time):
