@@ -36,12 +36,10 @@ class TestcaseAttributes(object):
 
   __slots__ = ('id', 'is_leader', 'issue_id') + FORWARDED_ATTRIBUTES
 
-  def __init__(self, testcase_id, job_type=None, sec_flag=None):
+  def __init__(self, testcase_id):
     self.id = testcase_id
     self.is_leader = True
     self.issue_id = None
-    self.job_type = job_type
-    self.security_flag = sec_flag
 
 
 def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
@@ -299,8 +297,7 @@ def group_testcases():
       continue
 
     # Store needed testcase attributes into |testcase_map|.
-    testcase_map[testcase_id] = TestcaseAttributes(
-        testcase_id, testcase.job_type, testcase.security_flag)
+    testcase_map[testcase_id] = TestcaseAttributes(testcase_id)
     testcase_attributes = testcase_map[testcase_id]
     for attribute_name in FORWARDED_ATTRIBUTES:
       setattr(testcase_attributes, attribute_name,

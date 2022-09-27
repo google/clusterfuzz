@@ -37,13 +37,14 @@ class GroupLeaderTest(unittest.TestCase):
                        job_type=None,
                        security_flag=None):
     """Make testcase attributes for test."""
-    attributes = grouper.TestcaseAttributes(testcase_id, job_type,
-                                            security_flag)
+    attributes = grouper.TestcaseAttributes(testcase_id)
     attributes.is_leader = False
     attributes.one_time_crasher_flag = one_time_crasher_flag
     attributes.issue_id = issue_id
     attributes.group_id = group_id
     attributes.timestamp = datetime.datetime.utcfromtimestamp(time_in_second)
+    attributes.job_type = job_type
+    attributes.security_flag = security_flag
 
     return attributes
 
