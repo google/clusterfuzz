@@ -319,6 +319,13 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'sanitizers': ['none'],
             'architectures': ['i386', 'x86_64'],
         }),
+        ('lib9', {
+            'homepage': 'http://example.com',
+            'primary_contact': 'primary@example.com',
+            'main_repo': 'https://github.com/google/main-repo',
+            'fuzzing_engines': ['centipede',],
+            'sanitizers': ['addres',],
+        }),
     ]
 
     mock_storage.buckets().get.side_effect = mock_bucket_get
@@ -535,6 +542,27 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'AUTOMATIC_LABELS = Proj-lib7,Engine-libfuzzer,custom\n'
         'FILE_GITHUB_ISSUE = False\n')
 
+    job = data_types.Job.query(
+        data_types.Job.name == 'centipede_asan_lib9').get()
+    self.assertIsNotNone(job)
+    self.assertEqual(job.project, 'lib9')
+    self.assertEqual(job.platform, 'LIB9_LINUX')
+    six.assertCountEqual(self, job.templates, ['engine_asan', 'centipede'])
+    self.assertEqual(
+        job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
+        'gs://clusterfuzz-builds/lib9/lib9-address-([0-9]+).zip\n'
+        'PROJECT_NAME = lib9\n'
+        'SUMMARY_PREFIX = lib9\n'
+        'MANAGED = True\n'
+        'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
+        'clusterfuzz-builds/lib9/lib9-address-%s.srcmap.json\n'
+        'FUZZ_LOGS_BUCKET = lib9-logs.clusterfuzz-external.appspot.com\n'
+        'CORPUS_BUCKET = lib9-corpus.clusterfuzz-external.appspot.com\n'
+        'QUARANTINE_BUCKET = lib9-quarantine.clusterfuzz-external.appspot.com\n'
+        'BACKUP_BUCKET = lib9-backup.clusterfuzz-external.appspot.com\n'
+        'AUTOMATIC_LABELS = Proj-lib9,Engine-centipede\n'
+        'FILE_GITHUB_ISSUE = False\n')
+
     self.maxDiff = None  # pylint: disable=invalid-name
 
     libfuzzer = data_types.Fuzzer.query(
@@ -559,6 +587,13 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     six.assertCountEqual(self, afl.jobs, [
         'afl_asan_lib1',
         'afl_asan_lib6',
+    ])
+
+    centipede = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'centipede').get()
+    six.assertCountEqual(self, centipede.jobs, [
+        'centipede_nosanitizer_lib9',
+        'centipede_asan_lib9',
     ])
 
     # Test that old unused jobs are deleted.
@@ -1375,8 +1410,8 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB7_LINUX', 'libFuzzer', 'libfuzzer_asan_lib7'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_i386_lib8'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_lib8'),
-        ('LIB1_LINUX', 'centipede', 'centipede_asan_lib1'),
-        ('LIB8_LINUX', 'centipede', 'centipede_nosanitizer_lib8'),
+        ('LIB9_LINUX', 'centipede', 'centipede_asan_lib9'),
+        ('LIB9_LINUX', 'centipede', 'centipede_nosanitizer_lib9'),
     ])
 
     all_permissions = [
@@ -1618,6 +1653,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib6-linux',
         'projects/clusterfuzz-external/topics/jobs-lib7-linux',
         'projects/clusterfuzz-external/topics/jobs-lib8-linux',
+        'projects/clusterfuzz-external/topics/jobs-lib9-linux',
     ]
     six.assertCountEqual(self, expected_topics,
                          list(pubsub_client.list_topics('projects/' + app_id)))
