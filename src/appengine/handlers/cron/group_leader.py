@@ -58,8 +58,8 @@ def choose(testcase_map):
   def _key_func(testcase):
     return testcase.group_id
 
-  def _get_score(id):
-    return scores[id]
+  def _get_score(testcase_id):
+    return scores[testcase_id]
 
   testcases = sorted([v for _, v in six.iteritems(testcase_map)], key=_key_func)
   for group_id, items in itertools.groupby(testcases, _key_func):
