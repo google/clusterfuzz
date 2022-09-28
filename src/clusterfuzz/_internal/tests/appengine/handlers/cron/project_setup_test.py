@@ -592,7 +592,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     centipede = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'centipede').get()
     six.assertCountEqual(self, centipede.jobs, [
-        'centipede_nosanitizer_lib9',
         'centipede_asan_lib9',
     ])
 
@@ -1411,7 +1410,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_i386_lib8'),
         ('LIB8_LINUX', 'libFuzzer', 'libfuzzer_nosanitizer_lib8'),
         ('LIB9_LINUX', 'centipede', 'centipede_asan_lib9'),
-        ('LIB9_LINUX', 'centipede', 'centipede_nosanitizer_lib9'),
     ])
 
     all_permissions = [

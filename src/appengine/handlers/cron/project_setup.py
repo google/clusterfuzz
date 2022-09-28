@@ -148,9 +148,6 @@ LIBFUZZER_NONE_I386_JOB = JobInfo(
     'none', ['libfuzzer'],
     architecture='i386')
 
-CENTIPEDE_NONE_JOB = JobInfo('centipede_nosanitizer_', 'centipede', 'none',
-                             ['centipede'])
-
 JOB_MAP = {
     'libfuzzer': {
         'x86_64': {
@@ -189,7 +186,6 @@ JOB_MAP = {
     'centipede': {
         'x86_64': {
             'address': CENTIPEDE_ASAN_JOB,
-            'none': CENTIPEDE_NONE_JOB,
         },
     },
 }
