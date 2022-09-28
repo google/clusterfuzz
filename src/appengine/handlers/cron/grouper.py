@@ -95,6 +95,7 @@ def is_same_variant(variant1, variant2):
 
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
+  logs.log('Grouping based on variant analysis.')
   for testcase_1_id, testcase_1 in testcase_map.items():
     for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
@@ -135,6 +136,7 @@ def _group_testcases_based_on_variants(testcase_map):
 
 def _group_testcases_with_same_issues(testcase_map):
   """Group testcases that are associated with same underlying issue."""
+  logs.log('Grouping based on same issues.')
   for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
     for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
       # Rule: Don't group the same testcase and use different combinations for
@@ -163,6 +165,7 @@ def _group_testcases_with_same_issues(testcase_map):
 
 def _group_testcases_with_similar_states(testcase_map):
   """Group testcases with similar looking crash states."""
+  logs.log('Grouping based on similar states.')
   for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
     for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
       # Rule: Don't group the same testcase and use different combinations for
