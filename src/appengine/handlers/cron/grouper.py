@@ -26,7 +26,7 @@ from . import group_leader
 
 FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
                         'one_time_crasher_flag', 'project_name',
-                        'security_flag', 'timestamp')
+                        'security_flag', 'timestamp', 'job_type')
 
 GROUP_MAX_TESTCASE_LIMIT = 25
 
@@ -84,6 +84,53 @@ def _get_new_group_id():
   new_group = data_types.TestcaseGroup()
   new_group.put()
   return new_group.key.id()
+
+
+def is_same_variant(variant1, variant2):
+  """Checks for the testcase variants equality."""
+  return (variant1.crash_type == variant2.crash_type and
+          variant1.crash_state == variant2.crash_state and
+          variant1.security_flag == variant2.security_flag)
+
+
+def _group_testcases_based_on_variants(testcase_map):
+  """Group testcases that are associated based on variant analysis."""
+  for testcase_1_id, testcase_1 in testcase_map.items():
+    for testcase_2_id, testcase_2 in testcase_map.items():
+      # Rule: Don't group the same testcase and use different combinations for
+      # comparisons.
+      if testcase_1_id <= testcase_2_id:
+        continue
+
+      # Rule: If both testcase have the same group id, then no work to do.
+      if testcase_1.group_id == testcase_2.group_id and testcase_1.group_id:
+        continue
+
+      # Rule: Check both testcase are under the same project.
+      if testcase_1.project_name != testcase_2.project_name:
+        continue
+
+      # Rule: If both testcase have same job_type, then skip variant anlysis.
+      if testcase_1.job_type == testcase_2.job_type:
+        continue
+
+      # Rule: Group testcase with similar variants.
+      # For each testcase2, get the related variant1 and check for equivalence.
+      candidate_variant = data_handler.get_testcase_variant(
+          testcase_1_id, testcase_2.job_type)
+      if not is_same_variant(candidate_variant, testcase_2):
+        continue
+
+      # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      # TODO(navidem): Temporary logging, should be replaced with the combine.
+      logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
+               '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
+               'and testcase 2 '
+               '(crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
+               (testcase_1.crash_type, testcase_1.crash_state,
+                testcase_1.security_flag, testcase_1.group_id,
+                testcase_2.crash_type, testcase_2.crash_state,
+                testcase_2.security_flag, testcase_2.group_id))
 
 
 def _group_testcases_with_same_issues(testcase_map):
@@ -297,6 +344,7 @@ def group_testcases():
 
   _group_testcases_with_similar_states(testcase_map)
   _group_testcases_with_same_issues(testcase_map)
+  _group_testcases_based_on_variants(testcase_map)
   _shrink_large_groups_if_needed(testcase_map)
   group_leader.choose(testcase_map)
 
