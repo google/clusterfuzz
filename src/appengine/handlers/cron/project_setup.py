@@ -871,19 +871,6 @@ class ProjectSetup(object):
         job.environment_string += (
             f'DATAFLOW_BUILD_BUCKET_PATH = {dataflow_build_bucket_path}\n')
 
-      # Centipede requires separate binaries for sanitized targets.
-      if (template.engine == 'centipede' and
-          template.architecture == 'x86_64' and
-          template.sanitizer == 'address'):
-        sanitized_target_bucket_path = self._get_build_bucket_path(
-            project_name=project,
-            info=info,
-            engine='centipede',
-            memory_tool='address',
-            architecture=template.architecture)
-        job.environment_string += ('SANITIZED_TARGET_BUILD_BUCKET_PATH = '
-                                   f'{sanitized_target_bucket_path}\n')
-
       if self._additional_vars:
         additional_vars = {}
         additional_vars.update(self._additional_vars.get('all', {}))
