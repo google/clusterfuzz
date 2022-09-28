@@ -320,13 +320,13 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'architectures': ['i386', 'x86_64'],
         }),
         ('lib9', {
-           'homepage:': 'http://example.com',
-           'primary_contact': 'primary@example.com',
-           'auto_ccs': ['User@example.com',],
-           'main_repo': 'https://github.com/google/main-repo',
-           'fuzzing_engines': ['centipede',],
-           'sanitizers:': ['address',],
-           'architectures': ['x86_64',],
+            'homepage:': 'http://example.com',
+            'primary_contact': 'primary@example.com',
+            'auto_ccs': ['User@example.com',],
+            'main_repo': 'https://github.com/google/main-repo',
+            'fuzzing_engines': ['centipede',],
+            'sanitizers:': ['address',],
+            'architectures': ['x86_64',],
         }),
     ]
 
