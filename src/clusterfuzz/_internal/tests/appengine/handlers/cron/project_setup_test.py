@@ -320,11 +320,13 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'architectures': ['i386', 'x86_64'],
         }),
         ('lib9', {
-            'homepage': 'http://example.com',
-            'primary_contact': 'primary@example.com',
-            'main_repo': 'https://github.com/google/main-repo',
-            'fuzzing_engines': ['centipede',],
-            'sanitizers': ['addres',],
+           'homepage:': 'http://example.com',
+           'primary_contact': 'primary@example.com',
+           'auto_ccs': ['User@example.com',],
+           'main_repo': 'https://github.com/google/main-repo',
+           'fuzzing_engines': ['centipede',],
+           'sanitizers:': ['address',],
+           'architectures': ['x86_64',],
         }),
     ]
 
@@ -550,17 +552,18 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     six.assertCountEqual(self, job.templates, ['engine_asan', 'centipede'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
-        'gs://clusterfuzz-builds/lib9/lib9-address-([0-9]+).zip\n'
+        'gs://clusterfuzz-builds-centipede/lib9/lib9-address-([0-9]+).zip\n'
         'PROJECT_NAME = lib9\n'
         'SUMMARY_PREFIX = lib9\n'
         'MANAGED = True\n'
         'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
-        'clusterfuzz-builds/lib9/lib9-address-%s.srcmap.json\n'
+        'clusterfuzz-builds-centipede/lib9/lib9-address-%s.srcmap.json\n'
         'FUZZ_LOGS_BUCKET = lib9-logs.clusterfuzz-external.appspot.com\n'
         'CORPUS_BUCKET = lib9-corpus.clusterfuzz-external.appspot.com\n'
         'QUARANTINE_BUCKET = lib9-quarantine.clusterfuzz-external.appspot.com\n'
         'BACKUP_BUCKET = lib9-backup.clusterfuzz-external.appspot.com\n'
         'AUTOMATIC_LABELS = Proj-lib9,Engine-centipede\n'
+        'MAIN_REPO = https://github.com/google/main-repo\n'
         'FILE_GITHUB_ISSUE = False\n')
 
     self.maxDiff = None  # pylint: disable=invalid-name
@@ -1625,27 +1628,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'entity_kind': 1,
             'is_prefix': False,
             'email': 'primary@example.com',
-            'entity_name': 'centipede_asan_lib1',
-            'auto_cc': 1
-        },
-        {
-            'entity_kind': 1,
-            'is_prefix': False,
-            'email': 'user@example.com',
-            'entity_name': 'centipede_asan_lib1',
-            'auto_cc': 1
-        },
-        {
-            'entity_kind': 1,
-            'is_prefix': False,
-            'email': 'user2@googlemail.com',
-            'entity_name': 'centipede_asan_lib1',
-            'auto_cc': 1
-        },
-        {
-            'entity_kind': 1,
-            'is_prefix': False,
-            'email': 'primary@example.com',
             'entity_name': 'libfuzzer_asan_lib7',
             'auto_cc': 1
         },
@@ -1682,6 +1664,13 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'is_prefix': False,
             'email': 'primary@example.com',
             'entity_name': 'libfuzzer_nosanitizer_i386_lib8',
+            'auto_cc': 1
+        },
+        {
+            'entity_kind': 1,
+            'is_prefix': False,
+            'email': 'user@example.com',
+            'entity_name': 'centipede_asan_lib9',
             'auto_cc': 1
         },
         {
@@ -1689,13 +1678,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
             'is_prefix': False,
             'email': 'primary@example.com',
             'entity_name': 'centipede_asan_lib9',
-            'auto_cc': 1
-        },
-        {
-            'entity_kind': 1,
-            'is_prefix': False,
-            'email': 'user@example.com',
-            'entity_name': 'centipede_nosanitizer_lib9',
             'auto_cc': 1
         },
     ])
