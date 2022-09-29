@@ -69,6 +69,19 @@ def create_generic_testcase(created_days_ago=28):
   return testcase
 
 
+def create_generic_testcase_variant():
+  """Create a simple test case variant."""
+  variant = data_types.TestcaseVariant()
+
+  variant.job_type = 'test_variant_job_type'
+  variant.crash_type = 'crash type 1'
+  variant.crash_state = 'variant_function()'
+  variant.security_flag = True
+  variant.put()
+
+  return variant
+
+
 def entities_equal(entity_1, entity_2, check_key=True):
   """Return a bool on whether two input entities are the same."""
   if check_key:

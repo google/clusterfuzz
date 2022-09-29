@@ -30,6 +30,10 @@ class GrouperTest(unittest.TestCase):
         test_utils.create_generic_testcase(),
         test_utils.create_generic_testcase()
     ]
+    self.testcase_variants = [
+        test_utils.create_generic_testcase_variant(),
+        test_utils.create_generic_testcase_variant()
+    ]
 
   def test_same_crash_different_security(self):
     """Test that crashes with same crash states, but different security
@@ -249,6 +253,51 @@ class GrouperTest(unittest.TestCase):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
+
+  def test_same_job_type_for_variant_analysis(self):
+    """Tests that testcases with the same job_type don't get grouped together"""
+    self.testcases[0].job_type = 'same_type'
+    self.testcases[0].project_name = 'project1'
+    self.testcases[0].crash_state = 'abcde'
+    self.testcases[1].job_type = 'same_type'
+    self.testcases[1].project_name = 'project1'
+    self.testcases[1].crash_state = 'vwxyz'
+
+    for t in self.testcases:
+      t.put()
+
+    grouper.group_testcases()
+
+    for index, t in enumerate(self.testcases):
+      self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
+      self.assertEqual(self.testcases[index].group_id, 0)
+      self.assertTrue(self.testcases[index].is_leader)
+
+  def test_similar_variants_for_varinat_analysis(self):
+    """Tests that testcases with similar variants get deduplicated."""
+    self.testcases[0].job_type = 'some_type1'
+    self.testcases[0].project_name = 'project1'
+    self.testcases[0].crash_state = 'abcde'
+    self.testcases[1].job_type = 'some_type2'
+    self.testcases[1].project_name = 'project1'
+    self.testcases[1].crash_state = 'vwxyz'
+
+    for t in self.testcases:
+      t.put()
+
+    self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
+    self.testcase_variants[1].job_type = 'fake_engine_ubsan_project1'
+
+    for v in self.testcase_variants:
+      v.put()
+
+    grouper.group_testcases()
+
+    for index, t in enumerate(self.testcases):
+      self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
+
+    self.assertEqual(self.testcases[0].group_id, self.testcases[1].group_id)
+    self.assertTrue(self.testcases[0].is_leader)
 
 
 @test_utils.with_cloud_emulators('datastore')

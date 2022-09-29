@@ -1102,3 +1102,7 @@ def is_android_kernel(plt=None):
 def is_lib():
   """Whether or not we're in libClusterFuzz."""
   return get_value('LIB_CF')
+
+
+def is_i386(job_type):
+  return '_i386' in job_type
