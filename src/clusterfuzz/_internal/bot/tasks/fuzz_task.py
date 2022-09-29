@@ -852,8 +852,8 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
     fuzzer_return_code_string = 'Fuzzer timed out.'
   truncated_fuzzer_output = truncate_fuzzer_output(fuzzer_output,
                                                    data_types.ENTITY_SIZE_LIMIT)
-  console_output = u'%s: %s\n%s\n%s' % (bot_name, fuzzer_return_code_string,
-                                        fuzzer_command, truncated_fuzzer_output)
+  console_output = (f'{bot_name}: {fuzzer_return_code_string}\n{fuzzer_command}'
+                    f'\n{truncated_fuzzer_output}')
 
   # Refresh the fuzzer object.
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer.name).get()
@@ -1463,7 +1463,7 @@ class FuzzingSession(object):
     if fuzzer_output:
       fuzzer_output = utils.decode_to_unicode(fuzzer_output)
     else:
-      fuzzer_output = u'No output!'
+      fuzzer_output = 'No output!'
 
     # Get the list of generated testcases.
     testcase_file_paths, generated_testcase_count, generated_testcase_string = (
@@ -1802,6 +1802,13 @@ class FuzzingSession(object):
       if not build_manager.setup_trunk_build(
           [dataflow_bucket_path], build_prefix='DATAFLOW'):
         logs.log_error('Failed to set up dataflow build.')
+
+    # Centipede requires separate binaries for sanitized targets.
+    if environment.is_centipede_fuzzer_job():
+      sanitized_target_bucket_path = environment.get_value(
+          'SANITIZED_TARGET_BUILD_BUCKET_PATH')
+      if sanitized_target_bucket_path:
+        logs.log_error('Failed to set up sanitized_target_build.')
 
     # Save fuzz targets count to aid with CPU weighting.
     self._save_fuzz_targets_count()

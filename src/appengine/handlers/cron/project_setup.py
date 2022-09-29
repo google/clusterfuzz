@@ -137,6 +137,9 @@ GFT_MSAN_JOB = JobInfo('googlefuzztest_msan_', 'googlefuzztest', 'memory',
 GFT_UBSAN_JOB = JobInfo('googlefuzztest_ubsan_', 'googlefuzztest', 'undefined',
                         ['googlefuzztest', 'engine_ubsan'])
 
+CENTIPEDE_ASAN_JOB = JobInfo('centipede_asan_', 'centipede', 'address',
+                             ['centipede', 'engine_asan'])
+
 LIBFUZZER_NONE_JOB = JobInfo('libfuzzer_nosanitizer_', 'libfuzzer', 'none',
                              ['libfuzzer'])
 LIBFUZZER_NONE_I386_JOB = JobInfo(
@@ -179,7 +182,12 @@ JOB_MAP = {
         'x86_64': {
             'address': NO_ENGINE_ASAN_JOB,
         }
-    }
+    },
+    'centipede': {
+        'x86_64': {
+            'address': CENTIPEDE_ASAN_JOB,
+        },
+    },
 }
 
 DEFAULT_ARCHITECTURES = ['x86_64']
@@ -997,6 +1005,12 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get googlefuzztest Fuzzer entity.')
       return
 
+    centipede = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'centipede').get()
+    if not centipede:
+      logs.log_error('Failed to get Centipede Fuzzer entity.')
+      return
+
     project_config = local_config.ProjectConfig()
     segregate_projects = project_config.get('segregate_projects')
     project_setup_configs = project_config.get('project_setup')
@@ -1005,6 +1019,7 @@ class Handler(base_handler.Handler):
 
     fuzzer_entities = {
         'afl': afl.key,
+        'centipede': centipede.key,
         'honggfuzz': honggfuzz.key,
         'googlefuzztest': gft.key,
         'libfuzzer': libfuzzer.key,
@@ -1033,6 +1048,7 @@ class Handler(base_handler.Handler):
               'googlefuzztest': bucket_config.get('googlefuzztest'),
               'none': bucket_config.get('no_engine'),
               'dataflow': bucket_config.get('dataflow'),
+              'centipede': bucket_config.get('centipede'),
           },
           fuzzer_entities=fuzzer_entities,
           add_info_labels=setup_config.get('add_info_labels', False),
