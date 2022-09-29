@@ -1832,6 +1832,9 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.gft = data_types.Fuzzer(name='googlefuzztest', jobs=[])
     self.gft.put()
 
+    self.centipede = data_types.Fuzzer(name='centipede', jobs=[])
+    self.centipede.put()
+
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.ProjectConfig',
         ('get_application_id_2',
