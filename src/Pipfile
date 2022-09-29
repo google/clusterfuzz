@@ -32,7 +32,7 @@ twisted = "==20.3.0"
 # since there is no support for custom package sets.
 [dev-packages]
 cryptography = "==3.4.8"
-firebase-admin = "==2.16.0"
+firebase-admin = "==5.4.0"
 Flask = "==1.1.2"
 itsdangerous = "==2.0.1"
 Jinja2 = "==2.11.3"
