@@ -631,7 +631,7 @@ def _job_substring_match(search_string, job_name):
 
 
 def is_afl_job(job_name=None):
-  """Return true if the current job uses AFL."""
+  """Return True if the current job uses AFL."""
   return get_engine_for_job(job_name) == 'afl'
 
 
@@ -657,27 +657,27 @@ def is_chromeos_system_job(job_name=None):
 
 
 def is_libfuzzer_job(job_name=None):
-  """Return true if the current job uses libFuzzer."""
+  """Return True if the current job uses libFuzzer."""
   return get_engine_for_job(job_name) == 'libFuzzer'
 
 
 def is_honggfuzz_job(job_name=None):
-  """Return true if the current job uses honggfuzz."""
+  """Return True if the current job uses honggfuzz."""
   return get_engine_for_job(job_name) == 'honggfuzz'
 
 
 def is_kernel_fuzzer_job(job_name=None):
-  """Return true if the current job uses syzkaller."""
+  """Return True if the current job uses syzkaller."""
   return get_engine_for_job(job_name) == 'syzkaller'
 
 
 def is_centipede_fuzzer_job(job_name=None):
-  """Return true if the current job uses Centipede."""
+  """Return True if the current job uses Centipede."""
   return get_engine_for_job(job_name) == 'centipede'
 
 
 def is_engine_fuzzer_job(job_name=None):
-  """Return true if this is an engine fuzzer."""
+  """Return True if this is an engine fuzzer."""
   return bool(get_engine_for_job(job_name))
 
 
@@ -694,7 +694,7 @@ def get_engine_for_job(job_name=None):
 
 
 def is_posix():
-  """Return true if we are on a posix platform (linux/unix and mac os)."""
+  """Return True if we are on a posix platform (linux/unix and mac os)."""
   return os.name == 'posix'
 
 
@@ -1055,7 +1055,7 @@ def bot_noop(func):
 
 
 def is_local_development():
-  """Return true if running in local development environment (e.g. running
+  """Return True if running in local development environment (e.g. running
   a bot locally, excludes tests)."""
   return bool(get_value('LOCAL_DEVELOPMENT') and not get_value('PY_UNITTESTS'))
 
@@ -1080,22 +1080,22 @@ def is_ephemeral():
 
 
 def is_android(plt=None):
-  """Return true if we are on android platform."""
+  """Return True if we are on android platform."""
   return 'ANDROID' in (plt or platform())
 
 
 def is_android_cuttlefish(plt=None):
-  """Return true if we are on android cuttlefish platform."""
+  """Return True if we are on android cuttlefish platform."""
   return 'ANDROID_X86' in (plt or platform())
 
 
 def is_android_emulator(plt=None):
-  """Return true if we are on android emulator platform."""
+  """Return True if we are on android emulator platform."""
   return 'ANDROID_EMULATOR' == (plt or platform())
 
 
 def is_android_kernel(plt=None):
-  """Return true if we are on android kernel platform groups."""
+  """Return True if we are on android kernel platform groups."""
   return 'ANDROID_KERNEL' in (plt or get_platform_group())
 
 

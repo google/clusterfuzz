@@ -852,8 +852,8 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
     fuzzer_return_code_string = 'Fuzzer timed out.'
   truncated_fuzzer_output = truncate_fuzzer_output(fuzzer_output,
                                                    data_types.ENTITY_SIZE_LIMIT)
-  console_output = '%s: %s\n%s\n%s' % (bot_name, fuzzer_return_code_string,
-                                       fuzzer_command, truncated_fuzzer_output)
+  console_output = (f'{bot_name}: {fuzzer_return_code_string}\n{fuzzer_command}'
+                    f'\n{truncated_fuzzer_output}')
 
   # Refresh the fuzzer object.
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer.name).get()
