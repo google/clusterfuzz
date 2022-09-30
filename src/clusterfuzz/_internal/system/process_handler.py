@@ -623,6 +623,9 @@ def terminate_processes_matching_cmd_line(match_strings,
                                           kill=False,
                                           exclude_strings=None):
   """Terminates processes matching particular command line (case sensitive)."""
+  if exclude_strings is None:
+    exclude_strings = []
+
   if isinstance(match_strings, str):
     match_strings = [match_strings]
 
