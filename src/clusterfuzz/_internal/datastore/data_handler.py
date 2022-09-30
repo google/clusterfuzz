@@ -1535,6 +1535,13 @@ def get_testcase_variant(testcase_id, job_type):
   return variant
 
 
+def find_testcase_variant(testcase_id, job_type):
+  """Get a testcase variant entity"""
+  testcase_id = int(testcase_id)
+  return data_types.TestcaseVariant.query(
+      data_types.TestcaseVariant.testcase_id == testcase_id,
+      data_types.TestcaseVariant.job_type == job_type).get()
+
 # ------------------------------------------------------------------------------
 # Fuzz target related functions
 # ------------------------------------------------------------------------------
