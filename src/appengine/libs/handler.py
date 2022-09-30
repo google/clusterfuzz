@@ -162,52 +162,11 @@ def unsupported_on_local_server(func):
   return wrapper
 
 
-def get_access_token(verification_code):
-  """Get the access token from verification code.
-
-    See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
-  """
-  client_id = db_config.get_value('reproduce_tool_client_id')
-  if not client_id:
-    raise helpers.UnauthorizedException('Client id not configured.')
-
-  client_secret = db_config.get_value('reproduce_tool_client_secret')
-  if not client_secret:
-    raise helpers.UnauthorizedException('Client secret not configured.')
-
-  response = requests.post(
-      'https://www.googleapis.com/oauth2/v4/token',
-      headers={'Content-Type': 'application/x-www-form-urlencoded'},
-      data={
-          'code': verification_code,
-          'client_id': client_id,
-          'client_secret': client_secret,
-          'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
-          'grant_type': 'authorization_code'
-      })
-
-  if response.status_code != 200:
-    raise helpers.UnauthorizedException('Invalid verification code (%s): %s' %
-                                        (verification_code, response.text))
-
-  try:
-    data = json.loads(response.text)
-    return data['access_token']
-  except (KeyError, ValueError) as e:
-    raise helpers.EarlyExitException(
-        'Parsing the JSON response body failed: %s' % response.text, 500) from e
-
-
 def get_email_and_access_token(authorization):
   """Get user email from the request.
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
   """
-  if authorization.startswith(VERIFICATION_CODE_PREFIX):
-    verification_code = authorization.split(' ')[1]
-    access_token = get_access_token(verification_code)
-    authorization = BEARER_PREFIX + access_token
-
   if not authorization.startswith(BEARER_PREFIX):
     raise helpers.UnauthorizedException(
         'The Authorization header is invalid. It should have been started with'
