@@ -1,4 +1,0 @@
-#!/bin/bash -ex
-
-echo "Running ndb patcher tests..."
-REPRODUCE_TOOL_TESTS=1 python butler.py py_unittest -t core -p 'reproduce*'
