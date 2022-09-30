@@ -875,6 +875,21 @@ class StackParser:
             new_type='Out-of-memory',
             reset=True)
 
+      # Timeout/OOM detected by Centipede.
+      if self.detect_ooms_and_hangs:
+        self.update_state_on_match(
+            CENTIPEDE_TIMEOUT_REGEX,
+            line,
+            state,
+            new_type='Timeout',
+            reset=True)
+        self.update_state_on_match(
+            OUT_OF_MEMORY_REGEX,
+            line,
+            state,
+            new_type='Out-of-memory',
+            reset=True)
+
       # The following parsing signatures don't lead to crash state overwrites.
       if not state.crash_type:
         # Windows cdb stack overflow.
