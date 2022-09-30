@@ -1542,6 +1542,7 @@ def find_testcase_variant(testcase_id, job_type):
       data_types.TestcaseVariant.testcase_id == testcase_id,
       data_types.TestcaseVariant.job_type == job_type).get()
 
+
 # ------------------------------------------------------------------------------
 # Fuzz target related functions
 # ------------------------------------------------------------------------------

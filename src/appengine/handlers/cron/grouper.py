@@ -130,7 +130,9 @@ def _group_testcases_based_on_variants(testcase_map):
       # For each testcase2, get the related variant1 and check for equivalence.
       candidate_variant = data_handler.find_testcase_variant(
           testcase_1_id, testcase_2.job_type)
-      if not candidate_variant or not is_same_variant(candidate_variant, testcase_2):
+
+      if (not candidate_variant or
+          not is_same_variant(candidate_variant, testcase_2)):
         continue
 
       # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)

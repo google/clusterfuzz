@@ -278,15 +278,28 @@ class GrouperTest(unittest.TestCase):
     self.testcases[0].job_type = 'some_type1'
     self.testcases[0].project_name = 'project1'
     self.testcases[0].crash_state = 'abcde'
+    self.testcases[0].one_time_crasher_flag = False
+    self.testcases[0].crash_type = 'crash_type1'
+    self.testcases[0].security_flag = True
     self.testcases[1].job_type = 'some_type2'
     self.testcases[1].project_name = 'project1'
     self.testcases[1].crash_state = 'vwxyz'
+    self.testcases[1].crash_type = 'crash_type2'
+    self.testcases[1].one_time_crasher_flag = False
+    self.testcases[1].security_flag = True
 
     for t in self.testcases:
       t.put()
 
+    # testcase2's varinat will be evaluated against testcase1
     self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
-    self.testcase_variants[1].job_type = 'fake_engine_ubsan_project1'
+    self.testcase_variants[0].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[0].security_flag = True
+    self.testcase_variants[1].job_type = 'some_type1'
+    self.testcase_variants[1].crash_state = 'abcde'
+    self.testcase_variants[1].crash_type = 'crash_type1'
+    self.testcase_variants[1].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[1].security_flag = True
 
     for v in self.testcase_variants:
       v.put()
@@ -296,8 +309,91 @@ class GrouperTest(unittest.TestCase):
     for index, t in enumerate(self.testcases):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
 
-    self.assertEqual(self.testcases[0].group_id, self.testcases[1].group_id)
-    self.assertTrue(self.testcases[0].is_leader)
+    # TODO(navidem): enable these assertions when
+    # evaluating _group_testcases_based_on_variants() logs finished.
+    # self.assertNotEqual(self.testcases[0].group_id, 0)
+    # self.assertNotEqual(self.testcases[1].group_id, 0)
+    # self.assertEqual(self.testcases[0].group_id, self.testcases[1].group_id)
+    # self.assertTrue(self.testcases[0].is_leader)
+    # self.assertFalse(self.testcases[1].is_leader)
+
+  def test_no_reproducible_for_varinat_analysis(self):
+    """Tests that no-reproducible testcases with similar variants do not
+    get grouped together."""
+    self.testcases[0].job_type = 'some_type1'
+    self.testcases[0].project_name = 'project1'
+    self.testcases[0].crash_state = 'abcde'
+    self.testcases[0].one_time_crasher_flag = False
+    self.testcases[0].crash_type = 'crash_type1'
+    self.testcases[0].security_flag = True
+    self.testcases[1].job_type = 'some_type2'
+    self.testcases[1].project_name = 'project1'
+    self.testcases[1].crash_state = 'vwxyz'
+    self.testcases[1].crash_type = 'crash_type2'
+    self.testcases[1].one_time_crasher_flag = True
+    self.testcases[1].security_flag = True
+
+    for t in self.testcases:
+      t.put()
+
+    # testcase2's varinat will be evaluated against testcase1
+    self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
+    self.testcase_variants[0].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[0].security_flag = True
+    self.testcase_variants[1].job_type = 'some_type1'
+    self.testcase_variants[1].crash_state = 'abcde'
+    self.testcase_variants[1].crash_type = 'crash_type1'
+    self.testcase_variants[1].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[1].security_flag = True
+
+    for v in self.testcase_variants:
+      v.put()
+
+    grouper.group_testcases()
+
+    for index, t in enumerate(self.testcases):
+      self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
+      self.assertEqual(self.testcases[index].group_id, 0)
+      self.assertTrue(self.testcases[index].is_leader)
+
+  def test_ignored_crash_type_for_varinat_analysis(self):
+    """Tests that testcases of ignored crash type with similar variants
+    do not get grouped together."""
+    self.testcases[0].job_type = 'some_type1'
+    self.testcases[0].project_name = 'project1'
+    self.testcases[0].crash_state = 'abcde'
+    self.testcases[0].one_time_crasher_flag = False
+    self.testcases[0].crash_type = 'crash_type1'
+    self.testcases[0].security_flag = True
+    self.testcases[1].job_type = 'some_type2'
+    self.testcases[1].project_name = 'project1'
+    self.testcases[1].crash_state = 'vwxyz'
+    self.testcases[1].crash_type = 'Timeout'
+    self.testcases[1].one_time_crasher_flag = True
+    self.testcases[1].security_flag = True
+
+    for t in self.testcases:
+      t.put()
+
+    # testcase2's varinat will be evaluated against testcase1
+    self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
+    self.testcase_variants[0].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[0].security_flag = True
+    self.testcase_variants[1].job_type = 'some_type1'
+    self.testcase_variants[1].crash_state = 'abcde'
+    self.testcase_variants[1].crash_type = 'crash_type1'
+    self.testcase_variants[1].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[1].security_flag = True
+
+    for v in self.testcase_variants:
+      v.put()
+
+    grouper.group_testcases()
+
+    for index, t in enumerate(self.testcases):
+      self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
+      self.assertEqual(self.testcases[index].group_id, 0)
+      self.assertTrue(self.testcases[index].is_leader)
 
 
 @test_utils.with_cloud_emulators('datastore')
