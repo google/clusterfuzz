@@ -508,7 +508,7 @@ def get_testcase_detail(testcase):
       'crash_address':
           crash_address,
       'crash_state':
-          crash_state,  # Used by reproduce tool.
+          crash_state,
       'crash_state_lines':
           crash_state_lines,
       'crash_revision':
