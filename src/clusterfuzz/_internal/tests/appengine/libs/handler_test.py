@@ -500,7 +500,6 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.config.db_config.get_value',
         'clusterfuzz._internal.config.local_config._load_yaml_file',
-        'libs.handler.get_access_token',
         'requests.get',
     ])
 
@@ -553,24 +552,6 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
       self.assertEqual(email, returned_email)
       self.assertEqual('Bearer AccessToken', token)
       self._assert_requests_get_call()
-
-  def test_allowed_verification_code(self):
-    """Test allowing VerificationCode."""
-    self.mock.get.return_value = mock.Mock(
-        status_code=200,
-        text=json.dumps({
-            'aud': 'ClientId',
-            'email': 'test@test.com',
-            'email_verified': True
-        }))
-    self.mock.get_access_token.return_value = 'AccessToken'
-
-    email, token = handler.get_email_and_access_token('VerificationCode Verify')
-    self.assertEqual('test@test.com', email)
-    self.assertEqual('Bearer AccessToken', token)
-    self.assertEqual(1, self.mock.get_access_token.call_count)
-    self.mock.get_access_token.assert_has_calls([mock.call('Verify')])
-    self._assert_requests_get_call()
 
   def test_invalid_authorization_header(self):
     """Test invalid authorization header."""
