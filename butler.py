@@ -104,7 +104,7 @@ def main():
       description='Butler is here to help you with command-line tasks.')
   subparsers = parser.add_subparsers(dest='command')
 
-  parser_bootstrap = subparsers.add_parser(
+  subparsers.add_parser(
       'bootstrap',
       help=('Install all required dependencies for running an appengine, a bot,'
             'and a mapreduce locally.'))

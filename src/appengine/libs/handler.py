@@ -27,7 +27,6 @@ from google.oauth2 import id_token
 import requests
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub

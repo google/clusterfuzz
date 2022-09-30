@@ -16,7 +16,6 @@
 import base64
 
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.system import environment
 
 BASE64_MARKER = 'base64;'
 
