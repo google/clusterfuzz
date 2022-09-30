@@ -128,7 +128,7 @@ def _group_testcases_based_on_variants(testcase_map):
 
       # Rule: Group testcase with similar variants.
       # For each testcase2, get the related variant1 and check for equivalence.
-      candidate_variant = data_handler.find_testcase_variant(
+      candidate_variant = data_handler.get_testcase_variant(
           testcase_1_id, testcase_2.job_type)
 
       if (not candidate_variant or

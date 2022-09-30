@@ -763,8 +763,8 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(1, len(testcases))
     self.assertEqual('existing', testcases[0].crash_stacktrace)
 
-    variant = data_handler.get_testcase_variant(existing_testcase.key.id(),
-                                                'job')
+    variant = data_handler.get_or_create_testcase_variant(
+        existing_testcase.key.id(), 'job')
     self.assertEqual(data_types.TestcaseVariantStatus.FLAKY, variant.status)
     self.assertEqual('fuzzed_key', variant.reproducer_key)
     self.assertEqual(1234, variant.revision)
@@ -1463,7 +1463,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
       self.assertDictEqual({
           'build_revision': 1,
           'command': ['cmd'],
-          'fuzzer': u'libFuzzer_test_target',
+          'fuzzer': 'libFuzzer_test_target',
           'job': 'libfuzzer_asan_test',
           'kind': 'TestcaseRun',
           'stat': 1,

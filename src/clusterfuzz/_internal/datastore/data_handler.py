@@ -1523,7 +1523,7 @@ def get_entity_by_type_and_id(entity_type, entity_id):
 # ------------------------------------------------------------------------------
 
 
-def get_testcase_variant(testcase_id, job_type):
+def get_or_create_testcase_variant(testcase_id, job_type):
   """Get a testcase variant entity, and create if needed."""
   testcase_id = int(testcase_id)
   variant = data_types.TestcaseVariant.query(
@@ -1535,7 +1535,7 @@ def get_testcase_variant(testcase_id, job_type):
   return variant
 
 
-def find_testcase_variant(testcase_id, job_type):
+def get_testcase_variant(testcase_id, job_type):
   """Get a testcase variant entity"""
   testcase_id = int(testcase_id)
   return data_types.TestcaseVariant.query(
