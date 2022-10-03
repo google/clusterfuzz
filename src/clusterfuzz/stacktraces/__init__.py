@@ -869,12 +869,12 @@ class StackParser:
               state,
               new_type='Timeout',
               reset=True)
-          self.update_state_on_match(
-              OUT_OF_MEMORY_REGEX,
-              line,
-              state,
-              new_type='Out-of-memory',
-              reset=True)
+        self.update_state_on_match(
+            OUT_OF_MEMORY_REGEX,
+            line,
+            state,
+            new_type='Out-of-memory',
+            reset=True)
 
       # The following parsing signatures don't lead to crash state overwrites.
       if not state.crash_type:
