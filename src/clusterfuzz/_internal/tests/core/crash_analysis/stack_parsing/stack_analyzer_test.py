@@ -2417,19 +2417,6 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_centipede_timeout_disabled(self):
-    """Test a centipede timeout stacktrace (with reporting disabled)."""
-    data = self._read_test_data('centipede_timeout.txt')
-    expected_type = ''
-    expected_address = ''
-    expected_state = ''
-    expected_stacktrace = data
-    expected_security_flag = False
-
-    self._validate_get_crash_data(data, expected_type, expected_address,
-                                  expected_state, expected_stacktrace,
-                                  expected_security_flag)
-
   def test_libfuzzer_timeout_enabled(self):
     """Test a libFuzzer timeout stacktrace (with reporting enabled)."""
     os.environ['FUZZ_TARGET'] = 'pdfium_fuzzer'
