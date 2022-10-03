@@ -500,7 +500,6 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.config.db_config.get_value',
         'clusterfuzz._internal.config.local_config._load_yaml_file',
-        'libs.handler.get_access_token',
         'requests.get',
     ])
 
@@ -553,24 +552,6 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
       self.assertEqual(email, returned_email)
       self.assertEqual('Bearer AccessToken', token)
       self._assert_requests_get_call()
-
-  def test_allowed_verification_code(self):
-    """Test allowing VerificationCode."""
-    self.mock.get.return_value = mock.Mock(
-        status_code=200,
-        text=json.dumps({
-            'aud': 'ClientId',
-            'email': 'test@test.com',
-            'email_verified': True
-        }))
-    self.mock.get_access_token.return_value = 'AccessToken'
-
-    email, token = handler.get_email_and_access_token('VerificationCode Verify')
-    self.assertEqual('test@test.com', email)
-    self.assertEqual('Bearer AccessToken', token)
-    self.assertEqual(1, self.mock.get_access_token.call_count)
-    self.mock.get_access_token.assert_has_calls([mock.call('Verify')])
-    self._assert_requests_get_call()
 
   def test_invalid_authorization_header(self):
     """Test invalid authorization header."""
@@ -640,68 +621,6 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.assertIn('The email (test@test.com) is not verified',
                   str(cm.exception))
     self._assert_requests_get_call()
-
-
-class TestGetAccessToken(unittest.TestCase):
-  """Test get_access_token."""
-
-  def setUp(self):
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.config.db_config.get_value',
-        'clusterfuzz._internal.config.local_config._load_yaml_file',
-        'requests.post',
-    ])
-
-    self.mock.get_value.side_effect = mocked_db_config_get_value
-    self.mock._load_yaml_file.side_effect = mocked_load_yaml_file  # pylint: disable=protected-access
-
-  def _assert_requests_post_call(self):
-    self.assertEqual(1, self.mock.post.call_count)
-    self.mock.post.assert_has_calls([
-        mock.call(
-            'https://www.googleapis.com/oauth2/v4/token',
-            headers={'Content-Type': 'application/x-www-form-urlencoded'},
-            data={
-                'code': 'verify',
-                'client_id': 'ClientId',
-                'client_secret': 'Secret',
-                'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
-                'grant_type': 'authorization_code'
-            })
-    ])
-
-  def test_succeed(self):
-    """Test succeed."""
-    self.mock.post.return_value = mock.Mock(
-        status_code=200, text=json.dumps({
-            'access_token': 'token'
-        }))
-
-    token = handler.get_access_token('verify')
-    self.assertEqual('token', token)
-    self._assert_requests_post_call()
-
-  def test_bad_status(self):
-    """Test invalid_json."""
-    self.mock.post.return_value = mock.Mock(status_code=403, text='test')
-
-    with self.assertRaises(helpers.UnauthorizedException) as cm:
-      handler.get_access_token('verify')
-    self.assertEqual(401, cm.exception.status)
-    self.assertEqual('Invalid verification code (verify): test',
-                     str(cm.exception))
-    self._assert_requests_post_call()
-
-  def test_invalid_json(self):
-    """Test invalid_json."""
-    self.mock.post.return_value = mock.Mock(status_code=200, text='test')
-
-    with self.assertRaises(helpers.EarlyExitException) as cm:
-      handler.get_access_token('verify')
-    self.assertEqual(500, cm.exception.status)
-    self.assertEqual('Parsing the JSON response body failed: test',
-                     str(cm.exception))
-    self._assert_requests_post_call()
 
 
 class AllowedCorsHandlerTest(unittest.TestCase):

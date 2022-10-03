@@ -780,14 +780,27 @@ class ProjectSetup(object):
 
       job.templates = template.cf_job_templates
 
+      # Centipede always uses unsanitized binary as the main fuzz target.
+      if template.engine == 'centipede':
+        build_bucket_path = self._get_build_bucket_path(
+            project, info, template.engine, 'none', template.architecture)
+      else:
+        build_bucket_path = self._get_build_bucket_path(
+            project, info, template.engine, template.memory_tool,
+            template.architecture)
       job.environment_string = JOB_TEMPLATE.format(
           build_type=self._build_type,
-          build_bucket_path=self._get_build_bucket_path(
-              project, info, template.engine, template.memory_tool,
-              template.architecture),
+          build_bucket_path=build_bucket_path,
           engine=template.engine,
           project=project)
 
+      # Centipede requires a separate build of the sanitized binary.
+      if template.engine == 'centipede':
+        extra_build_bucket_path = self._get_build_bucket_path(
+            project, info, template.engine, template.memory_tool,
+            template.architecture)
+        job.environment_string += (
+            f'EXTRA_BUILD_BUCKET_PATH = {extra_build_bucket_path}\n')
       if self._add_revision_mappings:
         revision_vars_url = self._revision_url_template.format(
             project=project,
