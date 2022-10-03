@@ -1097,8 +1097,8 @@ def _update_testcase_variant_if_needed(group, context):
   variant on this job."""
   assert group.existing_testcase
 
-  variant = data_handler.get_testcase_variant(group.existing_testcase.key.id(),
-                                              context.job_type)
+  variant = data_handler.get_or_create_testcase_variant(
+      group.existing_testcase.key.id(), context.job_type)
   if not variant or variant.status == data_types.TestcaseVariantStatus.PENDING:
     # Either no variant created yet since minimization hasn't finished OR
     # variant analysis is not yet finished. Wait in both cases, since we
