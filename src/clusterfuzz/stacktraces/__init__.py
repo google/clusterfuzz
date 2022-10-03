@@ -864,11 +864,7 @@ class StackParser:
       if self.detect_ooms_and_hangs:
         for timeout_regex in [LIBFUZZER_TIMEOUT_REGEX, CENTIPEDE_TIMEOUT_REGEX]:
           self.update_state_on_match(
-              timeout_regex,
-              line,
-              state,
-              new_type='Timeout',
-              reset=True)
+              timeout_regex, line, state, new_type='Timeout', reset=True)
         self.update_state_on_match(
             OUT_OF_MEMORY_REGEX,
             line,
