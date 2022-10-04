@@ -61,7 +61,7 @@ def _get_runner():
 def _get_reproducer_path(log, reproducers_dir):
   """Gets the reproducer path, if any."""
   crash_match = _CRASH_REGEX.search(log)
-  if not crash_match or not crash_match.group(1):
+  if not crash_match:
     return None
   tmp_crash_path = Path(crash_match.group(1))
   prm_crash_path = Path(reproducers_dir) / tmp_crash_path.name
