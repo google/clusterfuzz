@@ -15,6 +15,7 @@
 
 from pathlib import Path
 import re
+import shutil
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -57,13 +58,15 @@ def _get_runner():
   return new_process.UnicodeProcessRunner(centipede_path)
 
 
-def _get_reproducer_path(log):
+def _get_reproducer_path(log, reproducers_dir):
   """Gets the reproducer path, if any."""
   crash_match = _CRASH_REGEX.search(log)
-  if not crash_match:
+  if not crash_match or not crash_match.group(1):
     return None
-
-  return crash_match.group(1)
+  tmp_crash_path = Path(crash_match.group(1))
+  prm_crash_path = Path(reproducers_dir) / tmp_crash_path.name
+  shutil.copy(tmp_crash_path, prm_crash_path)
+  return prm_crash_path
 
 
 class Engine(engine.Engine):
@@ -73,7 +76,7 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
-  def prepare(self, corpus_dir, target_path, build_dir):  # pylint: disable=unused-argument
+  def prepare(self, corpus_dir, target_path, build_dir):
     """Prepares for a fuzzing session, by generating options.
 
     Args:
@@ -136,7 +139,7 @@ class Engine(engine.Engine):
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=timeout)
 
-    reproducer_path = _get_reproducer_path(fuzz_result.output)
+    reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
     if reproducer_path:
       crashes.append(
