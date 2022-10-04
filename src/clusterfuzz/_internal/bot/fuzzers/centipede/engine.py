@@ -64,9 +64,9 @@ def _get_reproducer_path(log, reproducers_dir):
   if not crash_match:
     return None
   tmp_crash_path = Path(crash_match.group(1))
-  prm_crash_path = Path(reproducers_dir) / tmp_crash_path.name
-  shutil.copy(tmp_crash_path, prm_crash_path)
-  return prm_crash_path
+  crash_path = Path(reproducers_dir) / tmp_crash_path.name
+  shutil.copy(tmp_crash_path, crash_path)
+  return crash_path
 
 
 class Engine(engine.Engine):
