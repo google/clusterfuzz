@@ -28,6 +28,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 TEST_PATH = Path(__file__).parent
 DATA_DIR = TEST_PATH / 'test_data'
 CORPUS_DIR = TEST_PATH / 'corpus_dir'
+CRASHES_DIR = TEST_PATH / 'crashes_dir'
 
 # Centipede's runtime args
 _TIMEOUT = 25
@@ -46,9 +47,10 @@ _DEFAULT_ARGUMENTS = [
 
 def clear_output_dirs():
   """Clears output directory."""
-  if CORPUS_DIR.exists():
-    shutil.rmtree(CORPUS_DIR)
-  CORPUS_DIR.mkdir()
+  for input_dir in [CORPUS_DIR, CRASHES_DIR]:
+    if input_dir.exists():
+      shutil.rmtree(input_dir)
+    input_dir.mkdir()
 
 
 def setup_testcase(testcase):
@@ -100,7 +102,7 @@ class IntegrationTest(unittest.TestCase):
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
-    results = engine_impl.fuzz(target_path, options, None, 20)
+    results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
     expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
         f'--dictionary={dictionary}',
         f'--workdir={work_dir}',
@@ -120,7 +122,7 @@ class IntegrationTest(unittest.TestCase):
                                                  'always_crash_fuzzer')
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'always_crash_fuzzer'
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
-    results = engine_impl.fuzz(target_path, options, None, 20)
+    results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
     expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
         f'--workdir={work_dir}',
         f'--corpus_dir={CORPUS_DIR}',
@@ -132,8 +134,7 @@ class IntegrationTest(unittest.TestCase):
     self.assertIn('Crash detected, saving input to', results.logs)
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
-    crash_dir = work_dir / 'crashes'
-    self.assertEqual(crash_dir, Path(crash.input_path).parent)
+    self.assertEqual(CRASHES_DIR, Path(crash.input_path).parent)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
                   crash.stacktrace)
 
