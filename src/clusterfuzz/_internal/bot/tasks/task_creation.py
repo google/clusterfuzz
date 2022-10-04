@@ -179,7 +179,7 @@ def create_variant_tasks_if_needed(testcase):
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
-    variant = data_handler.get_testcase_variant(testcase_id, job_type)
+    variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
     variant.status = data_types.TestcaseVariantStatus.PENDING
     variant.put()
 
