@@ -828,12 +828,6 @@ class Config(Model):
   # For filing issues to GitHub repositories under test.
   oss_fuzz_robot_github_personal_access_token = ndb.StringProperty(default='')
 
-  # OAuth2 client id for the reproduce tool.
-  reproduce_tool_client_id = ndb.StringProperty(default='')
-
-  # OAuth2 client secret for the reproduce tool.
-  reproduce_tool_client_secret = ndb.StringProperty(default='')
-
   # Pub/Sub topics for the Predator service.
   predator_crash_topic = ndb.StringProperty(default='')
   predator_result_topic = ndb.StringProperty(default='')

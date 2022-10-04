@@ -462,7 +462,7 @@ def get_testcase_detail(testcase):
   pending_stack_task = testcase.last_tested_crash_stacktrace == 'Pending'
   needs_refresh = (
       testcase.status == 'Pending' or
-      ((testcase.status == 'Processed' or testcase.status == 'Duplicate') and
+      (testcase.status in ('Processed', 'Duplicate') and
        (pending_blame_task or pending_impact_task or pending_minimize_task or
         pending_progression_task or pending_regression_task or
         pending_stack_task)))
@@ -508,7 +508,7 @@ def get_testcase_detail(testcase):
       'crash_address':
           crash_address,
       'crash_state':
-          crash_state,  # Used by reproduce tool.
+          crash_state,
       'crash_state_lines':
           crash_state_lines,
       'crash_revision':

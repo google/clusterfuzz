@@ -67,8 +67,6 @@ from handlers.cron import schedule_corpus_pruning
 from handlers.cron import sync_admins
 from handlers.cron import triage
 from handlers.performance_report import show as show_performance_report
-from handlers.reproduce_tool import get_config
-from handlers.reproduce_tool import testcase_info
 from handlers.testcase_detail import crash_stats as crash_stats_on_testcase
 from handlers.testcase_detail import create_issue
 from handlers.testcase_detail import delete
@@ -205,8 +203,6 @@ handlers = [
     ('/performance-report', show_performance_report.Handler),
     ('/performance-report/<fuzzer_name>/<job_type>/<logs_date>',
      show_performance_report.Handler),
-    ('/reproduce-tool/get-config', get_config.Handler),
-    ('/reproduce-tool/testcase-info', testcase_info.Handler),
     ('/report-bug', help_redirector.ReportBugHandler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/revisions', revisions_info.Handler),
