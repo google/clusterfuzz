@@ -34,15 +34,6 @@ from libs import helpers
 _JSON_CONTENT_TYPE = 'application/json'
 
 
-def mocked_db_config_get_value(key):
-  """Return mocked values from db_config's get_value function."""
-  if key == 'reproduce_tool_client_id':
-    return 'ClientId'
-  if key == 'reproduce_tool_client_secret':
-    return 'Secret'
-  return None
-
-
 def mocked_load_yaml_file(yaml_file_path):
   """Return mocked version of local_config._load_yaml_file. Uses custom version
   of auth.yaml for tests in this file."""
@@ -498,12 +489,10 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'clusterfuzz._internal.config.db_config.get_value',
         'clusterfuzz._internal.config.local_config._load_yaml_file',
         'requests.get',
     ])
 
-    self.mock.get_value.side_effect = mocked_db_config_get_value
     self.mock._load_yaml_file.side_effect = mocked_load_yaml_file  # pylint: disable=protected-access
 
     config = local_config.AuthConfig()
@@ -610,7 +599,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock.get.return_value = mock.Mock(
         status_code=200,
         text=json.dumps({
-            'aud': 'ClientId',
+            'aud': 'test-cf-tools.apps.googleusercontent.com',
             'email': 'test@test.com',
             'email_verified': False
         }))

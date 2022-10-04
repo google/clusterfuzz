@@ -17,9 +17,6 @@
 # Process command line arguments.
 while [ "$1" != "" ]; do
   case $1 in
-    --only-reproduce)
-      only_reproduce=1
-      ;;
     --install-android-emulator)
       install_android_emulator=1
       ;;
@@ -89,55 +86,53 @@ sudo apt-get install -y \
     unzip \
     xvfb
 
-if [ ! $only_reproduce ]; then
-  # Prerequisite for add-apt-repository.
-  sudo apt-get install -y apt-transport-https software-properties-common
+# Prerequisite for add-apt-repository.
+sudo apt-get install -y apt-transport-https software-properties-common
 
-  if [ "$distro_codename" == "rodete" ]; then
-    glogin
-    sudo glinux-add-repo docker-ce-"$distro_codename"
-  else
-    curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
-        sudo apt-key add -
-    sudo add-apt-repository -y \
-        "deb [arch=amd64] https://download.docker.com/linux/${distro_id,,} \
-        $distro_codename \
-        stable"
+if [ "$distro_codename" == "rodete" ]; then
+  glogin
+  sudo glinux-add-repo docker-ce-"$distro_codename"
+else
+  curl -fsSL https://download.docker.com/linux/${distro_id,,}/gpg | \
+      sudo apt-key add -
+  sudo add-apt-repository -y \
+      "deb [arch=amd64] https://download.docker.com/linux/${distro_id,,} \
+      $distro_codename \
+      stable"
 
-    export CLOUD_SDK_REPO="cloud-sdk"
-    export APT_FILE=/etc/apt/sources.list.d/google-cloud-sdk.list
-    export APT_LINE="deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main"
-    sudo bash -c "grep -x \"$APT_LINE\" $APT_FILE || (echo $APT_LINE | tee -a $APT_FILE)"
+  export CLOUD_SDK_REPO="cloud-sdk"
+  export APT_FILE=/etc/apt/sources.list.d/google-cloud-sdk.list
+  export APT_LINE="deb http://packages.cloud.google.com/apt $CLOUD_SDK_REPO main"
+  sudo bash -c "grep -x \"$APT_LINE\" $APT_FILE || (echo $APT_LINE | tee -a $APT_FILE)"
 
-    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
-        sudo apt-key add -
+  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+      sudo apt-key add -
 
-  fi
+fi
 
-  # Install apt-get packages.
-  sudo apt-get update
-  sudo apt-get install -y \
-      docker-ce \
-      google-cloud-sdk \
-      openjdk-8-jdk \
-      liblzma-dev
+# Install apt-get packages.
+sudo apt-get update
+sudo apt-get install -y \
+    docker-ce \
+    google-cloud-sdk \
+    openjdk-8-jdk \
+    liblzma-dev
 
-  # Install patchelf - latest version not available on some older distros so we
-  # compile from source.
-  # Needed for MemorySanitizer to patch instrumented system libraries into the
-  # target binary (using RPATH).
-  unsupported_codenames="(xenial|jessie)"
-  if [[ $distro_codename =~ $unsupported_codenames ]]; then
-      (cd /tmp && \
-          curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
-          | tar -C /tmp -xj && \
-          cd /tmp/patchelf-*/ && \
-          ./configure && \
-          sudo make install && \
-          sudo rm -rf /tmp/patchelf-*)
-  else
-      sudo apt-get install -y patchelf
-  fi
+# Install patchelf - latest version not available on some older distros so we
+# compile from source.
+# Needed for MemorySanitizer to patch instrumented system libraries into the
+# target binary (using RPATH).
+unsupported_codenames="(xenial|jessie)"
+if [[ $distro_codename =~ $unsupported_codenames ]]; then
+    (cd /tmp && \
+        curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 \
+        | tar -C /tmp -xj && \
+        cd /tmp/patchelf-*/ && \
+        ./configure && \
+        sudo make install && \
+        sudo rm -rf /tmp/patchelf-*)
+else
+    sudo apt-get install -y patchelf
 fi
 
 # Install gcloud dependencies.
@@ -188,19 +183,14 @@ if [ $install_android_emulator ]; then
   $ANDROID_TOOLS_BIN/avdmanager create avd --force -n TestImage -k "system-images;android-$ANDROID_VERSION;google_apis;x86"
 fi
 
-if [ ! $only_reproduce ]; then
-  # Install other dependencies (e.g. bower).
-  nodeenv -p --prebuilt
-  # Unsafe perm flag allows bower and polymer-bundler install for root users as well.
-  npm install --unsafe-perm -g bower polymer-bundler
-  bower --allow-root install
+# Install other dependencies (e.g. bower).
+nodeenv -p --prebuilt
+# Unsafe perm flag allows bower and polymer-bundler install for root users as well.
+npm install --unsafe-perm -g bower polymer-bundler
+bower --allow-root install
 
-  # Run the full bootstrap script to prepare for ClusterFuzz development.
-  python butler.py bootstrap
-else
-  # The reproduce tool only needs a limited bootstrap.
-  python butler.py bootstrap --only-reproduce
-fi
+# Run the full bootstrap script to prepare for ClusterFuzz development.
+python butler.py bootstrap
 
 set +x
 echo "

@@ -321,7 +321,7 @@ def _remove_invalid_files():
       os.remove(name)
 
 
-def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
+def install_dependencies(platform_name=None):
   """Install dependencies for bots."""
   _pipfile_to_requirements('src', 'src/requirements.txt')
   # Hack: Use "dev-packages" to specify App Engine only packages.
@@ -335,10 +335,6 @@ def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
         platform_name=platform_name)
 
   _install_pip('src/appengine/requirements.txt', 'src/appengine/third_party')
-
-  # Only the previous dependencies are needed for reproduce tool installation.
-  if is_reproduce_tool_setup:
-    return
 
   _remove_invalid_files()
   execute('bower install --allow-root')

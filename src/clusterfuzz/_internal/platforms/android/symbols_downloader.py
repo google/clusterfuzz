@@ -33,12 +33,10 @@ def get_repo_prop_archive_filename(build_id, target):
 
 def should_download_symbols():
   """Return True if we should continue to download symbols."""
-  # For local testing or when running the reproduce tool locally, we do not
-  # have access to the cloud storage bucket with the symbols. In this case,
-  # just bail out.
-  # We have archived symbols for google builds only.
+  # For local testing, we do not have access to the cloud storage bucket with
+  # the symbols. In this case, just bail out. We have archived symbols for
+  # google builds only.
   return (not environment.get_value('LOCAL_DEVELOPMENT') and
-          not environment.get_value('REPRODUCE_TOOL') and
           settings.is_google_device())
 
 

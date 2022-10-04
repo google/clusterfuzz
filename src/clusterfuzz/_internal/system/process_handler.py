@@ -510,11 +510,8 @@ def terminate_stale_application_instances():
   start_time = time.time()
 
   processes_to_kill = []
-  # Avoid killing the test binary when running the reproduce tool. It is
-  # commonly in-use on the side on developer workstations.
-  if not environment.get_value('REPRODUCE_TOOL'):
-    app_name = environment.get_value('APP_NAME')
-    processes_to_kill += [app_name]
+  app_name = environment.get_value('APP_NAME')
+  processes_to_kill += [app_name]
 
   if additional_process_to_kill:
     processes_to_kill += additional_process_to_kill.split(' ')
@@ -627,11 +624,7 @@ def terminate_processes_matching_cmd_line(match_strings,
                                           exclude_strings=None):
   """Terminates processes matching particular command line (case sensitive)."""
   if exclude_strings is None:
-    # By default, do not terminate processes containing butler.py. This is
-    # important so that the reproduce tool does not terminate itself, as the
-    # rest of its command line may contain strings we usually terminate such
-    # as paths to build directories.
-    exclude_strings = ['butler.py', 'reproduce.sh']
+    exclude_strings = []
 
   if isinstance(match_strings, str):
     match_strings = [match_strings]

@@ -27,7 +27,6 @@ from google.oauth2 import id_token
 import requests
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
@@ -191,13 +190,9 @@ def get_email_and_access_token(authorization):
         'whitelisted_oauth_emails', default=[]):
       return data['email'], authorization
 
-    # Validate that this is an explicitly whitelisted client ID, or the client
-    # ID for the reproduce tool.
+    # Validate that this is an explicitly whitelisted client ID.
     whitelisted_client_ids = _auth_config().get(
         'whitelisted_oauth_client_ids', default=[])
-    reproduce_tool_client_id = db_config.get_value('reproduce_tool_client_id')
-    if reproduce_tool_client_id:
-      whitelisted_client_ids += [reproduce_tool_client_id]
     if data.get('aud') not in whitelisted_client_ids:
       raise helpers.UnauthorizedException(
           "The access token doesn't belong to one of the allowed OAuth clients"

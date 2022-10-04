@@ -128,14 +128,6 @@ def slow(func):
                              func)
 
 
-def reproduce_tool(func):
-  """Tests for the test case reproduction script."""
-  return unittest.skipIf(
-      not environment.get_value('REPRODUCE_TOOL_TESTS', False),
-      'Skipping reproduce tool tests.')(
-          func)
-
-
 def android_device_required(func):
   """Skip Android-specific tests if we cannot run them."""
   reason = None
