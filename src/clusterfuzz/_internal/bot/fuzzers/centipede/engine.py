@@ -143,7 +143,7 @@ class Engine(engine.Engine):
     crashes = []
     if reproducer_path:
       crashes.append(
-          engine.Crash(reproducer_path, fuzz_result.output, [],
+          engine.Crash(str(reproducer_path), fuzz_result.output, [],
                        int(fuzz_result.time_executed)))
 
     # Stats report is not available in Centipede yet.
