@@ -860,14 +860,11 @@ class StackParser:
       self.update_state_on_check_failure(
           state, line, SECURITY_DCHECK_FAILURE_REGEX, 'Security DCHECK failure')
 
-      # Timeout/OOM detected by libFuzzer.
+      # Timeout/OOM detected by libFuzzer and Centipede.
       if self.detect_ooms_and_hangs:
-        self.update_state_on_match(
-            LIBFUZZER_TIMEOUT_REGEX,
-            line,
-            state,
-            new_type='Timeout',
-            reset=True)
+        for timeout_regex in [LIBFUZZER_TIMEOUT_REGEX, CENTIPEDE_TIMEOUT_REGEX]:
+          self.update_state_on_match(
+              timeout_regex, line, state, new_type='Timeout', reset=True)
         self.update_state_on_match(
             OUT_OF_MEMORY_REGEX,
             line,
