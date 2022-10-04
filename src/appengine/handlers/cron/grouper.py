@@ -30,6 +30,8 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
 
 GROUP_MAX_TESTCASE_LIMIT = 25
 
+VARIANT_CRASHES_IGNORE = ['Out-of-memory', 'Timeout']
+
 
 class TestcaseAttributes(object):
   """Testcase attributes used for grouping."""
@@ -115,11 +117,22 @@ def _group_testcases_based_on_variants(testcase_map):
       if testcase_1.job_type == testcase_2.job_type:
         continue
 
+      # Rule: Skip variant analysis if any testcase is timeout or OOM.
+      if (testcase_1.crash_type in VARIANT_CRASHES_IGNORE or
+          testcase_2.crash_type in VARIANT_CRASHES_IGNORE):
+        continue
+
+      # Rule: Skip variant analysis if any testcase is not reproducible.
+      if testcase_1.one_time_crasher_flag or testcase_2.one_time_crasher_flag:
+        continue
+
       # Rule: Group testcase with similar variants.
       # For each testcase2, get the related variant1 and check for equivalence.
       candidate_variant = data_handler.get_testcase_variant(
           testcase_1_id, testcase_2.job_type)
-      if not is_same_variant(candidate_variant, testcase_2):
+
+      if (not candidate_variant or
+          not is_same_variant(candidate_variant, testcase_2)):
         continue
 
       # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
