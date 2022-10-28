@@ -13,8 +13,10 @@
 # limitations under the License.
 """Handler used for loading bigquery data."""
 
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import random
+import string
 import time
 
 from googleapiclient.errors import HttpError
@@ -31,8 +33,10 @@ from libs import handler
 
 STATS_KINDS = [fuzzer_stats.JobRun, fuzzer_stats.TestcaseRun]
 
+NUM_THREADS = 8
 NUM_RETRIES = 2
 RETRY_SLEEP_TIME = 5
+POLL_INTERVAL = 5
 
 
 class Handler(base_handler.Handler):
@@ -98,8 +102,20 @@ class Handler(base_handler.Handler):
         projectId=project_id, datasetId=dataset_id, body=table_body)
     return self._execute_insert_request(table_insert)
 
-  def _load_data(self, bigquery, fuzzer):
+  def _poll_completion(self, bigquery, project_id, job_id):
+    """Poll for completion."""
+    response = bigquery.jobs().get(
+        projectId=project_id, jobId=job_id).execute(num_retries=NUM_RETRIES)
+    while response['status']['state'] == 'RUNNING':
+      response = bigquery.jobs().get(
+          projectId=project_id, jobId=job_id).execute(num_retries=NUM_RETRIES)
+      time.sleep(POLL_INTERVAL)
+
+    return response
+
+  def _load_data(self, fuzzer):
     """Load yesterday's stats into BigQuery."""
+    bigquery = big_query.get_api_client()
     project_id = utils.get_application_id()
 
     yesterday = (self._utc_now().date() - datetime.timedelta(days=1))
@@ -124,35 +140,47 @@ class Handler(base_handler.Handler):
         continue
 
       gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
-      load = {
-          'destinationTable': {
-              'projectId': project_id,
-              'tableId': table_id + '$' + date_string,
-              'datasetId': dataset_id,
-          },
-          'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
-          'sourceFormat': 'NEWLINE_DELIMITED_JSON',
-          'sourceUris': ['gs:/' + gcs_path + '*.json'],
-          'writeDisposition': 'WRITE_TRUNCATE',
-      }
-      if schema is not None:
-        load['schema'] = schema
+      # Shard loads by prefix to avoid causing BigQuery to run out of memory.
+      for i, prefix in enumerate(set(string.hexdigits.lower())):
+        load = {
+            'destinationTable': {
+                'projectId': project_id,
+                'tableId': table_id + '$' + date_string,
+                'datasetId': dataset_id,
+            },
+            'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
+            'sourceFormat': 'NEWLINE_DELIMITED_JSON',
+            'sourceUris': [f'gs:/' + gcs_path + prefix + '*.json'],
+            # Truncate on the first shard, then append the rest.
+            'writeDisposition': 'WRITE_TRUNCATE' if i == 0 else 'WRITE_APPEND',
+        }
+        if schema is not None:
+          load['schema'] = schema
 
-      job_body = {
-          'configuration': {
-              'load': load,
-          },
-      }
+        job_body = {
+            'configuration': {
+                'load': load,
+            },
+        }
 
-      logs.log("Uploading job to BigQuery.", job_body=job_body)
-      request = bigquery.jobs().insert(projectId=project_id, body=job_body)
-      response = request.execute()
+        try:
+          logs.log("Uploading job to BigQuery.", job_body=job_body)
 
-      # We cannot really check the response here, as the query might be still
-      # running, but having a BigQuery jobId in the log would make our life
-      # simpler if we ever have to manually check the status of the query.
-      # See https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/query.
-      logs.log('Response from BigQuery: %s' % response)
+          request = bigquery.jobs().insert(projectId=project_id, body=job_body)
+          load_response = request.execute(num_retries=NUM_RETRIES)
+          job_id = load_response['jobReference']['jobId']
+          logs.log(f'Load job id: {job_id}')
+
+          response = self._poll_completion(bigquery, project_id, job_id)
+          logs.log('Completed load: %s' % response)
+          errors = response['status'].get('errors')
+          if errors:
+            logs.log_error(
+                f'Failed load for {job_id} with errors: {str(errors)})')
+        except Exception as e:
+          # Log exception here as otherwise it gets lost in the thread pool worker.
+          logs.log_error('Failed to load.')
+          return
 
   @handler.cron()
   def get(self):
@@ -161,9 +189,12 @@ class Handler(base_handler.Handler):
       logs.log_error('Loading stats to BigQuery failed: missing bucket name.')
       return
 
+    thread_pool = ThreadPoolExecutor(max_workers=NUM_THREADS)
+
     # Retrieve list of fuzzers before iterating them, since the query can expire
     # as we create the load jobs.
-    bigquery_client = big_query.get_api_client()
     for fuzzer in list(data_types.Fuzzer.query()):
       logs.log('Loading stats to BigQuery for %s.' % fuzzer.name)
-      self._load_data(bigquery_client, fuzzer.name)
+      thread_pool.submit(self._load_data, fuzzer.name)
+
+    thread_pool.shutdown(wait=True)
