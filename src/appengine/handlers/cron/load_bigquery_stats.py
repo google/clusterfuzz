@@ -38,6 +38,9 @@ NUM_RETRIES = 2
 RETRY_SLEEP_TIME = 5
 POLL_INTERVAL = 5
 
+# Ignore the repeated uppercase digits.
+_HEX_DIGITS = string.hexdigits[:-6]
+
 
 class Handler(base_handler.Handler):
   """Cron handler for loading bigquery stats."""
@@ -141,7 +144,7 @@ class Handler(base_handler.Handler):
 
       gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
       # Shard loads by prefix to avoid causing BigQuery to run out of memory.
-      for i, prefix in enumerate(set(string.hexdigits.lower())):
+      for i, prefix in enumerate(_HEX_DIGITS):
         load = {
             'destinationTable': {
                 'projectId': project_id,
@@ -150,7 +153,7 @@ class Handler(base_handler.Handler):
             },
             'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
             'sourceFormat': 'NEWLINE_DELIMITED_JSON',
-            'sourceUris': [f'gs:/' + gcs_path + prefix + '*.json'],
+            'sourceUris': ['gs:/' + gcs_path + prefix + '*.json'],
             # Truncate on the first shard, then append the rest.
             'writeDisposition': 'WRITE_TRUNCATE' if i == 0 else 'WRITE_APPEND',
         }
@@ -177,8 +180,9 @@ class Handler(base_handler.Handler):
           if errors:
             logs.log_error(
                 f'Failed load for {job_id} with errors: {str(errors)})')
-        except Exception as e:
-          # Log exception here as otherwise it gets lost in the thread pool worker.
+        except Exception:
+          # Log exception here as otherwise it gets lost in the thread pool
+          # worker.
           logs.log_error('Failed to load.')
           return
 
