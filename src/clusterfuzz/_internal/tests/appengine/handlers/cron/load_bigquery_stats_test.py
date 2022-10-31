@@ -98,118 +98,119 @@ class LoadBigQueryStatsTest(unittest.TestCase):
         mock.call().execute(),
     ])
 
-    self.mock_bigquery.jobs().insert.assert_has_calls(
-        [
-            mock.call(
-                body={
-                    'configuration': {
-                        'load': {
-                            'destinationTable': {
-                                'projectId': 'test-clusterfuzz',
-                                'tableId': 'JobRun$20160907',
-                                'datasetId': 'fuzzer_stats'
-                            },
-                            'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
-                            'writeDisposition':
-                                'WRITE_TRUNCATE',
-                            'sourceUris': [
-                                'gs://test-bigquery-bucket/fuzzer/JobRun/date/'
-                                '20160907/*.json'
-                            ],
-                            'sourceFormat':
-                                'NEWLINE_DELIMITED_JSON',
-                            'schema': {
-                                'fields': [{
-                                    'type': 'INTEGER',
-                                    'name': 'testcases_executed',
-                                    'mode': 'NULLABLE'
-                                }, {
-                                    'type': 'INTEGER',
-                                    'name': 'build_revision',
-                                    'mode': 'NULLABLE'
-                                }, {
-                                    'type': 'INTEGER',
-                                    'name': 'new_crashes',
-                                    'mode': 'NULLABLE'
-                                }, {
-                                    'type': 'STRING',
-                                    'name': 'job',
-                                    'mode': 'NULLABLE'
-                                }, {
-                                    'type': 'FLOAT',
-                                    'name': 'timestamp',
-                                    'mode': 'NULLABLE'
-                                }, {
-                                    'fields': [{
-                                        'type': 'STRING',
-                                        'name': 'crash_type',
-                                        'mode': 'NULLABLE'
-                                    }, {
-                                        'type': 'BOOLEAN',
-                                        'name': 'is_new',
-                                        'mode': 'NULLABLE'
-                                    }, {
-                                        'type': 'STRING',
-                                        'name': 'crash_state',
-                                        'mode': 'NULLABLE'
-                                    }, {
-                                        'type': 'BOOLEAN',
-                                        'name': 'security_flag',
-                                        'mode': 'NULLABLE'
-                                    }, {
-                                        'type': 'INTEGER',
-                                        'name': 'count',
-                                        'mode': 'NULLABLE'
-                                    }],
-                                    'type':
-                                        'RECORD',
-                                    'name':
-                                        'crashes',
-                                    'mode':
-                                        'REPEATED'
-                                }, {
-                                    'type': 'INTEGER',
-                                    'name': 'known_crashes',
-                                    'mode': 'NULLABLE'
-                                }, {
-                                    'type': 'STRING',
-                                    'name': 'fuzzer',
-                                    'mode': 'NULLABLE'
-                                }, {
-                                    'type': 'STRING',
-                                    'name': 'kind',
-                                    'mode': 'NULLABLE'
-                                }]
-                            },
-                        }
-                    }
-                },
-                projectId='test-clusterfuzz'),
-            mock.call().execute(),
-            mock.call(
-                body={
-                    'configuration': {
-                        'load': {
-                            'destinationTable': {
-                                'projectId': 'test-clusterfuzz',
-                                'tableId': 'TestcaseRun$20160907',
-                                'datasetId': 'fuzzer_stats'
-                            },
-                            'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
-                            'writeDisposition':
-                                'WRITE_TRUNCATE',
-                            'sourceUris': [
-                                'gs://test-bigquery-bucket/fuzzer/TestcaseRun/'
-                                'date/20160907/*.json'
-                            ],
-                            'sourceFormat':
-                                'NEWLINE_DELIMITED_JSON',
-                        }
-                    }
-                },
-                projectId='test-clusterfuzz'),
-            mock.call().execute(),
-        ],
-        # Otherwise we need to mock two calls to mock.call().execute().__str__()
-        # which does not seem to work well.
-        any_order=True)
+    for i, prefix in enumerate(load_bigquery_stats._HEX_DIGITS):  # pylint: disable=protected-access
+      self.mock_bigquery.jobs().insert.assert_has_calls(
+          [
+              mock.call(
+                  body={
+                      'configuration': {
+                          'load': {
+                              'destinationTable': {
+                                  'projectId': 'test-clusterfuzz',
+                                  'tableId': 'JobRun$20160907',
+                                  'datasetId': 'fuzzer_stats'
+                              },
+                              'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
+                              'writeDisposition':
+                                  'WRITE_TRUNCATE'
+                                  if i == 0 else 'WRITE_APPEND',
+                              'sourceUris': [
+                                  'gs://test-bigquery-bucket/fuzzer/JobRun/date/'
+                                  '20160907/' + prefix + '*.json'
+                              ],
+                              'sourceFormat':
+                                  'NEWLINE_DELIMITED_JSON',
+                              'schema': {
+                                  'fields': [{
+                                      'type': 'INTEGER',
+                                      'name': 'testcases_executed',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'build_revision',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'new_crashes',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'STRING',
+                                      'name': 'job',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'FLOAT',
+                                      'name': 'timestamp',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'fields': [{
+                                          'type': 'STRING',
+                                          'name': 'crash_type',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'BOOLEAN',
+                                          'name': 'is_new',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'STRING',
+                                          'name': 'crash_state',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'BOOLEAN',
+                                          'name': 'security_flag',
+                                          'mode': 'NULLABLE'
+                                      }, {
+                                          'type': 'INTEGER',
+                                          'name': 'count',
+                                          'mode': 'NULLABLE'
+                                      }],
+                                      'type':
+                                          'RECORD',
+                                      'name':
+                                          'crashes',
+                                      'mode':
+                                          'REPEATED'
+                                  }, {
+                                      'type': 'INTEGER',
+                                      'name': 'known_crashes',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'STRING',
+                                      'name': 'fuzzer',
+                                      'mode': 'NULLABLE'
+                                  }, {
+                                      'type': 'STRING',
+                                      'name': 'kind',
+                                      'mode': 'NULLABLE'
+                                  }]
+                              },
+                          }
+                      }
+                  },
+                  projectId='test-clusterfuzz'),
+              mock.call(
+                  body={
+                      'configuration': {
+                          'load': {
+                              'destinationTable': {
+                                  'projectId': 'test-clusterfuzz',
+                                  'tableId': 'TestcaseRun$20160907',
+                                  'datasetId': 'fuzzer_stats'
+                              },
+                              'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
+                              'writeDisposition':
+                                  'WRITE_TRUNCATE'
+                                  if i == 0 else 'WRITE_APPEND',
+                              'sourceUris': [
+                                  'gs://test-bigquery-bucket/fuzzer/TestcaseRun/'
+                                  'date/20160907/' + prefix + '*.json'
+                              ],
+                              'sourceFormat':
+                                  'NEWLINE_DELIMITED_JSON',
+                          }
+                      }
+                  },
+                  projectId='test-clusterfuzz'),
+          ],
+          # Otherwise we need to mock two calls to mock.call().execute().__str__()
+          # which does not seem to work well.
+          any_order=True)
