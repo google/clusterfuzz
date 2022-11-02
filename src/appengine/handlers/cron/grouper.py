@@ -98,12 +98,22 @@ def is_same_variant(variant1, variant2):
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
   logs.log('Grouping based on variant analysis.')
+  grouping_candidates = {}
+  project_testcases_counter = {}
+  # Phase 1: collect all grouping candidates.
   for testcase_1_id, testcase_1 in testcase_map.items():
     for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:
         continue
+
+      # Count the number of testcases for each project.
+      for testcase in [testcase_1, testcase_2]:
+        if testcase.project_name in project_testcases_counter:
+          project_testcases_counter[testcase.project_name] += 1
+        else:
+          project_testcases_counter[testcase.project_name] = 1
 
       # Rule: If both testcase have the same group id, then no work to do.
       if testcase_1.group_id == testcase_2.group_id and testcase_1.group_id:
@@ -112,6 +122,7 @@ def _group_testcases_based_on_variants(testcase_map):
       # Rule: Check both testcase are under the same project.
       if testcase_1.project_name != testcase_2.project_name:
         continue
+      current_project = testcase_1.project_name
 
       # Rule: If both testcase have same job_type, then skip variant anlysis.
       if testcase_1.job_type == testcase_2.job_type:
@@ -135,9 +146,53 @@ def _group_testcases_based_on_variants(testcase_map):
           not is_same_variant(candidate_variant, testcase_2)):
         continue
 
+      if current_project in grouping_candidates:
+        grouping_candidates[current_project].append((testcase_1_id,
+                                                     testcase_2_id))
+      else:
+        grouping_candidates[current_project] = [(testcase_1_id, testcase_2_id)]
+
+      logs.log('VARIANT ANALYSIS (Phase 1): Grouping testcase 1 '
+               '(id=%s, '
+               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
+               'and testcase 2 (id=%s, '
+               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
+               (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
+                testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
+                testcase_2.crash_type, testcase_2.crash_state,
+                testcase_2.security_flag, testcase_2.group_id))
+
+  # Phase 2: check for the anomalous candidates
+  # i.e. candiates matched with many testcases.
+  to_ignore_testcases = set()
+  for project, candidate_list in grouping_candidates.items():
+    # Count the number of times a testcase is matched for grouping.
+    counter = {}
+    for candidate_tuple in candidate_list:
+      for testcase_id in candidate_tuple:
+        if testcase_id in counter:
+          counter[testcase_id] += 1
+        else:
+          counter[testcase_id] = 1
+    # Determine anomalous candidates.
+    threshold = 0.05 * project_testcases_counter[project]
+    for testcase_id, count in counter.items():
+      if count >= threshold:
+        to_ignore_testcases.add(testcase_id)
+
+    for grouping_candidates in candidate_list:
+      for testcase in grouping_candidates:
+        if testcase in to_ignore_testcases:
+          logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
+                   'matched_count=%d >= threshold=%.2f).' %
+                   (testcase, counter[testcase], threshold))
+          continue
+      testcase_1_id, testcase_2_id = grouping_candidates
+      testcase_1 = testcase_map[testcase_1_id]
+      testcase_2 = testcase_map[testcase_2_id]
       # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
       # TODO(navidem): Temporary logging, should be replaced with the combine.
-      logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
+      logs.log('VARIANT ANALYSIS (Phase 2): Grouping testcase 1 '
                '(id=%s, '
                'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
                'and testcase 2 (id=%s, '
