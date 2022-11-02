@@ -176,18 +176,23 @@ def _group_testcases_based_on_variants(testcase_map):
         else:
           counter[testcase_id] = 1
     # Determine anomalous candidates.
-    threshold = VARIANT_THRESHOLD_PERCENTAGE * project_testcases_counter[project]
+    threshold = (
+        VARIANT_THRESHOLD_PERCENTAGE * project_testcases_counter[project])
     for testcase_id, count in counter.items():
       if count >= threshold:
         to_ignore_testcases.add(testcase_id)
 
     for grouping_candidates in candidate_list:
+      ingnored = False
       for testcase in grouping_candidates:
         if testcase in to_ignore_testcases:
           logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
                    'matched_count=%d >= threshold=%.2f).' %
                    (testcase, counter[testcase], threshold))
-          continue
+          ingnored = True
+          break
+      if ingnored:
+        continue
       testcase_1_id, testcase_2_id = grouping_candidates
       testcase_1 = testcase_map[testcase_1_id]
       testcase_2 = testcase_map[testcase_2_id]
