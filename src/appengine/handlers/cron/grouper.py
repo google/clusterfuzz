@@ -31,6 +31,7 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
 GROUP_MAX_TESTCASE_LIMIT = 25
 
 VARIANT_CRASHES_IGNORE = ['Out-of-memory', 'Timeout']
+VARIANT_THRESHOLD_PERCENTAGE = 0.05
 
 
 class TestcaseAttributes(object):
@@ -175,7 +176,7 @@ def _group_testcases_based_on_variants(testcase_map):
         else:
           counter[testcase_id] = 1
     # Determine anomalous candidates.
-    threshold = 0.05 * project_testcases_counter[project]
+    threshold = VARIANT_THRESHOLD_PERCENTAGE * project_testcases_counter[project]
     for testcase_id, count in counter.items():
       if count >= threshold:
         to_ignore_testcases.add(testcase_id)
