@@ -145,7 +145,6 @@ def _group_testcases_based_on_variants(testcase_map):
         continue
 
       current_project = testcase_1.project_name
-
       grouping_candidates[current_project].append((testcase_1_id,
                                                    testcase_2_id))
 
