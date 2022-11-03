@@ -355,7 +355,6 @@ class GrouperTest(unittest.TestCase):
     self.testcases[1].one_time_crasher_flag = False
     self.testcases[1].security_flag = True
 
-    print(len(self.testcases))
     for t in self.testcases:
       t.put()
 
