@@ -42,6 +42,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
 
     test_helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.big_query.get_api_client',
+        'clusterfuzz._internal.metrics.fuzzer_stats_schema.get',
         'handlers.base_handler.Handler.is_cron',
         'handlers.cron.load_bigquery_stats.Handler._utc_now',
     ])
@@ -49,6 +50,12 @@ class LoadBigQueryStatsTest(unittest.TestCase):
     self.mock._utc_now.return_value = datetime.datetime(2016, 9, 8)  # pylint: disable=protected-access
     self.mock_bigquery = mock.MagicMock()
     self.mock.get_api_client.return_value = self.mock_bigquery
+    self.mock.get.return_value = {'schema': 'schema'}
+    self.mock_bigquery.jobs().get().execute.return_value = {
+        'status': {
+            'state': 'DONE',
+        },
+    }
 
   def test_execute(self):
     """Tests executing of cron job."""
@@ -91,6 +98,9 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                     'projectId': 'test-clusterfuzz',
                     'tableId': 'TestcaseRun',
                     'datasetId': 'fuzzer_stats',
+                },
+                'schema': {
+                    'schema': 'schema'
                 },
             },
             datasetId='fuzzer_stats',
@@ -206,6 +216,9 @@ class LoadBigQueryStatsTest(unittest.TestCase):
                               ],
                               'sourceFormat':
                                   'NEWLINE_DELIMITED_JSON',
+                              'schema': {
+                                  'schema': 'schema'
+                              },
                           }
                       }
                   },

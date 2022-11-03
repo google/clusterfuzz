@@ -33,7 +33,7 @@ from libs import handler
 
 STATS_KINDS = [fuzzer_stats.JobRun, fuzzer_stats.TestcaseRun]
 
-NUM_THREADS = 8
+NUM_THREADS = 4
 NUM_RETRIES = 2
 RETRY_SLEEP_TIME = 5
 POLL_INTERVAL = 5
@@ -138,13 +138,17 @@ class Handler(base_handler.Handler):
       else:
         schema = kind.SCHEMA
 
+      if not schema:
+        continue
+
       if not self._create_table_if_needed(bigquery, dataset_id, table_id,
                                           schema):
         continue
 
       gcs_path = fuzzer_stats.get_gcs_stats_path(kind_name, fuzzer, timestamp)
       # Shard loads by prefix to avoid causing BigQuery to run out of memory.
-      for i, prefix in enumerate(_HEX_DIGITS):
+      first_write = True
+      for prefix in _HEX_DIGITS:
         load = {
             'destinationTable': {
                 'projectId': project_id,
@@ -152,13 +156,15 @@ class Handler(base_handler.Handler):
                 'datasetId': dataset_id,
             },
             'schemaUpdateOptions': ['ALLOW_FIELD_ADDITION',],
-            'sourceFormat': 'NEWLINE_DELIMITED_JSON',
+            'sourceFormat':
+                'NEWLINE_DELIMITED_JSON',
             'sourceUris': ['gs:/' + gcs_path + prefix + '*.json'],
             # Truncate on the first shard, then append the rest.
-            'writeDisposition': 'WRITE_TRUNCATE' if i == 0 else 'WRITE_APPEND',
+            'writeDisposition':
+                'WRITE_TRUNCATE' if first_write else 'WRITE_APPEND',
+            'schema':
+                schema,
         }
-        if schema is not None:
-          load['schema'] = schema
 
         job_body = {
             'configuration': {
@@ -180,11 +186,13 @@ class Handler(base_handler.Handler):
           if errors:
             logs.log_error(
                 f'Failed load for {job_id} with errors: {str(errors)})')
-        except Exception:
+          else:
+            # Successful write. Subsequent writes should be WRITE_APPEND.
+            first_write = False
+        except Exception as e:
           # Log exception here as otherwise it gets lost in the thread pool
           # worker.
-          logs.log_error('Failed to load.')
-          return
+          logs.log_error(f'Failed to load: {str(e)}')
 
   @handler.cron()
   def get(self):
