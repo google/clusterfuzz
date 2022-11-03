@@ -13,6 +13,8 @@
 # limitations under the License.
 """Grouper for grouping similar looking testcases."""
 
+import collections
+
 import six
 
 from clusterfuzz._internal.base import errors
@@ -31,7 +33,7 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
 GROUP_MAX_TESTCASE_LIMIT = 25
 
 VARIANT_CRASHES_IGNORE = ['Out-of-memory', 'Timeout']
-VARIANT_THRESHOLD_PERCENTAGE = 0.05
+VARIANT_THRESHOLD_PERCENTAGE = 0.2
 
 
 class TestcaseAttributes(object):
@@ -99,22 +101,18 @@ def is_same_variant(variant1, variant2):
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
   logs.log('Grouping based on variant analysis.')
-  grouping_candidates = {}
-  project_testcases_counter = {}
+  grouping_candidates = collections.defaultdict(list)
+  project_num_testcases = collections.defaultdict(int)
   # Phase 1: collect all grouping candidates.
   for testcase_1_id, testcase_1 in testcase_map.items():
+    # Count the number of testcases for each project.
+    project_num_testcases[testcase_1.project_name] += 1
+
     for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:
         continue
-
-      # Count the number of testcases for each project.
-      for testcase in [testcase_1, testcase_2]:
-        if testcase.project_name in project_testcases_counter:
-          project_testcases_counter[testcase.project_name] += 1
-        else:
-          project_testcases_counter[testcase.project_name] = 1
 
       # Rule: If both testcase have the same group id, then no work to do.
       if testcase_1.group_id == testcase_2.group_id and testcase_1.group_id:
@@ -123,7 +121,6 @@ def _group_testcases_based_on_variants(testcase_map):
       # Rule: Check both testcase are under the same project.
       if testcase_1.project_name != testcase_2.project_name:
         continue
-      current_project = testcase_1.project_name
 
       # Rule: If both testcase have same job_type, then skip variant anlysis.
       if testcase_1.job_type == testcase_2.job_type:
@@ -147,11 +144,10 @@ def _group_testcases_based_on_variants(testcase_map):
           not is_same_variant(candidate_variant, testcase_2)):
         continue
 
-      if current_project in grouping_candidates:
-        grouping_candidates[current_project].append((testcase_1_id,
-                                                     testcase_2_id))
-      else:
-        grouping_candidates[current_project] = [(testcase_1_id, testcase_2_id)]
+      current_project = testcase_1.project_name
+
+      grouping_candidates[current_project].append((testcase_1_id,
+                                                   testcase_2_id))
 
       logs.log('VARIANT ANALYSIS (Phase 1): Grouping testcase 1 '
                '(id=%s, '
@@ -168,32 +164,29 @@ def _group_testcases_based_on_variants(testcase_map):
   to_ignore_testcases = set()
   for project, candidate_list in grouping_candidates.items():
     # Count the number of times a testcase is matched for grouping.
-    counter = {}
+    counter = collections.defaultdict(int)
     for candidate_tuple in candidate_list:
       for testcase_id in candidate_tuple:
-        if testcase_id in counter:
-          counter[testcase_id] += 1
-        else:
-          counter[testcase_id] = 1
+        counter[testcase_id] += 1
+
     # Determine anomalous candidates.
-    threshold = (
-        VARIANT_THRESHOLD_PERCENTAGE * project_testcases_counter[project])
+    threshold = (VARIANT_THRESHOLD_PERCENTAGE * project_num_testcases[project])
     for testcase_id, count in counter.items():
       if count >= threshold:
         to_ignore_testcases.add(testcase_id)
-
-    for grouping_candidates in candidate_list:
-      ingnored = False
-      for testcase in grouping_candidates:
-        if testcase in to_ignore_testcases:
-          logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
-                   'matched_count=%d >= threshold=%.2f).' %
-                   (testcase, counter[testcase], threshold))
-          ingnored = True
-          break
-      if ingnored:
+    for (testcase_1_id, testcase_2_id) in candidate_list:
+      # TODO(navidem): combine the following two if statements into one.
+      if testcase_1_id in to_ignore_testcases:
+        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
+                 'matched_count=%d >= threshold=%.2f).' %
+                 (testcase_1_id, counter[testcase_1_id], threshold))
         continue
-      testcase_1_id, testcase_2_id = grouping_candidates
+      if testcase_2_id in to_ignore_testcases:
+        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
+                 'matched_count=%d >= threshold=%.2f).' %
+                 (testcase_2_id, counter[testcase_2_id], threshold))
+        continue
+
       testcase_1 = testcase_map[testcase_1_id]
       testcase_2 = testcase_map[testcase_2_id]
       # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
