@@ -27,10 +27,10 @@ done
 if [ -z "$PYTHON" ]; then
   if which python3.9 > /dev/null; then
     PYTHON='python3.9'
+  elif which python3.10 > /dev/null; then
+    PYTHON='python3.10'
   elif which python3.8 > /dev/null; then
     PYTHON='python3.8'
-  elif which python3.7 > /dev/null; then
-    PYTHON='python3.7'
   else
     PYTHON='python3'
   fi
@@ -42,10 +42,6 @@ if ! which "$PYTHON" > /dev/null; then
 fi
 
 version=$($PYTHON --version 2>&1 | cut -f2 -d' ')
-if [[ "$version" < "3.7" || ! "$version" < "3.a" ]]; then
-  echo "You need Python 3.9, 3.8 or 3.7. Try \`export PYTHON=python3.7\` (or 3.8, 3.9)."
-  exit 1
-fi
 
 # Check for lsb_release command in $PATH.
 if ! which lsb_release > /dev/null; then
