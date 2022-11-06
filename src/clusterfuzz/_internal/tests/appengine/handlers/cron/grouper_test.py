@@ -288,6 +288,73 @@ class GrouperTest(unittest.TestCase):
     self.testcases[1].one_time_crasher_flag = False
     self.testcases[1].security_flag = True
 
+    self.testcases.append(test_utils.create_generic_testcase())
+    self.testcases[2].project_name = 'project1'
+    self.testcases[2].crash_type = 'crash_type3'
+
+    self.testcases.append(test_utils.create_generic_testcase())
+    self.testcases[3].project_name = 'project1'
+    self.testcases[3].crash_type = 'crash_type4'
+
+    self.testcases.append(test_utils.create_generic_testcase())
+    self.testcases[4].project_name = 'project1'
+    self.testcases[4].crash_type = 'crash_type5'
+
+    self.testcases.append(test_utils.create_generic_testcase())
+    self.testcases[5].project_name = 'project1'
+    self.testcases[5].crash_type = 'crash_type6'
+
+    for t in self.testcases:
+      t.put()
+
+    # testcase2's varinat will be evaluated against testcase1
+    self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
+    self.testcase_variants[0].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[0].security_flag = True
+    self.testcase_variants[1].job_type = 'some_type1'
+    self.testcase_variants[1].crash_state = 'abcde'
+    self.testcase_variants[1].crash_type = 'crash_type1'
+    self.testcase_variants[1].testcase_id = self.testcases[1].key.id()
+    self.testcase_variants[1].security_flag = True
+    self.testcase_variants.append(test_utils.create_generic_testcase_variant())
+    self.testcase_variants.append(test_utils.create_generic_testcase_variant())
+    self.testcase_variants.append(test_utils.create_generic_testcase_variant())
+    self.testcase_variants.append(test_utils.create_generic_testcase_variant())
+
+    for v in self.testcase_variants:
+      v.put()
+
+    grouper.group_testcases()
+
+    for index, t in enumerate(self.testcases):
+      self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
+
+    # TODO(navidem): enable these assertions when
+    # evaluating _group_testcases_based_on_variants() logs finished.
+    # self.assertNotEqual(self.testcases[0].group_id, 0)
+    # self.assertNotEqual(self.testcases[1].group_id, 0)
+    # self.assertEqual(self.testcases[0].group_id, self.testcases[1].group_id)
+    # self.assertTrue(self.testcases[0].is_leader)
+    # self.assertFalse(self.testcases[1].is_leader)
+
+  def test_similar_but_anomalous_variants_for_varinat_analysis(self):
+    """Tests that testcases with similar variants but anomalous do not
+    get deduplicated. Anomalous variant matches with more than threshold
+    testcases. Here, testcase1 and testcase2 are similar but they are
+    matching all (2) testcases"""
+    self.testcases[0].job_type = 'some_type1'
+    self.testcases[0].project_name = 'project1'
+    self.testcases[0].crash_state = 'abcde'
+    self.testcases[0].one_time_crasher_flag = False
+    self.testcases[0].crash_type = 'crash_type1'
+    self.testcases[0].security_flag = True
+    self.testcases[1].job_type = 'some_type2'
+    self.testcases[1].project_name = 'project1'
+    self.testcases[1].crash_state = 'vwxyz'
+    self.testcases[1].crash_type = 'crash_type2'
+    self.testcases[1].one_time_crasher_flag = False
+    self.testcases[1].security_flag = True
+
     for t in self.testcases:
       t.put()
 
@@ -308,14 +375,8 @@ class GrouperTest(unittest.TestCase):
 
     for index, t in enumerate(self.testcases):
       self.testcases[index] = data_handler.get_testcase_by_id(t.key.id())
-
-    # TODO(navidem): enable these assertions when
-    # evaluating _group_testcases_based_on_variants() logs finished.
-    # self.assertNotEqual(self.testcases[0].group_id, 0)
-    # self.assertNotEqual(self.testcases[1].group_id, 0)
-    # self.assertEqual(self.testcases[0].group_id, self.testcases[1].group_id)
-    # self.assertTrue(self.testcases[0].is_leader)
-    # self.assertFalse(self.testcases[1].is_leader)
+      self.assertEqual(self.testcases[index].group_id, 0)
+      self.assertTrue(self.testcases[index].is_leader)
 
   def test_no_reproducible_for_varinat_analysis(self):
     """Tests that no-reproducible testcases with similar variants do not

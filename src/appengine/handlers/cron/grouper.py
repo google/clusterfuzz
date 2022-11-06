@@ -13,6 +13,8 @@
 # limitations under the License.
 """Grouper for grouping similar looking testcases."""
 
+import collections
+
 import six
 
 from clusterfuzz._internal.base import errors
@@ -31,6 +33,7 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
 GROUP_MAX_TESTCASE_LIMIT = 25
 
 VARIANT_CRASHES_IGNORE = ['Out-of-memory', 'Timeout']
+VARIANT_THRESHOLD_PERCENTAGE = 0.2
 
 
 class TestcaseAttributes(object):
@@ -98,7 +101,13 @@ def is_same_variant(variant1, variant2):
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
   logs.log('Grouping based on variant analysis.')
+  grouping_candidates = collections.defaultdict(list)
+  project_num_testcases = collections.defaultdict(int)
+  # Phase 1: collect all grouping candidates.
   for testcase_1_id, testcase_1 in testcase_map.items():
+    # Count the number of testcases for each project.
+    project_num_testcases[testcase_1.project_name] += 1
+
     for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
@@ -135,9 +144,53 @@ def _group_testcases_based_on_variants(testcase_map):
           not is_same_variant(candidate_variant, testcase_2)):
         continue
 
+      current_project = testcase_1.project_name
+      grouping_candidates[current_project].append((testcase_1_id,
+                                                   testcase_2_id))
+
+      logs.log('VARIANT ANALYSIS (Phase 1): Grouping testcase 1 '
+               '(id=%s, '
+               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
+               'and testcase 2 (id=%s, '
+               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
+               (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
+                testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
+                testcase_2.crash_type, testcase_2.crash_state,
+                testcase_2.security_flag, testcase_2.group_id))
+
+  # Phase 2: check for the anomalous candidates
+  # i.e. candiates matched with many testcases.
+  to_ignore_testcases = set()
+  for project, candidate_list in grouping_candidates.items():
+    # Count the number of times a testcase is matched for grouping.
+    counter = collections.defaultdict(int)
+    for candidate_tuple in candidate_list:
+      for testcase_id in candidate_tuple:
+        counter[testcase_id] += 1
+
+    # Determine anomalous candidates.
+    threshold = VARIANT_THRESHOLD_PERCENTAGE * project_num_testcases[project]
+    for testcase_id, count in counter.items():
+      if count >= threshold:
+        to_ignore_testcases.add(testcase_id)
+    for (testcase_1_id, testcase_2_id) in candidate_list:
+      # TODO(navidem): combine the following two if statements into one.
+      if testcase_1_id in to_ignore_testcases:
+        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
+                 'matched_count=%d >= threshold=%.2f).' %
+                 (testcase_1_id, counter[testcase_1_id], threshold))
+        continue
+      if testcase_2_id in to_ignore_testcases:
+        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
+                 'matched_count=%d >= threshold=%.2f).' %
+                 (testcase_2_id, counter[testcase_2_id], threshold))
+        continue
+
+      testcase_1 = testcase_map[testcase_1_id]
+      testcase_2 = testcase_map[testcase_2_id]
       # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
       # TODO(navidem): Temporary logging, should be replaced with the combine.
-      logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
+      logs.log('VARIANT ANALYSIS (Phase 2): Grouping testcase 1 '
                '(id=%s, '
                'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
                'and testcase 2 (id=%s, '
