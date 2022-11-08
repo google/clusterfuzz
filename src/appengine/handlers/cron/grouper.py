@@ -34,6 +34,7 @@ GROUP_MAX_TESTCASE_LIMIT = 25
 
 VARIANT_CRASHES_IGNORE = ['Out-of-memory', 'Timeout']
 VARIANT_THRESHOLD_PERCENTAGE = 0.2
+VARIANT_MIN_THRESHOLD = 10
 
 
 class TestcaseAttributes(object):
@@ -160,30 +161,32 @@ def _group_testcases_based_on_variants(testcase_map):
 
   # Phase 2: check for the anomalous candidates
   # i.e. candiates matched with many testcases.
-  to_ignore_testcases = set()
   for project, candidate_list in grouping_candidates.items():
+    project_ignore_testcases = set()
     # Count the number of times a testcase is matched for grouping.
-    counter = collections.defaultdict(int)
+    project_counter = collections.defaultdict(int)
     for candidate_tuple in candidate_list:
       for testcase_id in candidate_tuple:
-        counter[testcase_id] += 1
+        project_counter[testcase_id] += 1
 
     # Determine anomalous candidates.
     threshold = VARIANT_THRESHOLD_PERCENTAGE * project_num_testcases[project]
-    for testcase_id, count in counter.items():
-      if count >= threshold:
-        to_ignore_testcases.add(testcase_id)
+    # Check threshold to be above a minimum, to avoid unnecessary filtering.
+    if threshold >= VARIANT_MIN_THRESHOLD:
+      for testcase_id, count in project_counter.items():
+        if count >= threshold:
+          project_ignore_testcases.add(testcase_id)
     for (testcase_1_id, testcase_2_id) in candidate_list:
       # TODO(navidem): combine the following two if statements into one.
-      if testcase_1_id in to_ignore_testcases:
+      if testcase_1_id in project_ignore_testcases:
         logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
                  'matched_count=%d >= threshold=%.2f).' %
-                 (testcase_1_id, counter[testcase_1_id], threshold))
+                 (testcase_1_id, project_counter[testcase_1_id], threshold))
         continue
-      if testcase_2_id in to_ignore_testcases:
+      if testcase_2_id in project_ignore_testcases:
         logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
                  'matched_count=%d >= threshold=%.2f).' %
-                 (testcase_2_id, counter[testcase_2_id], threshold))
+                 (testcase_2_id, project_counter[testcase_2_id], threshold))
         continue
 
       testcase_1 = testcase_map[testcase_1_id]
@@ -199,6 +202,17 @@ def _group_testcases_based_on_variants(testcase_map):
                 testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
                 testcase_2.crash_type, testcase_2.crash_state,
                 testcase_2.security_flag, testcase_2.group_id))
+
+      top_matched_testcase = sorted(
+          project_counter.items(), key=lambda x: x[1], reverse=True)[:10]
+      log_string = ""
+      for tid, count in top_matched_testcase:
+        log_string += f'{tid}: {count}, '
+
+      logs.log('VARIANT ANALYSIS (Project Report): project=%s, '
+               'total_testcase_num=%d,'
+               'threshold=%.2f, top 10 matched testcases=[%s]' %
+               (project, project_num_testcases[project], threshold, log_string))
 
 
 def _group_testcases_with_same_issues(testcase_map):
