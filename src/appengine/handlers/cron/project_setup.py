@@ -141,11 +141,11 @@ CENTIPEDE_ASAN_JOB = JobInfo('centipede_asan_', 'centipede', 'address',
                              ['centipede', 'engine_asan'])
 
 LIBFUZZER_NONE_JOB = JobInfo('libfuzzer_nosanitizer_', 'libfuzzer', 'none',
-                             ['libfuzzer'])
+                             ['libfuzzer', 'prune'])
 LIBFUZZER_NONE_I386_JOB = JobInfo(
     'libfuzzer_nosanitizer_i386_',
     'libfuzzer',
-    'none', ['libfuzzer'],
+    'none', ['libfuzzer', 'prune'],
     architecture='i386')
 
 JOB_MAP = {
