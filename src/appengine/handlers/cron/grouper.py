@@ -207,7 +207,7 @@ def _group_testcases_based_on_variants(testcase_map):
           project_counter.items(), key=lambda x: x[1], reverse=True)[:10]
       log_string = ""
       for tid, count in top_matched_testcase:
-        log_string += "%s: %d, " % (tid, count)
+        log_string += f'{tid}: {count}, '
 
       logs.log('VARIANT ANALYSIS (Project Report): project=%s, '
                'total_testcase_num=%d,'
