@@ -34,7 +34,7 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
 GROUP_MAX_TESTCASE_LIMIT = 25
 
 VARIANT_CRASHES_IGNORE = re.compile(
-    r'^Out-of-memory|^Timeout|^Missing-library|^Data race')
+    r'^(Out-of-memory|Timeout|Missing-library|Data race)')
 
 VARIANT_THRESHOLD_PERCENTAGE = 0.2
 VARIANT_MIN_THRESHOLD = 5
