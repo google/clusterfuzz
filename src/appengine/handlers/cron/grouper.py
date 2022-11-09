@@ -14,6 +14,7 @@
 """Grouper for grouping similar looking testcases."""
 
 import collections
+import re
 
 import six
 
@@ -32,9 +33,9 @@ FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
 
 GROUP_MAX_TESTCASE_LIMIT = 25
 
-VARIANT_CRASHES_IGNORE = [
-    'Out-of-memory', 'Timeout', 'Missing-library', 'Data race'
-]
+VARIANT_CRASHES_IGNORE = re.compile(
+    r'^Out-of-memory|^Timeout|^Missing-library|^Data race')
+
 VARIANT_THRESHOLD_PERCENTAGE = 0.2
 VARIANT_MIN_THRESHOLD = 5
 VARIANT_MAX_THRESHOLD = 10
@@ -131,8 +132,8 @@ def _group_testcases_based_on_variants(testcase_map):
         continue
 
       # Rule: Skip variant analysis if any testcase is timeout or OOM.
-      if (testcase_1.crash_type in VARIANT_CRASHES_IGNORE or
-          testcase_2.crash_type in VARIANT_CRASHES_IGNORE):
+      if (VARIANT_CRASHES_IGNORE.match(testcase_1.crash_type) or
+          VARIANT_CRASHES_IGNORE.match(testcase_2.crash_type)):
         continue
 
       # Rule: Skip variant analysis if any testcase is not reproducible.
