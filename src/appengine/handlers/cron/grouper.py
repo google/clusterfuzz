@@ -37,7 +37,7 @@ VARIANT_CRASHES_IGNORE = [
 ]
 VARIANT_THRESHOLD_PERCENTAGE = 0.2
 VARIANT_MIN_THRESHOLD = 5
-VARINAT_MAX_THRESHOLD = 10
+VARIANT_MAX_THRESHOLD = 10
 
 
 class TestcaseAttributes(object):
@@ -174,12 +174,12 @@ def _group_testcases_based_on_variants(testcase_map):
 
     # Determine anomalous candidates.
     threshold = VARIANT_THRESHOLD_PERCENTAGE * project_num_testcases[project]
-    threshold = min(threshold, VARINAT_MAX_THRESHOLD)
+    threshold = min(threshold, VARIANT_MAX_THRESHOLD)
+    threshold = max(threshold, VARIANT_MIN_THRESHOLD)
     # Check threshold to be above a minimum, to avoid unnecessary filtering.
-    if threshold >= VARIANT_MIN_THRESHOLD:
-      for testcase_id, count in project_counter.items():
-        if count >= threshold:
-          project_ignore_testcases.add(testcase_id)
+    for testcase_id, count in project_counter.items():
+      if count >= threshold:
+        project_ignore_testcases.add(testcase_id)
     for (testcase_1_id, testcase_2_id) in candidate_list:
       # TODO(navidem): combine the following two if statements into one.
       if testcase_1_id in project_ignore_testcases:
