@@ -3374,3 +3374,15 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_ignore_libgcc_s(self):
+    """Test ignore libgcc_s.so.1"""
+    data = self._read_test_data('libgcc_s.txt')
+    expected_type = 'UNKNOWN READ'
+    expected_state = 'NULL'
+    expected_address = '0x7df7ff9da4bf'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
