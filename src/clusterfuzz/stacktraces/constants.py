@@ -469,7 +469,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^std::sys_common::backtrace',
     r'^__rust_start_panic',
     r'^__scrt_common_main_seh',
-    r'^libgcc_s.so.1',
+    r'^libgcc_s.so.*',
 
     # Functions names (contains).
     r'.*ASAN_OnSIGSEGV',
