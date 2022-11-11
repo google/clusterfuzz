@@ -1,0 +1,40 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allocator_release_to_os_interval_ms=500:allow_user_segv_handler=0:check_malloc_usable_size=0:detect_leaks=1:detect_odr_violation=0:detect_stack_use_after_return=1:fast_unwind_on_fatal=0:handle_abort=2:handle_segv=2:handle_sigbus=2:handle_sigfpe=2:handle_sigill=2:handle_sigtrap=2:max_uar_stack_size_log=16:print_scariness=1:print_summary=1:print_suppressions=0:quarantine_size_mb=64:redzone=32:strict_memcmp=1:strip_path_prefix=/proc/self/cwd/:symbolize=0:use_sigaltstack=1
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command: /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-g3-builds_dist_proc-dax-workflow-proto_field_tracking_honggfuzz_address_profile_expansion_util_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/profile_expansion_util_fuzzer
+Time ran: 0.10465288162231445
+INFO: Running in fuzzing mode, google3 logging disabled
+INFO: Use --minloglevel=0 to re-enable logging
+Accepting input from '[STDIN]'
+Usage for fuzzing: honggfuzz -P [flags] -- /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-g3-builds_dist_proc-dax-workflow-proto_field_tracking_honggfuzz_address_profile_expansion_util_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/profile_expansion_util_fuzzer
+F1110 15:37:25.280898 2384071 profile_expansion_util_fuzzer.cc:220] INTERNAL: Found a difference
+=== Source Location Trace: ===
+dist_proc/dax/workflow/proto_field_tracking/profile_expansion_util_fuzzer.cc:180
+*** Check failure stack trace: ***
+    @     0x5605333e2ca0  absl::log_internal::LogMessage::SendToLog()
+    @     0x5605333e1eac  absl::log_internal::LogMessage::Flush()
+    @     0x5605333df789  absl::log_internal::LogMessageFatal::~LogMessageFatal()
+    @     0x560532ec28dc  LLVMFuzzerTestOneInput
+    @     0x5605333084e1  HonggfuzzRunOneInput
+    @     0x560533308454  HonggfuzzMain
+    @     0x7f87baac67e7  __libc_start_main
+    @     0x560532def1aa  _start
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==2384071==ERROR: AddressSanitizer: ABRT on unknown address 0x0539002460c7 (pc 0x7f87baad92fa bp 0x7ffe7126c620 sp 0x7ffe7126c478 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f87baad92fa in raise
+    #1 0x5605333e24a9 in absl::log_internal::LogMessage::FailWithoutStackTrace() third_party/absl/log/internal/log_message.cc:487:3
+    #2 0x5605333e2e8c in Die third_party/absl/log/internal/log_message.cc:665:5
+    #3 0x5605333e2e8c in absl::log_internal::LogMessage::SendToLog() third_party/absl/log/internal/log_message.cc:674:18
+    #4 0x5605333e1eab in absl::log_internal::LogMessage::Flush() third_party/absl/log/internal/log_message.cc:584:3
+    #5 0x5605333df788 in absl::log_internal::LogMessageFatal::~LogMessageFatal() third_party/absl/log/internal/log_message.cc:741:3
+    #6 0x560532ec28db in TestOneProtoInput dist_proc/dax/workflow/proto_field_tracking/profile_expansion_util_fuzzer.cc:220:5
+    #7 0x560532ec28db in LLVMFuzzerTestOneInput dist_proc/dax/workflow/proto_field_tracking/profile_expansion_util_fuzzer.cc:196:1
+    #8 0x5605333084e0 in HonggfuzzRunOneInput third_party/honggfuzz/libhfuzz/persistent.c:64:15
+    #9 0x560533308453 in HonggfuzzRunFromFile third_party/honggfuzz/libhfuzz/persistent.c:108:5
+    #10 0x560533308453 in HonggfuzzMain third_party/honggfuzz/libhfuzz/persistent.c:118:16
+    #11 0x7f87baac67e6 in __libc_start_main
+    #12 0x560532def1a9 in _start grte-scratch/BUILD/src/sysdeps/x86_64/start.S:120
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/usr/grte/v5/lib64/libc.so.6+0x7e2fa) (BuildId: d17ba7518112927980b056b9456fb30d)
+==2384071==ABORTING
