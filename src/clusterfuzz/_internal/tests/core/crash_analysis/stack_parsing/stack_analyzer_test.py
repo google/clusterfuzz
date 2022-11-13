@@ -3386,3 +3386,17 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_ignore_absl_log_internal(self):
+    """Test ignore absl::log_internal::*"""
+    data = self._read_test_data('absl_log_internal.txt')
+    expected_type = 'Fatal error'
+    expected_state = ('INTERNAL: Found a difference in '
+                      'profile_expansion_util_fuzzer.cc\n'
+                      'Die\nprofile_expansion_util_fuzzer.cc\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
