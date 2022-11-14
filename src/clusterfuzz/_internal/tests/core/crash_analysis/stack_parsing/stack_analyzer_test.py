@@ -3374,3 +3374,14 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_wycheproof(self):
+    data = self._read_test_data('wycheproof.txt')
+    expected_type = 'Wycheproof error'
+    expected_state = 'testLargeArrayAlias(com.google.security.wycheproof.AesGcmTest)\n'
+    expected_stacktrace = data
+    expected_address = ''
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address, expected_state,
+                                  expected_stacktrace, expected_security_flag)
