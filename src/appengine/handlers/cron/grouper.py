@@ -153,16 +153,6 @@ def _group_testcases_based_on_variants(testcase_map):
       grouping_candidates[current_project].append((testcase_1_id,
                                                    testcase_2_id))
 
-      logs.log('VARIANT ANALYSIS (Phase 1): Grouping testcase 1 '
-               '(id=%s, '
-               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
-               'and testcase 2 (id=%s, '
-               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
-               (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
-                testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
-                testcase_2.crash_type, testcase_2.crash_state,
-                testcase_2.security_flag, testcase_2.group_id))
-
   # Phase 2: check for the anomalous candidates
   # i.e. candiates matched with many testcases.
   for project, candidate_list in grouping_candidates.items():
@@ -182,23 +172,19 @@ def _group_testcases_based_on_variants(testcase_map):
       if count >= threshold:
         project_ignore_testcases.add(testcase_id)
     for (testcase_1_id, testcase_2_id) in candidate_list:
-      # TODO(navidem): combine the following two if statements into one.
-      if testcase_1_id in project_ignore_testcases:
-        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
-                 'matched_count=%d >= threshold=%.2f).' %
-                 (testcase_1_id, project_counter[testcase_1_id], threshold))
-        continue
-      if testcase_2_id in project_ignore_testcases:
-        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
-                 'matched_count=%d >= threshold=%.2f).' %
-                 (testcase_2_id, project_counter[testcase_2_id], threshold))
+      if (testcase_1_id in project_ignore_testcases or
+          testcase_2_id in project_ignore_testcases):
+        logs.log('VARIANT ANALYSIS (Pruning): Anomalous match: (id1=%s, '
+                 'matched_count1=%d) matched with (id2=%d, matched_count2=%d), '
+                 'threshold=%.2f.' %
+                 (testcase_1_id, project_counter[testcase_1_id], testcase_2_id,
+                  project_counter[testcase_2_id], threshold))
         continue
 
       testcase_1 = testcase_map[testcase_1_id]
       testcase_2 = testcase_map[testcase_2_id]
-      # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
-      # TODO(navidem): Temporary logging, should be replaced with the combine.
-      logs.log('VARIANT ANALYSIS (Phase 2): Grouping testcase 1 '
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
                '(id=%s, '
                'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
                'and testcase 2 (id=%s, '
@@ -207,17 +193,6 @@ def _group_testcases_based_on_variants(testcase_map):
                 testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
                 testcase_2.crash_type, testcase_2.crash_state,
                 testcase_2.security_flag, testcase_2.group_id))
-
-    top_matched_testcase = sorted(
-        project_counter.items(), key=lambda x: x[1], reverse=True)[:10]
-    log_string = ""
-    for tid, count in top_matched_testcase:
-      log_string += f'{tid}: {count}, '
-
-    logs.log('VARIANT ANALYSIS (Project Report): project=%s, '
-             'total_testcase_num=%d,'
-             'threshold=%.2f, top 10 matched testcases=[%s]' %
-             (project, project_num_testcases[project], threshold, log_string))
 
 
 def _group_testcases_with_same_issues(testcase_map):
