@@ -3412,3 +3412,17 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_ignore_clusterfuzz_file_paths(self):
+    """Test ignore ClusterFuzz specific file paths"""
+    data = self._read_test_data('windows_crash_log.txt')
+    expected_type = 'Heap-use-after-free\nREAD 8'
+    expected_state = ('tint::resolver::Resolver::TypeDecl\n'
+                      'tint::resolver::Resolver::ResolveInternal\n'
+                      'tint::resolver::Resolver::Resolve\n')
+    expected_address = '0x1233a3fa0e08'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
