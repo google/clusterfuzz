@@ -101,6 +101,7 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
 EXTRA_SANITIZERS_SECURITY = [
     'Arbitrary file open',
     'Command injection',
+    'Wycheproof error',
 ]
 
 EXPERIMENTAL_CRASH_TYPES = [

@@ -290,6 +290,9 @@ WINDOWS_CDB_CRASH_TYPE_REGEX = re.compile(
 WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
     r'.*ExceptionCode: .*\(Stack overflow\).*')
 
+WYCHEPROOF_JAVA_EXCEPTION = re.compile(
+    r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-z0-9]*\))')
+
 # Golang specific regular expressions.
 GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(
     r'^panic: runtime error: integer divide by zero.*')
