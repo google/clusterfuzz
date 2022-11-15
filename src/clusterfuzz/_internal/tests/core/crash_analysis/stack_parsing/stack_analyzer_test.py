@@ -3385,3 +3385,29 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     self._validate_get_crash_data(data, expected_type, expected_address, expected_state,
                                   expected_stacktrace, expected_security_flag)
+
+  def test_ignore_libgcc_s(self):
+    """Test ignore libgcc_s.so.1"""
+    data = self._read_test_data('libgcc_s.txt')
+    expected_type = 'UNKNOWN READ'
+    expected_state = 'NULL'
+    expected_address = '0x7df7ff9da4bf'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ignore_absl_log_internal(self):
+    """Test ignore absl::log_internal::*"""
+    data = self._read_test_data('absl_log_internal.txt')
+    expected_type = 'Fatal error'
+    expected_state = ('INTERNAL: Found a difference in '
+                      'profile_expansion_util_fuzzer.cc\n'
+                      'Die\nprofile_expansion_util_fuzzer.cc\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)

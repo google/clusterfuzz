@@ -472,6 +472,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^std::sys_common::backtrace',
     r'^__rust_start_panic',
     r'^__scrt_common_main_seh',
+    r'^libgcc_s.so.*',
 
     # Functions names (contains).
     r'.*ASAN_OnSIGSEGV',
@@ -570,6 +571,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Ignore error-throwing frames, the bug is in the caller.
     r'^blink::ReportV8FatalError',
     r'^v8::api_internal::ToLocalEmpty',
+
+    # google3 specific stack frame ignores.
+    r'^absl::log_internal::',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [

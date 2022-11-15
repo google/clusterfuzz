@@ -1,0 +1,18 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allow_user_segv_handler=1:check_malloc_usable_size=0:detect_leaks=1:detect_odr_violation=0:detect_stack_use_after_return=1:external_symbolizer_path=/mnt/scratch0/clusterfuzz/resources/platform/linux/llvm-symbolizer:fast_unwind_on_fatal=1:handle_abort=1:handle_segv=1:handle_sigbus=1:handle_sigfpe=1:handle_sigill=1:handle_sigtrap=1:max_uar_stack_size_log=16:print_scariness=1:print_summary=1:print_suppressions=0:redzone=128:strict_memcmp=0:symbolize=1:symbolize_inline_frames=false:use_sigaltstack=1
+[Command line] /mnt/scratch0/clusterfuzz/bot/builds/v8-asan_linux-debug_1f17dda3b0e56007440db98eafbaad9618b3d0fa/revisions/d8-asan-linux-debug-v8-component-84149/d8 --random-seed=-926720076 --fuzzing --fuzzing --disable-abortjs --disable-in-process-stack-traces --simulate-errors --no-enable-sse4_2 --interrupt-budget=1000 --fuzzing /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/fuzz-00240.js
++----------------------------------------Debug Build Stacktrace----------------------------------------+
+#
+# Fatal error in ../../src/d8/d8.cc, line 3943
+# Fake error.
+#
+#
+#
+#FailureMessage Object: 0x7f080986b060AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==3592732==ERROR: AddressSanitizer: SEGV on unknown address 0x7df7ff9da4bf (pc 0x7f0809f0dc50 bp 0x7ffebecdd410 sp 0x7ffebecdd2c0 T0)
+==3592732==The signal is caused by a READ memory access.
+SCARINESS: 20 (wild-addr-read)
+    #0 0x7f0809f0dc50 in libgcc_s.so.1
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/lib/x86_64-linux-gnu/libgcc_s.so.1+0xfc50) (BuildId: 4abd133cc80e01bb388a9c42d9e3cb338836544a)
+==3592732==ABORTING
