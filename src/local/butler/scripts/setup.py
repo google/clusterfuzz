@@ -96,6 +96,9 @@ ENABLE_GESTURES = False
 THREAD_DELAY = 30.0
 """
 
+# Set up a template with a dummy env var for future use.
+WYCHEPROOF_TEMPLATE = """WYCHEPROOF = 1"""
+
 ENGINE_ASAN_TEMPLATE = ('LSAN = True\n'
                         'ADDITIONAL_ASAN_OPTIONS = '
                         'symbolize=0:'
@@ -138,11 +141,12 @@ TEMPLATES = {
     'engine_asan': ENGINE_ASAN_TEMPLATE,
     'engine_msan': ENGINE_MSAN_TEMPLATE,
     'engine_ubsan': ENGINE_UBSAN_TEMPLATE,
-    'honggfuzz': HONGGFUZZ_TEMPLATE,
     'googlefuzztest': GOOGLEFUZZTEST_TEMPLATE,
+    'honggfuzz': HONGGFUZZ_TEMPLATE,
     'libfuzzer': LIBFUZZER_TEMPLATE,
-    'syzkaller': SYZKALLER_TEMPLATE,
     'prune': PRUNE_TEMPLATE,
+    'syzkaller': SYZKALLER_TEMPLATE,
+    'wycheproof': WYCHEPROOF_TEMPLATE,
 }
 
 
