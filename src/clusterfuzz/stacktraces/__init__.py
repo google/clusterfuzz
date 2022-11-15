@@ -919,6 +919,14 @@ class StackParser:
             new_type='Uncaught exception'):
           state.found_java_exception = True
 
+        if self.update_state_on_match(
+            WYCHEPROOF_JAVA_EXCEPTION,
+            line,
+            state,
+            new_type='Wycheproof error',
+            state_from_group=1):
+          state.found_java_exception = True
+
         # Android fatal exceptions.
         if self.update_state_on_match(
             ANDROID_FATAL_EXCEPTION_REGEX,
