@@ -122,6 +122,10 @@ AFL_ASAN_JOB = JobInfo(
     'afl',
     'address', ['afl', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
+WYCHEPROOF_NONE_JOB = JobInfo(
+    'wycheproof_nosanitizer_',
+    'wycheproof',
+    'none', ['wycheproof'])
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
 HONGGFUZZ_ASAN_JOB = JobInfo(
@@ -166,6 +170,11 @@ JOB_MAP = {
             'address': AFL_ASAN_JOB,
         }
     },
+    'wycheproof': {
+        'x86_64': {
+            'none': WYCHEPROOF_NONE_JOB,
+        }
+    },
     'honggfuzz': {
         'x86_64': {
             'address': HONGGFUZZ_ASAN_JOB,
@@ -188,8 +197,8 @@ JOB_MAP = {
             'address': CENTIPEDE_ASAN_JOB,
         },
     },
-}
 
+}
 DEFAULT_ARCHITECTURES = ['x86_64']
 DEFAULT_SANITIZERS = ['address', 'undefined']
 DEFAULT_ENGINES = ['libfuzzer', 'afl', 'honggfuzz']
