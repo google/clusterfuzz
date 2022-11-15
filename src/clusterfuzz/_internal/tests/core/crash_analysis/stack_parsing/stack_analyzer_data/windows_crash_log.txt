@@ -1,0 +1,111 @@
+[Environment] ASAN_OPTIONS=dedup_token_length=3:exitcode=77:external_symbolizer_path="c:\clusterfuzz\resources\platform\windows\llvm-symbolizer.exe":symbolize=1
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command: 'c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-1070680\tint_ast_clone_fuzzer.exe' -runs=100 'c:\clusterfuzz\bot\inputs\fuzzer-testcases\dd06bbfa73cde137a0b7144a051c8dactestcase'
+Time ran: 0.3593578338623047
+INFO: Seed:146544665
+INFO: Loaded 1 modules   (35617 inline 8-bit counters): 35617 [00007FF7EF227C48, 00007FF7EF230769), 
+INFO: Loaded 1 PC tables (35617 PCs): 35617 [00007FF7EF141170,00007FF7EF1CC380), 
+c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-1070680\tint_ast_clone_fuzzer.exe: Running 1 inputs 100 time(s) each.
+Running: c:\clusterfuzz\bot\inputs\fuzzer-testcases\dd06bbfa73cde137a0b7144a051c8dactestcase
+=================================================================
+==4544==ERROR: AddressSanitizer: heap-use-after-free on address 0x1233a3fa0e08 at pc 0x7ff7eec55cc2 bp 0x0096a52fe760 sp 0x0096a52fe7a8
+READ of size 8 at 0x1233a3fa0e08 thread T0
+==4544==WARNING: Can't read from symbolizer at fd 112
+==4544==WARNING: Can't write to symbolizer at fd 108
+==4544==WARNING: Can't read from symbolizer at fd 144
+==4544==WARNING: Can't write to symbolizer at fd 112
+==4544==WARNING: Can't read from symbolizer at fd 108
+==4544==WARNING: Can't write to symbolizer at fd 144
+==4544==WARNING: Can't read from symbolizer at fd 112
+==4544==WARNING: Can't write to symbolizer at fd 108
+==4544==WARNING: Failed to use and restart external symbolizer!
+    #0 0x7ff7eec55cc1  (c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-1070680\tint_ast_clone_fuzzer.exe+0x1402c5cc1)
+    #1 0x7ff7eec54fdb  (c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-1070680\tint_ast_clone_fuzzer.exe+0x1402c4fdb)
+    #2 0x7ff7eec54d2f  (c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-1070680\tint_ast_clone_fuzzer.exe+0x1402c4d2f)
+    #3 0x7ff7eebe9ec4  (c:\clusterfuzz\bot\builds\chromium-browser-libfuzzer_win32-release_x64-asan_4834a5339bd661fb993ed9448e3738d3c07ca989\revisions\libfuzzer-win32-release_x64-1070680\tint_ast_clone_fuzzer.exe+0x140259ec4)
+    #4 0x7ff7eebe66b3 in tint::resolver::Resolver::TypeDecl third_party/dawn/src/tint/resolver/resolver.cc:2640
+    #5 0x7ff7eebb3c84 in tint::resolver::Resolver::ResolveInternal third_party/dawn/src/tint/resolver/resolver.cc:145
+    #6 0x7ff7eebb3090 in tint::resolver::Resolver::Resolve third_party/dawn/src/tint/resolver/resolver.cc:125
+    #7 0x7ff7eea782f3 in tint::Program::Program third_party/dawn/src/tint/program.cc:59
+    #8 0x7ff7ee9916b2 in LLVMFuzzerTestOneInput third_party/dawn/src/tint/fuzzers/tint_ast_clone_fuzzer.cc:62
+    #9 0x7ff7ee9da40c in fuzzer::Fuzzer::ExecuteCallback third_party/libFuzzer/src/FuzzerLoop.cpp:556
+    #10 0x7ff7ee9abcd1 in fuzzer::RunOneTest third_party/libFuzzer/src/FuzzerDriver.cpp:292
+    #11 0x7ff7ee9b6536 in fuzzer::FuzzerDriver third_party/libFuzzer/src/FuzzerDriver.cpp:774
+    #12 0x7ff7eea0b18c in main third_party/libFuzzer/src/FuzzerMain.cpp:19
+    #13 0x7ff7eee933bb in __scrt_common_main_seh vctools/crt/vcstartup/src/startup/exe_common.inl:288
+    #14 0x7ffd74fc8363 in BaseThreadInitThunk+0x13 (C:\Windows\System32\KERNEL32.DLL+0x180008363)
+    #15 0x7ffd77457090 in RtlUserThreadStart+0x20 (C:\Windows\SYSTEM32\ntdll.dll+0x180067090)
+0x1233a3fa0e08 is located 392 bytes inside of 1296-byte region [0x1233a3fa0c80,0x1233a3fa1190)
+freed by thread T0 here:
+    #0 0x7ff7eee6bc5d in free third_party/llvm/compiler-rt/lib/asan/asan_malloc_win.cpp:82
+    #1 0x7ff7eebf6435 in tint::utils::Vector<tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Slot,12>::Resize third_party/dawn/src/tint/utils/vector.h:348
+    #2 0x7ff7eec48c9d in tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Reserve third_party/dawn/src/tint/utils/hashmap_base.h:302
+    #3 0x7ff7eec54b58 in tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Put<0,tint::sem::Struct *&,const tint::Source *&> third_party/dawn/src/tint/utils/hashmap_base.h:375
+    #4 0x7ff7eebe9ec4 in tint::resolver::Resolver::Structure third_party/dawn/src/tint/resolver/resolver.cc:3031
+    #5 0x7ff7eebe66b3 in tint::resolver::Resolver::TypeDecl third_party/dawn/src/tint/resolver/resolver.cc:2640
+    #6 0x7ff7eebb3c84 in tint::resolver::Resolver::ResolveInternal third_party/dawn/src/tint/resolver/resolver.cc:145
+    #7 0x7ff7eebb3090 in tint::resolver::Resolver::Resolve third_party/dawn/src/tint/resolver/resolver.cc:125
+    #8 0x7ff7eea782f3 in tint::Program::Program third_party/dawn/src/tint/program.cc:59
+    #9 0x7ff7ee9916b2 in LLVMFuzzerTestOneInput third_party/dawn/src/tint/fuzzers/tint_ast_clone_fuzzer.cc:62
+    #10 0x7ff7ee9da40c in fuzzer::Fuzzer::ExecuteCallback third_party/libFuzzer/src/FuzzerLoop.cpp:556
+    #11 0x7ff7ee9abcd1 in fuzzer::RunOneTest third_party/libFuzzer/src/FuzzerDriver.cpp:292
+    #12 0x7ff7ee9b6536 in fuzzer::FuzzerDriver third_party/libFuzzer/src/FuzzerDriver.cpp:774
+    #13 0x7ff7eea0b18c in main third_party/libFuzzer/src/FuzzerMain.cpp:19
+    #14 0x7ff7eee933bb in __scrt_common_main_seh vctools/crt/vcstartup/src/startup/exe_common.inl:288
+    #15 0x7ffd74fc8363 in BaseThreadInitThunk+0x13 (C:\Windows\System32\KERNEL32.DLL+0x180008363)
+    #16 0x7ffd77457090 in RtlUserThreadStart+0x20 (C:\Windows\SYSTEM32\ntdll.dll+0x180067090)
+previously allocated by thread T0 here:
+    #0 0x7ff7eee6bd5d in malloc third_party/llvm/compiler-rt/lib/asan/asan_malloc_win.cpp:98
+    #1 0x7ff7eee9234a in operator new vctools/crt/vcstartup/src/heap/new_scalar.cpp:35
+    #2 0x7ff7eebf661d in tint::utils::Vector<tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Slot,12>::Reserve third_party/dawn/src/tint/utils/vector.h:335
+    #3 0x7ff7eebf6435 in tint::utils::Vector<tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Slot,12>::Resize third_party/dawn/src/tint/utils/vector.h:348
+    #4 0x7ff7eec48c9d in tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Reserve third_party/dawn/src/tint/utils/hashmap_base.h:302
+    #5 0x7ff7eec48592 in tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Put<0,tint::sem::Array *&,const tint::Source *> third_party/dawn/src/tint/utils/hashmap_base.h:375
+    #6 0x7ff7eebebfaa in tint::resolver::Resolver::Array third_party/dawn/src/tint/resolver/resolver.cc:2689
+    #7 0x7ff7eebb72ce in tint::resolver::Resolver::Type third_party/dawn/src/tint/resolver/resolver.cc:199
+    #8 0x7ff7eebe723f in tint::resolver::Resolver::Structure third_party/dawn/src/tint/resolver/resolver.cc:2845
+    #9 0x7ff7eebe66b3 in tint::resolver::Resolver::TypeDecl third_party/dawn/src/tint/resolver/resolver.cc:2640
+    #10 0x7ff7eebb3c84 in tint::resolver::Resolver::ResolveInternal third_party/dawn/src/tint/resolver/resolver.cc:145
+    #11 0x7ff7eebb3090 in tint::resolver::Resolver::Resolve third_party/dawn/src/tint/resolver/resolver.cc:125
+    #12 0x7ff7eea782f3 in tint::Program::Program third_party/dawn/src/tint/program.cc:59
+    #13 0x7ff7ee9916b2 in LLVMFuzzerTestOneInput third_party/dawn/src/tint/fuzzers/tint_ast_clone_fuzzer.cc:62
+    #14 0x7ff7ee9da40c in fuzzer::Fuzzer::ExecuteCallback third_party/libFuzzer/src/FuzzerLoop.cpp:556
+    #15 0x7ff7ee9abcd1 in fuzzer::RunOneTest third_party/libFuzzer/src/FuzzerDriver.cpp:292
+    #16 0x7ff7ee9b6536 in fuzzer::FuzzerDriver third_party/libFuzzer/src/FuzzerDriver.cpp:774
+    #17 0x7ff7eea0b18c in main third_party/libFuzzer/src/FuzzerMain.cpp:19
+    #18 0x7ff7eee933bb in __scrt_common_main_seh vctools/crt/vcstartup/src/startup/exe_common.inl:288
+    #19 0x7ffd74fc8363 in BaseThreadInitThunk+0x13 (C:\Windows\System32\KERNEL32.DLL+0x180008363)
+    #20 0x7ffd77457090 in RtlUserThreadStart+0x20 (C:\Windows\SYSTEM32\ntdll.dll+0x180067090)
+SUMMARY: AddressSanitizer: heap-use-after-free C:\b\s\w\ir\cache\builder\src\third_party\dawn\src\tint\utils\hashmap_base.h:394 in tint::utils::HashmapBase<const tint::sem::Type *,const tint::Source *,8,tint::utils::Hasher<const tint::sem::Type *>,std::Cr::equal_to<const tint::sem::Type *> >::Put<0,tint::sem::Struct *&,const tint::Source *&>::<lambda_2>::operator()
+Shadow bytes around the buggy address:
+  0x1233a3fa0b80: 00 00 00 00 00 00 00 00 fa fa fa fa fa fa fa fa
+  0x1233a3fa0c00: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x1233a3fa0c80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1233a3fa0d00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1233a3fa0d80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+=>0x1233a3fa0e00: fd[fd]fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1233a3fa0e80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1233a3fa0f00: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1233a3fa0f80: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1233a3fa1000: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x1233a3fa1080: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==4544==ABORTING

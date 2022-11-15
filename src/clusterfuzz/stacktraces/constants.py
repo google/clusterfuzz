@@ -533,6 +533,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*/vctools/crt/',
     r'.*/win_toolchain/',
     r'.*libc\+\+/',
+    # Clusterfuzz file paths on Windows to ignore.
+    r'c:/clusterfuzz/bot/build',
 
     # Wrappers from honggfuzz/libhfuzz/memorycmp.c.
     r'.*/memorycmp\.c',
