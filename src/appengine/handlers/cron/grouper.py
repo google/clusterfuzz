@@ -36,6 +36,8 @@ GROUP_MAX_TESTCASE_LIMIT = 25
 VARIANT_CRASHES_IGNORE = re.compile(
     r'^(Out-of-memory|Timeout|Missing-library|Data race)')
 
+VARIANT_STATES_IGNORE = re.compile(r'^NULL$')
+
 VARIANT_THRESHOLD_PERCENTAGE = 0.2
 VARIANT_MIN_THRESHOLD = 5
 VARIANT_MAX_THRESHOLD = 10
@@ -134,6 +136,11 @@ def _group_testcases_based_on_variants(testcase_map):
       # Rule: Skip variant analysis if any testcase is timeout or OOM.
       if (VARIANT_CRASHES_IGNORE.match(testcase_1.crash_type) or
           VARIANT_CRASHES_IGNORE.match(testcase_2.crash_type)):
+        continue
+
+      # Rule: Skip variant analysis if any testcase states is NULL.
+      if (VARIANT_STATES_IGNORE.match(testcase_1.crash_state) or
+          VARIANT_STATES_IGNORE.match(testcase_2.crash_state)):
         continue
 
       # Rule: Skip variant analysis if any testcase is not reproducible.
