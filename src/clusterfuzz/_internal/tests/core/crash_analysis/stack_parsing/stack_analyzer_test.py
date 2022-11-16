@@ -3426,3 +3426,17 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_sanitizer_ill_on_windows(self):
+    """Test categorizing illegal-instruction as ill for consistency with Linux/Posix"""
+    data = self._read_test_data('sanitizer_illegal_instruction_windows.txt')
+    expected_type = 'Ill'
+    expected_state = ('blink::NGBlockLayoutAlgorithm::HandleTextControlPlaceholder\n'
+                      'blink::NGBlockLayoutAlgorithm::Layout\n'
+                      'blink::NGBlockLayoutAlgorithm::Layout\n')
+    expected_address = '0x7ffa8b2a0123'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)

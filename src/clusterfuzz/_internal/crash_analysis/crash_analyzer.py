@@ -326,6 +326,10 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type in GOLANG_CRASH_TYPES_NON_SECURITY:
     return False
 
+  # Illegal instruction.
+  if crash_type == "Ill" or crash_type == "Illegal-instruction":
+    return False
+
   # Floating point exceptions.
   if crash_type == 'Floating-point-exception':
     return False
