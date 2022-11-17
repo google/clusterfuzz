@@ -25,6 +25,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from libs.issue_management import issue_tracker_utils
 
+from . import cleanup
 from . import group_leader
 
 FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
@@ -41,6 +42,8 @@ VARIANT_STATES_IGNORE = re.compile(r'^NULL$')
 VARIANT_THRESHOLD_PERCENTAGE = 0.2
 VARIANT_MIN_THRESHOLD = 5
 VARIANT_MAX_THRESHOLD = 10
+
+TOP_CRASHES_LIMIT = 10
 
 
 class TestcaseAttributes(object):
@@ -105,6 +108,23 @@ def is_same_variant(variant1, variant2):
           variant1.security_flag == variant2.security_flag)
 
 
+def matches_top_crash(testcase, top_crashes_by_project_and_platform):
+  """Returns whether or not a testcase is a top crash."""
+  if testcase.project_name not in top_crashes_by_project_and_platform:
+    return False
+
+  crashes_by_platform = top_crashes_by_project_and_platform[
+      testcase.project_name]
+  for crashes in crashes_by_platform.values():
+    for crash in crashes:
+      if (crash['crashState'] == testcase.crash_state and
+          crash['crashType'] == testcase.crash_type and
+          crash['isSecurity'] == testcase.security_flag):
+        return True
+
+  return False
+
+
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
   logs.log('Grouping based on variant analysis.')
@@ -160,6 +180,11 @@ def _group_testcases_based_on_variants(testcase_map):
       grouping_candidates[current_project].append((testcase_1_id,
                                                    testcase_2_id))
 
+  # Top crashes are usually startup crashes, so don't group them.
+  top_crashes_by_project_and_platform = (
+      cleanup.get_top_crashes_for_all_projects_and_platforms(
+          limit=TOP_CRASHES_LIMIT))
+
   # Phase 2: check for the anomalous candidates
   # i.e. candiates matched with many testcases.
   for project, candidate_list in grouping_candidates.items():
@@ -190,6 +215,13 @@ def _group_testcases_based_on_variants(testcase_map):
 
       testcase_1 = testcase_map[testcase_1_id]
       testcase_2 = testcase_map[testcase_2_id]
+
+      if (matches_top_crash(testcase_1, top_crashes_by_project_and_platform) or
+          matches_top_crash(testcase_2, top_crashes_by_project_and_platform)):
+        logs.log(f'VARIANT ANALYSIS: {testcase_1_id} or {testcase_2_id} '
+                 'is a top crash, skipping.')
+        continue
+
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
       logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
                '(id=%s, '
