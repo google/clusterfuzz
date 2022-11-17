@@ -31,22 +31,22 @@ GENERIC_CRASH_TYPES = [
     'Uncaught exception'
 ]
 CRASH_TYPES_NON_SECURITY = [
-  'Stack-overflow',
-  'Fatal-signal',
-  'Missing-library',
-  'Overwrites-const-input',
-  'ASSERT_NOT_REACHED', # Unexpected conditions reached in the program.
-  'Ill',
-  'Illegal-instruction',
-  'Floating-point-exception',
-  # RUNTIME_ASSERT in V8 (not a crash, but is a sign of an error
-  'RUNTIME_ASSERT',
-  'V8 correctness failure',
-  'Timeout',
-  'Out-of-memory',
-  'Unexpected-exit',
-  # Release SECURITY_CHECK in Blink shouldn't be marked as a security bug
-  'Security CHECK failure',
+    'Stack-overflow',
+    'Fatal-signal',
+    'Missing-library',
+    'Overwrites-const-input',
+    'ASSERT_NOT_REACHED',  # Unexpected conditions reached in the program.
+    'Ill',
+    'Illegal-instruction',
+    'Floating-point-exception',
+    # RUNTIME_ASSERT in V8 (not a crash, but is a sign of an error
+    'RUNTIME_ASSERT',
+    'V8 correctness failure',
+    'Timeout',
+    'Out-of-memory',
+    'Unexpected-exit',
+    # Release SECURITY_CHECK in Blink shouldn't be marked as a security bug
+    'Security CHECK failure',
 ]
 SIGNAL_SIGNATURES_NOT_SECURITY = [
     'Sanitizer: ABRT',
