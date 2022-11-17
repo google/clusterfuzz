@@ -271,7 +271,7 @@ def get_crash_occurrence_platforms(testcase, lookbehind_days=1):
           testcase.project_name, lookbehind_days))
 
 
-def get_top_crashes_for_all_projects_and_platforms():
+def get_top_crashes_for_all_projects_and_platforms(limit=TOP_CRASHES_LIMIT):
   """Return top crashes for all projects and platforms."""
   last_hour = crash_stats.get_last_successful_hour()
   if not last_hour:
@@ -303,7 +303,7 @@ def get_top_crashes_for_all_projects_and_platforms():
           group_having_clause='',
           sort_by='total_count',
           offset=0,
-          limit=TOP_CRASHES_LIMIT)
+          limit=limit)
       if not rows:
         continue
 
