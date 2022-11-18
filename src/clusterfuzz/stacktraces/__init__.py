@@ -679,6 +679,11 @@ class StackParser:
             reset=True,
             type_filter=fix_sanitizer_crash_type)
 
+      # Windows formats and surfaces ILL differently from Linux/Posix
+      # Update crash type for consistency.
+      self.update_state_on_match(
+          WINDOWS_SAN_ILL_REGEX, line, state, new_type='Ill', reset=False)
+
       # Overwrite Unknown-crash type with more generic UNKNOWN type.
       if state.crash_type == 'Unknown-crash':
         state.crash_type = 'UNKNOWN'
@@ -917,6 +922,14 @@ class StackParser:
             line,
             state,
             new_type='Uncaught exception'):
+          state.found_java_exception = True
+
+        if self.update_state_on_match(
+            WYCHEPROOF_JAVA_EXCEPTION,
+            line,
+            state,
+            new_type='Wycheproof error',
+            state_from_group=1):
           state.found_java_exception = True
 
         # Android fatal exceptions.

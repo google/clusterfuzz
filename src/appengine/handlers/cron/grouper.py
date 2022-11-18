@@ -25,6 +25,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from libs.issue_management import issue_tracker_utils
 
+from . import cleanup
 from . import group_leader
 
 FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
@@ -36,9 +37,13 @@ GROUP_MAX_TESTCASE_LIMIT = 25
 VARIANT_CRASHES_IGNORE = re.compile(
     r'^(Out-of-memory|Timeout|Missing-library|Data race)')
 
+VARIANT_STATES_IGNORE = re.compile(r'^NULL$')
+
 VARIANT_THRESHOLD_PERCENTAGE = 0.2
 VARIANT_MIN_THRESHOLD = 5
 VARIANT_MAX_THRESHOLD = 10
+
+TOP_CRASHES_LIMIT = 10
 
 
 class TestcaseAttributes(object):
@@ -103,6 +108,23 @@ def is_same_variant(variant1, variant2):
           variant1.security_flag == variant2.security_flag)
 
 
+def matches_top_crash(testcase, top_crashes_by_project_and_platform):
+  """Returns whether or not a testcase is a top crash."""
+  if testcase.project_name not in top_crashes_by_project_and_platform:
+    return False
+
+  crashes_by_platform = top_crashes_by_project_and_platform[
+      testcase.project_name]
+  for crashes in crashes_by_platform.values():
+    for crash in crashes:
+      if (crash['crashState'] == testcase.crash_state and
+          crash['crashType'] == testcase.crash_type and
+          crash['isSecurity'] == testcase.security_flag):
+        return True
+
+  return False
+
+
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
   logs.log('Grouping based on variant analysis.')
@@ -136,6 +158,11 @@ def _group_testcases_based_on_variants(testcase_map):
           VARIANT_CRASHES_IGNORE.match(testcase_2.crash_type)):
         continue
 
+      # Rule: Skip variant analysis if any testcase states is NULL.
+      if (VARIANT_STATES_IGNORE.match(testcase_1.crash_state) or
+          VARIANT_STATES_IGNORE.match(testcase_2.crash_state)):
+        continue
+
       # Rule: Skip variant analysis if any testcase is not reproducible.
       if testcase_1.one_time_crasher_flag or testcase_2.one_time_crasher_flag:
         continue
@@ -153,15 +180,10 @@ def _group_testcases_based_on_variants(testcase_map):
       grouping_candidates[current_project].append((testcase_1_id,
                                                    testcase_2_id))
 
-      logs.log('VARIANT ANALYSIS (Phase 1): Grouping testcase 1 '
-               '(id=%s, '
-               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
-               'and testcase 2 (id=%s, '
-               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
-               (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
-                testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
-                testcase_2.crash_type, testcase_2.crash_state,
-                testcase_2.security_flag, testcase_2.group_id))
+  # Top crashes are usually startup crashes, so don't group them.
+  top_crashes_by_project_and_platform = (
+      cleanup.get_top_crashes_for_all_projects_and_platforms(
+          limit=TOP_CRASHES_LIMIT))
 
   # Phase 2: check for the anomalous candidates
   # i.e. candiates matched with many testcases.
@@ -182,23 +204,26 @@ def _group_testcases_based_on_variants(testcase_map):
       if count >= threshold:
         project_ignore_testcases.add(testcase_id)
     for (testcase_1_id, testcase_2_id) in candidate_list:
-      # TODO(navidem): combine the following two if statements into one.
-      if testcase_1_id in project_ignore_testcases:
-        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
-                 'matched_count=%d >= threshold=%.2f).' %
-                 (testcase_1_id, project_counter[testcase_1_id], threshold))
-        continue
-      if testcase_2_id in project_ignore_testcases:
-        logs.log('VARIANT ANALYSIS (Pruning): Anomalous testcase: (id=%s, '
-                 'matched_count=%d >= threshold=%.2f).' %
-                 (testcase_2_id, project_counter[testcase_2_id], threshold))
+      if (testcase_1_id in project_ignore_testcases or
+          testcase_2_id in project_ignore_testcases):
+        logs.log('VARIANT ANALYSIS (Pruning): Anomalous match: (id1=%s, '
+                 'matched_count1=%d) matched with (id2=%d, matched_count2=%d), '
+                 'threshold=%.2f.' %
+                 (testcase_1_id, project_counter[testcase_1_id], testcase_2_id,
+                  project_counter[testcase_2_id], threshold))
         continue
 
       testcase_1 = testcase_map[testcase_1_id]
       testcase_2 = testcase_map[testcase_2_id]
-      # combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
-      # TODO(navidem): Temporary logging, should be replaced with the combine.
-      logs.log('VARIANT ANALYSIS (Phase 2): Grouping testcase 1 '
+
+      if (matches_top_crash(testcase_1, top_crashes_by_project_and_platform) or
+          matches_top_crash(testcase_2, top_crashes_by_project_and_platform)):
+        logs.log(f'VARIANT ANALYSIS: {testcase_1_id} or {testcase_2_id} '
+                 'is a top crash, skipping.')
+        continue
+
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+      logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
                '(id=%s, '
                'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
                'and testcase 2 (id=%s, '
@@ -207,17 +232,6 @@ def _group_testcases_based_on_variants(testcase_map):
                 testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
                 testcase_2.crash_type, testcase_2.crash_state,
                 testcase_2.security_flag, testcase_2.group_id))
-
-    top_matched_testcase = sorted(
-        project_counter.items(), key=lambda x: x[1], reverse=True)[:10]
-    log_string = ""
-    for tid, count in top_matched_testcase:
-      log_string += f'{tid}: {count}, '
-
-    logs.log('VARIANT ANALYSIS (Project Report): project=%s, '
-             'total_testcase_num=%d,'
-             'threshold=%.2f, top 10 matched testcases=[%s]' %
-             (project, project_num_testcases[project], threshold, log_string))
 
 
 def _group_testcases_with_same_issues(testcase_map):

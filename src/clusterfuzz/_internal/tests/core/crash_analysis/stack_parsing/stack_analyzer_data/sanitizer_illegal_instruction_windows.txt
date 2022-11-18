@@ -1,0 +1,106 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allow_user_segv_handler=0:check_malloc_usable_size=0:detect_leaks=0:detect_odr_violation=0:detect_stack_use_after_return=1:external_symbolizer_path="c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\symbolized\release\asan-win32-release_x64-1021451\llvm-symbolizer.exe":fast_unwind_on_fatal=1:handle_abort=1:handle_segv=1:handle_sigbus=1:handle_sigfpe=1:handle_sigill=1:malloc_context_size=128:max_uar_stack_size_log=16:print_scariness=1:print_summary=1:print_suppressions=0:redzone=1024:strict_memcmp=0:strip_path_prefix="\..\..\":symbolize=1:symbolize_inline_frames=true:use_sigaltstack=1
+[Command line] c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\symbolized\release\asan-win32-release_x64-1021451\chrome.exe --user-data-dir=c:\tmp\user_profile_0 --window-size=167,107 --window-position=121,89 --js-flags="--expose-gc" --no-sandbox --disable-features=RendererCodeIntegrity c:\clusterfuzz\bot\inputs\fuzzer-common-data-bundles\layouttests\fast\forms\number\fuzz-65.html
++----------------------------------------Release Build Stacktrace----------------------------------------+
+=================================================================
+==22340==ERROR: AddressSanitizer: illegal-instruction on unknown address 0x7ffa8b2a0145 (pc 0x7ffa8b2a0145 bp 0x00a1f97fa130 sp 0x00a1f97fa0c0 T0)
+SCARINESS: 10 (signal)
+==22340==*** WARNING: Failed to initialize DbgHelp!              ***
+==22340==*** Most likely this means that the app is already      ***
+==22340==*** using DbgHelp, possibly with incompatible flags.    ***
+==22340==*** Due to technical reasons, symbolization might crash ***
+==22340==*** or produce wrong results.                           ***
+[6312:22724:0706/215132.390:ERROR:device_event_log_impl.cc(214)] [21:51:32.377] Bluetooth: bluetooth_adapter_winrt.cc:714 GetBluetoothAdapterStaticsActivationFactory failed: Class not registered (0x80040154)
+    #0 0x7ffa8b2a0144 in blink::NGBlockLayoutAlgorithm::HandleTextControlPlaceholder(class blink::NGBlockNode, struct blink::NGPreviousInflowPosition const &) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:3139:1
+    #1 0x7ffa8b27ad05 in blink::NGBlockLayoutAlgorithm::Layout(class blink::NGInlineChildLayoutContext *) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:766:5
+    #2 0x7ffa8b277a5f in blink::NGBlockLayoutAlgorithm::Layout(void) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:464:14
+    #3 0x7ffa876c032d in blink::`anonymous namespace'::LayoutWithAlgorithm::<lambda_1>::operator() third_party/blink/renderer/core/layout/ng/ng_block_node.cc:213
+    #4 0x7ffa876c032d in blink::`anonymous namespace'::CreateAlgorithmAndRun<blink::NGBlockLayoutAlgorithm,`lambda at ../../third_party/blink/renderer/core/layout/ng/ng_block_node.cc:212:28'> third_party/blink/renderer/core/layout/ng/ng_block_node.cc:123:3
+    #5 0x7ffa8769f4a9 in blink::`anonymous namespace'::LayoutWithAlgorithm third_party/blink/renderer/core/layout/ng/ng_block_node.cc:211
+    #6 0x7ffa8769f4a9 in blink::NGBlockNode::Layout(class blink::NGConstraintSpace const &, class blink::NGBlockBreakToken const *, class blink::NGEarlyBreak const *, class blink::NGColumnSpannerPath const *) const third_party/blink/renderer/core/layout/ng/ng_block_node.cc:531:21
+    #7 0x7ffa876b9c97 in blink::NGBlockNode::LayoutAtomicInline(class blink::NGConstraintSpace const &, class blink::ComputedStyle const &, bool, enum blink::NGBaselineAlgorithmType) third_party/blink/renderer/core/layout/ng/ng_block_node.cc:1841:34
+    #8 0x7ffa8b5b4304 in blink::NGLineBreaker::HandleAtomicInline(class blink::NGInlineItem const &, class blink::NGLineInfo *) third_party/blink/renderer/core/layout/ng/inline/ng_line_breaker.cc:1968:14
+    #9 0x7ffa8b5aa81e in blink::NGLineBreaker::BreakLine(class blink::NGLineInfo *) third_party/blink/renderer/core/layout/ng/inline/ng_line_breaker.cc:653:7
+    #10 0x7ffa8b5a9d4e in blink::NGLineBreaker::NextLine(class blink::NGLineInfo *) third_party/blink/renderer/core/layout/ng/inline/ng_line_breaker.cc:541:3
+    #11 0x7ffa8b599681 in blink::NGInlineLayoutAlgorithm::Layout(void) third_party/blink/renderer/core/layout/ng/inline/ng_inline_layout_algorithm.cc:1206:18
+    #12 0x7ffa87bdd330 in blink::NGInlineNode::Layout(class blink::NGConstraintSpace const &, class blink::NGBreakToken const *, class blink::NGColumnSpannerPath const *, class blink::NGInlineChildLayoutContext *) const third_party/blink/renderer/core/layout/ng/inline/ng_inline_node.cc:1648:20
+    #13 0x7ffa8b2964a5 in blink::`anonymous namespace'::LayoutInflow third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:126:25
+    #14 0x7ffa8b29534b in blink::NGBlockLayoutAlgorithm::HandleInflow(class blink::NGLayoutInputNode, class blink::NGBreakToken const *, struct blink::NGPreviousInflowPosition *, class blink::NGInlineChildLayoutContext *, class blink::NGInlineBreakToken const **) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:1741:7
+    #15 0x7ffa8b279bc8 in blink::NGBlockLayoutAlgorithm::Layout(class blink::NGInlineChildLayoutContext *) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:731:18
+    #16 0x7ffa8b277ef2 in blink::NGBlockLayoutAlgorithm::LayoutWithInlineChildLayoutContext(class blink::NGLayoutInputNode const &) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:491:34
+    #17 0x7ffa8b277a56 in blink::NGBlockLayoutAlgorithm::Layout(void) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:462:14
+    #18 0x7ffa876c032d in blink::`anonymous namespace'::LayoutWithAlgorithm::<lambda_1>::operator() third_party/blink/renderer/core/layout/ng/ng_block_node.cc:213
+    #19 0x7ffa876c032d in blink::`anonymous namespace'::CreateAlgorithmAndRun<blink::NGBlockLayoutAlgorithm,`lambda at ../../third_party/blink/renderer/core/layout/ng/ng_block_node.cc:212:28'> third_party/blink/renderer/core/layout/ng/ng_block_node.cc:123:3
+    #20 0x7ffa8769f4a9 in blink::`anonymous namespace'::LayoutWithAlgorithm third_party/blink/renderer/core/layout/ng/ng_block_node.cc:211
+    #21 0x7ffa8769f4a9 in blink::NGBlockNode::Layout(class blink::NGConstraintSpace const &, class blink::NGBlockBreakToken const *, class blink::NGEarlyBreak const *, class blink::NGColumnSpannerPath const *) const third_party/blink/renderer/core/layout/ng/ng_block_node.cc:531:21
+    #22 0x7ffa8b2963bb in blink::`anonymous namespace'::LayoutBlockChild third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:114
+    #23 0x7ffa8b2963bb in blink::`anonymous namespace'::LayoutInflow third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:129:10
+    #24 0x7ffa8b29534b in blink::NGBlockLayoutAlgorithm::HandleInflow(class blink::NGLayoutInputNode, class blink::NGBreakToken const *, struct blink::NGPreviousInflowPosition *, class blink::NGInlineChildLayoutContext *, class blink::NGInlineBreakToken const **) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:1741:7
+    #25 0x7ffa8b279bc8 in blink::NGBlockLayoutAlgorithm::Layout(class blink::NGInlineChildLayoutContext *) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:731:18
+    #26 0x7ffa8b277a5f in blink::NGBlockLayoutAlgorithm::Layout(void) third_party/blink/renderer/core/layout/ng/ng_block_layout_algorithm.cc:464:14
+    #27 0x7ffa876c032d in blink::`anonymous namespace'::LayoutWithAlgorithm::<lambda_1>::operator() third_party/blink/renderer/core/layout/ng/ng_block_node.cc:213
+    #28 0x7ffa876c032d in blink::`anonymous namespace'::CreateAlgorithmAndRun<blink::NGBlockLayoutAlgorithm,`lambda at ../../third_party/blink/renderer/core/layout/ng/ng_block_node.cc:212:28'> third_party/blink/renderer/core/layout/ng/ng_block_node.cc:123:3
+    #29 0x7ffa8769f4a9 in blink::`anonymous namespace'::LayoutWithAlgorithm third_party/blink/renderer/core/layout/ng/ng_block_node.cc:211
+    #30 0x7ffa8769f4a9 in blink::NGBlockNode::Layout(class blink::NGConstraintSpace const &, class blink::NGBlockBreakToken const *, class blink::NGEarlyBreak const *, class blink::NGColumnSpannerPath const *) const third_party/blink/renderer/core/layout/ng/ng_block_node.cc:531:21
+    #31 0x7ffa8a605800 in blink::LayoutNGMixin<class blink::LayoutTableCaption>::UpdateInFlowBlockLayout(void) third_party/blink/renderer/core/layout/ng/layout_ng_mixin.cc:416:52
+    #32 0x7ffa8a646e23 in blink::LayoutNGBlockFlowMixin<class blink::LayoutSVGBlock>::UpdateNGBlockLayout(void) third_party/blink/renderer/core/layout/ng/layout_ng_block_flow_mixin.cc:275:24
+    #33 0x7ffa86ad9b93 in blink::LayoutBlock::UpdateLayout(void) third_party/blink/renderer/core/layout/layout_block.cc:444:3
+    #34 0x7ffa86c310b7 in blink::LayoutBlockFlow::PositionAndLayoutOnceIfNeeded(class blink::LayoutBox &, class blink::LayoutUnit, class blink::BlockChildrenLayoutInfo &) third_party/blink/renderer/core/layout/layout_block_flow.cc:832:11
+    #35 0x7ffa86c32eb1 in blink::LayoutBlockFlow::LayoutBlockChild(class blink::LayoutBox &, class blink::BlockChildrenLayoutInfo &) third_party/blink/renderer/core/layout/layout_block_flow.cc:947:7
+    #36 0x7ffa86c2da1b in blink::LayoutBlockFlow::LayoutBlockChildren(bool, class blink::SubtreeLayoutScope &, class blink::LayoutUnit, class blink::LayoutUnit) third_party/blink/renderer/core/layout/layout_block_flow.cc:1644:5
+    #37 0x7ffa86c28454 in blink::LayoutBlockFlow::LayoutChildren(bool, class blink::SubtreeLayoutScope &) third_party/blink/renderer/core/layout/layout_block_flow.cc:617:5
+    #38 0x7ffa86c2720e in blink::LayoutBlockFlow::UpdateBlockLayout(bool) third_party/blink/renderer/core/layout/layout_block_flow.cc:478:5
+    #39 0x7ffa836c08ec in blink::LayoutView::UpdateBlockLayout(bool) third_party/blink/renderer/core/layout/layout_view.cc:336:20
+    #40 0x7ffa86ad9b93 in blink::LayoutBlock::UpdateLayout(void) third_party/blink/renderer/core/layout/layout_block.cc:444:3
+    #41 0x7ffa836c1152 in blink::LayoutView::UpdateLayout(void) third_party/blink/renderer/core/layout/layout_view.cc:377:20
+    #42 0x7ffa83552637 in blink::LocalFrameView::PerformLayout(void) third_party/blink/renderer/core/frame/local_frame_view.cc:877:24
+    #43 0x7ffa835553cb in blink::LocalFrameView::UpdateLayout(void) third_party/blink/renderer/core/frame/local_frame_view.cc:939:3
+    #44 0x7ffa835728a9 in blink::LocalFrameView::UpdateStyleAndLayoutInternal(void) third_party/blink/renderer/core/frame/local_frame_view.cc:3259:5
+    #45 0x7ffa8355dc00 in blink::LocalFrameView::UpdateStyleAndLayout(void) third_party/blink/renderer/core/frame/local_frame_view.cc:3196:21
+    #46 0x7ffa836231ff in blink::Document::UpdateStyleAndLayout(enum blink::DocumentUpdateReason) third_party/blink/renderer/core/dom/document.cc:2580:17
+    #47 0x7ffa836287bd in blink::Document::EnsurePaintLocationDataValidForNode(class blink::Node const *, enum blink::DocumentUpdateReason) third_party/blink/renderer/core/dom/document.cc:2676:3
+    #48 0x7ffa83645ae5 in blink::Document::SetFocusedElement(class blink::Element *, struct blink::FocusParams const &) third_party/blink/renderer/core/dom/document.cc:5005:5
+    #49 0x7ffa835b9194 in blink::FocusController::SetFocusedElement(class blink::Element *, class blink::Frame *, struct blink::FocusParams const &) third_party/blink/renderer/core/page/focus_controller.cc:1345:23
+    #50 0x7ffa8397d262 in blink::Element::Focus(struct blink::FocusParams const &) third_party/blink/renderer/core/dom/element.cc:5496:54
+    #51 0x7ffa8397caa4 in blink::Element::focusForBindings(class blink::FocusOptions const *) third_party/blink/renderer/core/dom/element.cc:5431:3
+    #52 0x7ffa8f0acf6a in blink::`anonymous namespace'::v8_html_element::FocusOperationCallback out/Release_x64/gen/third_party/blink/renderer/bindings/modules/v8/v8_html_element.cc:3851:17
+    #53 0x7ffa79d23f96 in v8::internal::FunctionCallbackArguments::Call(class v8::internal::CallHandlerInfo) v8/src/api/api-arguments-inl.h:146:3
+    #54 0x7ffa79d21492 in v8::internal::`anonymous namespace'::HandleApiCallHelper<0> v8/src/builtins/builtins-api.cc:112:36
+    #55 0x7ffa79d1eb3c in v8::internal::Builtin_Impl_HandleApiCall v8/src/builtins/builtins-api.cc:143:5
+    #56 0x7ffa79d1de9e in v8::internal::Builtin_HandleApiCall(int, unsigned __int64 *, class v8::internal::Isolate *) v8/src/builtins/builtins-api.cc:130:1
+    #57 0x7ffa1fed037b  (<unknown module>)
+    #58 0x123a00145504  (<unknown module>)
+    #59 0x123a0005511c  (<unknown module>)
+    #60 0x1f  (<unknown module>)
+    #61 0xa1f97fd8d7  (<unknown module>)
+    #62 0x7ffa1ff6f519  (<unknown module>)
+    #63 0xa1f97fd8d7  (<unknown module>)
+    #64 0xa1f97fd86f  (<unknown module>)
+    #65 0x2d  (<unknown module>)
+    #66 0xa1f97fd937  (<unknown module>)
+    #67 0x7ffa1fe4bd6e  (<unknown module>)
+    #68 0x123a000023d8  (<unknown module>)
+    #69 0x123a002142a0  (<unknown module>)
+    #70 0x9  (<unknown module>)
+    #71 0x123a00002450  (<unknown module>)
+    #72 0x123a0005511c  (<unknown module>)
+    #73 0x123a00004d30  (<unknown module>)
+    #74 0x123a001d49fc  (<unknown module>)
+    #75 0x123a0005511c  (<unknown module>)
+    #76 0x123a002142a0  (<unknown module>)
+    #77 0x123a000023d8  (<unknown module>)
+    #78 0x7b  (<unknown module>)
+    #79 0x123a0020776c  (<unknown module>)
+    #80 0x1  (<unknown module>)
+    #81 0x123a002077c8  (<unknown module>)
+    #82 0x123a001c4cf4  (<unknown module>)
+    #83 0xa1f97fd967  (<unknown module>)
+    #84 0x7ffa1fe4a2db  (<unknown module>)
+    #85 0x123a001c4cac  (<unknown module>)
+    #86 0x123a0004c8b4  (<unknown module>)
+    #87 0x123a002077c8  (<unknown module>)
+    #88 0x27  (<unknown module>)
+    #89 0xa1f97fda7f  (<unknown module>)
+    #90 0x7ffa1fe49eda  (<unknown module>)
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: illegal-instruction C:\b\s\w\ir\cache\builder\src\third_party\blink\renderer\core\layout\ng\ng_block_layout_algorithm.cc:3139:1 in blink::NGBlockLayoutAlgorithm::HandleTextControlPlaceholder(class blink::NGBlockNode, struct blink::NGPreviousInflowPosition const &)
+==22340==ABORTING
