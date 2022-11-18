@@ -289,6 +289,7 @@ WINDOWS_CDB_CRASH_TYPE_REGEX = re.compile(
     r'.*DEFAULT_BUCKET_ID[ ]*[:][ ]*([a-zA-Z_]+)')
 WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
     r'.*ExceptionCode: .*\(Stack overflow\).*')
+WINDOWS_SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: illegal-instruction')
 
 WYCHEPROOF_JAVA_EXCEPTION = re.compile(
     r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-z0-9]*\))')

@@ -30,6 +30,24 @@ GENERIC_CRASH_TYPES = [
     'READ', 'UNKNOWN', 'UNKNOWN READ', 'UNKNOWN WRITE', 'WRITE',
     'Uncaught exception'
 ]
+CRASH_TYPES_NON_SECURITY = [
+    'Stack-overflow',
+    'Fatal-signal',
+    'Missing-library',
+    'Overwrites-const-input',
+    'ASSERT_NOT_REACHED',  # Unexpected conditions reached in the program.
+    'Ill',
+    'Illegal-instruction',
+    'Floating-point-exception',
+    # RUNTIME_ASSERT in V8 (not a crash, but is a sign of an error
+    'RUNTIME_ASSERT',
+    'V8 correctness failure',
+    'Timeout',
+    'Out-of-memory',
+    'Unexpected-exit',
+    # Release SECURITY_CHECK in Blink shouldn't be marked as a security bug
+    'Security CHECK failure',
+]
 SIGNAL_SIGNATURES_NOT_SECURITY = [
     'Sanitizer: ABRT',
     'Sanitizer: BUS',
@@ -263,6 +281,9 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if 'pc 0x000000000000 ' in crash_stacktrace:
     return True
 
+  if crash_type in CRASH_TYPES_NON_SECURITY:
+    return False
+
   # JNI security crashes.
   if re.match(
       '.*JNI DETECTED ERROR[^\n]+(deleted|invalid|unexpected|unknown|wrong)',
@@ -276,10 +297,6 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
         'CHECKS_HAVE_SECURITY_IMPLICATION', False)
     return checks_have_security_implication
 
-  # Release SECURITY_CHECK in Blink shouldn't be marked as a security bug.
-  if crash_type == 'Security CHECK failure':
-    return False
-
   # Debug CHECK failure should be marked with security implications.
   if crash_type in ('Security DCHECK failure', 'DCHECK failure'):
     return True
@@ -287,18 +304,6 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   # Hard crash, explicitly enforced in code.
   if (crash_type == 'Fatal error' or crash_type == 'Unreachable code' or
       crash_type.endswith('Exception') or crash_type.endswith('CHECK failure')):
-    return False
-
-  if crash_type == 'Stack-overflow':
-    return False
-
-  if crash_type == 'Fatal-signal':
-    return False
-
-  if crash_type == 'Missing-library':
-    return False
-
-  if crash_type == 'Overwrites-const-input':
     return False
 
   # LeakSanitizer, finds memory leaks.
@@ -313,10 +318,6 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if 'Lock-order-inversion' in crash_type:
     return False
 
-  # Unexpected conditions reached in the program.
-  if crash_type == 'ASSERT_NOT_REACHED':
-    return False
-
   if crash_type in UBSAN_CRASH_TYPES_SECURITY:
     return True
 
@@ -326,18 +327,6 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
   if crash_type in GOLANG_CRASH_TYPES_NON_SECURITY:
     return False
 
-  # Floating point exceptions.
-  if crash_type == 'Floating-point-exception':
-    return False
-
-  # RUNTIME_ASSERT in V8 (not a crash, but is a sign of an error).
-  if crash_type == 'RUNTIME_ASSERT':
-    return False
-
-  # Correctness failure in V8.
-  if crash_type == 'V8 correctness failure':
-    return False
-
   # By default, any assert crash is a security crash.
   # This behavior can be changed by defining
   # |ASSERTS_HAVE_SECURITY_IMPLICATION| in job definition.
@@ -345,14 +334,6 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
     asserts_have_security_implication = environment.get_value(
         'ASSERTS_HAVE_SECURITY_IMPLICATION', True)
     return asserts_have_security_implication
-
-  # Timeouts/OOMs.
-  if crash_type in ('Timeout', 'Out-of-memory'):
-    return False
-
-  # Unexpected exit call in fuzz target.
-  if crash_type == 'Unexpected-exit':
-    return False
 
   # Kernel Failures are security bugs
   if crash_type.startswith('Kernel failure'):
