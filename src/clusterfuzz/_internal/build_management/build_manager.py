@@ -831,35 +831,6 @@ class CuttlefishKernelBuild(RegularBuild):
     return True
 
 
-class AndroidEmulatorBuild(RegularBuild):
-  """Represents an Android Emulator build."""
-
-  def setup(self):
-    """Android Emulator build setup."""
-    self._pre_setup()
-
-    # Download emulator image.
-    if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
-      logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set.')
-      return False
-    archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
-    archive_dst_path = os.path.join(self.base_build_dir, 'emulator_bundle.zip')
-    storage.copy_file_from(archive_src_path, archive_dst_path)
-
-    # Extract emulator image.
-    self.emulator_path = os.path.join(self.base_build_dir, 'emulator')
-    shell.remove_directory(self.emulator_path)
-    archive.unpack(archive_dst_path, self.emulator_path)
-    shell.remove_file(archive_dst_path)
-
-    # Stop any stale emulator instances.
-    stop_script_path = os.path.join(self.emulator_path, 'stop')
-    stop_proc = new_process.ProcessRunner(stop_script_path)
-    stop_proc.run_and_wait()
-
-    return super().setup()
-
-
 class SymbolizedBuild(Build):
   """Symbolized build."""
 
@@ -1340,8 +1311,6 @@ def setup_regular_build(revision,
     build_class = build_setup_host.RemoteRegularBuild
   elif environment.platform() == 'FUCHSIA':
     build_class = FuchsiaBuild
-  elif environment.is_android_emulator():
-    build_class = AndroidEmulatorBuild
   elif (environment.is_android_cuttlefish() and
         environment.is_kernel_fuzzer_job()):
     build_class = CuttlefishKernelBuild
