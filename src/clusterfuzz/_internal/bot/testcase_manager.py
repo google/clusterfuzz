@@ -714,6 +714,7 @@ class TestcaseRunner(object):
   def test_reproduce_reliability(self, retries, expected_state,
                                  expected_security_flag) -> bool:
     """Test to see if a crash is fully reproducible or is a one-time crasher."""
+    logs.log("Beginning a reproducibility test.")
     self._pre_run_cleanup()
 
     reproducible_crash_target_count = retries * REPRODUCIBILITY_FACTOR
