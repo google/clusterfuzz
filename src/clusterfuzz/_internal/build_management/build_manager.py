@@ -33,7 +33,6 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import shell
 
 # The default environment variables for specifying build bucket paths.
