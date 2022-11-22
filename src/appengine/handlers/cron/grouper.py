@@ -222,7 +222,6 @@ def _group_testcases_based_on_variants(testcase_map):
                  'is a top crash, skipping.')
         continue
 
-      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
       logs.log(
           'VARIANT ANALYSIS: Grouping testcase 1 '
           '(id=%s, '
@@ -234,6 +233,7 @@ def _group_testcases_based_on_variants(testcase_map):
            testcase_1.security_flag, testcase_1.job_type, testcase_1.group_id,
            testcase_2.id, testcase_2.crash_type, testcase_2.crash_state,
            testcase_2.security_flag, testcase_2.job_type, testcase_2.group_id))
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)           
 
 
 def _group_testcases_with_same_issues(testcase_map):
