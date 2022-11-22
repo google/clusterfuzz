@@ -733,7 +733,7 @@ def stop_shell():
 def time_since_last_reboot():
   """Return time in seconds since last reboot."""
   uptime_string = run_shell_command(['cat', '/proc/uptime']).split(
-    ' ', maxsplit=1)[0]
+      ' ', maxsplit=1)[0]
   try:
     return float(uptime_string)
   except ValueError:
