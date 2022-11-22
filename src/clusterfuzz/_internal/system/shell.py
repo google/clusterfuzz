@@ -144,7 +144,7 @@ def clear_data_directories_on_low_disk_space():
 
 def clear_device_temp_directories():
   """Clear device specific temp directories."""
-  if environment.is_android() and environment.get_value('ANDROID_SERIAL'):
+  if environment.is_android():
     from clusterfuzz._internal.platforms import android
     android.device.clear_temp_directories()
 
@@ -216,7 +216,7 @@ def clear_testcase_directories():
   remove_directory(environment.get_value('FUZZ_INPUTS'), recreate=True)
   remove_directory(environment.get_value('FUZZ_INPUTS_DISK'), recreate=True)
 
-  if environment.is_android() and environment.get_value('ANDROID_SERIAL'):
+  if environment.is_android():
     from clusterfuzz._internal.platforms import android
     android.device.clear_testcase_directory()
   if environment.is_trusted_host():

@@ -214,7 +214,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
 def get_cpu_arch():
   """Return cpu architecture."""
-  if is_android() and not is_android_emulator():
+  if is_android():
     # FIXME: Handle this import in a cleaner way.
     from clusterfuzz._internal.platforms import android
     return android.settings.get_cpu_arch()
@@ -484,7 +484,7 @@ def get_msan_options():
 def get_platform_id():
   """Return a platform id as a lowercase string."""
   bot_platform = platform()
-  if is_android_cuttlefish() or is_android_emulator():
+  if is_android_cuttlefish():
     return bot_platform.lower()
   if is_android(bot_platform):
     # FIXME: Handle this import in a cleaner way.
@@ -1087,11 +1087,6 @@ def is_android(plt=None):
 def is_android_cuttlefish(plt=None):
   """Return True if we are on android cuttlefish platform."""
   return 'ANDROID_X86' in (plt or platform())
-
-
-def is_android_emulator(plt=None):
-  """Return True if we are on android emulator platform."""
-  return 'ANDROID_EMULATOR' == (plt or platform())
 
 
 def is_android_kernel(plt=None):
