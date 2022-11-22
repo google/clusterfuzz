@@ -223,15 +223,17 @@ def _group_testcases_based_on_variants(testcase_map):
         continue
 
       combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
-      logs.log('VARIANT ANALYSIS: Grouping testcase 1 '
-               '(id=%s, '
-               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s) '
-               'and testcase 2 (id=%s, '
-               'crash_type=%s, crash_state=%s, security_flag=%s, group=%s).' %
-               (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
-                testcase_1.security_flag, testcase_1.group_id, testcase_2.id,
-                testcase_2.crash_type, testcase_2.crash_state,
-                testcase_2.security_flag, testcase_2.group_id))
+      logs.log(
+          'VARIANT ANALYSIS: Grouping testcase 1 '
+          '(id=%s, '
+          'crash_type=%s, crash_state=%s, security_flag=%s, job=%s, group=%s) '
+          'and testcase 2 (id=%s, '
+          'crash_type=%s, crash_state=%s, security_flag=%s, job=%s, group=%s).'
+          %
+          (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
+           testcase_1.security_flag, testcase_1.job_type, testcase_1.group_id,
+           testcase_2.id, testcase_2.crash_type, testcase_2.crash_state,
+           testcase_2.security_flag, testcase_2.job_type, testcase_2.group_id))
 
 
 def _group_testcases_with_same_issues(testcase_map):
