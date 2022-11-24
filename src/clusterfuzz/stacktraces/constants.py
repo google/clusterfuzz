@@ -56,6 +56,11 @@ ASAN_MEMCPY_OVERLAP_REGEX = re.compile(
     r'[^\[]*([\[].*[)])')
 ASAN_REGEX = re.compile(
     r'.*ERROR: (HWAddressSanitizer|AddressSanitizer)[: ]*[ ]*([^(:;]+)')
+ASAN_MIRACLEPTR_PROTECTED_REGEX = re.compile(r'.*MiraclePtr Status: PROTECTED')
+ASAN_MIRACLEPTR_MANUAL_ANALYSIS_REGEX = re.compile(
+    r'.*MiraclePtr Status: MANUAL ANALYSIS REQUIRED')
+ASAN_MIRACLEPTR_NOT_PROTECTED_REGEX = re.compile(
+    r'.*MiraclePtr Status: NOT PROTECTED')
 ASSERT_REGEX = re.compile(
     r'(?:\[.*?\]|.*\.(?:%s):.*)?' % ('|'.join(C_CPP_EXTENSIONS)) +
     r'\s*(?:ASSERT(?:ION)? FAIL(?:URE|ED)|panic): (.*)', re.IGNORECASE)

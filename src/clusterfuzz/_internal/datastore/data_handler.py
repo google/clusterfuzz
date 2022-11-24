@@ -740,6 +740,9 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.security_flag = crash.security_flag
   testcase.security_severity = _get_security_severity(crash, job_type, gestures)
 
+  if crash.metadata:
+    testcase.set_metadata('crash_label', crash.metadata)
+
   testcase.one_time_crasher_flag = one_time_crasher_flag
   testcase.crash_revision = crash_revision
   testcase.absolute_path = absolute_path

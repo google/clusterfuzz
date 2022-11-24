@@ -59,6 +59,9 @@ class CrashInfo:
     # Additional tracking for lkl bugs.
     self.lkl_kernel_build_id = None
 
+    # Additional tracking for cases like MirackPtr status label.
+    self.metadata = None
+
     self.is_kasan = False
     self.is_lkl = False
     self.is_golang = False
@@ -158,7 +161,8 @@ class StackParser:
                             state_from_group=None,
                             address_filter=lambda s: s,
                             type_filter=lambda s: s,
-                            reset=False) -> re.Match or None:
+                            reset=False,
+                            additional_metadata=None) -> re.Match or None:
     """Update the specified parts of the state if we have a match."""
 
     match = compiled_regex.match(line)
@@ -182,6 +186,9 @@ class StackParser:
 
     if new_address is not None:
       state.crash_address = new_address
+
+    if additional_metadata is not None:
+      state.metadata = additional_metadata
 
     # Updates from match groups.
     if type_from_group is not None:
@@ -654,6 +661,26 @@ class StackParser:
           new_type='Heap-double-free',
           reset=True,
           address_from_group=3):
+        continue
+
+      # AddressSanitizer MiraclePtr status.
+      if self.update_state_on_match(
+          ASAN_MIRACLEPTR_PROTECTED_REGEX,
+          line,
+          state,
+          additional_metadata='MiraclePtr-Protected'):
+        continue
+      if self.update_state_on_match(
+          ASAN_MIRACLEPTR_MANUAL_ANALYSIS_REGEX,
+          line,
+          state,
+          additional_metadata='MiraclePtr-ManualAnalysisRequired'):
+        continue
+      if self.update_state_on_match(
+          ASAN_MIRACLEPTR_NOT_PROTECTED_REGEX,
+          line,
+          state,
+          additional_metadata='MiraclePtr-NotProtected'):
         continue
 
       # Sanitizer floating point exception.
