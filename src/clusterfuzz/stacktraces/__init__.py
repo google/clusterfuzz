@@ -59,7 +59,7 @@ class CrashInfo:
     # Additional tracking for lkl bugs.
     self.lkl_kernel_build_id = None
 
-    # Additional tracking for cases like MirackPtr status label.
+    # Additional tracking for cases like MiraclePtr status label.
     self.metadata = None
 
     self.is_kasan = False
