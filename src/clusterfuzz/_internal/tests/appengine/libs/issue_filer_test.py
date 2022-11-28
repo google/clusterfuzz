@@ -121,7 +121,7 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
         'or configuration issues with the specified component(s) %COMPONENTS%'
 })
 
-CHROMIUM_MIRACLEPTR_STACKTRACE = (
+CHROMIUM_MIRACLEPTR_STACKTRACE_PROTECTED = (
     """SUMMARY: AddressSanitizer: heap-use-after-free swap.h:36:9
 
 Shadow bytes around the buggy address:
@@ -148,6 +148,78 @@ Shadow byte legend (one shadow byte represents 8 application bytes):
 
 
 MiraclePtr Status: PROTECTED
+
+The crash occurred while a raw_ptr<T> object containing a dangling pointer was being dereferenced.
+
+MiraclePtr should make this crash non-exploitable in regular builds.
+
+Refer to https://chromium.googlesource.com/chromium/src/+/main/base/memory/raw_ptr.md for details.
+
+==3196407==ABORTING""")
+
+CHROMIUM_MIRACLEPTR_STACKTRACE_NOT_PROTECTED = (
+    """SUMMARY: AddressSanitizer: heap-use-after-free swap.h:36:9
+
+Shadow bytes around the buggy address:
+
+  0x0c1680046160: fa fa f7 fa fd fd fd fd fd fd fd fd fd fd fd fd
+
+  0x0c1680046170: fd fa fa fa fa fa fa fa f7 fa fd fd fd fd fd fd
+
+=>0x0c1680046180: fd fd fd fd fd[fd]fd fa fa fa fa fa fa fa f7 fa
+
+  0x0c1680046190: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fa fa
+
+  0x0c16800461a0: fa fa fa fa f7 fa fd fd fd fd fd fd fd fd fd fd
+
+Shadow byte legend (one shadow byte represents 8 application bytes):
+
+  Addressable:           00
+
+  Partially addressable: 01 02 03 04 05 06 07
+
+  ...
+
+  Right alloca redzone:    cb
+
+
+MiraclePtr Status: NOT PROTECTED
+
+The crash occurred while a raw_ptr<T> object containing a dangling pointer was being dereferenced.
+
+MiraclePtr should make this crash non-exploitable in regular builds.
+
+Refer to https://chromium.googlesource.com/chromium/src/+/main/base/memory/raw_ptr.md for details.
+
+==3196407==ABORTING""")
+
+CHROMIUM_MIRACLEPTR_STACKTRACE_MANUAL = (
+    """SUMMARY: AddressSanitizer: heap-use-after-free swap.h:36:9
+
+Shadow bytes around the buggy address:
+
+  0x0c1680046160: fa fa f7 fa fd fd fd fd fd fd fd fd fd fd fd fd
+
+  0x0c1680046170: fd fa fa fa fa fa fa fa f7 fa fd fd fd fd fd fd
+
+=>0x0c1680046180: fd fd fd fd fd[fd]fd fa fa fa fa fa fa fa f7 fa
+
+  0x0c1680046190: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fa fa
+
+  0x0c16800461a0: fa fa fa fa f7 fa fd fd fd fd fd fd fd fd fd fd
+
+Shadow byte legend (one shadow byte represents 8 application bytes):
+
+  Addressable:           00
+
+  Partially addressable: 01 02 03 04 05 06 07
+
+  ...
+
+  Right alloca redzone:    cb
+
+
+MiraclePtr Status: MANUAL ANALYSIS REQUIRED
 
 The crash occurred while a raw_ptr<T> object containing a dangling pointer was being dereferenced.
 
@@ -375,10 +447,20 @@ class IssueFilerTests(unittest.TestCase):
     self.mock.get.return_value = CHROMIUM_POLICY
     helpers.patch(
         self, ['clusterfuzz._internal.datastore.data_handler.get_stacktrace'])
-    self.mock.get_stacktrace.return_value = CHROMIUM_MIRACLEPTR_STACKTRACE
+    self.mock.get_stacktrace.return_value = CHROMIUM_MIRACLEPTR_STACKTRACE_PROTECTED
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('MiraclePtr-Protected', issue_tracker._itm.last_issue.labels)
+
+    self.mock.get_stacktrace.return_value = CHROMIUM_MIRACLEPTR_STACKTRACE_NOT_PROTECTED
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('MiraclePtr-NotProtected',
+                  issue_tracker._itm.last_issue.labels)
+
+    self.mock.get_stacktrace.return_value = CHROMIUM_MIRACLEPTR_STACKTRACE_MANUAL
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('MiraclePtr-ManualAnalysisRequired',
+                  issue_tracker._itm.last_issue.labels)
 
   def test_filed_issues_oss_fuzz(self):
     """Tests issue filing for oss-fuzz."""

@@ -72,12 +72,13 @@ MEMORY_TOOLS_LABELS = [
 ]
 
 STACKFRAME_LINE_REGEX = re.compile(r'\s*#\d+\s+0x[0-9A-Fa-f]+\s*')
-CHROMIUM_MIRACLEPTR_PROTECTED_REGEX = re.compile(
-    r'.*MiraclePtr Status: PROTECTED')
-CHROMIUM_MIRACLEPTR_MANUAL_ANALYSIS_REGEX = re.compile(
-    r'.*MiraclePtr Status: MANUAL ANALYSIS REQUIRED')
-CHROMIUM_MIRACLEPTR_NOT_PROTECTED_REGEX = re.compile(
-    r'.*MiraclePtr Status: NOT PROTECTED')
+CHROMIUM_MIRACLEPTR_REGEX = re.compile(r'.*MiraclePtr Status:.+')
+
+MIRACLEPTR_STATUS = {
+    'PROTECTED': 'MiraclePtr-Protected',
+    'MANUAL ANALYSIS REQUIRED': 'MiraclePtr-ManualAnalysisRequired',
+    'NOT PROTECTED': 'MiraclePtr-NotProtected'
+}
 
 
 def platform_substitution(label, testcase, _):
@@ -306,19 +307,16 @@ def notify_issue_update(testcase, status):
 
 def check_miracleptr_status(testcase):
   """Look for MiraclePtr status string and return the appropriate label."""
-  label = None
   stacktrace = data_handler.get_stacktrace(testcase)
   for line in stacktrace.split('\n'):
-    if CHROMIUM_MIRACLEPTR_PROTECTED_REGEX.match(line):
-      label = 'MiraclePtr-Protected'
-      break
-    if CHROMIUM_MIRACLEPTR_NOT_PROTECTED_REGEX.match(line):
-      label = 'MiraclePtr-NotProtected'
-      break
-    if CHROMIUM_MIRACLEPTR_MANUAL_ANALYSIS_REGEX.match(line):
-      label = 'MiraclePtr-ManualAnalysisRequired'
-      break
-  return label
+    if CHROMIUM_MIRACLEPTR_REGEX.match(line):
+      status = line.split(':')[-1].strip()
+      try:
+        return MIRACLEPTR_STATUS[status]
+      except:
+        logs.log(f'Unknown MiraclePtr status: {line}')
+        break
+  return None
 
 
 def file_issue(testcase,
@@ -360,7 +358,7 @@ def file_issue(testcase,
 
     # Check for MiraclePtr in stacktrace.
     miracle_label = check_miracleptr_status(testcase)
-    if miracle_label is not None:
+    if miracle_label:
       issue.labels.add(miracle_label)
 
   # Add additional labels from the job definition and fuzzer.
