@@ -314,7 +314,7 @@ def check_miracleptr_status(testcase):
       try:
         return MIRACLEPTR_STATUS[status]
       except:
-        logs.log(f'Unknown MiraclePtr status: {line}')
+        logs.log_error(f'Unknown MiraclePtr status: {line}')
         break
   return None
 
