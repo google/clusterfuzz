@@ -72,6 +72,13 @@ MEMORY_TOOLS_LABELS = [
 ]
 
 STACKFRAME_LINE_REGEX = re.compile(r'\s*#\d+\s+0x[0-9A-Fa-f]+\s*')
+CHROMIUM_MIRACLEPTR_REGEX = re.compile(r'.*MiraclePtr Status:.+')
+
+MIRACLEPTR_STATUS = {
+    'PROTECTED': 'MiraclePtr-Protected',
+    'MANUAL ANALYSIS REQUIRED': 'MiraclePtr-ManualAnalysisRequired',
+    'NOT PROTECTED': 'MiraclePtr-NotProtected'
+}
 
 
 def platform_substitution(label, testcase, _):
@@ -298,6 +305,20 @@ def notify_issue_update(testcase, status):
     oss_fuzz_github.close_issue(testcase)
 
 
+def check_miracleptr_status(testcase):
+  """Look for MiraclePtr status string and return the appropriate label."""
+  stacktrace = data_handler.get_stacktrace(testcase)
+  for line in stacktrace.split('\n'):
+    if CHROMIUM_MIRACLEPTR_REGEX.match(line):
+      status = line.split(':')[-1].strip()
+      try:
+        return MIRACLEPTR_STATUS[status]
+      except:
+        logs.log_error(f'Unknown MiraclePtr status: {line}')
+        break
+  return None
+
+
 def file_issue(testcase,
                issue_tracker,
                security_severity=None,
@@ -324,15 +345,21 @@ def file_issue(testcase,
     issue.labels.add(policy.label('reproducible'))
 
   # Chromium-specific labels.
-  if issue_tracker.project == 'chromium' and testcase.security_flag:
-    # Add reward labels if this is from an external fuzzer contribution.
-    fuzzer = data_types.Fuzzer.query(
-        data_types.Fuzzer.name == testcase.fuzzer_name).get()
-    if fuzzer and fuzzer.external_contribution:
-      issue.labels.add('reward-topanel')
-      issue.labels.add('External-Fuzzer-Contribution')
+  if issue_tracker.project == 'chromium':
+    if testcase.security_flag:
+      # Add reward labels if this is from an external fuzzer contribution.
+      fuzzer = data_types.Fuzzer.query(
+          data_types.Fuzzer.name == testcase.fuzzer_name).get()
+      if fuzzer and fuzzer.external_contribution:
+        issue.labels.add('reward-topanel')
+        issue.labels.add('External-Fuzzer-Contribution')
 
-    update_issue_impact_labels(testcase, issue)
+      update_issue_impact_labels(testcase, issue)
+
+    # Check for MiraclePtr in stacktrace.
+    miracle_label = check_miracleptr_status(testcase)
+    if miracle_label:
+      issue.labels.add(miracle_label)
 
   # Add additional labels from the job definition and fuzzer.
   additional_labels = data_handler.get_additional_values_for_variable(
