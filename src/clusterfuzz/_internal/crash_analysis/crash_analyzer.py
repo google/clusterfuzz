@@ -119,6 +119,9 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
 EXTRA_SANITIZERS_SECURITY = [
     'Arbitrary file open',
     'Command injection',
+]
+
+EXTERNAL_TOOL_SECURITY = [
     'Wycheproof error',
 ]
 
@@ -340,6 +343,9 @@ def is_security_issue(crash_stacktrace, crash_type, crash_address):
     return True
 
   if crash_type in EXTRA_SANITIZERS_SECURITY:
+    return True
+
+  if crash_type in EXTERNAL_TOOL_SECURITY:
     return True
 
   # No crash type, can't process.
