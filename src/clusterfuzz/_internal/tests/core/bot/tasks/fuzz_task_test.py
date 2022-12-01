@@ -572,6 +572,7 @@ class FindMainCrashTest(unittest.TestCase):
     def test_for_repro(fuzzer_name,
                        full_fuzzer_name,
                        file_path,
+                       crash_type,
                        state,
                        security_flag,
                        test_timeout,
