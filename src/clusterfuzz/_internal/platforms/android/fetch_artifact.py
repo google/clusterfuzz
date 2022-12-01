@@ -40,8 +40,8 @@ def execute_request_with_retries(request):
     try:
       result = request.execute()
       break
-    except Exception:
-      pass
+    except Exception as e:
+      logs.log_error(f'Error calling endpoint {request.uri}: Error {e}')
 
   return result
 
