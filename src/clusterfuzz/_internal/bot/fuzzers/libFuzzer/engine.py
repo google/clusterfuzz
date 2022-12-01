@@ -124,7 +124,6 @@ class Engine(engine.Engine):
                                               corpus_dir, arguments, grammar)
     if (strategy.USE_EXTRA_SANITIZERS_STRATEGY.name in
         strategy_info.fuzzing_strategies):
-      # TODO(ochang): Save this as part of any resulting testcases.
       environment.set_value('USE_EXTRA_SANITIZERS', True)
       environment.disable_lsan()
     else:

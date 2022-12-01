@@ -269,6 +269,7 @@ def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout):
         fuzzer_name,
         full_fuzzer_name,
         crash.file_path,
+        crash.crash_type,
         None,
         crash.security_flag,
         test_timeout,
