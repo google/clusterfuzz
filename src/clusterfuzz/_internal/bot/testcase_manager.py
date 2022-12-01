@@ -95,6 +95,7 @@ def set_extra_sanitizers(crash_type):
   """Set extra sanitizers based on crash_type."""
   if crash_type in crash_analyzer.EXTRA_SANITIZERS_SECURITY:
     environment.set_value('USE_EXTRA_SANITIZERS', True)
+    environment.disable_lsan()
   else:
     environment.set_value('USE_EXTRA_SANITIZERS', False)
 
