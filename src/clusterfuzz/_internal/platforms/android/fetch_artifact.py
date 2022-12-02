@@ -80,6 +80,11 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
     return output_path
 
   logs.log('Downloading artifact %s.' % name)
+  output_dir = os.path.dirname(output_path)
+  if not os.path.exists(output_dir):
+    logs.log(f'Creating directory {output_dir}')
+    os.mkdir(output_dir)
+
   with io.FileIO(output_path, mode='wb') as file_handle:
     downloader = apiclient.http.MediaIoBaseDownload(
         file_handle, dl_request, chunksize=chunksize)
