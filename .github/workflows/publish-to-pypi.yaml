@@ -43,7 +43,7 @@ jobs:
     - name: Build a binary wheel and a source tarball
       run: ./build.sh
     - name: Publish distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@37f50c210e3d2f9450da2cd423303d6a14a6e29f # v1.4.2
+      uses: pypa/gh-action-pypi-publish@5d1679fa6b895587c6eb10c3fe82205b440a580e # v1.4.2
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
         packages_dir: src/dist/
