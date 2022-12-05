@@ -105,15 +105,24 @@ def get_artifacts_for_build(client, bid, target, attempt_id='latest'):
   request = client.buildartifact().list(
       buildId=bid, target=target, attemptId=attempt_id)
 
+  request_str = (f'{request.uri}, {request.method}, '
+                  f'{request.body}, {request.methodId}')
+
   artifacts = []
+  results = []
   while request:
     result = execute_request_with_retries(request)
     if not result:
       break
+    results.append(result)
     if result and 'artifacts' in result:
       for artifact in result['artifacts']:
         artifacts.append(artifact)
     request = client.buildartifact().list_next(request, result)
+
+  if not artifacts:
+    logs.log_error(f'No artifact found for target {target}, build id {bid}.\n'
+        f'request {request_str}, results {results}')
 
   return artifacts
 
@@ -153,10 +162,13 @@ def get_latest_artifact_info(branch, target, signed=False):
       successful=True,
       maxResults=1,
       signed=signed)
+  request_str = (f'{request.uri}, {request.method}, '
+                  f'{request.body}, {request.methodId}')
+
   builds = execute_request_with_retries(request)
   if not builds:
-    logs.log_error(
-        'No artifact found for target %s, branch %s.' % (target, branch))
+    logs.log_error(f'No build found for target {target}, branch {branch}, '
+         f'request: {request_str}.')
     return None
 
   build = builds['builds'][0]
