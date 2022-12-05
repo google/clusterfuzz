@@ -97,6 +97,17 @@ class BuildManagerException(Exception):
   """Build manager exceptions."""
 
 
+def _normalize_target_name(target_path):
+  """Normalize target path, removing file extensions."""
+  # TODO(ochang): Consolidate this with _internal/bot/fuzzers/utils.py.
+  target_name = os.path.basename(target_path)
+  if '@' in target_name:
+    # GFT target names often have periods in their name.
+    return target_name
+
+  return os.path.splitext(target_name)[0]
+
+
 def _base_build_dir(bucket_path):
   """Get the base directory for a build."""
   job_name = environment.get_value('JOB_NAME')
@@ -578,7 +589,7 @@ class Build(BaseBuild):
     for archive_file in archive.iterator(archive_path):
       if fuzzer_utils.is_fuzz_target_local(archive_file.name,
                                            archive_file.handle):
-        fuzz_target = os.path.splitext(os.path.basename(archive_file.name))[0]
+        fuzz_target = _normalize_target_name(archive_file.name)
         yield fuzz_target
 
   def _get_fuzz_targets_from_dir(self, build_dir):
@@ -587,7 +598,7 @@ class Build(BaseBuild):
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     for path in fuzzer_utils.get_fuzz_targets(build_dir):
-      yield os.path.splitext(os.path.basename(path))[0]
+      yield _normalize_target_name(path)
 
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """Selects a fuzz target for fuzzing."""
