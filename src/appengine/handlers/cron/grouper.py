@@ -129,9 +129,8 @@ def matches_top_crash(testcase, top_crashes_by_project_and_platform):
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
   # Skip this if the project is configured so (like Google3).
-  config_decision = local_config.ProjectConfig().get('variant_grouping',
-                                                     'enable')
-  if config_decision == 'disable':
+  enable = local_config.ProjectConfig().get('deduplication.variant', False)
+  if not enable:
     return
 
   logs.log('Grouping based on variant analysis.')
