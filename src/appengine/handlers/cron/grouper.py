@@ -19,12 +19,12 @@ import re
 import six
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from libs.issue_management import issue_tracker_utils
-from clusterfuzz._internal.config import local_config
 
 from . import cleanup
 from . import group_leader
@@ -129,7 +129,8 @@ def matches_top_crash(testcase, top_crashes_by_project_and_platform):
 def _group_testcases_based_on_variants(testcase_map):
   """Group testcases that are associated based on variant analysis."""
   # Skip this if it the project is configed so (like Google3).
-  config_decision = local_config.ProjectConfig().get('variant_grouping', 'enable')
+  config_decision = local_config.ProjectConfig().get('variant_grouping',
+                                                     'enable')
   if config_decision == 'disable':
     return
 
