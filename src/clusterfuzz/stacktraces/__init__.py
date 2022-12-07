@@ -842,6 +842,13 @@ class StackParser:
           state,
           new_type='Arbitrary file open')
 
+      # Arbitrary DNS resolution detected by extra sanitizers.
+      self.update_state_on_match(
+          EXTRA_SANITIZERS_ARBITRARY_DNS,
+          line,
+          state,
+          new_type='Arbitrary DNS resolution')
+
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
       update_kasan_crash_details(state, line)

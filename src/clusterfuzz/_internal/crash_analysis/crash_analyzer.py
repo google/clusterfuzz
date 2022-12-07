@@ -117,6 +117,7 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
     'Stack overflow',
 ]
 EXTRA_SANITIZERS_SECURITY = [
+    'Arbitrary DNS resolution',
     'Arbitrary file open',
     'Command injection',
 ]

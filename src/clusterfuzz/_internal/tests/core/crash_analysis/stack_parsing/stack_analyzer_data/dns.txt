@@ -1,0 +1,37 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 2176873415
+INFO: Loaded 1 modules   (23 inline 8-bit counters): 23 [0x561b8905af98, 0x561b8905afaf), 
+INFO: Loaded 1 PC tables (23 PCs): 23 [0x561b8905afb0,0x561b8905b120), 
+./target_dns: Running 1 inputs 1 time(s) each.
+Running: toto
+INPUTf.z
+===BUG DETECTED: Arbitrary domain name resolution===
+===Domain resolved: .f.z===
+===DNS request type: 0, class: 256===
+==2303596== ERROR: libFuzzer: deadly signal
+    #0 0x561b88fe5e31 in __sanitizer_print_stack_trace (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0xe9e31) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #1 0x561b88f58687 in fuzzer::PrintStackTrace() (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x5c687) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #2 0x561b88f3e093 in fuzzer::Fuzzer::CrashCallback() (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x42093) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #3 0x7feed0a3da9f  (/lib/x86_64-linux-gnu/libc.so.6+0x3da9f) (BuildId: 532d686f61d5422a2617967cbfbecfd4bd6a39c7)
+    #4 0x7feed0b0c685 in __sendmmsg socket/../sysdeps/unix/sysv/linux/sendmmsg.c:30:10
+    #5 0x7feed0b30342 in send_dg resolv/./resolv/res_send.c:1074:17
+    #6 0x7feed0b30844 in __res_context_send resolv/./resolv/res_send.c:382:8
+    #7 0x7feed0b2dedf in __res_context_query resolv/./resolv/res_query.c:216:6
+    #8 0x7feed0b2e9e5 in __res_context_querydomain resolv/./resolv/res_query.c:625:9
+    #9 0x7feed0b2e9e5 in __res_context_search resolv/./resolv/res_query.c:381:9
+    #10 0x7feed0b2842f in _nss_dns_gethostbyname4_r resolv/nss_dns/dns-host.c:406:11
+    #11 0x7feed0af229d in gaih_inet posix/../sysdeps/posix/getaddrinfo.c:747:18
+    #12 0x7feed0af3184 in getaddrinfo posix/../sysdeps/posix/getaddrinfo.c:2240:12
+    #13 0x561b88f84b6b in getaddrinfo (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x88b6b) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #14 0x561b890195f0 in LLVMFuzzerTestOneInput /usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns.cpp:33:11
+    #15 0x561b88f3f623 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x43623) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #16 0x561b88f2913f in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x2d13f) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #17 0x561b88f2eea6 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x32ea6) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #18 0x561b88f58fc2 in main (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x5cfc2) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+    #19 0x7feed0a29209 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #20 0x7feed0a292bb in __libc_start_main csu/../csu/libc-start.c:389:3
+    #21 0x561b88f23a00 in _start (/usr/local/google/home/ochang/oss-fuzz/infra/experimental/SystemSan/target_dns+0x27a00) (BuildId: ae549036668b90083f8559eb1b948ac6be3a05ca)
+
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
