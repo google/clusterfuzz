@@ -117,6 +117,7 @@ GOLANG_CRASH_TYPES_NON_SECURITY = [
     'Stack overflow',
 ]
 EXTRA_SANITIZERS_SECURITY = [
+    'Arbitrary DNS resolution',
     'Arbitrary file open',
     'Command injection',
 ]
@@ -125,10 +126,7 @@ EXTERNAL_TOOL_SECURITY = [
     'Wycheproof error',
 ]
 
-EXPERIMENTAL_CRASH_TYPES = [
-    'Arbitrary file open',
-    'Command injection',
-]
+EXPERIMENTAL_CRASH_TYPES = EXTRA_SANITIZERS_SECURITY
 
 # Default page size of 4KB.
 NULL_DEREFERENCE_BOUNDARY = 0x1000

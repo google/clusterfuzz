@@ -3341,6 +3341,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_dns_resolution(self):
+    """Test capturing command injection bugs detected by extra sanitizers"""
+    data = self._read_test_data('dns.txt')
+    expected_type = 'Arbitrary DNS resolution'
+    expected_address = ''
+    expected_state = '__sendmmsg\nsend_dg\n__res_context_send\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_sanitizer_out_of_memory(self):
     """Test sanitizer out of memory."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
