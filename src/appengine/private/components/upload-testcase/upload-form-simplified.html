@@ -21,7 +21,7 @@
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 
-<dom-module id="upload-form">
+<dom-module id="upload-form-simplified">
   <link rel="import" href="../../stylesheets/main.css" type="css">
   <link rel="import" href="../technology/technology.css" type="css">
   <template>
@@ -90,9 +90,9 @@
       }
     </style>
     <ajax-dialog
-        id="dialog"
+        id="dialog-simplified"
         url="[[fieldValues.uploadInfo.url]]"
-        title="Upload testcase"
+        title="Upload testcase (quick mode)"
         content-type=""
         on-before-submit="computeGcsBody"
         submit-button="Create"
@@ -106,90 +106,41 @@
           ERROR: [[error.response.message]]
         </div>
       </template>
+      <div class="inline narrow">
+        <template is="dom-if" if="[[shouldShowIssueField()]]">
+            <paper-input value="{{uploadParams.issue}}" label="Issue ID" title="Issue ID in the associated project's tracker to update for this test case."></paper-input>
+        </template>
+      </div>
       <template is="dom-if" if="[[uploadParams.testcaseId]]">
         <span class="reupload">
           If you don't choose a file, the testcase from <a href="/testcase-detail/[[uploadParams.testcaseId]]">[[uploadParams.testcaseId]]</a> will be used.
         </span>
       </template>
-      <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File" title="Test case file or archive. If an archive is uploaded, a file containing &quot;fuzz-&quot;, &quot;run&quot;, &quot;index.&quot;, or &quot;crash.&quot; will be treated as the test case and the rest as resources."></paper-input>
-      <div class="inline wide">
-        <paper-dropdown-menu
-            class="dropdown-filter"
-            no-animations="true"
-            label="Job"
-            title="Job definition to use for this test case. A job controls which binary we run, memory tools used, which flags should be passed to it, and more."
-            noink>
-          <paper-listbox
-              slot="dropdown-content"
-              selected="{{uploadParams.job}}"
-              fallback-selection="linux_asan_chrome_mp"
-              attr-for-selected="val">
-            <paper-input
-                label="Search jobs"
-                value="{{jobKey}}"
-                on-tap="stopEventPropagation"
-                on-keydown="stopEventPropagation"
-                on-keyup="stopEventPropagation" no-label-float>
-              <iron-icon icon="icons:search" slot="prefix"></iron-icon>
-              <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
-            </paper-input>
-            <template is="dom-repeat" items="[[fieldValues.jobs]]" filter="{{onmatch(jobKey)}}">
-              <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
-            </template>
-          </paper-listbox>
-        </paper-dropdown-menu>
-        <template is="dom-if" if="[[shouldShowFuzzers(uploadParams.job)]]">
+      <div class="inline">
+        <div>
+          <p>Test case file or archive. If an archive is uploaded, a file containing 'fuzz-', 'run', 'index.', or 'crash.' in its name will be treated as the test case and the rest as resources.</p>
+          <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File" title="Test case file or archive. If an archive is uploaded, a file containing &quot;fuzz-&quot;, &quot;run&quot;, &quot;index.&quot;, or &quot;crash.&quot; will be treated as the test case and the rest as resources."></paper-input>
+        </div>
+        <template is="dom-if" if="[[shouldShowFiletypePicker(uploadParams.file)]]">
           <paper-dropdown-menu
               class="dropdown-filter"
               no-animations="true"
-              label="Fuzzer"
+              label="Teset case file type"
+              title="html, js, or pdf"
               noink>
             <paper-listbox
                 slot="dropdown-content"
-                selected="{{uploadParams.fuzzer}}"
+                selected="{{uploadParams.fileType}}"
+                fallback-selection="html"
                 attr-for-selected="val">
-              <paper-input
-                  label="Search fuzzers"
-                  value="{{fuzzerKey}}"
-                  on-tap="stopEventPropagation"
-                  on-keydown="stopEventPropagation"
-                  on-keyup="stopEventPropagation" no-label-float>
-                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
-                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
-              </paper-input>
-              <template is="dom-repeat" items="[[fieldValues.blackboxFuzzers]]" filter="{{onmatch(fuzzerKey)}}">
-                <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
-              </template>
-            </paper-listbox>
-          </paper-dropdown-menu>
-        </template>
-        <template is="dom-if" if="[[shouldShowTargetNames(uploadParams.job)]]">
-          <paper-dropdown-menu
-              class="dropdown-filter"
-              no-animations="true"
-              label="Target"
-              noink>
-            <paper-listbox
-                slot="dropdown-content"
-                selected="{{uploadParams.target}}"
-                attr-for-selected="val">
-              <paper-input
-                  label="Search targets"
-                  value="{{targetKey}}"
-                  on-tap="stopEventPropagation"
-                  on-keydown="stopEventPropagation"
-                  on-keyup="stopEventPropagation" no-label-float>
-                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
-                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
-              </paper-input>
-              <template is="dom-repeat" items="[[getTargetNames(uploadParams.job)]]" filter="{{onmatch(targetKey)}}">
-                <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
-              </template>
+              <paper-item on-click="submit" val="html">html</paper-item>
+              <paper-item on-click="submit" val="js">js</paper-item>
+              <paper-item on-click="submit" val="pdf">pdf</paper-item>
             </paper-listbox>
           </paper-dropdown-menu>
         </template>
       </div>
-      <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
+      <template is="dom-if" if="[[showWarning(uploadParams.file, uploadParams.fileType, uploadParams.platform)]]">
         <div class="warning">
           <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
           Only upload testcases that you trust enough to run on your own
@@ -198,35 +149,59 @@
           [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
         </div>
       </template>
-      <div class="inline narrow">
-        <template is="dom-if" if="[[shouldShowIssueField()]]">
-          <paper-input value="{{uploadParams.issue}}" label="Issue ID (optional)" title="Issue ID in the associated project's tracker to update for this test case."></paper-input>
-        </template>
-        <paper-input value="{{uploadParams.revision}}" label="Revision (optional)" title="Integer representing the revision / commit position (rather than hash) associated with the build to use. By default, the most recent is selected."></paper-input>
-        <paper-input value="{{uploadParams.timeout}}" label="Timeout (optional)" title="Time in seconds to wait before determining that the test case is not reproducible. In general this value should be less than 60 seconds, and it may not exceed 120 due to time constraints on tasks."></paper-input>
-        <paper-input value="{{uploadParams.retries}}" label="Retries (optional)" title="Number of times to run the test case before determining that it's not reproducible. If you aren't sure that it's necessary, don't specify a value here. By default, it will retry up to 10 times."></paper-input>
+      <div class="inline wide">
+        <paper-dropdown-menu
+            class="dropdown-filter"
+            no-animations="true"
+            label="Platform"
+            title="Linux, Windows, Mac, or Android"
+            noink>
+          <paper-listbox
+              slot="dropdown-content"
+              selected="{{uploadParams.platform}}"
+              attr-for-selected="val">
+            <paper-item on-click="submit" val="Linux">Linux</paper-item>
+            <paper-item on-click="submit" val="Windows">Windows</paper-item>
+            <paper-item on-click="submit" val="Mac">Mac</paper-item>
+            <paper-item on-click="submit" val="Android">Android</paper-item>
+          </paper-listbox>
+        </paper-dropdown-menu>
       </div>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'linux_asan_chrome_mp')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running linux_asan_chrome_mp</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'windows_asan_chrome')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running windows_asan_chrome</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'mac_asan_chrome')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running mac_asan_chrome</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'android_asan_chrome_latest')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running android_asan_chrome_latest</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'linux_asan_d8')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running linux_asan_d8</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'windows_asan_d8')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running windows_asan_d8</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'mac_asan_d8')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running mac_asan_d8</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'libfuzzer_pdfium_asan')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Running libfuzzer_pdfium_asan with target pdfium_xfa_fuzzer</p>
+      </template>
+      <template is="dom-if" if="[[thisIsNotTheRightWayButIKnowNoBetter(uploadParams.file, uploadParams.fileType, uploadParams.platform, 'android_js_no_bueno')]]">
+          <p style="background-color: #AFE1AF; padding: 2px">Android with a javascript test case is not available :( </p>
+      </template>
       <div class="inline wide">
         <paper-input value="{{uploadParams.args}}" label="Command-line arguments (optional)" title="Additional command line flags to append when running this test case. Only necessary if a flag that isn't part of the job definition is required."></paper-input>
-        <paper-input value="{{uploadParams.gestures}}" label="Gestures (optional)" title="A string representing gestures to use with this test case. It's generally not possible to manually create a gesture string. This tends to be used when re-uploading existing test cases which require gestures."></paper-input>
-        <paper-input value="{{uploadParams.issue_labels}}" label="Issue labels / hotlists (optional)" title="A set of label(s) / hotlist(s) to add to the issue. Should be a string of values separated by commas, e.g. value1,value2"></paper-input>
       </div>
       <template is="dom-if" if="[[isAndroid(uploadParams.job)]]">
         <div class="inline wide">
           <paper-input value="{{uploadParams.cmd}}" label="Launch command (Android only) (optional)"></paper-input>
           <paper-input value="{{uploadParams.platform}}" label="Platform ID (Android only) (optional)"></paper-input>
         </div>
-      </template>
-      <br/>
-      <template is="dom-if" if="[[fieldValues.isChromium]]">
-        <paper-checkbox value="true" checked="{{uploadParams.http}}">Load testcase from HTTP server.</paper-checkbox>
-      </template>
-      <paper-checkbox value="true" checked="{{uploadParams.multiple}}">Test every file in archive independently.</paper-checkbox>
-      <template is="dom-if" if="[[shouldShowIssueSummaryUpdateCheckbox()]]">
-        <paper-checkbox value="true" checked="{{uploadParams.updateIssue}}">Update issue's title based on crash result.</paper-checkbox>
-      </template>
-      <template is="dom-if" if="[[fieldValues.isChromium]]">
-        <paper-checkbox value="true" checked="{{uploadParams.highEnd}}">Use a multi-core bot (linux only).</paper-checkbox>
       </template>
       <br/>
       <paper-button class="get-link-button" slot="more-buttons" on-tap="generatePermalink">Permalink</paper-button>
@@ -243,8 +218,8 @@
     </iron-ajax>
   </template>
   <script>
-    class UploadForm extends Polymer.Element {
-      static get is() { return 'upload-form'; }
+    class UploadFormSimplified extends Polymer.Element {
+      static get is() { return 'upload-form-simplified'; }
 
       static get properties() {
         return {
@@ -274,6 +249,76 @@
         super.ready();
         this.uploadParams = window.query.toObject(
             window.query.get(), this.paramKeys);
+      }
+
+      shouldShowFiletypePicker(filePath) {
+        if (!filePath) {
+          return false;
+        }
+        return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf');
+      }
+
+      thisIsNotTheRightWayButIKnowNoBetter(file, fileType, platform, jobDisplay) {
+        if (this.uploadParams.job == jobDisplay) {
+          return true;
+        }
+        if (platform == 'Android' && jobDisplay == 'android_js_no_bueno') {
+          if (file.includes('.js') || fileType == 'js') {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      updateJobFromPlatformAndFile(file, fileType, platform) {
+        if (!file || !platform) {
+          return;
+        }
+        let fileName = file;
+        let isArchive = !fileName.includes('.html') && !fileName.includes('.js') && !fileName.includes('.pdf');
+        if (isArchive && !fileType) {
+          return;
+        }
+
+        let jobMapping = {
+          'html':
+            {
+              'Linux': ['linux_asan_chrome_mp', null],
+              'Windows': ['windows_asan_chrome', null],
+              'Mac': ['mac_asan_chrome', null],
+              'Android': ['android_asan_chrome_latest', null]
+            },
+          'js':
+            {
+              'Linux': ['linux_asan_d8', null],
+              'Windows': ['windows_asan_d8', null],
+              'Mac': ['mac_asan_d8', null],
+              'Android': ["with nothing. Please do not select this option.", null]
+            },
+          'pdf':
+            {
+              'Linux': ['libfuzzer_pdfium_asan', 'pdfium_xfa_fuzzer'],
+              'Windows': ['libfuzzer_pdfium_asan', 'pdfium_xfa_fuzzer'],
+              'Mac': ['libfuzzer_pdfium_asan', 'pdfium_xfa_fuzzer'],
+              'Android': ['libfuzzer_pdfium_asan', 'pdfium_xfa_fuzzer']
+            }
+        }
+
+        let fileTypeKey;
+        if (isArchive) {
+          fileTypeKey = fileType;
+        } else {
+          fileTypeKey = file.split('.').pop();
+        }
+        if (jobMapping[fileTypeKey] && jobMapping[fileTypeKey][platform]) {
+          let runParams = jobMapping[fileTypeKey][platform];
+          this.uploadParams.job = runParams[0];
+          this.uploadParams.target = runParams[2];
+        } else {
+          // We should never get here. Throw an error and perhaps work on displaying it if need be, later.
+          throw 'The combo of platform: ' + platform + ' and file: ' + file + 'and maybe the fileType was unexpected!'
+        }
+        return true;
       }
 
       computeGcsBody() {
@@ -332,44 +377,6 @@
         return this.fieldValues.hasIssueTracker && !this.fieldValues.isExternalUser;
       }
 
-      shouldShowIssueSummaryUpdateCheckbox() {
-        return this.shouldShowIssueField() && !this.fieldValues.isExternalUser;
-      }
-
-      shouldShowTargetNames(job) {
-        if (!job)
-          return false;
-
-        for (const key in this.fieldValues.targets) {
-          if (job.toLowerCase().includes(key.toLowerCase())) {
-            return true;
-          }
-        }
-
-        return false;
-      }
-
-      shouldShowFuzzers(job) {
-        if (!job)
-          return false;
-
-        return !this.shouldShowTargetNames(job);
-      }
-
-      getTargetNames(job) {
-        if (!job)
-          return [];
-
-        let jobLower = job.toLowerCase();
-        for (const [engine, targets] of Object.entries(this.fieldValues.targets)) {
-          if (jobLower.includes(engine.toLowerCase())) {
-            return targets;
-          }
-        }
-
-        return [];
-      }
-
       isAndroid(job) {
         return job && job.startsWith('android_');
       }
@@ -379,9 +386,13 @@
             this.uploadParams, this.paramKeys);
       }
 
-      showWarning(job) {
+      showWarning(file, fileType, platform) {
+        this.updateJobFromPlatformAndFile(file, fileType, platform);
+        if (!this.uploadParams.job) {
+          return false;
+        }
         let secureJobs = new Set(this.fieldValues.sandboxedJobs);
-        return this.fieldValues.isChromium && !secureJobs.has(job);
+        return this.fieldValues.isChromium && !secureJobs.has(this.uploadParams.job);
       }
 
       formatSandboxedJobs(jobs) {
@@ -395,40 +406,9 @@
         }
         return s;
       }
-
-      onmatch(key) {
-        if (!key)
-          return null;
-
-        try {
-          key = key.toLowerCase();
-        } catch (err) {}
-
-        return function(item) {
-          if (item.toLowerCase().search(key) >= 0)
-            return true;
-        };
-      }
-
-      stopEventPropagation(ev) {
-        ev.stopPropagation();
-      }
-
-      clearSearchInput(ev) {
-        // Clear the search box.
-        let searchBox = ev.target.parentNode;
-        searchBox.value = '';
-
-        // Clear the selection in the list box;
-        let listBox = searchBox.parentNode;
-        listBox.selected = '';
-
-        // Restore focus to searchbox.
-        searchBox.$.input.focus();
-      }
     }
 
-    customElements.define(UploadForm.is, UploadForm);
+    customElements.define(UploadFormSimplified.is, UploadFormSimplified);
   </script>
 </dom-module>
 
