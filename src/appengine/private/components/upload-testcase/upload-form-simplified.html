@@ -1,0 +1,434 @@
+<!--
+  Copyright 2019 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/ajax-dialog/ajax-dialog.html">
+<link rel="import" href="../../components/common/if-else/if-else.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+
+<dom-module id="upload-form">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      /* local DOM styles go here */
+      :host {
+        display: block;
+      }
+
+      :host ajax-dialog > * {
+        display: block;
+        margin: 8px 0px;
+      }
+
+      :host .error {
+        text-align: left;
+        color: #ca4545;
+        display: block;
+        font-weight: bold;
+        padding: 10px 0px;
+      }
+
+      .inline {
+        display: flex;
+      }
+
+      .inline > * {
+        flex: 1;
+      }
+
+      .inline.narrow > * {
+        width: 180px;
+        margin: 5px;
+      }
+
+      .inline.wide > * {
+        width: 360px;
+        margin: 5px;
+      }
+
+      #file {
+        --paper-input-container-input: {
+          font-size: 12px;
+        };
+
+        --paper-input-container-underline: {
+          display: none;
+        };
+
+        --paper-input-container-underline-focus: {
+          display: none;
+        };
+
+        --paper-input-container-underline-disabled: {
+          display: none;
+        };
+      }
+
+      .get-link-button {
+        display: inline-block;
+      }
+
+      .warning {
+        color: #FF6347;
+        font-size: 12px;
+      }
+    </style>
+    <ajax-dialog
+        id="dialog"
+        url="[[fieldValues.uploadInfo.url]]"
+        title="Upload testcase"
+        content-type=""
+        on-before-submit="computeGcsBody"
+        submit-button="Create"
+        response="{{response}}"
+        opened="{{opened}}"
+        on-response="handleGcsResponseAndError"
+        on-before-error="handleGcsResponseAndError"
+        loading="{{loading}}">
+      <template is="dom-if" if="[[error]]">
+        <div class="error">
+          ERROR: [[error.response.message]]
+        </div>
+      </template>
+      <template is="dom-if" if="[[uploadParams.testcaseId]]">
+        <span class="reupload">
+          If you don't choose a file, the testcase from <a href="/testcase-detail/[[uploadParams.testcaseId]]">[[uploadParams.testcaseId]]</a> will be used.
+        </span>
+      </template>
+      <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File" title="Test case file or archive. If an archive is uploaded, a file containing &quot;fuzz-&quot;, &quot;run&quot;, &quot;index.&quot;, or &quot;crash.&quot; will be treated as the test case and the rest as resources."></paper-input>
+      <div class="inline wide">
+        <paper-dropdown-menu
+            class="dropdown-filter"
+            no-animations="true"
+            label="Job"
+            title="Job definition to use for this test case. A job controls which binary we run, memory tools used, which flags should be passed to it, and more."
+            noink>
+          <paper-listbox
+              slot="dropdown-content"
+              selected="{{uploadParams.job}}"
+              fallback-selection="linux_asan_chrome_mp"
+              attr-for-selected="val">
+            <paper-input
+                label="Search jobs"
+                value="{{jobKey}}"
+                on-tap="stopEventPropagation"
+                on-keydown="stopEventPropagation"
+                on-keyup="stopEventPropagation" no-label-float>
+              <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+              <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+            </paper-input>
+            <template is="dom-repeat" items="[[fieldValues.jobs]]" filter="{{onmatch(jobKey)}}">
+              <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
+            </template>
+          </paper-listbox>
+        </paper-dropdown-menu>
+        <template is="dom-if" if="[[shouldShowFuzzers(uploadParams.job)]]">
+          <paper-dropdown-menu
+              class="dropdown-filter"
+              no-animations="true"
+              label="Fuzzer"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{uploadParams.fuzzer}}"
+                attr-for-selected="val">
+              <paper-input
+                  label="Search fuzzers"
+                  value="{{fuzzerKey}}"
+                  on-tap="stopEventPropagation"
+                  on-keydown="stopEventPropagation"
+                  on-keyup="stopEventPropagation" no-label-float>
+                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+              </paper-input>
+              <template is="dom-repeat" items="[[fieldValues.blackboxFuzzers]]" filter="{{onmatch(fuzzerKey)}}">
+                <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </template>
+        <template is="dom-if" if="[[shouldShowTargetNames(uploadParams.job)]]">
+          <paper-dropdown-menu
+              class="dropdown-filter"
+              no-animations="true"
+              label="Target"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{uploadParams.target}}"
+                attr-for-selected="val">
+              <paper-input
+                  label="Search targets"
+                  value="{{targetKey}}"
+                  on-tap="stopEventPropagation"
+                  on-keydown="stopEventPropagation"
+                  on-keyup="stopEventPropagation" no-label-float>
+                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
+                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
+              </paper-input>
+              <template is="dom-repeat" items="[[getTargetNames(uploadParams.job)]]" filter="{{onmatch(targetKey)}}">
+                <paper-item on-click="submit" val="[[item]]">[[item]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </template>
+      </div>
+      <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
+        <div class="warning">
+          <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
+          Only upload testcases that you trust enough to run on your own
+          machine. Note that some jobs do not use the Chrome sandbox, the
+          following jobs do:<br>
+          [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
+        </div>
+      </template>
+      <div class="inline narrow">
+        <template is="dom-if" if="[[shouldShowIssueField()]]">
+          <paper-input value="{{uploadParams.issue}}" label="Issue ID (optional)" title="Issue ID in the associated project's tracker to update for this test case."></paper-input>
+        </template>
+        <paper-input value="{{uploadParams.revision}}" label="Revision (optional)" title="Integer representing the revision / commit position (rather than hash) associated with the build to use. By default, the most recent is selected."></paper-input>
+        <paper-input value="{{uploadParams.timeout}}" label="Timeout (optional)" title="Time in seconds to wait before determining that the test case is not reproducible. In general this value should be less than 60 seconds, and it may not exceed 120 due to time constraints on tasks."></paper-input>
+        <paper-input value="{{uploadParams.retries}}" label="Retries (optional)" title="Number of times to run the test case before determining that it's not reproducible. If you aren't sure that it's necessary, don't specify a value here. By default, it will retry up to 10 times."></paper-input>
+      </div>
+      <div class="inline wide">
+        <paper-input value="{{uploadParams.args}}" label="Command-line arguments (optional)" title="Additional command line flags to append when running this test case. Only necessary if a flag that isn't part of the job definition is required."></paper-input>
+        <paper-input value="{{uploadParams.gestures}}" label="Gestures (optional)" title="A string representing gestures to use with this test case. It's generally not possible to manually create a gesture string. This tends to be used when re-uploading existing test cases which require gestures."></paper-input>
+        <paper-input value="{{uploadParams.issue_labels}}" label="Issue labels / hotlists (optional)" title="A set of label(s) / hotlist(s) to add to the issue. Should be a string of values separated by commas, e.g. value1,value2"></paper-input>
+      </div>
+      <template is="dom-if" if="[[isAndroid(uploadParams.job)]]">
+        <div class="inline wide">
+          <paper-input value="{{uploadParams.cmd}}" label="Launch command (Android only) (optional)"></paper-input>
+          <paper-input value="{{uploadParams.platform}}" label="Platform ID (Android only) (optional)"></paper-input>
+        </div>
+      </template>
+      <br/>
+      <template is="dom-if" if="[[fieldValues.isChromium]]">
+        <paper-checkbox value="true" checked="{{uploadParams.http}}">Load testcase from HTTP server.</paper-checkbox>
+      </template>
+      <paper-checkbox value="true" checked="{{uploadParams.multiple}}">Test every file in archive independently.</paper-checkbox>
+      <template is="dom-if" if="[[shouldShowIssueSummaryUpdateCheckbox()]]">
+        <paper-checkbox value="true" checked="{{uploadParams.updateIssue}}">Update issue's title based on crash result.</paper-checkbox>
+      </template>
+      <template is="dom-if" if="[[fieldValues.isChromium]]">
+        <paper-checkbox value="true" checked="{{uploadParams.highEnd}}">Use a multi-core bot (linux only).</paper-checkbox>
+      </template>
+      <br/>
+      <paper-button class="get-link-button" slot="more-buttons" on-tap="generatePermalink">Permalink</paper-button>
+    </ajax-dialog>
+    <iron-ajax
+      id="ajaxFinish"
+      url="/upload-testcase/upload"
+      method="POST"
+      body="[[computeFinishBody(uploadParams.*)]]"
+      last-error="{{error}}"
+      on-response="handleFinishResponse"
+      debounce-duration="1000"
+      loading="{{loading}}">
+    </iron-ajax>
+  </template>
+  <script>
+    class UploadForm extends Polymer.Element {
+      static get is() { return 'upload-form'; }
+
+      static get properties() {
+        return {
+          paramKeys: {
+            type: Array,
+            value: [
+                'job', 'target', 'multiple', 'http', 'highEnd', 'issue',
+                'revision', 'timeout', 'retries', 'updateIssue', 'args', 'cmd',
+                'platform', 'gestures', 'testcaseId']
+          },
+          uploadParams: {
+            type: Object,
+            value: () => { return {}; }
+          },
+          response: Object,
+          getUrlResponse: Object,
+          opened: {
+            type: Boolean,
+            notify: true
+          },
+          fieldValues: Object,
+          loading: Boolean,
+        };
+      }
+
+      ready() {
+        super.ready();
+        this.uploadParams = window.query.toObject(
+            window.query.get(), this.paramKeys);
+      }
+
+      computeGcsBody() {
+        var uploadData = new FormData();
+        uploadData.append('bucket', this.fieldValues.uploadInfo.bucket);
+        uploadData.append('key', this.fieldValues.uploadInfo.key);
+        uploadData.append('GoogleAccessId', this.fieldValues.uploadInfo.google_access_id);
+        uploadData.append('policy', this.fieldValues.uploadInfo.policy);
+        uploadData.append('signature', this.fieldValues.uploadInfo.signature);
+
+        let file = this.$.file.inputElement.inputElement.files[0];
+        if (file) {
+          uploadData.append('x-goog-meta-filename', file.name);
+          uploadData.append('file', file);
+        } else {
+          this.$.ajaxFinish.generateRequest();
+          return;
+        }
+
+        this.$.dialog.$.ajax.body = uploadData;
+      }
+
+      computeFinishBody() {
+        let formData = new FormData();
+        for (let key in this.uploadParams) {
+          formData.append(key, this.uploadParams[key]);
+        }
+
+        formData.append('csrf_token', this.fieldValues.csrfToken);
+        if (this.uploadParams.file) {
+          formData.append('upload_key', this.fieldValues.uploadInfo.key);
+        }
+        return formData;
+      }
+
+      handleGcsResponseAndError(ev) {
+        // Finished uploading to GCS, post the remainder of the data to
+        // ClusterFuzz.
+        // Errors are ignored here also. Because the upload is cross-site, we
+        // defer to the server to check that upload succeeded.
+        this.$.ajaxFinish.generateRequest();
+      }
+
+      handleFinishResponse(ev) {
+        if (ev.detail.response.multiple) {
+          alert(
+              'Multiple testcases are uploaded. Please wait for ClusterFuzz to '
+              + 'unpack and create all testcases.');
+          this.$.dialog.close();
+        } else {
+          window.location.href = '/testcase-detail/' + ev.detail.response.id;
+        }
+      }
+
+      shouldShowIssueField() {
+        return this.fieldValues.hasIssueTracker && !this.fieldValues.isExternalUser;
+      }
+
+      shouldShowIssueSummaryUpdateCheckbox() {
+        return this.shouldShowIssueField() && !this.fieldValues.isExternalUser;
+      }
+
+      shouldShowTargetNames(job) {
+        if (!job)
+          return false;
+
+        for (const key in this.fieldValues.targets) {
+          if (job.toLowerCase().includes(key.toLowerCase())) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      shouldShowFuzzers(job) {
+        if (!job)
+          return false;
+
+        return !this.shouldShowTargetNames(job);
+      }
+
+      getTargetNames(job) {
+        if (!job)
+          return [];
+
+        let jobLower = job.toLowerCase();
+        for (const [engine, targets] of Object.entries(this.fieldValues.targets)) {
+          if (jobLower.includes(engine.toLowerCase())) {
+            return targets;
+          }
+        }
+
+        return [];
+      }
+
+      isAndroid(job) {
+        return job && job.startsWith('android_');
+      }
+
+      generatePermalink() {
+        window.location.href = '?upload=true&' + window.query.compute(
+            this.uploadParams, this.paramKeys);
+      }
+
+      showWarning(job) {
+        let secureJobs = new Set(this.fieldValues.sandboxedJobs);
+        return this.fieldValues.isChromium && !secureJobs.has(job);
+      }
+
+      formatSandboxedJobs(jobs) {
+        if (!jobs) { return ''; }
+
+        let s = '';
+        for (let i=0;i<jobs.length;i++) {
+          if (i > 0) { s += ', '; }
+          if (i == (jobs.length - 1)) { s += 'and '; }
+          s += jobs[i]
+        }
+        return s;
+      }
+
+      onmatch(key) {
+        if (!key)
+          return null;
+
+        try {
+          key = key.toLowerCase();
+        } catch (err) {}
+
+        return function(item) {
+          if (item.toLowerCase().search(key) >= 0)
+            return true;
+        };
+      }
+
+      stopEventPropagation(ev) {
+        ev.stopPropagation();
+      }
+
+      clearSearchInput(ev) {
+        // Clear the search box.
+        let searchBox = ev.target.parentNode;
+        searchBox.value = '';
+
+        // Clear the selection in the list box;
+        let listBox = searchBox.parentNode;
+        listBox.selected = '';
+
+        // Restore focus to searchbox.
+        searchBox.$.input.focus();
+      }
+    }
+
+    customElements.define(UploadForm.is, UploadForm);
+  </script>
+</dom-module>
+
