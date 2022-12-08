@@ -30,7 +30,7 @@ from clusterfuzz._internal.metrics import logs
 DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
 
 # Maximum number of retries for artifact access.
-MAX_RETRIES = 20
+MAX_RETRIES = 5
 
 
 def execute_request_with_retries(request):
