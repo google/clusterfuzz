@@ -1284,6 +1284,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     afl-showmap."""
     # TODO(metzman): Figure out if we should worry about CPU affinity errors
     # here.
+
     filename = os.path.basename(input_file_path)
     intput_file_showmap_results_file = os.path.join(self._showmap_results_dir,
                                                     filename)
@@ -1360,6 +1361,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
         android.util.get_device_path(self.stderr_file_path),
         self.stderr_file_path)
     return fuzz_result
+
 
 class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
