@@ -254,7 +254,9 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
     """Removes the hanging testcase from queue."""
     queue_paths = list_full_file_paths_device(self.queue)
 
-    hang_queue_path = [path for path in queue_paths if path.endswith(hang_filename)][0]
+    hang_queue_path = [
+        path for path in queue_paths if path.endswith(hang_filename)][0]
+
     hang_queue_path_device = android.util.get_device_path(hang_queue_path)
 
     android.adb.remove_file(hang_queue_path_device)
@@ -1115,7 +1117,7 @@ class AflRunnerCommon(object):
         logs.log_warn('Timed out in merge while processing initial corpus.')
         return 0
 
-      if file_features == None:
+      if file_features is None:
         continue
 
       input_inodes.add(os.stat(file_path).st_ino)
@@ -1140,7 +1142,7 @@ class AflRunnerCommon(object):
         logs.log_warn('Timed out in merge while processing output.')
         break
 
-      if file_features == None:
+      if file_features is None:
         continue
 
       corpus.associate_features_with_file(file_features, file_path)
@@ -1284,7 +1286,6 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     afl-showmap."""
     # TODO(metzman): Figure out if we should worry about CPU affinity errors
     # here.
-
     filename = os.path.basename(input_file_path)
     intput_file_showmap_results_file = os.path.join(self._showmap_results_dir,
                                                     filename)
@@ -1361,7 +1362,6 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
         android.util.get_device_path(self.stderr_file_path),
         self.stderr_file_path)
     return fuzz_result
-
 
 class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
@@ -1488,9 +1488,13 @@ def remove_path(path):
   # Else path doesn't exist. Do nothing.
 
 def list_full_file_paths_device(directory):
+  """List the absolute paths of files in |directory| on Android device."""
   directory_absolute_path = os.path.abspath(directory)
-  directory_absolute_path = android.util.get_device_path(directory_absolute_path)
-  dir_contents = android.adb.run_command(['shell', 'ls', directory_absolute_path])
+  directory_absolute_path = android.util.get_device_path(
+      directory_absolute_path)
+
+  dir_contents = android.adb.run_command(
+      ['shell', 'ls', directory_absolute_path])
 
   paths = []
   for rel_path in dir_contents.split():
