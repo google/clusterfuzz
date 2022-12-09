@@ -255,7 +255,8 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
     queue_paths = list_full_file_paths_device(self.queue)
 
     hang_queue_path = [
-        path for path in queue_paths if path.endswith(hang_filename)][0]
+        path for path in queue_paths if path.endswith(hang_filename)
+    ][0]
 
     hang_queue_path_device = android.util.get_device_path(hang_queue_path)
 
@@ -1363,6 +1364,7 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
         self.stderr_file_path)
     return fuzz_result
 
+
 class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
 
@@ -1486,6 +1488,7 @@ def remove_path(path):
   elif os.path.isdir(path):
     shutil.rmtree(path)
   # Else path doesn't exist. Do nothing.
+
 
 def list_full_file_paths_device(directory):
   """List the absolute paths of files in |directory| on Android device."""
