@@ -76,12 +76,12 @@ def download_latest_build(build_info, image_regexes, image_directory):
     if not image_file_paths:
       logs.log_error('Failed to download artifact %s for '
                      'branch %s and target %s.' %
-                     (image_file_path, build_info['branch'], target))
+                     (image_file_paths, build_info['branch'], target))
       return
 
-    for image_file_path in image_file_paths:
-      if image_file_path.endswith('.zip') or image_file_path.endswith('.tar.gz'):
-        archive.unpack(image_file_path, image_directory)
+    for file_path in image_file_paths:
+      if file_path.endswith('.zip') or file_path.endswith('.tar.gz'):
+        archive.unpack(file_path, image_directory)
 
 
 def flash_to_latest_build_if_needed():
