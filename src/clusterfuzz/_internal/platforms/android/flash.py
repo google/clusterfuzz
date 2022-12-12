@@ -71,7 +71,7 @@ def download_latest_build(build_info, image_regexes, image_directory):
   shell.remove_directory(image_directory, recreate=True)
   for image_regex in image_regexes:
     image_file_paths = fetch_artifact.get(build_id, target, image_regex,
-                                         image_directory)
+                                          image_directory)
 
     if not image_file_paths:
       logs.log_error('Failed to download artifact %s for '
