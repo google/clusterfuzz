@@ -203,7 +203,8 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
     return False
 
   regex = re.compile(regex)
-  result = None
+  result = []
+
   for artifact in artifacts:
     artifact_name = artifact['name']
 
@@ -212,7 +213,7 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
       continue
 
     if regex.match(artifact_name):
-      result = download_artifact(
+      loop_result = download_artifact(
           client=client,
           bid=bid,
           target=target,
@@ -220,5 +221,8 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
           name=artifact_name,
           output_directory=output_directory,
           output_filename=output_filename)
+
+      if loop_result is not None:
+        result.append(loop_result)
 
   return result

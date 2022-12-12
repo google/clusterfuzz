@@ -70,15 +70,18 @@ def download_latest_build(build_info, image_regexes, image_directory):
   # Clean up the images directory first.
   shell.remove_directory(image_directory, recreate=True)
   for image_regex in image_regexes:
-    image_file_path = fetch_artifact.get(build_id, target, image_regex,
+    image_file_paths = fetch_artifact.get(build_id, target, image_regex,
                                          image_directory)
-    if not image_file_path:
+
+    if not image_file_paths:
       logs.log_error('Failed to download artifact %s for '
                      'branch %s and target %s.' %
                      (image_file_path, build_info['branch'], target))
       return
-    if image_file_path.endswith('.zip') or image_file_path.endswith('.tar.gz'):
-      archive.unpack(image_file_path, image_directory)
+
+    for image_file_path in image_file_paths:
+      if image_file_path.endswith('.zip') or image_file_path.endswith('.tar.gz'):
+        archive.unpack(image_file_path, image_directory)
 
 
 def flash_to_latest_build_if_needed():
