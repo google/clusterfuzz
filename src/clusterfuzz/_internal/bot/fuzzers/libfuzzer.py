@@ -839,7 +839,6 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
 
       result = LibFuzzerCommon.cleanse_crash(
           self,
-          extra_env={DISABLE_SYMLINK_SANITIZER_VAR: '0'},
           chroot_testcase_path,
           chroot_output_path,
           timeout,
