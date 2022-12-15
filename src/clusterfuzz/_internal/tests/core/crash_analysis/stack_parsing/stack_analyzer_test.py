@@ -3318,7 +3318,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_capture_command_injection(self):
-    """Test capturing command injection bugs detected by extra sanitizers"""
+    """Test capturing command injection bugs detected by extra sanitizers."""
     data = self._read_test_data('command_injection_bug.txt')
     expected_type = 'Command injection'
     expected_address = ''
@@ -3330,7 +3330,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_capture_arbitrary_file_open(self):
-    """Test capturing arbitrary file open detected by extra sanitizers"""
+    """Test capturing arbitrary file open detected by extra sanitizers."""
     data = self._read_test_data('arbitrary_file_open_bug.txt')
     expected_type = 'Arbitrary file open'
     expected_address = ''
@@ -3342,11 +3342,25 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_dns_resolution(self):
-    """Test capturing command injection bugs detected by extra sanitizers"""
+    """Test capturing arbitrary dns resolution bugs detected by extra
+    sanitizers."""
     data = self._read_test_data('dns.txt')
     expected_type = 'Arbitrary DNS resolution'
     expected_address = ''
     expected_state = '__sendmmsg\nsend_dg\n__res_context_send\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_symlink_following(self):
+    """Test capturing command injection bugs detected by extra sanitizers."""
+    data = self._read_test_data('symlink.txt')
+    expected_type = 'Symlink followed'
+    expected_address = ''
+    # This example is a false positive.
+    expected_state = '__close\next2fs_check_directory_fuzzer.cc\n'
     expected_stacktrace = data
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,

@@ -849,6 +849,13 @@ class StackParser:
           state,
           new_type='Arbitrary DNS resolution')
 
+      # Malicious symlink following detected by extra sanitizers.
+      self.update_state_on_match(
+          EXTRA_SANITIZERS_SYMLINK_FOLLOWED,
+          line,
+          state,
+          new_type='Symlink followed')
+
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
       update_kasan_crash_details(state, line)
