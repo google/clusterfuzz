@@ -935,14 +935,6 @@ class ExtraSanitizerIntegrationTests(IntegrationTests):
             'extra_sanitizers'), target_path
     ] + arguments + corpora_or_testcase)
 
-  def test_minimize(self, *args, **kwargs):
-    # TODO(metzman): Fix libFuzzer and then undo this.
-    pass
-
-  def test_cleanse(self, *args, **kwargs):
-    # TODO(metzman): Fix libFuzzer and then undo this.
-    pass
-
 
 @test_utils.integration
 class MinijailIntegrationTests(IntegrationTests):

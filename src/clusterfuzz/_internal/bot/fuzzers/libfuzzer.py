@@ -74,6 +74,8 @@ MUTATOR_STRATEGIES = [
     strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
 ]
 
+DISABLE_SYMLINK_SANITIZER_VAR = 'SYSTEMSAN_MALICIOUS_SYMLINK_FOLLOWING'
+
 
 class LibFuzzerException(Exception):
   """LibFuzzer exception."""
@@ -260,7 +262,7 @@ class LibFuzzerCommon(object):
       additional_args.append(constants.MERGE_CONTROL_FILE_ARGUMENT +
                              merge_control_file)
 
-    extra_env = {}
+    extra_env = {DISABLE_SYMLINK_SANITIZER_VAR: '0'}
     if tmp_dir:
       extra_env['TMPDIR'] = tmp_dir
 
@@ -837,6 +839,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
 
       result = LibFuzzerCommon.cleanse_crash(
           self,
+          extra_env={DISABLE_SYMLINK_SANITIZER_VAR: '0'},
           chroot_testcase_path,
           chroot_output_path,
           timeout,
@@ -1119,7 +1122,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
           device_output_path,
           timeout,
           artifact_prefix=constants.TMP_ARTIFACT_PREFIX_ARGUMENT,
-          additional_args=additional_args)
+          additional_args=additional_args,
+          extra_env={DISABLE_SYMLINK_SANITIZER_VAR: '0'})
       if android.adb.file_exists(device_output_path):
         android.adb.copy_remote_file_to_local(device_output_path, output_path)
 
