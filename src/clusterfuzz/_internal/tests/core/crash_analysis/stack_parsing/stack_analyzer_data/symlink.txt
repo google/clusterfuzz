@@ -1,0 +1,45 @@
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+===BUG DETECTED: Symbolic link followed===
+    #0 0x5391b1 in __sanitizer_print_stack_trace /src/llvm-project/compiler-rt/lib/asan/asan_stack.cpp:87:3
+    #1 0x457cc8 in fuzzer::PrintStackTrace() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerUtil.cpp:210:5
+    #2 0x43c9a3 in fuzzer::Fuzzer::CrashCallback() /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:233:3
+    #3 0x7faf4243da9f  (/lib/x86_64-linux-gnu/libc.so.6+0x3da9f) (BuildId: 7b9682d06533ba6fb9a8099004cbc6b17c1433f4)
+    #4 0x7faf424faada in __close io/../sysdeps/unix/sysv/linux/close.c:27:10
+    #5 0x56c5d6 in LLVMFuzzerTestOneInput /src/fuzz/ext2fs_check_directory_fuzzer.cc:28:3
+    #6 0x43df43 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:611:15
+    #7 0x43f2f4 in fuzzer::Fuzzer::ReadAndExecuteSeedCorpora(std::__Fuzzer::vector<fuzzer::SizedFile, std::__Fuzzer::allocator<fuzzer::SizedFile>>&) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:804:3
+    #8 0x43f7c9 in fuzzer::Fuzzer::Loop(std::__Fuzzer::vector<fuzzer::SizedFile, std::__Fuzzer::allocator<fuzzer::SizedFile>>&) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:857:3
+    #9 0x42ee2f in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:912:6
+    #10 0x458482 in main /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #11 0x7faf42429209 in __libc_start_call_main csu/../sysdeps/nptl/libc_start_call_main.h:58:16
+    #12 0x7faf424292bb in __libc_start_main csu/../csu/libc-start.c:389:3
+    #13 0x41f86d in _start (/tmp/u/ext2fs_check_directory_fuzzer+0x41f86d)
+
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
