@@ -434,3 +434,8 @@ paper-dropdown-menu {
   height: 22px;
   width: 22px;
 }
+
+.quick-mode-job {
+  background-color: #AFE1AF;
+  padding: 2px;
+}

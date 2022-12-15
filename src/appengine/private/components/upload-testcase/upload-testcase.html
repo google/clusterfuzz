@@ -266,7 +266,9 @@
         <div class="permission">[[getPermissionText(params)]]</div>
         <div class="buttons">
           <paper-button raised toggles active="{{uploadFormOpened}}">Upload</paper-button>
-          <paper-button raised toggles active="{{uploadFormSimplifiedOpened}}">Quick Upload</paper-button>
+          <template is="dom-if" if="true">
+            <paper-button raised toggles active="{{uploadFormSimplifiedOpened}}">Quick Upload</paper-button>
+          </template>
         </div>
       </div>
       <paginated-list
