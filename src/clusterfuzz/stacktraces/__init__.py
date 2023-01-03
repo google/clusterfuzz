@@ -849,6 +849,13 @@ class StackParser:
           state,
           new_type='Arbitrary DNS resolution')
 
+      # Issue detected by PySecSan
+      self.update_state_on_match)
+          EXTRA_SANITIZERS_PYSECSAN_PYSECSAN,
+          line,
+          state,
+          new_type='PySecSan')
+
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
       update_kasan_crash_details(state, line)

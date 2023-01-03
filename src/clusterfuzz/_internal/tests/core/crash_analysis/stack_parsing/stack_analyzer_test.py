@@ -3353,6 +3353,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_pysecsan_command_os_system(self):
+    """Test PySecSan command injection bug in os.system"""
+    data = self._read_test_data('pysecsan_command_os_system.txt')
+    expected_type = 'PySecSan'
+    expected_address = ''
+    expected_state = ''
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_sanitizer_out_of_memory(self):
     """Test sanitizer out of memory."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'

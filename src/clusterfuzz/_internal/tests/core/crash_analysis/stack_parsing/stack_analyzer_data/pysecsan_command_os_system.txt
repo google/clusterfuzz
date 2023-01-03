@@ -1,0 +1,22 @@
+/out/os_command_injection -rss_limit_mb=2560 -timeout=25 /tmp/os_command_injection_corpus < /dev/null
+[PYSECSAN] Starting
+INFO: Instrumenting functions: [2232/2232] 100%
+INFO: Using preloaded libfuzzer
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1878115395
+INFO:        0 files found in /tmp/os_command_injection_corpus
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+[PYSECSAN] =================================================================
+[PYSECSAN] ===BUG DETECTED: PySecSan: Command injection ===
+[PYSECSAN] code injection by way of os.system
+Fuzzer-controlled data in command string. Injection potential.
+[PYSECSAN] Stacktrace:
+  File "os_command_injection.py", line 43, in <module>
+  File "os_command_injection.py", line 39, in main
+  File "os_command_injection.py", line 31, in test_one_input
+  File "os_command_injection.py", line 25, in list_files_perhaps
+  File "pysecsan/sanlib.py", line 178, in run
+  File "pysecsan/command_injection.py", line 96, in hook_pre_exec_os_system
+  File "pysecsan/sanlib.py", line 76, in abort_with_issue
+[PYSECSAN] Exiting
+

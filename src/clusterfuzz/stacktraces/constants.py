@@ -99,6 +99,7 @@ EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX = re.compile(
     r'===BUG DETECTED: Arbitrary file open===')
 EXTRA_SANITIZERS_ARBITRARY_DNS = re.compile(
     r'===BUG DETECTED: Arbitrary domain name resolution===')
+EXTRA_SANITIZERS_PYSECSAN_PYSECSAN = re.compile(r'===BUG DETECTED: PySecSan:')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
