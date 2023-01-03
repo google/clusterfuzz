@@ -45,7 +45,7 @@ class FuzzResult(object):
   stats generated."""
 
   def __init__(self, logs, command, crashes, stats, time_executed,
-               process_timed_out):
+               process_timed_out=None):
     self.logs = logs
     self.command = command
     self.crashes = crashes
