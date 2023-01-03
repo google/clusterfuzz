@@ -441,6 +441,7 @@ class ModifierProcessRunnerMixin(object):
     tool_path = environment.get_default_tool_path(tool)
     if not os.path.exists(tool_path) and tool in TOOL_URLS:
       urllib.request.urlretrieve(TOOL_URLS.get(tool), tool_path)
+      logs.log('Using tool %s.', tool)
     if os.path.exists(tool_path):
       os.chmod(tool_path, 0o755)
     if not os.path.exists(tool_path):
