@@ -850,7 +850,7 @@ class StackParser:
           new_type='Arbitrary DNS resolution')
 
       # Issue detected by PySecSan
-      self.update_state_on_match)
+      self.update_state_on_match(
           EXTRA_SANITIZERS_PYSECSAN_PYSECSAN,
           line,
           state,
