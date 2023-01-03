@@ -44,12 +44,14 @@ class FuzzResult(object):
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
-  def __init__(self, logs, command, crashes, stats, time_executed):
+  def __init__(self, logs, command, crashes, stats, time_executed,
+               process_timed_out):
     self.logs = logs
     self.command = command
     self.crashes = crashes
     self.stats = stats
     self.time_executed = time_executed
+    self.process_timed_out = process_timed_out
 
 
 class ReproduceResult(object):
@@ -202,7 +204,8 @@ def register(name, engine_class):
 
 
 def get(name):
-  """Get an implementation of a fuzzing engine, or None if one does not exist."""
+  """Gets an implementation of a fuzzing engine, or None if one does not
+  exist."""
   engine_class = _ENGINES.get(name)
   if engine_class:
     return engine_class()

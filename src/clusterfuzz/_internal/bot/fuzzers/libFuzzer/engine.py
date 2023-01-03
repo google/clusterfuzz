@@ -361,7 +361,8 @@ class Engine(engine.Engine):
           non_fuzz_arguments)
 
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
-                             parsed_stats, fuzz_result.time_executed)
+                             parsed_stats, fuzz_result.time_executed,
+                             fuzz_result.timed_out)
 
   def reproduce(self, target_path, input_path, arguments, max_time):
     """Reproduce a crash given an input.
