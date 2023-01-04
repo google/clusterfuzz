@@ -851,10 +851,7 @@ class StackParser:
 
       # Issue detected by PySecSan
       self.update_state_on_match(
-          EXTRA_SANITIZERS_PYSECSAN_PYSECSAN,
-          line,
-          state,
-          new_type='PySecSan')
+          EXTRA_SANITIZERS_PYSECSAN_PYSECSAN, line, state, new_type='PySecSan')
 
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
