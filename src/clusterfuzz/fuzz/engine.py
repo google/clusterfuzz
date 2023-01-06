@@ -44,14 +44,19 @@ class FuzzResult(object):
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
-  def __init__(self, logs, command, crashes, stats, time_executed,
-               process_timed_out=None):
+  def __init__(self,
+               logs,
+               command,
+               crashes,
+               stats,
+               time_executed,
+               timed_out=None):
     self.logs = logs
     self.command = command
     self.crashes = crashes
     self.stats = stats
     self.time_executed = time_executed
-    self.process_timed_out = process_timed_out
+    self.timed_out = timed_out
 
 
 class ReproduceResult(object):
