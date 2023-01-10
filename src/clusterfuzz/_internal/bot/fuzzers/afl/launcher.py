@@ -250,6 +250,18 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
   and help copy contents from device to local.
   """
 
+  def remove_hang_in_queue(self, hang_filename):
+    """Removes the hanging testcase from queue."""
+    queue_paths = list_full_file_paths_device(self.queue)
+
+    hang_queue_path = [
+        path for path in queue_paths if path.endswith(hang_filename)
+    ][0]
+
+    hang_queue_path_device = android.util.get_device_path(hang_queue_path)
+
+    android.adb.remove_file(hang_queue_path_device)
+
   def copy_crash_if_needed(self, testcase_path):
     """Copy the first crash found by AFL. Before calling super method
     copy the crashes directory from device to local.
@@ -1106,6 +1118,9 @@ class AflRunnerCommon(object):
         logs.log_warn('Timed out in merge while processing initial corpus.')
         return 0
 
+      if file_features is None:
+        continue
+
       input_inodes.add(os.stat(file_path).st_ino)
       input_filenames.add(os.path.basename(file_path))
       corpus.associate_features_with_file(file_features, file_path)
@@ -1127,6 +1142,9 @@ class AflRunnerCommon(object):
       if timed_out:
         logs.log_warn('Timed out in merge while processing output.')
         break
+
+      if file_features is None:
+        continue
 
       corpus.associate_features_with_file(file_features, file_path)
 
@@ -1269,10 +1287,16 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     afl-showmap."""
     # TODO(metzman): Figure out if we should worry about CPU affinity errors
     # here.
-
     filename = os.path.basename(input_file_path)
     intput_file_showmap_results_file = os.path.join(self._showmap_results_dir,
                                                     filename)
+
+    if not os.path.exists(intput_file_showmap_results_file):
+      logs.log_error('Cannot merge corpus. Most likely reason is AFL_MAP_SIZE'
+                     'required is very large for fuzzing target.')
+
+      return None, False
+
     showmap_output = engine_common.read_data_from_file(
         intput_file_showmap_results_file)
     return self.get_feature_tuple(showmap_output), False
@@ -1464,6 +1488,24 @@ def remove_path(path):
   elif os.path.isdir(path):
     shutil.rmtree(path)
   # Else path doesn't exist. Do nothing.
+
+
+def list_full_file_paths_device(directory):
+  """List the absolute paths of files in |directory| on Android device."""
+  directory_absolute_path = os.path.abspath(directory)
+  directory_absolute_path = android.util.get_device_path(
+      directory_absolute_path)
+
+  dir_contents = android.adb.run_command(
+      ['shell', 'ls', directory_absolute_path])
+
+  paths = []
+  for rel_path in dir_contents.split():
+    full_path = os.path.join(directory_absolute_path, rel_path)
+    if android.adb.file_exists(full_path):
+      paths.append(full_path)
+
+  return paths
 
 
 def list_full_file_paths(directory):
