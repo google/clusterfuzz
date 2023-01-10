@@ -111,6 +111,7 @@ class Engine(engine.Engine):
     del build_dir
     arguments = fuzzer.get_arguments(target_path)
     grammar = fuzzer.get_grammar(target_path)
+    extra_env = fuzzer.get_extra_env(target_path)
 
     if self.do_strategies:
       strategy_pool = strategy_selection.generate_weighted_strategy_pool(
@@ -130,6 +131,11 @@ class Engine(engine.Engine):
       environment.set_value('USE_EXTRA_SANITIZERS', False)
 
     arguments.extend(strategy_info.arguments)
+    # Update strategy info with environment variables from fuzzer's options.
+    if extra_env is not None:
+      for env_var_name, value in extra_env:
+        if env_var_name not in strategy_info.extra_env:
+          strategy_info.extra_env[env_var_name] = value
 
     # Check for seed corpus and add it into corpus directory.
     engine_common.unpack_seed_corpus_if_needed(target_path, corpus_dir)
