@@ -70,7 +70,7 @@ class UndercoatError(Exception):
   """Error for errors while running undercoat."""
 
 
-def undercoat_api_command(*args):
+def undercoat_api_command(*args, timeout=None):
   """Make an API call to the undercoat binary."""
   logs.log(f'Running undercoat command {args}')
   bundle_dir = environment.get_value('FUCHSIA_RESOURCES_DIR')
@@ -79,7 +79,9 @@ def undercoat_api_command(*args):
   # The undercoat log is sent to stderr, which we capture to a tempfile
   with tempfile.TemporaryFile() as undercoat_log:
     result = undercoat.run_and_wait(
-        stderr=undercoat_log, extra_env={'TMPDIR': get_temp_dir()})
+        timeout=timeout,
+        stderr=undercoat_log,
+        extra_env={'TMPDIR': get_temp_dir()})
     result.output = utils.decode_to_unicode(result.output)
 
     if result.return_code != 0:
@@ -95,10 +97,15 @@ def undercoat_api_command(*args):
   return result
 
 
-def undercoat_instance_command(command, handle, *args, abort_on_error=True):
+def undercoat_instance_command(command,
+                               handle,
+                               *args,
+                               timeout=None,
+                               abort_on_error=True):
   """Helper for the subset of undercoat commands that operate on an instance."""
   try:
-    return undercoat_api_command(command, '-handle', handle, *args)
+    return undercoat_api_command(
+        command, '-handle', handle, *args, timeout=timeout)
   except UndercoatError:
     if abort_on_error:
       # Try to print extra logs and shut down
@@ -110,7 +117,7 @@ def undercoat_instance_command(command, handle, *args, abort_on_error=True):
 
 def get_version():
   """Get undercoat API version as (major, minor, patch) tuple."""
-  version = undercoat_api_command('version').output
+  version = undercoat_api_command('version', timeout=30).output
 
   if not version.startswith('v'):
     raise UndercoatError('Invalid version reported: %s' % version)
@@ -192,14 +199,15 @@ def prepare_fuzzer(handle, fuzzer):
   return undercoat_instance_command('prepare_fuzzer', handle, '-fuzzer', fuzzer)
 
 
-def run_fuzzer(handle, fuzzer, outdir, args):
+def run_fuzzer(handle, fuzzer, outdir, args, timeout=None):
   """Run a fuzzer of the given name, via undercoat."""
   # TODO(fxbug.dev/47490): Pass back raw return code from libFuzzer?
   undercoat_args = ['-fuzzer', fuzzer]
   if outdir:
     undercoat_args += ['-artifact-dir', outdir]
   args = undercoat_args + ['--'] + args
-  return undercoat_instance_command('run_fuzzer', handle, *args)
+  return undercoat_instance_command(
+      'run_fuzzer', handle, *args, timeout=timeout)
 
 
 def put_data(handle, fuzzer, src, dst):

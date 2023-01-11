@@ -1,0 +1,24 @@
+--- Found a sign of shell corruption ---
+Syntax error: Unterminated quoted string
+----------------------------------------
+===BUG DETECTED: Shell corruption===
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==493018==ERROR: AddressSanitizer: ABRT on unknown address 0x0539000785d7 (pc 0x7f83920d7dff bp 0x7fff7994c5b8 sp 0x7fff7994c580 T0)
+SCARINESS: 10 (signal)
+    #0 0x7f83920d7dff in wait4 /build/glibc-eX1tMB/glibc-2.31/sysdeps/unix/sysv/linux/wait4.c:27:10
+    #1 0x7f83920470e6 in do_system /build/glibc-eX1tMB/glibc-2.31/sysdeps/posix/system.c:172:11
+    #2 0x7f83920d7dff in Foo foo.c:27:10
+    #3 0x7f83920470e6 in Bar bar.c:172:11
+    #4 0x46eca3 in fuzzer::ExecuteCommand(fuzzer::Command const&) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerUtilLinux.cpp:25:19
+    #5 0x461537 in fuzzer::CrashResistantMerge(std::__Fuzzer::vector<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> >, std::__Fuzzer::allocator<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> > > > const&, std::__Fuzzer::vector<fuzzer::SizedFile, std::__Fuzzer::allocator<fuzzer::SizedFile> > const&, std::__Fuzzer::vector<fuzzer::SizedFile, std::__Fuzzer::allocator<fuzzer::SizedFile> > const&, std::__Fuzzer::vector<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> >, std::__Fuzzer::allocator<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> > > >*, std::__Fuzzer::set<unsigned int, std::__Fuzzer::less<unsigned int>, std::__Fuzzer::allocator<unsigned int> > const&, std::__Fuzzer::set<unsigned int, std::__Fuzzer::less<unsigned int>, std::__Fuzzer::allocator<unsigned int> >*, std::__Fuzzer::set<unsigned int, std::__Fuzzer::less<unsigned int>, std::__Fuzzer::allocator<unsigned int> > const&, std::__Fuzzer::set<unsigned int, std::__Fuzzer::less<unsigned int>, std::__Fuzzer::allocator<unsigned int> >*, std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> > const&, bool, bool) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMerge.cpp:506:21
+    #6 0x44a282 in fuzzer::FuzzWithFork(fuzzer::Random&, fuzzer::FuzzingOptions const&, std::__Fuzzer::vector<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> >, std::__Fuzzer::allocator<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> > > > const&, std::__Fuzzer::vector<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> >, std::__Fuzzer::allocator<std::__Fuzzer::basic_string<char, std::__Fuzzer::char_traits<char>, std::__Fuzzer::allocator<char> > > > const&, int) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerFork.cpp:348:5
+    #7 0x446399 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:875:5
+    #8 0x46f2f2 in main /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #9 0x7f83920190b2 in __libc_start_main /build/glibc-eX1tMB/glibc-2.31/csu/libc-start.c:308:16
+    #10 0x41f6dd in _start
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: ABRT (/lib/x86_64-linux-gnu/libc.so.6+0xe5dff)
+==493018==ABORTING
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+artifact_prefix='/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/'; Test unit written to /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709

@@ -31,7 +31,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Set up Python 3
-      uses: actions/setup-python@dc73133d4da04e56a135ae2246682783cc7c7cb6 # v2.2.2
+      uses: actions/setup-python@b55428b1882923874294fa556849718a1d7f2ca5 # v2.2.2
       with:
         python-version: 3.7
     - name: Install pypa/build
@@ -43,7 +43,7 @@ jobs:
     - name: Build a binary wheel and a source tarball
       run: ./build.sh
     - name: Publish distribution to PyPI
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29 # v1.4.2
+      uses: pypa/gh-action-pypi-publish@37f50c210e3d2f9450da2cd423303d6a14a6e29f # v1.4.2
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
         packages_dir: src/dist/

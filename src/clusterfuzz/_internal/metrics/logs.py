@@ -58,8 +58,7 @@ def _is_running_on_app_engine():
 
 
 def _console_logging_enabled():
-  """Return bool on where console logging is enabled, usually for tests and
-  reproduce tool."""
+  """Return bool on where console logging is enabled, usually for tests."""
   return bool(os.getenv('LOG_TO_CONSOLE'))
 
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """data_types tests."""
+# pylint: disable=protected-access
 import unittest
 
 from clusterfuzz._internal.datastore import data_types
@@ -148,3 +149,37 @@ class FuzzTargetFullyQualifiedNameTest(unittest.TestCase):
         'afl_third_party-aspell-aspell_5_aspell_fuzzer',
         data_types.fuzz_target_fully_qualified_name(
             'afl', 'third_party:aspell:aspell_5', 'aspell_fuzzer'))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class GetFuzzTargetTest(unittest.TestCase):
+  """Test get_fuzz_target()."""
+
+  def setUp(self):
+    self.testcase = data_types.Testcase(
+        overridden_fuzzer_name='libFuzzer_proj_test')
+    self.testcase.put()
+
+  def test_exists_in_datastore(self):
+    """Test when the FuzzTarget exists."""
+    data_types.FuzzTarget(
+        engine='libFuzzer', project='proj', binary='test').put()
+    self.assertEqual({
+        'binary': 'test',
+        'engine': 'libFuzzer',
+        'project': 'proj'
+    },
+                     self.testcase.get_fuzz_target()._to_dict())
+
+  def test_not_exists_in_datastore(self):
+    """Test when the FuzzTarget doesn't exist."""
+    self.testcase.project_name = 'proj'
+    self.testcase.fuzzer_name = 'libFuzzer'
+    self.testcase.set_metadata('fuzzer_binary_name', 'test')
+
+    self.assertEqual({
+        'binary': 'test',
+        'engine': 'libFuzzer',
+        'project': 'proj'
+    },
+                     self.testcase.get_fuzz_target()._to_dict())

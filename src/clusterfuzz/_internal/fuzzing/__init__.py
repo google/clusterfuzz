@@ -18,6 +18,7 @@ PUBLIC_ENGINES = (
     'afl',
     'honggfuzz',
     'googlefuzztest',
+    'centipede',
 )
 
 PRIVATE_ENGINES = ('syzkaller',)

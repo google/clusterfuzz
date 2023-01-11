@@ -166,10 +166,21 @@ class JiraTests(unittest.TestCase):
     issue_url = self.issue_tracker.issue_url('VSEC-3112')
     self.assertEqual('https://jira.company.com/browse/VSEC-3112', issue_url)
 
+  def test_find_issues_url(self):
+    """Test find_issues_url."""
+    self.mock.get.return_value = Config()
+    issue_url = self.issue_tracker.find_issues_url(
+        keywords=['keyword+-&|!(){}[]^~*?:+-&|!(){}[]^~*?:test'])
+    self.assertEqual(
+        'https://jira.company.com/issues/?jql=project = VSEC AND text ~ "keyword test"',
+        issue_url)
+
   def test_issue_save(self):
     """Test save."""
     self.mock.get_issue.return_value = self.mock_issue
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.status = 'Closed'
-    issue.save()
+    issue.save(new_comment='test comments')
+    self.mock.client.add_comment.assert_called_with(self.mock_issue.jira_issue,
+                                                    'test comments')
     self.assertEqual(issue.status, 'Closed')

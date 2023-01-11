@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,15 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Console input functions for the reproduce tool."""
-
-
-def get_string(prompt):
-  """Prompt the user for a string from console input."""
-  return input(prompt + ': ')
-
-
-def get_boolean(prompt):
-  """Return a boolean representing a yes/no answer to a prompt."""
-  result = get_string(prompt + ' (Y/n)')
-  return result.lower() == 'y'
+# Exemption reason: This repo uses binary artifacts that are not practical to
+# build from source (e.g. from LLVM).
+optConfig:
+  optOut: true

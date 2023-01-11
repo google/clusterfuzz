@@ -13,22 +13,38 @@
 # limitations under the License.
 """Grouper for grouping similar looking testcases."""
 
+import collections
+import re
+
 import six
 
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 from libs.issue_management import issue_tracker_utils
 
+from . import cleanup
 from . import group_leader
 
 FORWARDED_ATTRIBUTES = ('crash_state', 'crash_type', 'group_id',
                         'one_time_crasher_flag', 'project_name',
-                        'security_flag', 'timestamp')
+                        'security_flag', 'timestamp', 'job_type')
 
 GROUP_MAX_TESTCASE_LIMIT = 25
+
+VARIANT_CRASHES_IGNORE = re.compile(
+    r'^(Out-of-memory|Timeout|Missing-library|Data race|GPU failure)')
+
+VARIANT_STATES_IGNORE = re.compile(r'^NULL$')
+
+VARIANT_THRESHOLD_PERCENTAGE = 0.2
+VARIANT_MIN_THRESHOLD = 5
+VARIANT_MAX_THRESHOLD = 10
+
+TOP_CRASHES_LIMIT = 10
 
 
 class TestcaseAttributes(object):
@@ -86,8 +102,149 @@ def _get_new_group_id():
   return new_group.key.id()
 
 
+def is_same_variant(variant1, variant2):
+  """Checks for the testcase variants equality."""
+  return (variant1.crash_type == variant2.crash_type and
+          variant1.crash_state == variant2.crash_state and
+          variant1.security_flag == variant2.security_flag)
+
+
+def matches_top_crash(testcase, top_crashes_by_project_and_platform):
+  """Returns whether or not a testcase is a top crash."""
+  if testcase.project_name not in top_crashes_by_project_and_platform:
+    return False
+
+  crashes_by_platform = top_crashes_by_project_and_platform[
+      testcase.project_name]
+  for crashes in crashes_by_platform.values():
+    for crash in crashes:
+      if (crash['crashState'] == testcase.crash_state and
+          crash['crashType'] == testcase.crash_type and
+          crash['isSecurity'] == testcase.security_flag):
+        return True
+
+  return False
+
+
+def _group_testcases_based_on_variants(testcase_map):
+  """Group testcases that are associated based on variant analysis."""
+  # Skip this if the project is configured so (like Google3).
+  enable = local_config.ProjectConfig().get('deduplication.variant', True)
+  if not enable:
+    return
+
+  logs.log('Grouping based on variant analysis.')
+  grouping_candidates = collections.defaultdict(list)
+  project_num_testcases = collections.defaultdict(int)
+  # Phase 1: collect all grouping candidates.
+  for testcase_1_id, testcase_1 in testcase_map.items():
+    # Count the number of testcases for each project.
+    project_num_testcases[testcase_1.project_name] += 1
+
+    for testcase_2_id, testcase_2 in testcase_map.items():
+      # Rule: Don't group the same testcase and use different combinations for
+      # comparisons.
+      if testcase_1_id <= testcase_2_id:
+        continue
+
+      # Rule: If both testcase have the same group id, then no work to do.
+      if testcase_1.group_id == testcase_2.group_id and testcase_1.group_id:
+        continue
+
+      # Rule: Check both testcase are under the same project.
+      if testcase_1.project_name != testcase_2.project_name:
+        continue
+
+      # Rule: If both testcase have same job_type, then skip variant anlysis.
+      if testcase_1.job_type == testcase_2.job_type:
+        continue
+
+      # Rule: Skip variant analysis if any testcase is timeout or OOM.
+      if (VARIANT_CRASHES_IGNORE.match(testcase_1.crash_type) or
+          VARIANT_CRASHES_IGNORE.match(testcase_2.crash_type)):
+        continue
+
+      # Rule: Skip variant analysis if any testcase states is NULL.
+      if (VARIANT_STATES_IGNORE.match(testcase_1.crash_state) or
+          VARIANT_STATES_IGNORE.match(testcase_2.crash_state)):
+        continue
+
+      # Rule: Skip variant analysis if any testcase is not reproducible.
+      if testcase_1.one_time_crasher_flag or testcase_2.one_time_crasher_flag:
+        continue
+
+      # Rule: Group testcase with similar variants.
+      # For each testcase2, get the related variant1 and check for equivalence.
+      candidate_variant = data_handler.get_testcase_variant(
+          testcase_1_id, testcase_2.job_type)
+
+      if (not candidate_variant or
+          not is_same_variant(candidate_variant, testcase_2)):
+        continue
+
+      current_project = testcase_1.project_name
+      grouping_candidates[current_project].append((testcase_1_id,
+                                                   testcase_2_id))
+
+  # Top crashes are usually startup crashes, so don't group them.
+  top_crashes_by_project_and_platform = (
+      cleanup.get_top_crashes_for_all_projects_and_platforms(
+          limit=TOP_CRASHES_LIMIT))
+
+  # Phase 2: check for the anomalous candidates
+  # i.e. candiates matched with many testcases.
+  for project, candidate_list in grouping_candidates.items():
+    project_ignore_testcases = set()
+    # Count the number of times a testcase is matched for grouping.
+    project_counter = collections.defaultdict(int)
+    for candidate_tuple in candidate_list:
+      for testcase_id in candidate_tuple:
+        project_counter[testcase_id] += 1
+
+    # Determine anomalous candidates.
+    threshold = VARIANT_THRESHOLD_PERCENTAGE * project_num_testcases[project]
+    threshold = min(threshold, VARIANT_MAX_THRESHOLD)
+    threshold = max(threshold, VARIANT_MIN_THRESHOLD)
+    # Check threshold to be above a minimum, to avoid unnecessary filtering.
+    for testcase_id, count in project_counter.items():
+      if count >= threshold:
+        project_ignore_testcases.add(testcase_id)
+    for (testcase_1_id, testcase_2_id) in candidate_list:
+      if (testcase_1_id in project_ignore_testcases or
+          testcase_2_id in project_ignore_testcases):
+        logs.log('VARIANT ANALYSIS (Pruning): Anomalous match: (id1=%s, '
+                 'matched_count1=%d) matched with (id2=%d, matched_count2=%d), '
+                 'threshold=%.2f.' %
+                 (testcase_1_id, project_counter[testcase_1_id], testcase_2_id,
+                  project_counter[testcase_2_id], threshold))
+        continue
+
+      testcase_1 = testcase_map[testcase_1_id]
+      testcase_2 = testcase_map[testcase_2_id]
+
+      if (matches_top_crash(testcase_1, top_crashes_by_project_and_platform) or
+          matches_top_crash(testcase_2, top_crashes_by_project_and_platform)):
+        logs.log(f'VARIANT ANALYSIS: {testcase_1_id} or {testcase_2_id} '
+                 'is a top crash, skipping.')
+        continue
+
+      logs.log(
+          'VARIANT ANALYSIS: Grouping testcase 1 '
+          '(id=%s, '
+          'crash_type=%s, crash_state=%s, security_flag=%s, job=%s, group=%s) '
+          'and testcase 2 (id=%s, '
+          'crash_type=%s, crash_state=%s, security_flag=%s, job=%s, group=%s).'
+          %
+          (testcase_1.id, testcase_1.crash_type, testcase_1.crash_state,
+           testcase_1.security_flag, testcase_1.job_type, testcase_1.group_id,
+           testcase_2.id, testcase_2.crash_type, testcase_2.crash_state,
+           testcase_2.security_flag, testcase_2.job_type, testcase_2.group_id))
+      combine_testcases_into_group(testcase_1, testcase_2, testcase_map)
+
+
 def _group_testcases_with_same_issues(testcase_map):
   """Group testcases that are associated with same underlying issue."""
+  logs.log('Grouping based on same issues.')
   for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
     for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
       # Rule: Don't group the same testcase and use different combinations for
@@ -116,6 +273,7 @@ def _group_testcases_with_same_issues(testcase_map):
 
 def _group_testcases_with_similar_states(testcase_map):
   """Group testcases with similar looking crash states."""
+  logs.log('Grouping based on similar states.')
   for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
     for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
       # Rule: Don't group the same testcase and use different combinations for
@@ -297,6 +455,7 @@ def group_testcases():
 
   _group_testcases_with_similar_states(testcase_map)
   _group_testcases_with_same_issues(testcase_map)
+  _group_testcases_based_on_variants(testcase_map)
   _shrink_large_groups_if_needed(testcase_map)
   group_leader.choose(testcase_map)
 

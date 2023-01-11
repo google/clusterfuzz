@@ -30,7 +30,7 @@ from clusterfuzz._internal.metrics import logs
 DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
 
 # Maximum number of retries for artifact access.
-MAX_RETRIES = 20
+MAX_RETRIES = 5
 
 
 def execute_request_with_retries(request):
@@ -40,8 +40,8 @@ def execute_request_with_retries(request):
     try:
       result = request.execute()
       break
-    except Exception:
-      pass
+    except Exception as e:
+      logs.log_error(f'Error calling endpoint {request.uri}: Error {e}')
 
   return result
 
@@ -80,6 +80,11 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
     return output_path
 
   logs.log('Downloading artifact %s.' % name)
+  output_dir = os.path.dirname(output_path)
+  if not os.path.exists(output_dir):
+    logs.log(f'Creating directory {output_dir}')
+    os.mkdir(output_dir)
+
   with io.FileIO(output_path, mode='wb') as file_handle:
     downloader = apiclient.http.MediaIoBaseDownload(
         file_handle, dl_request, chunksize=chunksize)
@@ -100,15 +105,24 @@ def get_artifacts_for_build(client, bid, target, attempt_id='latest'):
   request = client.buildartifact().list(
       buildId=bid, target=target, attemptId=attempt_id)
 
+  request_str = (f'{request.uri}, {request.method}, '
+                 f'{request.body}, {request.methodId}')
+
   artifacts = []
+  results = []
   while request:
     result = execute_request_with_retries(request)
     if not result:
       break
+    results.append(result)
     if result and 'artifacts' in result:
       for artifact in result['artifacts']:
         artifacts.append(artifact)
     request = client.buildartifact().list_next(request, result)
+
+  if not artifacts:
+    logs.log_error(f'No artifact found for target {target}, build id {bid}.\n'
+                   f'request {request_str}, results {results}')
 
   return artifacts
 
@@ -148,10 +162,13 @@ def get_latest_artifact_info(branch, target, signed=False):
       successful=True,
       maxResults=1,
       signed=signed)
+  request_str = (f'{request.uri}, {request.method}, '
+                 f'{request.body}, {request.methodId}')
+
   builds = execute_request_with_retries(request)
   if not builds:
-    logs.log_error(
-        'No artifact found for target %s, branch %s.' % (target, branch))
+    logs.log_error(f'No build found for target {target}, branch {branch}, '
+                   f'request: {request_str}.')
     return None
 
   build = builds['builds'][0]
@@ -186,7 +203,8 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
     return False
 
   regex = re.compile(regex)
-  result = None
+  result = []
+
   for artifact in artifacts:
     artifact_name = artifact['name']
 
@@ -195,7 +213,7 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
       continue
 
     if regex.match(artifact_name):
-      result = download_artifact(
+      loop_result = download_artifact(
           client=client,
           bid=bid,
           target=target,
@@ -203,5 +221,8 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
           name=artifact_name,
           output_directory=output_directory,
           output_filename=output_filename)
+
+      if loop_result is not None:
+        result.append(loop_result)
 
   return result

@@ -47,73 +47,94 @@ class IssueTrackerManager(object):
 
   def save(self, issue):
     """Save an issue."""
-    self._update(issue)
+    if issue.id == -1:
+      return self._create(issue)
+    return self._update(issue)
 
   def create(self):
-    """Create an issue."""
-    default_fields = {
-        'project': self.project_name,
-        'summary': 'Default summary',
-        'description': 'Default description',
-        'issuetype': {
-            'name': 'Bug'
-        }
-    }
-
-    jira_issue = self.client.create_issue(fields=default_fields)
+    """Create an issue object locally."""
+    raw_fields = {'id': '-1', 'fields': {'components': [], 'labels': []}}
+    # Create jira issue object
+    jira_issue = jira.resources.Issue({},
+                                      jira.resilientsession.ResilientSession(),
+                                      raw_fields)
     return jira_issue
 
-  def _update(self, issue):
-    """Update an issue."""
+  def _transition_issue_status_if_updated(self, issue):
+    """Transitions the status of the issue if updated. Jira has a separate
+    endpoint to transition status."""
+    # Brittle - we should be pulling the equivalent of 'new' from the policy.
+    if issue.status == 'Open':
+      return
+    # This assumes the following:
+    # 1. If issue.status is an instance of Resource, the value comes from
+    #    Jira directly and has not been changed.
+    # 2. If issue.status is not an instance of Resource, the value is a
+    #    string and the issue status should be updated.
+    # Brittle - we should be pulling the equivalent of 'new' from the policy.
+    if not isinstance(issue.status, jira.resources.Resource):
+      self.client.transition_issue(issue.jira_issue, transition=issue.status)
 
+  def _add_watchers(self, issue):
+    """Add watchers to the ticket. Jira has a separate endpoint to
+    add watchers."""
+
+    # Get watchers from LabelStore.
+    watchers = list(issue.ccs)
+
+    # Jira weirdness, update watchers this way.
+    for watcher in watchers:
+      self.client.add_watcher(issue.jira_issue, watcher)
+
+  def _get_issue_fields(self, issue):
+    """Get issue fields to populate the ticket"""
     # Get labels from LabelStore.
     labels = list(issue.labels)
 
     # Get components from LabelStore.
     components = list(issue.components)
 
-    # Get watchers from LabelStore.
-    watchers = list(issue.ccs)
-
-    update_fields = {
+    fields = {
         'summary': issue.title,
         'description': issue.body,
         'labels': labels,
         'components': components,
     }
 
-    # Brittle - we should be pulling the equivalent of 'new' from the policy.
-    if issue.status != 'Open':
-      # This assumes the following:
-      # 1. If issue.status is an instance of Resource, the value comes from
-      #    Jira directly and has not been changed.
-      # 2. If issue.status is not an instance of Resource, the value is a
-      #    string and the issue status should be updated.
-      # Brittle - we should be pulling the equivalent of 'new' from the policy.
-      if not isinstance(issue.status, jira.resources.Resource):
-        self.client.transition_issue(issue.jira_issue, transition=issue.status)
-
     if issue.assignee is not None:
       if isinstance(issue.assignee, jira.resources.Resource):
         assignee = {'name': issue.assignee.name}
       else:
         assignee = {'name': issue.assignee}
-      update_fields['assignee'] = assignee
+      fields['assignee'] = assignee
 
     # Again brittle - need to pull these strings from policy.
     if 'Critical - P1' in labels:
-      update_fields['priority'] = {'name': 'Critical - P1'}
+      fields['priority'] = {'name': 'Critical - P1'}
     elif 'Major - P2' in labels:
-      update_fields['priority'] = {'name': 'Major - P2'}
+      fields['priority'] = {'name': 'Major - P2'}
+    return fields
 
-    # Jira weirdness, update watchers this way.
-    for watcher in watchers:
-      self.client.add_watcher(issue.jira_issue, watcher)
+  def _create(self, issue):
+    """Create an issue."""
 
+    fields = self._get_issue_fields(issue)
+    jira_issue = self.client.create_issue(fields=fields)
+    self._add_watchers(jira_issue)
+    issue.jira_issue = jira_issue
+
+  def _update(self, issue):
+    """Update an issue."""
+
+    update_fields = self._get_issue_fields(issue)
+    self._transition_issue_status_if_updated(issue)
+    self._add_watchers(issue)
     issue.jira_issue.update(fields=update_fields)
 
   def get_watchers(self, issue):
     """Retrieve list of watchers."""
+    if issue.id == -1:
+      return []
     watchlist = self.client.watchers(issue)
     watchers = []
     for watcher in watchlist.watchers:

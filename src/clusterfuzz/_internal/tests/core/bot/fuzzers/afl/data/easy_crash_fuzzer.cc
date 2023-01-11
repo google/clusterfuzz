@@ -13,10 +13,12 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 
 void uaf() {
   int* a = new int[42];
+  printf("%p\n", a);
   delete[] a;
 
   *a = 42;

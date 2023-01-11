@@ -679,6 +679,11 @@ class StackParser:
             reset=True,
             type_filter=fix_sanitizer_crash_type)
 
+      # Windows formats and surfaces ILL differently from Linux/Posix
+      # Update crash type for consistency.
+      self.update_state_on_match(
+          WINDOWS_SAN_ILL_REGEX, line, state, new_type='Ill', reset=False)
+
       # Overwrite Unknown-crash type with more generic UNKNOWN type.
       if state.crash_type == 'Unknown-crash':
         state.crash_type = 'UNKNOWN'
@@ -823,6 +828,27 @@ class StackParser:
           new_state='',
           reset=True)
 
+      # Command injection bugs detected by extra sanitizers.
+      self.update_state_on_match(
+          EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX,
+          line,
+          state,
+          new_type='Command injection')
+
+      # Arbitrary file open detected by extra sanitizers.
+      self.update_state_on_match(
+          EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX,
+          line,
+          state,
+          new_type='Arbitrary file open')
+
+      # Arbitrary DNS resolution detected by extra sanitizers.
+      self.update_state_on_match(
+          EXTRA_SANITIZERS_ARBITRARY_DNS,
+          line,
+          state,
+          new_type='Arbitrary DNS resolution')
+
       # For KASan crashes, additional information about a bad access may come
       # from a later line. Update the type and address if this happens.
       update_kasan_crash_details(state, line)
@@ -846,14 +872,11 @@ class StackParser:
       self.update_state_on_check_failure(
           state, line, SECURITY_DCHECK_FAILURE_REGEX, 'Security DCHECK failure')
 
-      # Timeout/OOM detected by libFuzzer.
+      # Timeout/OOM detected by libFuzzer and Centipede.
       if self.detect_ooms_and_hangs:
-        self.update_state_on_match(
-            LIBFUZZER_TIMEOUT_REGEX,
-            line,
-            state,
-            new_type='Timeout',
-            reset=True)
+        for timeout_regex in [LIBFUZZER_TIMEOUT_REGEX, CENTIPEDE_TIMEOUT_REGEX]:
+          self.update_state_on_match(
+              timeout_regex, line, state, new_type='Timeout', reset=True)
         self.update_state_on_match(
             OUT_OF_MEMORY_REGEX,
             line,
@@ -896,10 +919,24 @@ class StackParser:
             address_from_group=1)
 
         if self.update_state_on_match(
+            JAZZER_JAVA_SECURITY_EXCEPTION_REGEX,
+            line,
+            state,
+            new_type='Security exception'):
+          state.found_java_exception = True
+        elif self.update_state_on_match(
             JAZZER_JAVA_EXCEPTION_REGEX,
             line,
             state,
             new_type='Uncaught exception'):
+          state.found_java_exception = True
+
+        if self.update_state_on_match(
+            WYCHEPROOF_JAVA_EXCEPTION,
+            line,
+            state,
+            new_type='Wycheproof error',
+            state_from_group=1):
           state.found_java_exception = True
 
         # Android fatal exceptions.
@@ -963,6 +1000,12 @@ class StackParser:
           else:
             state.crash_state = abort_error
           state.frame_count = MAX_CRASH_STATE_FRAMES
+
+        # V8 API errors.
+        v8_error_match = self.update_state_on_match(
+            V8_ERROR_REGEX, line, state, new_type='V8 API error', reset=True)
+        if v8_error_match:
+          state.crash_state = v8_error_match.group(1) + '\n'
 
         # V8 correctness failure errors.
         self.update_state_on_match(
@@ -1151,7 +1194,10 @@ class StackParser:
 
       if state.found_java_exception:
         if (state.crash_type in [
-            'CHECK failure', 'Fatal Exception', 'Uncaught exception'
+            'CHECK failure',
+            'Fatal Exception',
+            'Uncaught exception',
+            'Security exception',
         ]):
           self.add_frame_on_match(
               JAVA_EXCEPTION_CRASH_STATE_REGEX, line, state, group=1)
@@ -1436,7 +1482,8 @@ def reverse_python_stacktrace(stacktrace):
           python_stacktrace_split = [line]  # Add the "title" of the stacktrace
           break
     else:
-      if '=========' in line:  # Locate beginning of the sanitizer stacktrace
+      # Locate beginning of the sanitizer stacktrace.
+      if '=========' in line or '== ERROR: ' in line:
         break
       python_stacktrace_split.insert(1, line)
 

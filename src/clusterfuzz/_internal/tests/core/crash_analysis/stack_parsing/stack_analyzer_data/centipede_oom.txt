@@ -1,0 +1,75 @@
+I0930 10:42:58.663538   11110 centipede_interface.cc:138] Coverage dir ./workdir/oom-51745151a002e10f17f77161aba8ac248b720ca0
+I0930 10:42:58.663746   11110 command.cc:78] Starting fork server for ./oom
+I0930 10:42:58.663997   11110 command.cc:93] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-11110-139994428811072/f428f52ea71a391b4068b61cd036d8479eb049e8_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-11110-139994428811072/f428f52ea71a391b4068b61cd036d8479eb049e8_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_in_seconds=60::address_space_limit_mb=5024::rss_limit_mb=2048::use_pc_features::path_level=0::use_cmp_features::use_dataflow_features::crossover_level=50::shmem:arg1=/centipede-shm1-11110-139994428811072:arg2=/centipede-shm2-11110-139994428811072:failure_description_path=/tmp/centipede-11110-139994428811072/failure_description: \
+./oom \
+/centipede-shm1-11110-139994428811072 \
+/centipede-shm2-11110-139994428811072 \
+> /tmp/centipede-11110-139994428811072/log \
+2>&1 &
+I0930 10:42:58.668708   11110 centipede_default_callbacks.cc:41] No custom mutator detected in the target
+I0930 10:42:58.677653   11119 command.cc:78] Starting fork server for ./oom
+I0930 10:42:58.677780   11119 command.cc:93] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-11110-139994402658048/f428f52ea71a391b4068b61cd036d8479eb049e8_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-11110-139994402658048/f428f52ea71a391b4068b61cd036d8479eb049e8_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_in_seconds=60::address_space_limit_mb=5024::rss_limit_mb=2048::use_pc_features::path_level=0::use_cmp_features::use_dataflow_features::crossover_level=50::shmem:arg1=/centipede-shm1-11110-139994402658048:arg2=/centipede-shm2-11110-139994402658048:failure_description_path=/tmp/centipede-11110-139994402658048/failure_description: \
+./oom \
+/centipede-shm1-11110-139994402658048 \
+/centipede-shm2-11110-139994402658048 \
+> /tmp/centipede-11110-139994402658048/log \
+2>&1 &
+I0930 10:42:58.681706   11119 centipede_default_callbacks.cc:41] No custom mutator detected in the target
+I0930 10:42:58.776552   11119 centipede.cc:419] Shard: 0/1 /tmp/centipede-11110-139994402658048 seed: 139996067203736
+
+
+
+I0930 10:42:58.778316   11119 centipede.cc:181] [0] begin-fuzz: ft: 0 cov: 0 cnt: 0 df: 0 cmp: 0 path: 0 pair: 0 corp: 0/0 fr: 0 max/avg 0 0 d0/f0 exec/s: 0 mb: 260
+I0930 10:42:58.778929   11119 centipede.cc:203] FUNC: LLVMFuzzerTestOneInput /src/centipede/puzzles/./oom.cc:22:0
+I0930 10:42:58.778941   11119 centipede.cc:203] EDGE: LLVMFuzzerTestOneInput /src/centipede/puzzles/./oom.cc:23:17
+I0930 10:42:58.778949   11119 centipede.cc:203] EDGE: LLVMFuzzerTestOneInput /src/centipede/puzzles/./oom.cc:23:35
+I0930 10:42:58.779028   11119 centipede.cc:203] EDGE: LLVMFuzzerTestOneInput /src/centipede/puzzles/./oom.cc:23:53
+I0930 10:42:58.779043   11119 centipede.cc:203] EDGE: LLVMFuzzerTestOneInput /src/centipede/puzzles/./oom.cc:23:7
+I0930 10:42:58.779145   11119 centipede.cc:203] EDGE: LLVMFuzzerTestOneInput /src/centipede/puzzles/./oom.cc:25:17
+I0930 10:42:58.779198   11119 centipede.cc:181] [0] load-shard: ft: 261 cov: 6 cnt: 6 df: 0 cmp: 255 path: 0 pair: 0 corp: 255/255 fr: 0 max/avg 60 5 d0/f0 exec/s: 0 mb: 260
+I0930 10:42:58.779282   11119 centipede.cc:181] [0] init-done: ft: 261 cov: 6 cnt: 6 df: 0 cmp: 255 path: 0 pair: 0 corp: 255/255 fr: 0 max/avg 60 5 d0/f0 exec/s: 0 mb: 260
+I0930 10:42:58.779320   11119 centipede.cc:377] GenerateCoverageReport: ./workdir/coverage-report-oom.000000.txt
+I0930 10:42:58.782042   11119 centipede.cc:545] Batch execution failed; exit code: 6
+Log of batch follows: [[[==================
+Centipede fuzz target runner; argv[0]: ./oom flags: :timeout_in_seconds=60::address_space_limit_mb=5024::rss_limit_mb=2048::use_pc_features::path_level=0::use_cmp_features::use_dataflow_features::crossover_level=50::shmem:arg1=/centipede-shm1-11110-139994402658048:arg2=/centipede-shm2-11110-139994402658048:failure_description_path=/tmp/centipede-11110-139994402658048/failure_description:
+timeout_in_seconds: 60 rss_limit_mb: 2048
+libc++abi: terminating with uncaught exception of type std::bad_alloc: std::bad_alloc
+==================]]]
+I0930 10:42:58.782092   11119 centipede.cc:554] ReportCrash[0]: The crash occurred when running ./oom on 1000 inputs
+I0930 10:42:58.782097   11119 centipede.cc:590] ReportCrash[0]: Executing input 68 out of 1000
+I0930 10:42:58.783806   11119 centipede.cc:574] ReportCrash[0]: Crash detected, saving input to ./workdir/crashes/860ba15ab431851438af3c37ba32c043364f6504
+I0930 10:42:58.783819   11119 centipede.cc:575] Input bytes: OOM
+I0930 10:42:58.783824   11119 centipede.cc:576] Exit code: 6
+I0930 10:42:58.783829   11119 centipede.cc:577] Failure description: 
+I0930 10:42:58.784033   11119 command.cc:78] Starting fork server for ./oom_asan
+I0930 10:42:58.784145   11119 command.cc:93] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-11110-139994402658048/d8207296173f3e6f2f94c09a5092864f9c00564a_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-11110-139994402658048/d8207296173f3e6f2f94c09a5092864f9c00564a_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_in_seconds=60::address_space_limit_mb=5024::rss_limit_mb=2048::crossover_level=50::shmem:arg1=/centipede-shm1-11110-139994402658048:arg2=/centipede-shm2-11110-139994402658048:failure_description_path=/tmp/centipede-11110-139994402658048/failure_description: \
+./oom_asan \
+/centipede-shm1-11110-139994402658048 \
+/centipede-shm2-11110-139994402658048 \
+> /tmp/centipede-11110-139994402658048/log \
+2>&1 &
+I0930 10:43:00.806648   11119 centipede.cc:545] Batch execution failed; exit code: 1
+Log of batch follows: [[[==================
+Centipede fuzz target runner; argv[0]: ./oom_asan flags: :timeout_in_seconds=60::address_space_limit_mb=5024::rss_limit_mb=2048::crossover_level=50::shmem:arg1=/centipede-shm1-11110-139994402658048:arg2=/centipede-shm2-11110-139994402658048:failure_description_path=/tmp/centipede-11110-139994402658048/failure_description:
+timeout_in_seconds: 60 rss_limit_mb: 2048
+Not using RLIMIT_AS; VmSize is 20480Gb, suspecting ASAN/MSAN/TSAN
+========= OOM, RSS limit of 2048Mb exceeded (3497Mb); exiting
+==================]]]
+I0930 10:43:00.806711   11119 centipede.cc:554] ReportCrash[1]: The crash occurred when running ./oom_asan on 1000 inputs
+I0930 10:43:00.806718   11119 centipede.cc:590] ReportCrash[1]: Executing input 68 out of 1000
+I0930 10:43:02.828612   11119 centipede.cc:574] ReportCrash[1]: Crash detected, saving input to ./workdir/crashes/860ba15ab431851438af3c37ba32c043364f6504
+I0930 10:43:02.828642   11119 centipede.cc:575] Input bytes: OOM
+I0930 10:43:02.828649   11119 centipede.cc:576] Exit code: 1
+I0930 10:43:02.828663   11119 centipede.cc:577] Failure description: out-of-memory
+I0930 10:43:02.828781   11119 centipede.cc:279] --exit_on_crash is enabled; exiting soon
+I0930 10:43:02.829782   11119 centipede.cc:181] [0] pulse: ft: 261 cov: 6 cnt: 6 df: 0 cmp: 255 path: 0 pair: 0 corp: 255/255 fr: 0 max/avg 60 5 d0/f0 exec/s: 0 mb: 260
+I0930 10:43:02.829949   11119 centipede.cc:181] [0] end-fuzz: ft: 261 cov: 6 cnt: 6 df: 0 cmp: 255 path: 0 pair: 0 corp: 255/255 fr: 0 max/avg 60 5 d0/f0 exec/s: 0 mb: 260
