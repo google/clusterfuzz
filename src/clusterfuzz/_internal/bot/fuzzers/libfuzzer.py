@@ -74,7 +74,7 @@ MUTATOR_STRATEGIES = [
     strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
 ]
 
-DISABLE_SYMLINK_SANITIZER_VAR = 'SYSTEMSAN_MALICIOUS_SYMLINK_FOLLOWING'
+ENABLE_SYMLINK_SANITIZER_VAR = 'SYSTEMSAN_MALICIOUS_SYMLINK_FOLLOWING'
 
 
 class LibFuzzerException(Exception):
@@ -262,7 +262,8 @@ class LibFuzzerCommon(object):
       additional_args.append(constants.MERGE_CONTROL_FILE_ARGUMENT +
                              merge_control_file)
 
-    extra_env = {DISABLE_SYMLINK_SANITIZER_VAR: '0'}
+    # Disable this sanitizer because libFuzzer uses a predictable temp file.
+    extra_env = {ENABLE_SYMLINK_SANITIZER_VAR: '0'}
     if tmp_dir:
       extra_env['TMPDIR'] = tmp_dir
 
@@ -1115,6 +1116,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     with self._device_file(testcase_path) as device_testcase_path:
       device_output_path = self._get_device_path(output_path)
 
+      # Disable this sanitizer because libFuzzer uses a predictable temp file.
       result = LibFuzzerCommon.cleanse_crash(
           self,
           device_testcase_path,
@@ -1122,7 +1124,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
           timeout,
           artifact_prefix=constants.TMP_ARTIFACT_PREFIX_ARGUMENT,
           additional_args=additional_args,
-          extra_env={DISABLE_SYMLINK_SANITIZER_VAR: '0'})
+          extra_env={ENABLE_SYMLINK_SANITIZER_VAR: '0'})
       if android.adb.file_exists(device_output_path):
         android.adb.copy_remote_file_to_local(device_output_path, output_path)
 
