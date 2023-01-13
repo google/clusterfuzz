@@ -90,7 +90,7 @@
       }
     </style>
     <ajax-dialog
-        id="dialog-simplified"
+        id="simplifiedDialog"
         url="[[fieldValues.uploadInfo.url]]"
         title="Upload testcase (quick mode)"
         content-type=""
@@ -311,7 +311,7 @@
           return;
         }
 
-        this.$.dialog.$.ajax.body = uploadData;
+        this.$.simplifiedDialog.$.ajax.body = uploadData;
       }
 
       computeFinishBody() {
@@ -340,7 +340,7 @@
           alert(
               'Multiple testcases are uploaded. Please wait for ClusterFuzz to '
               + 'unpack and create all testcases.');
-          this.$.dialog.close();
+          this.$.simplifiedDialog.close();
         } else {
           window.location.href = '/testcase-detail/' + ev.detail.response.id;
         }
