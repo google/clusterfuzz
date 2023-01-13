@@ -139,6 +139,11 @@
             </paper-listbox>
           </paper-dropdown-menu>
         </template>
+        <template is="dom-if" if="[[shouldShowFilepathError(uploadParams.file)]]">
+          <div class="warning">
+            <p> You are using an uncommon archive or file type - make sure this is the file you intend to upload. </p>
+          </div>
+        </template>
       </div>
       <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
         <div class="warning">
@@ -230,6 +235,13 @@
           return false;
         }
         return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf');
+      }
+
+      shouldShowFilepathError(filePath) {
+        if (!filePath) {
+          return false;
+        }
+        return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf') && !filePath.includes('.zip') && !filePath.includes('.tar') && !filePath.includes('.rar') && !filePath.includes('.7z');
       }
 
       getJobType(file, fileType, platform) {
