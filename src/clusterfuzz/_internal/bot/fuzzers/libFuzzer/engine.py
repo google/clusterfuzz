@@ -133,7 +133,7 @@ class Engine(engine.Engine):
     arguments.extend(strategy_info.arguments)
     # Update strategy info with environment variables from fuzzer's options.
     if extra_env is not None:
-      for env_var_name, value in extra_env:
+      for env_var_name, value in extra_env.items():
         if env_var_name not in strategy_info.extra_env:
           strategy_info.extra_env[env_var_name] = value
 
