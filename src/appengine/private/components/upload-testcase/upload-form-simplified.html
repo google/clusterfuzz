@@ -287,6 +287,9 @@
         if (jobMapping[fileTypeKey] && jobMapping[fileTypeKey][platform]) {
           let newJob = jobMapping[fileTypeKey][platform];
           this.set('uploadParams.job', newJob);
+          if (newJob.includes('pdfium')) {
+            this.set('uploadParams.target', 'pdfium_xfa_fuzzer')
+          }
           return newJob;
         } else {
           // We should never get here. Throw an error and perhaps work on displaying it if need be, later.
