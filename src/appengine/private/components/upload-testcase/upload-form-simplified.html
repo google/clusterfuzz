@@ -302,6 +302,16 @@
       }
 
       computeGcsBody() {
+        if (!this.uploadParams.issue) {
+          let skipIssue = confirm("You have not specified a bug number. Continue?");
+          if (!skipIssue) {
+            return;
+          }
+        }
+        if (this.uploadParams.file.includes('js') && this.uploadParams.platform == 'Android') {
+          alert("Running Javascript on Android is not supported");
+          return;
+        }
         var uploadData = new FormData();
         uploadData.append('bucket', this.fieldValues.uploadInfo.bucket);
         uploadData.append('key', this.fieldValues.uploadInfo.key);
