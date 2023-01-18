@@ -230,26 +230,30 @@
             window.query.get(), this.paramKeys);
       }
 
+      isArchive(filePath) {
+        return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf');
+      }
+
       shouldShowFiletypePicker(filePath) {
         if (!filePath) {
           return false;
         }
-        return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf');
+        return this.isArchive(filePath);
       }
 
       shouldShowFilepathError(filePath) {
         if (!filePath) {
           return false;
         }
-        return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf') && !filePath.includes('.zip') && !filePath.includes('.tar') && !filePath.includes('.rar') && !filePath.includes('.7z');
+        let isCommonArchiveType = !filePath.includes('.zip') && !filePath.includes('.tar') && !filePath.includes('.rar') && !filePath.includes('.7z');
+        return this.isArchive(filePath) && isCommonArchiveType;
       }
 
-      getJobType(file, fileType, platform) {
-        if (!file || !platform) {
+      getJobType(filePath, fileType, platform) {
+        if (!filePath || !platform) {
           return;
         }
-        let fileName = file;
-        let isArchive = !fileName.includes('.html') && !fileName.includes('.js') && !fileName.includes('.pdf');
+        let isArchive = this.isArchive(filePath);
         if (isArchive && !fileType) {
           return;
         }
@@ -282,7 +286,7 @@
         if (isArchive) {
           fileTypeKey = fileType;
         } else {
-          fileTypeKey = file.split('.').pop();
+          fileTypeKey = filePath.split('.').pop();
         }
         if (jobMapping[fileTypeKey] && jobMapping[fileTypeKey][platform]) {
           let newJob = jobMapping[fileTypeKey][platform];
@@ -293,7 +297,7 @@
           return newJob;
         } else {
           // We should never get here. Throw an error and perhaps work on displaying it if need be, later.
-          throw 'The combo of platform: ' + platform + ' and file: ' + file + 'and maybe the fileType was unexpected!'
+          throw 'The combo of platform: ' + platform + ' and file: ' + filePath + 'and maybe the fileType was unexpected!'
         }
       }
 
