@@ -3358,7 +3358,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('pysecsan_command_os_system.txt')
     expected_type = 'PySecSan'
     expected_address = ''
-    expected_state = 'abort_with_issue\nhook_pre_exec_os_system\nrun\n'
+    # abort is ignore by the stack parsing, so do not include this in the
+    # expected_state.
+    expected_state = 'hook_pre_exec_os_system\nrun\nlist_files_perhaps\n'
     expected_stacktrace = data
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,

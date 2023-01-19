@@ -6,8 +6,8 @@ INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed: 1878115395
 INFO:        0 files found in /tmp/os_command_injection_corpus
 INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
-[PYSECSAN] =================================================================
-[PYSECSAN] ===BUG DETECTED: PySecSan: Command injection ===
+=================================================================
+===BUG DETECTED: PySecSan: Command injection ===
 [PYSECSAN] code injection by way of os.system
 Fuzzer-controlled data in command string. Injection potential.
 [PYSECSAN] Stacktrace:
