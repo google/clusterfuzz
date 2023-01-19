@@ -30,7 +30,7 @@ from clusterfuzz._internal import fuzzing
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER'
 ]
 
 SANITIZER_NAME_MAP = {
@@ -39,6 +39,7 @@ SANITIZER_NAME_MAP = {
     'MSAN': 'memory',
     'TSAN': 'thread',
     'UBSAN': 'undefined',
+    'NOSANITIZER': 'nosanitizer',
 }
 
 COMMON_SANITIZER_OPTIONS = {
@@ -213,7 +214,7 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
 def get_cpu_arch():
   """Return cpu architecture."""
-  if is_android() and not is_android_emulator():
+  if is_android():
     # FIXME: Handle this import in a cleaner way.
     from clusterfuzz._internal.platforms import android
     return android.settings.get_cpu_arch()
@@ -483,7 +484,7 @@ def get_msan_options():
 def get_platform_id():
   """Return a platform id as a lowercase string."""
   bot_platform = platform()
-  if is_android_cuttlefish() or is_android_emulator():
+  if is_android_cuttlefish():
     return bot_platform.lower()
   if is_android(bot_platform):
     # FIXME: Handle this import in a cleaner way.
@@ -630,7 +631,7 @@ def _job_substring_match(search_string, job_name):
 
 
 def is_afl_job(job_name=None):
-  """Return true if the current job uses AFL."""
+  """Return True if the current job uses AFL."""
   return get_engine_for_job(job_name) == 'afl'
 
 
@@ -656,22 +657,27 @@ def is_chromeos_system_job(job_name=None):
 
 
 def is_libfuzzer_job(job_name=None):
-  """Return true if the current job uses libFuzzer."""
+  """Return True if the current job uses libFuzzer."""
   return get_engine_for_job(job_name) == 'libFuzzer'
 
 
 def is_honggfuzz_job(job_name=None):
-  """Return true if the current job uses honggfuzz."""
+  """Return True if the current job uses honggfuzz."""
   return get_engine_for_job(job_name) == 'honggfuzz'
 
 
 def is_kernel_fuzzer_job(job_name=None):
-  """Return true if the current job uses syzkaller."""
+  """Return True if the current job uses syzkaller."""
   return get_engine_for_job(job_name) == 'syzkaller'
 
 
+def is_centipede_fuzzer_job(job_name=None):
+  """Return True if the current job uses Centipede."""
+  return get_engine_for_job(job_name) == 'centipede'
+
+
 def is_engine_fuzzer_job(job_name=None):
-  """Return true if this is an engine fuzzer."""
+  """Return True if this is an engine fuzzer."""
   return bool(get_engine_for_job(job_name))
 
 
@@ -688,7 +694,7 @@ def get_engine_for_job(job_name=None):
 
 
 def is_posix():
-  """Return true if we are on a posix platform (linux/unix and mac os)."""
+  """Return True if we are on a posix platform (linux/unix and mac os)."""
   return os.name == 'posix'
 
 
@@ -859,6 +865,7 @@ def reset_current_memory_tool_options(redzone_size=0,
   set_value('MEMORY_TOOL', tool_name)
 
   bot_platform = platform()
+  tool_options = {}
 
   # Default options for memory debuggin tool used.
   if tool_name in ['ASAN', 'HWASAN']:
@@ -1048,7 +1055,7 @@ def bot_noop(func):
 
 
 def is_local_development():
-  """Return true if running in local development environment (e.g. running
+  """Return True if running in local development environment (e.g. running
   a bot locally, excludes tests)."""
   return bool(get_value('LOCAL_DEVELOPMENT') and not get_value('PY_UNITTESTS'))
 
@@ -1073,25 +1080,24 @@ def is_ephemeral():
 
 
 def is_android(plt=None):
-  """Return true if we are on android platform."""
+  """Return True if we are on android platform."""
   return 'ANDROID' in (plt or platform())
 
 
 def is_android_cuttlefish(plt=None):
-  """Return true if we are on android cuttlefish platform."""
+  """Return True if we are on android cuttlefish platform."""
   return 'ANDROID_X86' in (plt or platform())
 
 
-def is_android_emulator(plt=None):
-  """Return true if we are on android emulator platform."""
-  return 'ANDROID_EMULATOR' == (plt or platform())
-
-
 def is_android_kernel(plt=None):
-  """Return true if we are on android kernel platform groups."""
+  """Return True if we are on android kernel platform groups."""
   return 'ANDROID_KERNEL' in (plt or get_platform_group())
 
 
 def is_lib():
   """Whether or not we're in libClusterFuzz."""
   return get_value('LIB_CF')
+
+
+def is_i386(job_type):
+  return '_i386' in job_type

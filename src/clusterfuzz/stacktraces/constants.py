@@ -64,6 +64,8 @@ ASSERT_REGEX_GOOGLE = re.compile(GOOGLE_LOG_FATAL_PREFIX +
 ASSERT_REGEX_GLIBC = re.compile(
     r'.*:\s*assertion [`\'"]?(.*?)[`\'"]? failed\.?$', re.IGNORECASE)
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
+CENTIPEDE_TIMEOUT_REGEX = re.compile(
+    r'^========= Timeout of \d+ seconds exceeded; exiting')
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
     r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
@@ -93,6 +95,10 @@ MSAN_TSAN_REGEX = re.compile(
     r'.*(ThreadSanitizer|MemorySanitizer):\s+(?!ABRT)(?!ILL)([^(:]+)')
 EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX = re.compile(
     r'===BUG DETECTED: Shell (corruption|injection)===')
+EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX = re.compile(
+    r'===BUG DETECTED: Arbitrary file open===')
+EXTRA_SANITIZERS_ARBITRARY_DNS = re.compile(
+    r'===BUG DETECTED: Arbitrary domain name resolution===')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
@@ -109,6 +115,8 @@ GPU_PROCESS_FAILURE = re.compile(r'.*GPU process exited unexpectedly.*')
 HWASAN_ALLOCATION_TAIL_OVERWRITTEN_ADDRESS_REGEX = re.compile(
     r'.*ERROR: HWAddressSanitizer: allocation-tail-overwritten; '
     r'heap object \[([xX0-9a-fA-F]+),.*of size')
+JAZZER_JAVA_SECURITY_EXCEPTION_REGEX = re.compile(
+    '== Java Exception: .*FuzzerSecurityIssue')
 JAZZER_JAVA_EXCEPTION_REGEX = re.compile('== Java Exception: .*')
 JAVA_EXCEPTION_CRASH_STATE_REGEX = re.compile(r'\s*at (.*)\(.*\)')
 KERNEL_BUG = re.compile(r'kernel BUG at (.*)')
@@ -164,7 +172,8 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'couldnt allocate.*Out of memory',
     r'libFuzzer: out-of-memory \(',
     r'rss limit exhausted',
-    r'in rust_oom'
+    r'in rust_oom',
+    r'Failure description: out-of-memory',  # Centipede.
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
@@ -268,6 +277,7 @@ V8_ABORT_METADATA_REGEX = re.compile(r'(.*) \[(.*):\d+\]$')
 V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
 V8_CORRECTNESS_METADATA_REGEX = re.compile(
     r'#\s*V8 correctness ((configs|sources|suppression): .*)')
+V8_ERROR_REGEX = re.compile(r'\s*\[[^\]]*\] V8 error: (.+)\.$')
 WINDOWS_CDB_STACK_FRAME_REGEX = re.compile(
     r'([0-9a-zA-Z`]+) '  # Child EBP or SP; remove ` if needed (1)
     r'([0-9a-zA-Z`]+) '  # RetAddr; remove ` if needed (2)
@@ -281,6 +291,10 @@ WINDOWS_CDB_CRASH_TYPE_REGEX = re.compile(
     r'.*DEFAULT_BUCKET_ID[ ]*[:][ ]*([a-zA-Z_]+)')
 WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
     r'.*ExceptionCode: .*\(Stack overflow\).*')
+WINDOWS_SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: illegal-instruction')
+
+WYCHEPROOF_JAVA_EXCEPTION = re.compile(
+    r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-z0-9]*\))')
 
 # Golang specific regular expressions.
 GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(
@@ -373,7 +387,6 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^SignalAction',
     r'^SignalHandler',
     r'^TestOneProtoInput',
-    r'^V8_Fatal',
     r'^WTF::',
     r'^WTFCrash',
     r'^X11Error',
@@ -462,6 +475,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'^std::sys_common::backtrace',
     r'^__rust_start_panic',
     r'^__scrt_common_main_seh',
+    r'^libgcc_s.so.*',
 
     # Functions names (contains).
     r'.*ASAN_OnSIGSEGV',
@@ -522,6 +536,8 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*/vctools/crt/',
     r'.*/win_toolchain/',
     r'.*libc\+\+/',
+    # Clusterfuzz file paths on Windows to ignore.
+    r'c:/clusterfuzz/bot/build',
 
     # Wrappers from honggfuzz/libhfuzz/memorycmp.c.
     r'.*/memorycmp\.c',
@@ -554,6 +570,15 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # googlefuzztest specific.
     r'.*fuzztest::internal::',
+
+    # V8 specific.
+    r'^V8_Fatal',
+    # Ignore error-throwing frames, the bug is in the caller.
+    r'^blink::ReportV8FatalError',
+    r'^v8::api_internal::ToLocalEmpty',
+
+    # google3 specific stack frame ignores.
+    r'^absl::log_internal::',
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
@@ -565,6 +590,7 @@ STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
 ]
 
 IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
+    'Arbitrary file open',
     'ASSERT',
     'CHECK failure',
     'Command injection',
@@ -572,6 +598,7 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'V8 API error',
 ]
 
 STATE_STOP_MARKERS = [

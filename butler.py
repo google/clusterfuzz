@@ -104,15 +104,10 @@ def main():
       description='Butler is here to help you with command-line tasks.')
   subparsers = parser.add_subparsers(dest='command')
 
-  parser_bootstrap = subparsers.add_parser(
+  subparsers.add_parser(
       'bootstrap',
       help=('Install all required dependencies for running an appengine, a bot,'
             'and a mapreduce locally.'))
-  parser_bootstrap.add_argument(
-      '-r',
-      '--only-reproduce',
-      action='store_true',
-      help='Only install dependencies needed for the reproduce tool.')
 
   parser_py_unittest = subparsers.add_parser(
       'py_unittest', help='Run Python unit tests.')
@@ -253,47 +248,6 @@ def main():
 
   subparsers.add_parser(
       'integration_tests', help='Run end-to-end integration tests.')
-
-  parser_reproduce = subparsers.add_parser(
-      'reproduce', help='Reproduce a crash or error from a test case.')
-  parser_reproduce.add_argument(
-      '-t', '--testcase', required=True, help='Testcase URL.')
-  parser_reproduce.add_argument(
-      '-b',
-      '--build-dir',
-      required=True,
-      help='Build directory containing the target app and dependencies.')
-  parser_reproduce.add_argument(
-      '-i',
-      '--iterations',
-      default=10,
-      help='Number of times to attempt reproduction.')
-  parser_reproduce.add_argument(
-      '-dx',
-      '--disable-xvfb',
-      action='store_true',
-      help='Disable running test case in a virtual frame buffer.')
-  parser_reproduce.add_argument(
-      '-da',
-      '--disable-android-setup',
-      action='store_true',
-      help='Skip Android device setup. Speeds up Android reproduction, but '
-      'assumes the device has already been configured by the tool.')
-  parser_reproduce.add_argument(
-      '-v',
-      '--verbose',
-      action='store_true',
-      help='Print additional log messages while running.')
-  parser_reproduce.add_argument(
-      '-e',
-      '--emulator',
-      action='store_true',
-      help='Run and attempt to reproduce a crash using the Android emulator.')
-  parser_reproduce.add_argument(
-      '-a',
-      '--application',
-      help='Name of the application binary to run. Only required if it '
-      'differs from the one the test case was discovered with.')
 
   args = parser.parse_args()
   if not args.command:

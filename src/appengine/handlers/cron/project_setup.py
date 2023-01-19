@@ -137,15 +137,28 @@ GFT_MSAN_JOB = JobInfo('googlefuzztest_msan_', 'googlefuzztest', 'memory',
 GFT_UBSAN_JOB = JobInfo('googlefuzztest_ubsan_', 'googlefuzztest', 'undefined',
                         ['googlefuzztest', 'engine_ubsan'])
 
+CENTIPEDE_ASAN_JOB = JobInfo('centipede_asan_', 'centipede', 'address',
+                             ['centipede', 'engine_asan'])
+
+LIBFUZZER_NONE_JOB = JobInfo('libfuzzer_nosanitizer_', 'libfuzzer', 'none',
+                             ['libfuzzer', 'prune'])
+LIBFUZZER_NONE_I386_JOB = JobInfo(
+    'libfuzzer_nosanitizer_i386_',
+    'libfuzzer',
+    'none', ['libfuzzer', 'prune'],
+    architecture='i386')
+
 JOB_MAP = {
     'libfuzzer': {
         'x86_64': {
             'address': LIBFUZZER_ASAN_JOB,
             'memory': LIBFUZZER_MSAN_JOB,
             'undefined': LIBFUZZER_UBSAN_JOB,
+            'none': LIBFUZZER_NONE_JOB,
         },
         'i386': {
             'address': LIBFUZZER_ASAN_I386_JOB,
+            'none': LIBFUZZER_NONE_I386_JOB,
         },
     },
     'afl': {
@@ -169,7 +182,12 @@ JOB_MAP = {
         'x86_64': {
             'address': NO_ENGINE_ASAN_JOB,
         }
-    }
+    },
+    'centipede': {
+        'x86_64': {
+            'address': CENTIPEDE_ASAN_JOB,
+        },
+    },
 }
 
 DEFAULT_ARCHITECTURES = ['x86_64']
@@ -428,6 +446,8 @@ def ccs_from_info(info):
       return field_value
     if isinstance(field_value, str):
       return [field_value]
+    if field_value is None:
+      return []
 
     raise ProjectSetupError(f'Bad value for field {field_name}: {field_value}.')
 
@@ -642,8 +662,12 @@ class ProjectSetup(object):
 
   def _create_service_accounts_and_buckets(self, project, info):
     """Create per-project service account and buckets."""
-    service_account = service_accounts.get_or_create_service_account(project)
-    service_accounts.set_service_account_roles(service_account)
+    service_account, exists = service_accounts.get_or_create_service_account(
+        project)
+    if not exists:
+      # TODO(ochang): Temporary hack to get around
+      # https://github.com/google/clusterfuzz/issues/2775.
+      service_accounts.set_service_account_roles(service_account)
 
     # Create GCS buckets.
     backup_bucket_name = self._backup_bucket_name(project)
@@ -756,14 +780,27 @@ class ProjectSetup(object):
 
       job.templates = template.cf_job_templates
 
+      # Centipede always uses unsanitized binary as the main fuzz target.
+      if template.engine == 'centipede':
+        build_bucket_path = self._get_build_bucket_path(
+            project, info, template.engine, 'none', template.architecture)
+      else:
+        build_bucket_path = self._get_build_bucket_path(
+            project, info, template.engine, template.memory_tool,
+            template.architecture)
       job.environment_string = JOB_TEMPLATE.format(
           build_type=self._build_type,
-          build_bucket_path=self._get_build_bucket_path(
-              project, info, template.engine, template.memory_tool,
-              template.architecture),
+          build_bucket_path=build_bucket_path,
           engine=template.engine,
           project=project)
 
+      # Centipede requires a separate build of the sanitized binary.
+      if template.engine == 'centipede':
+        extra_build_bucket_path = self._get_build_bucket_path(
+            project, info, template.engine, template.memory_tool,
+            template.architecture)
+        job.environment_string += (
+            f'EXTRA_BUILD_BUCKET_PATH = {extra_build_bucket_path}\n')
       if self._add_revision_mappings:
         revision_vars_url = self._revision_url_template.format(
             project=project,
@@ -981,6 +1018,12 @@ class Handler(base_handler.Handler):
       logs.log_error('Failed to get googlefuzztest Fuzzer entity.')
       return
 
+    centipede = data_types.Fuzzer.query(
+        data_types.Fuzzer.name == 'centipede').get()
+    if not centipede:
+      logs.log_error('Failed to get Centipede Fuzzer entity.')
+      return
+
     project_config = local_config.ProjectConfig()
     segregate_projects = project_config.get('segregate_projects')
     project_setup_configs = project_config.get('project_setup')
@@ -989,6 +1032,7 @@ class Handler(base_handler.Handler):
 
     fuzzer_entities = {
         'afl': afl.key,
+        'centipede': centipede.key,
         'honggfuzz': honggfuzz.key,
         'googlefuzztest': gft.key,
         'libfuzzer': libfuzzer.key,
@@ -1017,6 +1061,7 @@ class Handler(base_handler.Handler):
               'googlefuzztest': bucket_config.get('googlefuzztest'),
               'none': bucket_config.get('no_engine'),
               'dataflow': bucket_config.get('dataflow'),
+              'centipede': bucket_config.get('centipede'),
           },
           fuzzer_entities=fuzzer_entities,
           add_info_labels=setup_config.get('add_info_labels', False),

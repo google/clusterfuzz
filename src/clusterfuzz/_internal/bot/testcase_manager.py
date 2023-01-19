@@ -91,6 +91,15 @@ class TargetNotFoundError(TestcaseManagerError):
   """Error when a fuzz target is not found."""
 
 
+def set_extra_sanitizers(crash_type):
+  """Set extra sanitizers based on crash_type."""
+  if crash_type in crash_analyzer.EXTRA_SANITIZERS_SECURITY:
+    environment.set_value('USE_EXTRA_SANITIZERS', True)
+    environment.disable_lsan()
+  else:
+    environment.set_value('USE_EXTRA_SANITIZERS', False)
+
+
 def create_testcase_list_file(output_directory):
   """Create a testcase list file for tests in a directory."""
   files_list = []
@@ -714,6 +723,7 @@ class TestcaseRunner(object):
   def test_reproduce_reliability(self, retries, expected_state,
                                  expected_security_flag) -> bool:
     """Test to see if a crash is fully reproducible or is a one-time crasher."""
+    logs.log("Beginning a reproducibility test.")
     self._pre_run_cleanup()
 
     reproducible_crash_target_count = retries * REPRODUCIBILITY_FACTOR
@@ -766,6 +776,7 @@ def test_for_crash_with_retries(testcase,
                                 crash_retries=None):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
+  set_extra_sanitizers(testcase.crash_type)
   gestures = testcase.gestures if use_gestures else None
   try:
     fuzz_target = testcase.get_fuzz_target()
@@ -796,6 +807,7 @@ def test_for_crash_with_retries(testcase,
 def test_for_reproducibility(fuzzer_name,
                              full_fuzzer_name,
                              testcase_path,
+                             crash_type,
                              expected_state,
                              expected_security_flag,
                              test_timeout,
@@ -803,6 +815,7 @@ def test_for_reproducibility(fuzzer_name,
                              gestures,
                              arguments=None) -> bool:
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
+  set_extra_sanitizers(crash_type)
   try:
     fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
     if engine.get(fuzzer_name) and not fuzz_target:

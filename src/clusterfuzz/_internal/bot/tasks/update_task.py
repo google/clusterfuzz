@@ -170,10 +170,7 @@ def run_platform_init_scripts():
   logs.log('Running platform initialization scripts.')
 
   plt = environment.platform()
-  if environment.is_android_emulator():
-    # Nothing to do here since emulator is not started yet.
-    pass
-  elif environment.is_android():
+  if environment.is_android():
     android_init.run()
   elif plt == 'CHROMEOS':
     chromeos_init.run()

@@ -549,7 +549,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
   def test_java_manual_security_exception(self):
     """Tests for Java exceptions manually marked as security issues."""
     data = self._read_test_data('java_severity_medium_exception.txt')
-    expected_type = 'Uncaught exception'
+    expected_type = 'Security exception'
     expected_address = ''
     expected_state = ('com.example.JsonSanitizerFuzzer.fuzzerTestOneInput\n'
                       'com.google.gson.Gson.fromJson\n'
@@ -963,6 +963,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_state = ''
     expected_stacktrace = ''
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_to_local_empty(self):
+    """Test a failure in ToLocalEmpty, which is actually a bug in the caller
+    of that method."""
+    data = self._read_test_data('v8_to_local_empty.txt')
+    expected_type = 'V8 API error'
+    expected_address = ''
+    expected_state = ('Empty MaybeLocal. (v8::ToLocalChecked)\n'
+                      'blink::V8ContextSnapshotImpl::CreateContext\n'
+                      'blink::V8ContextSnapshot::CreateContextFromSnapshot\n'
+                      'blink::LocalWindowProxy::CreateContext\n')
+    expected_stacktrace = data
     expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
@@ -2369,6 +2386,36 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_oom(self):
+    """Test centipede's out of memory stacktrace."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('centipede_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = 'NULL'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_centipede_timeout(self):
+    """Test a centipede timeout stacktrace (with reporting enabled)."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('centipede_timeout.txt')
+    expected_type = 'Timeout'
+    expected_address = ''
+    expected_state = 'NULL'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_libfuzzer_timeout_enabled(self):
     """Test a libFuzzer timeout stacktrace (with reporting enabled)."""
     os.environ['FUZZ_TARGET'] = 'pdfium_fuzzer'
@@ -3026,6 +3073,19 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_python_unhandled_exception_with_fuzz_target_exited(self):
+    """Test python stacktrace with a libFuzzer fuzz target exited error."""
+    data = self._read_test_data('python_exception_with_fuzz_target_exited.txt')
+    expected_type = 'Uncaught exception'
+    expected_address = ''
+    expected_state = 'parse_mime_type\nparse_media_range\n<listcomp>\n'
+
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_gdb_sigtrap(self):
     """Test for GDB stack."""
     data = self._read_test_data('gdb_sigtrap.txt')
@@ -3269,6 +3329,30 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_capture_arbitrary_file_open(self):
+    """Test capturing arbitrary file open detected by extra sanitizers"""
+    data = self._read_test_data('arbitrary_file_open_bug.txt')
+    expected_type = 'Arbitrary file open'
+    expected_address = ''
+    expected_state = 'wait4\ndo_system\ntarget.cpp\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_dns_resolution(self):
+    """Test capturing command injection bugs detected by extra sanitizers"""
+    data = self._read_test_data('dns.txt')
+    expected_type = 'Arbitrary DNS resolution'
+    expected_address = ''
+    expected_state = '__sendmmsg\nsend_dg\n__res_context_send\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_sanitizer_out_of_memory(self):
     """Test sanitizer out of memory."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
@@ -3297,6 +3381,73 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'gonids.(*Rule).option\n'
                       'gonids.parseRuleAux\n')
 
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_wycheproof(self):
+    data = self._read_test_data('wycheproof.txt')
+    expected_type = 'Wycheproof error'
+    expected_state = 'testLargeArrayAlias(com.google.security.wycheproof.AesGcmTest)\n'
+    expected_stacktrace = data
+    expected_address = ''
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ignore_libgcc_s(self):
+    """Test ignore libgcc_s.so.1"""
+    data = self._read_test_data('libgcc_s.txt')
+    expected_type = 'UNKNOWN READ'
+    expected_state = 'NULL'
+    expected_address = '0x7df7ff9da4bf'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ignore_absl_log_internal(self):
+    """Test ignore absl::log_internal::*"""
+    data = self._read_test_data('absl_log_internal.txt')
+    expected_type = 'Fatal error'
+    expected_state = ('INTERNAL: Found a difference in '
+                      'profile_expansion_util_fuzzer.cc\n'
+                      'Die\nprofile_expansion_util_fuzzer.cc\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ignore_clusterfuzz_file_paths(self):
+    """Test ignore ClusterFuzz specific file paths"""
+    data = self._read_test_data('windows_crash_log.txt')
+    expected_type = 'Heap-use-after-free\nREAD 8'
+    expected_state = ('tint::resolver::Resolver::TypeDecl\n'
+                      'tint::resolver::Resolver::ResolveInternal\n'
+                      'tint::resolver::Resolver::Resolve\n')
+    expected_address = '0x1233a3fa0e08'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_sanitizer_ill_on_windows(self):
+    """Test categorizing illegal-instruction as ill for consistency with Linux/Posix"""
+    data = self._read_test_data('sanitizer_illegal_instruction_windows.txt')
+    expected_type = 'Ill'
+    expected_state = (
+        'blink::NGBlockLayoutAlgorithm::HandleTextControlPlaceholder\n'
+        'blink::NGBlockLayoutAlgorithm::Layout\n'
+        'blink::NGBlockLayoutAlgorithm::Layout\n')
+    expected_address = '0x7ffa8b2a0145'
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,

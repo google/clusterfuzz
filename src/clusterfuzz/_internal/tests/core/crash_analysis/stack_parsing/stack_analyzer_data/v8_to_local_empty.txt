@@ -1,0 +1,335 @@
+[Environment] ASAN_OPTIONS=alloc_dealloc_mismatch=0:allocator_may_return_null=1:allow_user_segv_handler=0:check_malloc_usable_size=0:coverage=0:detect_leaks=0:detect_odr_violation=0:detect_stack_use_after_return=1:external_symbolizer_path="c:\clusterfuzz\resources\platform\windows\llvm-symbolizer.exe":fast_unwind_on_fatal=1:handle_abort=1:handle_segv=1:handle_sigbus=1:handle_sigfpe=1:handle_sigill=1:max_uar_stack_size_log=16:print_scariness=1:print_summary=1:print_suppressions=0:quarantine_size_mb=10:redzone=32:strict_memcmp=0:strip_path_prefix="\..\..\":symbolize=1:symbolize_inline_frames=false:use_sigaltstack=1
+[Command line] c:\clusterfuzz\bot\builds\chromium-browser-asan_win32-release_x64_e8abf88e7a5ec8bcd0cd391cfae402f143e8ddb2\revisions\asan-win32-release_x64-1031019\chrome.exe --user-data-dir=c:\tmp\user_profile_0 --disable-popup-blocking --js-flags="--expose-gc" --disable-features=RendererCodeIntegrity --enable-experimental-web-platform-features c:\clusterfuzz\bot\inputs\fuzzer-common-data-bundles\crashtests\5643134027956224\fuzz-14.html
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Error installing extension 'v8/gc'.
+[5412:1600:0803/071423.179:ERROR:device_event_log_impl.cc(214)] [07:14:23.164] Bluetooth: bluetooth_adapter_winrt.cc:714 GetBluetoothAdapterStaticsActivationFactory failed: Class not registered (0x80040154)
+[104:3220:0803/071419.059:FATAL:v8_initializer.cc(716)] V8 error: Empty MaybeLocal. (v8::ToLocalChecked).
+Backtrace:
+ base::debug::CollectStackTrace [0x00007FFE913FFCF2+18] (base/debug/stack_trace_win.cc:329)
+ base::debug::StackTrace::StackTrace [0x00007FFE93CBFC2A+26] (base/debug/stack_trace.cc:218)
+ logging::LogMessage::~LogMessage [0x00007FFE91273008+664] (base/logging.cc:665)
+ blink::ReportV8FatalError [0x00007FFE99FDFB31+481] (third_party/blink/renderer/bindings/core/v8/v8_initializer.cc:716)
+ v8::api_internal::ToLocalEmpty [0x00007FFE8C784937+103] (v8/src/api/api.cc:907)
+ blink::V8ContextSnapshotImpl::CreateContext [0x00007FFEA0A75644+1456] (third_party/blink/renderer/bindings/modules/v8/v8_context_snapshot_impl.cc:354)
+ blink::V8ContextSnapshot::CreateContextFromSnapshot [0x00007FFE9B0460A8+24] (third_party/blink/renderer/bindings/core/v8/v8_context_snapshot.cc:28)
+ blink::LocalWindowProxy::CreateContext [0x00007FFE9CEFE89F+1615] (third_party/blink/renderer/bindings/core/v8/local_window_proxy.cc:237)
+ blink::LocalWindowProxy::Initialize [0x00007FFE9CEFC4DE+1630] (third_party/blink/renderer/bindings/core/v8/local_window_proxy.cc:160)
+ blink::Frame::GetWindowProxy [0x00007FFE96200F50+48] (third_party/blink/renderer/core/frame/frame.cc:271)
+ blink::DOMWindow::Wrap [0x00007FFE995DEA51+577] (third_party/blink/renderer/core/frame/dom_window.cc:70)
+ blink::bindings::V8ReturnValue::SetWrapper<v8::FunctionCallbackInfo<v8::Value> > [0x00007FFE96B2B3B1+271] (third_party/blink/renderer/platform/bindings/v8_set_return_value.h:69)
+ blink::bindings::V8SetReturnValue<v8::FunctionCallbackInfo<v8::Value> > [0x00007FFEA1EF21AF+372] (third_party/blink/renderer/platform/bindings/v8_set_return_value.h:362)
+ blink::`anonymous namespace'::v8_window::OpenOperationCallback [0x00007FFEA203E570+3673] (out/Release_x64/gen/third_party/blink/renderer/bindings/modules/v8/v8_window.cc:14219)
+ v8::internal::FunctionCallbackArguments::Call [0x00007FFE8C907831+1009] (v8/src/api/api-arguments-inl.h:146)
+ v8::internal::`anonymous namespace'::HandleApiCallHelper<0> [0x00007FFE8C904CC7+2711] (v8/src/builtins/builtins-api.cc:112)
+ v8::internal::Builtin_Impl_HandleApiCall [0x00007FFE8C902422+978] (v8/src/builtins/builtins-api.cc:143)
+ v8::internal::Builtin_HandleApiCall [0x00007FFE8C901780+304] (v8/src/builtins/builtins-api.cc:130)
+ (No symbol) [0x00007FFE3FED01BC]
+Task trace:
+Backtrace:
+ blink::HTMLDocumentParser::SchedulePumpTokenizer [0x00007FFE99D45FFB+779] (third_party/blink/renderer/core/html/parser/html_document_parser.cc:927)
+ IPC::`anonymous namespace'::ChannelAssociatedGroupController::Accept [0x00007FFE91F60565+3377] (ipc/ipc_mojo_bootstrap.cc:952)
+Crash keys:
+  "view-count" = "2"
+  "loaded-origin-0" = "null"
+  "web-frame-count" = "2"
+  "top-origin" = "null"
+  "url-chunk" = "file:///C:/clusterfuzz/bot/inputs/fuzzer-common-data-bundles/crashtests/5643134027956224/fuzz-14.html"
+  "gpu-generation-intel" = "0"
+  "gpu-vsver" = "1.00"
+  "gpu-psver" = "1.00"
+  "gpu-driver" = "10.0.14393.576"
+  "gpu-rev" = "0"
+  "gpu-subid" = "0x00000000"
+  "gpu-devid" = "0x008c"
+  "gpu-venid" = "0x1414"
+  "blink_scheduler_async_stack" = "0x7FFE99D45FFB 0x7FFE91F60565"
+  "v8_code_space_firstpage_address" = "0x7ffe20000000"
+  "v8_ro_space_firstpage_address" = "0x1d8200000000"
+  "v8_isolate_address" = "0x1328ce7a0400"
+  "variations" = "313957be-3ef44cd2,2510663e-3f4a17df,df319cb2-27e0e1e8,c264dd48-8a1381f4,7bf7991d-3f4a17df,d6284ba0-3be74c4d,13e2821-b8f74491,eddd0d82-3f4a17df,cae31965-2f8546fe,826f3281-92742f4b,afb5d7b8-3f4a17df,3c98d047-3f4a17df,4d936449-fd549ada,6cbcf5b7-3f4a17df,250dda8b-3f4a17df,4749874c-455e925b,c98a686c-3f4a17df,dbf7a8af-3f4a17df,a2fd384c-cc71bb94,5c4d440e-ed0e492d,65570806-377be55a,42f1f10d-801b0112,18324944-3f4a17df,e2174ff9-3f4a17df,4d40c903-20e31142,4852ec7f-3f4a17df,fc72a64b-3f4a17df,97023bae-3f4a17df,aa9914c2-3f4a17df,3fd33f16-da51fc56,25ad6029-3f4a17df,8b5e9272-5124c949,62cb9b8b-41986bdd,36d5ee52-3f4a17df,61c68934-3f4a17df,5e3a236d-59e286d0,e79de56c-dee0823,8bccc03b-3f4a17df,69d4ebd5-3f4a17df,9e5c75f1-30e1b12b,255dfea8-cf12f279,da493d3c-3f4a17df,df4ed2c4-aa3d81ae,3482a891-410c5d63,b7a22696-2cd5fcd8,d3566fbd-c6f74b94,a779bb20-3f4a17df,646a148-52fe9859,5f36436a-f799c15e,2da2abac-b7f59038,baee3c29-3f4a17df,7d74eac0-7d74eac0,d990c4ac-3f4a17df,a18444ea-a18444ea,b0ca2a47-3f4a17df,6e69a63-3f4a17df,ef4764d7-c9f4d4ef,1fce7d57-3f4a17df,7760b5b2-3f4a17df,e8c68789-49a20295,caa76e48-caa76e48,863ba1ea-3f4a17df,b0f15b33-b0f15b33,34a9ddc3-54a64e37,ad4acdda-3f4a17df,931c5f72-3f4a17df,ade3efeb-e1cc0f14,6a24725f-44b296ce,b1ceb06f-3f4a17df,5e7b62b9-3f4a17df,1d0518a-3f4a17df,fabf21f1-3f4a17df,17b84626-3f4a17df,8d7344de-3f4a17df,b53f3ef9-3f4a17df,2856aa31-3f4a17df,2aed9870-19257351,1bb6a450-3f4a17df,e9e64bcb-3f4a17df,ef1cfe77-3f4a17df,363012bc-3f4a17df,483d5a5e-d379aaa3,a79ba57a-3d47f4f4,4949c1d8-3f4a17df,bc120189-3f4a17df,55c6e56f-a1ba80e8,f6e27768-f695fd79,3b96a1d-3f4a17df,6becb1e-a6ea97a2,595f5eb0-f23d1dea,dba92675-f23d1dea,376d29ba-3f4a17df,c8a4c657-c8a4c657,1bb3666c-729470cb,5306c29b-9cbf73ff,f26e9e11-3f4a17df,e80af7cc-28308986,d7f231f3-6e2eda13,1130dae-ccb721cc,9f7bb00b-3f4a17df,234de0a0-ace4e138,cac0a91c-3f4a17df,e5726113-3f4a17df,bd717e5b-3f4a17df,55ba4cfa-3f4a17df,fc7e4d22-3f4a17df,4e3ec83a-e4938e2c,4ea303a6-3f4a17df,3042ad4b-ad2fa222,569920b-89a4b7af,bdb15e19-3f4a17df,f654ad46-c94f66c2,cbc04857-3f4a17df,42f0e0ea-75d6947c,645ea67f-5de8c8da,bde7927d-bab20a64,7d66e042-3f4a17df,a393b0ae-14f93b4e,bef5c006-3f4a17df,3e7d7783-f38a9353,"
+  "num-experiments" = "120"
+  "switch-17" = "--disable-features=RendererCodeIntegrity"
+  "switch-16" = "--enable-features=BlockInsecurePrivateNetworkRequests,BlockInsec"
+  "switch-15" = "--field-trial-handle=1560,i,18081967661775356482,733425048456335"
+  "switch-14" = "--mojo-platform-channel-handle=2948"
+  "switch-13" = "--launch-time-ticks=3702609812142"
+  "switch-12" = "--time-ticks-at-unix-epoch=-1655833446600778"
+  "switch-11" = "--renderer-client-id=5"
+  "switch-10" = "--num-raster-threads=1"
+  "switch-9" = "--device-scale-factor=1"
+  "switch-8" = "--lang=en-US"
+  "switch-7" = "--video-capture-use-gpu-memory-buffer"
+  "switch-6" = "--js-flags=--expose-gc"
+  "switch-5" = "--file-url-path-alias=/gen=c:\clusterfuzz\bot\builds\chromium-br"
+  "switch-4" = "--enable-experimental-web-platform-features"
+  "switch-3" = "--event-path-policy=0"
+  "switch-2" = "--display-capture-permissions-policy-allowed"
+  "switch-1" = "--user-data-dir=c:\tmp\user_profile_0"
+  "num-switches" = "19"
+=================================================================
+==104==ERROR: AddressSanitizer: breakpoint on unknown address 0x7ffe91274242 (pc 0x7ffe91274242 bp 0x00d031f061c0 sp 0x00d031f06140 T0)
+SCARINESS: 10 (signal)
+==104==*** WARNING: Failed to initialize DbgHelp!              ***
+==104==*** Most likely this means that the app is already      ***
+==104==*** using DbgHelp, possibly with incompatible flags.    ***
+==104==*** Due to technical reasons, symbolization might crash ***
+==104==*** or produce wrong results.                           ***
+==104==WARNING: Failed to use and restart external symbolizer!
+    #0 0x7ffe91274241 in logging::LogMessage::~LogMessage base/logging.cc:870
+    #1 0x7ffe99fdfb30 in blink::ReportV8FatalError third_party/blink/renderer/bindings/core/v8/v8_initializer.cc:716
+    #2 0x7ffe8c784936 in v8::api_internal::ToLocalEmpty v8/src/api/api.cc:907
+    #3 0x7ffea0a75643 in blink::V8ContextSnapshotImpl::CreateContext third_party/blink/renderer/bindings/modules/v8/v8_context_snapshot_impl.cc:354
+    #4 0x7ffe9b0460a7 in blink::V8ContextSnapshot::CreateContextFromSnapshot third_party/blink/renderer/bindings/core/v8/v8_context_snapshot.cc:28
+    #5 0x7ffe9cefe89e in blink::LocalWindowProxy::CreateContext third_party/blink/renderer/bindings/core/v8/local_window_proxy.cc:237
+    #6 0x7ffe9cefc4dd in blink::LocalWindowProxy::Initialize third_party/blink/renderer/bindings/core/v8/local_window_proxy.cc:160
+    #7 0x7ffe96200f4f in blink::Frame::GetWindowProxy third_party/blink/renderer/core/frame/frame.cc:271
+    #8 0x7ffe995dea50 in blink::DOMWindow::Wrap third_party/blink/renderer/core/frame/dom_window.cc:69
+    #9 0x7ffe96b2b3b0 in blink::bindings::V8ReturnValue::SetWrapper<v8::FunctionCallbackInfo<v8::Value> > third_party/blink/renderer/platform/bindings/v8_set_return_value.h:69
+    #10 0x7ffea1ef21ae in blink::bindings::V8SetReturnValue<v8::FunctionCallbackInfo<v8::Value> > third_party/blink/renderer/platform/bindings/v8_set_return_value.h:362
+    #11 0x7ffea203e56f in blink::`anonymous namespace'::v8_window::OpenOperationCallback out/Release_x64/gen/third_party/blink/renderer/bindings/modules/v8/v8_window.cc:14219
+    #12 0x7ffe8c907830 in v8::internal::FunctionCallbackArguments::Call v8/src/api/api-arguments-inl.h:146
+    #13 0x7ffe8c904cc6 in v8::internal::`anonymous namespace'::HandleApiCallHelper<0> v8/src/builtins/builtins-api.cc:112
+    #14 0x7ffe8c902421 in v8::internal::Builtin_Impl_HandleApiCall v8/src/builtins/builtins-api.cc:143
+    #15 0x7ffe8c90177f in v8::internal::Builtin_HandleApiCall v8/src/builtins/builtins-api.cc:130
+    #16 0x7ffe3fed01bb  (<unknown module>)
+    #17 0xd031f08577  (<unknown module>)
+    #18 0x7ffe3ff6f07c  (<unknown module>)
+    #19 0x9  (<unknown module>)
+    #20 0x1d82001456d4  (<unknown module>)
+    #21 0x7ffe3ff6f07c  (<unknown module>)
+    #22 0x1d82001c61d0  (<unknown module>)
+    #23 0xd031f0850f  (<unknown module>)
+    #24 0x2d  (<unknown module>)
+    #25 0xd031f085c7  (<unknown module>)
+    #26 0x7ffe3fe4bbab  (<unknown module>)
+    #27 0x1d82000023d8  (<unknown module>)
+    #28 0x1d82001d05f8  (<unknown module>)
+    #29 0x9  (<unknown module>)
+    #30 0x1d8200002450  (<unknown module>)
+    #31 0x1d82001c6188  (<unknown module>)
+    #32 0x1d82001c6188  (<unknown module>)
+    #33 0x1d82001d05f8  (<unknown module>)
+    #34 0x1d82001c61d0  (<unknown module>)
+    #35 0x67  (<unknown module>)
+    #36 0x1d8200212bbc  (<unknown module>)
+    #37 0x0  (<unknown module>)
+    #38 0x1d8200212b08  (<unknown module>)
+    #39 0x1d82001c61d0  (<unknown module>)
+    #40 0xd031f0861f  (<unknown module>)
+    #41 0x7ffe3fe4bbab  (<unknown module>)
+    #42 0x1d82001c6188  (<unknown module>)
+    #43 0x1d82000023d8  (<unknown module>)
+    #44 0x1d8200212b08  (<unknown module>)
+    #45 0x1d82001c61d0  (<unknown module>)
+    #46 0x4f  (<unknown module>)
+    #47 0x1d8200212bbc  (<unknown module>)
+    #48 0x0  (<unknown module>)
+    #49 0x1d8200212b08  (<unknown module>)
+    #50 0x1d82001c61d0  (<unknown module>)
+    #51 0xd031f08677  (<unknown module>)
+    #52 0x7ffe3fe4bbab  (<unknown module>)
+    #53 0x1d82001c6188  (<unknown module>)
+    #54 0x1d82000023d8  (<unknown module>)
+    #55 0x1d8200212b08  (<unknown module>)
+    #56 0x1d82001c61d0  (<unknown module>)
+    #57 0x4f  (<unknown module>)
+    #58 0x1d8200212bbc  (<unknown module>)
+    #59 0x0  (<unknown module>)
+    #60 0x1d8200212b08  (<unknown module>)
+    #61 0x1d82001c61d0  (<unknown module>)
+    #62 0xd031f086cf  (<unknown module>)
+    #63 0x7ffe3fe4bbab  (<unknown module>)
+    #64 0x1d82001c6188  (<unknown module>)
+    #65 0x1d82000023d8  (<unknown module>)
+    #66 0x1d8200212b08  (<unknown module>)
+    #67 0x1d82001c61d0  (<unknown module>)
+    #68 0x4f  (<unknown module>)
+    #69 0x1d8200212bbc  (<unknown module>)
+    #70 0x0  (<unknown module>)
+    #71 0x1d8200212b08  (<unknown module>)
+    #72 0x1d82001c61d0  (<unknown module>)
+    #73 0xd031f08727  (<unknown module>)
+    #74 0x7ffe3fe4bbab  (<unknown module>)
+    #75 0x1d82001c6188  (<unknown module>)
+    #76 0x1d82000023d8  (<unknown module>)
+    #77 0x1d8200212b08  (<unknown module>)
+    #78 0x1d82001c61d0  (<unknown module>)
+    #79 0x4f  (<unknown module>)
+    #80 0x1d8200212bbc  (<unknown module>)
+    #81 0x0  (<unknown module>)
+    #82 0x1d8200212b08  (<unknown module>)
+    #83 0x1d82001c61d0  (<unknown module>)
+    #84 0xd031f0877f  (<unknown module>)
+    #85 0x7ffe3fe4bbab  (<unknown module>)
+    #86 0x1d82001c6188  (<unknown module>)
+    #87 0x1d82000023d8  (<unknown module>)
+    #88 0x1d8200212b08  (<unknown module>)
+    #89 0x1d82001c61d0  (<unknown module>)
+    #90 0x4f  (<unknown module>)
+    #91 0x1d8200212bbc  (<unknown module>)
+    #92 0x0  (<unknown module>)
+    #93 0x1d8200212b08  (<unknown module>)
+    #94 0x1d82001c61d0  (<unknown module>)
+    #95 0xd031f087d7  (<unknown module>)
+    #96 0x7ffe3fe4bbab  (<unknown module>)
+    #97 0x1d82001c6188  (<unknown module>)
+    #98 0x1d82000023d8  (<unknown module>)
+    #99 0x1d8200212b08  (<unknown module>)
+    #100 0x1d82001c61d0  (<unknown module>)
+    #101 0x4f  (<unknown module>)
+    #102 0x1d8200212bbc  (<unknown module>)
+    #103 0x0  (<unknown module>)
+    #104 0x1d8200212b08  (<unknown module>)
+    #105 0x1d82001c61d0  (<unknown module>)
+    #106 0xd031f0882f  (<unknown module>)
+    #107 0x7ffe3fe4bbab  (<unknown module>)
+    #108 0x1d82001c6188  (<unknown module>)
+    #109 0x1d82000023d8  (<unknown module>)
+    #110 0x1d8200212b08  (<unknown module>)
+    #111 0x1d82001c61d0  (<unknown module>)
+    #112 0x4f  (<unknown module>)
+    #113 0x1d8200212bbc  (<unknown module>)
+    #114 0x0  (<unknown module>)
+    #115 0x1d8200212b08  (<unknown module>)
+    #116 0x1d82001c61d0  (<unknown module>)
+    #117 0xd031f08887  (<unknown module>)
+    #118 0x7ffe3fe4bbab  (<unknown module>)
+    #119 0x1d82001c6188  (<unknown module>)
+    #120 0x1d82000023d8  (<unknown module>)
+    #121 0x1d8200212b08  (<unknown module>)
+    #122 0x1d82001c61d0  (<unknown module>)
+    #123 0x4f  (<unknown module>)
+    #124 0x1d8200212bbc  (<unknown module>)
+    #125 0x0  (<unknown module>)
+    #126 0x1d8200212b08  (<unknown module>)
+    #127 0x1d82001c61d0  (<unknown module>)
+    #128 0xd031f088df  (<unknown module>)
+    #129 0x7ffe3fe4bbab  (<unknown module>)
+    #130 0x1d82001c6188  (<unknown module>)
+    #131 0x1d82000023d8  (<unknown module>)
+    #132 0x1d8200212b08  (<unknown module>)
+    #133 0x1d82001c61d0  (<unknown module>)
+    #134 0x4f  (<unknown module>)
+    #135 0x1d8200212bbc  (<unknown module>)
+    #136 0x0  (<unknown module>)
+    #137 0x1d8200212b08  (<unknown module>)
+    #138 0x1d82001c61d0  (<unknown module>)
+    #139 0xd031f08937  (<unknown module>)
+    #140 0x7ffe3fe4bbab  (<unknown module>)
+    #141 0x1d82001c6188  (<unknown module>)
+    #142 0x1d82000023d8  (<unknown module>)
+    #143 0x1d8200212b08  (<unknown module>)
+    #144 0x1d82001c61d0  (<unknown module>)
+    #145 0x4f  (<unknown module>)
+    #146 0x1d8200212bbc  (<unknown module>)
+    #147 0x0  (<unknown module>)
+    #148 0x1d8200212b08  (<unknown module>)
+    #149 0x1d82001c61d0  (<unknown module>)
+    #150 0xd031f0898f  (<unknown module>)
+    #151 0x7ffe3fe4bbab  (<unknown module>)
+    #152 0x1d82001c6188  (<unknown module>)
+    #153 0x1d82000023d8  (<unknown module>)
+    #154 0x1d8200212b08  (<unknown module>)
+    #155 0x1d82001c61d0  (<unknown module>)
+    #156 0x4f  (<unknown module>)
+    #157 0x1d8200212bbc  (<unknown module>)
+    #158 0x0  (<unknown module>)
+    #159 0x1d8200212b08  (<unknown module>)
+    #160 0x1d82001c61d0  (<unknown module>)
+    #161 0xd031f089e7  (<unknown module>)
+    #162 0x7ffe3fe4bbab  (<unknown module>)
+    #163 0x1d82001c6188  (<unknown module>)
+    #164 0x1d82000023d8  (<unknown module>)
+    #165 0x1d8200212b08  (<unknown module>)
+    #166 0x1d82001c61d0  (<unknown module>)
+    #167 0x4f  (<unknown module>)
+    #168 0x1d8200212bbc  (<unknown module>)
+    #169 0x0  (<unknown module>)
+    #170 0x1d8200212b08  (<unknown module>)
+    #171 0x1d82001c61d0  (<unknown module>)
+    #172 0xd031f08a3f  (<unknown module>)
+    #173 0x7ffe3fe4bbab  (<unknown module>)
+    #174 0x1d82001c6188  (<unknown module>)
+    #175 0x1d82000023d8  (<unknown module>)
+    #176 0x1d8200212b08  (<unknown module>)
+    #177 0x1d82001c61d0  (<unknown module>)
+    #178 0x4f  (<unknown module>)
+    #179 0x1d8200212bbc  (<unknown module>)
+    #180 0x0  (<unknown module>)
+    #181 0x1d8200212b08  (<unknown module>)
+    #182 0x1d82001c61d0  (<unknown module>)
+    #183 0xd031f08a97  (<unknown module>)
+    #184 0x7ffe3fe4bbab  (<unknown module>)
+    #185 0x1d82001c6188  (<unknown module>)
+    #186 0x1d82000023d8  (<unknown module>)
+    #187 0x1d8200212b08  (<unknown module>)
+    #188 0x1d82001c61d0  (<unknown module>)
+    #189 0x4f  (<unknown module>)
+    #190 0x1d8200212bbc  (<unknown module>)
+    #191 0x0  (<unknown module>)
+    #192 0x1d8200212b08  (<unknown module>)
+    #193 0x1d82001c61d0  (<unknown module>)
+    #194 0xd031f08aef  (<unknown module>)
+    #195 0x7ffe3fe4bbab  (<unknown module>)
+    #196 0x1d82001c6188  (<unknown module>)
+    #197 0x1d82000023d8  (<unknown module>)
+    #198 0x1d8200212b08  (<unknown module>)
+    #199 0x1d82001c61d0  (<unknown module>)
+    #200 0x4f  (<unknown module>)
+    #201 0x1d8200212bbc  (<unknown module>)
+    #202 0x0  (<unknown module>)
+    #203 0x1d8200212b08  (<unknown module>)
+    #204 0x1d82001c61d0  (<unknown module>)
+    #205 0xd031f08b47  (<unknown module>)
+    #206 0x7ffe3fe4bbab  (<unknown module>)
+    #207 0x1d82001c6188  (<unknown module>)
+    #208 0x1d82000023d8  (<unknown module>)
+    #209 0x1d8200212b08  (<unknown module>)
+    #210 0x1d82001c61d0  (<unknown module>)
+    #211 0x4f  (<unknown module>)
+    #212 0x1d8200212bbc  (<unknown module>)
+    #213 0x0  (<unknown module>)
+    #214 0x1d8200212b08  (<unknown module>)
+    #215 0x1d82001c61d0  (<unknown module>)
+    #216 0xd031f08b9f  (<unknown module>)
+    #217 0x7ffe3fe4bbab  (<unknown module>)
+    #218 0x1d82001c6188  (<unknown module>)
+    #219 0x1d82000023d8  (<unknown module>)
+    #220 0x1d8200212b08  (<unknown module>)
+    #221 0x1d82001c61d0  (<unknown module>)
+    #222 0x4f  (<unknown module>)
+    #223 0x1d8200212bbc  (<unknown module>)
+    #224 0x0  (<unknown module>)
+    #225 0x1d8200212b08  (<unknown module>)
+    #226 0x1d82001c61d0  (<unknown module>)
+    #227 0xd031f08bf7  (<unknown module>)
+    #228 0x7ffe3fe4bbab  (<unknown module>)
+    #229 0x1d82001c6188  (<unknown module>)
+    #230 0x1d82000023d8  (<unknown module>)
+    #231 0x1d8200212b08  (<unknown module>)
+    #232 0x1d82001c61d0  (<unknown module>)
+    #233 0x4f  (<unknown module>)
+    #234 0x1d8200212bbc  (<unknown module>)
+    #235 0x0  (<unknown module>)
+    #236 0x1d8200212b08  (<unknown module>)
+    #237 0x1d82001c61d0  (<unknown module>)
+    #238 0xd031f08c4f  (<unknown module>)
+    #239 0x7ffe3fe4bbab  (<unknown module>)
+    #240 0x1d82001c6188  (<unknown module>)
+    #241 0x1d82000023d8  (<unknown module>)
+    #242 0x1d8200212b08  (<unknown module>)
+    #243 0x1d82001c61d0  (<unknown module>)
+    #244 0x4f  (<unknown module>)
+    #245 0x1d8200212bbc  (<unknown module>)
+    #246 0x0  (<unknown module>)
+    #247 0x1d8200212b08  (<unknown module>)
+    #248 0x1d82001c61d0  (<unknown module>)
+    #249 0xd031f08ca7  (<unknown module>)
+    #250 0x7ffe3fe4bbab  (<unknown module>)
+    #251 0x1d82001c6188  (<unknown module>)
+    #252 0x1d82000023d8  (<unknown module>)
+    #253 0x1d8200212b08  (<unknown module>)
+    #254 0x1d82001c61d0  (<unknown module>)
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: breakpoint C:\b\s\w\ir\cache\builder\src\base\logging.cc:870 in logging::LogMessage::~LogMessage
+==104==ABORTING

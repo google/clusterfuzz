@@ -25,14 +25,22 @@ from clusterfuzz._internal.system import shell
 
 ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
 FUZZ_TARGET_SEARCH_BYTES = b'LLVMFuzzerTestOneInput'
-VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9_-]+$')
+VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9@_.-]+$')
 BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
+EXTRA_BUILD_DIR = '__extra_build'
 
 
 def is_fuzz_target_local(file_path, file_handle=None):
   """Returns whether |file_path| is a fuzz target binary (local path)."""
   # TODO(hzawawy): Handle syzkaller case.
-  filename, file_extension = os.path.splitext(os.path.basename(file_path))
+  if '@' in file_path:
+    # GFT targets often have periods in the name that get misinterpreted as an
+    # extension.
+    filename = os.path.basename(file_path)
+    file_extension = ''
+  else:
+    filename, file_extension = os.path.splitext(os.path.basename(file_path))
+
   if not VALID_TARGET_NAME_REGEX.match(filename):
     # Check fuzz target has a valid name (without any special chars).
     return False
@@ -86,6 +94,10 @@ def get_fuzz_targets_local(path):
 
   for root, _, files in shell.walk(path):
     for filename in files:
+      if os.path.basename(root) == EXTRA_BUILD_DIR:
+        # Ignore extra binaries.
+        continue
+
       file_path = os.path.join(root, filename)
       if is_fuzz_target_local(file_path):
         fuzz_target_paths.append(file_path)

@@ -239,10 +239,20 @@ def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
     dev_arg = '--dev'
 
   return_code, output = execute(
-      f'python -m pipenv lock -r --no-header {dev_arg}',
+      f'python -m pipenv requirements {dev_arg}',
+      exit_on_error=False,
       cwd=pipfile_dir,
       extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
       stderr=subprocess.DEVNULL)
+  if return_code != 0:
+    # Older pipenv version.
+    return_code, output = execute(
+        f'python -m pipenv lock -r --no-header {dev_arg}',
+        exit_on_error=False,
+        cwd=pipfile_dir,
+        extra_environments={'PIPENV_IGNORE_VIRTUALENVS': '1'},
+        stderr=subprocess.DEVNULL)
+
   if return_code != 0:
     raise Exception('Failed to generate requirements from Pipfile.')
 
@@ -311,7 +321,7 @@ def _remove_invalid_files():
       os.remove(name)
 
 
-def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
+def install_dependencies(platform_name=None):
   """Install dependencies for bots."""
   _pipfile_to_requirements('src', 'src/requirements.txt')
   # Hack: Use "dev-packages" to specify App Engine only packages.
@@ -325,10 +335,6 @@ def install_dependencies(platform_name=None, is_reproduce_tool_setup=False):
         platform_name=platform_name)
 
   _install_pip('src/appengine/requirements.txt', 'src/appengine/third_party')
-
-  # Only the previous dependencies are needed for reproduce tool installation.
-  if is_reproduce_tool_setup:
-    return
 
   _remove_invalid_files()
   execute('bower install --allow-root')

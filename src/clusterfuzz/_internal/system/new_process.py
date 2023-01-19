@@ -456,8 +456,13 @@ class ModifierProcessRunnerMixin(object):
     if additional_args:
       command.extend(additional_args)
 
-    return self.tool_prefix('unshare') + self.tool_prefix(
-        'extra_sanitizers') + command
+    # TODO(ochang): Temporary hack to disable unshare when using extra
+    # sanitizers.
+    extra_sanitizers_prefix = self.tool_prefix('extra_sanitizers')
+    if extra_sanitizers_prefix:
+      return extra_sanitizers_prefix + command
+
+    return self.tool_prefix('unshare') + command
 
 
 class ModifierProcessRunner(ModifierProcessRunnerMixin, ProcessRunner):

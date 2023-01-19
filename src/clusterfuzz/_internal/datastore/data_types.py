@@ -718,6 +718,15 @@ class Testcase(Model):
       return None
 
     target = ndb.Key(FuzzTarget, name).get()
+    if not target:
+      binary = self.get_metadata('fuzzer_binary_name')
+      if not binary:
+        # Not applicable.
+        return None
+
+      target = FuzzTarget(
+          engine=self.fuzzer_name, project=self.project_name, binary=binary)
+
     if environment.get_value('ORIGINAL_JOB_NAME'):
       # Overridden engine (e.g. for minimization).
       target.engine = environment.get_engine_for_job()
@@ -818,12 +827,6 @@ class Config(Model):
 
   # For filing issues to GitHub repositories under test.
   oss_fuzz_robot_github_personal_access_token = ndb.StringProperty(default='')
-
-  # OAuth2 client id for the reproduce tool.
-  reproduce_tool_client_id = ndb.StringProperty(default='')
-
-  # OAuth2 client secret for the reproduce tool.
-  reproduce_tool_client_secret = ndb.StringProperty(default='')
 
   # Pub/Sub topics for the Predator service.
   predator_crash_topic = ndb.StringProperty(default='')
@@ -1389,6 +1392,9 @@ class Trial(Model):
 
   # Additional arguments to apply if selected.
   app_args = ndb.TextProperty()
+
+  # Flags that contradict the app args.
+  contradicts = ndb.StringProperty(repeated=True)
 
 
 # TODO(ochang): Make this generic.

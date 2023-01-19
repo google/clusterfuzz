@@ -53,10 +53,6 @@ def disable_airplane_mode():
 
 def configure(force_enable=False):
   """Configure airplane mode and wifi on device."""
-  # The reproduce tool shouldn't inherit wifi settings from jobs.
-  if environment.get_value('REPRODUCE_TOOL'):
-    return
-
   # Airplane mode should be disabled in all cases. This can get inadvertently
   # turned on via gestures.
   disable_airplane_mode()

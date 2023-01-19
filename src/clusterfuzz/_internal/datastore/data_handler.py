@@ -182,7 +182,7 @@ def find_testcase(project_name,
 def get_crash_type_string(testcase):
   """Return a crash type string for a testcase."""
   crash_type = ' '.join(testcase.crash_type.splitlines())
-  if crash_type not in list(CRASH_TYPE_VALUE_REGEX_MAP.keys()):
+  if crash_type not in CRASH_TYPE_VALUE_REGEX_MAP:
     return crash_type
 
   crash_stacktrace = get_stacktrace(testcase)
@@ -444,7 +444,7 @@ def get_fixed_range_url(testcase):
     return None
 
   # Testcase is unreproducible or coming from a custom binary.
-  if testcase.fixed == 'NA' or testcase.fixed == 'Yes':
+  if testcase.fixed in ('NA', 'Yes'):
     return None
 
   return TESTCASE_REVISION_RANGE_URL.format(
@@ -1523,7 +1523,7 @@ def get_entity_by_type_and_id(entity_type, entity_id):
 # ------------------------------------------------------------------------------
 
 
-def get_testcase_variant(testcase_id, job_type):
+def get_or_create_testcase_variant(testcase_id, job_type):
   """Get a testcase variant entity, and create if needed."""
   testcase_id = int(testcase_id)
   variant = data_types.TestcaseVariant.query(
@@ -1533,6 +1533,14 @@ def get_testcase_variant(testcase_id, job_type):
     variant = data_types.TestcaseVariant(
         testcase_id=testcase_id, job_type=job_type)
   return variant
+
+
+def get_testcase_variant(testcase_id, job_type):
+  """Get a testcase variant entity"""
+  testcase_id = int(testcase_id)
+  return data_types.TestcaseVariant.query(
+      data_types.TestcaseVariant.testcase_id == testcase_id,
+      data_types.TestcaseVariant.job_type == job_type).get()
 
 
 # ------------------------------------------------------------------------------

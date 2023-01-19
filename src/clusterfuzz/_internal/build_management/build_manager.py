@@ -33,7 +33,6 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.system import shell
 
 # The default environment variables for specifying build bucket paths.
@@ -76,6 +75,7 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'afl-fuzz',
     'afl-showmap',
     'afl-tmin',
+    'centipede',
     'honggfuzz',
     'jazzer_agent_deploy.jar',
     'jazzer_driver',
@@ -95,6 +95,17 @@ BuildUrls = namedtuple('BuildUrls', ['bucket_path', 'urls_list'])
 
 class BuildManagerException(Exception):
   """Build manager exceptions."""
+
+
+def _normalize_target_name(target_path):
+  """Normalize target path, removing file extensions."""
+  # TODO(ochang): Consolidate this with _internal/bot/fuzzers/utils.py.
+  target_name = os.path.basename(target_path)
+  if '@' in target_name:
+    # GFT target names often have periods in their name.
+    return target_name
+
+  return os.path.splitext(target_name)[0]
 
 
 def _base_build_dir(bucket_path):
@@ -152,12 +163,16 @@ def _evict_build(current_build_dir):
   least_recently_used_timestamp = None
 
   for build_directory in os.listdir(builds_directory):
-    absolute_build_directory = os.path.join(builds_directory, build_directory)
+    absolute_build_directory = os.path.abspath(
+        os.path.join(builds_directory, build_directory))
     if not os.path.isdir(absolute_build_directory):
       continue
 
-    if absolute_build_directory == current_build_dir:
-      # Don't evict the build we're trying to extract.
+    if os.path.commonpath(
+        [absolute_build_directory,
+         os.path.abspath(current_build_dir)]) == absolute_build_directory:
+      # Don't evict the build we're trying to extract. This could be a parent
+      # directory of where we're currently extracting to.
       continue
 
     build = BaseBuild(absolute_build_directory)
@@ -574,7 +589,7 @@ class Build(BaseBuild):
     for archive_file in archive.iterator(archive_path):
       if fuzzer_utils.is_fuzz_target_local(archive_file.name,
                                            archive_file.handle):
-        fuzz_target = os.path.splitext(os.path.basename(archive_file.name))[0]
+        fuzz_target = _normalize_target_name(archive_file.name)
         yield fuzz_target
 
   def _get_fuzz_targets_from_dir(self, build_dir):
@@ -583,7 +598,7 @@ class Build(BaseBuild):
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     for path in fuzzer_utils.get_fuzz_targets(build_dir):
-      yield os.path.splitext(os.path.basename(path))[0]
+      yield _normalize_target_name(path)
 
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """Selects a fuzz target for fuzzing."""
@@ -824,35 +839,6 @@ class CuttlefishKernelBuild(RegularBuild):
     adb.connect_to_cuttlefish_device()
 
     return True
-
-
-class AndroidEmulatorBuild(RegularBuild):
-  """Represents an Android Emulator build."""
-
-  def setup(self):
-    """Android Emulator build setup."""
-    self._pre_setup()
-
-    # Download emulator image.
-    if not environment.get_value('ANDROID_EMULATOR_BUCKET_PATH'):
-      logs.log_error('ANDROID_EMULATOR_BUCKET_PATH is not set.')
-      return False
-    archive_src_path = environment.get_value('ANDROID_EMULATOR_BUCKET_PATH')
-    archive_dst_path = os.path.join(self.base_build_dir, 'emulator_bundle.zip')
-    storage.copy_file_from(archive_src_path, archive_dst_path)
-
-    # Extract emulator image.
-    self.emulator_path = os.path.join(self.base_build_dir, 'emulator')
-    shell.remove_directory(self.emulator_path)
-    archive.unpack(archive_dst_path, self.emulator_path)
-    shell.remove_file(archive_dst_path)
-
-    # Stop any stale emulator instances.
-    stop_script_path = os.path.join(self.emulator_path, 'stop')
-    stop_proc = new_process.ProcessRunner(stop_script_path)
-    stop_proc.run_and_wait()
-
-    return super().setup()
 
 
 class SymbolizedBuild(Build):
@@ -1335,12 +1321,11 @@ def setup_regular_build(revision,
     build_class = build_setup_host.RemoteRegularBuild
   elif environment.platform() == 'FUCHSIA':
     build_class = FuchsiaBuild
-  elif environment.is_android_emulator():
-    build_class = AndroidEmulatorBuild
   elif (environment.is_android_cuttlefish() and
         environment.is_kernel_fuzzer_job()):
     build_class = CuttlefishKernelBuild
 
+  result = None
   build = build_class(
       base_build_dir,
       revision,
@@ -1348,8 +1333,33 @@ def setup_regular_build(revision,
       target_weights=target_weights,
       build_prefix=build_prefix)
   if build.setup():
-    return build
-  return None
+    result = build
+  else:
+    return None
+
+  # Additional binaries to pull (for fuzzing engines such as Centipede).
+  extra_bucket_path = get_bucket_path('EXTRA_BUILD_BUCKET_PATH')
+  if extra_bucket_path:
+    # Import here as this path is not available in App Engine context.
+    from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+    extra_build_urls = get_build_urls_list(extra_bucket_path)
+    extra_build_url = revisions.find_build_url(extra_bucket_path,
+                                               extra_build_urls, revision)
+    if not extra_build_url:
+      logs.log_error('Error getting extra build url for job %s (r%d).' %
+                     (job_type, revision))
+      return None
+
+    build = build_class(
+        build.build_dir,  # Store inside the main build.
+        revision,
+        extra_build_url,
+        target_weights=target_weights,
+        build_prefix=fuzzer_utils.EXTRA_BUILD_DIR)
+    if not build.setup():
+      return None
+
+  return result
 
 
 def setup_symbolized_builds(revision):

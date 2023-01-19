@@ -18,6 +18,8 @@ import itertools
 
 import six
 
+from clusterfuzz._internal.system import environment
+
 
 def find_index(items, condition_fn):
   """Return the index of the first item whose condition_fn is True."""
@@ -51,9 +53,13 @@ def choose(testcase_map):
       testcase_map: a dict of (testcase_id, testcase). A dict contains testcases
           from multiple groups.
   """
+  scores = {}
 
   def _key_func(testcase):
     return testcase.group_id
+
+  def _get_score(testcase_id):
+    return scores[testcase_id]
 
   testcases = sorted([v for _, v in six.iteritems(testcase_map)], key=_key_func)
   for group_id, items in itertools.groupby(testcases, _key_func):
@@ -64,12 +70,23 @@ def choose(testcase_map):
 
     for item in items:
       item.is_leader = False
+      item_score = 0
+      if item.security_flag:
+        item_score += 1
+      if item.job_type and '_asan_' in item.job_type:
+        item_score += 1
+      if item.job_type and not environment.is_i386(item.job_type):
+        item_score += 1
+      scores[item.id] = item_score
+
+    items = sorted(items, reverse=True, key=lambda t: _get_score(t.id))
 
     leader_index = find_index(items, is_reproducible_and_has_issue)
     if leader_index is None:
       leader_index = find_index(items, has_issue)
     if leader_index is None:
       leader_index = find_index(items, is_reproducible)
+
     if leader_index is None:
       leader_index = 0
 

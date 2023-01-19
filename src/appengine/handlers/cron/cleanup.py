@@ -271,7 +271,7 @@ def get_crash_occurrence_platforms(testcase, lookbehind_days=1):
           testcase.project_name, lookbehind_days))
 
 
-def get_top_crashes_for_all_projects_and_platforms():
+def get_top_crashes_for_all_projects_and_platforms(limit=TOP_CRASHES_LIMIT):
   """Return top crashes for all projects and platforms."""
   last_hour = crash_stats.get_last_successful_hour()
   if not last_hour:
@@ -303,7 +303,7 @@ def get_top_crashes_for_all_projects_and_platforms():
           group_having_clause='',
           sort_by='total_count',
           offset=0,
-          limit=TOP_CRASHES_LIMIT)
+          limit=limit)
       if not rows:
         continue
 
@@ -443,7 +443,15 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
   # As a last check, do the expensive call of actually checking all issue
   # comments to make sure we didn't do the verification already and we didn't
   # get called out on issue mistriage.
-  if (issue_tracker_utils.was_label_added(issue, verified_label) or
+  # If a "good" label was set, we ignore past "verified" flipping.
+  good_label = policy.label('good')
+  if good_label and good_label in issue.labels:
+    was_verified_added = verified_label in issue.labels
+  else:
+    was_verified_added = issue_tracker_utils.was_label_added(
+        issue, verified_label)
+
+  if (was_verified_added or
       issue_tracker_utils.was_label_added(issue, policy.label('wrong'))):
     return
 

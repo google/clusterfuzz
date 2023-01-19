@@ -49,6 +49,7 @@ WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
 STOP_CVD_WAIT = 20
+LAUNCH_CVD_TIMEOUT = 2700
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -177,7 +178,7 @@ def copy_to_cuttlefish(src_path, dest_path, timeout=None):
 
 def factory_reset():
   """Reset device to factory state."""
-  if environment.is_android_cuttlefish() or environment.is_android_emulator():
+  if environment.is_android_cuttlefish():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
     # for reimage in next iteration.
@@ -322,7 +323,7 @@ def get_property(property_name):
 
 def hard_reset():
   """Perform a hard reset of the device."""
-  if environment.is_android_cuttlefish() or environment.is_android_emulator():
+  if environment.is_android_cuttlefish():
     # There is no recovery step at this point for a cuttlefish bot, so just exit
     # and wait for reimage on next iteration.
     bad_state_reached()
@@ -378,7 +379,10 @@ def start_cuttlefish_device(use_kernel=False):
     launch_cvd_command_line += (
         f' -kernel_path={kernel_path} -initramfs_path={initramfs_path}')
 
-  execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
+  execute_command(
+      launch_cvd_command_line,
+      timeout=LAUNCH_CVD_TIMEOUT,
+      on_cuttlefish_host=True)
 
 
 def stop_cuttlefish_device():
@@ -544,7 +548,7 @@ def get_device_path():
 
 def reset_usb():
   """Reset USB bus for a device serial."""
-  if environment.is_android_cuttlefish() or environment.is_android_emulator():
+  if environment.is_android_cuttlefish():
     # Nothing to do here.
     return True
 
@@ -620,7 +624,7 @@ def run_command(cmd,
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
-  if not recover or environment.is_android_emulator():
+  if not recover:
     if log_output:
       logs.log('Output: (%s)' % output)
     return output
@@ -732,7 +736,8 @@ def stop_shell():
 
 def time_since_last_reboot():
   """Return time in seconds since last reboot."""
-  uptime_string = run_shell_command(['cat', '/proc/uptime']).split(' ')[0]
+  uptime_string = run_shell_command(['cat', '/proc/uptime']).split(
+      ' ', maxsplit=1)[0]
   try:
     return float(uptime_string)
   except ValueError:

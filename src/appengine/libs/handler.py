@@ -27,7 +27,6 @@ from google.oauth2 import id_token
 import requests
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
@@ -162,52 +161,11 @@ def unsupported_on_local_server(func):
   return wrapper
 
 
-def get_access_token(verification_code):
-  """Get the access token from verification code.
-
-    See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
-  """
-  client_id = db_config.get_value('reproduce_tool_client_id')
-  if not client_id:
-    raise helpers.UnauthorizedException('Client id not configured.')
-
-  client_secret = db_config.get_value('reproduce_tool_client_secret')
-  if not client_secret:
-    raise helpers.UnauthorizedException('Client secret not configured.')
-
-  response = requests.post(
-      'https://www.googleapis.com/oauth2/v4/token',
-      headers={'Content-Type': 'application/x-www-form-urlencoded'},
-      data={
-          'code': verification_code,
-          'client_id': client_id,
-          'client_secret': client_secret,
-          'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
-          'grant_type': 'authorization_code'
-      })
-
-  if response.status_code != 200:
-    raise helpers.UnauthorizedException('Invalid verification code (%s): %s' %
-                                        (verification_code, response.text))
-
-  try:
-    data = json.loads(response.text)
-    return data['access_token']
-  except (KeyError, ValueError) as e:
-    raise helpers.EarlyExitException(
-        'Parsing the JSON response body failed: %s' % response.text, 500) from e
-
-
 def get_email_and_access_token(authorization):
   """Get user email from the request.
 
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
   """
-  if authorization.startswith(VERIFICATION_CODE_PREFIX):
-    verification_code = authorization.split(' ')[1]
-    access_token = get_access_token(verification_code)
-    authorization = BEARER_PREFIX + access_token
-
   if not authorization.startswith(BEARER_PREFIX):
     raise helpers.UnauthorizedException(
         'The Authorization header is invalid. It should have been started with'
@@ -232,13 +190,9 @@ def get_email_and_access_token(authorization):
         'whitelisted_oauth_emails', default=[]):
       return data['email'], authorization
 
-    # Validate that this is an explicitly whitelisted client ID, or the client
-    # ID for the reproduce tool.
+    # Validate that this is an explicitly whitelisted client ID.
     whitelisted_client_ids = _auth_config().get(
         'whitelisted_oauth_client_ids', default=[])
-    reproduce_tool_client_id = db_config.get_value('reproduce_tool_client_id')
-    if reproduce_tool_client_id:
-      whitelisted_client_ids += [reproduce_tool_client_id]
     if data.get('aud') not in whitelisted_client_ids:
       raise helpers.UnauthorizedException(
           "The access token doesn't belong to one of the allowed OAuth clients"

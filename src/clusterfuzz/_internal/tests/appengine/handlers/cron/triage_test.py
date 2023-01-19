@@ -388,3 +388,13 @@ class FileIssueTest(unittest.TestCase):
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: unrecovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+  def test_no_experimental_bugs(self):
+    """Tests not filing experimental bugs."""
+    self.mock.file_issue.return_value = 'ID', None
+    for crash_type in ['Arbitrary file open', 'Command injection']:
+      self.testcase.crash_type = crash_type
+      self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker))
+      testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+      self.assertEqual('Skipping filing as this is an experimental crash type.',
+                       testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))

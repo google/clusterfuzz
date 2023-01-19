@@ -23,11 +23,9 @@ from . import constants
 
 def _should_download_symbols():
   """Return True if we should continue to download symbols."""
-  # For local testing or when running the reproduce tool locally, we do not
-  # have access to the cloud storage bucket with the symbols. In this case,
-  # just bail out.
-  return (not environment.get_value('LOCAL_DEVELOPMENT') and
-          not environment.get_value('REPRODUCE_TOOL'))
+  # For local testing, we do not have access to the cloud storage bucket with
+  # the symbols. In this case, just bail out.
+  return not environment.get_value('LOCAL_DEVELOPMENT')
 
 
 def get_kernel_prefix_and_full_hash(build_id):

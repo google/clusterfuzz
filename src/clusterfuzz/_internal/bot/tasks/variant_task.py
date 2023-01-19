@@ -119,7 +119,8 @@ def execute_task(testcase_id, job_type):
     gestures = testcase.gestures if use_gestures else None
     one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
         testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
-        crash_state, security_flag, test_timeout, testcase.http_flag, gestures)
+        crash_type, crash_state, security_flag, test_timeout,
+        testcase.http_flag, gestures)
     if one_time_crasher_flag:
       status = data_types.TestcaseVariantStatus.FLAKY
     else:
@@ -151,7 +152,7 @@ def execute_task(testcase_id, job_type):
         'last_tested_crash_revision', revision, update_testcase=True)
   else:
     # Regular case of variant analysis.
-    variant = data_handler.get_testcase_variant(testcase_id, job_type)
+    variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
     variant.status = status
     variant.revision = revision
     variant.crash_type = crash_type
