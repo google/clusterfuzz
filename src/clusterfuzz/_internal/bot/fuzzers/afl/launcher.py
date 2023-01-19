@@ -285,9 +285,9 @@ class FuzzingStrategies(object):
 
   # Probability for the level of CMPLOG to set. (-l X)
   CMPLOG_LEVEL_PROBS = [
-      ('1', 0.6),  # Level 1
-      ('2', 0.3),  # Level 2
-      ('3', 0.1),  # Level 3
+      ('1', 0.7),  # Level 1
+      ('2', 0.25),  # Level 2
+      ('3', 0.05),  # Level 3
   ]
 
   # Probabilty for arithmetic CMPLOG calculations.
@@ -295,6 +295,9 @@ class FuzzingStrategies(object):
 
   # Probability for transforming CMPLOG solving.
   CMPLOG_TRANS_PROB = 0.1
+
+  # Probability for randomized coloring.
+  CMPLOG_RAND_PROB = 0.1
 
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
   DISABLE_TRIM_PROB = 0.75
@@ -310,6 +313,9 @@ class FuzzingStrategies(object):
 
   # Probability to use the original afl queue walking mechanism. (-Z)
   QUEUE_OLD_STRATEGY_PROB = 0.2
+
+  # Probability to ignore long running inputs. (AFL_IGNORE_TIMEOUTS=1)
+  IGNORE_TIMEOUTS_PROB = 0.7
 
   # Probability to enable the schedule cycler. (AFL_CYCLE_SCHEDULES=1)
   SCHEDULER_CYCLE_PROB = 0.1
@@ -854,6 +860,11 @@ class AflRunnerCommon(object):
       # Projects should rather be set up they work effectivly with afl++
       # though for the time being lets allow bad setups to continue working:
       environment.set_value(constants.IGNORE_PROBLEMS_ENV_VAR, 1)
+
+      # Randomly set to ignore long running inputs.
+      if engine_common.decide_with_probability(
+          self.strategies.IGNORE_TIMEOUTS_PROB):
+        self.set_arg(fuzz_args, constants.IGNORE_TIMEOUTS_ENV_VAR, None)
 
       # Randomly set new vs. old queue selection mechanism.
       if engine_common.decide_with_probability(
@@ -1619,6 +1630,8 @@ def rand_cmplog_level(strategies):
     cmplog_level += constants.CMPLOG_ARITH
   if engine_common.decide_with_probability(strategies.CMPLOG_TRANS_PROB):
     cmplog_level += constants.CMPLOG_TRANS
+  if engine_common.decide_with_probability(strategies.CMPLOG_RAND_PROB):
+    cmplog_level += constants.CMPLOG_RAND
   return cmplog_level
 
 
