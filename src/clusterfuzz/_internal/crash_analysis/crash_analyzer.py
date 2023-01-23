@@ -120,6 +120,7 @@ EXTRA_SANITIZERS_SECURITY = [
     'Arbitrary DNS resolution',
     'Arbitrary file open',
     'Command injection',
+    'Symbolic link followed',
 ]
 
 EXTERNAL_TOOL_SECURITY = [

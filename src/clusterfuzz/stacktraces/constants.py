@@ -99,6 +99,10 @@ EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX = re.compile(
     r'===BUG DETECTED: Arbitrary file open===')
 EXTRA_SANITIZERS_ARBITRARY_DNS = re.compile(
     r'===BUG DETECTED: Arbitrary domain name resolution===')
+# TODO(metzman): Make it so we don't need to repeat all this boilerplate every
+# time we add something to SystemSan.
+EXTRA_SANITIZERS_SYMLINK_FOLLOWED = re.compile(
+    r'===BUG DETECTED: Symbolic link followed===')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
