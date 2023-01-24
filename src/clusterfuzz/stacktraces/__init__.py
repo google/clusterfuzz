@@ -377,6 +377,14 @@ class StackParser:
           state.lkl_kernel_build_id = match.group(2)
     return result
 
+  @staticmethod
+  def split_stacktrace(stacktrace: str):
+    """Split stacktrace by line, and handle special cases with regex."""
+    stacktrace = re.sub(CONCATENATED_SAN_DEADLYSIGNAL_REGEX,
+                        SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX, stacktrace)
+    print(stacktrace)
+    return stacktrace.splitlines()
+
   def parse(self, stacktrace: str) -> CrashInfo:
     """Parse a stacktrace."""
     state = CrashInfo()
@@ -395,7 +403,7 @@ class StackParser:
       stacktrace = self.remove_lkl_kernel_times_and_set_params(
           state, stacktrace)
 
-    split_crash_stacktrace = stacktrace.splitlines()
+    split_crash_stacktrace = StackParser.split_stacktrace(stacktrace)
 
     if state.is_python:
       split_crash_stacktrace = reverse_python_stacktrace(split_crash_stacktrace)
