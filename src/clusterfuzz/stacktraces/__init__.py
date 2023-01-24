@@ -382,7 +382,6 @@ class StackParser:
     """Split stacktrace by line, and handle special cases with regex."""
     stacktrace = re.sub(CONCATENATED_SAN_DEADLYSIGNAL_REGEX,
                         SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX, stacktrace)
-    print(stacktrace)
     return stacktrace.splitlines()
 
   def parse(self, stacktrace: str) -> CrashInfo:
