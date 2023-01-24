@@ -379,7 +379,12 @@ class StackParser:
 
   @staticmethod
   def split_stacktrace(stacktrace: str):
-    """Split stacktrace by line, and handle special cases with regex."""
+    """Split stacktrace by line, and handle special cases."""
+    # Fix a known malformed traceback pattern:
+    # A newline character is missing between the important crash info line and
+    # an ignorable sanitizer output line.
+    # Insert the newline char back between them so that the crash info can be
+    # preserved for parsing later.
     stacktrace = re.sub(CONCATENATED_SAN_DEADLYSIGNAL_REGEX,
                         SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX, stacktrace)
     return stacktrace.splitlines()
