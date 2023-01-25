@@ -628,8 +628,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_assert_disengaged_value(self):
-    """Test the disengaged value assertion failure format."""
+  def test_assert_glibc_suffixed(self):
+    """Test the glibc-like assertion failure format but with suffix."""
     environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
 
     data = self._read_test_data('erroneous_stacktrace.txt')
