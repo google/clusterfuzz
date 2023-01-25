@@ -1,0 +1,37 @@
+
+[Environment] ASAN_OPTIONS=exitcode=234:fast_unwind_on_fatal=0
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Command:
+/scratch0/clusterfuzz/bot/builds/clusterfuzz-g3-builds-opt_learning-brain-kernels-fuzzing_libfuzzer_address_sample_target_142857142857142857/revisions/sample_target
+-fake_flag_1=20 -fake_flag_2=40
+/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/asklfjaslkfjasdklfj38kl23jkljklsdf8
+Time ran: 2.289742389042378942897
+INFO: google3-libFuzzer:
+some fake fuzzer info
+INFO: Running in fuzzing mode, google3 logging disabled
+INFO: Running with fake mode schedule (0xA2, 010).
+INFO: Seed:234234324
+INFO: Loaded 1 modules   (09908234 inline 8-bit counters): 09908234
+[0x23sf09sf09, 0x23j23l23klj),
+INFO: Loaded 1 PC tables (23423 PCs): 23423 [0xsdfsdfsdf8907890,0x78978dsdf),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-g3-builds-opt_learning-brain-kernels-fuzzing_libfuzzer_address_sample_target_142857142857142857/revisions/sample_target: Running 1 inputs 10 time(s) each.
+Running:
+/mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/3232897fsdf7s890cb89789dfg87ds897d897fg
+third_party/crosstool/v18/stable/toolchain/bin/../include/c++/v1/vector:559:assertion !full() failed: sample_function() called on an empty vectorAddressSanitizer:DEADLYSIGNAL
+=================================================================
+==554804==kljsdklfjsdl: slkdfjsdklj: sdfsd on sfsdfsdfkjl:k lkjlkjs 0x88823909 (pc
+0x089237489237 bp 0x9809sdfssdw sp 0x90889svsxcvcc F2)
+    #0 0xsfsdf908908 in raise (/usr/sdfsd/v5/lib64/libc.so.6+0x90890sdf)
+    (BuildId: 87sfsd890df7s8ad90f7sd0987sad98fasd890f789)
+    #1 0x7fd666828816 in abort (/usr/sdfsd/v5/lib64/libc.so.6+0xsfsd89)
+    (BuildId: s90sdf8sd908cbc9v8bc90vb)
+    #18 0x90s8df90sd89 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned
+    char const*, unsigned long))
+    third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:223:3
+    #19 0x908sf90sd in main
+    third_party/llvm/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:82:234
+    #20 0x90908f90sd8f90sd8f in opiopfdssdfsdf
+    (/usr/opsdf/v5/lib64/libc.so.6+0xsfsd9) (BuildId:
+    908s09fsd90f8sd90f8sd90f90sdfsd908)
+    #21 0x908s90fsdfsdf098 in _start iuoi-sdpiops/BUILD/src/csu/../sysdeps/908/start.S:993
+==0983290==ABORTING
