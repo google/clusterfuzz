@@ -632,6 +632,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the glibc-like assertion failure format but with suffix."""
     environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
 
+    # Common case 1.
     data = self._read_test_data('erroneous_stacktrace.txt')
     expected_type = 'ASSERT'
     expected_address = ''
@@ -642,6 +643,16 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+    # Common case 2.
+    data = self._read_test_data('suffixed_glibc_assert.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = 'sample_function() called on an empty vector\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
   def test_stack_filtering(self):
     """Test ignore lists and stack frame filtering."""
     data = self._read_test_data('stack_filtering.txt')
