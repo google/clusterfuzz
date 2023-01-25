@@ -653,6 +653,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
   def test_stack_filtering(self):
     """Test ignore lists and stack frame filtering."""
     data = self._read_test_data('stack_filtering.txt')
