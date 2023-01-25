@@ -864,7 +864,7 @@ class AflRunnerCommon(object):
       # Randomly set to ignore long running inputs.
       if engine_common.decide_with_probability(
           self.strategies.IGNORE_TIMEOUTS_PROB):
-        self.set_arg(fuzz_args, constants.IGNORE_TIMEOUTS_ENV_VAR, None)
+        environment.set_value(constants.IGNORE_TIMEOUTS_ENV_VAR, 1)
 
       # Randomly set new vs. old queue selection mechanism.
       if engine_common.decide_with_probability(
