@@ -20,6 +20,7 @@ from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz.stacktraces import StackParser
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'stack_analyzer_data')
 TEST_JOB_NAME = 'test'
@@ -3467,3 +3468,13 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_split_stacktrace(self):
+    """Test if unintentionally concatenated lines in stracktraces can be split correctly."""
+    erroneous_stacktrace = self._read_test_data('erroneous_stacktrace.txt')
+    corrected_stacktrace = self._read_test_data('corrected_stacktrace.txt')
+
+    actual_split_stacktrace = StackParser.split_stacktrace(erroneous_stacktrace)
+    expected_split_stacktrace = corrected_stacktrace.splitlines()
+
+    self.assertEqual(actual_split_stacktrace, expected_split_stacktrace)
