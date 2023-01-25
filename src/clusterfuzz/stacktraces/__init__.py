@@ -432,6 +432,7 @@ class StackParser:
       # However if we already have a kernel crash, we don't want to
       # replace it with the ASSERT.
       if not state.crash_type.startswith('Kernel failure'):
+        self.match_assert(line, state, ASSERT_DISENGAGED_VALUE, group=1)
         self.match_assert(line, state, ASSERT_REGEX)
         self.match_assert(line, state, ASSERT_REGEX_GOOGLE, group=2)
         self.match_assert(line, state, ASSERT_REGEX_GLIBC)
