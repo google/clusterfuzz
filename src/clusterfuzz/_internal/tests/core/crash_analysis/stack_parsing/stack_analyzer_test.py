@@ -628,6 +628,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_assert_disengaged_value(self):
+    """Test the disengaged value assertion failure format."""
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('erroneous_stacktrace.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = 'optional operator* called on a disengaged value\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_stack_filtering(self):
     """Test ignore lists and stack frame filtering."""
     data = self._read_test_data('stack_filtering.txt')
