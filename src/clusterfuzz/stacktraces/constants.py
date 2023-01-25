@@ -63,6 +63,11 @@ ASSERT_REGEX_GOOGLE = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                  r'.*assertion failed at\s.*\sin\s*.*: (.*)')
 ASSERT_REGEX_GLIBC = re.compile(
     r'.*:\s*assertion [`\'"]?(.*?)[`\'"]? failed\.?$', re.IGNORECASE)
+# The 'assertion .* failed' is suffixed with the failure reason. E.g.,
+# 'assertion __dest < len() failed: sample_array[] index out of bounds',
+# 'assertion !full() failed: sample_function() called on an empty vector'
+ASSERT_REGEX_GLIBC_SUFFIXED = re.compile(
+    r'.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)')
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
 CENTIPEDE_TIMEOUT_REGEX = re.compile(
     r'^========= Timeout of \d+ seconds exceeded; exiting')

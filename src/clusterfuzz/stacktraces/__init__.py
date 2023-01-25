@@ -435,6 +435,7 @@ class StackParser:
         self.match_assert(line, state, ASSERT_REGEX)
         self.match_assert(line, state, ASSERT_REGEX_GOOGLE, group=2)
         self.match_assert(line, state, ASSERT_REGEX_GLIBC)
+        self.match_assert(line, state, ASSERT_REGEX_GLIBC_SUFFIXED)
         self.match_assert(line, state, RUST_ASSERT_REGEX)
 
       # ASSERT_NOT_REACHED prints a single line error then triggers a crash. We
