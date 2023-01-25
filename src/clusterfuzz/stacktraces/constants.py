@@ -99,6 +99,7 @@ EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX = re.compile(
     r'===BUG DETECTED: Arbitrary file open===')
 EXTRA_SANITIZERS_ARBITRARY_DNS = re.compile(
     r'===BUG DETECTED: Arbitrary domain name resolution===')
+EXTRA_SANITIZERS_PYSECSAN = re.compile(r'===BUG DETECTED: PySecSan:')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
@@ -333,6 +334,7 @@ PYTHON_UNHANDLED_EXCEPTION = re.compile(
 
 PYTHON_CRASH_TYPES_MAP = [
     (PYTHON_UNHANDLED_EXCEPTION, 'Uncaught exception'),
+    (EXTRA_SANITIZERS_PYSECSAN, 'PySecSan'),
 ]
 
 PYTHON_STACK_FRAME_FUNCTION_REGEX = re.compile(

@@ -3354,6 +3354,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_pysecsan_command_os_system(self):
+    """Test PySecSan command injection bug in os.system"""
+    data = self._read_test_data('pysecsan_command_os_system.txt')
+    expected_type = 'PySecSan'
+    expected_address = ''
+    # abort is ignored by the stack parsing, so do not include this in the
+    # expected_state.
+    expected_state = 'hook_pre_exec_os_system\nrun\nlist_files_perhaps\n'
+    expected_stacktrace = data
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_sanitizer_out_of_memory(self):
     """Test sanitizer out of memory."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
