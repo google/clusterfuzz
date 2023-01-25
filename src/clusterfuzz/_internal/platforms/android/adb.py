@@ -49,6 +49,7 @@ WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
 STOP_CVD_WAIT = 20
+LAUNCH_CVD_TIMEOUT = 2700
 
 # Output patterns to parse "lsusb" output.
 LSUSB_BUS_RE = re.compile(r'Bus\s+(\d+)\s+Device\s+(\d+):.*')
@@ -378,7 +379,10 @@ def start_cuttlefish_device(use_kernel=False):
     launch_cvd_command_line += (
         f' -kernel_path={kernel_path} -initramfs_path={initramfs_path}')
 
-  execute_command(launch_cvd_command_line, on_cuttlefish_host=True)
+  execute_command(
+      launch_cvd_command_line,
+      timeout=LAUNCH_CVD_TIMEOUT,
+      on_cuttlefish_host=True)
 
 
 def stop_cuttlefish_device():

@@ -28,6 +28,15 @@ def get_grammar(fuzzer_path):
   return None
 
 
+def get_extra_env(fuzzer_path):
+  """Get environment variables for a given fuzz target if any (or None)."""
+  fuzzer_options = options.get_fuzz_target_options(fuzzer_path)
+  if fuzzer_options:
+    return fuzzer_options.get_env()
+
+  return None
+
+
 def get_arguments(fuzzer_path):
   """Get arguments for a given fuzz target."""
   arguments = []
