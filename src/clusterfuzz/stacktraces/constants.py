@@ -188,7 +188,7 @@ SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
 SAN_DEADLYSIGNAL_REGEX = re.compile(
     r'(Address|Leak|Memory|UndefinedBehavior|Thread)Sanitizer:DEADLYSIGNAL')
 CONCATENATED_SAN_DEADLYSIGNAL_REGEX = re.compile(
-    r'\n(.+)(' + SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
+    r'\n([^\n]*\S[^\n]*)(' + SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
 SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX = r'\n\1\n\2\n'
 SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
 SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
