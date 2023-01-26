@@ -48,7 +48,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 def run_server():
   """Start a HTTP server to respond to the health checker."""
   if utils.is_oss_fuzz() or environment.is_android():
-    # OSS-Fuzz & Android multiple instances per host model isn't supported yet.
+    # OSS-Fuzz and Android multiple instances per host model aren't supported
+    # yet.
     return
 
   health_check_responder_server = HTTPServer((RESPONDER_IP, RESPONDER_PORT),
