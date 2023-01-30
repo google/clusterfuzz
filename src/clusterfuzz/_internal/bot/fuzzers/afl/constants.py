@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Constants that are meaningful to AFL.
+"""Constants that are meaningful to AFL++.
 Should not have any dependancies.
 """
 
-# AFL flags.
+# AFL++ flags.
 DICT_FLAG = '-x'
 
 INPUT_FLAG = '-i'
@@ -38,12 +38,14 @@ SCHEDULER_FLAG = '-p'
 
 CMPLOG_FLAG = '-c'
 
+FUZZING_TIMEOUT_FLAG = '-V'
+
 # AFL CMPLOG suboptions.
 CMPLOG_ARITH = 'A'
 
 CMPLOG_TRANS = 'T'
 
-FUZZING_TIMEOUT_FLAG = '-V'
+CMPLOG_RAND = 'R'
 
 # AFL environment variables.
 AFL_MAP_SIZE_ENV_VAR = 'AFL_MAP_SIZE'
@@ -79,6 +81,8 @@ CMPLOG_ONLY_NEW_ENV_VAR = 'AFL_CMPLOG_ONLY_NEW'
 DISABLE_TRIM_ENV_VAR = 'AFL_DISABLE_TRIM'
 
 IGNORE_PROBLEMS_ENV_VAR = 'AFL_IGNORE_PROBLEMS'
+
+IGNORE_TIMEOUTS_ENV_VAR = 'AFL_IGNORE_TIMEOUTS'
 
 # Other settings.
 

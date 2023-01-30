@@ -47,7 +47,7 @@ def main():
   while True:
     state = android.adb.get_device_state()
     if state == android.adb.DEVICE_NOT_FOUND_STRING.format(
-        serial=device_serial):
+        serial=device_serial) and environment.is_android_cuttlefish():
       android.adb.connect_to_cuttlefish_device()
       state = android.adb.get_device_state()
     logs.log('Android device %s state: %s' % (device_serial, state))

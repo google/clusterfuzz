@@ -1,0 +1,401 @@
+<!--
+  Copyright 2019 Google LLC
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../components/common/ajax-dialog/ajax-dialog.html">
+<link rel="import" href="../../components/common/if-else/if-else.html">
+<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+
+<dom-module id="upload-form-simplified">
+  <link rel="import" href="../../stylesheets/main.css" type="css">
+  <link rel="import" href="../technology/technology.css" type="css">
+  <template>
+    <style>
+      /* local DOM styles go here */
+      :host {
+        display: block;
+      }
+
+      :host ajax-dialog > * {
+        display: block;
+        margin: 8px 0px;
+      }
+
+      :host .error {
+        text-align: left;
+        color: #ca4545;
+        display: block;
+        font-weight: bold;
+        padding: 10px 0px;
+      }
+
+      .inline {
+        display: flex;
+      }
+
+      .inline > * {
+        flex: 1;
+      }
+
+      .inline.narrow > * {
+        width: 180px;
+        margin: 5px;
+      }
+
+      .inline.wide > * {
+        width: 360px;
+        margin: 5px;
+      }
+
+      #file {
+        --paper-input-container-input: {
+          font-size: 12px;
+        };
+
+        --paper-input-container-underline: {
+          display: none;
+        };
+
+        --paper-input-container-underline-focus: {
+          display: none;
+        };
+
+        --paper-input-container-underline-disabled: {
+          display: none;
+        };
+      }
+
+      .get-link-button {
+        display: inline-block;
+      }
+
+      .warning {
+        color: #FF6347;
+        font-size: 12px;
+      }
+    </style>
+    <ajax-dialog
+        id="simplifiedDialog"
+        url="[[fieldValues.uploadInfo.url]]"
+        title="Upload testcase (quick mode)"
+        content-type=""
+        on-before-submit="computeGcsBody"
+        submit-button="Create"
+        response="{{response}}"
+        opened="{{opened}}"
+        on-response="handleGcsResponseAndError"
+        on-before-error="handleGcsResponseAndError"
+        loading="{{loading}}">
+      <template is="dom-if" if="[[error]]">
+        <div class="error">
+          ERROR: [[error.response.message]]
+        </div>
+      </template>
+      <div class="inline narrow">
+        <template is="dom-if" if="[[shouldShowIssueField()]]">
+            <paper-input value="{{uploadParams.issue}}" label="Issue ID" title="Issue ID in the associated project's tracker to update for this testcase."></paper-input>
+        </template>
+      </div>
+      <template is="dom-if" if="[[uploadParams.testcaseId]]">
+        <span class="reupload">
+          If you don't choose a file, the testcase from <a href="/testcase-detail/[[uploadParams.testcaseId]]">[[uploadParams.testcaseId]]</a> will be used.
+        </span>
+      </template>
+      <div class="inline">
+        <div>
+          <p>Testcase file or archive. If an archive is uploaded, a file containing 'fuzz-', 'run', 'index.', or 'crash.' in its name will be treated as the testcase and the rest as resources.</p>
+          <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File" title="Testcase file or archive. If an archive is uploaded, a file containing &quot;fuzz-&quot;, &quot;run&quot;, &quot;index.&quot;, or &quot;crash.&quot; will be treated as the testcase and the rest as resources."></paper-input>
+        </div>
+        <template is="dom-if" if="[[shouldShowFiletypePicker(uploadParams.file)]]">
+          <paper-dropdown-menu
+              class="dropdown-filter"
+              no-animations="true"
+              label="Testcase file type"
+              title="html, js, or pdf"
+              noink>
+            <paper-listbox
+                slot="dropdown-content"
+                selected="{{uploadParams.fileType}}"
+                fallback-selection="html"
+                attr-for-selected="val">
+              <paper-item val="html">html</paper-item>
+              <paper-item val="js">js</paper-item>
+              <paper-item val="pdf">pdf</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </template>
+        <template is="dom-if" if="[[shouldShowFilepathError(uploadParams.file)]]">
+          <div class="warning">
+            <p> You are using an uncommon archive or file type - make sure this is the file you intend to upload. </p>
+          </div>
+        </template>
+      </div>
+      <template is="dom-if" if="[[showWarning(uploadParams.job)]]">
+        <div class="warning">
+          <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
+          Only upload testcases that you trust enough to run on your own
+          machine. Note that some jobs do not use the Chrome sandbox, the
+          following jobs do:<br>
+          [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
+        </div>
+      </template>
+      <div class="inline wide">
+        <paper-dropdown-menu
+            class="dropdown-filter"
+            no-animations="true"
+            label="Platform"
+            title="Linux, Windows, Mac, or Android"
+            noink>
+          <paper-listbox
+              slot="dropdown-content"
+              selected="{{uploadParams.platform}}"
+              attr-for-selected="val">
+            <paper-item val="Linux">Linux</paper-item>
+            <paper-item val="Windows">Windows</paper-item>
+            <paper-item val="Mac">Mac</paper-item>
+            <paper-item val="Android">Android</paper-item>
+          </paper-listbox>
+        </paper-dropdown-menu>
+      </div>
+      <p class="quick-mode-job narrow"> Job to be used for this testcase: {{getJobType(uploadParams.file, uploadParams.fileType, uploadParams.platform)}} </p>
+      <div class="inline wide">
+        <paper-input value="{{uploadParams.args}}" label="Command-line arguments (optional)" title="Additional command line flags to append when running this testcase. Only necessary if a flag that isn't part of the job definition is required."></paper-input>
+      </div>
+      <template is="dom-if" if="[[isAndroid(uploadParams.job)]]">
+        <div class="inline wide">
+          <paper-input value="{{uploadParams.cmd}}" label="Launch command (Android only) (optional)"></paper-input>
+          <paper-input value="{{uploadParams.platform}}" label="Platform ID (Android only) (optional)"></paper-input>
+        </div>
+      </template>
+      <br/>
+      <paper-button class="get-link-button" slot="more-buttons" on-tap="generatePermalink">Permalink</paper-button>
+    </ajax-dialog>
+    <iron-ajax
+      id="ajaxFinish"
+      url="/upload-testcase/upload"
+      method="POST"
+      body="[[computeFinishBody(uploadParams.*)]]"
+      last-error="{{error}}"
+      on-response="handleFinishResponse"
+      debounce-duration="1000"
+      loading="{{loading}}">
+    </iron-ajax>
+  </template>
+  <script>
+    class UploadFormSimplified extends Polymer.Element {
+      static get is() { return 'upload-form-simplified'; }
+
+      static get properties() {
+        return {
+          paramKeys: {
+            type: Array,
+            value: [
+                'job', 'target', 'multiple', 'http', 'highEnd', 'issue',
+                'revision', 'timeout', 'retries', 'updateIssue', 'args', 'cmd',
+                'platform', 'gestures', 'testcaseId']
+          },
+          uploadParams: {
+            type: Object,
+            value: () => { return {}; }
+          },
+          response: Object,
+          getUrlResponse: Object,
+          opened: {
+            type: Boolean,
+            notify: true
+          },
+          fieldValues: Object,
+          loading: Boolean,
+        };
+      }
+
+      ready() {
+        super.ready();
+        this.uploadParams = window.query.toObject(
+            window.query.get(), this.paramKeys);
+      }
+
+      isArchive(filePath) {
+        return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf');
+      }
+
+      shouldShowFiletypePicker(filePath) {
+        if (!filePath) {
+          return false;
+        }
+        return this.isArchive(filePath);
+      }
+
+      shouldShowFilepathError(filePath) {
+        if (!filePath) {
+          return false;
+        }
+        let isCommonArchiveType = !filePath.includes('.zip') && !filePath.includes('.tar') && !filePath.includes('.rar') && !filePath.includes('.7z');
+        return this.isArchive(filePath) && isCommonArchiveType;
+      }
+
+      getJobType(filePath, fileType, platform) {
+        if (!filePath || !platform) {
+          return;
+        }
+        let isArchive = this.isArchive(filePath);
+        if (isArchive && !fileType) {
+          return;
+        }
+
+        let jobMapping = {
+          'html':
+            {
+              'Linux': 'linux_asan_chrome_mp',
+              'Windows': 'windows_asan_chrome',
+              'Mac': 'mac_asan_chrome',
+              'Android': 'android_asan_chrome_latest'
+            },
+          'js':
+            {
+              'Linux': 'linux_asan_d8',
+              'Windows': 'windows_asan_d8',
+              'Mac': 'mac_asan_d8',
+              'Android': "No applicable job available! :( Please do not select this option."
+            },
+          'pdf':
+            {
+              'Linux': 'libfuzzer_pdfium_asan',
+              'Windows': 'libfuzzer_pdfium_asan',
+              'Mac': 'libfuzzer_pdfium_asan',
+              'Android': 'libfuzzer_pdfium_asan'
+            }
+        }
+
+        let fileTypeKey;
+        if (isArchive) {
+          fileTypeKey = fileType;
+        } else {
+          fileTypeKey = filePath.split('.').pop();
+        }
+        if (jobMapping[fileTypeKey] && jobMapping[fileTypeKey][platform]) {
+          let newJob = jobMapping[fileTypeKey][platform];
+          this.set('uploadParams.job', newJob);
+          if (newJob.includes('pdfium')) {
+            this.set('uploadParams.target', 'pdfium_xfa_fuzzer')
+          }
+          return newJob;
+        } else {
+          // We should never get here. Throw an error and perhaps work on displaying it if need be, later.
+          throw 'The combo of platform: ' + platform + ' and file: ' + filePath + 'and maybe the fileType was unexpected!'
+        }
+      }
+
+      computeGcsBody() {
+        if (!this.uploadParams.issue) {
+          let skipIssue = confirm("You have not specified a bug number. Continue?");
+          if (!skipIssue) {
+            return;
+          }
+        }
+        if (this.uploadParams.file.includes('js') && this.uploadParams.platform == 'Android') {
+          alert("Running Javascript on Android is not supported");
+          return;
+        }
+        var uploadData = new FormData();
+        uploadData.append('bucket', this.fieldValues.uploadInfo.bucket);
+        uploadData.append('key', this.fieldValues.uploadInfo.key);
+        uploadData.append('GoogleAccessId', this.fieldValues.uploadInfo.google_access_id);
+        uploadData.append('policy', this.fieldValues.uploadInfo.policy);
+        uploadData.append('signature', this.fieldValues.uploadInfo.signature);
+
+        let file = this.$.file.inputElement.inputElement.files[0];
+        if (file) {
+          uploadData.append('x-goog-meta-filename', file.name);
+          uploadData.append('file', file);
+        } else {
+          this.$.ajaxFinish.generateRequest();
+          return;
+        }
+
+        this.$.simplifiedDialog.$.ajax.body = uploadData;
+      }
+
+      computeFinishBody() {
+        let formData = new FormData();
+        for (let key in this.uploadParams) {
+          formData.append(key, this.uploadParams[key]);
+        }
+
+        formData.append('csrf_token', this.fieldValues.csrfToken);
+        if (this.uploadParams.file) {
+          formData.append('upload_key', this.fieldValues.uploadInfo.key);
+        }
+        return formData;
+      }
+
+      handleGcsResponseAndError(ev) {
+        // Finished uploading to GCS, post the remainder of the data to
+        // ClusterFuzz.
+        // Errors are ignored here also. Because the upload is cross-site, we
+        // defer to the server to check that upload succeeded.
+        this.$.ajaxFinish.generateRequest();
+      }
+
+      handleFinishResponse(ev) {
+        if (ev.detail.response.multiple) {
+          alert(
+              'Multiple testcases are uploaded. Please wait for ClusterFuzz to '
+              + 'unpack and create all testcases.');
+          this.$.simplifiedDialog.close();
+        } else {
+          window.location.href = '/testcase-detail/' + ev.detail.response.id;
+        }
+      }
+
+      shouldShowIssueField() {
+        return this.fieldValues.hasIssueTracker && !this.fieldValues.isExternalUser;
+      }
+
+      isAndroid(job) {
+        return job && job.startsWith('android_');
+      }
+
+      generatePermalink() {
+        window.location.href = '?upload=true&' + window.query.compute(
+            this.uploadParams, this.paramKeys);
+      }
+
+      showWarning(job) {
+        if (!job) { return false; }
+        let secureJobs = new Set(this.fieldValues.sandboxedJobs);
+        return this.fieldValues.isChromium && !secureJobs.has(job);
+      }
+
+      formatSandboxedJobs(jobs) {
+        if (!jobs) { return ''; }
+
+        let s = '';
+        for (let i=0;i<jobs.length;i++) {
+          if (i > 0) { s += ', '; }
+          if (i == (jobs.length - 1)) { s += 'and '; }
+          s += jobs[i]
+        }
+        return s;
+      }
+    }
+
+    customElements.define(UploadFormSimplified.is, UploadFormSimplified);
+  </script>
+</dom-module>
+

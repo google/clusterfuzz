@@ -20,6 +20,7 @@
 <link rel="import" href="../../bower_components/paper-styles/color.html">
 <link rel="import" href="../common/paginated-list/paginated-list.html">
 <link rel="import" href="upload-form.html">
+<link rel="import" href="upload-form-simplified.html">
 
 <dom-module id="upload-testcase">
   <link rel="import" href="../../stylesheets/main.css" type="css">
@@ -250,6 +251,8 @@
       debounce-duration="500"></iron-ajax>
     <upload-form id="uploadForm" field-values="{{fieldValues}}" opened="{{uploadFormOpened}}">
     </upload-form>
+    <upload-form-simplified id="uploadFormSimplified" field-values="{{fieldValues}}" opened="{{uploadFormSimplifiedOpened}}">
+    </upload-form-simplified>
     <app-toolbar>
       <paper-icon-button icon="menu" onclick="document.getElementById('drawer').toggle()"></paper-icon-button>
       <div id="title">Uploaded Testcases</div>
@@ -261,7 +264,12 @@
     <div id="mainContent">
       <div class="toolbar">
         <div class="permission">[[getPermissionText(params)]]</div>
-        <div class="buttons"><paper-button raised toggles active="{{uploadFormOpened}}">Upload</paper-button></div>
+        <div class="buttons">
+          <paper-button raised toggles active="{{uploadFormOpened}}">Upload</paper-button>
+          <template is="dom-if" if="[[fieldValues.isChromium]]">
+            <paper-button raised toggles active="{{uploadFormSimplifiedOpened}}">Quick Upload</paper-button>
+          </template>
+        </div>
       </div>
       <paginated-list
           id="paginatedList"
@@ -351,6 +359,12 @@
             value: false
           },
           uploadFormOpened: {
+            type: Boolean,
+            value: () => {
+              return !!window.query.getParam('upload');
+            }
+          },
+          uploadFormSimplifiedOpened: {
             type: Boolean,
             value: () => {
               return !!window.query.getParam('upload');

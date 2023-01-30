@@ -63,6 +63,11 @@ ASSERT_REGEX_GOOGLE = re.compile(GOOGLE_LOG_FATAL_PREFIX +
                                  r'.*assertion failed at\s.*\sin\s*.*: (.*)')
 ASSERT_REGEX_GLIBC = re.compile(
     r'.*:\s*assertion [`\'"]?(.*?)[`\'"]? failed\.?$', re.IGNORECASE)
+# The 'assertion .* failed' is suffixed with the failure reason. E.g.,
+# 'assertion __dest < len() failed: sample_array[] index out of bounds',
+# 'assertion !full() failed: sample_function() called on an empty vector'
+ASSERT_REGEX_GLIBC_SUFFIXED = re.compile(
+    r'.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)')
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
 CENTIPEDE_TIMEOUT_REGEX = re.compile(
     r'^========= Timeout of \d+ seconds exceeded; exiting')
@@ -99,6 +104,7 @@ EXTRA_SANITIZERS_ARBITRARY_FILE_OPEN_REGEX = re.compile(
     r'===BUG DETECTED: Arbitrary file open===')
 EXTRA_SANITIZERS_ARBITRARY_DNS = re.compile(
     r'===BUG DETECTED: Arbitrary domain name resolution===')
+EXTRA_SANITIZERS_PYSECSAN = re.compile(r'===BUG DETECTED: PySecSan:')
 FATAL_ERROR_GENERIC_FAILURE = re.compile(r'#\s+()(.*)')
 FATAL_ERROR_CHECK_FAILURE = re.compile(
     r'#\s+(Check failed: |RepresentationChangerError: node #\d+:)(.*)')
@@ -185,7 +191,11 @@ SAN_CHECK_FAILURE_REGEX = re.compile(
     r'.*Sanitizer CHECK failed[:]\s*[^ ]*\s*(.*)')
 SAN_CRASH_TYPE_ADDRESS_REGEX = re.compile(
     r'[ ]*([^ ]*|Atomic [^ ]*) of size ([^ ]*) at ([^ ]*)')
-SAN_DEADLYSIGNAL_REGEX = re.compile(r'.*:DEADLYSIGNAL')
+SAN_DEADLYSIGNAL_REGEX = re.compile(
+    r'(Address|Leak|Memory|UndefinedBehavior|Thread)Sanitizer:DEADLYSIGNAL')
+CONCATENATED_SAN_DEADLYSIGNAL_REGEX = re.compile(
+    r'\n([^\n]*\S[^\n]*)(' + SAN_DEADLYSIGNAL_REGEX.pattern + r')\n')
+SPLIT_CONCATENATED_SAN_DEADLYSIGNAL_REGEX = r'\n\1\n\2\n'
 SAN_FPE_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: FPE ')
 SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ILL ')
 SAN_TRAP_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: TRAP ')
@@ -329,6 +339,7 @@ PYTHON_UNHANDLED_EXCEPTION = re.compile(
 
 PYTHON_CRASH_TYPES_MAP = [
     (PYTHON_UNHANDLED_EXCEPTION, 'Uncaught exception'),
+    (EXTRA_SANITIZERS_PYSECSAN, 'PySecSan'),
 ]
 
 PYTHON_STACK_FRAME_FUNCTION_REGEX = re.compile(
