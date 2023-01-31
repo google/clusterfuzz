@@ -908,45 +908,6 @@ class SymbolizedBuild(Build):
     return True
 
 
-class ProductionBuild(Build):
-  """Production build."""
-
-  def __init__(self, base_build_dir, version, build_url, build_type):
-    super().__init__(base_build_dir, version)
-    self.build_url = build_url
-    self.build_type = build_type
-    self._build_dir = os.path.join(self.base_build_dir, self.build_type)
-
-  @property
-  def build_dir(self):
-    return self._build_dir
-
-  def setup(self):
-    """Sets up build with a particular revision."""
-    self._pre_setup()
-    logs.log('Retrieving %s branch (%s).' % (self.build_type, self.revision))
-    environment.set_value('BUILD_URL', self.build_url)
-
-    version_file = os.path.join(self.build_dir, 'VERSION')
-    build_update = revisions.needs_update(version_file, self.revision)
-
-    if build_update:
-      if not self._unpack_build(self.base_build_dir, self.build_dir,
-                                self.build_url):
-        return False
-
-      revisions.write_revision_to_revision_file(version_file, self.revision)
-      logs.log('Retrieved %s branch (%s).' % (self.build_type, self.revision))
-    else:
-      logs.log('Build already exists.')
-
-    self._setup_application_path(build_update=build_update)
-
-    # 'VERSION' file already written.
-    self._post_setup_success(update_revision=False)
-    return True
-
-
 class CustomBuild(Build):
   """Custom binary."""
 
@@ -1536,14 +1497,6 @@ def is_custom_binary():
   """Determine if this is a custom or preinstalled system binary."""
   return (environment.get_value('CUSTOM_BINARY') or
           environment.get_value('SYSTEM_BINARY_DIR'))
-
-
-def has_production_builds():
-  """Return a bool on if job type has build urls for extended stable, stable and
-  beta builds."""
-  return (environment.get_value('STABLE_BUILD_BUCKET_PATH') and
-          environment.get_value('BETA_BUILD_BUCKET_PATH') and
-          environment.get_value('EXTENDED_STABLE_BUILD_BUCKET_PATH'))
 
 
 def has_symbolized_builds():
