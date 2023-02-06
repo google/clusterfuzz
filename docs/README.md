@@ -10,5 +10,4 @@ bundle exec jekyll serve
 ```
 
 # Theme documentation
-We are using the [just the docs](https://pmarsceill.github.io/just-the-docs/)
-theme.
+We are using the [just the docs](https://just-the-docs.github.io/just-the-docs/) theme.
