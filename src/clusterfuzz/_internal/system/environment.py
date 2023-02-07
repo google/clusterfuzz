@@ -1093,9 +1093,11 @@ def is_android_kernel(plt=None):
   """Return True if we are on android kernel platform groups."""
   return 'ANDROID_KERNEL' in (plt or get_platform_group())
 
+
 def is_android_real_device():
   """Return True if we are on a real android device."""
   return platorm() == 'ANDROID'
+
 
 def is_lib():
   """Whether or not we're in libClusterFuzz."""
