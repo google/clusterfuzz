@@ -1096,7 +1096,7 @@ def is_android_kernel(plt=None):
 
 def is_android_real_device():
   """Return True if we are on a real android device."""
-  return platorm() == 'ANDROID'
+  return platform() == 'ANDROID'
 
 
 def is_lib():
