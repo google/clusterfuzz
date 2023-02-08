@@ -14,7 +14,6 @@
 """Utilities for fetching build info from OmahaProxy."""
 
 import json
-import re
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
