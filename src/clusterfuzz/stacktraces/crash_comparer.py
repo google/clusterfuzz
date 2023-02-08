@@ -12,6 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Expose crash comparer to external users."""
-from clusterfuzz._internal.crash_analysis import crash_comparer
-
-crash_comparer = crash_comparer.CrashComparer()
+# pylint: disable=unused-import
+from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
