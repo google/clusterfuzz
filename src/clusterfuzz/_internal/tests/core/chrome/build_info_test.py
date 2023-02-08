@@ -35,9 +35,6 @@ class BuildInfoTest(unittest.TestCase):
     ])
 
     def _fetch_url(url):
-      if url == build_info.BUILD_INFO_URL:
-        return open(ALL_CSV, 'r').read()
-
       match = re.match(
           r'https://chromiumdash\.appspot\.com/fetch_releases\?'
           r'num=1&platform=([a-zA-Z0-9]+)($|&channel=([a-zA-Z]+))', url)
@@ -64,29 +61,6 @@ class BuildInfoTest(unittest.TestCase):
     actual_list_converted = [(info.platform, info.build_type, info.version,
                               info.revision) for info in actual_list]
     self.assertEqual(actual_list_converted, expected_list)
-
-  # TODO(yuanjunh): remove unit tests for omahaproxy.
-  def test_get_valid_platform(self):
-    """Tests if a valid platform (WIN) results in the correct metadata list from
-       OmahaProxy."""
-    self._validate_build_info_list(
-        build_info.get_production_builds_info('WINDOWS'),
-        [
-            # Note that canary_asan and win64 are omitted.
-            ('WINDOWS', 'canary', '62.0.3187.0',
-             '632559c0c94194aa462299ff5c2ed121dd8ce833'),
-            ('WINDOWS', 'dev', '62.0.3178.0',
-             'd682ac8276223315dbc95a65c87b09dea12506e5'),
-            ('WINDOWS', 'beta', '61.0.3163.39',
-             '5b3b74da7199443677af72c0f38974c5336f0072'),
-            ('WINDOWS', 'stable', '60.0.3112.101',
-             'bfd423326e0eba3fbb293a0cf29ededfe22871a8'),
-        ])
-
-  def test_get_invalid_platform(self):
-    """Tests if an invalid platform results in the correct (empty) list."""
-    self._validate_build_info_list(
-        build_info.get_production_builds_info('foo'), [])
 
   def test_get_valid_platform_cd(self):
     """Tests if a valid platform (WIN) results in the correct metadata list from
