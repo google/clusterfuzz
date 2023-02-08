@@ -36,15 +36,6 @@ class BuildInfo(object):
     self.revision = revision
 
 
-def _convert_platform_to_omahaproxy_platform(platform):
-  """Converts platform to omahaproxy platform for use in
-  get_production_builds_info."""
-  platform_lower = platform.lower()
-  if platform_lower == 'windows':
-    return 'win'
-  return platform_lower
-
-
 def _convert_platform_to_chromiumdash_platform(platform):
   """Converts platform to Chromium Dash platform.
   Note that Windows in Chromium Dash is win64 and we only want win32."""
