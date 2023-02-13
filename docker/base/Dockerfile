@@ -98,6 +98,10 @@ RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /
     rm -rf /tmp/Python-3.7.7
 RUN pip3.7 install pipenv
 
+# Install Node.js
+COPY setup_19.x /data
+RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
+
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg \
