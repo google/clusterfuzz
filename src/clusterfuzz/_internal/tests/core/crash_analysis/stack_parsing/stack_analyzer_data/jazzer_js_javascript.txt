@@ -1,0 +1,21 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1994432650
+INFO: Loaded 1 modules   (512 inline 8-bit counters): 512 [0x7f049c22e010, 0x7f049c22e210), 
+INFO: Loaded 1 PC tables (512 PCs): 512 [0x7f04957fc010,0x7f04957fe010), 
+INFO:        0 files found in /tmp/fuzz_string_compare_corpus
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 2 ft: 2 corp: 1/1b exec/s: 0 rss: 122Mb
+#1333	NEW    cov: 6 ft: 6 corp: 2/17b lim: 17 exec/s: 0 rss: 122Mb L: 16/16 MS: 1 InsertRepeatedBytes-
+#17042	NEW    cov: 7 ft: 7 corp: 3/33b lim: 170 exec/s: 0 rss: 124Mb L: 16/16 MS: 4 ShuffleBytes-ChangeBit-ChangeByte-CMP- DE: "Awesome "-
+#64199	NEW    cov: 8 ft: 8 corp: 4/49b lim: 634 exec/s: 0 rss: 142Mb L: 16/16 MS: 2 ChangeBit-CMP- DE: "Fuzzing"-
+==14== Uncaught Exception: Jazzer.js: Welcome to Awesome Fuzzing!
+Error: Welcome to Awesome Fuzzing!
+    at check (/out/example/fuzz_string_compare.js:27:9)
+    at module.exports.fuzz (/out/example/fuzz_string_compare.js:36:2)
+    at /out/example/node_modules/@jazzer.js/core/core.ts:112:38
+MS: 1 ChangeByte-; base unit: 24b3fc682a0f5246a6e58912bfa9386924c2fd9f
+0x41,0x77,0x65,0x73,0x6f,0x6d,0x65,0x20,0x46,0x75,0x7a,0x7a,0x69,0x6e,0x67,0x21,
+Awesome Fuzzing!
+artifact_prefix='./'; Test unit written to ./crash-dd107abbf60f67c533ff7aecb116ce483fc4facf
+Base64: QXdlc29tZSBGdXp6aW5nIQ==

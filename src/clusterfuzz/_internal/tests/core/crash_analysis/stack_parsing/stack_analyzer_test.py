@@ -3504,3 +3504,27 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_split_stacktrace = corrected_stacktrace.splitlines()
 
     self.assertEqual(actual_split_stacktrace, expected_split_stacktrace)
+
+  def test_jazzer_js_javascript(self):
+    """Test Jazzer.js JS stacktrace."""
+    data = self._read_test_data('jazzer_js_javascript.txt')
+    expected_type = 'Uncaught exception'
+    expected_state = ('check\nmodule.exports.fuzz\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_jazzer_js_typescript(self):
+    """Test Jazzer.js TS stacktrace."""
+    data = self._read_test_data('jazzer_js_typescript.txt')
+    expected_type = 'Uncaught exception'
+    expected_state = ('exploreMe\nfuzz\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
