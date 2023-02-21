@@ -1,0 +1,21 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 2855137205
+INFO: Loaded 1 modules   (512 inline 8-bit counters): 512 [0x7f161ac4b010, 0x7f161ac4b210), 
+INFO: Loaded 1 PC tables (512 PCs): 512 [0x7f1619c4a010,0x7f1619c4c010), 
+INFO:        0 files found in /tmp/fuzz_explore_me_corpus
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: A corpus is not provided, starting from an empty corpus
+#2	INITED cov: 4 ft: 4 corp: 1/1b exec/s: 0 rss: 126Mb
+#5	NEW    cov: 5 ft: 5 corp: 2/3b lim: 4 exec/s: 0 rss: 126Mb L: 2/2 MS: 3 ShuffleBytes-ChangeByte-CrossOver-
+#217	NEW    cov: 7 ft: 7 corp: 3/9b lim: 6 exec/s: 0 rss: 126Mb L: 6/6 MS: 2 CopyPart-InsertRepeatedBytes-
+#1048576	pulse  cov: 7 ft: 7 corp: 3/9b lim: 4096 exec/s: 524288 rss: 153Mb
+==14== Uncaught Exception: Jazzer.js: Crash!
+Error: Crash!
+    at exploreMe (/out/example/target.ts:6:15)
+    at fuzz (/out/example/fuzz_explore_me.ts:22:11)
+    at /out/example/node_modules/@jazzer.js/core/core.ts:112:38
+MS: 3 ChangeBit-CopyPart-CMP- DE: "Hello World!"-; base unit: b17e7aebda507cae0ecf9b6a4f76d41d2ffc2d91
+0x48,0x65,0x6c,0x6c,0x6f,0x20,0x57,0x6f,0x72,0x6c,0x64,0x21,0xa,0xed,0xec,0xec,0xed,0xed,0xed,0xed,
+Hello World!\012\355\354\354\355\355\355\355
+artifact_prefix='./'; Test unit written to ./crash-206c128d399a39ca72c63bb3605ae1536823a589
+Base64: SGVsbG8gV29ybGQhCu3s7O3t7e0=
