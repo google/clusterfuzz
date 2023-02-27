@@ -27,7 +27,6 @@ from clusterfuzz._internal.system import environment
 
 GENERATORS = [
     strategy.CORPUS_MUTATION_RADAMSA_STRATEGY,
-    strategy.CORPUS_MUTATION_ML_RNN_STRATEGY,
 ]
 
 StrategyCombination = namedtuple('StrategyCombination',
@@ -62,17 +61,8 @@ def choose_generator(strategy_pool):
       strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name,
       default=strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.probability)
 
-  ml_rnn_prob = engine_common.get_strategy_probability(
-      strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name,
-      default=strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.probability)
-
-  if engine_common.decide_with_probability(radamsa_prob + ml_rnn_prob):
-    if engine_common.decide_with_probability(
-        radamsa_prob / (radamsa_prob + ml_rnn_prob)):
-      strategy_pool.add_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
-    else:
-      strategy_pool.add_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY)
-
+  if engine_common.decide_with_probability(radamsa_prob):
+    strategy_pool.add_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
 
 def do_strategy(strategy_tuple):
   """Return whether or not to use a given strategy."""
@@ -88,7 +78,7 @@ def generate_default_strategy_pool(strategy_list, use_generator):
   Select strategies according to default strategy selection method."""
   pool = StrategyPool()
 
-  # If use_generator is enabled, decide whether to include radamsa, ml rnn,
+  # If use_generator is enabled, decide whether to include radamsa,
   # or no generator (mutually exclusive).
   if use_generator:
     choose_generator(pool)

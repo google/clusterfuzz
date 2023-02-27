@@ -1644,12 +1644,10 @@ def pick_strategies(strategy_pool,
         project_qualified_fuzzer_name, candidate_generator)
 
     # Add the used generator strategy to our fuzzing strategies list.
-    if generator_used:
-      if candidate_generator == engine_common.Generator.RADAMSA:
+    if (generator_used and
+        candidate_generator == engine_common.Generator.RADAMSA):
         fuzzing_strategies.append(
             strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
-      elif candidate_generator == engine_common.Generator.ML_RNN:
-        fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
 

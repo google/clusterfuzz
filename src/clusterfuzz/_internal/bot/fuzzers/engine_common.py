@@ -81,8 +81,6 @@ class Generator(object):
   """Generators we can use."""
   NONE = 0
   RADAMSA = 1
-  ML_RNN = 2
-
 
 def select_generator(strategy_pool, fuzzer_path):
   """Pick a generator to generate new testcases before fuzzing or return
@@ -96,8 +94,6 @@ def select_generator(strategy_pool, fuzzer_path):
   # These generators don't produce testcases that LPM fuzzers can use.
   if (environment.platform() == 'WINDOWS' or is_lpm_fuzz_target(fuzzer_path)):
     return Generator.NONE
-  if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
-    return Generator.ML_RNN
   if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
     return Generator.RADAMSA
 
@@ -110,7 +106,7 @@ def generate_new_testcase_mutations(corpus_directory,
   """Generate new testcase mutations, using existing corpus directory or other
   methods.
 
-  Returns true if mutations are successfully generated using radamsa or ml rnn.
+  Returns true if mutations are successfully generated using radamsa.
   A false return signifies either no generator use or unsuccessful generation of
   testcase mutations."""
   generation_timeout = get_new_testcase_mutations_timeout()
@@ -121,11 +117,6 @@ def generate_new_testcase_mutations(corpus_directory,
   if candidate_generator == Generator.RADAMSA:
     generate_new_testcase_mutations_using_radamsa(
         corpus_directory, new_testcase_mutations_directory, generation_timeout)
-  # Generate new testcase mutations using ML RNN model.
-  elif candidate_generator == Generator.ML_RNN:
-    generate_new_testcase_mutations_using_ml_rnn(
-        corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-        generation_timeout)
 
   # If new mutations are successfully generated, return true.
   if shell.get_directory_file_count(
@@ -205,24 +196,6 @@ def generate_new_testcase_mutations_using_radamsa(
       new_testcase_mutations_directory)
   logs.log('Added %d tests using Radamsa mutations.' %
            (new_corpus_size - old_corpus_size))
-
-
-def generate_new_testcase_mutations_using_ml_rnn(
-    corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-    generation_timeout):
-  """Generate new testcase mutations using ML RNN model."""
-  # No return value for now. Will add later if this is necessary.
-  # Defer import to prevent issues with tensorflow causing hangs with
-  # multiprocessing.
-  try:
-    from clusterfuzz._internal.bot.fuzzers.ml.rnn import \
-        generator as ml_rnn_generator
-  except Exception:
-    logs.log_warn('Failed to import ml_rnn generator, skipping.')
-    return
-
-  ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
-                           fuzzer_name, generation_timeout)
 
 
 def get_radamsa_path():

@@ -346,9 +346,6 @@ class FuzzingStrategies(object):
 
       if strategy_dict.get(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name) == 1:
         self.candidate_generator = engine_common.Generator.RADAMSA
-      elif strategy_dict.get(
-          strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name) == 1:
-        self.candidate_generator = engine_common.Generator.ML_RNN
     else:
       strategy_pool = strategy_selection.generate_weighted_strategy_pool(
           strategy_list=strategy.AFL_STRATEGY_LIST,
@@ -381,8 +378,6 @@ class FuzzingStrategies(object):
 
     if self.generator_strategy == engine_common.Generator.RADAMSA:
       strategies_dict[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
-    elif self.generator_strategy == engine_common.Generator.ML_RNN:
-      strategies_dict[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = 1
 
     if self.use_corpus_subset:
       strategies_dict['corpus_subset'] = self.corpus_subset_size
@@ -683,7 +678,7 @@ class AflRunnerCommon(object):
     return afl_args
 
   def do_offline_mutations(self):
-    """Mutate the corpus offline using Radamsa or ML RNN if specified."""
+    """Mutate the corpus offline using Radamsa or if specified."""
     if not self.strategies.is_mutations_run:
       return
 
