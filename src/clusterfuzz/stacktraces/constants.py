@@ -239,6 +239,7 @@ UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
 UBSAN_INCORRECT_FUNCTION_POINTER_REGEX = re.compile(
     r'.*call to function [^\s]+ through pointer to incorrect function type.*')
+UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile('.*implicit conversion from type.*')
 UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
 UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX = re.compile(
     r'.*unsigned integer overflow.*')
@@ -260,6 +261,7 @@ UBSAN_NULL_POINTER_REFERENCE_REGEX = re.compile(
 UBSAN_NULL_POINTER_WRITE_REGEX = re.compile(r'.*store to null pointer.*')
 UBSAN_OBJECT_SIZE_REGEX = re.compile(
     r'.*address .* with insufficient space for an object of type.*')
+UBSAN_OUT_OF_RANGE_REGEX = re.compile(r'.*out of range \[.*')
 UBSAN_POINTER_OVERFLOW_REGEX = re.compile(
     r'.*((addition|subtraction) of unsigned offset |'
     r'pointer index expression with base |'
@@ -638,10 +640,12 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_MISALIGNED_ADDRESS_REGEX, 'Misaligned-address'),
     (UBSAN_NO_RETURN_VALUE_REGEX, 'No-return-value'),
     (UBSAN_NULL_ARGUMENT_REGEX, 'Invalid-null-argument'),
+    (UBSAN_IMPLICIT_CONVERSION_REGEX, 'Implicit-conversion'),
     (UBSAN_NULL_POINTER_READ_REGEX, 'Null-dereference READ'),
     (UBSAN_NULL_POINTER_REFERENCE_REGEX, 'Null-dereference'),
     (UBSAN_NULL_POINTER_WRITE_REGEX, 'Null-dereference WRITE'),
     (UBSAN_OBJECT_SIZE_REGEX, 'Object-size'),
+    (UBSAN_OUT_OF_RANGE_REGEX, 'Out-of-range'),
     (UBSAN_POINTER_OVERFLOW_REGEX, 'Pointer-overflow'),
     (UBSAN_RETURNS_NONNULL_ATTRIBUTE_REGEX, 'Invalid-null-return'),
     (UBSAN_SHIFT_ERROR_REGEX, 'Undefined-shift'),
