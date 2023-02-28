@@ -64,6 +64,7 @@ def choose_generator(strategy_pool):
   if engine_common.decide_with_probability(radamsa_prob):
     strategy_pool.add_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY)
 
+
 def do_strategy(strategy_tuple):
   """Return whether or not to use a given strategy."""
   return engine_common.decide_with_probability(

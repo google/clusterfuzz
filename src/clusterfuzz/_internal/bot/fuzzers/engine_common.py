@@ -82,6 +82,7 @@ class Generator(object):
   NONE = 0
   RADAMSA = 1
 
+
 def select_generator(strategy_pool, fuzzer_path):
   """Pick a generator to generate new testcases before fuzzing or return
   Generator.NONE if no generator selected."""
@@ -100,9 +101,8 @@ def select_generator(strategy_pool, fuzzer_path):
   return Generator.NONE
 
 
-def generate_new_testcase_mutations(corpus_directory,
-                                    new_testcase_mutations_directory,
-                                    fuzzer_name, candidate_generator):
+def generate_new_testcase_mutations(
+    corpus_directory, new_testcase_mutations_directory, candidate_generator):
   """Generate new testcase mutations, using existing corpus directory or other
   methods.
 

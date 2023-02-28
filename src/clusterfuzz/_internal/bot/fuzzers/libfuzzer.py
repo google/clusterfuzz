@@ -1604,8 +1604,6 @@ def pick_strategies(strategy_pool,
   """Pick strategies."""
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
-  project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(
-      utils.current_project(), target_name)
 
   fuzzing_strategies = []
   arguments = []
@@ -1640,14 +1638,12 @@ def pick_strategies(strategy_pool,
   if is_mutations_run:
     new_testcase_mutations_directory = create_corpus_directory('mutations')
     generator_used = engine_common.generate_new_testcase_mutations(
-        corpus_directory, new_testcase_mutations_directory,
-        project_qualified_fuzzer_name, candidate_generator)
+        corpus_directory, new_testcase_mutations_directory, candidate_generator)
 
     # Add the used generator strategy to our fuzzing strategies list.
     if (generator_used and
         candidate_generator == engine_common.Generator.RADAMSA):
-        fuzzing_strategies.append(
-            strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
+      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
 
