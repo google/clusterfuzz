@@ -291,6 +291,21 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('srcmap_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
+
+  @mock.patch('clusterfuzz._internal.config.db_config.get')
+  @mock.patch(
+      'clusterfuzz._internal.build_management.revisions._get_url_content')
+  def test_get_component_revision_none(self, mock_get_url_content,
+                                       mock_get_config):
+    """Test get_component_range_list for srcmap jobs with no components."""
+    mock_get_config.return_value = self.MockConfigOSSFuzz()
+    self.mock.default_project_name.return_value = 'oss-fuzz'
+    mock_get_url_content.return_value = '{}'
+
+    result = revisions.get_component_range_list(1337, 9001, SRCMAP_JOB_TYPE)
+    result_as_html = revisions.format_revision_list(result)
+    self.assertEqual(result_as_html, '')
+
   @mock.patch('clusterfuzz._internal.config.db_config.get')
   @mock.patch(
       'clusterfuzz._internal.build_management.revisions._get_url_content')
