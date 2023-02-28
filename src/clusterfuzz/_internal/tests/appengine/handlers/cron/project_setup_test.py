@@ -274,7 +274,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 False,
             'fuzzing_engines': ['libfuzzer',],
             'view_restrictions':
-                'none',
+                'None',
             'architectures': ['i386', 'x86_64'],
         }),
         ('lib4', {
