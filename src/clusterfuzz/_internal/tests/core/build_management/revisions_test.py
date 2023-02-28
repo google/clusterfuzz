@@ -291,7 +291,6 @@ class RevisionsTestcase(unittest.TestCase):
     expected_html = self._read_data_file('srcmap_expected_html.txt')
     self.assertEqual(result_as_html, expected_html)
 
-
   @mock.patch('clusterfuzz._internal.config.db_config.get')
   @mock.patch(
       'clusterfuzz._internal.build_management.revisions._get_url_content')
