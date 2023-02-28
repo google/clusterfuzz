@@ -239,7 +239,8 @@ UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
 UBSAN_INCORRECT_FUNCTION_POINTER_REGEX = re.compile(
     r'.*call to function [^\s]+ through pointer to incorrect function type.*')
-UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile('.*implicit conversion from type.*')
+UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile(
+    '.*implicit conversion from type.*')
 UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
 UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX = re.compile(
     r'.*unsigned integer overflow.*')
