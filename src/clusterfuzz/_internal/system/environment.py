@@ -1091,7 +1091,7 @@ def is_android_cuttlefish(plt=None):
 
 def is_android_emulator(plt=None):
   """Return True if we are on android emulator platform."""
-  return 'ANDROID_EMULATOR' in (plt or get_platform_group())
+  return 'ANDROID_EMULATOR' in get_platform_group()
 
 
 def is_android_kernel(plt=None):
