@@ -339,7 +339,6 @@ def hard_reset():
   execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
   if environment.is_android_emulator():
-    #For recovery state
     logs.log('Platform ANDROID_EMULATOR detected.')
     restart_adb()
     state = get_device_state()
