@@ -42,7 +42,7 @@ class IssueTrackerManager(object):
     credentials = json.loads(config.jira_credentials)
     jira_url = config.jira_url
     jira_client = jira.JIRA(
-        jira_url, auth=(credentials['username'], credentials['password']))
+        jira_url, basic_auth=(credentials['user_email'], credentials['auth_token']))
     return jira_client
 
   def save(self, issue):
