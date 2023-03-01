@@ -23,7 +23,7 @@ markdown: kramdown
 remote_theme: pmarsceill/just-the-docs
 search_enabled: true
 
-ga_tracking: UA-88024544-3
+ga_tracking: G-DBK55850L0
 
 aux_links:
   "ClusterFuzz on GitHub":
