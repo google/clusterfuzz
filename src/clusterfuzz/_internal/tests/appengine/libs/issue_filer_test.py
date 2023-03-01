@@ -822,10 +822,9 @@ class IssueFilerTests(unittest.TestCase):
 
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
-    self.assertIn('Memory corruption',
-                  issue_tracker._itm.last_issue.labels)
+    self.assertIn('Memory corruption', issue_tracker._itm.last_issue.labels)
     self.assertNotIn('Resource Exhaustion',
-                  issue_tracker._itm.last_issue.labels)
+                     issue_tracker._itm.last_issue.labels)
 
 
 class MemoryToolLabelsTest(unittest.TestCase):
