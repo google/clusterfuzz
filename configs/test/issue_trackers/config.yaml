@@ -88,6 +88,10 @@ test-project:
       os: OS-%PLATFORM%
       # Label to apply when adding CCs from owners files.
       auto_cc_from_owners: ClusterFuzz-Auto-CC
+      # Optional: Map crash types to labels.
+      #crash_types:
+      #  stack-buffer-overflow: Memory-Corruption
+      #  stack-overflow: Resource-Exhaustion
     # Optional: For issue trackers where labels need to be mapped to some other
     # representation (e.g. an ID), substitutions from above need to be mapped
     # explicitly.
