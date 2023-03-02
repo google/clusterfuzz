@@ -53,7 +53,7 @@ class IssueTrackerManager(object):
 
   def create(self):
     """Create an issue object locally."""
-    raw_fields = {'id': '-1', 'fields': {'components': [], 'labels': []}}
+    raw_fields = {'id': -1, 'fields': {'components': [], 'labels': []}}
     # Create jira issue object
     jira_issue = jira.resources.Issue({},
                                       jira.resilientsession.ResilientSession(),
