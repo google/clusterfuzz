@@ -45,11 +45,6 @@ class IssueTrackerManager(object):
     jira_client = jira.JIRA(
         jira_url, basic_auth=(credentials['user_email'], credentials['auth_token']))
     
-    # set project ID from project name. 
-    # jira pacakge does not allow search by name
-    self.project_id = {p.name: p.id for p in jira_client.projects()
-                      }[self.project_name]
-
     return jira_client
 
   def save(self, issue):
@@ -101,13 +96,18 @@ class IssueTrackerManager(object):
     # Get components from LabelStore.
     components = list(issue.components)
 
+    # set project ID from project name. 
+    # required because jira package does not allow search by name
+    project_id = {p.name: p.id for p in self.client.projects()
+                      }[self.project_name]
+    
     fields = {
         'summary': issue.title,
         'description': issue.body,
         'labels': labels,
         'components': components,
         'project': {
-            'id': self.project_id
+            'id': project_id
         },
         'issuetype': {
             'name': 'Bug',
