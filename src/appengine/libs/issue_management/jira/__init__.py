@@ -19,6 +19,7 @@ from urllib.parse import urljoin
 from dateutil import parser
 
 from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.metrics import logs
 from libs.issue_management import issue_tracker
 from libs.issue_management.jira.issue_tracker_manager import IssueTrackerManager
 
@@ -168,6 +169,7 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def new_issue(self):
     jira_issue = self._itm.create()
+    logs.log(f'New jira issue created: {jira_issue}.')
     return Issue(self._itm, jira_issue)
 
   def get_issue(self, issue_id):
