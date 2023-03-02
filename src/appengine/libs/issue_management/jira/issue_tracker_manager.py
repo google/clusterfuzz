@@ -17,7 +17,7 @@ import json
 
 import jira
 
-from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import db_config, local_config
 from clusterfuzz._internal.metrics import logs
 
 
@@ -93,19 +93,12 @@ class IssueTrackerManager(object):
     # Get labels from LabelStore.
     labels = list(issue.labels)
 
-    # Get components from LabelStore.
-    components = list(issue.components)
+    project_id = local_config.IssueTrackerConfig().get(self.project_name)['project_id_key']
 
-    # set project ID from project name. 
-    # required because jira package does not allow search by name
-    project_id = {p.name: p.id for p in self.client.projects()
-                      }[self.project_name]
-    
     fields = {
         'summary': issue.title,
         'description': issue.body,
         'labels': labels,
-        'components': components,
         'project': {
             'id': project_id
         },
