@@ -262,11 +262,9 @@ def _file_issue(testcase, issue_tracker):
         testcase, 'Skipping filing as this is an experimental crash type.')
     return False
 
-  try:
-    _, file_exception = issue_filer.file_issue(testcase, issue_tracker)
-    filed = True
-  except Exception as e:
-    file_exception = e
+
+  file_exception = issue_filer.file_issue(testcase, issue_tracker)
+
 
   if file_exception:
     logs.log_error(f'Failed to file issue for testcase {testcase.key.id()}.')
