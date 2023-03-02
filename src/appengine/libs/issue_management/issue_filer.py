@@ -334,6 +334,8 @@ def file_issue(testcase,
       is_security=testcase.security_flag, is_crash=is_crash)
 
   issue = issue_tracker.new_issue()
+  logs.log(f"instantianted a new issue object: {issue}")
+  logs.log(f"new issue obj id: {issue.id}")
   issue.title = data_handler.get_issue_summary(testcase)
   issue.body = data_handler.get_issue_description(
       testcase, reporter=user_email, show_reporter=True)
@@ -465,6 +467,7 @@ def file_issue(testcase,
   issue.reporter = user_email
 
   recovered_exception = None
+  logs.log(f"Massages issue object: {issue}")
   try:
     issue.save()
   except Exception as e:
@@ -482,8 +485,9 @@ def file_issue(testcase,
         issue.body += '\n\n' + message
       issue.save()
     else:
-      raise
-
+      logs.log(f"Failed to save the issue because of {e}")
+      raise e
+  logs.log(f"Issue filled successfuly in issue tracker! {issue.id}")
   # Update the testcase with this newly created issue.
   testcase.bug_information = str(issue.id)
   oss_fuzz_github.file_issue(testcase)
