@@ -101,7 +101,7 @@ class IssueTrackerManager(object):
         'labels': labels,
         'components': components,
         'project': {
-            'key': self.project_name
+            'name': self.project_name
         },
         'issuetype': {
             'name': 'Bug',
