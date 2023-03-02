@@ -19,7 +19,102 @@
 #   - %SANITIZER%: The sanitizers associated with the testcase.
 #   - %SEVERITY%: The security severity of the testcase.
 #   - %PLATFORM%: The platform the testcase was found on.
-test-project:
+test-project-jira:
+  type: jira
+  # Jira project key or ID
+  project_id_key: TESTPROJECT
+  # Each project can have different IssueTypes.
+  # see https://$jira_http/rest/api/2/project/$project_id_key for
+  # your project IssueType IDs
+  issue_type_id: 10050
+  policies:
+    status:
+      # REQUIRED: Status mappings.
+      assigned: Assigned
+      duplicate: Duplicate
+      wontfix: WontFix
+      fixed: Fixed
+      verified: Verified
+      new: New
+    existing:
+      # Rules to apply when updating existing issues.
+      labels:
+        - Stability-%SANITIZER%
+    all:
+      # Rules to apply to all issues.
+      status: new
+      labels:
+        - ClusterFuzz
+        - Stability-%SANITIZER%
+      issue_body_footer: |-
+        This is an issue body footer.
+    security:
+      # Rules to apply to security issues only (in addition to "all").
+      labels:
+        - Type-Bug-Security
+    non_security:
+      # Rules to apply to non-security issues only (in addition to "all").
+      labels:
+        - Type-Bug
+      # Non security bugs are further divided into crash (e.g. a null deref)
+      # vs non crash bugs (e.g. timeouts).
+      crash_labels:
+        - Stability-Crash
+        - Pri-1
+      non_crash_labels:
+        - Pri-2
+    # General label mappings. These are all optional: if no mapping exists
+    # for a particular label, then that label's functionality is omitted.
+    labels:
+      # Label to add when an issue is verified as fixed. This is *necessary* for
+      # automatic issue closure.
+      verified: ClusterFuzz-Verified
+      # Manually added label to look for to ignore an issue.
+      ignore: ClusterFuzz-Ignore
+      # Manually added label to indicate ClusterFuzz got something wrong.
+      wrong: ClusterFuzz-Wrong
+      # Label to add when an issue needs attention.
+      needs_feedback: Needs-Feedback
+      # Label to add when we detect an invalid fuzzer.
+      invalid_fuzzer: ClusterFuzz-Invalid-Fuzzer
+      # Label to add to issues that block a fuzzer's progress.
+      fuzz_blocker: Fuzz-Blocker
+      # Label to add to issues that are consistently reproducible.
+      reproducible: Reproducible
+      # Label to add to issues that are not consistently reproducible.
+      unreproducible: Unreproducible
+      # Label to add for view restrictions.
+      restrict_view: Restrict-View-Commit
+      # Label to add on all issues which have CCs, indicating the date it was
+      # reported.
+      reported: Reported-%YYYY-MM-DD%
+      # Label added to all security issues, containing a %SEVERITY%.
+      security_severity: Security_Severity-%SEVERITY%
+      # Label added to all issues, representing the platform.
+      os: OS-%PLATFORM%
+      # Label to apply when adding CCs from owners files.
+      auto_cc_from_owners: ClusterFuzz-Auto-CC
+    # Optional: For issue trackers where labels need to be mapped to some other
+    # representation (e.g. an ID), substitutions from above need to be mapped
+    # explicitly.
+    #substitutions:
+    #  Stability-AFL: Stability-AFL
+    #  Stability-LibFuzzer: Stability-LibFuzzer
+    #  Stability-Memory-AddressSanitizer: Stability-Memory-AddressSanitizer
+    #  Stability-Memory-LeakSanitizer: Stability-Memory-LeakSanitizer
+    #  Stability-Memory-MemorySanitizer: Stability-Memory-MemorySanitizer
+    #  Stability-ThreadSanitizer: Stability-ThreadSanitizer
+    #  Stability-UndefinedBehaviorSanitizer: Stability-UndefinedBehaviorSanitizer
+    #  Security_Severity-Critical: Security_Severity-Critical
+    #  Security_Severity-High: Security_Severity-High
+    #  Security_Severity-Medium: Security_Severity-Medium
+    #  Security_Severity-Low: Security_Severity-Low
+    deadline_policy_message: |-
+      This bug is subject to a 90 day disclosure deadline. If 90 days elapse
+      without an upstream patch, then the bug report will automatically
+      become visible to the public.
+
+test-project-monorail:
   type: monorail
   policies:
     status:

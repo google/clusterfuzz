@@ -16,6 +16,7 @@
 import datetime
 import itertools
 import json
+import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
@@ -266,13 +267,13 @@ def _file_issue(testcase, issue_tracker):
     _, file_exception = issue_filer.file_issue(testcase, issue_tracker)
     filed = True
   except Exception as e:
-    file_exception = e
+    file_exception = traceback.format_exc()
 
   if file_exception:
-    logs.log_error(f'Failed to file issue for testcase {testcase.key.id()}.')
+    logs.log_error(f'Failed to file issue for testcase {testcase.key.id()} because of {file_exception}')
     _add_triage_message(
         testcase,
-        f'Failed to file issue due to exception: {str(file_exception)}')
+        f'Failed to file issue due to exception: {file_exception}')
 
   return filed
 

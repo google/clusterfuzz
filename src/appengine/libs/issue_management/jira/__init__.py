@@ -19,6 +19,7 @@ from urllib.parse import urljoin
 from dateutil import parser
 
 from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.metrics import logs
 from libs.issue_management import issue_tracker
 from libs.issue_management.jira.issue_tracker_manager import IssueTrackerManager
 
@@ -99,7 +100,7 @@ class Issue(issue_tracker.Issue):
   @property
   def assignee(self):
     """The issue assignee."""
-    return self.jira_issue.fields.assignee
+    return getattr(self.jira_issue.fields, "assignee", None)
 
   @assignee.setter
   def assignee(self, new_assignee):

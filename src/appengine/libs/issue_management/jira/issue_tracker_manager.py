@@ -17,7 +17,8 @@ import json
 
 import jira
 
-from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.config import db_config, local_config
+from clusterfuzz._internal.metrics import logs
 
 
 class IssueTrackerManager(object):
@@ -43,6 +44,7 @@ class IssueTrackerManager(object):
     jira_url = config.jira_url
     jira_client = jira.JIRA(
         jira_url, basic_auth=(credentials['user_email'], credentials['auth_token']))
+    
     return jira_client
 
   def save(self, issue):
@@ -53,7 +55,7 @@ class IssueTrackerManager(object):
 
   def create(self):
     """Create an issue object locally."""
-    raw_fields = {'id': '-1', 'fields': {'components': [], 'labels': []}}
+    raw_fields = {'id': -1, 'fields': {'components': [], 'labels': []}}
     # Create jira issue object
     jira_issue = jira.resources.Issue({},
                                       jira.resilientsession.ResilientSession(),
@@ -83,29 +85,35 @@ class IssueTrackerManager(object):
     watchers = list(issue.ccs)
 
     # Jira weirdness, update watchers this way.
-    for watcher in watchers:
-      self.client.add_watcher(issue.jira_issue, watcher)
+    # TODO: fix for cases when no user names avaiable
+    # Attlasian accounts, with emailAddress, accountId and displayName only
+    # for watcher in watchers:
+    #  self.client.add_watcher(issue.jira_issue, watcher)
 
   def _get_issue_fields(self, issue):
     """Get issue fields to populate the ticket"""
     # Get labels from LabelStore.
     labels = list(issue.labels)
 
-    # Get components from LabelStore.
-    components = list(issue.components)
+    project_config = local_config.IssueTrackerConfig().get(self.project_name)
+    project_id = project_config['project_id_key']
+    issue_type = project_config['issue_type_id']
 
     fields = {
         'summary': issue.title,
         'description': issue.body,
         'labels': labels,
-        'components': components,
+        'project': project_id,
+        'issuetype': {
+          "id": issue_type
+        },
     }
 
     if issue.assignee is not None:
       if isinstance(issue.assignee, jira.resources.Resource):
-        assignee = {'name': issue.assignee.name}
+        assignee = {'displayName': issue.assignee.displayName}
       else:
-        assignee = {'name': issue.assignee}
+        assignee = {'displayName': issue.assignee}
       fields['assignee'] = assignee
 
     # Again brittle - need to pull these strings from policy.
@@ -113,6 +121,8 @@ class IssueTrackerManager(object):
       fields['priority'] = {'name': 'Critical - P1'}
     elif 'Major - P2' in labels:
       fields['priority'] = {'name': 'Major - P2'}
+    
+    logs.log(f"Jira issue fields: {fields}")
     return fields
 
   def _create(self, issue):
@@ -120,7 +130,7 @@ class IssueTrackerManager(object):
 
     fields = self._get_issue_fields(issue)
     jira_issue = self.client.create_issue(fields=fields)
-    self._add_watchers(jira_issue)
+    self._add_watchers(issue)
     issue.jira_issue = jira_issue
 
   def _update(self, issue):
@@ -138,7 +148,7 @@ class IssueTrackerManager(object):
     watchlist = self.client.watchers(issue)
     watchers = []
     for watcher in watchlist.watchers:
-      watchers.append(watcher.name)
+      watchers.append(watcher.displayName)
     return watchers
 
   def get_issue(self, issue_id):
