@@ -100,7 +100,12 @@ class IssueTrackerManager(object):
         'description': issue.body,
         'labels': labels,
         'components': components,
-        'project': {'key': self.project_name}
+        'project': {
+            'key': self.project_name
+        },
+        'issuetype': {
+            'name': 'Bug',
+        }
     }
 
     if issue.assignee is not None:
