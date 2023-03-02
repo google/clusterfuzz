@@ -18,6 +18,7 @@ import json
 import jira
 
 from clusterfuzz._internal.config import db_config
+from clusterfuzz._internal.metrics import logs
 
 
 class IssueTrackerManager(object):
@@ -99,6 +100,7 @@ class IssueTrackerManager(object):
         'description': issue.body,
         'labels': labels,
         'components': components,
+        'project': {'key': self.project_name}
     }
 
     if issue.assignee is not None:
@@ -113,6 +115,8 @@ class IssueTrackerManager(object):
       fields['priority'] = {'name': 'Critical - P1'}
     elif 'Major - P2' in labels:
       fields['priority'] = {'name': 'Major - P2'}
+    
+    logs.log(f"Jira issue fields: {fields}")
     return fields
 
   def _create(self, issue):
