@@ -99,9 +99,7 @@ class IssueTrackerManager(object):
         'summary': issue.title,
         'description': issue.body,
         'labels': labels,
-        'project': {
-            'id': project_id
-        },
+        'project': project_id,
         'issuetype': {
             'name': 'Bug',
         }

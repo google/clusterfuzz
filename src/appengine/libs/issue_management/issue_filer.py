@@ -325,7 +325,7 @@ def file_issue(testcase,
                user_email=None,
                additional_ccs=None):
   """File an issue for the given test case."""
-  logs.log(f'Filing1 new issue for testcase: {testcase.key.id()}.')
+  logs.log(f'Filing new issue for testcase: {testcase.key.id()}.')
 
   policy = issue_tracker_policy.get(issue_tracker.project)
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
@@ -485,7 +485,6 @@ def file_issue(testcase,
         issue.body += '\n\n' + message
       issue.save()
     else:
-      logs.log(f"Failed to save the issue because of {e}")
       raise e
   logs.log(f"Issue filled successfuly in issue tracker! {issue.id}")
   # Update the testcase with this newly created issue.
