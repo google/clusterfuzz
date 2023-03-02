@@ -44,6 +44,12 @@ class IssueTrackerManager(object):
     jira_url = config.jira_url
     jira_client = jira.JIRA(
         jira_url, basic_auth=(credentials['user_email'], credentials['auth_token']))
+    
+    # set project ID from project name. 
+    # jira pacakge does not allow search by name
+    self.project_id = {p.name: p.id for p in jira_client.projects()
+                      }[self.project_name]
+
     return jira_client
 
   def save(self, issue):
@@ -101,7 +107,7 @@ class IssueTrackerManager(object):
         'labels': labels,
         'components': components,
         'project': {
-            'name': self.project_name
+            'id': self.project_id
         },
         'issuetype': {
             'name': 'Bug',
