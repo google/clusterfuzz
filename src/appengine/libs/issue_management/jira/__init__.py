@@ -100,7 +100,7 @@ class Issue(issue_tracker.Issue):
   @property
   def assignee(self):
     """The issue assignee."""
-    return self.jira_issue.fields.assignee
+    return getattr(self.jira_issue.fields, "assignee", None)
 
   @assignee.setter
   def assignee(self, new_assignee):
@@ -169,7 +169,7 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   def new_issue(self):
     jira_issue = self._itm.create()
-    logs.log(f'New jira issue created: {jira_issue}.')
+    logs.log(f'New jira issue created. Id type: {type(jira_issue)}, value: {jira_issue}.')
     return Issue(self._itm, jira_issue)
 
   def get_issue(self, issue_id):
