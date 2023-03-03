@@ -113,9 +113,8 @@ class IssueTrackerManager(object):
     if issue.assignee is not None:
       if isinstance(issue.assignee, jira.resources.Resource):
         assignee = {'accountId': issue.assignee.accountId}
-      else:
-        assignee = {'name': issue.assignee}
-      fields['assignee'] = assignee
+        fields['assignee'] = assignee
+      # else do not change the issue assignee
 
     # Again brittle - need to pull these strings from policy.
     if 'Critical - P1' in labels:
