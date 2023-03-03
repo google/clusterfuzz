@@ -112,9 +112,9 @@ class IssueTrackerManager(object):
 
     if issue.assignee is not None:
       if isinstance(issue.assignee, jira.resources.Resource):
-        assignee = {'displayName': issue.assignee.displayName}
+        assignee = {'accountId': issue.assignee.accountId}
       else:
-        assignee = {'displayName': issue.assignee}
+        assignee = {'name': issue.assignee}
       fields['assignee'] = assignee
 
     # Again brittle - need to pull these strings from policy.
