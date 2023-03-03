@@ -316,3 +316,7 @@ class IssueTracker(object):
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
     raise NotImplementedError
+
+  def issue_key(self, issue_id):
+    """Return the issue KEY with the given ID."""
+    raise NotImplementedError

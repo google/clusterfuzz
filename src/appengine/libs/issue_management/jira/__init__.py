@@ -187,6 +187,14 @@ class IssueTracker(issue_tracker.IssueTracker):
     issues = self._itm.get_issues(search_text)
     return [Issue(self._itm, issue) for issue in issues]
 
+  def issue_key(self, issue_id):
+    """Return the issue KEY with the given ID."""
+    issue = self.get_issue(issue_id)
+    if not issue:
+      return None
+    
+    return issue.key
+
   def issue_url(self, issue_id):
     """Return the issue URL with the given ID."""
     issue = self.get_issue(issue_id)

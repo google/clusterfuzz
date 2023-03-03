@@ -168,6 +168,21 @@ def get_issue_url(testcase):
   # Use str(issue_id) as |group_bug_information| might be an integer.
   return issue_tracker.issue_url(str(issue_id))
 
+def get_issue_key(testcase):
+  """Return issue KEY for a testcase. This is used when rendering a testcase,
+  details page, therefore it accounts for |group_bug_information| as well."""
+  issue_tracker = get_issue_tracker_for_testcase(testcase)
+  if not issue_tracker:
+    return None
+
+  issue_id = (
+      testcase.bug_information
+      if testcase.bug_information else testcase.group_bug_information)
+  if not issue_id:
+    return None
+
+  # Use str(issue_id) as |group_bug_information| might be an integer.
+  return issue_tracker.issue_key(str(issue_id))
 
 def was_label_added(issue, label):
   """Check if a label was ever added to an issue."""

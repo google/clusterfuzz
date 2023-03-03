@@ -373,6 +373,7 @@ def get_testcase_detail(testcase):
   crash_state_lines = crash_state.strip().splitlines()
   crash_type = data_handler.get_crash_type_string(testcase)
   external_user = not access.has_access(job_type=testcase.job_type)
+  issue_key = issue_tracker_utils.get_issue_key(testcase)
   issue_url = issue_tracker_utils.get_issue_url(testcase)
   metadata = testcase.get_metadata()
   original_testcase_size = _get_blob_size_string(testcase.fuzzed_keys)
@@ -525,6 +526,8 @@ def get_testcase_detail(testcase):
           fixed,
       'fixed_full':
           fixed_full,
+      'issue_key':
+          issue_key,
       'issue_url':
           issue_url,
       'is_admin':
