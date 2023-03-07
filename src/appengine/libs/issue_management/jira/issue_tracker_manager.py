@@ -108,7 +108,7 @@ class IssueTrackerManager(object):
     # Set IssueType only for new Jira issues
     if issue.id == -1:
       issue_type = project_config['issue_type_id']
-      fields.update({'issuetype': issue_type})
+      fields.update({'issuetype': {'id': issue_type}})
 
     if issue.assignee is not None:
       if isinstance(issue.assignee, jira.resources.Resource):
