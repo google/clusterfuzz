@@ -1398,51 +1398,6 @@ def setup_custom_binary(target_weights=None):
   return None
 
 
-def setup_production_build(build_type):
-  """Sets up build with a particular revision."""
-  # Bail out if there are not extended stable, stable and beta build urls.
-  if build_type == 'extended_stable':
-    build_bucket_path = environment.get_value(
-        'EXTENDED_STABLE_BUILD_BUCKET_PATH')
-  elif build_type == 'stable':
-    build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
-  elif build_type == 'beta':
-    build_bucket_path = environment.get_value('BETA_BUILD_BUCKET_PATH')
-  else:
-    logs.log_error('Unknown build type %s.' % build_type)
-    return None
-
-  build_urls = get_build_urls_list(build_bucket_path)
-  if not build_urls:
-    logs.log_error(
-        'Error getting list of build urls from %s.' % build_bucket_path)
-    return None
-
-  # First index is the latest build for that version.
-  build_url = build_urls[0]
-  version_pattern = environment.get_value('VERSION_PATTERN')
-  v_match = re.match(version_pattern, build_url)
-  if not v_match:
-    logs.log_error(
-        'Unable to find version information from the build url %s.' % build_url)
-    return None
-
-  version = v_match.group(1)
-  base_build_dir = _base_build_dir(build_bucket_path)
-
-  build_class = ProductionBuild
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteProductionBuild
-
-  build = build_class(base_build_dir, version, build_url, build_type)
-
-  if build.setup():
-    return build
-
-  return None
-
-
 def setup_system_binary():
   """Set up a build that we assume is already installed on the system."""
   system_binary_directory = environment.get_value('SYSTEM_BINARY_DIR', '')
