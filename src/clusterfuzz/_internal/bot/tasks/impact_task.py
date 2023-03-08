@@ -16,10 +16,7 @@
 
 import six
 
-from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
@@ -152,7 +149,7 @@ def get_component_impacts_from_url(component_name,
   if not build_revision_mappings:
     return Impacts()
 
-  found_impacts = dict()
+  found_impacts = {}
   for build in ['extended_stable', 'stable', 'beta', 'canary']:
     mapping = build_revision_mappings.get(build)
     logs.log('Considering impacts for %s.' % (build))
@@ -282,6 +279,9 @@ def set_testcase_with_impacts(testcase, impacts):
 
 def execute_task(testcase_id, job_type):
   """Attempt to find if the testcase affects release branches on Chromium."""
+  # We don't need job_type but it's supplied to all tasks.
+  del job_type
+
   # This shouldn't ever get scheduled, but check just in case.
   if not utils.is_chromium():
     return
