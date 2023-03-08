@@ -63,6 +63,7 @@ class CrashInfo:
     self.is_lkl = False
     self.is_golang = False
     self.is_python = False
+    self.is_js = False
     self.found_python_crash = False
     self.found_golang_crash = False
     self.found_android_kernel_crash = False
@@ -221,6 +222,10 @@ class StackParser:
         break
 
     if demangle and environment.is_posix():
+      if '\x00' in frame:
+        # We can't pass the frame as an argument (will be a ValueError) and if
+        # there's a NULL in the "frame" it's probably not actually a frame.
+        return None
       pipe = subprocess.Popen(
           ['c++filt', '-n', frame],
           stdin=subprocess.PIPE,
@@ -397,6 +402,7 @@ class StackParser:
     state.is_lkl = lkl_constants.LINUX_KERNEL_MODULE_STACK_TRACE in stacktrace
     state.is_golang = '.go:' in stacktrace
     state.is_python = '.py", line' in stacktrace
+    state.is_js = 'Uncaught Exception: Jazzer.js' in stacktrace
 
     # For Android LKL (and potentially kernel output), the KASAN crash may start
     # with the time since boot.  We need to remove this so that our regexes
@@ -628,6 +634,17 @@ class StackParser:
             state.crash_state = ''
             state.frame_count = 0
             continue
+
+      if state.is_js:
+        if self.update_state_on_match(
+            JAZZER_JS_UNCAUGHT_EXCEPTION,
+            line,
+            state,
+            new_type='Uncaught exception'):
+          state.found_python_crash = True
+          state.crash_state = ''
+          state.frame_count = 0
+          continue
 
       # Sanitizer SEGV crashes.
       segv_match = SAN_SEGV_REGEX.match(line)
@@ -1259,6 +1276,10 @@ class StackParser:
       # Python stack frames.
       if state.is_python and self.add_frame_on_match(
           PYTHON_STACK_FRAME_FUNCTION_REGEX, line, state, group=3):
+        continue
+
+      if state.is_js and self.add_frame_on_match(
+          JAZZER_JS_STACK_FRAME_FUNCTION_REGEX, line, state, group=1):
         continue
 
     # Detect cycles in stack overflow bugs and update crash state.

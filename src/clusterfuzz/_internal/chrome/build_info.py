@@ -14,7 +14,6 @@
 """Utilities for fetching build info from OmahaProxy."""
 
 import json
-import re
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
@@ -23,7 +22,6 @@ from clusterfuzz._internal.system import environment
 BUILD_INFO_PATTERN = ('([a-z]+),([a-z]+),([0-9.]+),'
                       '[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,'
                       '([0-9a-f]+),.*')
-BUILD_INFO_URL = 'https://omahaproxy.appspot.com/all?csv=1'
 BUILD_INFO_URL_CD = ('https://chromiumdash.appspot.com/fetch_releases?'
                      'num=1&platform={platform}')
 
@@ -36,15 +34,6 @@ class BuildInfo(object):
     self.build_type = build_type
     self.version = version
     self.revision = revision
-
-
-def _convert_platform_to_omahaproxy_platform(platform):
-  """Converts platform to omahaproxy platform for use in
-  get_production_builds_info."""
-  platform_lower = platform.lower()
-  if platform_lower == 'windows':
-    return 'win'
-  return platform_lower
 
 
 def _convert_platform_to_chromiumdash_platform(platform):
@@ -79,38 +68,6 @@ def _fetch_releases_from_chromiumdash(platform, channel=None):
     return []
 
   return build_info_json
-
-
-def get_production_builds_info(platform):
-  """Gets the build information for production builds.
-
-  Omits platforms containing digits, namely, win64.
-  Omits channels containing underscore, namely, canary_asan.
-  Platform is e.g. ANDROID, LINUX, MAC, WIN.
-  """
-  builds_metadata = []
-  omahaproxy_platform = _convert_platform_to_omahaproxy_platform(platform)
-
-  build_info = utils.fetch_url(BUILD_INFO_URL)
-  if not build_info:
-    logs.log_error('Failed to fetch build info from %s' % BUILD_INFO_URL)
-    return []
-
-  for line in build_info.splitlines():
-    match = re.match(BUILD_INFO_PATTERN, line)
-    if not match:
-      continue
-
-    platform_type = match.group(1)
-    if platform_type != omahaproxy_platform:
-      continue
-
-    build_type = match.group(2)
-    version = match.group(3)
-    revision = match.group(4)
-    builds_metadata.append(BuildInfo(platform, build_type, version, revision))
-
-  return builds_metadata
 
 
 def get_production_builds_info_from_cd(platform):

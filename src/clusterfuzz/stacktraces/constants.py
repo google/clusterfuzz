@@ -346,6 +346,13 @@ PYTHON_STACK_FRAME_FUNCTION_REGEX = re.compile(
     #  File "<embedded stdlib>/gzip.py", line 421, in _read_gzip_header
     r'^\s*File "([^"]+)", line (\d+), in (.+)$')
 
+JAZZER_JS_UNCAUGHT_EXCEPTION = re.compile(
+    r'^\s*==\d+== Uncaught Exception: Jazzer.js: .*')
+
+JAZZER_JS_STACK_FRAME_FUNCTION_REGEX = re.compile(
+    #    at exploreMe (/out/example/target.ts:6:15)
+    r'^\s* at ([^\s]+) \(.*:\d+:\d+\)')
+
 # Mappings of Android kernel error status codes to strings.
 ANDROID_KERNEL_STATUS_TO_STRING = {
     0b0001: 'Alignment Fault',

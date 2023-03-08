@@ -96,7 +96,11 @@ RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /
     cd /tmp/Python-3.7.7 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.7.7
-RUN pip3.7 install pipenv
+RUN pip3.7 install pipenv==2022.8.5
+
+# Install Node.js
+COPY setup_19.x /data
+RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
 
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \

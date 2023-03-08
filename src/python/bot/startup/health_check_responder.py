@@ -20,6 +20,7 @@ from http.server import HTTPServer
 import threading
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 
 RESPONDER_IP = '0.0.0.0'
@@ -46,8 +47,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def run_server():
   """Start a HTTP server to respond to the health checker."""
-  if utils.is_oss_fuzz():
-    # OSS-Fuzz's multiple instances per host model isn't supported yet.
+  if utils.is_oss_fuzz() or environment.is_android_real_device():
+    # OSS-Fuzz & Android multiple instances per host model isn't supported
+    # yet.
     return
 
   health_check_responder_server = HTTPServer((RESPONDER_IP, RESPONDER_PORT),

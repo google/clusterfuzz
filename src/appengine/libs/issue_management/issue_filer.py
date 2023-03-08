@@ -367,6 +367,11 @@ def file_issue(testcase,
   for label in additional_labels:
     issue.labels.add(label)
 
+  # Add crash-type-specific label
+  crash_type_label = policy.label_for_crash_type(testcase.crash_type)
+  if crash_type_label:
+    issue.labels.add(crash_type_label)
+
   # Add additional components from the job definition and fuzzer.
   automatic_components = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_COMPONENTS', testcase.job_type, testcase.fuzzer_name)

@@ -338,6 +338,17 @@ def hard_reset():
   soft_reset_cmd = get_adb_command_line('reboot')
   execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
+  if environment.is_android_emulator():
+    logs.log('Platform ANDROID_EMULATOR detected.')
+    restart_adb()
+    state = get_device_state()
+
+    logs.log('Device state is: %s' % state)
+    if state == 'recovery':
+      logs.log('Rebooting recovery state device with --wipe_data.')
+      run_command('root')
+      run_shell_command('recovery --wipe_data')
+
 
 def kill_processes_and_children_matching_name(process_name):
   """Kills process along with children matching names."""
@@ -434,6 +445,11 @@ def remount():
   run_command('remount')
   wait_for_device()
   run_as_root()
+
+
+def restart_adb():
+  run_command('kill-server')
+  run_command('start-server')
 
 
 def remove_directory(device_directory, recreate=False):
