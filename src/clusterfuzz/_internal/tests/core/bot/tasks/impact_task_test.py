@@ -17,7 +17,6 @@ import unittest
 import mock
 
 from clusterfuzz._internal.bot.tasks import impact_task
-from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.core.bot.tasks.component_revision_patching_test import \
     ComponentRevisionPatchingTest
