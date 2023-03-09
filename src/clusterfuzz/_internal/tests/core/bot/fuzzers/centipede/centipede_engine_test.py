@@ -97,60 +97,54 @@ class IntegrationTest(unittest.TestCase):
     """Tests fuzzing (no crash)."""
     engine_impl = engine.Engine()
     centipede_path = DATA_DIR / 'centipede'
-    centipede_bins = [DATA_DIR / 'centipede-old', DATA_DIR / 'centipede-new']
     dictionary = DATA_DIR / "test_fuzzer.dict"
     work_dir = Path('/tmp/temp-1337/workdir')
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
-    for centipede_bin in centipede_bins:
-      shutil.copy(centipede_bin, centipede_path)
-      results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
-      expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
-          f'--dictionary={dictionary}',
-          f'--workdir={work_dir}',
-          f'--corpus_dir={CORPUS_DIR}',
-          f'--binary={target_path}',
-          f'--extra_binaries={sanitized_target_path}',
-      ])
-      self.compare_arguments(expected_command, results.command)
-      self.assertTrue(CORPUS_DIR.iterdir())
+    results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
+    expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
+        f'--dictionary={dictionary}',
+        f'--workdir={work_dir}',
+        f'--corpus_dir={CORPUS_DIR}',
+        f'--binary={target_path}',
+        f'--extra_binaries={sanitized_target_path}',
+    ])
+    self.compare_arguments(expected_command, results.command)
+    self.assertTrue(CORPUS_DIR.iterdir())
 
   def test_fuzz_crash(self):
     """Tests fuzzing that results in a crash."""
     engine_impl = engine.Engine()
     centipede_path = DATA_DIR / 'centipede'
-    centipede_bins = [DATA_DIR / 'centipede-old', DATA_DIR / 'centipede-new']
     work_dir = Path('/tmp/temp-1337/workdir')
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
                                                  'always_crash_fuzzer')
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'always_crash_fuzzer'
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
-    for centipede_bin in centipede_bins:
-      shutil.copy(centipede_bin, centipede_path)
-      results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
-      expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
-          f'--workdir={work_dir}',
-          f'--corpus_dir={CORPUS_DIR}',
-          f'--binary={target_path}',
-          f'--extra_binaries={sanitized_target_path}',
-      ])
-      self.compare_arguments(expected_command, results.command)
+    results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
+    expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
+        f'--workdir={work_dir}',
+        f'--corpus_dir={CORPUS_DIR}',
+        f'--binary={target_path}',
+        f'--extra_binaries={sanitized_target_path}',
+    ])
+    self.compare_arguments(expected_command, results.command)
 
-      self.assertTrue(
-          any([
-              'Saving input to' in results.logs,
-              'Crash detected, saving input to' in results.logs
-          ]))
-      self.assertNotIn('CRASH LOG:', results.logs)
-      self.assertEqual(1, len(results.crashes))
-      crash = results.crashes[0]
-      self.assertEqual(CRASHES_DIR, Path(crash.input_path).parent)
-      self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
-                    crash.stacktrace)
+    self.assertTrue(
+        any([
+            'Saving input to' in results.logs,
+            'Crash detected, saving input to' in results.logs
+        ]))
+    self.assertNotIn('CRASH LOG:', results.logs)
+    self.assertEqual(1, len(results.crashes))
+    crash = results.crashes[0]
+    self.assertEqual(CRASHES_DIR, Path(crash.input_path).parent)
+    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
+                  crash.stacktrace)
 
-      with open(crash.input_path, 'rb') as f:
-        self.assertEqual(b'A', f.read()[:1])
+    with open(crash.input_path, 'rb') as f:
+      self.assertEqual(b'A', f.read()[:1])
 
 
 @test_utils.integration
