@@ -131,11 +131,7 @@ class IntegrationTest(unittest.TestCase):
     ])
     self.compare_arguments(expected_command, results.command)
 
-    self.assertTrue(
-        any([
-            'Saving input to' in results.logs,
-            'Crash detected, saving input to' in results.logs
-        ]))
+    self.assertIn('Saving input to', results.logs)
     self.assertNotIn('CRASH LOG:', results.logs)
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
