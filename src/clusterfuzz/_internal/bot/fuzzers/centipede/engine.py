@@ -39,7 +39,8 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile(r'Crash detected, saving input to (.*)')
+_CRASH_REGEX = re.compile(r'[sS]aving input to:? [\n]?(.*)')
+_CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
 class CentipedeError(Exception):
@@ -138,6 +139,7 @@ class Engine(engine.Engine):
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=timeout)
+    self._trim_logs(fuzz_result)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
@@ -151,6 +153,19 @@ class Engine(engine.Engine):
     stats = None
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
+
+  def _trim_logs(self, fuzz_result):
+    """ Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
+
+    Args:
+      fuzz_result: The ProcessResult returned by running fuzzer binary.
+    """
+    trimmed_log_lines = [
+        line[len(_CRASH_LOG_PREFIX):]
+        if line.startswith(_CRASH_LOG_PREFIX) else line
+        for line in fuzz_result.output.splitlines()
+    ]
+    fuzz_result.output = '\n'.join(trimmed_log_lines)
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
@@ -166,6 +181,7 @@ class Engine(engine.Engine):
     """
     runner = new_process.UnicodeProcessRunner(target_path, [input_path])
     result = runner.run_and_wait(timeout=max_time)
+    self._trim_logs(result)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
