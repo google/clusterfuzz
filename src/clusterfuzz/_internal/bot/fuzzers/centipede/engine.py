@@ -40,7 +40,7 @@ _DEFAULT_ARGUMENTS = [
 ]
 
 _CRASH_REGEX = re.compile(r'Saving input to: [\n]?(.*)')
-_REDUNDANT_PREFIX = 'CRASH LOG: '
+_CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
 class CentipedeError(Exception):
@@ -161,8 +161,8 @@ class Engine(engine.Engine):
       fuzz_result: The ProcessResult returned by running fuzzer binary.
     """
     trimmed_log_lines = [
-        line[len(_REDUNDANT_PREFIX):]
-        if line.startswith(_REDUNDANT_PREFIX) else line
+        line[len(_CRASH_LOG_PREFIX):]
+        if line.startswith(_CRASH_LOG_PREFIX) else line
         for line in fuzz_result.output.splitlines()
     ]
     fuzz_result.output = '\n'.join(trimmed_log_lines)
