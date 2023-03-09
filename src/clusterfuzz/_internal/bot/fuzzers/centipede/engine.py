@@ -138,6 +138,7 @@ class Engine(engine.Engine):
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=timeout)
+    self._trim_logs(fuzz_result)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
@@ -151,6 +152,15 @@ class Engine(engine.Engine):
     stats = None
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
+
+  def _trim_logs(self, fuzz_result):
+    """ Trims the fuzzer log for stacktrace parser.
+    Args:
+      fuzz_result: The ProcessResult returned by running fuzzer binary.
+    """
+    log_lines = fuzz_result.output.splitlines()
+    trimmed_log_lines = [line.lstrip('CRASH LOG: ') for line in log_lines]
+    fuzz_result.output = '\n'.join(trimmed_log_lines)
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
