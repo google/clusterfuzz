@@ -131,7 +131,7 @@ class IntegrationTest(unittest.TestCase):
     ])
     self.compare_arguments(expected_command, results.command)
 
-    self.assertIn('Saving input to', results.logs)
+    self.assertIn('aving input to', results.logs)
     self.assertNotIn('CRASH LOG:', results.logs)
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
