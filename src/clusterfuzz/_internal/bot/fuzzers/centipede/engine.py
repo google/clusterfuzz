@@ -155,7 +155,8 @@ class Engine(engine.Engine):
                              stats, fuzz_result.time_executed)
 
   def _trim_logs(self, fuzz_result):
-    """ Trims the fuzzer log for stacktrace parser.
+    """ Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
+
     Args:
       fuzz_result: The ProcessResult returned by running fuzzer binary.
     """
