@@ -181,6 +181,7 @@ class Engine(engine.Engine):
     """
     runner = new_process.UnicodeProcessRunner(target_path, [input_path])
     result = runner.run_and_wait(timeout=max_time)
+    self._trim_logs(result)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
