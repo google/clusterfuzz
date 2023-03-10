@@ -107,17 +107,33 @@ class Engine(engine.Engine):
     # The unsanitized binary, Centipede requires it to be the main fuzz target.
     arguments.append(f'--binary={target_path}')
 
-    # Extra sanitized binaries, Centipede requires to build them separately.
-    # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
-    sanitized_target_name = Path(target_path).name
-    sanitized_target_path = Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
-                                 sanitized_target_name)
+    sanitized_target_path = self._get_sanitized_target_path(target_path)
+
     if sanitized_target_path.exists():
       arguments.append(f'--extra_binaries={sanitized_target_path}')
     else:
       logs.log_warn('Unable to find sanitized target binary.')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
+
+  def _get_sanitized_target_path(self, target_path):
+    """Get the path to the sanitized target based on the unsanitized target.
+    Sanitized targets are required by fuzzing (as an auxiliary) and crash
+    reproduction.
+
+    Args:
+      target_path: Path to the unsanitized target in a string.
+
+    Returns:
+      Path to the sanitized binary as a pathlib.Path.
+    """
+    # Extra sanitized binaries, Centipede requires to build them separately.
+    # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
+    build_dir = environment.get_value('BUILD_DIR')
+    sanitized_target_name = Path(target_path).name
+    sanitized_target_path = Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
+                                 sanitized_target_name)
+    return sanitized_target_path
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
     """Runs a fuzz session.
