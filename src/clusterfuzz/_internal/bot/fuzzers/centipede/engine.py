@@ -39,7 +39,8 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile(r'Crash detected, saving input to (.*)')
+_CRASH_REGEX = re.compile(r'[sS]aving input to:? [\n]?(.*)')
+_CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
 class CentipedeError(Exception):
@@ -106,17 +107,33 @@ class Engine(engine.Engine):
     # The unsanitized binary, Centipede requires it to be the main fuzz target.
     arguments.append(f'--binary={target_path}')
 
-    # Extra sanitized binaries, Centipede requires to build them separately.
-    # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
-    sanitized_target_name = Path(target_path).name
-    sanitized_target_path = Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
-                                 sanitized_target_name)
+    sanitized_target_path = self._get_sanitized_target_path(target_path)
+
     if sanitized_target_path.exists():
       arguments.append(f'--extra_binaries={sanitized_target_path}')
     else:
       logs.log_warn('Unable to find sanitized target binary.')
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
+
+  def _get_sanitized_target_path(self, target_path):
+    """Get the path to the sanitized target based on the unsanitized target.
+    Sanitized targets are required by fuzzing (as an auxiliary) and crash
+    reproduction.
+
+    Args:
+      target_path: Path to the unsanitized target in a string.
+
+    Returns:
+      Path to the sanitized binary as a pathlib.Path.
+    """
+    # Extra sanitized binaries, Centipede requires to build them separately.
+    # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
+    build_dir = environment.get_value('BUILD_DIR')
+    sanitized_target_name = Path(target_path).name
+    sanitized_target_path = Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
+                                 sanitized_target_name)
+    return sanitized_target_path
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
     """Runs a fuzz session.
@@ -138,6 +155,7 @@ class Engine(engine.Engine):
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=timeout)
+    self._trim_logs(fuzz_result)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
@@ -152,6 +170,19 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
+  def _trim_logs(self, fuzz_result):
+    """ Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
+
+    Args:
+      fuzz_result: The ProcessResult returned by running fuzzer binary.
+    """
+    trimmed_log_lines = [
+        line[len(_CRASH_LOG_PREFIX):]
+        if line.startswith(_CRASH_LOG_PREFIX) else line
+        for line in fuzz_result.output.splitlines()
+    ]
+    fuzz_result.output = '\n'.join(trimmed_log_lines)
+
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
 
@@ -164,8 +195,14 @@ class Engine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    runner = new_process.UnicodeProcessRunner(target_path, [input_path])
+    sanitized_target_path = self._get_sanitized_target_path(target_path)
+    if not sanitized_target_path.exists():
+      logs.log_warn('Unable to find sanitized target binary.')
+
+    runner = new_process.UnicodeProcessRunner(sanitized_target_path,
+                                              [input_path])
     result = runner.run_and_wait(timeout=max_time)
+    self._trim_logs(result)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
