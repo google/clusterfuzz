@@ -199,7 +199,8 @@ class Engine(engine.Engine):
     if sanitized_target_path.exists():
       sanitized_target = str(sanitized_target_path)
     else:
-      logs.log_warn('Unable to find sanitized target binary.')
+      logs.log_warn(
+          f'Unable to find sanitized target binary: {sanitized_target_path}')
 
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
