@@ -196,11 +196,13 @@ class Engine(engine.Engine):
       A ReproduceResult.
     """
     sanitized_target_path = self._get_sanitized_target_path(target_path)
-    if not sanitized_target_path.exists():
-      logs.log_warn('Unable to find sanitized target binary.')
+    if sanitized_target_path.exists():
+      sanitized_target = str(sanitized_target_path)
+    else:
+      logs.log_warn(
+          f'Unable to find sanitized target binary: {sanitized_target_path}')
 
-    runner = new_process.UnicodeProcessRunner(sanitized_target_path,
-                                              [input_path])
+    runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
     self._trim_logs(result)
 
