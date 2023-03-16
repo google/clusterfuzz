@@ -114,7 +114,7 @@ test-project-jira:
       without an upstream patch, then the bug report will automatically
       become visible to the public.
 
-test-project-monorail:
+test-project:
   type: monorail
   policies:
     status:

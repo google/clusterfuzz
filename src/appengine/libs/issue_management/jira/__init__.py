@@ -100,7 +100,7 @@ class Issue(issue_tracker.Issue):
   @property
   def assignee(self):
     """The issue assignee."""
-    return getattr(self.jira_issue.fields, "assignee", None)
+    return getattr(self.jira_issue.fields, 'assignee', None)
 
   @assignee.setter
   def assignee(self, new_assignee):
