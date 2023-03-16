@@ -467,7 +467,6 @@ def file_issue(testcase,
   issue.reporter = user_email
 
   recovered_exception = None
-
   try:
     issue.save()
   except Exception as e:
