@@ -1042,10 +1042,10 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         extra_env=extra_env)
 
     result.output = self._append_logcat_output_if_needed(result.output)
-    
+
     if environment.is_android_emulator():
       result.output = self._prepend_trusty_stacktrace(result.output)
-      
+
     self._copy_local_directories_from_device(sync_directories)
     return result
 
