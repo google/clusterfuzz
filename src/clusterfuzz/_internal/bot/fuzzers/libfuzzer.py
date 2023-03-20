@@ -941,6 +941,24 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     return '{output}\n\nLogcat:\n{logcat_output}'.format(
         output=output, logcat_output=android.logger.log_output())
 
+  def _prepend_trusty_stacktrace(self, output):
+    """Add trusty stacktrace to beginning of output if found in logcat."""
+    logcat = android.logger.log_output()
+    begin, end = '---------', 'Built:'
+    target = 'Backtrace for thread: trusty'
+
+    target_idx = logcat.rfind(target)
+    if target_idx == -1:
+      return output
+
+    begin_idx = logcat[:target_idx].rfind(begin)
+    end_idx = target_idx + logcat[target_idx:].find(end)
+    end_idx += logcat[end_idx:].find('\n')
+
+    return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
+      \n{ta_stacktrace}\n\n{output}'.format(
+        ta_stacktrace=logcat[begin_idx:end_idx], output=output)
+
   @contextlib.contextmanager
   def _device_file(self, file_path):
     """Context manager for device files.
@@ -1024,7 +1042,10 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         extra_env=extra_env)
 
     result.output = self._append_logcat_output_if_needed(result.output)
-
+    
+    if environment.is_android_emulator():
+      result.output = self._prepend_trusty_stacktrace(result.output)
+      
     self._copy_local_directories_from_device(sync_directories)
     return result
 
@@ -1079,6 +1100,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       result = LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
                                                    timeout, additional_args)
       result.output = self._append_logcat_output_if_needed(result.output)
+      if environment.is_android_emulator():
+        result.output = self._prepend_trusty_stacktrace(result.output)
       return result
 
   def minimize_crash(self,
