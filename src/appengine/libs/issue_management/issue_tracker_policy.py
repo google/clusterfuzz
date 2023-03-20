@@ -76,6 +76,18 @@ class IssueTrackerPolicy(object):
 
     return str(label)
 
+  def label_for_crash_type(self, crash_type):
+    """Get the actual label string for the given crash type."""
+    if 'crash_types' not in self._data['labels']:
+      return None
+
+    crash_type = crash_type.splitlines()[0].lower()
+    label = self._data['labels']['crash_types'].get(crash_type)
+    if label is None:
+      return None
+
+    return str(label)
+
   def substitution_mapping(self, label):
     """Get an explicit substitution mapping."""
     if 'substitutions' not in self._data:

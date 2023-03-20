@@ -87,8 +87,9 @@ class IntegrationTest(unittest.TestCase):
     """Tests reproducing a crash."""
     testcase_path = setup_testcase('crash')
     engine_impl = engine.Engine()
+    target_path = DATA_DIR / 'test_fuzzer'
+    result = engine_impl.reproduce(target_path, testcase_path, [], 10)
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
-    result = engine_impl.reproduce(sanitized_target_path, testcase_path, [], 10)
     self.assertListEqual([sanitized_target_path, testcase_path], result.command)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
 
@@ -131,7 +132,8 @@ class IntegrationTest(unittest.TestCase):
     ])
     self.compare_arguments(expected_command, results.command)
 
-    self.assertIn('Crash detected, saving input to', results.logs)
+    self.assertIn('aving input to', results.logs)
+    self.assertNotIn('CRASH LOG:', results.logs)
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
     self.assertEqual(CRASHES_DIR, Path(crash.input_path).parent)

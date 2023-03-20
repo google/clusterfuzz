@@ -222,6 +222,10 @@ class StackParser:
         break
 
     if demangle and environment.is_posix():
+      if '\x00' in frame:
+        # We can't pass the frame as an argument (will be a ValueError) and if
+        # there's a NULL in the "frame" it's probably not actually a frame.
+        return None
       pipe = subprocess.Popen(
           ['c++filt', '-n', frame],
           stdin=subprocess.PIPE,

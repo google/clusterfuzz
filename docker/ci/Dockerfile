@@ -13,9 +13,6 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/base
 
-# Use nodesource nodejs packages.
-RUN curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update && \
     apt-get install -y \
@@ -27,8 +24,7 @@ RUN apt-get update && \
         google-cloud-sdk-datastore-emulator \
         google-cloud-sdk-pubsub-emulator=312.0.0-0 \
         liblzma-dev \
-        nodejs \
-        openjdk-8-jdk
+        openjdk-11-jdk
 
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \

@@ -848,6 +848,7 @@ class ProjectSetup(object):
 
       view_restrictions = info.get('view_restrictions')
       if view_restrictions:
+        view_restrictions = view_restrictions.lower()
         if view_restrictions in ALLOWED_VIEW_RESTRICTIONS:
           job.environment_string += (
               f'ISSUE_VIEW_RESTRICTIONS = {view_restrictions}\n')
