@@ -932,11 +932,31 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
-  def _append_logcat_output_if_needed(self, output):
+  def _prepend_trusty_stacktrace_if_needed(self, output):
+    """Add trusty stacktrace to beginning of output if found in logcat."""
+    logcat = android.logger.log_output()
+    begin, end = '---------', 'Built:'
+    target = 'Backtrace for thread: trusty'
+
+    target_idx = logcat.rfind(target)
+    if target_idx == -1 or not environment.is_android_emulator():
+      return output
+
+    begin_idx = logcat[:target_idx].rfind(begin)
+    end_idx = target_idx + logcat[target_idx:].find(end)
+    end_idx += logcat[end_idx:].find('\n')
+
+    return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
+      \n{ta_stacktrace}\n\n{output}'.format(
+        ta_stacktrace=logcat[begin_idx:end_idx], output=output)
+
+  def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
     processes if current output has no sanitizer crash."""
     if 'Sanitizer: ' in output:
       return output
+
+    output = self._prepend_trusty_stacktrace_if_needed(output)
 
     return '{output}\n\nLogcat:\n{logcat_output}'.format(
         output=output, logcat_output=android.logger.log_output())
@@ -1023,7 +1043,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         additional_args=additional_args,
         extra_env=extra_env)
 
-    result.output = self._append_logcat_output_if_needed(result.output)
+    result.output = self._add_logcat_output_if_needed(result.output)
 
     self._copy_local_directories_from_device(sync_directories)
     return result
@@ -1078,7 +1098,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     with self._device_file(testcase_path) as device_testcase_path:
       result = LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
                                                    timeout, additional_args)
-      result.output = self._append_logcat_output_if_needed(result.output)
+      result.output = self._add_logcat_output_if_needed(result.output)
       return result
 
   def minimize_crash(self,
