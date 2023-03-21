@@ -936,7 +936,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     """Add trusty stacktrace to beginning of output if found in logcat."""
     logcat = android.logger.log_output()
     begin, end = '---------', 'Built:'
-    target = 'Backtrace for thread: trusty'
+    target = 'Backtrace for thread:'
 
     target_idx = logcat.rfind(target)
     if target_idx == -1 or not environment.is_android_emulator():
