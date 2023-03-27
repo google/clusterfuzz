@@ -957,7 +957,6 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       \n{ta_stacktrace}\n\n{output}'.format(
         ta_stacktrace=ta_stacktrace, output=output)
 
-
   def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
     processes if current output has no sanitizer crash."""
