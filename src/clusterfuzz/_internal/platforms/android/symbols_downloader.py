@@ -182,8 +182,6 @@ def download_system_symbols_if_needed(symbols_directory):
 
 def download_trusty_symbols_if_needed(symbols_directory, app_name):
   """Downloads and extracts Trusted App ELF files"""
-  logs.log("download_trusty_symbols")
-
   ab_target = ''
   device = settings.get_build_parameters().get('target')
   if device in ['cheetah', 'panther']:
