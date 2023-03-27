@@ -70,6 +70,7 @@ STACK_TRACE_LINE_REGEX_LKL = re.compile(
 STACK_TRACE_LINE_TRUSTY = re.compile(
     '(^kSP|^uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16})')
 
+
 class LineBuffered(object):
   """Disable buffering on a file object."""
 
