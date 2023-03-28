@@ -15,9 +15,9 @@
 
 import os
 import unittest
+from unittest.mock import patch
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
-from unittest.mock import patch
 
 DATA_DIRECTORY = os.path.join(
     os.path.dirname(__file__), 'stack_symbolizer_data')
