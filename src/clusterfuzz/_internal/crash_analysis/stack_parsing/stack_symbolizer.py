@@ -529,7 +529,7 @@ class SymbolizationLoop(object):
     return None, None, None, None, None
 
   def _trusty_line_parser(self, line):
-    """Parses line for memory_space, offset, and addr"""
+    """Parses line for memory_space, offset, and addr."""
     match = STACK_TRACE_LINE_TRUSTY.match(line)
     if match:
       memory_space, offset, addr = match.groups()
@@ -538,6 +538,7 @@ class SymbolizationLoop(object):
     return None, None, None
 
   def _extract_trusty_app_name(self, stacktrace):
+    """Returns the name of the crashed Trusted App."""
     #(app: keymaster)
     match = re.compile(r'\(app:\s*(\w+)\)').search(stacktrace)
     if match:
@@ -546,12 +547,14 @@ class SymbolizationLoop(object):
     return ''
 
   def _close_pipes(self):
+    """Closes any open pipes."""
     for pipe in pipes:
       pipe.stdin.close()
       pipe.stdout.close()
       pipe.kill()
 
   def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
+    """Adds debug line information to a Trusted App stacktrace."""
     symbols_dir = environment.get_value('SYMBOLS_DIR')
     trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
 
@@ -584,6 +587,7 @@ class SymbolizationLoop(object):
     return symbolized_stacktrace
 
   def process_stacktrace(self, unsymbolized_crash_stacktrace):
+    """Symbolizes a crash stacktrace."""
     self.frame_no = 0
     symbolized_crash_stacktrace = u''
     unsymbolized_crash_stacktrace_lines = \
@@ -626,7 +630,6 @@ class SymbolizationLoop(object):
               '    #' + str(self.frame_no) + ' ' + symbolized_frame.rstrip())
           self.frame_no += 1
 
-    # Close any left-over open pipes.
     self._close_pipes()
 
     return symbolized_crash_stacktrace
