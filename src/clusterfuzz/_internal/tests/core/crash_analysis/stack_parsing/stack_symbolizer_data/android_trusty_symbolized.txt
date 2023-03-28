@@ -55,7 +55,7 @@ kSP+0x0b30: 0xffff000000283ccc in $x.0 arm64/syscall.S:57
 kSP+0x0c10: 0x0000000000087710 in lk.elf
 uSP+0x7d80: 0x0000000000035290 in sha512_block sha512-armv8.S:1317
 uSP+0x7a40: 0x00000000001392a8 in sha512_block sha512-armv8.S:809
-Project: cloudripper-fuzz-test-debug, Build: armellel@armellel.c.googlers.com-6, Built: 20:18:00 Feb  6 2023
+Project: cloudripper-fuzz-test-debug, Build: davfu1@davfu1.c.googlers.com-6, Built: 20:18:00 Feb  6 2023
 
 INFO: Running with entropic power schedule (0xFF, 100).
 INFO: Seed: 1080409365
