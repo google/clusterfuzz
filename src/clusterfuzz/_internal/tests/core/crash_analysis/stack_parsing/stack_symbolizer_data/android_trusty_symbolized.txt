@@ -11,7 +11,7 @@ Time ran: 5.093210697174072
 boot args 0x*** 0x*** 0x1000 0x0
 gicc 0x***, gicd 0x***, gicr 0x***
 mte is not available
-initializing trusty (Project: slider-fuzz-test-debug, Build: armellel@armellel.c.googlers.com-7, Built: 02:38:50 Feb  7 2023)
+initializing trusty (Project: slider-fuzz-test-debug, Build: davfu1@davfu1.c.googlers.com-7, Built: 02:38:50 Feb  7 2023)
 sancov-rt: 227: sancov initialized with *** counters
 ARM TRNG total time for 8 bytes: *** ns
 sancov-rt: 227: sancov initialized with 1106 counters
