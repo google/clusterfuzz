@@ -15,10 +15,8 @@
 
 import os
 import unittest
-import zipfile
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
-from clusterfuzz._internal.platforms.android import settings
 from unittest.mock import patch
 
 DATA_DIRECTORY = os.path.join(
