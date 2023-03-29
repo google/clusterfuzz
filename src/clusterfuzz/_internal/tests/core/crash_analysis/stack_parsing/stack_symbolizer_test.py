@@ -48,3 +48,4 @@ class ChromeDsymHintsTests(unittest.TestCase):
             '/build/Content Shell.app/Contents'
             '/Versions/C/Helpers'
             '/Content Shell Helper.app/Contents/MacOS/Content Shell Helper'))
+            
