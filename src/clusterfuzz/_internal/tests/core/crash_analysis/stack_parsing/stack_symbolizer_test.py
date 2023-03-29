@@ -15,9 +15,9 @@
 
 import os
 import unittest
-from unittest.mock import patch
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
+from clusterfuzz._internal.tests.test_libs import helpers
 
 DATA_DIRECTORY = os.path.join(
     os.path.dirname(__file__), 'stack_symbolizer_data')
@@ -60,38 +60,15 @@ class StackSymbolizerTestcase(unittest.TestCase):
 
   def setUp(self):
     """Set environment variables used by stack symbolizer tests."""
-    self.patcher_settings = patch(
-        'clusterfuzz._internal.platforms.android.settings.get_build_parameters')
-    self.mock_settings = self.patcher_settings.start()
-    self.mock_settings.return_value = {'target': 'oriole'}
-    self.addCleanup(self.patcher_settings.stop)
 
-    self.patcher_artifact_info = patch(
-        'clusterfuzz._internal.platforms.android.fetch_artifact.get_latest_artifact_info'
-    )
-    self.mock_fetch_artifact_info = self.patcher_artifact_info.start()
-    self.mock_fetch_artifact_info.return_value = {'bid': '12345678'}
-    self.addCleanup(self.patcher_artifact_info.stop)
+    class ZipFileMock():
 
-    self.patcher_artifact_get = patch(
-        'clusterfuzz._internal.platforms.android.fetch_artifact.get')
-    self.mock_fetch_artifact_dl = self.patcher_artifact_get.start()
-    self.mock_fetch_artifact_dl.return_value = ''
-    self.addCleanup(self.patcher_artifact_get.stop)
+      def namelist(self):
+        return ['']
 
-    self.patcher_env = patch(
-        'clusterfuzz._internal.system.environment.get_value')
-    self.mock_env = self.patcher_env.start()
-    self.mock_env.return_value = 'test_dir'
-    self.addCleanup(self.patcher_env.stop)
-
-    self.patcher_zip = patch('zipfile.ZipFile')
-    self.mock_zipfile = self.patcher_zip.start()
-    self.mock_zipfile.namelist.return_value = ['']
-    self.addCleanup(self.patcher_zip.stop)
-
-    def mock_trusty_symbolize(offset, binary, addr):
+    def mock_trusty_symbolize(self, offset, binary, addr):
       """Function to mock addr2line return values"""
+
       if (offset, binary, addr) == ('0xffff000000043210', 'test_dir/lk.elf',
                                     '0xffff000000043210'):
         return ['0xffff000000043210 in sys_brk ld-temp.o:?']
@@ -109,21 +86,31 @@ class StackSymbolizerTestcase(unittest.TestCase):
           addr) == ('0x00000000001392a8', 'test_dir/keymaster.syms.elf',
                     '0x00000000001392a8'):
         return ['0x00000000001392a8 in sha512_block sha512-armv8.S:809']
-      return ['']
 
-    self.patcher_addr2line_symbolizer = patch(
-        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer.symbolize'
-    )
-    self.mock_addr2line_symbolize = self.patcher_addr2line_symbolizer.start()
-    self.mock_addr2line_symbolize.side_effect = mock_trusty_symbolize
-    self.addCleanup(self.patcher_addr2line_symbolizer.stop)
+      self.default = ['']
+      return self.default
 
-    self.patcher_addr2line_open = patch(
-        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer.open_addr2line'
-    )
-    self.mock_addr2line_open = self.patcher_addr2line_open.start()
-    self.mock_addr2line_open = ''
-    self.addCleanup(self.patcher_addr2line_open.stop)
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.platforms.android.settings.get_build_parameters',
+        'clusterfuzz._internal.platforms.android.fetch_artifact.get_latest_artifact_info',
+        'clusterfuzz._internal.platforms.android.fetch_artifact.get',
+        'clusterfuzz._internal.system.environment.get_value',
+        'zipfile.ZipFile',
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer.symbolize',
+        'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer.open_addr2line',
+    ])
+
+    self.mock.get_build_parameters.return_value = {'target': 'oriole'}
+    self.mock.get_latest_artifact_info.return_value = {'bid': '12345678'}
+    self.mock.get.return_value = ''
+    self.mock.get_value.return_value = 'test_dir'
+    self.mock.open_addr2line.return_value = ''
+    self.mock.namelist = ['']
+    self.mock.symbolize.side_effect = mock_trusty_symbolize
+
+    zipfile_mock = ZipFileMock()
+    self.mock.ZipFile.return_value.__enter__.return_value = zipfile_mock
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
@@ -132,6 +119,7 @@ class StackSymbolizerTestcase(unittest.TestCase):
 
   def test_process_trusty_stacktrace(self):
     """Test desymbolization of Trusty stacktrace"""
+    print('donig a test')
     data = self._read_test_data('android_trusty.txt')
     expected_data = self._read_test_data('android_trusty_symbolized.txt')
 
