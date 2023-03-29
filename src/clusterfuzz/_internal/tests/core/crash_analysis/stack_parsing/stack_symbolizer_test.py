@@ -64,26 +64,30 @@ class StackSymbolizerTestcase(unittest.TestCase):
         'clusterfuzz._internal.platforms.android.settings.get_build_parameters')
     self.mock_settings = self.patcher_settings.start()
     self.mock_settings.return_value = {'target': 'oriole'}
+    self.addCleanup(self.patcher_settings.stop)
 
     self.patcher_artifact_info = patch(
         'clusterfuzz._internal.platforms.android.fetch_artifact.get_latest_artifact_info'
     )
     self.mock_fetch_artifact_info = self.patcher_artifact_info.start()
     self.mock_fetch_artifact_info.return_value = {'bid': '12345678'}
+    self.addCleanup(self.patcher_artifact_info.stop)
 
     self.patcher_artifact_get = patch(
         'clusterfuzz._internal.platforms.android.fetch_artifact.get')
     self.mock_fetch_artifact_dl = self.patcher_artifact_get.start()
     self.mock_fetch_artifact_dl.return_value = ''
+    self.addCleanup(self.patcher_artifact_get.stop)
 
-    self.patcher_env = patch(
-        'clusterfuzz._internal.system.environment.get_value')
+    self.patcher_env = patch('clusterfuzz._internal.system.environment.get_value')
     self.mock_env = self.patcher_env.start()
     self.mock_env.return_value = 'test_dir'
+    self.addCleanup(self.patcher_env.stop)
 
     self.patcher_zip = patch('zipfile.ZipFile')
     self.mock_zipfile = self.patcher_zip.start()
     self.mock_zipfile.namelist.return_value = ['']
+    self.addCleanup(self.patcher_zip.stop)
 
     def mock_trusty_symbolize(offset, binary, addr):
       """Function to mock addr2line return values"""
@@ -111,21 +115,14 @@ class StackSymbolizerTestcase(unittest.TestCase):
     )
     self.mock_addr2line_symbolize = self.patcher_addr2line_symbolizer.start()
     self.mock_addr2line_symbolize.side_effect = mock_trusty_symbolize
+    self.addCleanup(self.patcher_addr2line_symbolizer.stop)
 
     self.patcher_addr2line_open = patch(
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer.open_addr2line'
     )
     self.mock_addr2line_open = self.patcher_addr2line_open.start()
     self.mock_addr2line_open = ''
-
-  def tearDown(self):
-    self.patcher_settings.stop()
-    self.patcher_artifact_info.stop()
-    self.patcher_artifact_get.stop()
-    self.patcher_env.stop()
-    self.patcher_zip.stop()
-    self.patcher_addr2line_symbolizer.stop()
-    self.patcher_addr2line_open.stop()
+    self.addCleanup(self.patcher_addr2line_open.stop)
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
