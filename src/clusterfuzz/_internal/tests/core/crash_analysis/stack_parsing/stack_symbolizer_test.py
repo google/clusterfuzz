@@ -79,7 +79,8 @@ class StackSymbolizerTestcase(unittest.TestCase):
     self.mock_fetch_artifact_dl.return_value = ''
     self.addCleanup(self.patcher_artifact_get.stop)
 
-    self.patcher_env = patch('clusterfuzz._internal.system.environment.get_value')
+    self.patcher_env = patch(
+        'clusterfuzz._internal.system.environment.get_value')
     self.mock_env = self.patcher_env.start()
     self.mock_env.return_value = 'test_dir'
     self.addCleanup(self.patcher_env.stop)
