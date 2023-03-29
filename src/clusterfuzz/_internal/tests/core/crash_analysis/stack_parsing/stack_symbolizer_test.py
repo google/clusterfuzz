@@ -17,6 +17,7 @@ import os
 import unittest
 
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_symbolizer
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 
 DATA_DIRECTORY = os.path.join(
@@ -95,7 +96,6 @@ class StackSymbolizerTestcase(unittest.TestCase):
         'clusterfuzz._internal.platforms.android.settings.get_build_parameters',
         'clusterfuzz._internal.platforms.android.fetch_artifact.get_latest_artifact_info',
         'clusterfuzz._internal.platforms.android.fetch_artifact.get',
-        'clusterfuzz._internal.system.environment.get_value',
         'zipfile.ZipFile',
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer.symbolize',
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.Addr2LineSymbolizer.open_addr2line',
@@ -104,13 +104,14 @@ class StackSymbolizerTestcase(unittest.TestCase):
     self.mock.get_build_parameters.return_value = {'target': 'oriole'}
     self.mock.get_latest_artifact_info.return_value = {'bid': '12345678'}
     self.mock.get.return_value = ''
-    self.mock.get_value.return_value = 'test_dir'
     self.mock.open_addr2line.return_value = ''
     self.mock.namelist = ['']
     self.mock.symbolize.side_effect = mock_trusty_symbolize
 
     zipfile_mock = ZipFileMock()
     self.mock.ZipFile.return_value.__enter__.return_value = zipfile_mock
+
+    environment.set_value('SYMBOLS_DIR', 'test/dir')
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
