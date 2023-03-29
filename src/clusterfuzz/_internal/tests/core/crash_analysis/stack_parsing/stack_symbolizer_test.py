@@ -70,21 +70,21 @@ class StackSymbolizerTestcase(unittest.TestCase):
     def mock_trusty_symbolize(self, offset, binary, addr):
       """Function to mock addr2line return values"""
 
-      if (offset, binary, addr) == ('0xffff000000043210', 'test_dir/lk.elf',
+      if (offset, binary, addr) == ('0xffff000000043210', 'test/dir/lk.elf',
                                     '0xffff000000043210'):
         return ['0xffff000000043210 in sys_brk ld-temp.o:?']
-      if (offset, binary, addr) == ('0xffff000000283ccc', 'test_dir/lk.elf',
+      if (offset, binary, addr) == ('0xffff000000283ccc', 'test/dir/lk.elf',
                                     '0xffff000000283ccc'):
         return ['0xffff000000283ccc in $x.0 arm64/syscall.S:57']
-      if (offset, binary, addr) == ('0x0000000000087710', 'test_dir/lk.elf',
+      if (offset, binary, addr) == ('0x0000000000087710', 'test/dir/lk.elf',
                                     '0x0000000000087710'):
         return ['0x0000000000087710 in lk.elf']
       if (offset, binary,
-          addr) == ('0x0000000000035290', 'test_dir/keymaster.syms.elf',
+          addr) == ('0x0000000000035290', 'test/dir/keymaster.syms.elf',
                     '0x0000000000035290'):
         return ['0x0000000000035290 in sha512_block sha512-armv8.S:1317']
       if (offset, binary,
-          addr) == ('0x00000000001392a8', 'test_dir/keymaster.syms.elf',
+          addr) == ('0x00000000001392a8', 'test/dir/keymaster.syms.elf',
                     '0x00000000001392a8'):
         return ['0x00000000001392a8 in sha512_block sha512-armv8.S:809']
 
@@ -120,7 +120,6 @@ class StackSymbolizerTestcase(unittest.TestCase):
 
   def test_process_trusty_stacktrace(self):
     """Test desymbolization of Trusty stacktrace"""
-    print('donig a test')
     data = self._read_test_data('android_trusty.txt')
     expected_data = self._read_test_data('android_trusty_symbolized.txt')
 
