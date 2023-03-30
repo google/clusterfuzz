@@ -946,9 +946,16 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     end_idx = target_idx + logcat[target_idx:].find(end)
     end_idx += logcat[end_idx:].find('\n')
 
+    ta_stacktrace = logcat[begin_idx:end_idx]
+    # Defer imports since stack_symbolizer pulls in a lot of things.
+    from clusterfuzz._internal.crash_analysis.stack_parsing import \
+        stack_symbolizer
+    loop = stack_symbolizer.SymbolizationLoop()
+    ta_stacktrace = loop.process_trusty_stacktrace(ta_stacktrace)
+
     return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
       \n{ta_stacktrace}\n\n{output}'.format(
-        ta_stacktrace=logcat[begin_idx:end_idx], output=output)
+        ta_stacktrace=ta_stacktrace, output=output)
 
   def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
