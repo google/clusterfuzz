@@ -353,7 +353,7 @@ def hard_reset():
       run_shell_command('recovery --wipe_data')
     if state == 'is-ramdump-mode: yes':
       logs.log('Rebooting ramdump state device.')
-      run_fastboot_command(['reboot'])
+      run_fastboot_command('reboot')
 
 
 def kill_processes_and_children_matching_name(process_name):
