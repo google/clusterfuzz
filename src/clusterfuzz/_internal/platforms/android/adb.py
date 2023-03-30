@@ -225,8 +225,8 @@ def get_adb_path():
 def get_device_state():
   """Return the device status."""
   if 'is-ramdump-mode: yes' in run_fastboot_command(
-    ['getvar', 'is-ramdump-mode']):
-  return 'is-ramdump-mode: yes'
+      ['getvar', 'is-ramdump-mode']):
+    return 'is-ramdump-mode: yes'
   state_cmd = get_adb_command_line('get-state')
   return execute_command(state_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
