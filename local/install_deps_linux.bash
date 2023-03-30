@@ -153,7 +153,7 @@ else
 fi
 
 # Setup pipenv and install python dependencies.
-$PYTHON -m pip install --user pipenv
+$PYTHON -m pip install --user pipenv==2022.8.5
 $PYTHON -m pipenv --python $PYTHON
 $PYTHON -m pipenv sync --dev
 source "$(${PYTHON} -m pipenv --venv)/bin/activate"
