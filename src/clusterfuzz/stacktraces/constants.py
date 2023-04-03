@@ -283,8 +283,7 @@ UBSAN_VPTR_INVALID_OFFSET_REGEX = re.compile(
     r'.*at offset (\d+) within object of type (.*)')
 UBSAN_VPTR_INVALID_VPTR_REGEX = re.compile(r'.*note: object has invalid vptr')
 UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile(
-        r'.*implicit conversion from type.*')
-
+    r'.*implicit conversion from type.*')
 V8_ABORT_FAILURE_REGEX = re.compile(r'^abort: (CSA_ASSERT failed:.*)')
 V8_ABORT_METADATA_REGEX = re.compile(r'(.*) \[(.*):\d+\]$')
 V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
