@@ -180,7 +180,7 @@ def download_system_symbols_if_needed(symbols_directory):
   utils.write_data_to_file(build_params, build_params_check_path)
 
 
-def download_trusty_symbols_if_needed(symbols_directory, app_name):
+def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
   """Downloads and extracts Trusted App ELF files"""
   ab_target = ''
   device = settings.get_build_parameters().get('target')
@@ -190,7 +190,8 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name):
     ab_target = 'slider-fuzz-test-debug'
 
   branch = 'polygon-trusty-whitechapel-master'
-  bid = fetch_artifact.get_latest_artifact_info(branch, ab_target)['bid']
+  if not bid:
+    bid = fetch_artifact.get_latest_artifact_info(branch, ab_target)['bid']
 
   artifact_filename = f'{ab_target}-{bid}.syms.zip'
   symbols_archive_path = os.path.join(symbols_directory, artifact_filename)

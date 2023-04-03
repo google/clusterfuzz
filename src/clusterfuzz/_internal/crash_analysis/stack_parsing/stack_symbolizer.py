@@ -540,7 +540,16 @@ class SymbolizationLoop(object):
   def _extract_trusty_app_name(self, stacktrace):
     """Returns the name of the crashed Trusted App."""
     #(app: keymaster)
-    match = re.compile(r'\(app:\s*(\w+)\)').search(stacktrace)
+    match = re.compile(r'\(app:\s(\w+)\)').search(stacktrace)
+    if match:
+      return match.group(1)
+
+    return ''
+
+  def _extract_trusty_bid(self, stacktrace):
+    """Returns the build of the crashed Trusted App."""
+    #, Build: 1234567
+    match = re.compile(r',\sBuild:\s(\d+),\sBuilt:').search(stacktrace)
     if match:
       return match.group(1)
 
@@ -557,9 +566,10 @@ class SymbolizationLoop(object):
     """Adds debug line information to a Trusted App stacktrace."""
     symbols_dir = environment.get_value('SYMBOLS_DIR')
     trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
+    trusty_bid = self._extract_trusty_bid(unsymbolized_crash_stacktrace)
 
     symbols_downloader.download_trusty_symbols_if_needed(
-        symbols_dir, trusty_app)
+        symbols_dir, trusty_app, trusty_bid)
     kernel_binary = f'{symbols_dir}/lk.elf'
     trusty_binary = f'{symbols_dir}/{trusty_app}.syms.elf'
 
