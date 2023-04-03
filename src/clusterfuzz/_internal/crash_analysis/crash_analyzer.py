@@ -82,6 +82,7 @@ UBSAN_RUNTIME_ERROR = ' runtime error: '
 UBSAN_CRASH_TYPES_NON_SECURITY = [
     'Divide-by-zero',
     'Float-cast-overflow',
+    'Implicit-conversion',
     # We do not name this "Signed-integer-overflow", for the sake of syntax
     # being used in LLVM and C++, as there is no "signed int" type.
     'Integer-overflow',
@@ -101,7 +102,6 @@ UBSAN_CRASH_TYPES_NON_SECURITY = [
     # math of crpto libraries.
     'Unsigned-integer-overflow',
     'Unreachable code',
-    'Implicit-conversion',
 ]
 UBSAN_CRASH_TYPES_SECURITY = [
     'Bad-cast',
