@@ -300,6 +300,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_ubsan_implicit_conversion(self):
+    """Test the ubsan integer implicit conversion format."""
+    data = self._read_test_data('ubsan_implicit_conversion.txt')
+    expected_type = 'Implicit-conversion'
+    expected_state = ('htmlCurrentChar\nhtmlParseHTMLAttribute\n'
+                      'htmlParseAttValue\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ubsan_incorrect_function_pointer_type(self):
     """Test the ubsan incorrect function pointer type format."""
     data = self._read_test_data('ubsan_incorrect_function_pointer_type.txt')

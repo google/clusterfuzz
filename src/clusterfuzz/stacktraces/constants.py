@@ -237,6 +237,8 @@ SECURITY_DCHECK_FAILURE_REGEX = re.compile(
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
 UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
+UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile(
+    r'.*implicit conversion from type.*')
 UBSAN_INCORRECT_FUNCTION_POINTER_REGEX = re.compile(
     r'.*call to function [^\s]+ through pointer to incorrect function type.*')
 UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
@@ -631,6 +633,7 @@ STATE_STOP_MARKERS = [
 UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_DIVISION_BY_ZERO_REGEX, 'Divide-by-zero'),
     (UBSAN_FLOAT_CAST_OVERFLOW_REGEX, 'Float-cast-overflow'),
+    (UBSAN_IMPLICIT_CONVERSION_REGEX, 'Implicit-conversion'),
     (UBSAN_INCORRECT_FUNCTION_POINTER_REGEX, 'Incorrect-function-pointer-type'),
     (UBSAN_INDEX_OOB_REGEX, 'Index-out-of-bounds'),
     (UBSAN_INVALID_BOOL_VALUE_REGEX, 'Invalid-bool-value'),
