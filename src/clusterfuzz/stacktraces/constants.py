@@ -282,6 +282,9 @@ UBSAN_VPTR_INVALID_DOWNCAST_REGEX = re.compile(
 UBSAN_VPTR_INVALID_OFFSET_REGEX = re.compile(
     r'.*at offset (\d+) within object of type (.*)')
 UBSAN_VPTR_INVALID_VPTR_REGEX = re.compile(r'.*note: object has invalid vptr')
+UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile(
+        r'.*implicit conversion from type.*')
+
 V8_ABORT_FAILURE_REGEX = re.compile(r'^abort: (CSA_ASSERT failed:.*)')
 V8_ABORT_METADATA_REGEX = re.compile(r'(.*) \[(.*):\d+\]$')
 V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
@@ -648,6 +651,7 @@ UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_UNREACHABLE_REGEX, 'Unreachable code'),
     (UBSAN_UNSIGNED_INTEGER_OVERFLOW_REGEX, 'Unsigned-integer-overflow'),
     (UBSAN_VLA_BOUND_REGEX, 'Non-positive-vla-bound-value'),
+    (UBSAN_IMPLICIT_CONVERSION_REGEX, 'Implicit-conversion'),
 
     # The following types are supersets of other types, and should be placed
     # at the end to avoid subsuming crashes from the more specialized types.

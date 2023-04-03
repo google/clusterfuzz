@@ -101,6 +101,7 @@ UBSAN_CRASH_TYPES_NON_SECURITY = [
     # math of crpto libraries.
     'Unsigned-integer-overflow',
     'Unreachable code',
+    'Implicit-conversion',
 ]
 UBSAN_CRASH_TYPES_SECURITY = [
     'Bad-cast',
