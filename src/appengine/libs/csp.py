@@ -131,8 +131,9 @@ def get_default_builder():
   # Our Polymer Bundler usage also requires inline style.
   builder.add('style-src', 'unsafe-inline', quote=True)
 
-  # Some fonts are loaded from data URIs.
+  # Some fonts and images are loaded from data URIs.
   builder.add('font-src', 'data:')
+  builder.add('img-src', 'data:')
 
   return builder
 
