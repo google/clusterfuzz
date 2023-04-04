@@ -179,7 +179,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'libFuzzer: out-of-memory \(',
     r'rss limit exhausted',
     r'in rust_oom',
-    r'Failure description: out-of-memory',  # Centipede.
+    r'========= RSS limit exceeded:',  # Centipede.
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
