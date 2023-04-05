@@ -281,7 +281,7 @@ def extract_logcat_from_ramdump_and_reboot():
       ['oem', 'ramdump', 'stage_file', 'kernel.log'],
       timeout=RECOVERY_CMD_TIMEOUT)
   run_fastboot_command(
-      ['get_staged', 'kernel.log'], timeout=RECOVERY_CMD_TIMEOUT)
+      ['get_staged', 'kernel.log'], timeout=WAIT_FOR_DEVICE_TIMEOUT)
 
   storage.copy_file_from(RAMOOPS_READER_GCS_PATH, 'ramoops_reader.py')
   subprocess.run(
