@@ -28,8 +28,7 @@ from clusterfuzz.fuzz import engine
 _CLEAN_EXIT_SECS = 10
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
-_RLIMIT_AS = 5120
-_ADDRESS_SPACE_LIMIT = 0
+_ADDRESS_SPACE_LIMIT = 4096
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
