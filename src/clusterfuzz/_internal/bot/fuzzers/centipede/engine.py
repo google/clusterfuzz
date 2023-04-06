@@ -153,7 +153,7 @@ class Engine(engine.Engine):
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=arguments, timeout=timeout)
-    self._trim_logs(fuzz_result)
+    fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
@@ -168,7 +168,8 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
-  def _trim_logs(self, fuzz_result):
+  @staticmethod
+  def trim_logs(fuzz_log):
     """ Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
 
     Args:
@@ -177,9 +178,9 @@ class Engine(engine.Engine):
     trimmed_log_lines = [
         line[len(_CRASH_LOG_PREFIX):]
         if line.startswith(_CRASH_LOG_PREFIX) else line
-        for line in fuzz_result.output.splitlines()
+        for line in fuzz_log.splitlines()
     ]
-    fuzz_result.output = '\n'.join(trimmed_log_lines)
+    return '\n'.join(trimmed_log_lines)
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
@@ -202,7 +203,7 @@ class Engine(engine.Engine):
 
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
-    self._trim_logs(result)
+    Engine.trim_logs(result)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
