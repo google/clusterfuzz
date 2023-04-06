@@ -44,6 +44,7 @@ _DEFAULT_ARGUMENTS = [
     f'--fork_server={_SERVER_COUNT}',
     f'--rss_limit_mb={_RSS_LIMIT}',
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
+    '--symbolizer_path=/dev/null',
 ]
 
 
