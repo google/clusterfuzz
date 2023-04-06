@@ -16,6 +16,8 @@
 import os
 import unittest
 
+from clusterfuzz._internal.bot.fuzzers.centipede.engine import \
+    Engine as centipede
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.system import environment
@@ -2432,6 +2434,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
 
     data = self._read_test_data('centipede_oom.txt')
+    data = centipede.trim_logs(data)
     expected_type = 'Out-of-memory'
     expected_address = ''
     expected_state = 'NULL'
@@ -2446,7 +2449,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test a centipede timeout stacktrace (with reporting enabled)."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
 
-    data = self._read_test_data('centipede_timeout.txt')
+    data = self._read_test_data('centipede_slo.txt')
+    data = centipede.trim_logs(data)
     expected_type = 'Timeout'
     expected_address = ''
     expected_state = 'NULL'
