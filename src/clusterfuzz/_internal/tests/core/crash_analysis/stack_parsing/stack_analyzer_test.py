@@ -3542,3 +3542,16 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
+
+  def test_symbolized_trusty_stacktrace(self):
+    data = self._read_test_data('trusty_symbolized_kernel_stacktrace.txt')
+    expected_type = 'Trusted app crash'
+    expected_address = ''
+    expected_state = ('fe_invert\nDiceSign\nDiceCoseSignAndEncodeSign1\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+                                  
