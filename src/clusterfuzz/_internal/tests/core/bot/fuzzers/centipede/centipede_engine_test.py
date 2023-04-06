@@ -15,6 +15,7 @@
 
 import os
 from pathlib import Path
+import re
 import shutil
 import unittest
 
@@ -24,13 +25,16 @@ from clusterfuzz._internal.bot.fuzzers.centipede import engine
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
+from clusterfuzz.stacktraces.constants import ASAN_REGEX
+from clusterfuzz.stacktraces.constants import CENTIPEDE_TIMEOUT_REGEX
+from clusterfuzz.stacktraces.constants import OUT_OF_MEMORY_REGEX
 
 TEST_PATH = Path(__file__).parent
 DATA_DIR = TEST_PATH / 'test_data'
 CORPUS_DIR = TEST_PATH / 'corpus_dir'
 CRASHES_DIR = TEST_PATH / 'crashes_dir'
 
-# Centipede's runtime args
+# Centipede's runtime args for testing.
 _TIMEOUT = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
@@ -85,11 +89,11 @@ class IntegrationTest(unittest.TestCase):
 
   def reproduce(self):
     """Tests reproducing a crash."""
-    testcase_path = setup_testcase('crash')
+    testcase_path = setup_testcase('uaf')
     engine_impl = engine.Engine()
-    target_path = DATA_DIR / 'test_fuzzer'
+    target_path = DATA_DIR / 'clusterfuzz_format_target'
     result = engine_impl.reproduce(target_path, testcase_path, [], 10)
-    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
+    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'clusterfuzz_format_target'
     self.assertListEqual([sanitized_target_path, testcase_path], result.command)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
 
@@ -98,7 +102,7 @@ class IntegrationTest(unittest.TestCase):
     """Tests fuzzing (no crash)."""
     engine_impl = engine.Engine()
     centipede_path = DATA_DIR / 'centipede'
-    dictionary = DATA_DIR / "test_fuzzer.dict"
+    dictionary = DATA_DIR / 'test_fuzzer.dict'
     work_dir = Path('/tmp/temp-1337/workdir')
     target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
     sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
@@ -114,15 +118,19 @@ class IntegrationTest(unittest.TestCase):
     self.compare_arguments(expected_command, results.command)
     self.assertTrue(CORPUS_DIR.iterdir())
 
-  def test_fuzz_crash(self):
-    """Tests fuzzing that results in a crash."""
+  def _test_crash_log_regex(self, crash_regex, content, timeout_per_input=None):
+    """Fuzzes the target and check if regex matches Centipede's crash log."""
+
     engine_impl = engine.Engine()
     centipede_path = DATA_DIR / 'centipede'
     work_dir = Path('/tmp/temp-1337/workdir')
     target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 'always_crash_fuzzer')
-    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'always_crash_fuzzer'
+                                                 'clusterfuzz_format_target')
+    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'clusterfuzz_format_target'
+
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
+    if timeout_per_input:
+      options.arguments.append(f'--timeout_per_input={timeout_per_input}')
     results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
     expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
         f'--workdir={work_dir}',
@@ -130,18 +138,48 @@ class IntegrationTest(unittest.TestCase):
         f'--binary={target_path}',
         f'--extra_binaries={sanitized_target_path}',
     ])
+    if timeout_per_input:
+      expected_command.append(f'--timeout_per_input={timeout_per_input}')
     self.compare_arguments(expected_command, results.command)
 
-    self.assertIn('aving input to', results.logs)
-    self.assertNotIn('CRASH LOG:', results.logs)
+    # Check there is one and only one expected crash.
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
+    # Check the crash was saved properly.
     self.assertEqual(CRASHES_DIR, Path(crash.input_path).parent)
-    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free',
-                  crash.stacktrace)
+    # Check the regex can capture the crash info in the stacktrace.
+    self.assertRegex(crash.stacktrace, crash_regex)
 
-    with open(crash.input_path, 'rb') as f:
-      self.assertEqual(b'A', f.read()[:1])
+    # Check reproducer location format.
+    self.assertRegex(results.logs, 'Saving input to: .+/crashes/.+')
+    # Check the prefix was trimmed.
+    self.assertNotRegex(results.logs, 'CRASH LOG:.*')
+
+    # Check the correct input was saved.
+    with open(crash.input_path, 'r') as f:
+      self.assertEqual(content, f.read())
+
+    return re.search(crash_regex, crash.stacktrace)
+
+  def test_crash_uaf(self):
+    """Tests fuzzing that results in a ASAN heap-use-after-free crash."""
+    setup_testcase('uaf')
+
+    crash_info = self._test_crash_log_regex(ASAN_REGEX, 'uaf')
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+    self.assertIn('heap-use-after-free', crash_info.group(2))
+
+  def test_crash_oom(self):
+    """Tests fuzzing that results in a out-of-memory crash."""
+    setup_testcase('oom')
+    self._test_crash_log_regex(OUT_OF_MEMORY_REGEX, 'oom')
+
+  def test_crash_timeout(self):
+    """Tests fuzzing that results in a timeout."""
+    setup_testcase('slo')
+    self._test_crash_log_regex(CENTIPEDE_TIMEOUT_REGEX, 'slo', 5)
 
 
 @test_utils.integration

@@ -69,8 +69,7 @@ ASSERT_REGEX_GLIBC = re.compile(
 ASSERT_REGEX_GLIBC_SUFFIXED = re.compile(
     r'.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)')
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
-CENTIPEDE_TIMEOUT_REGEX = re.compile(
-    r'^========= Per-input timeout exceeded:')
+CENTIPEDE_TIMEOUT_REGEX = re.compile(r'========= Per-input timeout exceeded:')
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
     r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
