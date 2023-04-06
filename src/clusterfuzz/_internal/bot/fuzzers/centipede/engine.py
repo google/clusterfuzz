@@ -26,14 +26,12 @@ from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
-_TIMEOUT = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _RLIMIT_AS = 5120
 _ADDRESS_SPACE_LIMIT = 0
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
-    f'--timeout={_TIMEOUT}',
     f'--fork_server={_SERVER_COUNT}',
     f'--rss_limit_mb={_RSS_LIMIT}',
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',

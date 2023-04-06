@@ -33,16 +33,15 @@ TEST_PATH = Path(__file__).parent
 DATA_DIR = TEST_PATH / 'test_data'
 CORPUS_DIR = TEST_PATH / 'corpus_dir'
 CRASHES_DIR = TEST_PATH / 'crashes_dir'
+MAX_TIME = 25
 
 # Centipede's runtime args for testing.
-_TIMEOUT = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _RLIMIT_AS = 5120
 _ADDRESS_SPACE_LIMIT = 0
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
-    f'--timeout={_TIMEOUT}',
     f'--fork_server={_SERVER_COUNT}',
     f'--rss_limit_mb={_RSS_LIMIT}',
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
@@ -68,6 +67,14 @@ def setup_testcase(testcase):
   return copied_testcase_path
 
 
+def setup_centipede(target_name):
+  """Sets up Centipede for fuzzing."""
+  engine_impl = engine.Engine()
+  target_path = engine_common.find_fuzzer_path(DATA_DIR, target_name)
+  sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / target_name
+  return engine_impl, target_path, sanitized_target_path
+
+
 @test_utils.integration
 class IntegrationTest(unittest.TestCase):
   """Integration tests."""
@@ -89,50 +96,32 @@ class IntegrationTest(unittest.TestCase):
 
   def reproduce(self):
     """Tests reproducing a crash."""
+    engine_impl, target_path, sanitized_target_path = setup_centipede(
+        'clusterfuzz_format_target')
     testcase_path = setup_testcase('uaf')
-    engine_impl = engine.Engine()
-    target_path = DATA_DIR / 'clusterfuzz_format_target'
-    result = engine_impl.reproduce(target_path, testcase_path, [], 10)
-    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'clusterfuzz_format_target'
+
+    result = engine_impl.reproduce(target_path, testcase_path, [], MAX_TIME)
+
     self.assertListEqual([sanitized_target_path, testcase_path], result.command)
     self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
 
-  @test_utils.slow
-  def test_fuzz_no_crash(self):
-    """Tests fuzzing (no crash)."""
-    engine_impl = engine.Engine()
-    centipede_path = DATA_DIR / 'centipede'
-    dictionary = DATA_DIR / 'test_fuzzer.dict'
+  def _run_centipede(self, target_name, dictionary=None,
+                     timeout_per_input=None):
+    """Run Centipede for other unittest."""
+    engine_impl, target_path, sanitized_target_path = setup_centipede(
+        target_name)
     work_dir = Path('/tmp/temp-1337/workdir')
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer')
-    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'test_fuzzer'
-    options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
-    results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
-    expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
-        f'--dictionary={dictionary}',
-        f'--workdir={work_dir}',
-        f'--corpus_dir={CORPUS_DIR}',
-        f'--binary={target_path}',
-        f'--extra_binaries={sanitized_target_path}',
-    ])
-    self.compare_arguments(expected_command, results.command)
-    self.assertTrue(CORPUS_DIR.iterdir())
-
-  def _test_crash_log_regex(self, crash_regex, content, timeout_per_input=None):
-    """Fuzzes the target and check if regex matches Centipede's crash log."""
-
-    engine_impl = engine.Engine()
-    centipede_path = DATA_DIR / 'centipede'
-    work_dir = Path('/tmp/temp-1337/workdir')
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 'clusterfuzz_format_target')
-    sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / 'clusterfuzz_format_target'
 
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
     if timeout_per_input:
       options.arguments.append(f'--timeout_per_input={timeout_per_input}')
-    results = engine_impl.fuzz(target_path, options, CRASHES_DIR, 20)
-    expected_command = ([f'{centipede_path}'] + _DEFAULT_ARGUMENTS + [
+    results = engine_impl.fuzz(target_path, options, CRASHES_DIR, MAX_TIME)
+
+    if dictionary:
+      default_args = _DEFAULT_ARGUMENTS + [f'--dictionary={dictionary}']
+    else:
+      default_args = _DEFAULT_ARGUMENTS
+    expected_command = ([f'{DATA_DIR / "centipede"}'] + default_args + [
         f'--workdir={work_dir}',
         f'--corpus_dir={CORPUS_DIR}',
         f'--binary={target_path}',
@@ -141,6 +130,20 @@ class IntegrationTest(unittest.TestCase):
     if timeout_per_input:
       expected_command.append(f'--timeout_per_input={timeout_per_input}')
     self.compare_arguments(expected_command, results.command)
+    return results
+
+  @test_utils.slow
+  def test_fuzz_no_crash(self):
+    """Tests fuzzing (no crash)."""
+    dictionary = DATA_DIR / 'test_fuzzer.dict'
+    self._run_centipede(target_name='test_fuzzer', dictionary=dictionary)
+    self.assertTrue(CORPUS_DIR.iterdir())
+
+  def _test_crash_log_regex(self, crash_regex, content, timeout_per_input=None):
+    """Fuzzes the target and check if regex matches Centipede's crash log."""
+    results = self._run_centipede(
+        target_name='clusterfuzz_format_target',
+        timeout_per_input=timeout_per_input)
 
     # Check there is one and only one expected crash.
     self.assertEqual(1, len(results.crashes))
@@ -164,7 +167,6 @@ class IntegrationTest(unittest.TestCase):
   def test_crash_uaf(self):
     """Tests fuzzing that results in a ASAN heap-use-after-free crash."""
     setup_testcase('uaf')
-
     crash_info = self._test_crash_log_regex(ASAN_REGEX, 'uaf')
 
     # Check the crash reason was parsed correctly.
