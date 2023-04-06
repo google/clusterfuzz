@@ -49,6 +49,7 @@ MONKEY_PROCESS_NAME = 'monkey'
 WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
+GET_DEVICE_STATE_TIMEOUT = 3
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
 
@@ -227,10 +228,11 @@ def get_adb_path():
 
 def get_device_state():
   """Return the device status."""
-  fastboot_state = run_fastboot_command(
-      ['getvar', 'is-ramdump-mode'], timeout=RECOVERY_CMD_TIMEOUT)
-  if fastboot_state and 'is-ramdump-mode: yes' in fastboot_state:
-    return 'is-ramdump-mode:yes'
+  if environment.is_android_emulator():
+    fastboot_state = run_fastboot_command(
+        ['getvar', 'is-ramdump-mode'], timeout=GET_DEVICE_STATE_TIMEOUT)
+    if fastboot_state and 'is-ramdump-mode: yes' in fastboot_state:
+      return 'is-ramdump-mode:yes'
 
   state_cmd = get_adb_command_line('get-state')
   return execute_command(state_cmd, timeout=RECOVERY_CMD_TIMEOUT)
@@ -275,8 +277,11 @@ def get_kernel_log_content():
 
 def extract_logcat_from_ramdump_and_reboot():
   """Extracts logcat from ramdump kernel log and reboots."""
-  run_fastboot_command(['oem', 'ramdump', 'stage_file', 'kernel.log'])
-  run_fastboot_command(['get_staged', 'kernel.log'])
+  run_fastboot_command(
+      ['oem', 'ramdump', 'stage_file', 'kernel.log'],
+      timeout=RECOVERY_CMD_TIMEOUT)
+  run_fastboot_command(
+      ['get_staged', 'kernel.log'], timeout=WAIT_FOR_DEVICE_TIMEOUT)
 
   storage.copy_file_from(RAMOOPS_READER_GCS_PATH, 'ramoops_reader.py')
   subprocess.run(

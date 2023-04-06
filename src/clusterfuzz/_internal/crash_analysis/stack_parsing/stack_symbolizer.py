@@ -560,7 +560,10 @@ class SymbolizationLoop(object):
     for pipe in pipes:
       pipe.stdin.close()
       pipe.stdout.close()
-      pipe.kill()
+      try:
+        pipe.kill()
+      except ProcessLookupError:
+        pass
 
   def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
     """Adds debug line information to a Trusted App stacktrace."""
