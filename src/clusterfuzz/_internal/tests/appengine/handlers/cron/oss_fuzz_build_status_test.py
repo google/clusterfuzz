@@ -613,7 +613,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.app.get('/build-status')
     self.assertEqual(
-        'Friendly reminder that the the build is still failing.\n'
+        'Friendly reminder that the build is still failing.\n'
         'Please try to fix this failure to ensure that fuzzing remains '
         'productive.\n'
         'Latest build log: https://oss-fuzz-build-logs.storage.googleapis.com/'
