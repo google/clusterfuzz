@@ -95,19 +95,51 @@ class IntegrationTest(unittest.TestCase):
     """Compares expected arguments."""
     self.assertListEqual(expected, actual)
 
-  def reproduce(self):
+  def _test_reproduce(self, regex, testcase_path):
     """Tests reproducing a crash."""
     engine_impl, target_path, sanitized_target_path = setup_centipede(
         'clusterfuzz_format_target')
-    testcase_path = setup_testcase('uaf')
 
     result = engine_impl.reproduce(target_path, testcase_path, [], MAX_TIME)
 
-    self.assertListEqual([sanitized_target_path, testcase_path], result.command)
-    self.assertIn('ERROR: AddressSanitizer: heap-use-after-free', result.output)
+    self.assertListEqual([f'{sanitized_target_path}', testcase_path],
+                         result.command)
+    self.assertRegex(result.output, regex)
 
-  def _run_centipede(self, target_name, dictionary=None,
-                     timeout_per_input=None):
+    return re.search(regex, result.output)
+
+  def test_reproduce_uaf(self):
+    """Tests reproducing a ASAN heap-use-after-free crash."""
+    testcase_path = setup_testcase('uaf')
+    crash_info = self._test_reproduce(ASAN_REGEX, testcase_path)
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+    self.assertIn('heap-use-after-free', crash_info.group(2))
+
+  def test_reproduce_oom(self):
+    """Tests reproducing a out-of-memory crash."""
+    testcase_path = setup_testcase('oom')
+    self._test_reproduce(OUT_OF_MEMORY_REGEX, testcase_path)
+
+  def test_reproduce_timeout(self):
+    """Tests reproducing a timeout."""
+    testcase_path = setup_testcase('slo')
+
+    existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
+    # For testing only.
+    os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
+        f':timeout_per_input={_TIMEOUT_PER_INPUT_TEST }:')
+    self._test_reproduce(CENTIPEDE_TIMEOUT_REGEX, testcase_path)
+    if existing_runner_flags:
+      os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
+    else:
+      os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
+
+  def _run_centipede(self,
+                     target_name,
+                     dictionary=None,
+                     timeout_per_input=_TIMEOUT_PER_INPUT):
     """Run Centipede for other unittest."""
     engine_impl, target_path, sanitized_target_path = setup_centipede(
         target_name)
