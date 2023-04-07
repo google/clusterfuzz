@@ -30,6 +30,7 @@ _CLEAN_EXIT_SECS = 10
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
+_TIMEOUT_PER_INPUT = 20
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
@@ -112,6 +113,8 @@ class Engine(engine.Engine):
     else:
       logs.log_warn('Unable to find sanitized target binary.')
 
+    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT}')
+
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
   def _get_sanitized_target_path(self, target_path):
@@ -147,8 +150,7 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner()
-    arguments = _DEFAULT_ARGUMENTS.copy()
-    arguments.extend(options.arguments)
+    arguments = options.arguments + _DEFAULT_ARGUMENTS
 
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
