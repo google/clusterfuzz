@@ -39,6 +39,8 @@ MAX_TIME = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
+_TIMEOUT_PER_INPUT = 20
+_TIMEOUT_PER_INPUT_TEST = 5  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
@@ -112,22 +114,19 @@ class IntegrationTest(unittest.TestCase):
     work_dir = Path('/tmp/temp-1337/workdir')
 
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
-    if timeout_per_input:
-      options.arguments.append(f'--timeout_per_input={timeout_per_input}')
+    # For testing timeout only.
+    options.arguments.remove(f'--timeout_per_input={_TIMEOUT_PER_INPUT}')
+    options.arguments.append(f'--timeout_per_input={timeout_per_input}')
     results = engine_impl.fuzz(target_path, options, CRASHES_DIR, MAX_TIME)
 
+    expected_command = [f'{DATA_DIR / "centipede"}']
     if dictionary:
-      default_args = _DEFAULT_ARGUMENTS + [f'--dictionary={dictionary}']
-    else:
-      default_args = _DEFAULT_ARGUMENTS
-    expected_command = ([f'{DATA_DIR / "centipede"}'] + default_args + [
-        f'--workdir={work_dir}',
-        f'--corpus_dir={CORPUS_DIR}',
-        f'--binary={target_path}',
-        f'--extra_binaries={sanitized_target_path}',
-    ])
-    if timeout_per_input:
-      expected_command.append(f'--timeout_per_input={timeout_per_input}')
+      expected_command.append(f'--dictionary={dictionary}')
+    expected_command.extend([
+        f'--workdir={work_dir}', f'--corpus_dir={CORPUS_DIR}',
+        f'--binary={target_path}', f'--extra_binaries={sanitized_target_path}',
+        f'--timeout_per_input={timeout_per_input}'
+    ] + _DEFAULT_ARGUMENTS)
     self.compare_arguments(expected_command, results.command)
     return results
 
@@ -138,7 +137,10 @@ class IntegrationTest(unittest.TestCase):
     self._run_centipede(target_name='test_fuzzer', dictionary=dictionary)
     self.assertTrue(CORPUS_DIR.iterdir())
 
-  def _test_crash_log_regex(self, crash_regex, content, timeout_per_input=None):
+  def _test_crash_log_regex(self,
+                            crash_regex,
+                            content,
+                            timeout_per_input=_TIMEOUT_PER_INPUT):
     """Fuzzes the target and check if regex matches Centipede's crash log."""
     results = self._run_centipede(
         target_name='clusterfuzz_format_target',
@@ -180,7 +182,8 @@ class IntegrationTest(unittest.TestCase):
   def test_crash_timeout(self):
     """Tests fuzzing that results in a timeout."""
     setup_testcase('slo')
-    self._test_crash_log_regex(CENTIPEDE_TIMEOUT_REGEX, 'slo', 5)
+    self._test_crash_log_regex(CENTIPEDE_TIMEOUT_REGEX, 'slo',
+                               _TIMEOUT_PER_INPUT_TEST)
 
 
 @test_utils.integration
