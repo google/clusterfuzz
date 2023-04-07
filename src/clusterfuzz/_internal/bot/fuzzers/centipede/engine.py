@@ -13,6 +13,7 @@
 # limitations under the License.
 """Centipede engine interface."""
 
+import os
 from pathlib import Path
 import re
 import shutil
@@ -200,9 +201,19 @@ class Engine(engine.Engine):
       logs.log_warn(
           f'Unable to find sanitized target binary: {sanitized_target_path}')
 
+    existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
+    if not existing_runner_flags:
+      os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
+          f':rss_limit_mb={_RSS_LIMIT}:timeout_per_input={_TIMEOUT_PER_INPUT}:')
+
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
-    Engine.trim_logs(result)
+
+    if existing_runner_flags:
+      os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
+    else:
+      os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
+    result.output = Engine.trim_logs(result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
