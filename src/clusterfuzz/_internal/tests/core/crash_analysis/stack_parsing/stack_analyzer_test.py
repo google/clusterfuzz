@@ -2482,6 +2482,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_timeout_old(self):
+    """Test the old centipede timeout stacktrace (with reporting enabled)."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('centipede_timeout.txt')
+    data = centipede.trim_logs(data)
+    expected_type = 'Timeout'
+    expected_address = ''
+    expected_state = 'NULL'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_libfuzzer_timeout_enabled(self):
     """Test a libFuzzer timeout stacktrace (with reporting enabled)."""
     os.environ['FUZZ_TARGET'] = 'pdfium_fuzzer'

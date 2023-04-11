@@ -76,6 +76,7 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
+  # pylint: disable=unused-argument
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepares for a fuzzing session, by generating options.
 
