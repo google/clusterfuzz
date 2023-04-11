@@ -115,6 +115,8 @@ class Engine(engine.Engine):
 
     arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT}')
 
+    arguments.extend(_DEFAULT_ARGUMENTS)
+
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
   def _get_sanitized_target_path(self, target_path):
@@ -150,11 +152,9 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner()
-    arguments = options.arguments + _DEFAULT_ARGUMENTS
-
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments, timeout=timeout)
+        additional_args=options.arguments, timeout=timeout)
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
