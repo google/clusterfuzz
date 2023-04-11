@@ -38,7 +38,7 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile(r'Saving input to: (.*)')
+_CRASH_REGEX = re.compile(r'[sS]aving input to:? [\n]?(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
@@ -76,6 +76,7 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
+  # pylint: disable=unused-argument
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepares for a fuzzing session, by generating options.
 

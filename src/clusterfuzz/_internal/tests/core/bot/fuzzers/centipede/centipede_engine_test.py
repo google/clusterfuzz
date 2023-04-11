@@ -96,10 +96,13 @@ class IntegrationTest(unittest.TestCase):
     """Compares expected arguments."""
     self.assertListEqual(expected, actual)
 
-  def _test_reproduce(self, regex, testcase_path):
+  def _test_reproduce(self,
+                      regex,
+                      testcase_path,
+                      target_name='clusterfuzz_format_target'):
     """Tests reproducing a crash."""
     engine_impl, target_path, sanitized_target_path = setup_centipede(
-        'clusterfuzz_format_target')
+        target_name)
 
     result = engine_impl.reproduce(target_path, testcase_path, [], MAX_TIME)
 
@@ -108,6 +111,16 @@ class IntegrationTest(unittest.TestCase):
     self.assertRegex(result.output, regex)
 
     return re.search(regex, result.output)
+
+  def test_reproduce_uaf_old(self):
+    """Tests reproducing an old ASAN heap-use-after-free crash."""
+    testcase_path = setup_testcase('crash')
+    crash_info = self._test_reproduce(ASAN_REGEX, testcase_path,
+                                      'always_crash_fuzzer')
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+    self.assertIn('heap-use-after-free', crash_info.group(2))
 
   def test_reproduce_uaf(self):
     """Tests reproducing a ASAN heap-use-after-free crash."""
