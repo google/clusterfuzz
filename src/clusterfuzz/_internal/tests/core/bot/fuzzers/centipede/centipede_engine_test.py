@@ -123,8 +123,7 @@ class IntegrationTest(unittest.TestCase):
     testcase_path = setup_testcase('oom')
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     # For testing oom only.
-    os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-        f':rss_limit_mb={_RSS_LIMIT_TEST}:')
+    os.environ['CENTIPEDE_RUNNER_FLAGS'] = (f':rss_limit_mb={_RSS_LIMIT_TEST}:')
     self._test_reproduce(OUT_OF_MEMORY_REGEX, testcase_path)
     if existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
@@ -157,9 +156,17 @@ class IntegrationTest(unittest.TestCase):
 
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
     # For testing oom only.
-    options.arguments = [f'--rss_limit_mb={rss_limit}' if flag == f'--rss_limit_mb={_RSS_LIMIT}' else flag for flag in options.arguments]
+    options.arguments = [
+        f'--rss_limit_mb={rss_limit}'
+        if flag == f'--rss_limit_mb={_RSS_LIMIT}' else flag
+        for flag in options.arguments
+    ]
     # For testing timeout only.
-    options.arguments = [f'--timeout_per_input={timeout_per_input}' if flag == f'--timeout_per_input={_TIMEOUT_PER_INPUT}' else flag for flag in options.arguments]
+    options.arguments = [
+        f'--timeout_per_input={timeout_per_input}'
+        if flag == f'--timeout_per_input={_TIMEOUT_PER_INPUT}' else flag
+        for flag in options.arguments
+    ]
     results = engine_impl.fuzz(target_path, options, CRASHES_DIR, MAX_TIME)
 
     expected_command = [f'{DATA_DIR / "centipede"}']
@@ -170,7 +177,11 @@ class IntegrationTest(unittest.TestCase):
         f'--binary={target_path}', f'--extra_binaries={sanitized_target_path}',
         f'--timeout_per_input={timeout_per_input}'
     ] + _DEFAULT_ARGUMENTS)
-    expected_command = [f'--rss_limit_mb={rss_limit}' if flag == f'--rss_limit_mb={_RSS_LIMIT}' else flag for flag in expected_command]
+    expected_command = [
+        f'--rss_limit_mb={rss_limit}'
+        if flag == f'--rss_limit_mb={_RSS_LIMIT}' else flag
+        for flag in expected_command
+    ]
     # For testing timeout only.
     self.compare_arguments(expected_command, results.command)
     return results
@@ -224,14 +235,16 @@ class IntegrationTest(unittest.TestCase):
   def test_crash_oom(self):
     """Tests fuzzing that results in a out-of-memory crash."""
     setup_testcase('oom')
-    self._test_crash_log_regex(OUT_OF_MEMORY_REGEX, 'oom',
-                               rss_limit=_RSS_LIMIT_TEST)
+    self._test_crash_log_regex(
+        OUT_OF_MEMORY_REGEX, 'oom', rss_limit=_RSS_LIMIT_TEST)
 
   def test_crash_timeout(self):
     """Tests fuzzing that results in a timeout."""
     setup_testcase('slo')
-    self._test_crash_log_regex(CENTIPEDE_TIMEOUT_REGEX, 'slo',
-                               timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
+    self._test_crash_log_regex(
+        CENTIPEDE_TIMEOUT_REGEX,
+        'slo',
+        timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
 
 @test_utils.integration
