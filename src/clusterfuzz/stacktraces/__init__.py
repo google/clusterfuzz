@@ -648,7 +648,6 @@ class StackParser:
           state.frame_count = 0
           continue
 
-      #Trusty stacktraces
       if state.is_trusty:
         state.crash_type = 'Trusted app crash'
 
