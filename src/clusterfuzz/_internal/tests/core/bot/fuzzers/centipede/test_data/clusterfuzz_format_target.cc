@@ -35,7 +35,6 @@
 #include <cstring>
 
 [[maybe_unused]] static volatile void *sink;
-[[maybe_unused]] static volatile void *ptr_sink;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   if (size != 3) return 0;  // Make bugs easy to discover.
@@ -53,7 +52,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   // sanitizer_test provokes OOM by feeding 'oom' input here,
   // and checks its output format matches with the expectation of clusterfuzz.
   if (data[0] == 'o' && data[1] == 'o' && data[2] == 'm') {
-    size_t oom_allocation_size = 1ULL << 32;
+    size_t oom_allocation_size = 1ULL << 8;
+    static volatile void *ptr_sink;
     void *ptr = malloc(oom_allocation_size);
     memset(ptr, 42, oom_allocation_size);
     ptr_sink = ptr;
