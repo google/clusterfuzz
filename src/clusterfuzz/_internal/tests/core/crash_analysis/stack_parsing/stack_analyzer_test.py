@@ -16,6 +16,8 @@
 import os
 import unittest
 
+from clusterfuzz._internal.bot.fuzzers.centipede.engine import \
+    Engine as centipede
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.system import environment
@@ -2427,11 +2429,33 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_uaf(self):
+    """Test centipede's ASAN error."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('centipede_uaf.txt')
+    data = centipede.trim_logs(data)
+    #  data = centipede.trim_logs(data).splitlines()
+    expected_type = 'Heap-use-after-free\nWRITE 4'
+    expected_address = '0x602000000070'
+    expected_state = (
+        '/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa'
+        '4731541509\n/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe01'
+        '04ed94961baa4731541509\n/google/obj/workspace/50545acefe3d62c7e2977638'
+        '9559ac79fe0104ed94961baa4731541509\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_centipede_oom(self):
     """Test centipede's out of memory stacktrace."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
 
     data = self._read_test_data('centipede_oom.txt')
+    data = centipede.trim_logs(data)
     expected_type = 'Out-of-memory'
     expected_address = ''
     expected_state = 'NULL'
@@ -2446,7 +2470,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test a centipede timeout stacktrace (with reporting enabled)."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
 
-    data = self._read_test_data('centipede_timeout.txt')
+    data = self._read_test_data('centipede_slo.txt')
+    data = centipede.trim_logs(data)
     expected_type = 'Timeout'
     expected_address = ''
     expected_state = 'NULL'

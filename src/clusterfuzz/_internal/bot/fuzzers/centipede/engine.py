@@ -13,6 +13,7 @@
 # limitations under the License.
 """Centipede engine interface."""
 
+import os
 from pathlib import Path
 import re
 import shutil
@@ -26,20 +27,18 @@ from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
-_TIMEOUT = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
-_RLIMIT_AS = 5120
-_ADDRESS_SPACE_LIMIT = 0
+_ADDRESS_SPACE_LIMIT = 4096
+_TIMEOUT_PER_INPUT = 20
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
-    f'--timeout={_TIMEOUT}',
     f'--fork_server={_SERVER_COUNT}',
     f'--rss_limit_mb={_RSS_LIMIT}',
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile(r'[sS]aving input to:? [\n]?(.*)')
+_CRASH_REGEX = re.compile(r'Saving input to: (.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
@@ -114,6 +113,10 @@ class Engine(engine.Engine):
     else:
       logs.log_warn('Unable to find sanitized target binary.')
 
+    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT}')
+
+    arguments.extend(_DEFAULT_ARGUMENTS)
+
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
   def _get_sanitized_target_path(self, target_path):
@@ -149,13 +152,10 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner()
-    arguments = _DEFAULT_ARGUMENTS.copy()
-    arguments.extend(options.arguments)
-
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments, timeout=timeout)
-    self._trim_logs(fuzz_result)
+        additional_args=options.arguments, timeout=timeout)
+    fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
@@ -170,7 +170,8 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
-  def _trim_logs(self, fuzz_result):
+  @staticmethod
+  def trim_logs(fuzz_log):
     """ Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
 
     Args:
@@ -179,9 +180,9 @@ class Engine(engine.Engine):
     trimmed_log_lines = [
         line[len(_CRASH_LOG_PREFIX):]
         if line.startswith(_CRASH_LOG_PREFIX) else line
-        for line in fuzz_result.output.splitlines()
+        for line in fuzz_log.splitlines()
     ]
-    fuzz_result.output = '\n'.join(trimmed_log_lines)
+    return '\n'.join(trimmed_log_lines)
 
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
@@ -202,9 +203,19 @@ class Engine(engine.Engine):
       logs.log_warn(
           f'Unable to find sanitized target binary: {sanitized_target_path}')
 
+    existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
+    if not existing_runner_flags:
+      os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
+          f':rss_limit_mb={_RSS_LIMIT}:timeout_per_input={_TIMEOUT_PER_INPUT}:')
+
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
-    self._trim_logs(result)
+
+    if existing_runner_flags:
+      os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
+    else:
+      os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
+    result.output = Engine.trim_logs(result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)

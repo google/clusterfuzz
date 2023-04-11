@@ -69,8 +69,7 @@ ASSERT_REGEX_GLIBC = re.compile(
 ASSERT_REGEX_GLIBC_SUFFIXED = re.compile(
     r'.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)')
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
-CENTIPEDE_TIMEOUT_REGEX = re.compile(
-    r'^========= Timeout of \d+ seconds exceeded; exiting')
+CENTIPEDE_TIMEOUT_REGEX = re.compile(r'========= Per-input timeout exceeded:')
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
     r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
@@ -179,7 +178,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'libFuzzer: out-of-memory \(',
     r'rss limit exhausted',
     r'in rust_oom',
-    r'Failure description: out-of-memory',  # Centipede.
+    r'========= RSS limit exceeded:',  # Centipede.
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
