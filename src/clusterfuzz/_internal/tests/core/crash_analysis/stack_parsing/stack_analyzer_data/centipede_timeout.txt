@@ -1,0 +1,53 @@
+I0930 17:17:22.296600  834976 centipede_interface.cc:138] Coverage dir ./workdir/scarecrow-bf6e41ee7d3a63db00c65df41ef415eeb26dba4c
+I0930 17:17:22.296792  834976 command.cc:78] Starting fork server for ./scarecrow
+I0930 17:17:22.297036  834976 command.cc:93] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-834976-140692624531584/be9ec219d639cce3b0f030fada9fda81573f6ee0_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-834976-140692624531584/be9ec219d639cce3b0f030fada9fda81573f6ee0_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_in_seconds=20::address_space_limit_mb=0::rss_limit_mb=0::use_pc_features::path_level=0::use_cmp_features::use_dataflow_features::crossover_level=50::shmem:arg1=/centipede-shm1-834976-140692624531584:arg2=/centipede-shm2-834976-140692624531584:failure_description_path=/tmp/centipede-834976-140692624531584/failure_description: \
+./scarecrow \
+/centipede-shm1-834976-140692624531584 \
+/centipede-shm2-834976-140692624531584 \
+> /tmp/centipede-834976-140692624531584/log \
+2>&1 &
+I0930 17:17:22.303943  834976 centipede_default_callbacks.cc:41] No custom mutator detected in the target
+sh: line 2: llvm-symbolizer: command not found
+E0930 17:17:22.311125  834976 symbol_table.cc:77] system() failed: cmd.ToString()=llvm-symbolizer \
+--no-inlines \
+-e \
+./scarecrow \
+< \
+/tmp/centipede-834976-140692624531584/sym-tmp1 \
+> /tmp/centipede-834976-140692624531584/sym-tmp2 exit_code=127 
+I0930 17:17:22.311646  834985 command.cc:78] Starting fork server for ./scarecrow
+I0930 17:17:22.311739  834985 command.cc:93] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-834976-140692613654080/be9ec219d639cce3b0f030fada9fda81573f6ee0_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-834976-140692613654080/be9ec219d639cce3b0f030fada9fda81573f6ee0_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_in_seconds=20::address_space_limit_mb=0::rss_limit_mb=0::use_pc_features::path_level=0::use_cmp_features::use_dataflow_features::crossover_level=50::shmem:arg1=/centipede-shm1-834976-140692613654080:arg2=/centipede-shm2-834976-140692613654080:failure_description_path=/tmp/centipede-834976-140692613654080/failure_description: \
+./scarecrow \
+/centipede-shm1-834976-140692613654080 \
+/centipede-shm2-834976-140692613654080 \
+> /tmp/centipede-834976-140692613654080/log \
+2>&1 &
+I0930 17:17:22.317210  834985 centipede_default_callbacks.cc:41] No custom mutator detected in the target
+I0930 17:17:22.405821  834985 centipede.cc:419] Shard: 0/1 /tmp/centipede-834976-140692613654080 seed: 14758258457571676168
+
+
+
+I0930 17:17:43.409854  834985 centipede.cc:181] [0] begin-fuzz: ft: 0 cov: 0 cnt: 0 df: 0 cmp: 0 path: 0 pair: 0 corp: 0/0 fr: 0 max/avg 0 0 d0/f0 exec/s: 0 mb: 263
+I0930 17:17:43.410085  834985 centipede.cc:181] [0] init-done: ft: 0 cov: 0 cnt: 0 df: 0 cmp: 0 path: 0 pair: 0 corp: 1/1 fr: 0 max/avg 1 1 d0/f0 exec/s: 0 mb: 263
+I0930 17:17:43.410127  834985 centipede.cc:377] GenerateCoverageReport: ./workdir/coverage-report-scarecrow.000000.txt
+I0930 17:18:04.414451  834985 centipede.cc:545] Batch execution failed; exit code: 1
+Log of batch follows: [[[==================
+Centipede fuzz target runner; argv[0]: ./scarecrow flags: :timeout_in_seconds=20::address_space_limit_mb=0::rss_limit_mb=0::use_pc_features::path_level=0::use_cmp_features::use_dataflow_features::crossover_level=50::shmem:arg1=/centipede-shm1-834976-140692613654080:arg2=/centipede-shm2-834976-140692613654080:failure_description_path=/tmp/centipede-834976-140692613654080/failure_description:
+timeout_in_seconds: 20 rss_limit_mb: 0
+========= Timeout of 20 seconds exceeded; exiting
+==================]]]
+I0930 17:18:04.414536  834985 centipede.cc:554] ReportCrash[0]: The crash occurred when running ./scarecrow on 1000 inputs
+I0930 17:18:04.414542  834985 centipede.cc:590] ReportCrash[0]: Executing input 0 out of 1000
+I0930 17:18:25.418748  834985 centipede.cc:574] ReportCrash[0]: Crash detected, saving input to ./workdir/crashes/1489f923c4dca729178b3e3233458550d8dddf29
+I0930 17:18:25.418785  834985 centipede.cc:575] Input bytes: \x0\x0
+I0930 17:18:25.418808  834985 centipede.cc:576] Exit code: 1
+I0930 17:18:25.418823  834985 centipede.cc:577] Failure description: timeout-exceeded
+I0930 17:18:25.419847  834985 centipede.cc:279] --exit_on_crash is enabled; exiting soon
+I0930 17:18:25.419885  834985 centipede.cc:181] [0] pulse: ft: 0 cov: 0 cnt: 0 df: 0 cmp: 0 path: 0 pair: 0 corp: 1/1 fr: 0 max/avg 1 1 d0/f0 exec/s: 0 mb: 264
+I0930 17:18:25.419998  834985 centipede.cc:181] [0] end-fuzz: ft: 0 cov: 0 cnt: 0 df: 0 cmp: 0 path: 0 pair: 0 corp: 1/1 fr: 0 max/avg 1 1 d0/f0 exec/s: 0 mb: 264
