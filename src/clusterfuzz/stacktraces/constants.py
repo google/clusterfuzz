@@ -233,6 +233,8 @@ SECURITY_CHECK_FAILURE_REGEX = re.compile(
     r'.*\[[^\]]*[:]([^\](]*).*\].*Security CHECK failed[:]\s*(.*)\.\s*')
 SECURITY_DCHECK_FAILURE_REGEX = re.compile(
     r'.*\[[^\]]*[:]([^\](]*).*\].*Security DCHECK failed[:]\s*(.*)\.\s*')
+TRUSTY_STACK_FRAME_REGEX = re.compile(
+    r'(uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16}) in (\w+)')
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
 UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
