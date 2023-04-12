@@ -38,7 +38,7 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile(r'[sS]aving input to:? [\n]?(.*)')
+CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*[\n]?(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
@@ -60,7 +60,7 @@ def _get_runner():
 
 def _get_reproducer_path(log, reproducers_dir):
   """Gets the reproducer path, if any."""
-  crash_match = _CRASH_REGEX.search(log)
+  crash_match = CRASH_REGEX.search(log)
   if not crash_match:
     return None
   tmp_crash_path = Path(crash_match.group(1))
