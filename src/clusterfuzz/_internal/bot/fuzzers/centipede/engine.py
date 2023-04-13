@@ -208,7 +208,8 @@ class Engine(engine.Engine):
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-          f':rss_limit_mb={_RSS_LIMIT}:timeout_per_input={_TIMEOUT_PER_INPUT_REPR}:')
+          f':rss_limit_mb={_RSS_LIMIT}'
+          f':timeout_per_input={_TIMEOUT_PER_INPUT_REPR}:')
 
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
