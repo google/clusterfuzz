@@ -39,7 +39,7 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*[\n]?(.*)')
+CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
