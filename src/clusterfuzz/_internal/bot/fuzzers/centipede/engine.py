@@ -30,7 +30,7 @@ _CLEAN_EXIT_SECS = 10
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT = 60
+_TIMEOUT_PER_INPUT = 20
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
@@ -113,6 +113,8 @@ class Engine(engine.Engine):
       arguments.append(f'--extra_binaries={sanitized_target_path}')
     else:
       logs.log_warn('Unable to find sanitized target binary.')
+
+    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT}')
 
     arguments.extend(_DEFAULT_ARGUMENTS)
 
