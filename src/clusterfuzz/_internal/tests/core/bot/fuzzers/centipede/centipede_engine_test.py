@@ -42,7 +42,7 @@ MAX_TIME = 25
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT = 20
+_TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
 _TIMEOUT_PER_INPUT_TEST = 5  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
@@ -168,7 +168,7 @@ class IntegrationTest(unittest.TestCase):
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     # For testing only.
     os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-        f':timeout_per_input={_TIMEOUT_PER_INPUT_TEST }:')
+        f':timeout_per_input={_TIMEOUT_PER_INPUT_TEST}:')
     self._test_reproduce(CENTIPEDE_TIMEOUT_REGEX, testcase_path)
     if existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
@@ -195,7 +195,10 @@ class IntegrationTest(unittest.TestCase):
     ]
     # For testing timeout only.
     if timeout_flag:
-      options.arguments.append(timeout_flag)
+      options.arguments = [
+          timeout_flag if '--timeout' in flag else flag
+          for flag in options.arguments
+      ]
 
     results = engine_impl.fuzz(target_path, options, CRASHES_DIR, MAX_TIME)
 
@@ -207,6 +210,7 @@ class IntegrationTest(unittest.TestCase):
         f'--corpus_dir={CORPUS_DIR}',
         f'--binary={target_path}',
         f'--extra_binaries={sanitized_target_path}',
+        f'--timeout_per_input={_TIMEOUT_PER_INPUT}',
     ] + _DEFAULT_ARGUMENTS)
     expected_command = [
         f'--rss_limit_mb={rss_limit}'
@@ -215,7 +219,10 @@ class IntegrationTest(unittest.TestCase):
     ]
     # For testing timeout only.
     if timeout_flag:
-      expected_command.append(timeout_flag)
+      expected_command = [
+          timeout_flag if '--timeout' in flag else flag
+          for flag in expected_command
+      ]
 
     self.compare_arguments(expected_command, results.command)
 
