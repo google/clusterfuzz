@@ -121,6 +121,9 @@ def get_default_builder():
 
   # TODO(mbarbella): Improve the policy by limiting the additions below.
 
+  # Some scripts may be loaded from current auth domain.
+  builder.add('script-src', auth.auth_domain())
+
   # Because we use Polymer Bundler to create large files containing all of our
   # scripts inline, our policy requires this (which weakens CSP significantly).
   builder.add('script-src', 'unsafe-inline', quote=True)
