@@ -45,6 +45,11 @@ def auth_domain():
   return utils.get_application_id() + '.firebaseapp.com'
 
 
+def real_auth_domain():
+  """Get the real auth domain"""
+  return utils.get_application_id() + '.firebaseapp.com'
+
+
 def is_current_user_admin():
   """Returns whether or not the current logged in user is an admin."""
   if environment.is_local_development():
