@@ -15,9 +15,10 @@
 
 import gzip
 import logging
-import requests
 
-from flask import request, Response
+from flask import request
+from flask import Response
+import requests
 
 from handlers import base_handler
 from libs import auth
