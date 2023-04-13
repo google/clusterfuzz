@@ -30,7 +30,8 @@ _CLEAN_EXIT_SECS = 10
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT = 20
+_TIMEOUT_PER_INPUT_FUZZ = 25
+_TIMEOUT_PER_INPUT_REPR = 60
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
@@ -114,7 +115,7 @@ class Engine(engine.Engine):
     else:
       logs.log_warn('Unable to find sanitized target binary.')
 
-    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT}')
+    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT_FUZZ}')
 
     arguments.extend(_DEFAULT_ARGUMENTS)
 
@@ -207,7 +208,7 @@ class Engine(engine.Engine):
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-          f':rss_limit_mb={_RSS_LIMIT}:timeout_per_input={_TIMEOUT_PER_INPUT}:')
+          f':rss_limit_mb={_RSS_LIMIT}:timeout_per_input={_TIMEOUT_PER_INPUT_REPR}:')
 
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
