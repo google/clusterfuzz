@@ -387,6 +387,13 @@ def file_issue(testcase,
   else:
     issue.status = properties.status
 
+  fuzzer_metadata = testcase.get_metadata('issue_metadata')
+  if fuzzer_metadata and 'stagingCc' in fuzzer_metadata:
+    issue.status = policy.status('assigned')
+    issue.assignee = fuzzer_metadata['stagingCc']
+    logs.log(
+        'Fuzzer is under staging. Assigned testcase to %s' % issue.assignee)
+
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_CCS', testcase.job_type, testcase.fuzzer_name)
