@@ -315,7 +315,7 @@ class Engine(engine.Engine):
     crash_testcase_file_path = runner.get_testcase_path(log_lines)
 
     # If we exited with a non-zero return code with no crash file in output from
-    # libFuzzer, this is most likely a startup crash. Alternatively, this case 
+    # libFuzzer, this is most likely a startup crash. Alternatively, this case
     # may occur if Trusty fuzzing exited due to a kernel panic.
     # Use an empty testcase to store these exit types as a crash.
     if (not crash_testcase_file_path and
