@@ -33,13 +33,16 @@ TEST_PATH = Path(__file__).parent
 DATA_DIR = TEST_PATH / 'test_data'
 CORPUS_DIR = TEST_PATH / 'corpus_dir'
 CRASHES_DIR = TEST_PATH / 'crashes_dir'
+CENTIPEDE_BIN = f'{DATA_DIR / "centipede"}'
+CENTIPEDE_BIN_OLD = f'{DATA_DIR / "centipede-old"}'
+CENTIPEDE_BIN_TMP = f'{DATA_DIR / "centipede-tmp"}'
 MAX_TIME = 25
 
 # Centipede's runtime args for testing.
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT = 20
+_TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
 _TIMEOUT_PER_INPUT_TEST = 5  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
@@ -69,12 +72,27 @@ def setup_testcase(testcase):
   return copied_testcase_path
 
 
-def setup_centipede(target_name):
+def setup_centipede(target_name, centipede_bin=None):
   """Sets up Centipede for fuzzing."""
+  # Setup Centipede's fuzz target.
   engine_impl = engine.Engine()
   target_path = engine_common.find_fuzzer_path(DATA_DIR, target_name)
   sanitized_target_path = DATA_DIR / fuzzer_utils.EXTRA_BUILD_DIR / target_name
+
+  # Setup Centiepde's binary.
+  if centipede_bin and centipede_bin != CENTIPEDE_BIN:
+    os.rename(CENTIPEDE_BIN, CENTIPEDE_BIN_TMP)
+    os.rename(centipede_bin, CENTIPEDE_BIN)
+
   return engine_impl, target_path, sanitized_target_path
+
+
+def reset_centipede(centipede_bin=None):
+  """Sets up Centipede for fuzzing."""
+  # Reset Centiepde's binary.
+  if centipede_bin and centipede_bin != CENTIPEDE_BIN:
+    os.rename(CENTIPEDE_BIN, centipede_bin)
+    os.rename(CENTIPEDE_BIN_TMP, CENTIPEDE_BIN)
 
 
 @test_utils.integration
@@ -150,7 +168,7 @@ class IntegrationTest(unittest.TestCase):
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     # For testing only.
     os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-        f':timeout_per_input={_TIMEOUT_PER_INPUT_TEST }:')
+        f':timeout_per_input={_TIMEOUT_PER_INPUT_TEST}:')
     self._test_reproduce(CENTIPEDE_TIMEOUT_REGEX, testcase_path)
     if existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
@@ -160,11 +178,12 @@ class IntegrationTest(unittest.TestCase):
   def _run_centipede(self,
                      target_name,
                      dictionary=None,
-                     timeout_per_input=_TIMEOUT_PER_INPUT,
-                     rss_limit=_RSS_LIMIT):
+                     timeout_flag=None,
+                     rss_limit=_RSS_LIMIT,
+                     centipede_bin=CENTIPEDE_BIN):
     """Run Centipede for other unittest."""
     engine_impl, target_path, sanitized_target_path = setup_centipede(
-        target_name)
+        target_name, centipede_bin)
     work_dir = Path('/tmp/temp-1337/workdir')
 
     options = engine_impl.prepare(CORPUS_DIR, target_path, DATA_DIR)
@@ -175,20 +194,23 @@ class IntegrationTest(unittest.TestCase):
         for flag in options.arguments
     ]
     # For testing timeout only.
-    options.arguments = [
-        f'--timeout_per_input={timeout_per_input}'
-        if flag == f'--timeout_per_input={_TIMEOUT_PER_INPUT}' else flag
-        for flag in options.arguments
-    ]
+    if timeout_flag:
+      options.arguments = [
+          timeout_flag if '--timeout' in flag else flag
+          for flag in options.arguments
+      ]
+
     results = engine_impl.fuzz(target_path, options, CRASHES_DIR, MAX_TIME)
 
-    expected_command = [f'{DATA_DIR / "centipede"}']
+    expected_command = [CENTIPEDE_BIN]
     if dictionary:
       expected_command.append(f'--dictionary={dictionary}')
     expected_command.extend([
-        f'--workdir={work_dir}', f'--corpus_dir={CORPUS_DIR}',
-        f'--binary={target_path}', f'--extra_binaries={sanitized_target_path}',
-        f'--timeout_per_input={timeout_per_input}'
+        f'--workdir={work_dir}',
+        f'--corpus_dir={CORPUS_DIR}',
+        f'--binary={target_path}',
+        f'--extra_binaries={sanitized_target_path}',
+        f'--timeout_per_input={_TIMEOUT_PER_INPUT}',
     ] + _DEFAULT_ARGUMENTS)
     expected_command = [
         f'--rss_limit_mb={rss_limit}'
@@ -196,7 +218,16 @@ class IntegrationTest(unittest.TestCase):
         for flag in expected_command
     ]
     # For testing timeout only.
+    if timeout_flag:
+      expected_command = [
+          timeout_flag if '--timeout' in flag else flag
+          for flag in expected_command
+      ]
+
     self.compare_arguments(expected_command, results.command)
+
+    reset_centipede(centipede_bin)
+
     return results
 
   @test_utils.slow
@@ -209,13 +240,15 @@ class IntegrationTest(unittest.TestCase):
   def _test_crash_log_regex(self,
                             crash_regex,
                             content,
-                            timeout_per_input=_TIMEOUT_PER_INPUT,
-                            rss_limit=_RSS_LIMIT):
+                            timeout_flag=None,
+                            rss_limit=_RSS_LIMIT,
+                            centipede_bin=CENTIPEDE_BIN):
     """Fuzzes the target and check if regex matches Centipede's crash log."""
     results = self._run_centipede(
         target_name='clusterfuzz_format_target',
-        timeout_per_input=timeout_per_input,
-        rss_limit=rss_limit)
+        timeout_flag=timeout_flag,
+        rss_limit=rss_limit,
+        centipede_bin=centipede_bin)
 
     # Check there is one and only one expected crash.
     self.assertEqual(1, len(results.crashes))
@@ -226,7 +259,7 @@ class IntegrationTest(unittest.TestCase):
     self.assertRegex(crash.stacktrace, crash_regex)
 
     # Check reproducer location format.
-    self.assertRegex(results.logs, 'Saving input to: .+/crashes/.+')
+    self.assertRegex(results.logs, engine.CRASH_REGEX)
     # Check the prefix was trimmed.
     self.assertNotRegex(results.logs, 'CRASH LOG:.*')
 
@@ -235,6 +268,25 @@ class IntegrationTest(unittest.TestCase):
       self.assertEqual(content, f.read())
 
     return re.search(crash_regex, crash.stacktrace)
+
+  def test_crash_uaf_old(self):
+    """Tests fuzzing that results in an old ASAN heap-use-after-free crash."""
+    setup_testcase('uaf')
+    crash_info = self._test_crash_log_regex(
+        ASAN_REGEX, 'uaf', centipede_bin=CENTIPEDE_BIN_OLD)
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+    self.assertIn('heap-use-after-free', crash_info.group(2))
+
+  def test_crash_oom_old(self):
+    """Tests fuzzing that results in an old out-of-memory crash."""
+    setup_testcase('oom')
+    self._test_crash_log_regex(
+        OUT_OF_MEMORY_REGEX,
+        'oom',
+        rss_limit=_RSS_LIMIT_TEST,
+        centipede_bin=CENTIPEDE_BIN_OLD)
 
   def test_crash_uaf(self):
     """Tests fuzzing that results in a ASAN heap-use-after-free crash."""
@@ -257,7 +309,7 @@ class IntegrationTest(unittest.TestCase):
     self._test_crash_log_regex(
         CENTIPEDE_TIMEOUT_REGEX,
         'slo',
-        timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
+        timeout_flag=f'--timeout_per_input={_TIMEOUT_PER_INPUT_TEST}')
 
 
 @test_utils.integration
