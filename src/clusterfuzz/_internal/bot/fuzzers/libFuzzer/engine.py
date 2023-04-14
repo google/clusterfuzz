@@ -251,6 +251,12 @@ class Engine(engine.Engine):
     else:
       logs.log('No new units found.')
 
+  def _fuzz_output_contains_trusty_kernel_panic(self, log_lines):
+    for line in log_lines:
+      if 'panic notifier - trusty version' in line:
+        return True
+    return False
+
   def fuzz(self, target_path, options, reproducers_dir, max_time):
     """Run a fuzz session.
 
@@ -309,10 +315,12 @@ class Engine(engine.Engine):
     crash_testcase_file_path = runner.get_testcase_path(log_lines)
 
     # If we exited with a non-zero return code with no crash file in output from
-    # libFuzzer, this is most likely a startup crash. Use an empty testcase to
-    # to store it as a crash.
+    # libFuzzer, this is most likely a startup crash. Alternatively, this case
+    # may occur if Trusty fuzzing exited due to a kernel panic.
+    # Use an empty testcase to store these exit types as a crash.
     if (not crash_testcase_file_path and
-        fuzz_result.return_code not in constants.NONCRASH_RETURN_CODES):
+        fuzz_result.return_code not in constants.NONCRASH_RETURN_CODES
+       ) or self._fuzz_output_contains_trusty_kernel_panic(log_lines):
       crash_testcase_file_path = self._create_empty_testcase_file(
           reproducers_dir)
 
