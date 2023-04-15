@@ -388,9 +388,9 @@ def file_issue(testcase,
     issue.status = properties.status
 
   fuzzer_metadata = testcase.get_metadata('issue_metadata')
-  if fuzzer_metadata and 'stagingCc' in fuzzer_metadata:
+  if fuzzer_metadata and 'issue_assignee_override' in fuzzer_metadata:
     issue.status = policy.status('assigned')
-    issue.assignee = fuzzer_metadata['stagingCc']
+    issue.assignee = fuzzer_metadata['issue_assignee_override']
     logs.log(
         'Fuzzer is under staging. Assigned testcase to %s' % issue.assignee)
 
