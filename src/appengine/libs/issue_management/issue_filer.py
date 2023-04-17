@@ -391,7 +391,7 @@ def file_issue(testcase,
   if fuzzer_metadata and 'assignee' in fuzzer_metadata:
     issue.status = policy.status('assigned')
     issue.assignee = fuzzer_metadata['assignee']
-    logs.log('Fuzzer testcase has assignee metadata %s.' % issue.assignee)
+    logs.log('Testcase has assignee metadata %s' % issue.assignee)
 
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
