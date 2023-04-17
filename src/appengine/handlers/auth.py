@@ -42,5 +42,6 @@ class Handler(base_handler.Handler):
         gzip_response,
         status=response.status_code,
         headers=dict(response.headers))
+    flask_response.headers['Content-Encoding'] = 'gzip'
 
     return flask_response
