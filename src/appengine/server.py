@@ -160,11 +160,7 @@ cron_routes = [
 
 handlers = [
     ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
-    ('/__/auth/experiments.js', auth.Handler),
-    ('/__/auth/handler', auth.Handler),
-    ('/__/auth/handler.js', auth.Handler),
-    ('/__/auth/iframe', auth.Handler),
-    ('/__/auth/iframe.js', auth.Handler),
+    ('/__/auth/<path:extra>', auth.Handler),
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/bots', bots.Handler),
     ('/bots/dead', bots.DeadBotsHandler),
