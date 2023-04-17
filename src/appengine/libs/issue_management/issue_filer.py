@@ -388,11 +388,11 @@ def file_issue(testcase,
     issue.status = properties.status
 
   fuzzer_metadata = testcase.get_metadata('issue_metadata')
-  if fuzzer_metadata and 'issue_assignee_override' in fuzzer_metadata:
+  if fuzzer_metadata and 'assignee' in fuzzer_metadata:
     issue.status = policy.status('assigned')
-    issue.assignee = fuzzer_metadata['issue_assignee_override']
+    issue.assignee = fuzzer_metadata['assignee']
     logs.log(
-        'Fuzzer is under staging. Assigned testcase to %s' % issue.assignee)
+        'Fuzzer testcase has assignee metadata %s.' % issue.assignee)
 
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
