@@ -30,7 +30,8 @@ _CLEAN_EXIT_SECS = 10
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT = 20
+_TIMEOUT_PER_INPUT_FUZZ = 25
+_TIMEOUT_PER_INPUT_REPR = 60
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
@@ -38,7 +39,7 @@ _DEFAULT_ARGUMENTS = [
     f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
-_CRASH_REGEX = re.compile(r'[sS]aving input to:? [\n]?(.*)')
+CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
 
 
@@ -60,7 +61,7 @@ def _get_runner():
 
 def _get_reproducer_path(log, reproducers_dir):
   """Gets the reproducer path, if any."""
-  crash_match = _CRASH_REGEX.search(log)
+  crash_match = CRASH_REGEX.search(log)
   if not crash_match:
     return None
   tmp_crash_path = Path(crash_match.group(1))
@@ -114,7 +115,7 @@ class Engine(engine.Engine):
     else:
       logs.log_warn('Unable to find sanitized target binary.')
 
-    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT}')
+    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT_FUZZ}')
 
     arguments.extend(_DEFAULT_ARGUMENTS)
 
@@ -207,7 +208,8 @@ class Engine(engine.Engine):
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-          f':rss_limit_mb={_RSS_LIMIT}:timeout_per_input={_TIMEOUT_PER_INPUT}:')
+          f':rss_limit_mb={_RSS_LIMIT}'
+          f':timeout_per_input={_TIMEOUT_PER_INPUT_REPR}:')
 
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
