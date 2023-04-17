@@ -28,6 +28,7 @@ from libs import handler
 class Handler(base_handler.Handler):
   """Auth page."""
 
+  # pylint: disable=unused-argument
   @handler.get(handler.HTML)
   def get(self, extra=None):
     """Handle a get request."""
