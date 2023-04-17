@@ -47,6 +47,10 @@ def auth_domain():
 
 def real_auth_domain():
   """Get the real auth domain"""
+  real_domain = local_config.ProjectConfig().get('firebase.real_auth_domain')
+  if real_domain:
+    return real_domain
+
   return utils.get_application_id() + '.firebaseapp.com'
 
 
