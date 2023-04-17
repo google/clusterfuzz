@@ -39,9 +39,14 @@ class AuthError(Exception):
 def auth_domain():
   """Get the auth domain."""
   domain = local_config.ProjectConfig().get('firebase.auth_domain')
-  if domain:
-    return domain
+  if not domain:
+    raise AuthError('No auth domain.')
 
+  return domain
+
+
+def real_auth_domain():
+  """Get the real auth domain"""
   return utils.get_application_id() + '.firebaseapp.com'
 
 
