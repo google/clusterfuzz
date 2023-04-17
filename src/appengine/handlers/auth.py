@@ -28,10 +28,11 @@ from libs import handler
 class Handler(base_handler.Handler):
   """Auth page."""
 
-  # pylint: disable=unused-argument
   @handler.get(handler.HTML)
   def get(self, extra=None):
     """Handle a get request."""
+    # We iuse `request.url` which is already the full URL.
+    del extra
     target_url = request.url.replace(auth.auth_domain(),
                                      auth.real_auth_domain(), 1)
     logging.info('Forwarding auth request to: %s', target_url)
