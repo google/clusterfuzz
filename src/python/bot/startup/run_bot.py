@@ -119,6 +119,7 @@ def task_loop():
 
 def main():
   """Prepare the configuration options and start requesting tasks."""
+  print('yo')
   logs.configure('run_bot')
 
   root_directory = environment.get_value('ROOT_DIR')

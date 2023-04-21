@@ -350,7 +350,7 @@ class TestRunner(object):
     return results
 
 
-def execute_task(testcase_id, job_type):
+def execute_task(testcase_id, job_type, _):
   """Attempt to minimize a given testcase."""
   # Get deadline to finish this task.
   deadline = tasks.get_task_completion_deadline()

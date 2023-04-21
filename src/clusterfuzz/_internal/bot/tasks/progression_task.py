@@ -427,7 +427,7 @@ def find_fixed_range(testcase_id, job_type):
   tasks.add_task('progression', testcase_id, job_type)
 
 
-def execute_task(testcase_id, job_type):
+def execute_task(testcase_id, job_type, _):
   """Execute progression task."""
   try:
     find_fixed_range(testcase_id, job_type)

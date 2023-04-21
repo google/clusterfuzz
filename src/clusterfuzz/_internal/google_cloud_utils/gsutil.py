@@ -70,7 +70,7 @@ def _filter_path(path, write=False):
     # Only applicable to GCS paths.
     return path
 
-  local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
+  local_buckets_path = False
   if not local_buckets_path:
     return path
 

@@ -348,7 +348,7 @@ def set_testcase_with_impacts(testcase, impacts):
   testcase.is_impact_set_flag = True
 
 
-def execute_task(testcase_id, job_type):
+def execute_task(testcase_id, job_type, _):
   """Attempt to find if the testcase affects release branches on Chromium."""
   # This shouldn't ever get scheduled, but check just in case.
   if not utils.is_chromium():

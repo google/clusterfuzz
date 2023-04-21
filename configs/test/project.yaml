@@ -14,7 +14,7 @@
 
 blobs:
   # Bucket to store blobs, e.g. testcases, fuzzer archives, etc.
-  bucket: test-blobs-bucket
+  bucket: metzman-test-blobs
 
 deployment:
   # Bucket to store deployment artifacts, e.g. source archives, etc.
@@ -96,7 +96,7 @@ env:
   FUZZ_LOGS_BUCKET: test-fuzz-logs-bucket
 
   # Default bucket to store mutator plugins.
-  MUTATOR_PLUGINS_BUCKET: test-mutator-plugins-bucket
+  MUTATOR_PLUGINS_BUCKET: metzman-test-logs
 
   # Specify either a HELP_URL or HELP_FORMAT for guiding developers on how to fix bugs.
   # HELP_URL: help-page-for-reproducing-bugs

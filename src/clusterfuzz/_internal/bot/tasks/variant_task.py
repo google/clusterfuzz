@@ -54,7 +54,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
   return variant_testcase
 
 
-def execute_task(testcase_id, job_type):
+def execute_task(testcase_id, job_type, _):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:

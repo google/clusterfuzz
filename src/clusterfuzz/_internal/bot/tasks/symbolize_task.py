@@ -36,7 +36,7 @@ MIN_REDZONE = 16
 STACK_FRAME_COUNT = 128
 
 
-def execute_task(testcase_id, job_type):
+def execute_task(testcase_id, job_type, _):
   """Execute a symbolize command."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)

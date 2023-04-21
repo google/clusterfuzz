@@ -280,21 +280,43 @@ def _get_testcase_file_and_path(testcase):
   return input_directory, testcase_path
 
 
+def get_testcase_download_url(testcase):
+  key, _ = _get_testcase_key_and_archive_status(testcase)
+  return blobs.get_signed_download_url(key)
+
+
+def _get_testcase_key_and_archive_status(testcase):
+  if _is_testcase_minimized(testcase):
+    key = testcase.minimized_keys
+    # !!! Can this be switched to logical "and", I think it's the same and
+    # bitwise is just fancy and weird.
+    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
+    return key, archived
+
+  key = testcase.fuzzed_keys
+  archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)
+  return key, archived
+
+
+def _is_testcase_minimized(testcase):
+  return testcase.minimized_keys and testcase.minimized_keys != 'NA'
+
+
+def download_possibly_wrapped(wrapped, key, dst):
+  signed_download_url = getattr(wrapped, 'signed_download_url', None)
+  if signed_download_url:
+    return storage.download_url(wrapped.signed_download_url, dst)
+  return blobs.read_blob_to_disk(key, dst)
+
+
 def unpack_testcase(testcase):
   """Unpack a testcase and return all files it is composed of."""
   # Figure out where the testcase file should be stored.
   input_directory, testcase_file_path = _get_testcase_file_and_path(testcase)
 
-  minimized = testcase.minimized_keys and testcase.minimized_keys != 'NA'
-  if minimized:
-    key = testcase.minimized_keys
-    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
-  else:
-    key = testcase.fuzzed_keys
-    archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)
-
+  key, archived = _get_testcase_key_and_archive_status(testcase)
   if archived:
-    if minimized:
+    if _is_testcase_minimized(testcase):
       temp_filename = (
           os.path.join(input_directory,
                        str(testcase.key.id()) + _TESTCASE_ARCHIVE_EXTENSION))
@@ -303,7 +325,7 @@ def unpack_testcase(testcase):
   else:
     temp_filename = testcase_file_path
 
-  if not blobs.read_blob_to_disk(key, temp_filename):
+  if not download_possibly_wrapped(testcase, key, temp_filename):
     return None, input_directory, testcase_file_path
 
   file_list = []
