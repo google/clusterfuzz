@@ -932,11 +932,66 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
-  def _append_logcat_output_if_needed(self, output):
+  def _extract_trusty_stacktrace_from_logcat(self, logcat):
+    """Finds and returns a TA stacktrace from a logcat"""
+    begin, end = 'panic notifier - trusty version', 'Built:'
+    target_idx = logcat.rfind(begin)
+
+    if target_idx != -1:
+      #Logcat contains kernel panic
+      begin = logcat[:target_idx].rfind('\n')
+      end_idx = target_idx + logcat[target_idx:].find('\n')
+      end_idx += logcat[end_idx:].find(end)
+      end_idx += logcat[end_idx:].find('\n')
+
+      ta_stacktrace = []
+      split_marker = 'trusty:log: '
+      for line in logcat[begin:end_idx].splitlines():
+        split_idx = line.find(split_marker) + len(split_marker)
+        ta_stacktrace.append(line[split_idx:])
+
+      return '\n'.join(ta_stacktrace)
+
+    begin = '---------'
+    target = 'Backtrace for thread:'
+    target_idx = logcat.rfind(target)
+    if target_idx == -1:
+      return 'No TA crash stacktrace found in logcat.\n'
+
+    begin_idx = logcat[:target_idx].rfind(begin)
+    end_idx = target_idx + logcat[target_idx:].find(end)
+    end_idx += logcat[end_idx:].find('\n')
+
+    return logcat[begin_idx:end_idx]
+
+  def _add_trusty_stacktrace_if_needed(self, output):
+    """Add trusty stacktrace to beginning of output if found in logcat."""
+
+    if android.adb.get_device_state() == 'is-ramdump-mode:yes':
+      logcat = android.adb.extract_logcat_from_ramdump_and_reboot()
+    else:
+      logcat = android.logger.log_output()
+
+    ta_stacktrace = self._extract_trusty_stacktrace_from_logcat(logcat)
+
+    # Defer imports since stack_symbolizer pulls in a lot of things.
+    from clusterfuzz._internal.crash_analysis.stack_parsing import \
+        stack_symbolizer
+    loop = stack_symbolizer.SymbolizationLoop()
+    ta_stacktrace = loop.process_trusty_stacktrace(ta_stacktrace)
+
+    return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
+      \n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
+        ta_stacktrace=ta_stacktrace, output=output, logcat_output=logcat)
+
+  def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
     processes if current output has no sanitizer crash."""
     if 'Sanitizer: ' in output:
       return output
+
+    if environment.is_android_emulator():
+      return self._add_trusty_stacktrace_if_needed(output)
 
     return '{output}\n\nLogcat:\n{logcat_output}'.format(
         output=output, logcat_output=android.logger.log_output())
@@ -1023,7 +1078,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         additional_args=additional_args,
         extra_env=extra_env)
 
-    result.output = self._append_logcat_output_if_needed(result.output)
+    result.output = self._add_logcat_output_if_needed(result.output)
 
     self._copy_local_directories_from_device(sync_directories)
     return result
@@ -1078,7 +1133,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     with self._device_file(testcase_path) as device_testcase_path:
       result = LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
                                                    timeout, additional_args)
-      result.output = self._append_logcat_output_if_needed(result.output)
+      result.output = self._add_logcat_output_if_needed(result.output)
       return result
 
   def minimize_crash(self,

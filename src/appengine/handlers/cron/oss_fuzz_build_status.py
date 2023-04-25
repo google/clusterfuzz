@@ -172,7 +172,7 @@ def send_reminder(issue_tracker, issue_id, build_id):
   """Send a reminder about the build still failing."""
   issue = issue_tracker.get_original_issue(issue_id)
 
-  comment = ('Friendly reminder that the the build is still failing.\n'
+  comment = ('Friendly reminder that the build is still failing.\n'
              'Please try to fix this failure to ensure that fuzzing '
              'remains productive.\n'
              'Latest build log: {log_link}\n')

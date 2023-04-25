@@ -153,7 +153,12 @@ else
 fi
 
 # Setup pipenv and install python dependencies.
-$PYTHON -m pip install --user pipenv
+$PYTHON -m pip install --user pipenv==2022.8.5
+if $PYTHON -m pipenv --venv > /dev/null 2>&1; then
+  # Remove existing pipenv virtual environment.
+  $PYTHON -m pipenv --rm
+fi
+
 $PYTHON -m pipenv --python $PYTHON
 $PYTHON -m pipenv sync --dev
 source "$(${PYTHON} -m pipenv --venv)/bin/activate"
