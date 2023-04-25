@@ -149,7 +149,6 @@ class UploadOAuthTest(unittest.TestCase):
         'additional_metadata': '{"fuzzer_binary_name": "target"}',
         'archive_filename': None,
         'archive_state': 0,
-        'binary_flag': False,
         'bug_information': '',
         'comments': '[2021-01-01 00:00:00 UTC] uploader@email: '
                     'External testcase upload.\n',
@@ -255,8 +254,6 @@ class UploadOAuthTest(unittest.TestCase):
             None,
         'archive_state':
             0,
-        'binary_flag':
-            False,
         'bug_information':
             '',
         'comments':
@@ -415,7 +412,6 @@ class UploadOAuthTest(unittest.TestCase):
         'additional_metadata': '{"fuzzer_binary_name": "target"}',
         'archive_filename': None,
         'archive_state': 0,
-        'binary_flag': False,
         'bug_information': '',
         'comments': '[2021-01-01 00:00:00 UTC] uploader@email: '
                     'External testcase upload.\n',

@@ -426,9 +426,6 @@ class Testcase(Model):
   # File name of the original uploaded archive.
   archive_filename = ndb.TextProperty()
 
-  # Is this a binary file?
-  binary_flag = ndb.BooleanProperty(default=False, indexed=False)
-
   # Timestamp.
   timestamp = ndb.DateTimeProperty()
 

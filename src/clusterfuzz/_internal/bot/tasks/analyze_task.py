@@ -156,7 +156,6 @@ def execute_task(testcase_id, job_type):
   # Update initial testcase information.
   testcase.absolute_path = testcase_file_path
   testcase.job_type = job_type
-  testcase.binary_flag = utils.is_binary_file(testcase_file_path)
   testcase.queue = tasks.default_queue()
   testcase.crash_state = ''
 
