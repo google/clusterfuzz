@@ -137,10 +137,6 @@ _AFL_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'strategy_recommended_dict',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'exception_count',
     'type': 'INTEGER'
 }, {
@@ -150,10 +146,6 @@ _AFL_SCHEMA = [{
 }, {
     'mode': 'NULLABLE',
     'name': 'strategy_value_profile',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'recommended_dict_size',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
@@ -321,19 +313,11 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'STRING'
 }, {
     'mode': 'NULLABLE',
-    'name': 'recommended_dict_size',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'actual_duration',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
     'name': 'strategy_value_profile',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'strategy_recommended_dict',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
