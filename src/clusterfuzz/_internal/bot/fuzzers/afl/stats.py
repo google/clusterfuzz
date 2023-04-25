@@ -24,7 +24,7 @@ from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-z]+Sanitizer:.*')
+SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-Za-z]+Sanitizer:.*')
 SANITIZER_SEPERATOR_REGEX = re.compile(r'^=+$')
 
 
