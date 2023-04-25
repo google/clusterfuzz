@@ -369,11 +369,6 @@ class Engine(engine.Engine):
           engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
                        actual_duration))
 
-    if options.analyze_dictionary:
-      libfuzzer.analyze_and_update_recommended_dictionary(
-          runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
-          non_fuzz_arguments)
-
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed,
                              fuzz_result.timed_out)

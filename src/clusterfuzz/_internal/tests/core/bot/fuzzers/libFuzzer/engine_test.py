@@ -375,7 +375,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'number_of_executed_units': 1249,
         'oom_count': 0,
         'peak_rss_mb': 1197,
-        'recommended_dict_size': 0,
         'slow_unit_count': 0,
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
@@ -389,7 +388,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin_radamsa': 0,
         'strategy_peach_grammar_mutation': '',
         'strategy_random_max_len': 0,
-        'strategy_recommended_dict': 0,
         'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0,
@@ -467,15 +465,12 @@ class BaseIntegrationTest(unittest.TestCase):
     os.environ['CACHE_DIR'] = TEMP_DIR
 
     test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'update_recommended_dictionary',
         'clusterfuzz._internal.bot.fuzzers.engine_common.get_merge_timeout',
         'clusterfuzz._internal.bot.fuzzers.engine_common.random_choice',
         'clusterfuzz._internal.bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         'clusterfuzz._internal.bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
         'clusterfuzz._internal.bot.fuzzers.strategy_selection.'
         'generate_weighted_strategy_pool',
-        'clusterfuzz._internal.bot.fuzzers.libfuzzer.get_dictionary_analysis_timeout',
         'clusterfuzz._internal.bot.fuzzers.libfuzzer.get_fuzz_timeout',
         'os.getpid',
         'clusterfuzz._internal.system.minijail.MinijailChroot._mknod',
@@ -485,7 +480,6 @@ class BaseIntegrationTest(unittest.TestCase):
 
     self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
-    self.mock.get_dictionary_analysis_timeout.return_value = 5
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
 
@@ -693,39 +687,6 @@ class IntegrationTests(BaseIntegrationTest):
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
 
-  def test_analyze_dict(self):
-    """Tests recommended dictionary analysis."""
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'parse_recommended_dictionary_from_log_lines',
-    ])
-
-    self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
-        '"USELESS_0"',
-        '"APPLE"',
-        '"USELESS_1"',
-        '"GINGER"',
-        '"USELESS_2"',
-        '"BEET"',
-        '"USELESS_3"',
-    ])
-
-    _, corpus_path = setup_testcase_and_corpus('empty',
-                                               'corpus_with_some_files')
-
-    engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 'analyze_dict_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 5)
-    expected_recommended_dictionary = set([
-        '"APPLE"',
-        '"GINGER"',
-        '"BEET"',
-    ])
-
-    self.assertIn(expected_recommended_dictionary,
-                  self.mock.update_recommended_dictionary.call_args[0])
 
   def test_fuzz_with_mutator_plugin(self):
     """Tests fuzzing with a mutator plugin."""
@@ -1335,38 +1296,3 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     with open(cleanse_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
-
-  def test_analyze_dict(self):
-    """Tests recommended dictionary analysis."""
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'parse_recommended_dictionary_from_log_lines',
-    ])
-
-    self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
-        '"USELESS_0"',
-        '"APPLE"',
-        '"USELESS_1"',
-        '"GINGER"',
-        '"USELESS_2"',
-        '"BEET"',
-        '"USELESS_3"',
-    ])
-
-    _, corpus_path = setup_testcase_and_corpus('empty',
-                                               'corpus_with_some_files')
-
-    engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
-                                                 'analyze_dict_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 5.0)
-    expected_recommended_dictionary = set([
-        '"APPLE"',
-        '"GINGER"',
-        '"BEET"',
-    ])
-
-    self.assertIn(expected_recommended_dictionary,
-                  self.mock.update_recommended_dictionary.call_args[0])

@@ -1,0 +1,18 @@
+# Lines that need to be corrected.
+auto
+tok1=boot
+=
+!=
+"
+\"
+},
+:
+,
+a\"
+t"est
+tok2=t"es"t
+\x00\xff
+# Valid entries.
+"valid line"
+tok3="another valid line"
+tok4 = "yet another valid line"

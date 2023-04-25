@@ -1,0 +1,62 @@
+$ net_parse_url_hostname_to_address_fuzzer -analyze_dict=1 -dict=./net_url.dict ./net_parse_url_hostname_to_address_fuzzer/
+Dictionary: 56 entries
+INFO: Seed: 877072222
+INFO: Loaded 2 modules (273178 guards): [0x7f6727c2d620, 0x7f6727c4aac0), [0x1ac9560, 0x1bb6d28), 
+Loading corpus dir: ./net_parse_url_hostname_to_address_fuzzer/
+Started dictionary minimization (up to 25984 tests)
+###### Useless dictionary elements. ######
+"prin" # Score: 0, Used: 0
+"experiment" # Score: 0, Used: 0
+"print_final_stat" # Score: 0, Used: 0
+"load_coverage_summa" # Score: 0, Used: 0
+"use_indir_calls" # Score: 0, Used: 0
+"print_final_st" # Score: 0, Used: 0
+"print_f" # Score: 0, Used: 0
+"artifact_prefix=/mnt/" # Score: 0, Used: 0
+"output" # Score: 0, Used: 0
+"\x01\x00" # Score: -3, Used: 3
+"\xff\xff" # Score: -9, Used: 15
+"timeout_exitcode" # Score: 0, Used: 0
+"seed" # Score: 0, Used: 0
+"jobs" # Score: 0, Used: 0
+"print_fina" # Score: 0, Used: 0
+"load_coverage_summary" # Score: 0, Used: 0
+"shuffle" # Score: 0, Used: 0
+"save_coverage_summa" # Score: 0, Used: 0
+"\x01\x00\x00\x00" # Score: -3, Used: 3
+"flagfi" # Score: 0, Used: 0
+"rss_limit_mb" # Score: 0, Used: 0
+"dump_coverage" # Score: 0, Used: 0
+"handle_abrt" # Score: 0, Used: 0
+"artifact_prefix" # Score: 0, Used: 0
+"print_final_stats=1" # Score: 0, Used: 0
+"merge_control_file" # Score: 0, Used: 0
+"print_final_sta" # Score: 0, Used: 0
+"trace_malloc" # Score: 0, Used: 0
+"print_final_stats=" # Score: 0, Used: 0
+"dict" # Score: 0, Used: 0
+"prefer_small" # Score: 0, Used: 0
+"close_fd_mask" # Score: 0, Used: 0
+"output_csv" # Score: 0, Used: 0
+"\xff\xff\xff\xff\xff\xff\xff\xff" # Score: 0, Used: 6
+"report_slow_units" # Score: 0, Used: 0
+"rss_limit_m" # Score: 0, Used: 0
+"print_final_" # Score: 0, Used: 0
+"use_counters" # Score: 0, Used: 0
+"\xff\xff\xff\xff" # Score: -6, Used: 12
+"handle_segv" # Score: 0, Used: 0
+"rss_limit_mb=" # Score: 0, Used: 0
+"exact_artifact_path" # Score: 0, Used: 0
+"print_final_stats" # Score: 0, Used: 0
+"minimize_crash" # Score: 0, Used: 0
+"rss_limit_mb=2048" # Score: 0, Used: 0
+"print_fin" # Score: 0, Used: 0
+"workers" # Score: 0, Used: 0
+"use_value_profile" # Score: 0, Used: 0
+"\x01\x00\x00\x00\x00\x00\x00\x00" # Score: -3, Used: 3
+"print_pcs" # Score: 0, Used: 0
+"timeout=25" # Score: 0, Used: 0
+"print_corpus_stat" # Score: 0, Used: 0
+"use_cmp" # Score: 0, Used: 0
+###### End of useless dictionary elements. ######
+Dictionary analysis suceeded

@@ -61,6 +61,12 @@ class TestFuzzStrategySelection(unittest.TestCase):
         'random_max_len,recommended_dict,').get()
     self.assertEqual(row2.probability, 0.014589232349521633)
     self.assertEqual(row2.engine, 'libFuzzer')
+    row3 = data_types.FuzzStrategyProbability.query(
+        data_types.FuzzStrategyProbability.strategy_name ==
+        'random_max_len,').get()
+    self.assertEqual(row3.probability, 0.011855451527667878)
+    self.assertEqual(row3.engine, 'libFuzzer')
+
 
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being

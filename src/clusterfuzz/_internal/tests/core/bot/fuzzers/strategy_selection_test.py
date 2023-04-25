@@ -49,7 +49,6 @@ class TestDefaultStrategySelectionLibFuzzerPatched(unittest.TestCase):
     self.assertTrue(
         strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
     self.assertTrue(
-        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
     self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
     self.assertTrue(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
     self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
@@ -80,15 +79,14 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = 'fork,corpus_subset,recommended_dict,'
+    strategy1.strategy_name = 'fork,corpus_subset,'
     strategy1.probability = 0.33
     strategy1.engine = 'libFuzzer'
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
-    strategy2.strategy_name = ('random_max_len,corpus_mutations_radamsa,'
-                               'value_profile,recommended_dict,')
-    strategy2.probability = 0.33
+    strategy2.strategy_name = ('random_max_len,value_profile,')
+    strategy2.probability = 0.34
     strategy2.engine = 'libFuzzer'
     data.append(strategy2)
     ndb.put_multi(data)
@@ -132,7 +130,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = ('random_max_len,value_profile,recommended_dict,')
+    strategy1.strategy_name = ('random_max_len,value_profile,')
     strategy1.probability = 1
     strategy1.engine = 'libFuzzer'
     data.append(strategy1)
@@ -157,8 +155,6 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     self.assertTrue(
         strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
     self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
-    self.assertTrue(
-        strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY))
     self.assertFalse(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
     self.assertFalse(strategy_pool.do_strategy(strategy.FORK_STRATEGY))

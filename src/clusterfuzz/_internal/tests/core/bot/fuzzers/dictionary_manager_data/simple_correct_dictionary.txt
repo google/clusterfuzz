@@ -1,0 +1,5 @@
+tok1="abc"
+tok2="bcd"
+"cde"
+# The last entry is next.
+"def"
