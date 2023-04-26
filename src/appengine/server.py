@@ -57,7 +57,6 @@ from handlers.cron import fuzzer_and_job_weights
 from handlers.cron import fuzzer_coverage
 from handlers.cron import load_bigquery_stats
 from handlers.cron import manage_vms
-from handlers.cron import ml_train
 from handlers.cron import oss_fuzz_apply_ccs
 from handlers.cron import oss_fuzz_build_status
 from handlers.cron import oss_fuzz_generate_certs
@@ -149,7 +148,6 @@ cron_routes = [
     ('/predator-pull', predator_pull.Handler),
     ('/schedule-corpus-pruning', schedule_corpus_pruning.Handler),
     ('/schedule-impact-tasks', recurring_tasks.ImpactTasksScheduler),
-    ('/schedule-ml-train-tasks', ml_train.Handler),
     ('/schedule-progression-tasks', recurring_tasks.ProgressionTasksScheduler),
     ('/schedule-upload-reports-tasks',
      recurring_tasks.UploadReportsTaskScheduler),

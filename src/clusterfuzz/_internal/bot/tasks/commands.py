@@ -29,7 +29,6 @@ from clusterfuzz._internal.bot.tasks import minimize_task
 from clusterfuzz._internal.bot.tasks import progression_task
 from clusterfuzz._internal.bot.tasks import regression_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
-from clusterfuzz._internal.bot.tasks import train_rnn_generator_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks import variant_task
@@ -48,7 +47,6 @@ COMMAND_MAP = {
     'fuzz': fuzz_task,
     'impact': impact_task,
     'minimize': minimize_task,
-    'train_rnn_generator': train_rnn_generator_task,
     'progression': progression_task,
     'regression': regression_task,
     'symbolize': symbolize_task,

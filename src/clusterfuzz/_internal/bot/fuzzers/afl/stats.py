@@ -242,7 +242,3 @@ class StatsGetter(object):
        ):
       self.stats['strategy_' +
                  strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
-    elif (fuzzing_strategies.generator_strategy ==
-          engine_common.Generator.ML_RNN):
-      self.stats['strategy_' +
-                 strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = 1

@@ -41,7 +41,6 @@ from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.afl import constants
 from clusterfuzz._internal.bot.fuzzers.afl import stats
 from clusterfuzz._internal.bot.fuzzers.afl.fuzzer import write_dummy_file
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import profiler
@@ -344,9 +343,6 @@ class FuzzingStrategies(object):
 
       if strategy_dict.get(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name) == 1:
         self.candidate_generator = engine_common.Generator.RADAMSA
-      elif strategy_dict.get(
-          strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name) == 1:
-        self.candidate_generator = engine_common.Generator.ML_RNN
     else:
       strategy_pool = strategy_selection.generate_weighted_strategy_pool(
           strategy_list=strategy.AFL_STRATEGY_LIST,
@@ -379,8 +375,6 @@ class FuzzingStrategies(object):
 
     if self.generator_strategy == engine_common.Generator.RADAMSA:
       strategies_dict[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
-    elif self.generator_strategy == engine_common.Generator.ML_RNN:
-      strategies_dict[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = 1
 
     if self.use_corpus_subset:
       strategies_dict['corpus_subset'] = self.corpus_subset_size
@@ -681,20 +675,16 @@ class AflRunnerCommon(object):
     return afl_args
 
   def do_offline_mutations(self):
-    """Mutate the corpus offline using Radamsa or ML RNN if specified."""
+    """Mutate the corpus offline using Radamsa."""
     if not self.strategies.is_mutations_run:
       return
 
-    target_name = os.path.basename(self.target_path)
-    project_qualified_target_name = (
-        data_types.fuzz_target_project_qualified_name(utils.current_project(),
-                                                      target_name))
     # Generate new testcase mutations according to candidate generator. If
     # testcase mutations are properly generated, set generator strategy
     # accordingly.
     generator_used = engine_common.generate_new_testcase_mutations(
         self.afl_input.input_directory, self.afl_input.input_directory,
-        project_qualified_target_name, self.strategies.candidate_generator)
+        self.strategies.candidate_generator)
 
     if generator_used:
       self.strategies.generator_strategy = self.strategies.candidate_generator

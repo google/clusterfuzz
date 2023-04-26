@@ -380,7 +380,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
         'startup_crash_count': 0,
-        'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_mutations_radamsa': 0,
         'strategy_corpus_subset': 0,
         'strategy_dataflow_tracing': 0,
