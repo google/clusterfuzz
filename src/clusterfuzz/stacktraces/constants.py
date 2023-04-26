@@ -311,7 +311,7 @@ WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
 WINDOWS_SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: illegal-instruction')
 
 WYCHEPROOF_JAVA_EXCEPTION = re.compile(
-    r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-z0-9]*\))')
+    r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-Z0-9]*\))')
 
 # Golang specific regular expressions.
 GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(

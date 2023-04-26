@@ -1536,7 +1536,8 @@ def get_first_stacktrace(stderr_data):
 
   # Use question mark after .+ for non-greedy, otherwise it will match more
   # than one stack trace.
-  sanitizer_stacktrace_regex = r'ERROR: [A-z]+Sanitizer: .*\n(.|\n)+?ABORTING'
+  sanitizer_stacktrace_regex = (
+      r'ERROR: [A-Za-z]+Sanitizer: .*\n(.|\n)+?ABORTING')
   match = re.search(sanitizer_stacktrace_regex, stderr_data)
 
   # If we can't find the first stacktrace, return the whole thing.
