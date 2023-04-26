@@ -86,8 +86,8 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
-    strategy2.strategy_name = ('corpus_mutations_radamsa,'
-                               'random_max_len,corpus_subset,')
+    strategy2.strategy_name = ('random_max_len,corpus_mutations_radamsa,'
+                               'value_profile,recommended_dict,')
     strategy2.probability = 0.33
     strategy2.engine = 'libFuzzer'
     data.append(strategy2)
@@ -132,7 +132,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = ('value_profile,recommended_dict,')
+    strategy1.strategy_name = ('random_max_len,value_profile,recommended_dict,')
     strategy1.probability = 1
     strategy1.engine = 'libFuzzer'
     data.append(strategy1)
@@ -175,6 +175,15 @@ class TestDefaultStrategySelectionAFLPatched(unittest.TestCase):
         'clusterfuzz._internal.bot.fuzzers.engine_common.decide_with_probability'
     ])
     self.mock.decide_with_probability.return_value = True
+
+  def test_default_pool_deterministic(self):
+    """Deterministically tests the default strategy pool generator."""
+    strategy_pool = strategy_selection.generate_default_strategy_pool(
+        strategy_list=strategy.AFL_STRATEGY_LIST, use_generator=True)
+
+    self.assertTrue(
+        strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
+    self.assertTrue(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
 
 
 class TestStrategySelectionAFLPatchless(unittest.TestCase):
