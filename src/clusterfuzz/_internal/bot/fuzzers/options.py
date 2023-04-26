@@ -110,7 +110,7 @@ class FuzzerOptions(object):
     Variables are assumed to contain no lower case letters.
     """
     env = {}
-    for var_name, var_value in self._get_option_section('env'.items()):
+    for var_name, var_value in self._get_option_section('env').items():
 
       var_name = var_name.upper()
       if var_name in ENV_VAR_WHITELIST:
@@ -121,7 +121,7 @@ class FuzzerOptions(object):
   def get_engine_arguments(self, engine):
     """Return a list of fuzzer options."""
     arguments = {}
-    for option_name, option_value in self._get_option_section(engine.items()):
+    for option_name, option_value in self._get_option_section(engine).items():
       # Check option value for usage of random() function.
       match = self.OPTIONS_RANDOM_REGEX.match(option_value)
       if match:
