@@ -19,9 +19,6 @@ import re
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
-from clusterfuzz._internal.google_cloud_utils import storage
-from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
 
 DICTIONARY_FILE_EXTENSION = '.dict'
 
@@ -71,9 +68,6 @@ def get_stats_for_dictionary_file(dictionary_path):
   # If there are any elements before RECOMMENDED_DICTIONARY_HEADER, those are
   # from "manual" dictionary stored in the repository.
   manual_dictionary_size = get_dictionary_size(manual_dictionary)
-  if len(dictionaries) < 2:
-    return manual_dictionary_size
-
   return manual_dictionary_size
 
 

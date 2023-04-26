@@ -14,7 +14,6 @@
 """Tests for libFuzzer script."""
 # pylint: disable=unused-argument
 
-import copy
 import os
 import shutil
 import unittest
@@ -25,7 +24,6 @@ from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.fuzzing import strategy
-from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 

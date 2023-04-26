@@ -687,7 +687,6 @@ class IntegrationTests(BaseIntegrationTest):
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
 
-
   def test_fuzz_with_mutator_plugin(self):
     """Tests fuzzing with a mutator plugin."""
 

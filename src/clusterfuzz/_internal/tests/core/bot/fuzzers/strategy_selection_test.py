@@ -48,7 +48,6 @@ class TestDefaultStrategySelectionLibFuzzerPatched(unittest.TestCase):
     self.assertTrue(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
     self.assertTrue(
         strategy_pool.do_strategy(strategy.RANDOM_MAX_LENGTH_STRATEGY))
-    self.assertTrue(
     self.assertTrue(strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY))
     self.assertTrue(strategy_pool.do_strategy(strategy.FORK_STRATEGY))
     self.assertTrue(strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY))
