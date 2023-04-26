@@ -24,8 +24,6 @@ import shutil
 import sys
 import time
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -518,8 +516,8 @@ def format_fuzzing_strategies(fuzzing_strategies):
   else:
     # New format.
     assert isinstance(fuzzing_strategies, dict)
-    value = ','.join('{}:{}'.format(key, value)
-                     for key, value in six.iteritems(fuzzing_strategies))
+    value = ','.join(
+        '{}:{}'.format(key, value) for key, value in fuzzing_strategies.items())
 
   return 'cf::fuzzing_strategies: ' + value
 

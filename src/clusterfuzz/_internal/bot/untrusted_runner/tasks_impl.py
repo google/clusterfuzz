@@ -125,7 +125,7 @@ def _pack_values(values):
   if values is None:
     return packed
 
-  for key, value in six.iteritems(values):
+  for key, value in values.items():
     packed_value = Any()
     if isinstance(value, float):
       packed_value.Pack(wrappers_pb2.DoubleValue(value=value))

@@ -19,8 +19,6 @@ import shlex
 import time
 import zipfile
 
-import six
-
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -138,7 +136,7 @@ def _setup_memory_tools_environment(testcase):
         redzone_size=testcase.redzone, disable_ubsan=testcase.disable_ubsan)
     return
 
-  for options_name, options_value in six.iteritems(env):
+  for options_name, options_value in env.items():
     if not options_value:
       environment.remove_key(options_name)
       continue

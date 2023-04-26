@@ -18,8 +18,6 @@ import datetime
 import os
 import time
 
-import six
-
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.config import db_config
@@ -223,7 +221,7 @@ def configure_system_build_properties():
     new_build_prop_file_content.write(line)
 
   new_build_prop_file_content.write(new_content_notification + '\n')
-  for flag, value in six.iteritems(BUILD_PROPERTIES):
+  for flag, value in BUILD_PROPERTIES.items():
     new_build_prop_file_content.write('%s=%s\n' % (flag, value))
   old_build_prop_file_content.close()
   new_build_prop_file_content.close()

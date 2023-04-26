@@ -24,8 +24,6 @@ import re
 import threading
 import time
 
-import six
-
 try:
   from google.cloud import monitoring_v3
 except (ImportError, RuntimeError):
@@ -131,7 +129,7 @@ class _MetricsStore(object):
   def _get_key(self, metric_name, labels):
     """Get the key used for storing values."""
     if labels:
-      normalized_labels = tuple(sorted(six.iteritems(labels)))
+      normalized_labels = tuple(sorted(labels.items()))
     else:
       normalized_labels = None
 
@@ -139,7 +137,7 @@ class _MetricsStore(object):
 
   def iter_values(self):
     with self._lock:
-      for value in six.itervalues(self._store):
+      for value in self._store.values():
         yield value
 
   def get(self, metric, labels):
@@ -251,7 +249,7 @@ class Metric(object):
     if not labels:
       return metric
 
-    for key, value in six.iteritems(labels):
+    for key, value in labels.items():
       metric.labels[key] = str(value)
 
     # Default labels.

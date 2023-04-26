@@ -16,8 +16,6 @@
 import datetime
 import sys
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -32,7 +30,7 @@ def to_dict(entity):
   entity_dict = entity.to_dict()
   entity_dict['id'] = entity.key.id()
 
-  for k, v in six.iteritems(entity_dict):
+  for k, v in entity_dict.items():
     if isinstance(v, datetime.datetime):
       entity_dict[k] = utils.utc_datetime_to_timestamp(v)
 
@@ -42,14 +40,14 @@ def to_dict(entity):
 def get_diff(before, after):
   """Return differences in string between the two dicts, before and after."""
   diffs = []
-  for k, v in six.iteritems(before):
+  for k, v in before.items():
     if k in after:
       if v != after[k]:
         diffs.append((k, (v, after[k])))
     else:
       diffs.append((k, (v, '<MISSING>')))
 
-  for k, v in six.iteritems(after):
+  for k, v in after.items():
     if k not in before:
       diffs.append((k, ('<MISSING>', v)))
 

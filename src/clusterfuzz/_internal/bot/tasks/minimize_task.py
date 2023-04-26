@@ -20,8 +20,6 @@ import threading
 import time
 import zipfile
 
-import six
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -1282,7 +1280,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       continue
 
     minimized_options = options.copy()
-    for options_name, options_value in six.iteritems(options):
+    for options_name, options_value in options.items():
       if utils.is_oss_fuzz() and options_name in MANDATORY_OSS_FUZZ_OPTIONS:
         continue
 

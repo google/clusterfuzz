@@ -16,8 +16,6 @@
 import os
 import re
 
-import six
-
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.fuzzing import strategy
@@ -195,7 +193,7 @@ class StatsGetter(object):
     # Read and parse stats from AFL's afl_stats. Then use them to set and
     # calculate our own stats.
     self.set_afl_stats()
-    for afl_stat, clusterfuzz_stat in six.iteritems(self.AFL_STATS_MAPPING):
+    for afl_stat, clusterfuzz_stat in self.AFL_STATS_MAPPING.items():
       self.stats[clusterfuzz_stat] = self.get_afl_stat(afl_stat)
 
     try:

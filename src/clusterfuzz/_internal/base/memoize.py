@@ -18,8 +18,6 @@ import functools
 import json
 import threading
 
-import six
-
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -170,7 +168,7 @@ def _default_key(func, args, kwargs):
 
   kwargs = {
       key: value if not isinstance(value, str) else str(value)
-      for key, value in six.iteritems(kwargs)
+      for key, value in kwargs.items()
   }
 
   return 'memoize:%s' % [func.__name__, args, sorted(kwargs.items())]
