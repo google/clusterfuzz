@@ -710,9 +710,9 @@ def _get_security_severity(crash, job_type, gestures):
 def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    one_time_crasher_flag, crash_revision, comment,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
-                   job_type, archived, archive_filename, binary_flag, http_flag,
-                   gestures, redzone, disable_ubsan, minidump_keys,
-                   window_argument, timeout_multiplier, minimized_arguments):
+                   job_type, archived, archive_filename, http_flag, gestures,
+                   redzone, disable_ubsan, minidump_keys, window_argument,
+                   timeout_multiplier, minimized_arguments):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -747,7 +747,6 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.queue = tasks.default_queue()
   testcase.archive_state = archive_state
   testcase.archive_filename = archive_filename
-  testcase.binary_flag = binary_flag
   testcase.http_flag = http_flag
   testcase.timestamp = datetime.datetime.utcnow()
   testcase.gestures = gestures
@@ -767,11 +766,10 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Get testcase id from newly created testcase.
   testcase_id = testcase.key.id()
-  logs.log(
-      ('Created new testcase %d (reproducible:%s, security:%s, binary:%s).\n'
-       'crash_type: %s\ncrash_state:\n%s\n') %
-      (testcase_id, not testcase.one_time_crasher_flag, testcase.security_flag,
-       testcase.binary_flag, testcase.crash_type, testcase.crash_state))
+  logs.log(('Created new testcase %d (reproducible:%s, security:%s).\n'
+            'crash_type: %s\ncrash_state:\n%s\n') %
+           (testcase_id, not testcase.one_time_crasher_flag,
+            testcase.security_flag, testcase.crash_type, testcase.crash_state))
 
   # Update global blacklist to avoid finding this leak again (if needed).
   is_lsan_enabled = environment.get_value('LSAN')

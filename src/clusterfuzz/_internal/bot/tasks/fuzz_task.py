@@ -927,7 +927,6 @@ def create_testcase(group, context):
       job_type=context.job_type,
       archived=crash.archived,
       archive_filename=crash.archive_filename,
-      binary_flag=utils.is_binary_file(crash.file_path),
       http_flag=crash.http_flag,
       gestures=crash.gestures,
       redzone=context.redzone,

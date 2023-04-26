@@ -780,7 +780,6 @@ def _process_corpus_crashes(context, result):
         job_type=job_type,
         archived=False,
         archive_filename='',
-        binary_flag=True,
         http_flag=False,
         gestures=None,
         redzone=DEFAULT_REDZONE,
