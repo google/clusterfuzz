@@ -29,7 +29,6 @@ import requests.exceptions
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
-from clusterfuzz._internal.datastore import locks
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
