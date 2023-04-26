@@ -55,7 +55,6 @@ class BaseTest(object):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'clusterfuzz._internal.bot.tasks.corpus_pruning_task.'
-        'choose_cross_pollination_strategy',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
@@ -71,7 +70,6 @@ class BaseTest(object):
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
-    self.mock.choose_cross_pollination_strategy.return_value = ('random', None)
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
