@@ -68,7 +68,7 @@ class FuzzerArguments(object):
 
   def list(self):
     """Return arguments as a list."""
-    return ['-%s=%s' % (key, value) for key, value in self.flags.items()]
+    return [f'-{key}={value}' for key, value in self.flags.items()]
 
 
 class FuzzerOptions(object):

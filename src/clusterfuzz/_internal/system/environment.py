@@ -64,8 +64,7 @@ def _eval_value(value_string):
 def join_memory_tool_options(options):
   """Joins a dict holding memory tool options into a string that can be set in
   the environment."""
-  return ':'.join(
-      '%s=%s' % (key, str(value)) for key, value in sorted(options.items()))
+  return ':'.join(f'{key}={str(val)}' for key, val in sorted(options.items()))
 
 
 def _maybe_convert_to_int(value):

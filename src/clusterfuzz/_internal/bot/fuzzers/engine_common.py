@@ -516,8 +516,7 @@ def format_fuzzing_strategies(fuzzing_strategies):
   else:
     # New format.
     assert isinstance(fuzzing_strategies, dict)
-    value = ','.join(
-        '{}:{}'.format(key, value) for key, value in fuzzing_strategies.items())
+    value = ','.join(f'{key}:{val}' for key, val in fuzzing_strategies.items())
 
   return 'cf::fuzzing_strategies: ' + value
 
