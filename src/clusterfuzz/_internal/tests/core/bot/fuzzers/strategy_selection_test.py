@@ -43,9 +43,6 @@ class TestDefaultStrategySelectionLibFuzzerPatched(unittest.TestCase):
     strategy_pool = strategy_selection.generate_default_strategy_pool(
         strategy_list=strategy.LIBFUZZER_STRATEGY_LIST, use_generator=True)
 
-    # Ml rnn and radamsa strategies are mutually exclusive. Because of how we
-    # patch, ml rnn will evaluate to false, however this depends on the
-    # implementation.
     self.assertTrue(
         strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY))
     self.assertTrue(strategy_pool.do_strategy(strategy.CORPUS_SUBSET_STRATEGY))
@@ -89,18 +86,11 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
-    strategy2.strategy_name = ('random_max_len,corpus_mutations_ml_rnn,'
-                               'value_profile,recommended_dict,')
-    strategy2.probability = 0.34
+    strategy2.strategy_name = ('corpus_mutations_radamsa,'
+                               'random_max_len,corpus_subset,')
+    strategy2.probability = 0.33
     strategy2.engine = 'libFuzzer'
     data.append(strategy2)
-
-    strategy3 = data_types.FuzzStrategyProbability()
-    strategy3.strategy_name = ('corpus_mutations_radamsa,'
-                               'random_max_len,corpus_subset,')
-    strategy3.probability = 0.33
-    strategy3.engine = 'libFuzzer'
-    data.append(strategy3)
     ndb.put_multi(data)
 
     distribution = fuzz_task.get_strategy_distribution_from_ndb()
@@ -142,8 +132,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = ('random_max_len,corpus_mutations_ml_rnn,'
-                               'value_profile,recommended_dict,')
+    strategy1.strategy_name = ('value_profile,recommended_dict,')
     strategy1.probability = 1
     strategy1.engine = 'libFuzzer'
     data.append(strategy1)
@@ -212,7 +201,7 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = 'corpus_mutations_ml_rnn,corpus_subset,'
+    strategy1.strategy_name = 'corpus_subset,'
     strategy1.probability = 0.33
     strategy1.engine = 'afl'
     data.append(strategy1)
@@ -269,7 +258,7 @@ class TestMultiArmedBanditStrategySelectionAFL(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = 'corpus_mutations_ml_rnn,corpus_subset,'
+    strategy1.strategy_name = 'corpus_subset,'
     strategy1.probability = 1
     strategy1.engine = 'afl'
     data.append(strategy1)

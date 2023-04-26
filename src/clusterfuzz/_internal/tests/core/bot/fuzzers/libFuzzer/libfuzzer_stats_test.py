@@ -97,7 +97,6 @@ class PerformanceStatsTest(unittest.TestCase):
         'strategy_dataflow_tracing': 0,
         'strategy_extra_sanitizers': 0,
         'strategy_corpus_mutations_radamsa': 1,
-        'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 50,
         'strategy_fork': 1,
         'strategy_mutator_plugin_radamsa': 0,

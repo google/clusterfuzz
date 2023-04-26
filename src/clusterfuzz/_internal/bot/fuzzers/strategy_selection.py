@@ -54,8 +54,8 @@ class StrategyPool(object):
 
 
 def choose_generator(strategy_pool):
-  """Chooses whether to use radamsa, ml rnn, or no generator and updates the
-  strategy pool."""
+  """Chooses whether to use radamsa, or no generator and updates the strategy
+  pool."""
 
   radamsa_prob = engine_common.get_strategy_probability(
       strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name,

@@ -165,10 +165,6 @@ _AFL_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'strategy_corpus_mutations_ml_rnn',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'strategy_selection_method',
     'type': 'STRING'
 }] + _COMMON_COLUMNS
@@ -306,10 +302,6 @@ _LIBFUZZER_SCHEMA = [{
 }, {
     'mode': 'NULLABLE',
     'name': 'timeout_count',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'strategy_corpus_mutations_ml_rnn',
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
