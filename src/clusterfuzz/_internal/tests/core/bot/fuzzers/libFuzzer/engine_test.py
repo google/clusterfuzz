@@ -161,7 +161,7 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         extra_env={},
         use_dataflow_tracing=False,
         is_mutations_run=False)
-    self.assertEqual(2100.0,
+    self.assertEqual(1800.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
 
   def test_mutations(self):
@@ -175,7 +175,7 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         extra_env={},
         use_dataflow_tracing=False,
         is_mutations_run=True)
-    self.assertEqual(2700.0,
+    self.assertEqual(2400.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
 
 

@@ -63,11 +63,11 @@ def get_stats_for_dictionary_file(dictionary_path):
 
   dictionary_content = utils.read_data_from_file(
       dictionary_path, eval_data=False).decode('utf-8')
-  manual_dictionary, _ = dictionary_content.split(RECOMMENDED_DICTIONARY_HEADER)
+  dictionaries = dictionary_content.split(RECOMMENDED_DICTIONARY_HEADER)
 
   # If there are any elements before RECOMMENDED_DICTIONARY_HEADER, those are
   # from "manual" dictionary stored in the repository.
-  manual_dictionary_size = get_dictionary_size(manual_dictionary)
+  manual_dictionary_size = get_dictionary_size(dictionaries[0])
   return manual_dictionary_size
 
 
