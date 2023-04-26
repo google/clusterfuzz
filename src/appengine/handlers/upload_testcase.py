@@ -56,6 +56,11 @@ def _is_uploader_allowed(email):
   return external_users.is_upload_allowed_for_user(email)
 
 
+def _is_trusted_uploader_allowed(email):
+  return access.has_access(
+      need_privileged_access=True) and _is_uploader_allowed(email)
+
+
 def attach_testcases(rows):
   """Attach testcase to each crash."""
   testcases = {}
@@ -174,7 +179,7 @@ def filter_blackbox_fuzzers(fuzzers):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def find_fuzz_target(engine, target_name, job_name):
+def find_fuzz_target(engine, target_name, job_name, email=None):
   """Return fuzz target values given the engine, target name (which may or may
   not be prefixed with project), and job."""
   project_name = data_handler.get_project_name(job_name)
@@ -183,7 +188,10 @@ def find_fuzz_target(engine, target_name, job_name):
 
   target = data_handler.get_fuzz_target(candidate_name)
   if not target:
-    raise helpers.EarlyExitException('Fuzz target does not exist.', 400)
+    if email and _is_trusted_uploader_allowed(email):
+      target = (data_handler.record_fuzz_target(engine, target_name, job_name))
+    else:
+      raise helpers.EarlyExitException('Fuzz target does not exist.', 400)
 
   return target.fully_qualified_name(), target.binary
 
@@ -353,7 +361,7 @@ class UploadHandlerCommon(object):
         target_name = fuzz_target.binary
       else:
         fully_qualified_fuzzer_name, target_name = find_fuzz_target(
-            fuzzer_name, target_name, job_type)
+            fuzzer_name, target_name, job_type, email)
 
     if (not access.has_access(
         need_privileged_access=False,
