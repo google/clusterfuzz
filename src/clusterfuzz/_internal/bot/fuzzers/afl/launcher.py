@@ -43,7 +43,6 @@ from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.afl import constants
 from clusterfuzz._internal.bot.fuzzers.afl import stats
 from clusterfuzz._internal.bot.fuzzers.afl.fuzzer import write_dummy_file
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import profiler
