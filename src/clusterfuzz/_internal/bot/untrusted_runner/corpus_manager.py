@@ -25,7 +25,7 @@ class RemoteGSUtilRunner(gsutil.GSUtilRunner):
   def __init__(self):
     super(
         RemoteGSUtilRunner,
-        self).__init__(_process_runner=remote_process_host.RemoteProcessRunner)
+        self).__init__(process_runner=remote_process_host.RemoteProcessRunner)
 
 
 class RemoteFuzzTargetCorpus(corpus_manager.FuzzTargetCorpus):

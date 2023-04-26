@@ -89,11 +89,11 @@ def _filter_path(path, write=False):
 class GSUtilRunner(object):
   """GSUtil runner."""
 
-  def __init__(self, _process_runner=new_process.ProcessRunner):
+  def __init__(self, process_runner=new_process.ProcessRunner):
     default_gsutil_args = ['-m']
     default_gsutil_args.extend(_multiprocessing_args())
 
-    self.gsutil_runner = _process_runner(
+    self.gsutil_runner = process_runner(
         _get_gsutil_path(), default_args=default_gsutil_args)
 
   def run_gsutil(self, arguments, quiet=False, **kwargs):
