@@ -71,7 +71,6 @@ class LibFuzzerOptions(engine.FuzzOptions):
     self.use_dataflow_tracing = use_dataflow_tracing
     self.is_mutations_run = is_mutations_run
     self.merge_back_new_testcases = True
-    self.analyze_dictionary = True
 
 
 class Engine(engine.Engine):
