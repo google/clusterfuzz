@@ -37,12 +37,6 @@ test-clusterfuzz:
     #   instance_template: clusterfuzz-linux-high-end
     #   distribute: False
 
-    # clusterfuzz-linux-ml-with-gpu:
-    #   gce_zone: gce-zone
-    #   instance_count: 1
-    #   instance_template: clusterfuzz-linux-ml-with-gpu
-    #   distribute: False
-
     # clusterfuzz-linux-profile:
     #   gce_zone: gce-zone
     #   instance_count: 1
