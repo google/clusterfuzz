@@ -22,7 +22,6 @@ import unittest
 import mock
 import parameterized
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
-import six
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
@@ -101,7 +100,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertEqual('/corpus_dir', options.corpus_dir)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
         '-dict=/path/blah.dict'
     ], options.arguments)
@@ -110,8 +109,8 @@ class PrepareTest(fake_fs_unittest.TestCase):
         'corpus_subset': 20,
         'fork': 2
     }, options.strategies)
-    six.assertCountEqual(self, ['/new_corpus_dir', '/corpus_dir'],
-                         options.fuzz_corpus_dirs)
+    self.assertCountEqual(['/new_corpus_dir', '/corpus_dir'],
+                          options.fuzz_corpus_dirs)
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)
     self.assertFalse(options.use_dataflow_tracing)
     self.assertTrue(options.is_mutations_run)
@@ -129,8 +128,8 @@ class PrepareTest(fake_fs_unittest.TestCase):
 
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
-    six.assertCountEqual(
-        self, ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1'],
+    self.assertCountEqual(
+        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1'],
         options.arguments)
 
   def test_prepare_auto_add_dict(self):
@@ -141,7 +140,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
 
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
         '-dict=/path/target.dict'
     ], options.arguments)
@@ -198,7 +197,7 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
     strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
                                               '/path/corpus', ['-max_len=100'])
-    six.assertCountEqual(self, [], strategy_info.arguments)
+    self.assertCountEqual([], strategy_info.arguments)
 
   def test_max_length_strategy_without_override(self):
     """Tests max length strategy without override."""
@@ -206,7 +205,7 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
     strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
                                               '/path/corpus', [])
-    six.assertCountEqual(self, ['-max_len=1337'], strategy_info.arguments)
+    self.assertCountEqual(['-max_len=1337'], strategy_info.arguments)
 
 
 class FuzzTest(fake_fs_unittest.TestCase):
@@ -296,7 +295,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
     self.assertEqual('/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',
                      crash.input_path)
     self.assertEqual(fuzz_output, crash.stacktrace)
-    six.assertCountEqual(self, ['-arg=1', '-timeout=60'], crash.reproduce_args)
+    self.assertCountEqual(['-arg=1', '-timeout=60'], crash.reproduce_args)
     self.assertEqual(2, crash.crash_time)
 
     self.mock.fuzz.assert_called_with(

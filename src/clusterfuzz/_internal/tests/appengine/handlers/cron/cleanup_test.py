@@ -17,8 +17,6 @@
 import datetime
 import unittest
 
-import six
-
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -1500,7 +1498,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_issue_updated_once(self):
@@ -1511,7 +1509,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     self.issue._monorail_issue.comments.append(comment)
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
 
   def test_skipped_no_testcase_metadata(self):
     """Test that we don't add ccs if there are no issue_owners key in testcase
@@ -1520,7 +1518,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_empty_testcase_metadata(self):
@@ -1530,7 +1528,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_ccs_already_added_and_metadata_set(self):
@@ -1540,7 +1538,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_ccs_alread_added_and_metadata_set(self):
@@ -1552,8 +1550,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     self.assertEqual(
         True, self.testcase.get_metadata('has_issue_ccs_from_owners_file'))
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, ['dev1@example1.com', 'dev2@example2.com'],
-                         sorted(self.issue.ccs))
+    self.assertCountEqual(['dev1@example1.com', 'dev2@example2.com'],
+                          sorted(self.issue.ccs))
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_add_ccs_with_some_initial_ones(self):
@@ -1565,8 +1563,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
         'Automatically adding ccs based on OWNERS file / target commit history.'
         '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label.',
         self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, ['dev1@example1.com', 'dev2@example2.com'],
-                         sorted(self.issue.ccs))
+    self.assertCountEqual(['dev1@example1.com', 'dev2@example2.com'],
+                          sorted(self.issue.ccs))
     self.assertIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_add_ccs_without_any_initial_ones(self):
@@ -1579,8 +1577,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
         '\n\nIf this is incorrect, '
         'please file a bug on https://github.com/google/oss-fuzz/issues/new.',
         self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, ['dev1@example1.com', 'dev2@example2.com'],
-                         sorted(self.issue.ccs))
+    self.assertCountEqual(['dev1@example1.com', 'dev2@example2.com'],
+                          sorted(self.issue.ccs))
     self.assertIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
 
@@ -2132,14 +2130,13 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
 
     cleanup.cleanup_unused_fuzz_targets_and_jobs()
 
-    six.assertCountEqual(
-        self, ['libFuzzer_binary3', 'libFuzzer_binary4'],
+    self.assertCountEqual(
+        ['libFuzzer_binary3', 'libFuzzer_binary4'],
         list([t.key.id() for t in data_types.FuzzTarget.query()]))
-    six.assertCountEqual(
-        self, [
-            'libFuzzer_binary3/job1', 'libFuzzer_binary4/job1',
-            'libFuzzer_binary4/job2'
-        ], list([t.key.id() for t in data_types.FuzzTargetJob.query()]))
+    self.assertCountEqual([
+        'libFuzzer_binary3/job1', 'libFuzzer_binary4/job1',
+        'libFuzzer_binary4/job2'
+    ], list([t.key.id() for t in data_types.FuzzTargetJob.query()]))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -2163,7 +2160,7 @@ class CleanupUnusedHeartbeatsTest(unittest.TestCase):
     data_types.Heartbeat(last_beat_time=datetime.datetime(2018, 2, 1)).put()
     cleanup.cleanup_unused_heartbeats()
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         {
             'task_payload': None,
             'source_version': None,

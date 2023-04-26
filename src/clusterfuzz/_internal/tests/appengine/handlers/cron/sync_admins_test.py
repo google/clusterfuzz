@@ -16,7 +16,6 @@
 import unittest
 
 import flask
-import six
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -90,7 +89,7 @@ class SyncAdminsTest(unittest.TestCase):
     """Test syncing admins."""
     self.app.get('/sync-admins')
     admins = data_types.Admin.query()
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'user1@email.com',
         'user2@email.com',
         'user3@email.com',

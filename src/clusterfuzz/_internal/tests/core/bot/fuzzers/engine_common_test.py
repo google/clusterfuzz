@@ -18,7 +18,6 @@ import unittest
 
 import parameterized
 from pyfakefs import fake_filesystem_unittest
-import six
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.system import environment
@@ -113,7 +112,7 @@ class GetTimeoutTestBase(unittest.TestCase):
     """Set environment variable values based on the key, value pairs in
     |environment_variable_values|.
     """
-    for key, value in six.iteritems(environment_variable_values):
+    for key, value in environment_variable_values.items():
       environment.set_value(key, value)
 
   def validation_helper(self, environment_variable_values):
