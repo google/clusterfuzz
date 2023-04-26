@@ -24,7 +24,6 @@ import time
 from typing import List
 
 from google.cloud import ndb
-import six
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import utils
@@ -942,7 +941,7 @@ def create_testcase(group, context):
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:
-    for key, value in six.iteritems(context.fuzzer_metadata):
+    for key, value in context.fuzzer_metadata.items():
       testcase.set_metadata(key, value, update_testcase=False)
 
     testcase.put()
@@ -1252,7 +1251,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
                             fuzz_test_timeout)
 
   logs.log('Used strategies.', strategies=options.strategies)
-  for strategy, value in six.iteritems(options.strategies):
+  for strategy, value in options.strategies.items():
     result.stats['strategy_' + strategy] = value
 
   # Format logs with header and strategy information.

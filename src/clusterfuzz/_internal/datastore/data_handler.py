@@ -20,8 +20,6 @@ import re
 import shlex
 import time
 
-import six
-
 try:
   from shlex import quote
 except ImportError:
@@ -343,7 +341,7 @@ def _get_memory_tool_options(testcase):
     return []
 
   result = []
-  for options_name, options_value in sorted(six.iteritems(env)):
+  for options_name, options_value in sorted(env.items()):
     # Strip symbolize flag, use default symbolize=1.
     options_value.pop('symbolize', None)
     if not options_value:
@@ -1329,7 +1327,7 @@ def create_user_uploaded_testcase(key,
         'fuzzer_binary_name', fuzzer_binary_name, update_testcase=False)
 
   if additional_metadata:
-    for metadata_key, metadata_value in six.iteritems(additional_metadata):
+    for metadata_key, metadata_value in additional_metadata.items():
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
   testcase.timestamp = utils.utcnow()

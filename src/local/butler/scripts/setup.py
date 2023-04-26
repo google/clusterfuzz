@@ -15,7 +15,6 @@
 
 from google.api_core import exceptions
 from google.cloud import monitoring_v3
-import six
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
@@ -354,7 +353,7 @@ def setup_fuzzers(non_dry_run):
 
 def setup_templates(non_dry_run):
   """Set up templates."""
-  for name, template in six.iteritems(TEMPLATES):
+  for name, template in TEMPLATES.items():
     job = data_types.JobTemplate.query(
         data_types.JobTemplate.name == name).get()
     if job:

@@ -33,8 +33,6 @@ import re
 import subprocess
 import sys
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -267,7 +265,7 @@ class LLVMSymbolizer(Symbolizer):
     # FIXME: Since we are not using process_handler.run_process here, we can run
     # into issues with unicode environment variable and values. Add this
     # explicit hack to convert these into strings.
-    env_copy = {str(key): str(value) for key, value in six.iteritems(env_copy)}
+    env_copy = {str(key): str(value) for key, value in env_copy.items()}
 
     # Run the symbolizer.
     pipe = subprocess.Popen(

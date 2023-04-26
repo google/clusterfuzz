@@ -15,8 +15,6 @@
 
 import os
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -163,7 +161,7 @@ class GSUtilRunner(object):
 
     command = []
     if metadata:
-      for key, value in six.iteritems(metadata):
+      for key, value in metadata.items():
         command.extend(['-h', key + ':' + value])
 
     command.append('cp')

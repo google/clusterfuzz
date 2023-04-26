@@ -15,8 +15,6 @@
 
 import datetime
 
-import six
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -43,7 +41,7 @@ def _add_default_issue_metadata(testcase):
     return
 
   testcase_metadata = testcase.get_metadata()
-  for key, default_value in six.iteritems(default_metadata):
+  for key, default_value in default_metadata.items():
     # Add the default issue metadata first. This gives preference to uploader
     # specified issue metadata.
     new_value_list = utils.parse_delimited(
