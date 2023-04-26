@@ -54,7 +54,6 @@ class BaseTest(object):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
-        'clusterfuzz._internal.bot.tasks.corpus_pruning_task.'
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
@@ -237,8 +236,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
-    context = corpus_pruning_task.Context(
-        fuzz_target, [], corpus_pruning_task.Pollination.RANDOM, None)
+    context = corpus_pruning_task.Context(fuzz_target, [])
 
     runner = corpus_pruning_task.Runner(self.build_dir, context)
     flags = runner.get_libfuzzer_flags()
