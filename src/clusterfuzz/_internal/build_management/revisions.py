@@ -635,6 +635,7 @@ def needs_update(revision_file, revision):
   file_exists = False
   retry_limit = environment.get_value('FAIL_RETRIES')
 
+  # TODO(metzman): Delete this.
   for _ in range(retry_limit):
     # NFS can sometimes return a wrong result on file existence, so redo
     # this check a couple of times to be sure.

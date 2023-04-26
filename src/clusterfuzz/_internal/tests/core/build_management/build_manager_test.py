@@ -416,7 +416,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_download_file_size',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
@@ -433,7 +433,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'target2': 1.0,
         'target3': 0.0,
     }
-    self.mock.get_download_file_size.return_value = 1
+    self.mock.get_object_size.return_value = 1
     self.mock.copy_file_from.return_value = True
 
     mock_targets_from_archive = self.mock._get_fuzz_targets_from_archive
@@ -1236,7 +1236,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_download_file_size',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
@@ -1253,7 +1253,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'target2': 1.0,
         'target3': 0.0,
     }
-    self.mock.get_download_file_size.return_value = 1
+    self.mock.get_object_size.return_value = 1
     self.mock.copy_file_from.return_value = True
 
     mock_targets_from_archive = self.mock._get_fuzz_targets_from_archive
@@ -1921,7 +1921,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_download_file_size',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.read_data',
         'clusterfuzz._internal.system.archive.unpack',
@@ -1952,7 +1952,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'target2': 1.0,
         'target3': 0.0,
     }
-    self.mock.get_download_file_size.return_value = 1
+    self.mock.get_object_size.return_value = 1
     self.mock.copy_file_from.return_value = True
 
     self.mock._make_space.return_value = True

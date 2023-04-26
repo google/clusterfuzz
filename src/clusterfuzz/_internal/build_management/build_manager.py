@@ -501,8 +501,7 @@ class Build(BaseBuild):
     build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
 
     # Make the disk space necessary for the archive available.
-    archive_size = storage.get_download_file_size(
-        build_url, build_local_archive, use_cache=True)
+    archive_size = storage.get_object_size(build_url)
     if archive_size is not None and not _make_space(archive_size,
                                                     base_build_dir):
       shell.clear_data_directories()

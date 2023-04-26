@@ -240,9 +240,6 @@ def find_regression_range(testcase_id, job_type):
                                            'Failed to fetch revision list')
     return
 
-  # Don't burden NFS server with caching these random builds.
-  environment.set_value('CACHE_STORE', False)
-
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
   max_revision = testcase.get_metadata('last_regression_max')
