@@ -67,6 +67,7 @@ class CrashInfo:
     self.found_python_crash = False
     self.found_golang_crash = False
     self.found_android_kernel_crash = False
+    self.is_trusty = False
 
 
 def _filter_stack_frame(stack_frame):
@@ -222,6 +223,10 @@ class StackParser:
         break
 
     if demangle and environment.is_posix():
+      if '\x00' in frame:
+        # We can't pass the frame as an argument (will be a ValueError) and if
+        # there's a NULL in the "frame" it's probably not actually a frame.
+        return None
       pipe = subprocess.Popen(
           ['c++filt', '-n', frame],
           stdin=subprocess.PIPE,
@@ -399,6 +404,7 @@ class StackParser:
     state.is_golang = '.go:' in stacktrace
     state.is_python = '.py", line' in stacktrace
     state.is_js = 'Uncaught Exception: Jazzer.js' in stacktrace
+    state.is_trusty = 'Trusted App crash stacktrace' in stacktrace
 
     # For Android LKL (and potentially kernel output), the KASAN crash may start
     # with the time since boot.  We need to remove this so that our regexes
@@ -641,6 +647,9 @@ class StackParser:
           state.crash_state = ''
           state.frame_count = 0
           continue
+
+      if state.is_trusty:
+        state.crash_type = 'Trusted app crash'
 
       # Sanitizer SEGV crashes.
       segv_match = SAN_SEGV_REGEX.match(line)
@@ -1276,6 +1285,11 @@ class StackParser:
 
       if state.is_js and self.add_frame_on_match(
           JAZZER_JS_STACK_FRAME_FUNCTION_REGEX, line, state, group=1):
+        continue
+
+      # Trusty logcat stack frames
+      if state.is_trusty and self.add_frame_on_match(
+          TRUSTY_STACK_FRAME_REGEX, line, state, group=4):
         continue
 
     # Detect cycles in stack overflow bugs and update crash state.

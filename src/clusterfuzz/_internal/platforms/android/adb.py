@@ -25,6 +25,7 @@ import time
 
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -48,6 +49,7 @@ MONKEY_PROCESS_NAME = 'monkey'
 WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
 RECOVERY_CMD_TIMEOUT = 60
+GET_DEVICE_STATE_TIMEOUT = 20
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
 
@@ -57,6 +59,8 @@ LSUSB_SERIAL_RE = re.compile(r'\s+iSerial\s+\d\s+(.*)')
 
 # This is a constant value defined in usbdevice_fs.h in Linux system.
 USBDEVFS_RESET = ord('U') << 8 | 20
+
+RAMOOPS_READER_GCS_PATH = 'gs://haiku-storage/trusty/ramoops_reader.py'
 
 
 def bad_state_reached():
@@ -224,6 +228,12 @@ def get_adb_path():
 
 def get_device_state():
   """Return the device status."""
+  if environment.is_android_emulator():
+    fastboot_state = run_fastboot_command(
+        ['getvar', 'is-ramdump-mode'], timeout=GET_DEVICE_STATE_TIMEOUT)
+    if fastboot_state and 'is-ramdump-mode: yes' in fastboot_state:
+      return 'is-ramdump-mode:yes'
+
   state_cmd = get_adb_command_line('get-state')
   return execute_command(state_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
@@ -263,6 +273,32 @@ def get_kernel_log_content():
     kernel_log_content += read_data_from_file(kernel_log_file) or ''
 
   return kernel_log_content
+
+
+def extract_logcat_from_ramdump_and_reboot():
+  """Extracts logcat from ramdump kernel log and reboots."""
+  run_fastboot_command(
+      ['oem', 'ramdump', 'stage_file', 'kernel.log'],
+      timeout=RECOVERY_CMD_TIMEOUT)
+  run_fastboot_command(
+      ['get_staged', 'kernel.log'], timeout=WAIT_FOR_DEVICE_TIMEOUT)
+
+  storage.copy_file_from(RAMOOPS_READER_GCS_PATH, 'ramoops_reader.py')
+  subprocess.run(
+      'python ramoops_reader.py kernel.log > logcat.log',
+      shell=True,
+      check=False)
+  with open('logcat.log', 'r') as file:
+    logcat = file.read()
+
+  files_to_delete = ['ramoops_reader.py', 'kernel.log', 'logcat.log']
+  for filepath in files_to_delete:
+    os.remove(filepath)
+
+  run_fastboot_command('reboot')
+  wait_until_fully_booted()
+
+  return logcat
 
 
 def get_ps_output():
@@ -337,6 +373,17 @@ def hard_reset():
   # Try soft-reset now (does not require root).
   soft_reset_cmd = get_adb_command_line('reboot')
   execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
+
+  if environment.is_android_emulator():
+    logs.log('Platform ANDROID_EMULATOR detected.')
+    restart_adb()
+    state = get_device_state()
+
+    logs.log('Device state is: %s' % state)
+    if state == 'recovery':
+      logs.log('Rebooting recovery state device with --wipe_data.')
+      run_command('root')
+      run_shell_command('recovery --wipe_data')
 
 
 def kill_processes_and_children_matching_name(process_name):
@@ -434,6 +481,11 @@ def remount():
   run_command('remount')
   wait_for_device()
   run_as_root()
+
+
+def restart_adb():
+  run_command('kill-server')
+  run_command('start-server')
 
 
 def remove_directory(device_directory, recreate=False):
@@ -802,6 +854,9 @@ def wait_until_fully_booted():
     time.sleep(BOOT_WAIT_INTERVAL)
 
   factory_reset()
+  if environment.is_android_emulator():
+    #Device may be in recovery mode
+    hard_reset()
   logs.log_fatal_and_exit(
       'Device failed to finish boot. Reset to factory settings and exited.')
 

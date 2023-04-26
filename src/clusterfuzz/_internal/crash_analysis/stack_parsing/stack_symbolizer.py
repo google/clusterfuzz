@@ -66,6 +66,9 @@ STACK_TRACE_LINE_REGEX = re.compile(
 STACK_TRACE_LINE_REGEX_LKL = re.compile(
     r'^\[ *\d+\.\d+\]( *#([0-9]+) *)\[\<([x0-9a-fA-F]+)\>\] *'
     r'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
+# uSP+0x7c80: 0x00000000000922a8 libc_start_main_stage2+0x3c/0x40
+STACK_TRACE_LINE_TRUSTY = re.compile(
+    '(^kSP|^uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16})')
 
 
 class LineBuffered(object):
@@ -525,7 +528,79 @@ class SymbolizationLoop(object):
 
     return None, None, None, None, None
 
+  def _trusty_line_parser(self, line):
+    """Parses line for memory_space, offset, and addr."""
+    match = STACK_TRACE_LINE_TRUSTY.match(line)
+    if match:
+      memory_space, offset, addr = match.groups()
+      return memory_space, offset, addr
+
+    return None, None, None
+
+  def _extract_trusty_app_name(self, stacktrace):
+    """Returns the name of the crashed Trusted App."""
+    #(app: keymaster)
+    match = re.compile(r'\(app:\s(\w+)\)').search(stacktrace)
+    if match:
+      return match.group(1)
+
+    return ''
+
+  def _extract_trusty_bid(self, stacktrace):
+    """Returns the build of the crashed Trusted App."""
+    #, Build: 1234567
+    match = re.compile(r',\sBuild:\s(\d+),\sBuilt:').search(stacktrace)
+    if match:
+      return match.group(1)
+
+    return ''
+
+  def _close_pipes(self):
+    """Closes any open pipes."""
+    for pipe in pipes:
+      pipe.stdin.close()
+      pipe.stdout.close()
+      try:
+        pipe.kill()
+      except ProcessLookupError:
+        pass
+
+  def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
+    """Adds debug line information to a Trusted App stacktrace."""
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
+    trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
+    trusty_bid = self._extract_trusty_bid(unsymbolized_crash_stacktrace)
+
+    symbols_downloader.download_trusty_symbols_if_needed(
+        symbols_dir, trusty_app, trusty_bid)
+    kernel_binary = f'{symbols_dir}/lk.elf'
+    trusty_binary = f'{symbols_dir}/{trusty_app}.syms.elf'
+
+    symbolized_stacktrace = ''
+    unsymbolized_crash_stacktrace_lines = \
+      unsymbolized_crash_stacktrace.splitlines()
+    for line in unsymbolized_crash_stacktrace_lines:
+      line = line.strip()
+      memory_space, offset, addr = self._trusty_line_parser(line)
+      if memory_space == 'kSP':
+        addr2line = Addr2LineSymbolizer(kernel_binary)
+        symbolized_stacktrace += '{}+{}: {}\n'.format(
+            memory_space, offset,
+            addr2line.symbolize(addr, kernel_binary, addr)[0])
+      elif memory_space == 'uSP':
+        addr2line = Addr2LineSymbolizer(trusty_binary)
+        symbolized_stacktrace += '{}+{}: {}\n'.format(
+            memory_space, offset,
+            addr2line.symbolize(addr, trusty_binary, addr)[0])
+      else:
+        symbolized_stacktrace += '%s\n' % line
+
+    self._close_pipes()
+
+    return symbolized_stacktrace
+
   def process_stacktrace(self, unsymbolized_crash_stacktrace):
+    """Symbolizes a crash stacktrace."""
     self.frame_no = 0
     symbolized_crash_stacktrace = u''
     unsymbolized_crash_stacktrace_lines = \
@@ -568,11 +643,7 @@ class SymbolizationLoop(object):
               '    #' + str(self.frame_no) + ' ' + symbolized_frame.rstrip())
           self.frame_no += 1
 
-    # Close any left-over open pipes.
-    for pipe in pipes:
-      pipe.stdin.close()
-      pipe.stdout.close()
-      pipe.kill()
+    self._close_pipes()
 
     return symbolized_crash_stacktrace
 
@@ -642,6 +713,10 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
   loop = SymbolizationLoop(
       binary_path_filter=filter_binary_path,
       dsym_hint_producer=chrome_dsym_hints)
+  if environment.is_android_emulator():
+    symbolized_crash_stacktrace = loop.process_trusty_stacktrace(
+        unsymbolized_crash_stacktrace)
+
   symbolized_crash_stacktrace = loop.process_stacktrace(
       unsymbolized_crash_stacktrace)
 

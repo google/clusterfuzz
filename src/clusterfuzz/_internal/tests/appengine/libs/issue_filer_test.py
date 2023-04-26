@@ -794,6 +794,38 @@ class IssueFilerTests(unittest.TestCase):
     self.assertIn('Target: target, Project: proj',
                   issue_tracker._itm.last_issue.body)
 
+  def test_crash_type_labels(self):
+    """Test crash type labels."""
+    policy = issue_tracker_policy.IssueTrackerPolicy({
+        'status': {
+            'assigned': 'Assigned',
+            'duplicate': 'Duplicate',
+            'verified': 'Verified',
+            'new': 'Untriaged',
+            'wontfix': 'WontFix',
+            'fixed': 'Fixed'
+        },
+        'all': {
+            'status': 'new',
+        },
+        'non_security': {},
+        'labels': {
+            'crash_types': {
+                'heap-use-after-free': 'Memory corruption',
+                'stack-overflow': 'Resource Exhaustion',
+            }
+        },
+        'security': {},
+        'existing': {},
+    })
+    self.mock.get.return_value = policy
+
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+    self.assertIn('Memory corruption', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Resource Exhaustion',
+                     issue_tracker._itm.last_issue.labels)
+
 
 class MemoryToolLabelsTest(unittest.TestCase):
   """Memory tool labels tests."""

@@ -414,7 +414,7 @@ def get_component_revisions_dict(revision, job_type, platform_id=None):
 
   # Default case: parse content as yaml.
   revisions_dict = _to_dict(url_content)
-  if not revisions_dict:
+  if revisions_dict is None:
     logs.log_error(
         'Failed to parse component revisions from %s.' % revision_vars_url)
     return None

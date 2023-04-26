@@ -22,6 +22,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from handlers import auth
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range
@@ -159,6 +160,7 @@ cron_routes = [
 
 handlers = [
     ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
+    ('/__/auth/<path:extra>', auth.Handler),
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/bots', bots.Handler),
     ('/bots/dead', bots.DeadBotsHandler),

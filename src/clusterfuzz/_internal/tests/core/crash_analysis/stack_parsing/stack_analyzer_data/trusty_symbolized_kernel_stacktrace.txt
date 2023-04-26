@@ -1,0 +1,66 @@
++-- Logcat excerpt: Trusted App crash stacktrace --+      
+
+panic notifier - trusty version Project: cloudripper-fuzz-test-debug, Build: 9445778, Built: 10:17:59 Dec 30 2022
+data fault writing to 0x***, PC at 0x***(0x***)
+fault code 0x7: Translation fault, level 3
+app: hwbcc
+load bias: 0x***
+ESR 0x***: ec 0x24, il 0x1, iss 0x47
+thread: 0x*** (trusty_app_9_829bdd97-2cf8-4c3c)
+stack   0x***-0x***
+iframe  0x***:
+void trusty_app_exit(int):1524: trusty_app_9_829bdd97-2cf8-4c3c, exited with exit code 1
+
+Backtrace for thread: trusty_app_9_829bdd97-2cf8-4c3c
+(app: hwbcc)
+kSP+0x0df0: 0xffff000000022f5c in trusty_app_exit ld-temp.o:?
+kSP+0x0e30: 0xffff0000000230c4 in app_mgr ld-temp.o:?
+kSP+0x0e70: 0xffff000000005674 in arm64_sync_exception ld-temp.o:?
+kSP+0x0eb0: 0xffff000000001804 in arm64_sync_exc_shared /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/lk/arch/arm64/exceptions.S:288
+kSP+0x0ff0: 0x0000000000019fcc in lk.elf
+uSP+0x01d0: 0x000000000001b048 in fe_invert /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/boringssl/src/crypto/internal.h:845
+uSP+0x05f0: 0x000000000001f56c in DiceSign /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/open-dice/src/boringssl_ed25519_ops.c:55
+uSP+0x0650: 0x000000000001ee98 in DiceCoseSignAndEncodeSign1 /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/open-dice/src/cbor_cert_op.c:185
+uSP+0x06f0: 0x000000000001da10 in swbcc_sign_key /usr/local/google/buildbot/src/googleplex-polygon-android/master/trusty/user/base/lib/hwbcc/common/swbcc.c:76
+uSP+0x0760: 0x000000000001255c in hwbcc_sign_key /usr/local/google/buildbot/src/googleplex-polygon-android/master/trusty/user/whitechapel/tz/app/hwbcc/main.c:74
+uSP+0x07d0: 0x00000000000209ac in handle_sign_data /usr/local/google/buildbot/src/googleplex-polygon-android/master/trusty/user/base/lib/hwbcc/srv/srv.c:146
+uSP+0x1480: 0x00000000000207f4 in on_message /usr/local/google/buildbot/src/googleplex-polygon-android/master/trusty/user/base/lib/hwbcc/srv/srv.c:288
+uSP+0x2b30: 0x00000000000210bc in chan_event_handler_proc /usr/local/google/buildbot/src/googleplex-polygon-android/master/trusty/user/base/lib/tipc/tipc_srv.c:138
+uSP+0x2b80: 0x0000000000012a94 in tipc_handle_event /usr/local/google/buildbot/src/googleplex-polygon-android/master/trusty/user/base/lib/tipc/tipc.c:?
+uSP+0x2cc0: 0x0000000000012058 in libc_start_main_stage2 /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/trusty/musl/src/env/__libc_start_main.c:77
+uSP+0x2cf0: 0x0000000000012008 in __libc_start_main /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/trusty/musl/src/env/__libc_start_main.c:68
+uSP+0x2d20: 0x000000000000c22c in __dls2 /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/trusty/musl/crt/rcrt1.c:14
+uSP+0x2d50: 0x000000000000c1e0 in _start_c /usr/local/google/buildbot/src/googleplex-polygon-android/master/external/trusty/musl/crt/rcrt1.c:148
+uSP+0x2f60: 0x0000000000000000 in hwbcc.syms.elf
+panic (caller 0x***): Unclean exit from critical app
+Project: cloudripper-fuzz-test-debug, Build: 9445778, Built: 10:17:59 Dec 30 2022
+
+
+ERROR: ld.so: object '/usr/local/google/home/davfu/Documents/clusterfuzz-out/clusterfuzz/resources/platform/android/radamsa/libradamsa.so' from LD_PRELOAD cannot be preloaded (cannot open shared object file): ignored.
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1041537715
+INFO: Loaded 9 modules   (28673 inline 8-bit counters): 17670 [0x7036f9db30, 0x7036fa2036), 1479 [0x703b7a6690, 0x703b7a6c57), 18 [0x70337752e0, 0x70337752f2), 7048 [0x703ad88de8, 0x703ad8a970), 155 [0x703b7753b8, 0x703b775453), 1528 [0x703b428a68, 0x703b429060), 388 [0x703b7f27d8, 0x703b7f295c), 262 [0x703ac6a048, 0x703ac6a14e), 125 [0x5fb4681030, 0x5fb46810ad), 
+INFO: Loaded 9 PC tables (28673 PCs): 17670 [0x7036fa2038,0x7036fe7098), 1479 [0x703b7a6c58,0x703b7ac8c8), 18 [0x70337752f8,0x7033775418), 7048 [0x703ad8a970,0x703ada61f0), 155 [0x703b775458,0x703b775e08), 1528 [0x703b429060,0x703b42efe0), 388 [0x703b7f2960,0x703b7f41a0), 262 [0x703ac6a150,0x703ac6b1b0), 125 [0x5fb46810b0,0x5fb4681880), 
+INFO: 65536 Extra Counters
+INFO:        0 files found in /data/fuzz/bot/inputs/fuzzer-testcases-disk/temp-134505/new
+INFO:        0 files found in /data/fuzz/bot/inputs/fuzzer-testcases-disk/temp-134505/mutations
+INFO:       50 files found in /data/fuzz/bot/inputs/data-bundles/trusty_keymaster_fuzzer
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+INFO: seed corpus: files: 50 min: 12b max: 702b total: 8568b rss: 32Mb
+#51	INITED cov: 44 ft: 246 corp: 7/2188b exec/s: 0 rss: 32Mb
+#54	REDUCE cov: 44 ft: 246 corp: 7/2187b lim: 702 exec/s: 0 rss: 32Mb L: 27/702 MS: 3 InsertRepeatedBytes-InsertByte-EraseBytes-
+#56	NEW    cov: 44 ft: 250 corp: 8/2216b lim: 702 exec/s: 0 rss: 32Mb L: 29/702 MS: 2 ChangeASCIIInt-EraseBytes-
+#59	NEW    cov: 44 ft: 253 corp: 9/2418b lim: 702 exec/s: 0 rss: 32Mb L: 202/702 MS: 3 ChangeASCIIInt-ChangeByte-InsertRepeatedBytes-
+#87	NEW    cov: 44 ft: 257 corp: 10/2672b lim: 702 exec/s: 0 rss: 32Mb L: 254/702 MS: 3 InsertRepeatedBytes-InsertByte-InsertRepeatedBytes-
+#98	NEW    cov: 44 ft: 260 corp: 11/3100b lim: 702 exec/s: 0 rss: 32Mb L: 428/702 MS: 1 CrossOver-
+
+
+Logcat:
+==== Last Logcat ====
+[M] 12-20 17:37:27.368Z  1000  1542  1974 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=124, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10222 RequestorUid: 1000 RequestorPkg: android UnderlyingNetworks: Null] ]
+[M] 12-20 17:37:27.368Z  1000  1542  1974 V WifiNetworkFactory: Accepted network request NetworkRequest [ REQUEST id=124, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10222 RequestorUid: 1000 RequestorPkg: android UnderlyingNetworks: Null] ]
+[M] 12-20 17:37:27.369Z  1000  1542  1974 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=124, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10222 RequestorUid: 1000 RequestorPkg: android UnderlyingNetworks: Null] ]
+[M] 12-20 17:37:27.369Z  1000  1542  1974 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=124, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10222 RequestorUid: 1000 RequestorPkg: android UnderlyingNetworks: Null] ]
+[M] 12-20 17:37:27.369Z  1000  1542  1974 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=124, [ Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 10222 RequestorUid: 1000 RequestorPkg: android UnderlyingNetworks: Null] ]
+[M] 12-20 17:37:27.370Z  1000  1542  1985 D ConnectivityService: NetReassign [no changes] [c 1] [a 0] [i 3]
+[M] 12-20 17:37:27.598Z  1080  1267  1460 D CHRE: @  58.130: Parsed nanoapp message from host: app ID 0x476f6f676c001021 endpoint 0x3 msgType 2 payload size 0
