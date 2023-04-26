@@ -54,7 +54,7 @@ class StrategyPool(object):
 
 
 def choose_generator(strategy_pool):
-  """Chooses whether to use radamsa, or no generator and updates the strategy
+  """Chooses whether to use radamsa or no generator and updates the strategy
   pool."""
 
   radamsa_prob = engine_common.get_strategy_probability(
@@ -79,8 +79,8 @@ def generate_default_strategy_pool(strategy_list, use_generator):
   Select strategies according to default strategy selection method."""
   pool = StrategyPool()
 
-  # If use_generator is enabled, decide whether to include radamsa,
-  # or no generator (mutually exclusive).
+  # If use_generator is enabled, decide whether to include radamsa or no
+  # generator (mutually exclusive).
   if use_generator:
     choose_generator(pool)
 

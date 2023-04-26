@@ -677,7 +677,7 @@ class AflRunnerCommon(object):
     return afl_args
 
   def do_offline_mutations(self):
-    """Mutate the corpus offline using Radamsa or if specified."""
+    """Mutate the corpus offline using Radamsa."""
     if not self.strategies.is_mutations_run:
       return
 
