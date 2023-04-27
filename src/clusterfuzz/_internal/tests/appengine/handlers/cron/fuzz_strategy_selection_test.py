@@ -67,7 +67,6 @@ class TestFuzzStrategySelection(unittest.TestCase):
     self.assertEqual(row3.probability, 0.018084561514142703)
     self.assertEqual(row3.engine, 'libFuzzer')
 
-
   def test_delete_from_table(self):
     """Ensures that ndb datastore table is properly being
     cleared before being updated."""
