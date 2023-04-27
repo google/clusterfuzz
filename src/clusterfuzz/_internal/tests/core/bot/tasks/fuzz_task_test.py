@@ -26,7 +26,6 @@ import unittest
 import mock
 import parameterized
 from pyfakefs import fake_filesystem_unittest
-import six
 
 from clusterfuzz import stacktraces
 from clusterfuzz._internal.base import utils
@@ -782,7 +781,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.mock.insert.return_value = {'insertErrors': [{'index': 0}]}
 
     # TODO(metzman): Add a separate test for strategies.
-    r2_stacktrace = ('r2\ncf::fuzzing_strategies: value_profile\n')
+    r2_stacktrace = 'r2\ncf::fuzzing_strategies: value_profile\n'
 
     crashes = [
         self._make_crash('r1', state='reproducible1'),
@@ -1527,11 +1526,9 @@ class UntrustedRunEngineFuzzerTest(
     self.assertTrue(result.crashes[0].input_path.startswith(
         os.environ['ROOT_DIR']))
     self.assertTrue(os.path.exists(result.crashes[0].input_path))
-    self.assertIsInstance(
-        result.stats.get('number_of_executed_units'), six.integer_types)
-    self.assertIsInstance(result.stats.get('oom_count'), six.integer_types)
-    self.assertIsInstance(
-        result.stats.get('strategy_selection_method'), six.string_types)
+    self.assertIsInstance(result.stats.get('number_of_executed_units'), int)
+    self.assertIsInstance(result.stats.get('oom_count'), int)
+    self.assertIsInstance(result.stats.get('strategy_selection_method'), str)
 
     self.assertDictEqual({'fuzzer_binary_name': 'test_fuzzer'}, fuzzer_metadata)
     self.assertDictEqual({'value_profile': 1}, strategies)

@@ -15,8 +15,6 @@
 
 import os
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -89,11 +87,11 @@ def _filter_path(path, write=False):
 class GSUtilRunner(object):
   """GSUtil runner."""
 
-  def __init__(self, _process_runner=new_process.ProcessRunner):
+  def __init__(self, process_runner=new_process.ProcessRunner):
     default_gsutil_args = ['-m']
     default_gsutil_args.extend(_multiprocessing_args())
 
-    self.gsutil_runner = _process_runner(
+    self.gsutil_runner = process_runner(
         _get_gsutil_path(), default_args=default_gsutil_args)
 
   def run_gsutil(self, arguments, quiet=False, **kwargs):
@@ -163,7 +161,7 @@ class GSUtilRunner(object):
 
     command = []
     if metadata:
-      for key, value in six.iteritems(metadata):
+      for key, value in metadata.items():
         command.extend(['-h', key + ':' + value])
 
     command.append('cp')

@@ -15,8 +15,6 @@
 
 import datetime
 
-import six
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -43,7 +41,7 @@ def _add_default_issue_metadata(testcase):
     return
 
   testcase_metadata = testcase.get_metadata()
-  for key, default_value in six.iteritems(default_metadata):
+  for key, default_value in default_metadata.items():
     # Add the default issue metadata first. This gives preference to uploader
     # specified issue metadata.
     new_value_list = utils.parse_delimited(
@@ -156,7 +154,6 @@ def execute_task(testcase_id, job_type):
   # Update initial testcase information.
   testcase.absolute_path = testcase_file_path
   testcase.job_type = job_type
-  testcase.binary_flag = utils.is_binary_file(testcase_file_path)
   testcase.queue = tasks.default_queue()
   testcase.crash_state = ''
 

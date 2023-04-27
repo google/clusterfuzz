@@ -16,8 +16,6 @@
 import os
 import time
 
-import six
-
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -131,7 +129,7 @@ def _update_issue_metadata(testcase):
   if not metadata:
     return
 
-  for key, value in six.iteritems(metadata):
+  for key, value in metadata.items():
     old_value = testcase.get_metadata(key)
     if old_value != value:
       logs.log('Updating issue metadata for {} from {} to {}.'.format(

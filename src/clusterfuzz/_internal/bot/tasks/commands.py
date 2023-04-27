@@ -17,8 +17,6 @@ import functools
 import sys
 import time
 
-import six
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -31,7 +29,6 @@ from clusterfuzz._internal.bot.tasks import minimize_task
 from clusterfuzz._internal.bot.tasks import progression_task
 from clusterfuzz._internal.bot.tasks import regression_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
-from clusterfuzz._internal.bot.tasks import train_rnn_generator_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks import variant_task
@@ -50,7 +47,6 @@ COMMAND_MAP = {
     'fuzz': fuzz_task,
     'impact': impact_task,
     'minimize': minimize_task,
-    'train_rnn_generator': train_rnn_generator_task,
     'progression': progression_task,
     'regression': regression_task,
     'symbolize': symbolize_task,
@@ -114,7 +110,7 @@ def update_environment_for_job(environment_string):
   environment_values = (
       environment.parse_environment_definition(environment_string))
 
-  for key, value in six.iteritems(environment_values):
+  for key, value in environment_values.items():
     environment.set_value(key, value)
 
   # If we share the build with another job type, force us to be a custom binary

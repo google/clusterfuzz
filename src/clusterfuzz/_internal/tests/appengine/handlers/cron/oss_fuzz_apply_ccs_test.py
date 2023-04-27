@@ -16,7 +16,6 @@ import datetime
 import unittest
 
 import flask
-import six
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -154,7 +153,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual(len(self.itm.modified_issues), 3)
 
     issue_1337 = self.itm.modified_issues[1337]
-    six.assertCountEqual(self, issue_1337.cc, [
+    self.assertCountEqual(issue_1337.cc, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -165,7 +164,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertNotIn(1338, self.itm.modified_issues)
 
     issue_1339 = self.itm.modified_issues[1339]
-    six.assertCountEqual(self, issue_1339.cc, [
+    self.assertCountEqual(issue_1339.cc, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -174,7 +173,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual(issue_1339.comment, '')
 
     issue_1340 = self.itm.modified_issues[1340]
-    six.assertCountEqual(self, issue_1340.cc, [
+    self.assertCountEqual(issue_1340.cc, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -191,7 +190,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual(len(self.itm.modified_issues), 3)
 
     issue_1337 = self.itm.modified_issues[1337]
-    six.assertCountEqual(self, issue_1337.cc, [
+    self.assertCountEqual(issue_1337.cc, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -202,7 +201,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertNotIn(1338, self.itm.modified_issues)
 
     issue_1339 = self.itm.modified_issues[1339]
-    six.assertCountEqual(self, issue_1339.cc, [
+    self.assertCountEqual(issue_1339.cc, [
         'user@example.com',
         'user2@example.com',
     ])
@@ -211,7 +210,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.assertEqual('', issue_1339.comment)
 
     issue_1340 = self.itm.modified_issues[1340]
-    six.assertCountEqual(self, issue_1340.cc, [
+    self.assertCountEqual(issue_1340.cc, [
         'user@example.com',
         'user2@example.com',
     ])

@@ -45,7 +45,7 @@ monitoring:
 firebase:
   # API key for Firebase (public).
   api_key: firebase-api-key
-  # auth_domain: login.custom-domain.com
+  auth_domain: login.custom-domain.com
   auth_providers:
   - google.com
   # - github.com

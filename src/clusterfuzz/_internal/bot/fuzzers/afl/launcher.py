@@ -32,8 +32,6 @@ import stat
 import subprocess
 import sys
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -43,7 +41,6 @@ from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.afl import constants
 from clusterfuzz._internal.bot.fuzzers.afl import stats
 from clusterfuzz._internal.bot.fuzzers.afl.fuzzer import write_dummy_file
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import profiler
@@ -126,7 +123,7 @@ class AflConfig(object):
 
     # Try to convert libFuzzer arguments to AFL arguments or env vars.
     libfuzzer_options = fuzzer_options.get_engine_arguments('libfuzzer')
-    for libfuzzer_name, value in six.iteritems(libfuzzer_options.dict()):
+    for libfuzzer_name, value in libfuzzer_options.dict().items():
       if libfuzzer_name not in self.LIBFUZZER_TO_AFL_OPTIONS:
         continue
 
@@ -346,9 +343,6 @@ class FuzzingStrategies(object):
 
       if strategy_dict.get(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name) == 1:
         self.candidate_generator = engine_common.Generator.RADAMSA
-      elif strategy_dict.get(
-          strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name) == 1:
-        self.candidate_generator = engine_common.Generator.ML_RNN
     else:
       strategy_pool = strategy_selection.generate_weighted_strategy_pool(
           strategy_list=strategy.AFL_STRATEGY_LIST,
@@ -381,8 +375,6 @@ class FuzzingStrategies(object):
 
     if self.generator_strategy == engine_common.Generator.RADAMSA:
       strategies_dict[strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
-    elif self.generator_strategy == engine_common.Generator.ML_RNN:
-      strategies_dict[strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = 1
 
     if self.use_corpus_subset:
       strategies_dict['corpus_subset'] = self.corpus_subset_size
@@ -528,7 +520,7 @@ class AflRunnerCommon(object):
 
     self.initial_max_total_time = 0
 
-    for env_var, value in six.iteritems(config.additional_env_vars):
+    for env_var, value in config.additional_env_vars.items():
       environment.set_value(env_var, value)
 
     self.showmap_output_path = os.path.join(fuzzer_utils.get_temp_dir(),
@@ -683,20 +675,16 @@ class AflRunnerCommon(object):
     return afl_args
 
   def do_offline_mutations(self):
-    """Mutate the corpus offline using Radamsa or ML RNN if specified."""
+    """Mutate the corpus offline using Radamsa."""
     if not self.strategies.is_mutations_run:
       return
 
-    target_name = os.path.basename(self.target_path)
-    project_qualified_target_name = (
-        data_types.fuzz_target_project_qualified_name(utils.current_project(),
-                                                      target_name))
     # Generate new testcase mutations according to candidate generator. If
     # testcase mutations are properly generated, set generator strategy
     # accordingly.
     generator_used = engine_common.generate_new_testcase_mutations(
         self.afl_input.input_directory, self.afl_input.input_directory,
-        project_qualified_target_name, self.strategies.candidate_generator)
+        self.strategies.candidate_generator)
 
     if generator_used:
       self.strategies.generator_strategy = self.strategies.candidate_generator
@@ -1397,8 +1385,7 @@ class Corpus(object):
   @property
   def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
-    return set(
-        element.path for element in six.itervalues(self.features_and_elements))
+    return set(element.path for element in self.features_and_elements.values())
 
   def _associate_feature_with_element(self, feature, element):
     """Associate a feature with an element if the element is the smallest for
@@ -1478,8 +1465,7 @@ def set_additional_sanitizer_options_for_afl_fuzz():
       },
   }
 
-  for options_env_var, option_values in six.iteritems(
-      required_sanitizer_options):
+  for options_env_var, option_values in required_sanitizer_options.items():
     # If os.environ[options_env_var] is an empty string, afl will refuse to run,
     # because we haven't set the right options. Thus only continue if it does
     # not exist.
@@ -1536,7 +1522,8 @@ def get_first_stacktrace(stderr_data):
 
   # Use question mark after .+ for non-greedy, otherwise it will match more
   # than one stack trace.
-  sanitizer_stacktrace_regex = r'ERROR: [A-z]+Sanitizer: .*\n(.|\n)+?ABORTING'
+  sanitizer_stacktrace_regex = (
+      r'ERROR: [A-Za-z]+Sanitizer: .*\n(.|\n)+?ABORTING')
   match = re.search(sanitizer_stacktrace_regex, stderr_data)
 
   # If we can't find the first stacktrace, return the whole thing.

@@ -17,7 +17,6 @@ import os
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
-import six
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -111,7 +110,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
         contents='{"key":"value"}').st_mtime = mtime_seconds
 
     result = list(self.provider.list_blobs('gs://test-bucket'))
-    six.assertCountEqual(self, [{
+    self.assertCountEqual([{
         'bucket': 'test-bucket',
         'name': 'a',
         'updated': mtime,
@@ -140,7 +139,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
     }], result)
 
     result = list(self.provider.list_blobs('gs://test-bucket/b'))
-    six.assertCountEqual(self, [{
+    self.assertCountEqual([{
         'bucket': 'test-bucket',
         'name': 'b/c',
         'updated': mtime,
@@ -157,7 +156,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
     }], result)
 
     result = list(self.provider.list_blobs('gs://test-bucket/b/d'))
-    six.assertCountEqual(self, [{
+    self.assertCountEqual([{
         'bucket': 'test-bucket',
         'name': 'b/d/e',
         'updated': mtime,
@@ -167,7 +166,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
 
     result = list(
         self.provider.list_blobs('gs://test-bucket/', recursive=False))
-    six.assertCountEqual(self, [{
+    self.assertCountEqual([{
         'bucket': 'test-bucket',
         'name': 'a',
         'updated': mtime,

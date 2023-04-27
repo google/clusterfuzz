@@ -1,0 +1,126 @@
+I0403 23:21:04.101037 3057259 environment.cc:326] --timeout_per_batch default wasn't overridden; auto-computed to be 694 sec (see --help for details)
+I0403 23:21:04.104306 3057259 centipede_interface.cc:193] Coverage dir /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/clusterfuzz_format_target-107df8b7dd5c028d9d4a840ac311d3823f8edaf9
+I0403 23:21:04.104443 3057259 centipede_default_callbacks.cc:36] Detecting custom mutator in target...
+I0403 23:21:04.104490 3057259 command.cc:100] Starting fork server for /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target
+I0403 23:21:04.104546 3057259 command.cc:116] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-3057259-139733215261376/207d52d549d92eea057d378aa0975960d347cd51_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-3057259-139733215261376/207d52d549d92eea057d378aa0975960d347cd51_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50:path_level=0:use_pc_features:use_cmp_features:use_auto_dictionary:use_dataflow_features::shmem:arg1=/centipede-shm1-3057259-139733215261376:arg2=/centipede-shm2-3057259-139733215261376:failure_description_path=/tmp/centipede-3057259-139733215261376/failure_description:: \
+/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target \
+> /tmp/centipede-3057259-139733215261376/log \
+2>&1 &
+I0403 23:21:04.110810 3057259 centipede_default_callbacks.cc:44] Custom mutator undetected or misbehaving: will use built-in
+I0403 23:21:04.110856 3057259 centipede_default_callbacks.cc:45] external_mutator_ran=false mutants.size()=0 
+W0403 23:21:04.123040 3057259 symbol_table.cc:59] Symbolizer unspecified: debug symbols will not be used
+I0403 23:21:04.123369 3057268 centipede_default_callbacks.cc:36] Detecting custom mutator in target...
+I0403 23:21:04.123417 3057268 command.cc:100] Starting fork server for /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target
+I0403 23:21:04.123450 3057268 command.cc:116] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-3057259-139733214922496/207d52d549d92eea057d378aa0975960d347cd51_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-3057259-139733214922496/207d52d549d92eea057d378aa0975960d347cd51_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50:path_level=0:use_pc_features:use_cmp_features:use_auto_dictionary:use_dataflow_features::shmem:arg1=/centipede-shm1-3057259-139733214922496:arg2=/centipede-shm2-3057259-139733214922496:failure_description_path=/tmp/centipede-3057259-139733214922496/failure_description:: \
+/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target \
+> /tmp/centipede-3057259-139733214922496/log \
+2>&1 &
+I0403 23:21:04.128863 3057268 centipede_default_callbacks.cc:44] Custom mutator undetected or misbehaving: will use built-in
+I0403 23:21:04.128893 3057268 centipede_default_callbacks.cc:45] external_mutator_ran=false mutants.size()=0 
+I0403 23:21:04.167618 3057268 centipede.cc:553] Shard: 0/1 /tmp/centipede-3057259-139733214922496 seed: 139734898569019
+
+
+I0403 23:21:04.170305 3057268 centipede.cc:205] [0] begin-fuzz: ft: 0 cov: 0 cnt: 0 df: 0 cmp: 0 path: 0 pair: 0 usr: 0 corp: 0/0 fr: 0 max/avg: 0/0 d0/f0 exec/s: 0 mb: 273
+I0403 23:21:04.170500 3057268 centipede.cc:392] 2 inputs to rerun
+I0403 23:21:04.172685 3057268 command.cc:100] Starting fork server for /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target
+I0403 23:21:04.172739 3057268 command.cc:116] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-3057259-139733214922496/cca0757b97d218afe9ca01d72ffaf5eab2b86659_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-3057259-139733214922496/cca0757b97d218afe9ca01d72ffaf5eab2b86659_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50::shmem:arg1=/centipede-shm1-3057259-139733214922496:arg2=/centipede-shm2-3057259-139733214922496:failure_description_path=/tmp/centipede-3057259-139733214922496/failure_description:: \
+/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target \
+> /tmp/centipede-3057259-139733214922496/log \
+2>&1 &
+I0403 23:21:04.188020 3057268 centipede.cc:703] ReportCrash[0]: Batch execution failed:
+Binary               : /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target
+Exit code            : 1
+Failure              : 
+Number of inputs     : 2
+Number of inputs read: 1
+Suspect input index  : 1
+Crash log            :
+
+CRASH LOG: Starting watchdog thread: timeout_per_input: 5 sec; timeout_per_batch: 694 sec; rss_limit_mb: 4096 MB
+CRASH LOG: Not using RLIMIT_AS; VmSize is 20480Gb, suspecting ASAN/MSAN/TSAN
+CRASH LOG: Centipede fuzz target runner; argv[0]: /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target flags: :timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50::shmem:arg1=/centipede-shm1-3057259-139733214922496:arg2=/centipede-shm2-3057259-139733214922496:failure_description_path=/tmp/centipede-3057259-139733214922496/failure_description::
+CRASH LOG: uaf 0x602000000070
+CRASH LOG: =================================================================
+CRASH LOG: ==3057280==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000070 at pc 0x5593fbd29fda bp 0x7ffd079a1e80 sp 0x7ffd079a1e78
+CRASH LOG: WRITE of size 4 at 0x602000000070 thread T0
+CRASH LOG:     #0 0x5593fbd29fd9  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x129fd9) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #1 0x5593fbd2e495  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x12e495) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #2 0x5593fbd2cf5c  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x12cf5c) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #3 0x7ff540f39632  (/usr/grte/v5/lib64/libc.so.6+0x61632) (BuildId: 280088eab084c30a3992a9bce5c35b44)
+CRASH LOG:     #4 0x5593fbc5c049  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x5c049) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG: 
+CRASH LOG: 0x602000000070 is located 0 bytes inside of 4-byte region [0x602000000070,0x602000000074)
+CRASH LOG: freed by thread T0 here:
+CRASH LOG:     #0 0x5593fbcf6b86  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0xf6b86) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #1 0x5593fbd29cac  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x129cac) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #2 0x5593fbd2e495  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x12e495) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #3 0x5593fbd2cf5c  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x12cf5c) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #4 0x7ff540f39632  (/usr/grte/v5/lib64/libc.so.6+0x61632) (BuildId: 280088eab084c30a3992a9bce5c35b44)
+CRASH LOG:     #5 0x5593fbc5c049  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x5c049) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG: 
+CRASH LOG: previously allocated by thread T0 here:
+CRASH LOG:     #0 0x5593fbcf6e2e  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0xf6e2e) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #1 0x5593fbd2f278  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x12f278) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #2 0x5593fbd29c5e  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x129c5e) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #3 0x5593fbd2e495  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x12e495) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #4 0x5593fbd2cf5c  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x12cf5c) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG:     #5 0x7ff540f39632  (/usr/grte/v5/lib64/libc.so.6+0x61632) (BuildId: 280088eab084c30a3992a9bce5c35b44)
+CRASH LOG:     #6 0x5593fbc5c049  (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x5c049) (BuildId: 6509af2a8b969a00f4e74a14775604f1)
+CRASH LOG: 
+CRASH LOG: SUMMARY: AddressSanitizer: heap-use-after-free (/google/obj/workspace/50545acefe3d62c7e29776389559ac79fe0104ed94961baa47315415094f444d/dbbb3f15-e7ed-488a-a3a9-66827c00378b/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_sanitized_target+0x129fd9) (BuildId: 6509af2a8b969a00f4e74a14775604f1) 
+CRASH LOG: Shadow bytes around the buggy address:
+CRASH LOG:   0x601ffffffd80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+CRASH LOG:   0x601ffffffe00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+CRASH LOG:   0x601ffffffe80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+CRASH LOG:   0x601fffffff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+CRASH LOG:   0x601fffffff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+CRASH LOG: =>0x602000000000: fa fa 00 06 fa fa fd fa fa fa 03 fa fa fa[fd]fa
+CRASH LOG:   0x602000000080: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+CRASH LOG:   0x602000000100: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+CRASH LOG:   0x602000000180: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+CRASH LOG:   0x602000000200: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+CRASH LOG:   0x602000000280: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+CRASH LOG: Shadow byte legend (one shadow byte represents 8 application bytes):
+CRASH LOG:   Addressable:           00
+CRASH LOG:   Partially addressable: 01 02 03 04 05 06 07 
+CRASH LOG:   Heap left redzone:       fa
+CRASH LOG:   Freed heap region:       fd
+CRASH LOG:   Stack left redzone:      f1
+CRASH LOG:   Stack mid redzone:       f2
+CRASH LOG:   Stack right redzone:     f3
+CRASH LOG:   Stack after return:      f5
+CRASH LOG:   Stack use after scope:   f8
+CRASH LOG:   Global redzone:          f9
+CRASH LOG:   Global init order:       f6
+CRASH LOG:   Poisoned by user:        f7
+CRASH LOG:   Container overflow:      fc
+CRASH LOG:   Array cookie:            ac
+CRASH LOG:   Intra object redzone:    bb
+CRASH LOG:   ASan internal:           fe
+CRASH LOG:   Left alloca redzone:     ca
+CRASH LOG:   Right alloca redzone:    cb
+CRASH LOG: ==3057280==ABORTING
+
+I0403 23:21:04.188435 3057268 centipede.cc:740] ReportCrash[0]: Executing inputs one-by-one, trying to find the reproducer
+I0403 23:21:04.195692 3057268 centipede.cc:750] ReportCrash[0]: Detected crash-reproducing input:
+Input index    : 1
+Input bytes    : uaf
+Exit code      : 1
+Failure        : 
+Saving input to: /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/crashes/30bf732d44305b5afd7f50890940039700e0f4fb
+I0403 23:21:04.195785 3057268 centipede.cc:205] [2] rerun-old: ft: 24 cov: 5 cnt: 0 df: 0 cmp: 19 path: 0 pair: 0 usr: 0 corp: 2/2 fr: 0 max/avg: 3/3 d0/f0 exec/s: 0 mb: 273
+I0403 23:21:04.195928 3057268 centipede.cc:205] [2] init-done: ft: 24 cov: 5 cnt: 0 df: 0 cmp: 19 path: 0 pair: 0 usr: 0 corp: 2/2 fr: 0 max/avg: 3/3 d0/f0 exec/s: 0 mb: 273
+I0403 23:21:04.196017 3057268 centipede.cc:420] Generate coverage report: batch_index=0 coverage_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/coverage-report-clusterfuzz_format_target.000000.initial.txt 
+I0403 23:21:04.196079 3057268 centipede.cc:436] Generate corpus stats: batch_index=0 stats_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/corpus-stats-clusterfuzz_format_target.000000.initial.json 
+I0403 23:21:04.196259 3057268 centipede.cc:420] Generate coverage report: batch_index=0 coverage_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/coverage-report-clusterfuzz_format_target.000000.latest.txt 
+I0403 23:21:04.196318 3057268 centipede.cc:436] Generate corpus stats: batch_index=0 stats_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/corpus-stats-clusterfuzz_format_target.000000.latest.json 
+I0403 23:21:04.196450 3057268 centipede.cc:205] [0] end-fuzz: ft: 24 cov: 5 cnt: 0 df: 0 cmp: 19 path: 0 pair: 0 usr: 0 corp: 2/2 fr: 0 max/avg: 3/3 d0/f0 exec/s: 0 mb: 273

@@ -4,6 +4,8 @@
   <img src="docs/images/logo.png" width="400">
 </p>
 
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz/badge)](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz)
+
 ClusterFuzz is a scalable [fuzzing](https://en.wikipedia.org/wiki/Fuzzing)
 infrastructure that finds security and stability issues in software.
 
@@ -37,8 +39,7 @@ a software project's development process:
 You can find detailed documentation [here](https://google.github.io/clusterfuzz).
 
 ## Trophies
-As of May 2022, ClusterFuzz has found ~29,000 bugs in Google (e.g. [Chrome])
-and [36,000+] bugs in over [550] open source projects integrated with [OSS-Fuzz].
+As of February 2023, ClusterFuzz has found ~27,000 bugs in Google (e.g. [Chrome]). Additionally, ClusterFuzz has helped identify and fix over [8,900] vulnerabilities and [28,000] bugs across [850] projects integrated with [OSS-Fuzz].
 
 ## Getting Help
 You can [file an issue](https://github.com/google/clusterfuzz/issues/new) to ask
@@ -51,11 +52,10 @@ We will use [clusterfuzz-announce(#)googlegroups.com](https://groups.google.com/
 For a more lightweight version of ClusterFuzz that runs on CI/CD
 systems, check out [ClusterFuzzLite](http://github.com/google/clusterfuzzlite).
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz/badge)](https://api.securityscorecards.dev/projects/github.com/google/clusterfuzz)
-
 [Chrome]: https://bugs.chromium.org/p/chromium/issues/list?can=1&q=label%3AClusterFuzz+-status%3AWontFix%2CDuplicate
-[36,000+]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=-status%3AWontFix%2CDuplicate%20-component%3AInfra&can=1
-[550]: https://github.com/google/oss-fuzz/tree/master/projects
+[8,900]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=status%3AFixed%2CVerified%20Type%3DBug-Security&can=1
+[28,000]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=status%3AFixed%2CVerified%20Type%3DBug&can=1
+[850]: https://github.com/google/oss-fuzz/tree/master/projects
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
 [Monorail]: https://opensource.google.com/projects/monorail
 [Jira]: https://www.atlassian.com/software/jira

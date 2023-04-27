@@ -1,0 +1,27 @@
+Command: /mnt/scratch0/clusterfuzz/resources/platform/linux/unshare -c -n /mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libxml2_ce1b30bbec4a9f82204cba87518d9a199407ecb0/revisions/html -rss_limit_mb=2560 -timeout=60 -runs=100 /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-879ebec935f435e8a24e798ab614ebb2a0f90da3
+Time ran: 0.026398658752441406
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 883475
+INFO: Loaded 1 modules   (55164 inline 8-bit counters): 55164 [0x889788, 0x896f04),
+INFO: Loaded 1 PC tables (55164 PCs): 55164 [0x70e6d8,0x7e5e98),
+/mnt/scratch0/clusterfuzz/bot/builds/clusterfuzz-builds_libxml2_ce1b30bbec4a9f82204cba87518d9a199407ecb0/revisions/html: Running 1 inputs 100 time(s) each.
+Running: /mnt/scratch0/clusterfuzz/bot/inputs/fuzzer-testcases/crash-879ebec935f435e8a24e798ab614ebb2a0f90da3
+HTMLparser.c:483:17: runtime error: implicit conversion from type 'long' of value -3 (64-bit, signed) to type 'size_t' (aka 'unsigned long') changed the value to 18446744073709551613 (64-bit, unsigned)
+    #0 0x56c82b in htmlCurrentChar libxml2/HTMLparser.c:483:17
+    #1 0x56dbc3 in htmlParseHTMLAttribute libxml2/HTMLparser.c:2842:10
+    #2 0x561300 in htmlParseAttValue libxml2/HTMLparser.c:2960:8
+    #3 0x561300 in htmlParseAttribute libxml2/HTMLparser.c:3775:8
+    #4 0x561300 in htmlParseStartTag libxml2/HTMLparser.c:4049:12
+    #5 0x562854 in htmlParseElementInternal libxml2/HTMLparser.c:4670:14
+    #6 0x562854 in htmlParseContentInternal libxml2/HTMLparser.c:4880:13
+    #7 0x563570 in htmlParseDocument libxml2/HTMLparser.c:5040:5
+    #8 0x56aa83 in htmlDoRead libxml2/HTMLparser.c:6945:5
+    #9 0x56ac32 in htmlReadMemory libxml2/HTMLparser.c:7027:13
+    #10 0x4c0556 in LLVMFuzzerTestOneInput libxml2/fuzz/html.c:48:11
+    #11 0x4263c3 in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:611:15
+    #12 0x411b22 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:324:6
+    #13 0x4173cc in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:860:9
+    #14 0x440902 in main /src/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #15 0x7f99ef5f0082 in __libc_start_main /build/glibc-SzIz7B/glibc-2.31/csu/libc-start.c:308:16
+    #16 0x407ced in _start
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior HTMLparser.c:483:17 in

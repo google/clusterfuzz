@@ -17,7 +17,6 @@ import datetime
 
 from google.protobuf import wrappers_pb2
 import grpc
-import six
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import corpus_pruning_task
@@ -139,7 +138,7 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
 def _unpack_values(values):
   """Unpack protobuf values."""
   unpacked = {}
-  for key, packed_value in six.iteritems(values):
+  for key, packed_value in values.items():
     if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
       value = wrappers_pb2.DoubleValue()
     elif packed_value.Is(wrappers_pb2.Int64Value.DESCRIPTOR):

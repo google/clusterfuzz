@@ -16,8 +16,6 @@
 import datetime
 import unittest
 
-import six
-
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -301,7 +299,7 @@ class TestUpdateJobWeights(unittest.TestCase):
         'blackbox': ['asan_blackbox_job',]
     }
 
-    for fuzzer, jobs in six.iteritems(test_fuzzer_jobs):
+    for fuzzer, jobs in test_fuzzer_jobs.items():
       for job in jobs:
         data_types.Job(name=job).put()
         data_types.FuzzerJob(fuzzer=fuzzer, job=job).put()

@@ -16,7 +16,6 @@
 import re
 
 from google.cloud import ndb
-import six
 
 from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import utils
@@ -139,7 +138,7 @@ def clone_entity(e, **extra_args):
   ent_class = e.__class__
   # pylint: disable=protected-access
   props = dict((v._code_name, v.__get__(e, ent_class))
-               for v in six.itervalues(ent_class._properties)
+               for v in ent_class._properties.values()
                if not isinstance(v, ndb.ComputedProperty))
   props.update(extra_args)
   return ent_class(**props)
@@ -425,9 +424,6 @@ class Testcase(Model):
 
   # File name of the original uploaded archive.
   archive_filename = ndb.TextProperty()
-
-  # Is this a binary file?
-  binary_flag = ndb.BooleanProperty(default=False, indexed=False)
 
   # Timestamp.
   timestamp = ndb.DateTimeProperty()
@@ -982,7 +978,7 @@ class Job(Model):
     variables in its template. Avoid using this if possible."""
     environment_string = ''
     job_environment = self.get_environment()
-    for key, value in six.iteritems(job_environment):
+    for key, value in job_environment.items():
       environment_string += f'{key} = {value}\n'
 
     return environment_string

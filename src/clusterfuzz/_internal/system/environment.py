@@ -21,7 +21,6 @@ import socket
 import subprocess
 import sys
 
-import six
 import yaml
 
 from clusterfuzz._internal import fuzzing
@@ -65,8 +64,7 @@ def _eval_value(value_string):
 def join_memory_tool_options(options):
   """Joins a dict holding memory tool options into a string that can be set in
   the environment."""
-  return ':'.join('%s=%s' % (key, str(value))
-                  for key, value in sorted(six.iteritems(options)))
+  return ':'.join(f'{key}={str(val)}' for key, val in sorted(options.items()))
 
 
 def _maybe_convert_to_int(value):
@@ -914,7 +912,7 @@ def set_default_vars():
     env_file_contents = file_handle.read()
 
   env_vars_and_values = yaml.safe_load(env_file_contents)
-  for variable, value in six.iteritems(env_vars_and_values):
+  for variable, value in env_vars_and_values.items():
     # We cannot call set_value here.
     os.environ[variable] = str(value)
 
@@ -1089,9 +1087,19 @@ def is_android_cuttlefish(plt=None):
   return 'ANDROID_X86' in (plt or platform())
 
 
+def is_android_emulator():
+  """Return True if we are on android emulator platform."""
+  return 'ANDROID_EMULATOR' in get_platform_group()
+
+
 def is_android_kernel(plt=None):
   """Return True if we are on android kernel platform groups."""
   return 'ANDROID_KERNEL' in (plt or get_platform_group())
+
+
+def is_android_real_device():
+  """Return True if we are on a real android device."""
+  return platform() == 'ANDROID'
 
 
 def is_lib():

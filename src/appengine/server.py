@@ -22,6 +22,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from handlers import auth
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range
@@ -56,7 +57,6 @@ from handlers.cron import fuzzer_and_job_weights
 from handlers.cron import fuzzer_coverage
 from handlers.cron import load_bigquery_stats
 from handlers.cron import manage_vms
-from handlers.cron import ml_train
 from handlers.cron import oss_fuzz_apply_ccs
 from handlers.cron import oss_fuzz_build_status
 from handlers.cron import oss_fuzz_generate_certs
@@ -148,7 +148,6 @@ cron_routes = [
     ('/predator-pull', predator_pull.Handler),
     ('/schedule-corpus-pruning', schedule_corpus_pruning.Handler),
     ('/schedule-impact-tasks', recurring_tasks.ImpactTasksScheduler),
-    ('/schedule-ml-train-tasks', ml_train.Handler),
     ('/schedule-progression-tasks', recurring_tasks.ProgressionTasksScheduler),
     ('/schedule-upload-reports-tasks',
      recurring_tasks.UploadReportsTaskScheduler),
@@ -159,6 +158,7 @@ cron_routes = [
 
 handlers = [
     ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
+    ('/__/auth/<path:extra>', auth.Handler),
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/bots', bots.Handler),
     ('/bots/dead', bots.DeadBotsHandler),

@@ -19,7 +19,6 @@ import unittest
 
 import flask
 import mock
-import six
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -328,7 +327,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         id='proj6', name='proj7', ccs=['b@user.com']).put()
 
     self.app.get('/build-status')
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 1,
@@ -377,7 +376,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.assertEqual(2, len(self.itm.issues))
     issue = self.itm.issues[1]
-    six.assertCountEqual(self, ['a@user.com'], issue.cc)
+    self.assertCountEqual(['a@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
@@ -399,7 +398,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertTrue(issue.has_label('Type-Build-Failure'))
 
     issue = self.itm.issues[2]
-    six.assertCountEqual(self, ['b@user.com'], issue.cc)
+    self.assertCountEqual(['b@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
@@ -548,7 +547,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         build_type='fuzzing').put()
 
     self.app.get('/build-status')
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 2,
@@ -613,7 +612,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.app.get('/build-status')
     self.assertEqual(
-        'Friendly reminder that the the build is still failing.\n'
+        'Friendly reminder that the build is still failing.\n'
         'Please try to fix this failure to ensure that fuzzing remains '
         'productive.\n'
         'Latest build log: https://oss-fuzz-build-logs.storage.googleapis.com/'
