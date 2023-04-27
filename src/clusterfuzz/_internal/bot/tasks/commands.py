@@ -381,8 +381,7 @@ def process_command(task):
     return
 
   # Initial cleanup.
-  if not (environment.is_android and task_name == "fuzz"):
-    cleanup_task_state()
+  cleanup_task_state()
 
   start_web_server_if_needed()
 
