@@ -35,7 +35,6 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
 
 def get_ld_library_path_for_deps():
   """Return LD_LIBRARY_PATH setting for '.so' libaries, None otherwise."""
-
   dep_libs = adb.run_shell_command(
       ['find', constants.DEVICE_FUZZING_DIR, '-name', '*.so*'])
   if not dep_libs:
