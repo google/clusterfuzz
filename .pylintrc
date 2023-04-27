@@ -104,8 +104,9 @@ good-names=main,_
 # Bad variable names which should always be refused, separated by a comma.
 bad-names=
 
+# FIXME: Renable this.
 # List of builtins function names that should not be used, separated by a comma.
-bad-builtin=input
+#bad-builtin=input
 
 [FORMAT]
 
