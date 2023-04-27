@@ -1410,9 +1410,6 @@ def pick_strategies(strategy_pool,
   """Pick strategies."""
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
-  project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(
-      utils.current_project(), target_name)
-
   fuzzing_strategies = []
   arguments = []
   additional_corpus_dirs = []
