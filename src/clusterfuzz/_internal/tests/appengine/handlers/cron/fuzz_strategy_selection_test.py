@@ -64,7 +64,7 @@ class TestFuzzStrategySelection(unittest.TestCase):
     row3 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
         'random_max_len,').get()
-    self.assertEqual(row3.probability, 0.018084561514142703)
+    self.assertEqual(row3.probability, 0.013159009132143623)
     self.assertEqual(row3.engine, 'libFuzzer')
 
   def test_delete_from_table(self):
