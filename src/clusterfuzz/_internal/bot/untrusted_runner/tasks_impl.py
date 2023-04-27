@@ -15,7 +15,6 @@
 
 from google.protobuf import wrappers_pb2
 from google.protobuf.any_pb2 import Any
-import six
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import corpus_pruning_task
@@ -129,9 +128,9 @@ def _pack_values(values):
     packed_value = Any()
     if isinstance(value, float):
       packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
-    elif isinstance(value, six.integer_types):
+    elif isinstance(value, int):
       packed_value.Pack(wrappers_pb2.Int64Value(value=value))
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, str):
       packed_value.Pack(wrappers_pb2.StringValue(value=value))
     else:
       raise ValueError('Unknown stat type for ' + key)
