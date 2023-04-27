@@ -431,12 +431,12 @@ class CorpusPruningTestUntrusted(
     corpus_backup_date = (
         datetime.datetime.utcnow().date() -
         datetime.timedelta(days=data_types.CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS))
-    corpus_backup_dir = ('gs://{bucket}/corpus/libfuzzer/test2_fuzzer/')
+    corpus_backup_dir =
     gsutil.GSUtilRunner().run_gsutil([
         'cp',
-        (corpus_backup_dir + 'backup.zip').format(bucket=TEST2_BACKUP_BUCKET),
-        (corpus_backup_dir +
-         '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
+        f'gs://{TEST2_BACKUP_BUCKET}/corpus/libfuzzer/test2_fuzzer/backup.zip',
+        (f'gs://{self.backup_bucket}/corpus/libfuzzer/'
+         f'test2_fuzzer/{corpus_backup_date}.zip')
     ])
 
   def tearDown(self):

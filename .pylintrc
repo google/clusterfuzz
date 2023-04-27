@@ -119,9 +119,5 @@ max-module-lines=99999
 # String used as indentation unit. We differ from PEP8's normal 4 spaces.
 indent-string='  '
 
-# Make sure : in dicts and trailing commas are checked for whitespace.
-no-space-check=
-
-
 [TYPECHECK]
 

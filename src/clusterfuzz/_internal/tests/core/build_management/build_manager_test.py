@@ -925,7 +925,7 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
 
     os.environ['STABLE_BUILD_BUCKET_PATH'] = (
         'gs://path/file-stable-([0-9.]+).zip')
-    os.environ['BETA_BUILD_BUCKET_PATH'] = ('gs://path/file-beta-([0-9.]+).zip')
+    os.environ['BETA_BUILD_BUCKET_PATH'] = 'gs://path/file-beta-([0-9.]+).zip'
 
     self.mock._unpack_build.side_effect = _mock_unpack_build
     self.mock.get_build_urls_list.side_effect = self._mock_get_build_urls_list
@@ -2033,7 +2033,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/subdir/target3/',
         '/subdir/targets.list',
     )
-    self.mock.read_data.return_value = (b'target1\ntarget2\ntarget3\n')
+    self.mock.read_data.return_value = b'target1\ntarget2\ntarget3\n'
 
     self.target_weights = {
         'target1': 0.0,

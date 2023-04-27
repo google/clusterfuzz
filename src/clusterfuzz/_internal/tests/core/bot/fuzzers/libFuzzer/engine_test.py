@@ -135,7 +135,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
   def test_prepare_auto_add_dict(self):
     """Test prepare automatically adding dict argument."""
     with open('/path/target.options', 'w', encoding='utf-8') as f:
-      f.write('[libfuzzer]\n' 'max_len=31337\n' 'timeout=11\n')
+      f.write('[libfuzzer]\n' 'max_len=31337\ntimeout=11\n')
     self.fs.create_file('/path/target.dict')
 
     engine_impl = engine.Engine()
@@ -1140,7 +1140,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     BaseIntegrationTest.setUp(self)
 
     if android.settings.get_sanitizer_tool_name() != 'hwasan':
-      raise Exception('Device is not set up with HWASan.')
+      raise RuntimeError('Device is not set up with HWASan.')
 
     environment.set_value('BUILD_DIR', ANDROID_DATA_DIR)
     environment.set_value('JOB_NAME', 'libfuzzer_hwasan_android_device')

@@ -39,7 +39,7 @@ class TestRequestHandler(http_server.RequestHandler):
     self.wfile = self.TestWFile()
     self.path = path
 
-  def send_response(self, response_code, _=None):  # pylint: disable=arguments-differ
+  def send_response(self, response_code, _=None):  # pylint: disable=arguments-differ,arguments-renamed
     self.response_code = response_code
 
   def send_header(self, *_):  # pylint: disable=arguments-differ

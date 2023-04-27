@@ -379,7 +379,7 @@ class CleanupTest(unittest.TestCase):
     data_types.Job(
         name=testcase.job_type,
         platform='LINUX',
-        environment_string=('SKIP_AUTO_CLOSE_ISSUE = True\n')).put()
+        environment_string='SKIP_AUTO_CLOSE_ISSUE = True\n').put()
 
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         policy=self.policy, testcase=testcase, issue=self.issue)
@@ -1075,11 +1075,11 @@ class GetJobsAndPlatformsForProjectTest(unittest.TestCase):
     data_types.Job(
         name='job5',
         platform='LINUX',
-        environment_string=('PROJECT_NAME=project5')).put()
+        environment_string='PROJECT_NAME=project5').put()
     data_types.Job(
         name='job6',
         platform='MAC',
-        environment_string=('PROJECT_NAME=project6')).put()
+        environment_string='PROJECT_NAME=project6').put()
 
   def test(self):
     actual_projects_map = cleanup.get_jobs_and_platforms_for_project()
@@ -1125,7 +1125,7 @@ class GetTopCrashesForAllProjectsAndPlatforms(unittest.TestCase):
     data_types.Job(
         name='job',
         platform='LINUX',
-        environment_string=('PROJECT_NAME = project')).put()
+        environment_string='PROJECT_NAME = project').put()
 
   def test(self):
     """Test."""

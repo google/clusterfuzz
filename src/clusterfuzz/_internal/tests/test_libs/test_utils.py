@@ -158,7 +158,7 @@ class EmulatorInstance(object):
 
   def reset(self):
     """Reset emulator state."""
-    req = requests.post('http://localhost:{}/reset'.format(self._port))
+    req = requests.post(f'http://localhost:{port}/reset', timeout=10)
     req.raise_for_status()
 
 
