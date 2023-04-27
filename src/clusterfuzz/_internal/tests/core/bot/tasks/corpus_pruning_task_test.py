@@ -431,7 +431,6 @@ class CorpusPruningTestUntrusted(
     corpus_backup_date = (
         datetime.datetime.utcnow().date() -
         datetime.timedelta(days=data_types.CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS))
-    corpus_backup_dir =
     gsutil.GSUtilRunner().run_gsutil([
         'cp',
         f'gs://{TEST2_BACKUP_BUCKET}/corpus/libfuzzer/test2_fuzzer/backup.zip',

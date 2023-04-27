@@ -1077,8 +1077,7 @@ class GetJobsAndPlatformsForProjectTest(unittest.TestCase):
         platform='LINUX',
         environment_string='PROJECT_NAME=project5').put()
     data_types.Job(
-        name='job6',
-        platform='MAC',
+        name='job6', platform='MAC',
         environment_string='PROJECT_NAME=project6').put()
 
   def test(self):

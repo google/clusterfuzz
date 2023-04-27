@@ -581,14 +581,14 @@ class IssueFilerTests(unittest.TestCase):
     def my_save(*args, **kwargs):
       if getattr(my_save, 'raise_exception', True):
         setattr(my_save, 'raise_exception', False)
-        raise Exception('Boom!')
+        raise RuntimeError('Boom!')
       return original_save(*args, **kwargs)
 
     self.mock.save.side_effect = my_save
 
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     _, exception = issue_filer.file_issue(self.testcase5, issue_tracker)
-    self.assertIsInstance(exception, Exception)
+    self.assertIsInstance(exception, RuntimeError)
 
     self.assertCountEqual(['fallback>component', '-component1', '-component2'],
                           issue_tracker._itm.last_issue.components)
