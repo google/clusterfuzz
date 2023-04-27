@@ -876,8 +876,12 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     # to LD_LIBRARY_PATH.
     ld_library_path = ''
     if not android.settings.is_automotive():
-      # TODO(MHA3): Remove this auto check.
-      ld_library_path = android.sanitizer.get_ld_library_path_for_sanitizers()
+      deps_path = android.sanitizer.get_ld_library_path_for_deps()
+      if not deps_path:
+        logs.log_warn(
+        'No dependency path found, fuzzer may use embedded libraries.')
+      sanitizer_path = android.sanitizer.get_ld_library_path_for_sanitizers()
+      ld_library_path = (deps_path or '') + ':' + (sanitizer_path or '')
     if ld_library_path:
       default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
 

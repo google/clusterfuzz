@@ -33,6 +33,16 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
     'asan': 'asan.options',
 }
 
+def get_ld_library_path_for_deps():
+  """Return LD_LIBRARY_PATH setting for '.so' libaries, None otherwise."""
+
+  dep_libs = adb.run_shell_command(
+      ['find', constants.DEVICE_FUZZING_DIR, '-name', '*.so*'])
+  if not dep_libs:
+    return None
+
+  dep_libs_directory = os.path.dirname(dep_libs.splitlines()[0])
+  return dep_libs_directory
 
 def get_ld_library_path_for_sanitizers():
   """Return LD_LIBRARY_PATH setting for sanitizers, None otherwise."""
