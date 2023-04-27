@@ -130,7 +130,7 @@ def _pack_values(values):
       packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
     elif isinstance(value, int):
       packed_value.Pack(wrappers_pb2.Int64Value(value=value))
-    elif isinstance(value, int):
+    elif isinstance(value, str):
       packed_value.Pack(wrappers_pb2.StringValue(value=value))
     else:
       raise ValueError('Unknown stat type for ' + key)
