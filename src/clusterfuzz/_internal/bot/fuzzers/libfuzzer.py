@@ -872,13 +872,13 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     """Return a set of default arguments to pass to adb binary."""
     default_args = ['shell']
 
-    # LD_LIBRARY_PATH set to search for fuzzer deps first,
-    # and then sanitizers if any are found
+    # LD_LIBRARY_PATH set to search for fuzzer deps first, and then
+    # sanitizers if any are found.
     ld_library_path = ''
     if not android.settings.is_automotive():
       # TODO(MHA3): Remove this auto check.
-      exe_path_dir = os.path.dirname(executable_path)
-      deps_path = self._get_device_path(exe_path_dir) + '/lib'
+      executable_dir = os.path.dirname(executable_path)
+      deps_path = os.path.join(self._get_device_path(executable_dir), 'lib')
       ld_library_path += deps_path
       sanitizer_path = android.sanitizer.get_ld_library_path_for_sanitizers()
       if sanitizer_path:
