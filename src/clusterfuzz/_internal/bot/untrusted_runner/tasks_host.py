@@ -87,7 +87,6 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   result_stats = response.cross_pollination_stats
   pollination_stats = corpus_pruning_task.CrossPollinationStats(
       project_qualified_name=result_stats.project_qualified_name,
-      method=result_stats.method,
       sources=result_stats.sources,
       tags=result_stats.tags,
       initial_corpus_size=result_stats.initial_corpus_size,
