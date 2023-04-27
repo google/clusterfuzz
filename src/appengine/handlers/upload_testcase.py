@@ -57,6 +57,7 @@ def _is_uploader_allowed(email):
 
 
 def _is_trusted_uploader_allowed(email):
+  """Return bool on whether uploader is allowed and trusted."""
   return access.has_access(
       need_privileged_access=True) and _is_uploader_allowed(email)
 
@@ -179,7 +180,7 @@ def filter_blackbox_fuzzers(fuzzers):
 
 
 @memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def find_fuzz_target(engine, target_name, job_name, email=None):
+def find_fuzz_target(engine, target_name, job_name):
   """Return fuzz target values given the engine, target name (which may or may
   not be prefixed with project), and job."""
   project_name = data_handler.get_project_name(job_name)
@@ -188,10 +189,7 @@ def find_fuzz_target(engine, target_name, job_name, email=None):
 
   target = data_handler.get_fuzz_target(candidate_name)
   if not target:
-    if email and _is_trusted_uploader_allowed(email):
-      target = (data_handler.record_fuzz_target(engine, target_name, job_name))
-    else:
-      raise helpers.EarlyExitException('Fuzz target does not exist.', 400)
+    raise helpers.EarlyExitException('Fuzz target does not exist.', 400)
 
   return target.fully_qualified_name(), target.binary
 
@@ -352,16 +350,17 @@ class UploadHandlerCommon(object):
 
     fully_qualified_fuzzer_name = ''
     if is_engine_job and target_name:
-      if job.is_external():
+      if _is_trusted_uploader_allowed(email) or job.is_external():
         # External jobs don't run and set FuzzTarget entities as part of
         # fuzz_task. Set it here instead.
+        # Record fuzz targets for trusted uploader jobs.
         fuzz_target = (
             data_handler.record_fuzz_target(fuzzer_name, target_name, job_type))
         fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
         target_name = fuzz_target.binary
       else:
         fully_qualified_fuzzer_name, target_name = find_fuzz_target(
-            fuzzer_name, target_name, job_type, email)
+            fuzzer_name, target_name, job_type)
 
     if (not access.has_access(
         need_privileged_access=False,

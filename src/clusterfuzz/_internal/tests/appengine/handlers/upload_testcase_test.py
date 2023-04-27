@@ -487,3 +487,29 @@ class UploadOAuthTest(unittest.TestCase):
         'timestamp': datetime.datetime(2021, 1, 1, 0, 0),
         'uploader_email': 'uploader@email'
     }, metadata._to_dict())
+
+  def test_trusted_uploader_post(self):
+    """Test trusted uploader post."""
+    data_types.ExternalUserPermission(
+        email='uploader@email',
+        entity_name=None,
+        entity_kind=data_types.PermissionEntityKind.UPLOADER,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.NONE).put()
+
+    stacktrace = self._read_test_data('oom.txt')
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj_external',
+              'target': 'target',
+              'stacktrace': stacktrace,
+              'revision': 1337,
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+
+    self.assertDictEqual({
+        'id': '3',
+        'uploadUrl': 'http://localhost//upload-testcase/upload-oauth'
+    }, response.json)
