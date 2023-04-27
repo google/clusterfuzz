@@ -105,8 +105,7 @@ good-names=main,_
 bad-names=
 
 # List of builtins function names that should not be used, separated by a comma.
-bad-functions=input,apply,reduce
-
+bad-builtin=input
 
 [FORMAT]
 
