@@ -611,9 +611,10 @@ class UploadOAuthTest(unittest.TestCase):
         'timestamp': datetime.datetime(2021, 1, 1, 0, 0),
         'uploader_email': 'uploader@email'
     }, metadata._to_dict())
-    self.assertEqual({
+    self.assertDictEqual({
         'binary': 'target',
         'engine': 'libFuzzer',
         'project': 'proj'
     },
-                     testcase.get_fuzz_target()._to_dict())
+                         data_handler.get_fuzz_target('libFuzzer_proj_target')
+                         ._to_dict())
