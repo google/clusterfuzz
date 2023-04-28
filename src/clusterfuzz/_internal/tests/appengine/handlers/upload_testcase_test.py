@@ -586,3 +586,34 @@ class UploadOAuthTest(unittest.TestCase):
         'uploader_email': 'uploader@email',
         'window_argument': ''
     }, testcase._to_dict())
+
+    metadata = data_types.TestcaseUploadMetadata.query(
+        data_types.TestcaseUploadMetadata.testcase_id ==
+        testcase.key.id()).get()
+    self.assertIsNotNone(metadata)
+    self.assertDictEqual({
+        'additional_metadata_string': None,
+        'blobstore_key': 'blob_key',
+        'bot_name': None,
+        'bug_information': '',
+        'bug_summary_update_flag': False,
+        'bundled': False,
+        'duplicate_of': None,
+        'filename': 'input',
+        'original_blobstore_key': 'blob_key',
+        'path_in_archive': None,
+        'quiet_flag': False,
+        'retries': None,
+        'security_flag': False,
+        'status': 'Pending',
+        'testcase_id': 5,
+        'timeout': 0,
+        'timestamp': datetime.datetime(2021, 1, 1, 0, 0),
+        'uploader_email': 'uploader@email'
+    }, metadata._to_dict())
+    self.assertEqual({
+        'binary': 'target',
+        'engine': 'libFuzzer',
+        'project': 'proj'
+    },
+                     testcase.get_fuzz_target()._to_dict())
