@@ -190,7 +190,6 @@ def parse_performance_features(log_lines, strategies, arguments):
       'new_edges': 0,
       'new_features': 0,
       'oom_count': 0,
-      'recommended_dict_size': 0,
       'slow_unit_count': 0,
       'slow_units_count': 0,
       'startup_crash_count': 1,
@@ -224,11 +223,11 @@ def parse_performance_features(log_lines, strategies, arguments):
       fuzzer_utils.extract_argument(
           arguments, constants.MAX_LEN_FLAG, remove=False) or stats['max_len'])
 
-  # Extract sizes of manual and recommended dictionary used for fuzzing.
+  # Extract sizes of manual dictionary used for fuzzing.
   dictionary_path = fuzzer_utils.extract_argument(
       arguments, constants.DICT_FLAG, remove=False)
-  stats['manual_dict_size'], stats['recommended_dict_size'] = (
-      dictionary_manager.get_stats_for_dictionary_file(dictionary_path))
+  stats['manual_dict_size'] = dictionary_manager.get_stats_for_dictionary_file(
+      dictionary_path)
 
   # Different crashes and other flags extracted via regexp match.
   has_corpus = False

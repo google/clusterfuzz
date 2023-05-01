@@ -17,7 +17,6 @@ import datetime
 import unittest
 
 import pytz
-import six
 
 from clusterfuzz._internal.tests.test_libs import helpers
 from libs.issue_management import jira
@@ -119,15 +118,15 @@ class JiraTests(unittest.TestCase):
     self.assertEqual('reporter', issue.reporter)
     self.assertEqual('NOT STARTED', issue.status)
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'label1',
         'label2',
     ], issue.labels)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'A>B',
         'C>D',
     ], issue.components)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'cc@cc.com',
     ], issue.ccs)
 
@@ -143,7 +142,7 @@ class JiraTests(unittest.TestCase):
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.labels.add('Label3')
     issue.labels.remove('laBel1')
-    six.assertCountEqual(self, ['label2', 'Label3'], issue.labels)
+    self.assertCountEqual(['label2', 'Label3'], issue.labels)
 
   def test_modify_components(self):
     """Test modifying components."""
@@ -151,13 +150,13 @@ class JiraTests(unittest.TestCase):
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.components.add('Y>Z')
     issue.components.remove('a>B')
-    six.assertCountEqual(self, ['C>D', 'Y>Z'], issue.components)
+    self.assertCountEqual(['C>D', 'Y>Z'], issue.components)
 
   def test_find_issues(self):
     """Test find_issues."""
     self.mock.get_issues.return_value = [self.jira_issue]
     issues = self.issue_tracker.find_issues(keywords=['body'], only_open=True)
-    six.assertCountEqual(self, ['VSEC-3112'], [issue.key for issue in issues])
+    self.assertCountEqual(['VSEC-3112'], [issue.key for issue in issues])
 
   def test_issue_url(self):
     """Test issue_url."""

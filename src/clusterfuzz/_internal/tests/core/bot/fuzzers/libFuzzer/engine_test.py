@@ -22,7 +22,6 @@ import unittest
 import mock
 import parameterized
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
-import six
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
@@ -101,7 +100,7 @@ class PrepareTest(fake_fs_unittest.TestCase):
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
     self.assertEqual('/corpus_dir', options.corpus_dir)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
         '-dict=/path/blah.dict'
     ], options.arguments)
@@ -110,8 +109,8 @@ class PrepareTest(fake_fs_unittest.TestCase):
         'corpus_subset': 20,
         'fork': 2
     }, options.strategies)
-    six.assertCountEqual(self, ['/new_corpus_dir', '/corpus_dir'],
-                         options.fuzz_corpus_dirs)
+    self.assertCountEqual(['/new_corpus_dir', '/corpus_dir'],
+                          options.fuzz_corpus_dirs)
     self.assertDictEqual({'extra_env': '1'}, options.extra_env)
     self.assertFalse(options.use_dataflow_tracing)
     self.assertTrue(options.is_mutations_run)
@@ -129,19 +128,19 @@ class PrepareTest(fake_fs_unittest.TestCase):
 
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
-    six.assertCountEqual(
-        self, ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1'],
+    self.assertCountEqual(
+        ['-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1'],
         options.arguments)
 
   def test_prepare_auto_add_dict(self):
     """Test prepare automatically adding dict argument."""
     with open('/path/target.options', 'w', encoding='utf-8') as f:
-      f.write('[libfuzzer]\n' 'max_len=31337\n' 'timeout=11\n')
+      f.write('[libfuzzer]\nmax_len=31337\ntimeout=11\n')
     self.fs.create_file('/path/target.dict')
 
     engine_impl = engine.Engine()
     options = engine_impl.prepare('/corpus_dir', '/path/target', '/path')
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '-max_len=31337', '-timeout=11', '-rss_limit_mb=2560', '-arg1',
         '-dict=/path/target.dict'
     ], options.arguments)
@@ -161,7 +160,7 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         extra_env={},
         use_dataflow_tracing=False,
         is_mutations_run=False)
-    self.assertEqual(2100.0,
+    self.assertEqual(1800.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
 
   def test_mutations(self):
@@ -175,7 +174,7 @@ class FuzzAdditionalProcessingTimeoutTest(unittest.TestCase):
         extra_env={},
         use_dataflow_tracing=False,
         is_mutations_run=True)
-    self.assertEqual(2700.0,
+    self.assertEqual(2400.0,
                      engine_impl.fuzz_additional_processing_timeout(options))
 
 
@@ -198,7 +197,7 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
     strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
                                               '/path/corpus', ['-max_len=100'])
-    six.assertCountEqual(self, [], strategy_info.arguments)
+    self.assertCountEqual([], strategy_info.arguments)
 
   def test_max_length_strategy_without_override(self):
     """Tests max length strategy without override."""
@@ -206,7 +205,7 @@ class PickStrategiesTest(fake_fs_unittest.TestCase):
     strategy_pool = set_strategy_pool([strategy.RANDOM_MAX_LENGTH_STRATEGY])
     strategy_info = libfuzzer.pick_strategies(strategy_pool, '/path/target',
                                               '/path/corpus', [])
-    six.assertCountEqual(self, ['-max_len=1337'], strategy_info.arguments)
+    self.assertCountEqual(['-max_len=1337'], strategy_info.arguments)
 
 
 class FuzzTest(fake_fs_unittest.TestCase):
@@ -296,7 +295,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
     self.assertEqual('/fake/crash-1e15825e6f0b2240a5af75d84214adda1b6b5340',
                      crash.input_path)
     self.assertEqual(fuzz_output, crash.stacktrace)
-    six.assertCountEqual(self, ['-arg=1', '-timeout=60'], crash.reproduce_args)
+    self.assertCountEqual(['-arg=1', '-timeout=60'], crash.reproduce_args)
     self.assertEqual(2, crash.crash_time)
 
     self.mock.fuzz.assert_called_with(
@@ -375,7 +374,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'number_of_executed_units': 1249,
         'oom_count': 0,
         'peak_rss_mb': 1197,
-        'recommended_dict_size': 0,
         'slow_unit_count': 0,
         'slow_units_count': 0,
         'slowest_unit_time_sec': 0,
@@ -389,7 +387,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'strategy_mutator_plugin_radamsa': 0,
         'strategy_peach_grammar_mutation': '',
         'strategy_random_max_len': 0,
-        'strategy_recommended_dict': 0,
         'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0,
@@ -467,15 +464,12 @@ class BaseIntegrationTest(unittest.TestCase):
     os.environ['CACHE_DIR'] = TEMP_DIR
 
     test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'update_recommended_dictionary',
         'clusterfuzz._internal.bot.fuzzers.engine_common.get_merge_timeout',
         'clusterfuzz._internal.bot.fuzzers.engine_common.random_choice',
         'clusterfuzz._internal.bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
         'clusterfuzz._internal.bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
         'clusterfuzz._internal.bot.fuzzers.strategy_selection.'
         'generate_weighted_strategy_pool',
-        'clusterfuzz._internal.bot.fuzzers.libfuzzer.get_dictionary_analysis_timeout',
         'clusterfuzz._internal.bot.fuzzers.libfuzzer.get_fuzz_timeout',
         'os.getpid',
         'clusterfuzz._internal.system.minijail.MinijailChroot._mknod',
@@ -485,7 +479,6 @@ class BaseIntegrationTest(unittest.TestCase):
 
     self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
-    self.mock.get_dictionary_analysis_timeout.return_value = 5
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
 
@@ -692,40 +685,6 @@ class IntegrationTests(BaseIntegrationTest):
     with open(cleanse_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
-
-  def test_analyze_dict(self):
-    """Tests recommended dictionary analysis."""
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'parse_recommended_dictionary_from_log_lines',
-    ])
-
-    self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
-        '"USELESS_0"',
-        '"APPLE"',
-        '"USELESS_1"',
-        '"GINGER"',
-        '"USELESS_2"',
-        '"BEET"',
-        '"USELESS_3"',
-    ])
-
-    _, corpus_path = setup_testcase_and_corpus('empty',
-                                               'corpus_with_some_files')
-
-    engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(DATA_DIR,
-                                                 'analyze_dict_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 5)
-    expected_recommended_dictionary = set([
-        '"APPLE"',
-        '"GINGER"',
-        '"BEET"',
-    ])
-
-    self.assertIn(expected_recommended_dictionary,
-                  self.mock.update_recommended_dictionary.call_args[0])
 
   def test_fuzz_with_mutator_plugin(self):
     """Tests fuzzing with a mutator plugin."""
@@ -1141,7 +1100,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     BaseIntegrationTest.setUp(self)
 
     if android.settings.get_sanitizer_tool_name() != 'hwasan':
-      raise Exception('Device is not set up with HWASan.')
+      raise RuntimeError('Device is not set up with HWASan.')
 
     environment.set_value('BUILD_DIR', ANDROID_DATA_DIR)
     environment.set_value('JOB_NAME', 'libfuzzer_hwasan_android_device')
@@ -1335,38 +1294,3 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
     with open(cleanse_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
-
-  def test_analyze_dict(self):
-    """Tests recommended dictionary analysis."""
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'parse_recommended_dictionary_from_log_lines',
-    ])
-
-    self.mock.parse_recommended_dictionary_from_log_lines.return_value = set([
-        '"USELESS_0"',
-        '"APPLE"',
-        '"USELESS_1"',
-        '"GINGER"',
-        '"USELESS_2"',
-        '"BEET"',
-        '"USELESS_3"',
-    ])
-
-    _, corpus_path = setup_testcase_and_corpus('empty',
-                                               'corpus_with_some_files')
-
-    engine_impl = engine.Engine()
-    target_path = engine_common.find_fuzzer_path(ANDROID_DATA_DIR,
-                                                 'analyze_dict_fuzzer')
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-
-    engine_impl.fuzz(target_path, options, TEMP_DIR, 5.0)
-    expected_recommended_dictionary = set([
-        '"APPLE"',
-        '"GINGER"',
-        '"BEET"',
-    ])
-
-    self.assertIn(expected_recommended_dictionary,
-                  self.mock.update_recommended_dictionary.call_args[0])

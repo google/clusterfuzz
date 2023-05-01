@@ -21,7 +21,6 @@ import unittest
 
 import mock
 import parameterized
-import six
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
@@ -550,7 +549,7 @@ class IssueFilerTests(unittest.TestCase):
     self.mock.get.return_value = CHROMIUM_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase5, issue_tracker)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'ClusterFuzz',
         'Reproducible',
         'Pri-1',
@@ -559,7 +558,7 @@ class IssueFilerTests(unittest.TestCase):
         'label1',
         'label2',
     ], issue_tracker._itm.last_issue.labels)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'component1',
         'component2',
     ], issue_tracker._itm.last_issue.components)
@@ -569,8 +568,7 @@ class IssueFilerTests(unittest.TestCase):
     self.mock.get.return_value = CHROMIUM_POLICY
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase6, issue_tracker)
-    six.assertCountEqual(
-        self,
+    self.assertCountEqual(
         ['ClusterFuzz', 'Reproducible', 'Pri-1', 'Stability-Crash', 'Type-Bug'],
         issue_tracker._itm.last_issue.labels)
 
@@ -583,18 +581,17 @@ class IssueFilerTests(unittest.TestCase):
     def my_save(*args, **kwargs):
       if getattr(my_save, 'raise_exception', True):
         setattr(my_save, 'raise_exception', False)
-        raise Exception('Boom!')
+        raise RuntimeError('Boom!')
       return original_save(*args, **kwargs)
 
     self.mock.save.side_effect = my_save
 
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     _, exception = issue_filer.file_issue(self.testcase5, issue_tracker)
-    self.assertIsInstance(exception, Exception)
+    self.assertIsInstance(exception, RuntimeError)
 
-    six.assertCountEqual(self,
-                         ['fallback>component', '-component1', '-component2'],
-                         issue_tracker._itm.last_issue.components)
+    self.assertCountEqual(['fallback>component', '-component1', '-component2'],
+                          issue_tracker._itm.last_issue.components)
     self.assertIn(
         '**NOTE**: This bug was filed into this component due to permission or '
         'configuration issues with the specified component(s) component1 component2',
@@ -924,9 +921,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, ['Security_Impact-Extended'],
-                         mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual(['Security_Impact-Extended'], mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_update_impact_extended_stable(self):
     """Tests updating impact to Extended Stable."""
@@ -936,9 +932,9 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, ['Security_Impact-Extended', 'FoundIn-99'],
-                         mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual(['Security_Impact-Extended', 'FoundIn-99'],
+                          mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_update_impact_stable(self):
     """Tests updating impact to Stable."""
@@ -948,9 +944,9 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, ['Security_Impact-Stable', 'FoundIn-99'],
-                         mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual(['Security_Impact-Stable', 'FoundIn-99'],
+                          mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_update_impact_beta(self):
     """Tests updating impact to Beta."""
@@ -960,9 +956,9 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, ['Security_Impact-Beta', 'FoundIn-100'],
-                         mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual(['Security_Impact-Beta', 'FoundIn-100'],
+                          mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_update_impact_head(self):
     """Tests updating impact to Head."""
@@ -971,9 +967,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, ['Security_Impact-Head'],
-                         mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual(['Security_Impact-Head'], mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_no_impact_for_unreproducible_testcase(self):
     """Tests no impact for unreproducible testcase on trunk and which also
@@ -984,16 +979,16 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, [], mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual([], mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_no_impact_if_not_set(self):
     """Tests no impact if the impact flag is not set."""
     mock_issue = self._make_mock_issue()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, [], mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual([], mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_replace_impact(self):
     """Tests replacing impact."""
@@ -1004,10 +999,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue.labels.reset_tracking()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, ['Security_Impact-Head'],
-                         mock_issue.labels.added)
-    six.assertCountEqual(self, ['Security_Impact-Beta'],
-                         mock_issue.labels.removed)
+    self.assertCountEqual(['Security_Impact-Head'], mock_issue.labels.added)
+    self.assertCountEqual(['Security_Impact-Beta'], mock_issue.labels.removed)
 
   def test_replace_same_impact(self):
     """Tests replacing same impact."""
@@ -1018,8 +1011,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue.labels.reset_tracking()
 
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(self, [], mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual([], mock_issue.labels.added)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
   def test_component_add_label(self):
     """Test that we set labels for component builds."""
@@ -1038,11 +1031,10 @@ class UpdateImpactTest(unittest.TestCase):
     self.testcase.is_impact_set_flag = True
     mock_issue = self._make_mock_issue()
     issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
-    six.assertCountEqual(
-        self,
+    self.assertCountEqual(
         ['Security_Impact-Extended', 'FoundIn-1', 'FoundIn-2', 'FoundIn-3'],
         mock_issue.labels.added)
-    six.assertCountEqual(self, [], mock_issue.labels.removed)
+    self.assertCountEqual([], mock_issue.labels.removed)
 
 
 @test_utils.with_cloud_emulators('datastore', 'pubsub')

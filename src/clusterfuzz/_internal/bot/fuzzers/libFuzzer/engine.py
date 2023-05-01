@@ -71,7 +71,6 @@ class LibFuzzerOptions(engine.FuzzOptions):
     self.use_dataflow_tracing = use_dataflow_tracing
     self.is_mutations_run = is_mutations_run
     self.merge_back_new_testcases = True
-    self.analyze_dictionary = True
 
 
 class Engine(engine.Engine):
@@ -368,11 +367,6 @@ class Engine(engine.Engine):
       crashes.append(
           engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
                        actual_duration))
-
-    if options.analyze_dictionary:
-      libfuzzer.analyze_and_update_recommended_dictionary(
-          runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
-          non_fuzz_arguments)
 
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed,
