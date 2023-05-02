@@ -65,9 +65,6 @@ COMPONENTS_FILE_EXTENSION = '.components'
 # Extension for additional metadata to be added to issue descriptions.
 METADATA_FILE_EXTENSION = '.issue_metadata'
 
-# Header format for logs.
-LOG_HEADER_FORMAT = ('Command: {command}\n' + 'Time ran: {time}\n')
-
 # Number of radamsa mutations.
 RADAMSA_MUTATIONS = 2000
 
@@ -509,7 +506,7 @@ def recreate_directory(directory_path):
   """Delete directory if exists, create empty directory. Throw an exception if
   either fails."""
   if not shell.remove_directory(directory_path, recreate=True):
-    raise Exception('Failed to recreate directory: ' + directory_path)
+    raise OSError('Failed to recreate directory: ' + directory_path)
 
 
 def strip_minijail_command(command, fuzzer_path):
@@ -672,5 +669,5 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
 
 def get_log_header(command, time_executed):
   """Get the log header."""
-  return LOG_HEADER_FORMAT.format(
-      command=get_command_quoted(command), time=time_executed)
+  quoted_command = get_command_quoted(command)
+  return f'Command: {quoted_command}\n' + 'Time ran: {time_executed}\n'
