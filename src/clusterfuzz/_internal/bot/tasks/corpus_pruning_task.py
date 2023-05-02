@@ -906,9 +906,16 @@ def execute_task(full_fuzzer_name, job_type):
     # TODO(ochang): Copy this to untrusted worker.
     leak_blacklist.copy_global_to_local_blacklist()
 
-  result = do_corpus_pruning(context, last_execution_failed, revision)
-  _record_cross_pollination_stats(result.cross_pollination_stats)
-  _save_coverage_information(context, result)
-  _process_corpus_crashes(context, result)
+  try:
+    result = do_corpus_pruning(context, last_execution_failed, revision)
+    _record_cross_pollination_stats(result.cross_pollination_stats)
+    _save_coverage_information(context, result)
+    _process_corpus_crashes(context, result)
+  except Exception:
+    logs.log_error('Corpus pruning failed.')
+    data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
+    return
+  finally:
+    context.cleanup()
 
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
