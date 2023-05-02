@@ -136,7 +136,7 @@ COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
 def clone_entity(e, **extra_args):
   """Clones a DataStore entity and returns the clone."""
   ent_class = e.__class__
-  # pylint: disable=protected-access
+  # pylint: disable=protected-access,unnecessary-dunder-call
   props = dict((v._code_name, v.__get__(e, ent_class))
                for v in ent_class._properties.values()
                if not isinstance(v, ndb.ComputedProperty))
