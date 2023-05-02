@@ -670,4 +670,4 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
 def get_log_header(command, time_executed):
   """Get the log header."""
   quoted_command = get_command_quoted(command)
-  return f'Command: {quoted_command}\n' + 'Time ran: {time_executed}\n'
+  return f'Command: {quoted_command}\nTime ran: {time_executed}\n'
