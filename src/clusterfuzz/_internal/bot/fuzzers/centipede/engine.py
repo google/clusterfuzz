@@ -88,7 +88,7 @@ class Engine(engine.Engine):
 
     Returns:
       A FuzzOptions object.
-    """
+   """
     arguments = []
     dict_path = Path(
         dictionary_manager.get_default_dictionary_path(target_path))

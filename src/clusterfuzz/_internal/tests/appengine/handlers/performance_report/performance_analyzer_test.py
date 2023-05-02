@@ -249,11 +249,6 @@ class PerformanceAnalyzerTest(PerformanceAnalyzerTestBase):
     expected_issue = {'type': 'timeout', 'percent': 100.0, 'score': 64.0}
     self.assert_log_has_issue_matching('timeout_issue.txt', expected_issue)
 
-  def test_no_logging_with_recommended_dictionaries(self):
-    """Test no logging issue for a log with recommended dictionaries."""
-    self.assert_log_has_no_issue_matching(
-        'logging_recommended_dictionary_no_issue.txt', 'logging')
-
   def test_no_logging_with_crash(self):
     """Test no logging issue for a log with crash."""
     self.assert_log_has_no_issue_matching('logging_crash_no_issue.txt',

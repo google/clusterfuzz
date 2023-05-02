@@ -25,7 +25,6 @@ import threading
 import unittest
 
 import requests
-import six
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
@@ -159,7 +158,7 @@ class EmulatorInstance(object):
 
   def reset(self):
     """Reset emulator state."""
-    req = requests.post('http://localhost:{}/reset'.format(self._port))
+    req = requests.post(f'http://localhost:{self._port}/reset', timeout=10)
     req.raise_for_status()
 
 
@@ -333,7 +332,7 @@ def with_cloud_emulators(*emulator_names):
         super(Wrapped, cls).tearDownClass()
 
       def setUp(self):
-        for emulator in six.itervalues(_emulators):
+        for emulator in _emulators.values():
           emulator.reset()
 
         super().setUp()

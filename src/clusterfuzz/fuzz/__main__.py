@@ -58,7 +58,6 @@ def main():
 
     if args.engine == 'libFuzzer':
       options.merge_back_new_testcases = False
-      options.analyze_dictionary = False
 
     result = engine_impl.fuzz(args.target, options, args.output,
                               args.max_duration)

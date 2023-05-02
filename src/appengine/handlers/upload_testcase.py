@@ -56,6 +56,12 @@ def _is_uploader_allowed(email):
   return external_users.is_upload_allowed_for_user(email)
 
 
+def _is_trusted_uploader_allowed(email):
+  """Return whether or not uploader is allowed and trusted."""
+  return access.has_access(
+      need_privileged_access=True) and _is_uploader_allowed(email)
+
+
 def attach_testcases(rows):
   """Attach testcase to each crash."""
   testcases = {}
@@ -344,9 +350,11 @@ class UploadHandlerCommon(object):
 
     fully_qualified_fuzzer_name = ''
     if is_engine_job and target_name:
-      if job.is_external():
+      if _is_trusted_uploader_allowed(email) or job.is_external():
         # External jobs don't run and set FuzzTarget entities as part of
         # fuzz_task. Set it here instead.
+        # Additionally, record fuzz target here for trusted uploaders
+        # to avoid race conditions with newly added fuzz targets.
         fuzz_target = (
             data_handler.record_fuzz_target(fuzzer_name, target_name, job_type))
         fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()

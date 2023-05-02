@@ -19,7 +19,6 @@ import unittest
 
 from google.cloud import ndb
 import mock
-import six
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import compute_engine_projects
@@ -858,7 +857,7 @@ class CronTest(unittest.TestCase):
             auto_healing_policy={},
             wait_for_instances=False)
 
-    six.assertCountEqual(self, [{
+    self.assertCountEqual([{
         'instance_num': 0,
         'worker_name': u'oss-fuzz-linux-zone3-worker-proj1-0001',
         'project_name': u'proj1',

@@ -22,7 +22,6 @@ import tempfile
 import unittest
 
 import mock
-import six
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
@@ -175,7 +174,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(4, len(corpus))
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '39e0574a4abfd646565a3e436c548eeb1684fb57',
         '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
@@ -244,7 +243,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=5242880',
         '-detect_leaks=1', '-use_value_profile=1'
     ]
-    six.assertCountEqual(self, flags, expected_default_flags)
+    self.assertCountEqual(flags, expected_default_flags)
 
     runner.fuzzer_options = options.FuzzerOptions(
         os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
@@ -253,7 +252,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=1337', '-detect_leaks=0',
         '-use_value_profile=1'
     ]
-    six.assertCountEqual(self, flags, expected_custom_flags)
+    self.assertCountEqual(flags, expected_custom_flags)
 
 
 class CorpusPruningTestMinijail(CorpusPruningTest):
@@ -320,14 +319,14 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
         'libfuzzer_asan_fuchsia')
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '801c34269f74ed383fc97de33604b8a905adb635',
         '7cf184f4c67ad58283ecb19349720b0cae756829'
     ], corpus)
     quarantine = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantine))
-    six.assertCountEqual(
-        self, ['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'], quarantine)
+    self.assertCountEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'],
+                          quarantine)
 
 
 class CorpusPruningTestUntrusted(
@@ -428,12 +427,11 @@ class CorpusPruningTestUntrusted(
     corpus_backup_date = (
         datetime.datetime.utcnow().date() -
         datetime.timedelta(days=data_types.CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS))
-    corpus_backup_dir = ('gs://{bucket}/corpus/libfuzzer/test2_fuzzer/')
     gsutil.GSUtilRunner().run_gsutil([
         'cp',
-        (corpus_backup_dir + 'backup.zip').format(bucket=TEST2_BACKUP_BUCKET),
-        (corpus_backup_dir +
-         '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
+        f'gs://{TEST2_BACKUP_BUCKET}/corpus/libfuzzer/test2_fuzzer/backup.zip',
+        (f'gs://{self.backup_bucket}/corpus/libfuzzer/'
+         f'test2_fuzzer/{corpus_backup_date}.zip')
     ])
 
   def tearDown(self):
@@ -461,7 +459,7 @@ class CorpusPruningTestUntrusted(
     os.mkdir(corpus_dir)
     self.corpus.rsync_to_disk(corpus_dir)
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '39e0574a4abfd646565a3e436c548eeb1684fb57',
         '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
@@ -472,9 +470,8 @@ class CorpusPruningTestUntrusted(
     os.mkdir(quarantine_dir)
     self.quarantine_corpus.rsync_to_disk(quarantine_dir)
 
-    six.assertCountEqual(self,
-                         ['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'],
-                         os.listdir(quarantine_dir))
+    self.assertCountEqual(['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'],
+                          os.listdir(quarantine_dir))
 
     testcases = list(data_types.Testcase.query())
     self.assertEqual(1, len(testcases))

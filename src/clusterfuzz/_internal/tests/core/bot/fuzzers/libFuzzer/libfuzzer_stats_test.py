@@ -90,7 +90,6 @@ class PerformanceStatsTest(unittest.TestCase):
         'new_edges': 0,
         'new_features': 0,
         'oom_count': 0,
-        'recommended_dict_size': 0,
         'slow_unit_count': 0,
         'slow_units_count': 0,
         'startup_crash_count': 0,
@@ -103,7 +102,6 @@ class PerformanceStatsTest(unittest.TestCase):
         'strategy_peach_grammar_mutation': '',
         'strategy_mutator_plugin': 1,
         'strategy_random_max_len': 1,
-        'strategy_recommended_dict': 0,
         'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0

@@ -42,9 +42,6 @@ TIMEOUT_FLAG = '-timeout='
 
 EXACT_ARTIFACT_PATH_FLAG = '-exact_artifact_path='
 
-# libFuzzer arguments.
-ANALYZE_DICT_ARGUMENT = '-analyze_dict=1'
-
 CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
 
 MERGE_ARGUMENT = '-merge=1'

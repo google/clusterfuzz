@@ -187,7 +187,7 @@ class StatsGetter(object):
     # Set dictionary stats if self.dict_path is set.
     if self.dict_path is not None:
       self.stats['dict_used'] = 1
-      self.stats['manual_dict_size'], _ = (
+      self.stats['manual_dict_size'] = (
           dictionary_manager.get_stats_for_dictionary_file(self.dict_path))
 
     # Read and parse stats from AFL's afl_stats. Then use them to set and
