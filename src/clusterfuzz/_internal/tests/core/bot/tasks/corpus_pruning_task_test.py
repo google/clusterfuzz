@@ -53,8 +53,6 @@ class BaseTest(object):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
-        'clusterfuzz._internal.bot.tasks.corpus_pruning_task.'
-        'choose_cross_pollination_strategy',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
@@ -70,7 +68,6 @@ class BaseTest(object):
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
-    self.mock.choose_cross_pollination_strategy.return_value = ('random', None)
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -238,8 +235,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
-    context = corpus_pruning_task.Context(
-        fuzz_target, [], corpus_pruning_task.Pollination.RANDOM, None)
+    context = corpus_pruning_task.Context(fuzz_target, [])
 
     runner = corpus_pruning_task.Runner(self.build_dir, context)
     flags = runner.get_libfuzzer_flags()
@@ -448,9 +444,7 @@ class CorpusPruningTestUntrusted(
     self.mock._record_cross_pollination_stats.side_effect = (
         self.get_mock_record_compare(
             project_qualified_name='test_fuzzer',
-            method='random',
             sources='test2_fuzzer',
-            tags='',
             initial_corpus_size=5,
             corpus_size=3,
             initial_edge_coverage=0,
@@ -535,8 +529,8 @@ class CorpusPruningTestUntrusted(
         'gs://{}/corpus/libFuzzer/test_fuzzer/'.format(
             self.backup_bucket) + '%s.zip' % today)
 
-  def get_mock_record_compare(self, project_qualified_name, method, sources,
-                              tags, initial_corpus_size, corpus_size,
+  def get_mock_record_compare(self, project_qualified_name, sources,
+                              initial_corpus_size, corpus_size,
                               initial_edge_coverage, edge_coverage,
                               initial_feature_coverage, feature_coverage):
     """Given all of the expected stats, returns a function
@@ -546,8 +540,6 @@ class CorpusPruningTestUntrusted(
       """Mock record_cross_pollination_stats. Make sure function was called
       with the correct arguments."""
       self.assertEqual(project_qualified_name, stats.project_qualified_name)
-      self.assertEqual(method, stats.method)
-      self.assertEqual(tags, stats.tags)
       self.assertEqual(sources, stats.sources)
       self.assertEqual(initial_corpus_size, stats.initial_corpus_size)
       self.assertEqual(corpus_size, stats.corpus_size)
@@ -557,36 +549,3 @@ class CorpusPruningTestUntrusted(
       self.assertEqual(stats.feature_coverage, feature_coverage)
 
     return compare
-
-
-@test_utils.with_cloud_emulators('datastore')
-class CrossPollinationTest(unittest.TestCase):
-  """Tests for cross pollination."""
-
-  def test_select_targets_with_tagged_cross_pollination(self):
-    """Test that selecting targets with a given tag returns the right target."""
-    data_types.CorpusTag(
-        tag='test_tag',
-        fully_qualified_fuzz_target_name='libFuzzer_test_fuzzer').put()
-
-    data_types.CorpusTag(
-        tag='test_tag',
-        fully_qualified_fuzz_target_name=
-        'libFuzzer_cross_pollination_test_fuzzer').put()
-
-    similar_target = data_types.FuzzTarget(
-        engine='libFuzzer',
-        binary='cross_pollination_test_fuzzer',
-        project='test-project')
-    similar_target.put()
-
-    similar_job = data_types.FuzzTargetJob(
-        fuzz_target_name='libFuzzer_cross_pollination_test_fuzzer',
-        engine='libFuzzer',
-        job='libfuzzer_asan_job')
-    similar_job.put()
-
-    selected = corpus_pruning_task._select_targets_and_jobs_for_pollination(
-        'libFuzzer', 'libFuzzer_test_fuzzer', 'tagged', 'test_tag')
-
-    self.assertEqual([(similar_target, similar_job)], selected)

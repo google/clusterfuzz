@@ -136,7 +136,7 @@ COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
 def clone_entity(e, **extra_args):
   """Clones a DataStore entity and returns the clone."""
   ent_class = e.__class__
-  # pylint: disable=protected-access
+  # pylint: disable=protected-access,unnecessary-dunder-call
   props = dict((v._code_name, v.__get__(e, ent_class))
                for v in ent_class._properties.values()
                if not isinstance(v, ndb.ComputedProperty))
@@ -1359,12 +1359,6 @@ class CoverageInformation(Model):
     """Pre-put hook."""
     self.key = ndb.Key(CoverageInformation,
                        coverage_information_key(self.fuzzer, self.date))
-
-
-class CorpusTag(Model):
-  """Corpus Tags for sharing corpora between fuzz targets."""
-  tag = ndb.StringProperty()
-  fully_qualified_fuzz_target_name = ndb.StringProperty()
 
 
 def coverage_information_date_to_string(date):
