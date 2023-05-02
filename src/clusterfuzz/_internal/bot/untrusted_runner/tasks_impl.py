@@ -57,7 +57,6 @@ def prune_corpus(request, _):
         project_qualified_name=result.cross_pollination_stats.
         project_qualified_name,
         sources=result.cross_pollination_stats.sources,
-        tags=result.cross_pollination_stats.tags,
         initial_corpus_size=result.cross_pollination_stats.initial_corpus_size,
         corpus_size=result.cross_pollination_stats.corpus_size,
         initial_edge_coverage=result.cross_pollination_stats.
