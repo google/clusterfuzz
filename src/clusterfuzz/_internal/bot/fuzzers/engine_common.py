@@ -17,9 +17,9 @@ import contextlib
 import glob
 import json
 import os
-import pipes
 import random
 import re
+import shlex
 import shutil
 import sys
 import time
@@ -303,7 +303,7 @@ def find_fuzzer_path(build_directory, fuzzer_name):
 
 def get_command_quoted(command):
   """Return shell quoted command string."""
-  return ' '.join(pipes.quote(part) for part in command)
+  return ' '.join(shlex.quote(part) for part in command)
 
 
 def get_overridable_timeout(default_timeout, override_env_var):
