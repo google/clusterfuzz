@@ -494,9 +494,6 @@ class Build(BaseBuild):
       _handle_unrecoverable_error_on_windows()
       return False
 
-    # Decide whether to use cache build archives or not.
-    use_cache = environment.get_value('CACHE_STORE', False)
-
     # Download build archive locally.
     build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
 
@@ -512,7 +509,7 @@ class Build(BaseBuild):
     logs.log('Downloading build from url %s.' % build_url)
     try:
       storage.copy_file_from(
-          build_url, build_local_archive, use_cache=use_cache)
+          build_url, build_local_archive)
     except:
       logs.log_error('Unable to download build url %s.' % build_url)
       return False

@@ -17,7 +17,6 @@ import os
 import zipfile
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.android import adb
 from clusterfuzz._internal.platforms.android import fetch_artifact

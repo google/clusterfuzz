@@ -41,6 +41,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 _BOT_DIR = 'bot'
+_DATA_BUNDLE_CACHE_COUNT = 10
 _DATA_BUNDLE_SYNC_INTERVAL_IN_SECONDS = 6 * 60 * 60
 _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
