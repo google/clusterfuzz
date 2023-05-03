@@ -508,8 +508,7 @@ class Build(BaseBuild):
 
     logs.log('Downloading build from url %s.' % build_url)
     try:
-      storage.copy_file_from(
-          build_url, build_local_archive)
+      storage.copy_file_from(build_url, build_local_archive)
     except:
       logs.log_error('Unable to download build url %s.' % build_url)
       return False
