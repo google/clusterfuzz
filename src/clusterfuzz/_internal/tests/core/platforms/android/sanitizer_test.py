@@ -35,7 +35,8 @@ class GetOptionsFilePathTest(android_helpers.AndroidTest):
     device has ASan setup with partial instrumentation using asan_device_setup
     script."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.platforms.android.settings.get_sanitizer_tool_name'
+        ('clusterfuzz._internal.platforms.android.settings.'
+         'get_sanitizer_tool_name')
     ])
     self.mock.get_sanitizer_tool_name.return_value = None
 
@@ -46,7 +47,8 @@ class GetOptionsFilePathTest(android_helpers.AndroidTest):
     """Test that options file path is returned inside /system when device is
     setup with a full-system ASan build."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.platforms.android.settings.get_sanitizer_tool_name'
+        ('clusterfuzz._internal.platforms.android.settings.'
+         'get_sanitizer_tool_name')
     ])
     self.mock.get_sanitizer_tool_name.return_value = 'asan'
 
