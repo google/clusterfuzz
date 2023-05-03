@@ -195,8 +195,9 @@ def execute(_):
     if '_test.py' in file_path:
       line_length_override = '--max-line-length=240'
 
+    # Use --score no to make output less noisy.
     _execute_command_and_track_error(
-        f'pylint {line_length_override} {file_path}')
+        f'pylint --score no {line_length_override} {file_path}')
     _execute_command_and_track_error(f'yapf -d {file_path}')
     _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c {file_path}')
 
