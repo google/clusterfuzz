@@ -75,7 +75,7 @@ RUNS_TO_REPRODUCE = 100
 TARGET_ERROR_EXITCODE = 77
 
 NONCRASH_RETURN_CODES = {
-    # Code when LibFuzzer exits due to SIGTERM cancellation (timeout exceeded)
+    # Code when LibFuzzer exits due to SIGTERM cancellation (timeout exceeded).
     -15,
     0,
     # pylint: disable=line-too-long
