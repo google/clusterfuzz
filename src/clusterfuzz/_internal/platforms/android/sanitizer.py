@@ -39,13 +39,7 @@ def get_ld_library_path_for_sanitizers():
   if not settings.get_sanitizer_tool_name():
     return None
 
-  sanitizer_libs = adb.run_shell_command(
-      ['find', '/system/lib64/', '-name', '*san_standalone*'])
-  if not sanitizer_libs:
-    return None
-
-  sanitizer_lib_directory = os.path.dirname(sanitizer_libs.splitlines()[0])
-  return '/system/lib64:' + sanitizer_lib_directory
+  return constants.DEVICE_SANITIZER_DIR
 
 
 def get_options_file_path(sanitizer_tool_name):
