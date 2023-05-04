@@ -26,6 +26,8 @@ DEVICE_TMP_DIR = '/data/local/tmp'
 # Directory to keep fuzzing artifacts for grey-box fuzzers e.g. corpus.
 DEVICE_FUZZING_DIR = '/data/fuzz'
 
+DEVICE_SANITIZER_DIR = '/system/lib64'
+
 # The format of logcat when lowmemorykiller kills a process. See:
 # https://android.googlesource.com/platform/system/core/+/master/lmkd/lmkd.c#586
 LOW_MEMORY_REGEX = re.compile(
