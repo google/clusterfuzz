@@ -23,6 +23,7 @@ import time
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import requests
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -1200,10 +1201,19 @@ def blobs_bucket():
   return local_config.ProjectConfig().get('blobs.bucket')
 
 
-import requests
+def uworker_io_bucket():
+  test_uworker_io_bucket = environment.get_value('TEST_UWORKER_IO_BUCKET')
+  if test_uworker_io_bucket:
+    return test_uworker_io_bucket
+
+  assert not environment.get_value('PY_UNITTESTS')
+  # TODO(metzman): Use local config.
+  return environment.get_value('UWORKER_IO_BUCKET')
 
 
 def download_url(url, filename=None):
+  """Downloads a URL to |filename| if provided. Returns the content of the
+  URL."""
   # !!! Providers
   request = requests.get(url)
   if not request.status_code:
@@ -1215,7 +1225,7 @@ def download_url(url, filename=None):
   os.makedirs(os.path.dirname(filename), exist_ok=True)
   with open(filename, 'wb') as file_handle:
     file_handle.write(request.content)
-  return True
+  return request.content
 
 
 def upload_signed_url(signed_url, data):
@@ -1236,7 +1246,3 @@ def get_signed_download_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
   contents."""
   provider = _provider()
   return provider.sign_download_url(remote_path, minutes=minutes)
-
-
-def uworker_io_bucket():
-  return environment.get_value('UWORKER_IO_BUCKET')

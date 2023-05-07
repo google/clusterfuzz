@@ -281,11 +281,13 @@ def _get_testcase_file_and_path(testcase):
 
 
 def get_testcase_download_url(testcase):
+  """Returns a signed download URL for the testcase."""
   key, _ = _get_testcase_key_and_archive_status(testcase)
   return blobs.get_signed_download_url(key)
 
 
 def _get_testcase_key_and_archive_status(testcase):
+  """Returns the testcase's key and whether or not it is archived."""
   if _is_testcase_minimized(testcase):
     key = testcase.minimized_keys
     # !!! Can this be switched to logical "and", I think it's the same and

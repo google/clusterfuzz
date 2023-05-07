@@ -21,8 +21,8 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
   # Do preprocessing.
-  uworker_input = utask_module.utask_preprocess(
-      task_argument, job_type, uworker_env)
+  uworker_input = utask_module.utask_preprocess(task_argument, job_type,
+                                                uworker_env)
   if not uworker_input:
     # Bail if preprocessing failed since we can't proceed.
     return None, None
