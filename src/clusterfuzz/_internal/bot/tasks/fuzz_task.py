@@ -1834,7 +1834,6 @@ class FuzzingSession(object):
 
     engine_impl = engine.get(self.fuzzer.name)
 
-    # from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -1909,9 +1908,8 @@ class FuzzingSession(object):
     utils.python_gc()
 
 
-def execute_task(fuzzer_name, job_type, untrusted_environment):
+def execute_task(fuzzer_name, job_type):
   """Runs the given fuzzer for one round."""
-  del untrusted_environment
   test_timeout = environment.get_value('TEST_TIMEOUT')
   session = FuzzingSession(fuzzer_name, job_type, test_timeout)
   session.run()
