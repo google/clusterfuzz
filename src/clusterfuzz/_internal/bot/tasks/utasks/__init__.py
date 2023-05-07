@@ -16,10 +16,13 @@
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 
 
-def tworker_preprocess(task_module, task_argument, job_type, uworker_env):
+def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
+  """Executes the preprocessing step of the utask |task_module| and returns the
+  signed download URL for the uworker's input and the (unsigned) download URL
+  for its output."""
   # Do preprocessing.
-  uworker_input = task_module.preprocess_task(task_argument, job_type,
-                                              uworker_env)
+  uworker_input = utask_module.preprocess_task(task_argument, job_type,
+                                               uworker_env)
   if not uworker_input:
     # Bail if preprocessing failed since we can't proceed.
     return None, None
@@ -45,7 +48,8 @@ def tworker_preprocess(task_module, task_argument, job_type, uworker_env):
 def uworker_main(task_module, input_download_url):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  uworker_input = download_and_deserialize_uworker_input(input_download_url)
+  uworker_input = uworker_io.download_and_deserialize_uworker_input(
+      input_download_url)
   uworker_output_upload_url = uworker_input.pop('uworker_output_upload_url')
   uworker_output = task_module.uworker_main(**uworker_input)
   uworker_io.serialize_and_upload_uworker_output(uworker_output,

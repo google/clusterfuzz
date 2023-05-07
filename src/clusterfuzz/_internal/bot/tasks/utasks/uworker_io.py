@@ -13,12 +13,30 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
+import base64
+import datetime
+import json
+import os
+import tempfile
+import uuid
+
+from google.cloud import ndb
+import requests
+
+from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import storage
+
+
+def generate_new_io_file_name():
+  """Generates a new I/O file name."""
+  return str(uuid.uuid4()).lower()
+
 
 def get_uworker_io_gcs_path():
   """Returns a GCS path for uworker I/O."""
   # Inspired by blobs.write_blob.
   io_bucket = storage.uworker_io_bucket()
-  io_file_name = blobs.generate_new_blob_name()
+  io_file_name = generate_new_io_file_name()
   if storage.get(storage.get_cloud_storage_file_path(io_bucket, io_file_name)):
     raise RuntimeError(f'UUID collision found: {io_file_name}.')  # !!!
   return f'/{io_bucket}/{io_file_name}'
@@ -173,6 +191,36 @@ def deserialize_uworker_output(uworker_output):
       # !!! insecure
       setattr(entity, attr, new_value)
   return deserialized_output
+
+
+class UworkerEntityWrapper:
+  """Wrapper for db entities on the uworker. This wrapper functions the same as
+  the entity but also tracks changes made to the entity. This makes for easier
+  results processing by trusted workers (who now don't need to clobber the
+  entire entity when writing to the db, but can instead update just the modified
+  fields."""
+
+  def __init__(self, entity, signed_download_url):
+    # Everything set here, must be in the list in __setattr__
+    self._entity = entity
+
+  def __getattr__(self, attribute):
+    return getattr(self._entity, attribute)
+
+  def __setattr__(self, attribute, value):
+    if attribute in ['_entity']:
+      # Allow setting and changing _entity. Stack overflow in __init__
+      # otherwise.
+      super().__setattr__(attribute, value)
+      return
+    if getattr(self._entity, '_wrapped_changed_attributes', None) is None:
+      # Ensure we can track changes.
+      setattr(self._entity, '_wrapped_changed_attributes', {})
+    # Record the attribute change.
+    getattr(self._entity, '_wrapped_changed_attributes')[attribute] = value
+    # Make the attribute change.
+    setattr(self._entity, attribute, value)
+
 
 
 def download_url(url):

@@ -1218,17 +1218,22 @@ def download_url(url, filename=None):
   return True
 
 
-def upload_signed_url(url, data):
-  # !!! provider.
+def upload_signed_url(signed_url, data):
+  """Uploads data to the |signed_url|."""
+  # TODO(metzman): Deal with providers.
   return requests.put(url, data=data)
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  """Returns a signed upload URL for |remote_path|. Does not download the
+  contents."""
   provider = _provider()
   return provider.sign_upload_url(remote_path, minutes=minutes)
 
 
 def get_signed_download_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  """Returns a signed download URL for |remote_path|. Does not download the
+  contents."""
   provider = _provider()
   return provider.sign_download_url(remote_path, minutes=minutes)
 

@@ -218,35 +218,6 @@ def uworker_execute(testcase, job_type, uworker_env, uworker_output_upload_url):
   return output
 
 
-class UworkerEntityWrapper:
-  """Wrapper for db entities on the uworker. This wrapper functions the same as
-  the entity but also tracks changes made to the entity. This makes for easier
-  results processing by trusted workers (who now don't need to clobber the
-  entire entity when writing to the db, but can instead update just the modified
-  fields."""
-
-  def __init__(self, entity):
-    # Everything set here, must be in the list in __setattr__
-    self._entity = entity
-
-  def __getattr__(self, attribute):
-    return getattr(self._entity, attribute)
-
-  def __setattr__(self, attribute, value):
-    if attribute in ['_entity']:
-      # Allow setting and changing _entity. Stack overflow in __init__
-      # otherwise.
-      super().__setattr__(attribute, value)
-      return
-    if getattr(self._entity, '_wrapped_changed_attributes', None) is None:
-      # Ensure we can track changes.
-      setattr(self._entity, '_wrapped_changed_attributes', {})
-    # Record the attribute change.
-    getattr(self._entity, '_wrapped_changed_attributes')[attribute] = value
-    # Make the attribute change.
-    setattr(self._entity, attribute, value)
-
-
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run analyze task."""
   # Reset redzones.

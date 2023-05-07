@@ -13,17 +13,9 @@
 # limitations under the License.
 """Run command based on the current task."""
 
-import base64
-import datetime
 import functools
-import json
-import os
 import sys
-import tempfile
 import time
-
-from google.cloud import ndb
-import requests
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -44,8 +36,6 @@ from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.google_cloud_utils import blobs
-from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler

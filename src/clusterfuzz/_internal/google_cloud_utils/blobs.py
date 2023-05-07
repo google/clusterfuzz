@@ -220,10 +220,3 @@ def generate_new_blob_name():
 def get_signed_download_url(blob_key):
   gcs_path = get_gcs_path(blob_key)
   return storage.get_signed_download_url(gcs_path)
-
-
-def get_signed_upload_url():
-  # !!! use seperate bucket
-  blob_key = generate_new_blob_name()
-  gcs_path = get_gcs_path(blob_key)
-  return storage.get_signed_upload_url(gcs_path)
