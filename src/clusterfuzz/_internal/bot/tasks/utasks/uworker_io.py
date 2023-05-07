@@ -21,7 +21,6 @@ import tempfile
 import uuid
 
 from google.cloud import ndb
-import requests
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage

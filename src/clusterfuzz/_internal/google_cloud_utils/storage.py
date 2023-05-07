@@ -353,14 +353,20 @@ class GcsProvider(StorageProvider):
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
-    return requests.get(signed_url).content
+    # TODO(metzman): Add retries.
+    return download_url(signed_url)
 
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
     requests.put(signed_url, data=data)
 
 
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES, method='GET'):
+  """Returns a signed URL for |remote_path| with |method|."""
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
   client = _storage_client()
@@ -1237,22 +1243,25 @@ def uworker_io_bucket():
   return environment.get_value('UWORKER_IO_BUCKET')
 
 
-def download_url(url, filename=None):
-  """Downloads a URL to |filename| if provided. Returns the content of the
-  URL."""
-  # !!! Providers
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.download_url',
+    exception_type=HttpError)
+def download_url(url):
+  """Downloads |url| and returns the contents."""
   request = requests.get(url)
-  if not request.status_code:
-    logs.log_error('Request to %s failed. Code: %d. Reason: %s' %
-                   (url, request.status_code, request.reason))
-    return False
-  if filename is None:
-    return request.content
-
-    file_handle.write(request.content)
+  if not request.ok:
+    raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
+                       (url, request.status_code, request.reason))
   return request.content
 
 
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.upload_signed_url',
+    retry_on_false=True)
 def upload_signed_url(data, url):
   """Uploads data to the |signed_url|."""
   # TODO(metzman): Deal with providers.
