@@ -40,9 +40,9 @@ def execute(_):
       # Exclude auto-generated files.
       not f.endswith('_pb2.py') and not f.endswith('_pb2_grpc.py')
   ]
+  if py_changed_file_paths:
+    common.execute(f'yapf -p -i {" ".join(py_changed_file_paths)}')
+    common.execute(f'{ISORT_CMD} {" ".join(py_changed_file_paths)}')
   go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
-  common.execute(f'yapf -p -i {" ".join(py_changed_file_paths)}')
-  common.execute(f'{ISORT_CMD} {" ".join(py_changed_file_paths)}')
-
   for file_path in go_changed_file_paths:
     common.execute('gofmt -w ' + file_path)
