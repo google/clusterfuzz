@@ -1221,7 +1221,7 @@ def download_url(url, filename=None):
 def upload_signed_url(signed_url, data):
   """Uploads data to the |signed_url|."""
   # TODO(metzman): Deal with providers.
-  return requests.put(url, data=data)
+  return requests.put(signed_url, data=data)
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):

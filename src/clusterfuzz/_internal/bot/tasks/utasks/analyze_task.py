@@ -90,9 +90,8 @@ def set_uworker_env(uworker_env):
 
 
 # !!! Testcase download URL.
-def uworker_execute(testcase, job_type, uworker_env, uworker_output_upload_url):
+def utask_main(testcase, job_type, uworker_env):
   """Executes the untrusted part of analyze_task."""
-  del uworker_output_upload_url  # !!! why is this passed?
   set_uworker_env(uworker_env)
   environment.reset_current_memory_tool_options(redzone_size=128)
 

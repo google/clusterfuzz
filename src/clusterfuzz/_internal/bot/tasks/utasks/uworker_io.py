@@ -110,7 +110,7 @@ def deserialize_uworker_input(serialized_uworker_input):
     # !!! make entity in uworker
     entity = get_entity_with_changed_properties(ndb_key,
                                                 entity_dict['properties'])
-    uworker_input[name] = analyze_task.UworkerEntityWrapper(entity)
+    uworker_input[name] = UworkerEntityWrapper(entity)
   return uworker_input
 
 
@@ -157,7 +157,7 @@ def serialize_uworker_output(uworker_output):
   serializable = {}
 
   for name, value in uworker_output.items():
-    if not isinstance(value, analyze_task.UworkerEntityWrapper):
+    if not isinstance(value, UworkerEntityWrapper):
       serializable[name] = value
       continue
     entities[name] = {
@@ -200,7 +200,7 @@ class UworkerEntityWrapper:
   entire entity when writing to the db, but can instead update just the modified
   fields."""
 
-  def __init__(self, entity, signed_download_url):
+  def __init__(self, entity):
     # Everything set here, must be in the list in __setattr__
     self._entity = entity
 
@@ -220,7 +220,6 @@ class UworkerEntityWrapper:
     getattr(self._entity, '_wrapped_changed_attributes')[attribute] = value
     # Make the attribute change.
     setattr(self._entity, attribute, value)
-
 
 
 def download_url(url):
