@@ -353,7 +353,6 @@ class GcsProvider(StorageProvider):
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
-    # TODO(metzman): Add retries.
     return download_url(signed_url)
 
   def upload_signed_url(self, data, signed_url):
@@ -640,8 +639,8 @@ class GcsBlobInfo(object):
 def _provider():
   """Get the current storage provider."""
   local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
-  # if local_buckets_path:
-  #   return FileSystemProvider(local_buckets_path)
+  if local_buckets_path:
+    return FileSystemProvider(local_buckets_path)
   return GcsProvider()
 
 
@@ -918,11 +917,11 @@ def read_data(cloud_storage_file_path):
   return _provider().read_data(cloud_storage_file_path)
 
 
-# @retry.wrap(
-#     retries=DEFAULT_FAIL_RETRIES,
-#     delay=DEFAULT_FAIL_WAIT,
-#     function='google_cloud_utils.storage.write_data',
-#     exception_type=google.cloud.exceptions.GoogleCloudError)
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.write_data',
+    exception_type=google.cloud.exceptions.GoogleCloudError)
 def write_data(data, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
@@ -1161,10 +1160,10 @@ def store_file_in_cache(file_path,
     logs.log('Completed storing file %s into cache.' % filename)
 
 
-# @retry.wrap(#
-#     retries=DEFAULT_FAIL_RETRIES,
-#     delay=DEFAULT_FAIL_WAIT,
-#     function='google_cloud_utils.storage.get')
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.get')
 def get(cloud_storage_file_path):
   """Get GCS object data."""
   return _provider().get(cloud_storage_file_path)
