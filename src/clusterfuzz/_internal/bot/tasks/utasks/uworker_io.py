@@ -13,6 +13,7 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
+
 def get_uworker_io_gcs_path():
   """Returns a GCS path for uworker I/O."""
   # Inspired by blobs.write_blob.

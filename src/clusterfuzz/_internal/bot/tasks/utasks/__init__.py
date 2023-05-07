@@ -15,6 +15,7 @@
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 
+
 def tworker_preprocess(task_module, task_argument, job_type, uworker_env):
   # Do preprocessing.
   uworker_input = task_module.preprocess_task(task_argument, job_type,
@@ -47,8 +48,8 @@ def uworker_main(task_module, input_download_url):
   uworker_input = download_and_deserialize_uworker_input(input_download_url)
   uworker_output_upload_url = uworker_input.pop('uworker_output_upload_url')
   uworker_output = task_module.uworker_main(**uworker_input)
-  uworker_io.serialize_and_upload_uworker_output(
-      uworker_output, uworker_output_upload_url)
+  uworker_io.serialize_and_upload_uworker_output(uworker_output,
+                                                 uworker_output_upload_url)
 
 
 def tworker_postprocess(task_module, output_download_url):

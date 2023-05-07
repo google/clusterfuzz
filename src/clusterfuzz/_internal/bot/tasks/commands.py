@@ -38,8 +38,8 @@ from clusterfuzz._internal.bot.tasks import regression_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
-from clusterfuzz._internal.bot.tasks import variant_task
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.bot.tasks import variant_task
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
@@ -52,6 +52,7 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
 TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
+
 
 class BaseTask:
   """Base module for tasks."""
@@ -91,8 +92,8 @@ class UTaskLocalExecutor(BaseTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(
-        self.module, task_argument, job_type, uworker_env)
+    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
+                                                  job_type, uworker_env)
 
     if preprocess_result is None:
       return
