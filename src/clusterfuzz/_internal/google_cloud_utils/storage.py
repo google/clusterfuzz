@@ -566,13 +566,13 @@ class FileSystemProvider(StorageProvider):
     """Returns remote_path since we are pretending to sign a URL for
     download."""
     del minutes
-    return remote_path
+    return self.convert_path(remote_path)
 
   def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
     upload."""
     del minutes
-    return remote_path
+    return self.convert_path(remote_path)
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""

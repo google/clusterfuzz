@@ -265,17 +265,28 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
   def test_sign_upload_url(self):
     """Tests sign_upload_url."""
     # The remote_path passed is actually a filesystem path.
-    url = '/local/upload'
-    return self.assertEqual(self.provider.sign_upload_url(url), url)
+    url = 'gs://test-bucket/upload'
+    return self.assertEqual(self.provider.sign_upload_url(url),
+                            '/local/test-bucket/objects/upload')
 
   def test_sign_upload_url(self):
     """Tests sign_download_url."""
     # The remote_path passed is actually a filesystem path.
-    url = '/local/download'
-    return self.assertEqual(self.provider.sign_download_url(url), url)
+    url = 'gs://test-bucket/download'
+    return self.assertEqual(self.provider.sign_download_url(url),
+                            '/local/test-bucket/objects/download')
 
-    def test_download_signed_url(self):
+  def test_download_signed_url(self):
     """Tests download_signed_url."""
-    # The signed_url passed is actually a filesystem path.
-    url = '/local/upload'
-    return self.assertEqual(self.provider.sign_upload_url(url), url)
+    contents = b'aa'
+    self.fs.create_file('/local/test-bucket/objects/a', contents=contents)
+    return self.assertEqual(self.provider.download_signed_url(
+        'gs://test-bucket/a'), contents)
+
+  def test_upload_signed_url(self):
+    """Tests upload_signed_url."""
+    contents = b'aa'
+    self.fs.create_file('/local/test-bucket/objects/a', contents=contents)
+    self.provider.upload_signed_url(contents, 'gs://test-bucket/a')
+    with open('/local/test-bucket/objects/a', 'rb') as fp:
+      return self.assertEqual(fp.read(), contents)
