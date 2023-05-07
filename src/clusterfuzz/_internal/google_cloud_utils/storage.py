@@ -1241,6 +1241,7 @@ def blobs_bucket():
 
 
 def uworker_io_bucket():
+  """Returns the bucket where uworker I/O is done."""
   test_uworker_io_bucket = environment.get_value('TEST_UWORKER_IO_BUCKET')
   if test_uworker_io_bucket:
     return test_uworker_io_bucket
@@ -1271,7 +1272,6 @@ def download_url(url):
     retry_on_false=True)
 def upload_signed_url(data, url):
   """Uploads data to the |signed_url|."""
-  # TODO(metzman): Deal with providers.
   return _provider().upload_signed_url(data, url)
 
 
