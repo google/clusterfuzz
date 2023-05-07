@@ -91,7 +91,7 @@ OBJECT_URL = 'https://storage.cloud.google.com'
 DIRECTORY_URL = 'https://console.cloud.google.com/storage/browser'
 
 # Expiration in minutes for signed URL.
-SIGNED_EXPIRATION_MINUTES = 24 * 60
+SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 
 
 class StorageProvider(object):
@@ -137,11 +137,13 @@ class StorageProvider(object):
     """Delete a remote file."""
     raise NotImplementedError
 
-  def sign_download_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  def sign_download_url(self,
+                        remote_path,
+                        minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a download URL for a remote file."""
     raise NotImplementedError
 
-  def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs an upload URL for a remote file."""
     raise NotImplementedError
 
@@ -343,11 +345,13 @@ class GcsProvider(StorageProvider):
 
     return True
 
-  def sign_download_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  def sign_download_url(self,
+                        remote_path,
+                        minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a download URL for a remote file."""
     return _sign_url(remote_path, method='GET', minutes=minutes)
 
-  def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs an upload URL for a remote file."""
     return _sign_url(remote_path, method='PUT', minutes=minutes)
 
@@ -364,7 +368,7 @@ class GcsProvider(StorageProvider):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage._sign_url')
-def _sign_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES, method='GET'):
+def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
@@ -567,13 +571,15 @@ class FileSystemProvider(StorageProvider):
     shell.remove_file(fs_metadata_path)
     return True
 
-  def sign_download_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  def sign_download_url(self,
+                        remote_path,
+                        minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
     download."""
     del minutes
     return self.convert_path(remote_path)
 
-  def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
     upload."""
     del minutes
@@ -1278,14 +1284,14 @@ def download_signed_url(url, local_path=None):
   return contents
 
 
-def get_signed_upload_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   """Returns a signed upload URL for |remote_path|. Does not download the
   contents."""
   provider = _provider()
   return provider.sign_upload_url(remote_path, minutes=minutes)
 
 
-def get_signed_download_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   """Returns a signed download URL for |remote_path|. Does not download the
   contents."""
   provider = _provider()
