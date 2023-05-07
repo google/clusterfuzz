@@ -112,6 +112,7 @@ def generate_new_testcase_mutations(
   if candidate_generator == Generator.RADAMSA:
     generate_new_testcase_mutations_using_radamsa(
         corpus_directory, new_testcase_mutations_directory, generation_timeout)
+
   # If new mutations are successfully generated, return true.
   if shell.get_directory_file_count(
       new_testcase_mutations_directory) > pre_mutations_filecount:
