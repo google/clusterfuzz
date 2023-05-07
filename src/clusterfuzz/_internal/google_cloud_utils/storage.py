@@ -23,6 +23,7 @@ import time
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import requests
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -89,6 +90,9 @@ _local = threading.local()
 OBJECT_URL = 'https://storage.cloud.google.com'
 DIRECTORY_URL = 'https://console.cloud.google.com/storage/browser'
 
+# Expiration in minutes for signed URL.
+SIGNED_EXPIRATION_MINUTES = 24 * 60
+
 
 class StorageProvider(object):
   """Core storage provider interface."""
@@ -131,6 +135,22 @@ class StorageProvider(object):
 
   def delete(self, remote_path):
     """Delete a remote file."""
+    raise NotImplementedError
+
+  def sign_download_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+    """Signs a download URL for a remote file."""
+    raise NotImplementedError
+
+  def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+    """Signs an upload URL for a remote file."""
+    raise NotImplementedError
+
+  def download_signed_url(self, signed_url):
+    """Downloads |signed_url|."""
+    raise NotImplementedError
+
+  def upload_signed_url(self, data, signed_url):
+    """Uploads |data| to |signed_url|."""
     raise NotImplementedError
 
 
@@ -322,6 +342,39 @@ class GcsProvider(StorageProvider):
       raise
 
     return True
+
+  def sign_download_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+    """Signs a download URL for a remote file."""
+    return _sign_url(remote_path, method='GET', minutes=minutes)
+
+  def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+    """Signs an upload URL for a remote file."""
+    return _sign_url(remote_path, method='PUT', minutes=minutes)
+
+  def download_signed_url(self, signed_url):
+    """Downloads |signed_url|."""
+    # TODO(metzman): Add retries.
+    return download_url(signed_url)
+
+  def upload_signed_url(self, data, signed_url):
+    """Uploads |data| to |signed_url|."""
+    requests.put(signed_url, data=data)
+
+
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage._sign_url')
+def _sign_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES, method='GET'):
+  """Returns a signed URL for |remote_path| with |method|."""
+  minutes = datetime.timedelta(minutes=minutes)
+  bucket_name, object_path = get_bucket_name_and_path(remote_path)
+  client = _storage_client()
+  bucket = client.bucket(bucket_name)
+  blob = bucket.blob(object_path)
+  url = blob.generate_signed_url(
+      version='v4', expiration=minutes, method=method)
+  return url
 
 
 class FileSystemProvider(StorageProvider):
@@ -515,6 +568,26 @@ class FileSystemProvider(StorageProvider):
     shell.remove_file(fs_metadata_path)
     return True
 
+  def sign_download_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+    """Returns remote_path since we are pretending to sign a URL for
+    download."""
+    del minutes
+    return self.convert_path(remote_path)
+
+  def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+    """Returns remote_path since we are pretending to sign a URL for
+    upload."""
+    del minutes
+    return self.convert_path(remote_path)
+
+  def download_signed_url(self, signed_url):
+    """Downloads |signed_url|."""
+    return self.read_data(signed_url)
+
+  def upload_signed_url(self, data, signed_url):
+    """Uploads |data| to |signed_url|."""
+    return self.write_data(data, signed_url)
+
 
 class GcsBlobInfo(object):
   """GCS blob info."""
@@ -567,9 +640,8 @@ class GcsBlobInfo(object):
 def _provider():
   """Get the current storage provider."""
   local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
-  if local_buckets_path:
-    return FileSystemProvider(local_buckets_path)
-
+  # if local_buckets_path:
+  #   return FileSystemProvider(local_buckets_path)
   return GcsProvider()
 
 
@@ -720,7 +792,6 @@ def create_bucket_if_needed(bucket_name, object_lifecycle=None, cors=None):
   return True
 
 
-@environment.local_noop
 def create_discovery_storage_client():
   """Create a storage client using discovery APIs."""
   return build('storage', 'v1', cache_discovery=False)
@@ -847,11 +918,11 @@ def read_data(cloud_storage_file_path):
   return _provider().read_data(cloud_storage_file_path)
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.write_data',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+# @retry.wrap(
+#     retries=DEFAULT_FAIL_RETRIES,
+#     delay=DEFAULT_FAIL_WAIT,
+#     function='google_cloud_utils.storage.write_data',
+#     exception_type=google.cloud.exceptions.GoogleCloudError)
 def write_data(data, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
@@ -1090,10 +1161,10 @@ def store_file_in_cache(file_path,
     logs.log('Completed storing file %s into cache.' % filename)
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.get')
+# @retry.wrap(#
+#     retries=DEFAULT_FAIL_RETRIES,
+#     delay=DEFAULT_FAIL_WAIT,
+#     function='google_cloud_utils.storage.get')
 def get(cloud_storage_file_path):
   """Get GCS object data."""
   return _provider().get(cloud_storage_file_path)
@@ -1160,3 +1231,63 @@ def blobs_bucket():
 
   assert not environment.get_value('PY_UNITTESTS')
   return local_config.ProjectConfig().get('blobs.bucket')
+
+
+def uworker_io_bucket():
+  test_uworker_io_bucket = environment.get_value('TEST_UWORKER_IO_BUCKET')
+  if test_uworker_io_bucket:
+    return test_uworker_io_bucket
+
+  assert not environment.get_value('PY_UNITTESTS')
+  # TODO(metzman): Use local config.
+  return environment.get_value('UWORKER_IO_BUCKET')
+
+
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.download_url',
+    exception_type=HttpError)
+def download_url(url):
+  """Downloads |url| and returns the contents."""
+  request = requests.get(url)
+  if not request.ok:
+    raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
+                       (url, request.status_code, request.reason))
+  return request.content
+
+
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.upload_signed_url',
+    retry_on_false=True)
+def upload_signed_url(data, url):
+  """Uploads data to the |signed_url|."""
+  # TODO(metzman): Deal with providers.
+  return _provider().upload_signed_url(data, url)
+
+
+def download_signed_url(url, local_path=None):
+  """Returns contents of |url|. Writes to |local_path| if provided."""
+  contents = _provider().download_signed_url(url)
+  if not local_path:
+    return contents
+  os.makedirs(os.path.dirname(local_path), exist_ok=True)
+  with open(local_path, 'wb') as fp:
+    fp.write(contents)
+  return contents
+
+
+def get_signed_upload_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  """Returns a signed upload URL for |remote_path|. Does not download the
+  contents."""
+  provider = _provider()
+  return provider.sign_upload_url(remote_path, minutes=minutes)
+
+
+def get_signed_download_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
+  """Returns a signed download URL for |remote_path|. Does not download the
+  contents."""
+  provider = _provider()
+  return provider.sign_download_url(remote_path, minutes=minutes)
