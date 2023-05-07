@@ -218,6 +218,8 @@ def get_application_id():
   """Return application id. Code simplified based off original implementation in
   AppEngine SDK get_identity.get_application_id."""
   app_id = environment.get_value('APPLICATION_ID')
+  print('APP_ID', environment.get_value('APPLICATION_ID'))
+
   if app_id is None:
     return None
 
@@ -236,7 +238,7 @@ def service_account_email():
     domain, application_id = email_id.split(':')
     email_id = application_id + '.' + domain
 
-  return email_id + '@appspot.gserviceaccount.com'
+  return 'metzman@oss-fuzz.iam.gserviceaccount.com'
 
 
 def get_bot_testcases_file_path(input_directory):

@@ -13,6 +13,9 @@
 # limitations under the License.
 """Analyze task for handling user uploads."""
 
+import datetime
+import enum
+
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -20,6 +23,7 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import crash_uploader
@@ -84,24 +88,56 @@ def setup_build(testcase):
   build_manager.setup_build(revision)
 
 
-# !!! Testcase download URL.
-def utask_main(testcase, testcase_download_url, job_type):
-  """Executes the untrusted part of analyze_task."""
+def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
+  # Get the crash output.
+  result = testcase_manager.test_for_crash_with_retries(
+      testcase,
+      testcase_file_path,
+      test_timeout,
+      http_flag=testcase.http_flag,
+      compare_crash=False)
+
+  # If we don't get a crash, try enabling http to see if we can get a crash.
+  # Skip engine fuzzer jobs (e.g. libFuzzer, AFL) for which http testcase paths
+  # are not applicable.
+  if (not result.is_crash() and not testcase.http_flag and
+      not environment.is_engine_fuzzer_job()):
+    result_with_http = testcase_manager.test_for_crash_with_retries(
+        testcase,
+        testcase_file_path,
+        test_timeout,
+        http_flag=True,
+        compare_crash=False)
+    if result_with_http.is_crash():
+      logs.log('Testcase needs http flag for crash.')
+      testcase.http_flag = True
+      result = result_with_http
+  return result
+
+
+def prepare_env_for_main(metadata):
   environment.reset_current_memory_tool_options(redzone_size=128)
 
   # Unset window location size and position properties so as to use default.
   environment.set_value('WINDOW_ARG', '')
 
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
-    # Creates empty local blacklist so all leaks will be visible to uploader.
-    leak_blacklist.create_empty_local_blacklist()
+  # Adjust the test timeout, if user has provided one.
+  if metadata.timeout:
+    environment.set_value('TEST_TIMEOUT', metadata.timeout)
 
-    # Set up testcase and get absolute testcase path.
+  # Adjust the number of retries, if user has provided one.
+  if metadata.retries is not None:
+    environment.set_value('CRASH_RETRIES', metadata.retries)
+
+
+def setup_testcase_and_build(testcase, metadata, job_type,
+                             testcase_download_url):
+  # Set up testcase and get absolute testcase path.
   file_list, _, testcase_file_path = setup.setup_testcase(
       testcase, job_type, testcase_download_url=testcase_download_url)
   if not file_list:
-    return
+    return False, AnalyzeUworkerOutput(
+        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
 
   # Set up build.
   setup_build(testcase)
@@ -109,17 +145,12 @@ def utask_main(testcase, testcase_download_url, job_type):
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
   if not build_manager.check_app_path():
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Build setup failed')
+    return False, AnalyzeUworkerOutput(
+        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
+  return True, None
 
-    if data_handler.is_first_retry_for_task(testcase):
-      build_fail_wait = environment.get_value('FAIL_WAIT')
-      tasks.add_task(
-          'analyze', testcase.id, job_type, wait_time=build_fail_wait)
-    else:
-      # !!! Signal this result.
-      return
 
+def initialize_testcase_for_main(testcase, file_path, job_type):
   # Update initial testcase information.
   testcase.absolute_path = testcase_file_path
   testcase.job_type = job_type
@@ -141,75 +172,112 @@ def utask_main(testcase, testcase_download_url, job_type):
 
   # Update other fields not set at upload time.
   testcase.crash_revision = environment.get_value('APP_REVISION')
-  data_handler.set_initial_testcase_metadata(testcase)
-  testcase.put()
 
-  # Initialize some variables.
-  gestures = testcase.gestures
-  http_flag = testcase.http_flag
-  test_timeout = environment.get_value('TEST_TIMEOUT')
 
-  # Get the crash output.
-  result = testcase_manager.test_for_crash_with_retries(
-      testcase,
-      testcase_file_path,
-      test_timeout,
-      http_flag=http_flag,
-      compare_crash=False)
-
-  # Set application command line with the correct http flag.
-  application_command_line = (
-      testcase_manager.get_command_line_for_application(
-          testcase_file_path, needs_http=http_flag))
-
-  # Get the crash data.
-  crashed = result.is_crash()
-  crash_time = result.get_crash_time()
-  state = result.get_symbolized_data()
-  unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
-
+def save_minidump(testcase, application_command_line, state):
   # Get crash info object with minidump info. Also, re-generate unsymbolized
   # stacktrace if needed.
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Do this in a
-  # no-trust manner.
   crash_info, _ = (
       crash_uploader.get_crash_info_and_stacktrace(
-          application_command_line, state.crash_stacktrace, gestures))
+          application_command_line, state.crash_stacktrace, testcase.gestures))
   if crash_info:
     testcase.minidump_keys = crash_info.store_minidump()
 
-  # Update testcase crash parameters.
-  testcase.http_flag = http_flag
+
+def get_application_command_line(testcase):
+  return testcase_manager.get_command_line_for_application(
+      testcase.absolute_path, needs_http=testcase.http_flag)
+
+
+def update_testcase(testcase, state, crash_stacktrace, job_type):
+
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
   testcase.crash_state = state.crash_state
-  testcase.crash_stacktrace = utils.get_crash_stacktrace_output(
-      application_command_line, state.crash_stacktrace,
-      unsymbolized_crash_stacktrace)
 
   testcase.security_flag = crash_analyzer.is_security_issue(
       state.crash_stacktrace, state.crash_type, state.crash_address)
   # If it is, guess the severity.
   if testcase.security_flag:
     testcase.security_severity = severity_analyzer.get_security_severity(
-        state.crash_type, state.crash_stacktrace, job_type, bool(gestures))
+        state.crash_type, state.crash_stacktrace, job_type,
+        bool(testcase.gestures))
 
-  # Test for reproducibility.
+
+# !!! Testcase download URL.
+def utask_main(testcase, testcase_download_url, job_type, metadata):
+  """Executes the untrusted part of analyze_task."""
+  prepare_env_for_main(metadata)
+
+  is_lsan_enabled = environment.get_value('LSAN')
+  if is_lsan_enabled:
+    # Creates empty local blacklist so all leaks will be visible to uploader.
+    leak_blacklist.create_empty_local_blacklist()
+
+  setup_success, output = setup_testcase_and_build(testcase, metadata, job_type,
+                                                   testcase_download_url)
+  if not setup_success:
+    return output
+
+  initialize_testcase_for_main(testcase, file_path, job_type)
+
+  # Initialize some variables.
+  test_timeout = environment.get_value('TEST_TIMEOUT')
+
+  result = test_for_crash_with_retries(testcase, testcase_file_path,
+                                       test_timeout)
+
+  # Set application command line with the correct http flag.
+  application_command_line = get_application_command_line(testcase)
+
+  # Get the crash data.
+  crashed = result.is_crash()
+  state = result.get_symbolized_data()
+  unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
+  save_minidump(testcase, application_command_line, state)
+
+  crash_stacktrace_output = utils.get_crash_stacktrace_output(
+      application_command_line, state.crash_stacktrace,
+      unsymbolized_crash_stacktrace)
+  testcase.crash_stacktrace = data_handler.filter_stacktrace(
+      crash_stacktrace_output)
+
+  if not crashed:
+    pass
+  # Update testcase crash parameters.
+  update_testcase(testcase, state, crash_stacktrace, job_type)
+  test_for_reproducibility(testcase, test_timeout)
+  return AnalyzeUworkerOutput(
+      testcase=testcase,
+      crash_stacktrace=crash_stacktrace,
+      crashed=crashed,
+      crash_time=crash_time)
+
+
+def test_for_reproducibility(testcase, test_timeout):
   reproduces = testcase_manager.test_for_reproducibility(
       testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
       state.crash_type, state.crash_state, testcase.security_flag, test_timeout,
-      http_flag, gestures)
+      testcase.http_flag, testcase.gestures)
   testcase.one_time_crasher_flag = reproduces
 
-  # Replace this with crashes.
-  output = {
-      'crash_stacktrace': state.crash_stacktrace,
-      'crashed': crashed,
-      'crash_time': crash_time,
-      'testcase': testcase,
-  }
 
-  return output
+class AnalyzeUworkerOutput(uworker_io.UworkerOutput):
+
+  def __init__(self,
+               testcase,
+               error=None,
+               crash_stacktrace=None,
+               crashed=False,
+               crash_time=None):
+    super().__init__(testcase, error)
+    self.crash_stacktrace = crash_stacktrace
+    self.crashed = crash_stacktrace
+    self.crash_time = crash_time
+
+
+class Error(enum.Enum):
+  BUILD_SETUP = 1
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
@@ -223,44 +291,64 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  # !!! Don't do this for dev purposes since I'm having trouble uploading
-  # !!! testcases.
-  # metadata = data_types.TestcaseUploadMetadata.query(
-  #     data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-  # if not metadata:
-  #   logs.log_error(
-  #       'Testcase %s has no associated upload metadata.' % testcase_id)
-  #   testcase.key.delete()
-  #   return
+  metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  if not metadata:
+    logs.log_error(
+        'Testcase %s has no associated upload metadata.' % testcase_id)
+    testcase.key.delete()
+    return
 
-  # !!! Ignore metadata stuff for now
   # Store the bot name and timestamp in upload metadata.
-  # bot_name = environment.get_value('BOT_NAME')
-  # metadata.bot_name = bot_name
-  # metadata.timestamp = datetime.datetime.utcnow()
-  # metadata.put()
+  bot_name = environment.get_value('BOT_NAME')
+  metadata.bot_name = bot_name
+  metadata.timestamp = datetime.datetime.utcnow()
+  metadata.put()
 
-  # # Adjust the test timeout, if user has provided one.
-  # if metadata.timeout:
-  #   environment.set_value('TEST_TIMEOUT', metadata.timeout)
-  #   untrusted_env['TEST_TIMEOUT'] = metadata.timeout
+  # Adjust the test timeout, if user has provided one.
+  if metadata.timeout:
+    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+    untrusted_env['TEST_TIMEOUT'] = metadata.timeout
 
-  # # Adjust the number of retries, if user has provided one.
-  # if metadata.retries is not None:
-  #   environment.set_value('CRASH_RETRIES', metadata.retries)
-  #   untrusted_env['CRASH_RETRIES'] = metadata.retries
+  # Adjust the number of retries, if user has provided one.
+  if metadata.retries is not None:
+    environment.set_value('CRASH_RETRIES', metadata.retries)
+    untrusted_env['CRASH_RETRIES'] = metadata.retries
 
   testcase_download_url = setup.get_testcase_download_url(testcase)
   return {
+      'metadata': metadata,
       'testcase': testcase,
       'uworker_env': uworker_env,
       'testcase_download_url': testcase_download_url
   }
 
 
-def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase):
+def utask_handle_errors(testcase, metadata, error):
+  if error == Error.BUILD_SETUP:
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                         'Build setup failed')
+
+    if data_handler.is_first_retry_for_task(testcase):
+      build_fail_wait = environment.get_value('FAIL_WAIT')
+      tasks.add_task(
+          'analyze', testcase_id, job_type, wait_time=build_fail_wait)
+    else:
+      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                   'Build setup failed')
+
+  if error == Error.NO_CRASH:
+    # !!!
+    pass
+
+
+def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase, error,
+                      metadata):
   """Trusted: Clean up after a uworker execute_task, write anything needed to
   the db."""
+  if error:
+    utask_handle_errors(testcase, metadata, error)
+
   # # !!! Check for bad build.
   # data_handler.close_invalid_uploaded_testcase(testcase, metadata,
   #                                              'Build setup failed')

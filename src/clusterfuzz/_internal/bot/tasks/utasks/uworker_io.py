@@ -64,8 +64,8 @@ def upload_uworker_input(uworker_input):
     uworker_input_filename = os.path.join(tmp_dir, 'uworker_input')
     with open(uworker_input_filename, 'w') as fp:
       fp.write(uworker_input)
-      if not storage.copy_file_to(uworker_input_filename, gcs_path):
-        raise RuntimeError('Failed to upload uworker_input.')
+    if not storage.copy_file_to(uworker_input_filename, gcs_path):
+      raise RuntimeError('Failed to upload uworker_input.')
   return signed_download_url
 
 
@@ -152,6 +152,7 @@ def download_and_deserialize_uworker_input(uworker_input_download_url) -> str:
 def serialize_uworker_output(uworker_output):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
+  uworker_output = uworker_output.to_dict()
   entities = {}
   serializable = {}
 
@@ -164,8 +165,6 @@ def serialize_uworker_output(uworker_output):
         'key': base64.b64encode(value.key.serialized()).decode(),
         'changed': value._wrapped_changed_attributes,  # pylint: disable=protected-access
     }
-    # from remote_pdb import RemotePdb
-    # RemotePdb('127.0.0.1', 4444).set_trace()
   return json.dumps({'serializable': serializable, 'entities': entities})
 
 
@@ -190,16 +189,6 @@ def deserialize_uworker_output(uworker_output):
       # !!! insecure
       setattr(entity, attr, new_value)
   return deserialized_output
-
-
-# def get_utask_upload_url(entity):
-#   return _get_utask_optional_field(entity, 'signed_upload_url')
-
-# def get_utask_download_url(entity):
-#   return _get_utask_optional_field(entity, 'signed_download_url')
-
-# def get_utask_optional_field(entity, fieldname):
-#   return getattr(entity, fieldname, None)
 
 
 class UworkerEntityWrapper:
@@ -229,6 +218,18 @@ class UworkerEntityWrapper:
     getattr(self._entity, '_wrapped_changed_attributes')[attribute] = value
     # Make the attribute change.
     setattr(self._entity, attribute, value)
+
+
+class UworkerOutput:
+  """Convenience class for results from uworker_main. This is useful for
+  ensuring we are returning values for fields expected by utask_postprocess."""
+
+  def __init__(self, testcase=None, error=None):
+    self.testcase = testcase
+    self.error = error
+
+  def to_dict(self):
+    return self.__dict__
 
 
 def download_and_deserialize_uworker_output(output_url) -> str:

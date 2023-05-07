@@ -500,6 +500,7 @@ def get_testcase_detail(testcase):
   memory_tool_display_value = memory_tool_display_string.split(':')[1].strip()
 
   helpers.log('Testcase %s' % testcase.key.id(), helpers.VIEW_OPERATION)
+  comments = get_comments(testcase)
   return {
       'id':
           testcase.key.id(),
@@ -518,7 +519,7 @@ def get_testcase_detail(testcase):
       'external_user':
           external_user,
       'footer':
-          testcase.comments,
+          comments,
       'formatted_reproduction_help':
           formatted_reproduction_help,
       'fixed':

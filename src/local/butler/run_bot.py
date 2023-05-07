@@ -111,6 +111,7 @@ def execute(args):
   _setup_bot_directory(args)
   _setup_environment_and_configs(args, appengine_path)
 
+  exit_code = 0
   try:
     os.chdir(os.path.join(args.directory, 'clusterfuzz'))
     proc = common.execute_async('python src/python/bot/startup/run_bot.py')
@@ -121,6 +122,7 @@ def execute(args):
 
     signal.signal(signal.SIGTERM, _stop_handler)
     common.process_proc_output(proc)
-    proc.wait()
+    exit_code = proc.wait()
   except KeyboardInterrupt:
     _stop_handler()
+  return exit_code

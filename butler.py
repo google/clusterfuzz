@@ -256,7 +256,7 @@ def main():
 
   _setup()
   command = importlib.import_module(f'local.butler.{args.command}')
-  command.execute(args)
+  return command.execute(args)
 
 
 def _setup():
@@ -270,4 +270,4 @@ def _setup():
 
 
 if __name__ == '__main__':
-  main()
+  sys.exit(main())

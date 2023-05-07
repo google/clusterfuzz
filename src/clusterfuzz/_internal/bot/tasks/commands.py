@@ -91,6 +91,7 @@ class UTaskLocalExecutor(BaseTask):
     input_download_url, output_download_url = preprocess_result
     utasks.uworker_main(self.module, input_download_url)
     utasks.tworker_postprocess(self.module, output_download_url)
+    logs.log('utask local: done')
 
 
 class UTask(BaseTask):
@@ -287,7 +288,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
 @set_task_payload
 def process_command(task):
   """Figures out what to do with the given task and executes the command."""
-  logs.log("Executing command '%s'" % task.payload())
+  logs.log(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
     logs.log_error('Empty task received.')
     return
