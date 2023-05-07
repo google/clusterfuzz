@@ -84,13 +84,8 @@ def setup_build(testcase):
   build_manager.setup_build(revision)
 
 
-def set_uworker_env(uworker_env):
-  for key, value in uworker_env.items():
-    environment.set_value(key, value)
-
-
 # !!! Testcase download URL.
-def utask_main(testcase, job_type, uworker_env):
+def utask_main(testcase, job_type):
   """Executes the untrusted part of analyze_task."""
   set_uworker_env(uworker_env)
   environment.reset_current_memory_tool_options(redzone_size=128)

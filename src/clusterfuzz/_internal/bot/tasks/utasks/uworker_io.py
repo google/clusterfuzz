@@ -192,6 +192,16 @@ def deserialize_uworker_output(uworker_output):
   return deserialized_output
 
 
+# def get_utask_upload_url(entity):
+#   return _get_utask_optional_field(entity, 'signed_upload_url')
+
+# def get_utask_download_url(entity):
+#   return _get_utask_optional_field(entity, 'signed_download_url')
+
+# def get_utask_optional_field(entity, fieldname):
+#   return getattr(entity, fieldname, None)
+
+
 class UworkerEntityWrapper:
   """Wrapper for db entities on the uworker. This wrapper functions the same as
   the entity but also tracks changes made to the entity. This makes for easier
@@ -199,7 +209,7 @@ class UworkerEntityWrapper:
   entire entity when writing to the db, but can instead update just the modified
   fields."""
 
-  def __init__(self, entity):
+  def __init__(self, entity, signed_download_url=None, signed_upload_url=None):
     # Everything set here, must be in the list in __setattr__
     self._entity = entity
 
