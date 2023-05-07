@@ -93,6 +93,9 @@ DIRECTORY_URL = 'https://console.cloud.google.com/storage/browser'
 # Expiration in minutes for signed URL.
 SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 
+# Timeout for HTTP operations.
+HTTP_TIMEOUT_SECONDS = 15
+
 
 class StorageProvider(object):
   """Core storage provider interface."""
@@ -361,7 +364,7 @@ class GcsProvider(StorageProvider):
 
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
-    requests.put(signed_url, data=data)
+    requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
 
 
 @retry.wrap(
@@ -1130,7 +1133,9 @@ def store_file_in_cache(file_path,
       cached_file_path = os.path.join(cache_directory, cached_filename)
       cached_files_list.append(cached_file_path)
 
-    mtime = lambda f: os.stat(f).st_mtime
+    def mtime(file_path):
+      return os.stat(file_path).st_mtime
+
     last_used_cached_files_list = list(
         sorted(cached_files_list, key=mtime, reverse=True))
     for cached_file_path in (
@@ -1255,7 +1260,7 @@ def uworker_io_bucket():
     exception_type=HttpError)
 def download_url(url):
   """Downloads |url| and returns the contents."""
-  request = requests.get(url)
+  request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not request.ok:
     raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
                        (url, request.status_code, request.reason))
