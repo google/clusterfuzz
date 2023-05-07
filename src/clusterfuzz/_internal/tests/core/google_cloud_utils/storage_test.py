@@ -251,6 +251,7 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
         },
     }, self.provider.get('gs://test-bucket/a'))
 
+
   def test_delete(self):
     """Test get."""
     self.fs.create_file('/local/test-bucket/objects/a', contents='a')
@@ -260,3 +261,21 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
     self.provider.delete('gs://test-bucket/a')
     self.assertFalse(os.path.exists('/local/test-bucket/objects/a'))
     self.assertFalse(os.path.exists('/local/test-bucket/metadata/a'))
+
+  def test_sign_upload_url(self):
+    """Tests sign_upload_url."""
+    # The remote_path passed is actually a filesystem path.
+    url = '/local/upload'
+    return self.assertEqual(self.provider.sign_upload_url(url), url)
+
+  def test_sign_upload_url(self):
+    """Tests sign_download_url."""
+    # The remote_path passed is actually a filesystem path.
+    url = '/local/download'
+    return self.assertEqual(self.provider.sign_download_url(url), url)
+
+    def test_download_signed_url(self):
+    """Tests download_signed_url."""
+    # The signed_url passed is actually a filesystem path.
+    url = '/local/upload'
+    return self.assertEqual(self.provider.sign_upload_url(url), url)
