@@ -247,7 +247,7 @@ class UworkerEntityWrapper:
     setattr(self._entity, attribute, value)
 
 
-def preprocess_task(testcase_id, job_type, uworker_env):
+def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run analyze task."""
   # Reset redzones.
   # Locate the testcase associated with the id.
@@ -288,7 +288,7 @@ def preprocess_task(testcase_id, job_type, uworker_env):
   return {'testcase': testcase, 'uworker_env': uworker_env}
 
 
-def postprocess_task(crashed, crash_stacktrace, crash_time, testcase):
+def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase):
   """Trusted: Clean up after a uworker execute_task, write anything needed to
   the db."""
   # # !!! Check for bad build.

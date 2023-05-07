@@ -39,7 +39,8 @@ from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks import variant_task
-from clusterfuzz._internal.bot.tasks.untrusted import analyze_task
+from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -50,236 +51,68 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
+TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
 
 class BaseTask:
+  """Base module for tasks."""
 
   def __init__(self, module):
     self.module = module
 
   def execute(self, task_argument, job_type, uworker_env):
-    # !!! undo api change
+    """Executes a task."""
     raise NotImplementedError('Child class must implement.')
 
 
 class TrustedTask(BaseTask):
+  """Implementation of a task that is run on a single machine. These tasks were
+  the original ones in ClusterFuzz."""
 
-  def execute(self, task_argument, job_type, _):
-    self.module.execute_task(task_argument, job_type, None)
-
-
-# def convert_untrusted_result(untrusted_result):
-#   for entity_name, entities in untrusted_result.entity_changes.items():
-#     # entity_cls = getattr(data_types, entity_name)
-#     # entities = json.loads(entities)
-#     for key, changed_values in entities.items():
-#       key = ndb.Key(serialized=bytes(key, 'utf-8'))
-#       entity = key.get()
-#       for attr, val in changed_values.items():
-#         # !!! Enforce some type safety
-#         getattr(entity, attr)
-#         setattr(entity, attr, val)
-#       untrusted_result.entities[entity_name].append(entity)
+  def execute(self, task_argument, job_type, uworker_env):
+    # Simple tasks can just use the environment they don't need the uworker env.
+    del uworker_env
+    self.module.execute_task(task_argument, job_type)
 
 
-def get_uworker_io_gcs_path():
-  # inspired by write_blob
-  io_bucket = storage.uworker_io_bucket()
-  io_file_name = blobs.generate_new_blob_name()
-  if storage.get(storage.get_cloud_storage_file_path(io_bucket, io_file_name)):
-    raise RuntimeError(f'UUID collision found: {io_file_name}.')  # !!!
-  return f'/{io_bucket}/{io_file_name}'
+def utask_factory(task_module):
+  """Returns a task implemention for a utask. Depending on the global
+  configuration, the implementation will either execute the utask entirely on
+  one machine or on multiple."""
+  if environment.get_value('UTASK_REMOTE_EXECUTION'):
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Make remote
+    # execution opt-out.
+    return UTask(task_module)
+
+  return UTaskLocalExecutor(task_module)
 
 
-def get_uworker_output_upload_urls():
-  gcs_path = get_uworker_io_gcs_path()
-  return storage.get_signed_upload_url(gcs_path), gcs_path
-
-
-def get_uworker_input_urls():
-  # !!! Are both needed? Can we make a dl url before uploading to it?
-  gcs_path = get_uworker_io_gcs_path()
-  return gcs_path, storage.get_signed_download_url(gcs_path)
-
-
-def upload_uworker_input(uworker_input):
-  """Uploads input for the untrusted portion of a task."""
-  gcs_path, signed_download_url = get_uworker_input_urls()
-
-  with tempfile.TemporaryDirectory() as tmp_dir:
-    uworker_input_filename = os.path.join(tmp_dir, 'uworker_input')
-    with open(uworker_input_filename, 'w') as fp:
-      fp.write(uworker_input)
-      if not storage.copy_file_to(uworker_input_filename, gcs_path):
-        raise RuntimeError('Failed to upload uworker_input.')
-  return signed_download_url
-
-
-def make_ndb_entity_input_obj_serializable(obj):
-  # !!! consider urlsafe.
-  obj_dict = obj.to_dict()
-  # !!! We can't handle datetimes.
-  for key in list(obj_dict.keys()):
-    value = obj_dict[key]
-    if isinstance(value, datetime.datetime):
-      del obj_dict[key]
-  return {
-      'key': base64.b64encode(obj.key.serialized()).decode(),
-      # 'model': type(ndb_entity).__name__,
-      'properties': obj_dict,
-  }
-
-
-def get_entity_with_changed_properties(ndb_key: ndb.Key,
-                                       properties) -> ndb.Model:
-  """Returns the entity pointed to by ndb_key and changes properties.."""
-  model_name = ndb_key.kind()
-  model_cls = getattr(data_types, model_name)
-  entity = model_cls()
-  entity.key = ndb_key
-  for ndb_property, value in properties.items():
-    fail_msg = f'{entity} doesn\'t have {ndb_property}'
-    assert hasattr(entity, ndb_property), fail_msg
-    setattr(entity, ndb_property, value)
-  return entity
-
-
-def deserialize_uworker_input(serialized_uworker_input):
-  """Deserializes input for the untrusted part of a task."""
-  serialized_uworker_input = json.loads(serialized_uworker_input)
-  uworker_input = serialized_uworker_input['serializable']
-  for name, entity_dict in serialized_uworker_input['entities'].items():
-    entity_key = entity_dict['key']
-    serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
-    ndb_key = ndb.Key(serialized=serialized_key)
-    # !!! make entity in uworker
-    entity = get_entity_with_changed_properties(ndb_key,
-                                                entity_dict['properties'])
-    uworker_input[name] = analyze_task.UworkerEntityWrapper(entity)
-  return uworker_input
-
-
-def serialize_uworker_input(uworker_input):
-  serializable = {}
-  ndb_entities = {}
-  for key, value in uworker_input.items():
-    if not isinstance(value, ndb.Model):
-      serializable[key] = value
-      continue
-    ndb_entities[key] = make_ndb_entity_input_obj_serializable(value)
-
-  return json.dumps({'serializable': serializable, 'entities': ndb_entities})
-  # !!! pickle is scary, replace
-  # return base64.b64encode(pickle.dumps(uworker_input))
-
-
-def serialize_and_upload_uworker_input(uworker_input, job_type,
-                                       uworker_output_upload_url) -> str:
-  """Serializes input for the untrusted portion of a task."""
-  # Add remaining fields.
-
-  assert 'job_type' not in uworker_input
-  uworker_input['job_type'] = job_type
-  assert 'uworker_output_upload_url' not in uworker_input
-  uworker_input['uworker_output_upload_url'] = uworker_output_upload_url
-
-  uworker_input = serialize_uworker_input(uworker_input)
-  uworker_input_download_url = upload_uworker_input(uworker_input)
-  return uworker_input_download_url
-
-
-def download_and_deserialize_uworker_input(uworker_input_download_url) -> str:
-  req = requests.get(uworker_input_download_url)
-  return deserialize_uworker_input(req.content)
-
-
-def serialize_uworker_output(uworker_output):
-  """Serializes uworker's output for deserializing by deserialize_uworker_output
-  and consumption by postprocess_task."""
-  entities = {}
-  serializable = {}
-
-  for name, value in uworker_output.items():
-    if not isinstance(value, analyze_task.UworkerEntityWrapper):
-      serializable[name] = value
-      continue
-    entities[name] = {
-        # Not same as dict key !!!
-        'key': base64.b64encode(value.key.serialized()).decode(),
-        'changed': value._wrapped_changed_attributes,  # pylint: disable=protected-access
-    }
-  # from remote_pdb import RemotePdb
-  # RemotePdb('127.0.0.1', 4444).set_trace()
-  return json.dumps({'serializable': serializable, 'entities': entities})
-
-
-def serialize_and_upload_uworker_output(uworker_output, upload_url) -> str:
-  uworker_output = serialize_uworker_output(uworker_output)
-  storage.upload_signed_url(upload_url, uworker_output)
-
-
-def deserialize_uworker_output(uworker_output):
-  """Deserializes uworker's execute output for postprocessing. Returns a dict
-  that can be passed as kwargs to postprocess. changes made db entities that
-  were modified during the untrusted portion of the task will be done to those
-  entities here."""
-  uworker_output = json.loads(uworker_output)
-  deserialized_output = uworker_output['serializable']
-  for name, entity_dict in uworker_output['entities'].items():
-    key = entity_dict['key']
-    ndb_key = ndb.Key(serialized=base64.b64decode(key))
-    entity = ndb_key.get()
-    deserialized_output[name] = entity
-    for attr, new_value in entity_dict['changed'].items():
-      # !!! insecure
-      setattr(entity, attr, new_value)
-  return deserialized_output
-
-
-def download_url(url):
-  req = requests.get(url)
-  # !!! check errors.
-  return req.content
-
-
-def download_and_deserialize_uworker_output(output_url) -> str:
-  with tempfile.TemporaryDirectory() as temp_dir:
-    uworker_output_local_path = os.path.join(temp_dir, 'temp')
-    storage.copy_file_from(output_url, uworker_output_local_path)
-    with open(uworker_output_local_path) as uworker_output_file_handle:
-      uworker_output = uworker_output_file_handle.read()
-  return deserialize_uworker_output(uworker_output)
-
-
-class UntrustedTask(BaseTask):
+class UTaskLocalExecutor(BaseTask):
   """Represents an untrusted task. Executes it entirely locally."""
 
   def execute(self, task_argument, job_type, uworker_env):
-    # !!! Done on preworker
-    uworker_input = self.module.preprocess_task(task_argument, job_type,
-                                                uworker_env)
-    if not uworker_input:
-      return False
+    """Executes a utask locally."""
+    preprocess_result = utasks.tworker_preprocess(
+        self.module, task_argument, job_type, uworker_env)
 
-    uworker_output_upload_url, uworker_output_download_url = (
-        get_uworker_output_upload_urls())
-    uworker_input_download_url = serialize_and_upload_uworker_input(
-        uworker_input, job_type, uworker_output_upload_url)
+    if preprocess_result is None:
+      return
 
-    # !!! Done on uworker
-    uworker_input = download_and_deserialize_uworker_input(
-        uworker_input_download_url)
-    uworker_output = self.module.uworker_execute(**uworker_input)
-    serialize_and_upload_uworker_output(uworker_output,
-                                        uworker_output_upload_url)
+    input_download_url, output_download_url = preprocess_result
+    utasks.uworker_main(self.module, input_download_url)
+    utasks.tworker_postprocess(self.module, output_download_url)
 
-    # !!! Done on postworker
-    uworker_output = download_and_deserialize_uworker_output(
-        uworker_output_download_url)
-    return self.module.postprocess_task(**uworker_output)
+
+class UTask(BaseTask):
+  """Represents an untrusted task. Executes it remotely."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask remotely."""
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Implement.
+    raise NotImplementedError('UTask remote executor not implemented yet.')
 
 
 COMMAND_MAP = {
-    'analyze': UntrustedTask(analyze_task),
+    'analyze': utask_factory(analyze_task),
     'blame': TrustedTask(blame_task),
     'corpus_pruning': TrustedTask(corpus_pruning_task),
     'fuzz': TrustedTask(fuzz_task),
@@ -292,8 +125,6 @@ COMMAND_MAP = {
     'upload_reports': TrustedTask(upload_reports_task),
     'variant': TrustedTask(variant_task),
 }
-
-TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
 
 
 class Error(Exception):
