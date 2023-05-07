@@ -870,7 +870,7 @@ def _save_coverage_information(context, result):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
-def execute_task(full_fuzzer_name, job_type, _):
+def execute_task(full_fuzzer_name, job_type):
   """Execute corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
   task_name = 'corpus_pruning_%s_%s' % (full_fuzzer_name, job_type)

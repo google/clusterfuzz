@@ -29,7 +29,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 
-def execute_task(metadata_id, job_type, _):
+def execute_task(metadata_id, job_type):
   """Unpack a bundled testcase archive and create analyze jobs for each item."""
   metadata = ndb.Key(data_types.BundledArchiveMetadata, int(metadata_id)).get()
   if not metadata:

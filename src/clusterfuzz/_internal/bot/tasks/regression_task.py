@@ -334,7 +334,7 @@ def find_regression_range(testcase_id, job_type):
   tasks.add_task('regression', testcase_id, job_type)
 
 
-def execute_task(testcase_id, job_type, _):
+def execute_task(testcase_id, job_type):
   """Run regression task and handle potential errors."""
   try:
     find_regression_range(testcase_id, job_type)

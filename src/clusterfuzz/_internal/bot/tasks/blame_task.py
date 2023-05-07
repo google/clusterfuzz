@@ -269,10 +269,8 @@ def _clear_blame_result_and_set_pending_flag(testcase):
   testcase.put()
 
 
-def execute_task(testcase_id, job_type, uworker_env):
+def execute_task(testcase_id, _):
   """Attempt to find the CL introducing the bug associated with testcase_id."""
-  del job_type
-  del uworker_env
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
