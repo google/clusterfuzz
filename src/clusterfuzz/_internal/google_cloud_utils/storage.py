@@ -1137,6 +1137,7 @@ def store_file_in_cache(file_path,
 
     def mtime(file_path):
       return os.stat(file_path).st_mtime
+
     last_used_cached_files_list = list(
         sorted(cached_files_list, key=mtime, reverse=True))
     for cached_file_path in (
