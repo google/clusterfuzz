@@ -145,8 +145,8 @@ class StorageProvider(object):
     """Signs an upload URL for a remote file."""
     raise NotImplementedError
 
-  def download_signed_url(self, signed_url, local_path):
-    """Downloads |signed_url| to |local_path|."""
+  def download_signed_url(self, signed_url):
+    """Downloads |signed_url|."""
     raise NotImplementedError
 
   def upload_signed_url(self, data, signed_url):
@@ -351,9 +351,9 @@ class GcsProvider(StorageProvider):
     """Signs an upload URL for a remote file."""
     return _sign_url(remote_path, method='PUT', minutes=minutes)
 
-  def download_signed_url(self, signed_url, local_path):
-    """Downloads |signed_url| to |local_path|."""
-    raise requests.get(signed_url).content
+  def download_signed_url(self, signed_url):
+    """Downloads |signed_url|."""
+    return requests.get(signed_url).content
 
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
@@ -575,7 +575,7 @@ class FileSystemProvider(StorageProvider):
     return remote_path
 
   def download_signed_url(self, signed_url):
-    """Downloads |signed_url| to |local_path|."""
+    """Downloads |signed_url|."""
     return self.read_data(signed_url)
 
   def upload_signed_url(self, data, signed_url):
@@ -1260,6 +1260,7 @@ def upload_signed_url(data, url):
 
 
 def download_signed_url(url, local_path=None):
+  """Returns contents of |url|. Writes to |local_path| if provided."""
   contents = _provider().download_signed_url(url)
   if not local_path:
     return contents

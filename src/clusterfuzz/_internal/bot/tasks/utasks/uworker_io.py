@@ -172,7 +172,7 @@ def serialize_uworker_output(uworker_output):
 
 def serialize_and_upload_uworker_output(uworker_output, upload_url) -> str:
   uworker_output = serialize_uworker_output(uworker_output)
-  storage.upload_signed_url(upload_url, uworker_output)
+  storage.upload_signed_url(uworker_output, upload_url)
 
 
 def deserialize_uworker_output(uworker_output):
