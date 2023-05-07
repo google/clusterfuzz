@@ -171,7 +171,10 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
-def setup_testcase(testcase, job_type, fuzzer_override=None):
+def setup_testcase(testcase,
+                   job_type,
+                   fuzzer_override=None,
+                   testcase_download_url=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
@@ -213,7 +216,8 @@ def setup_testcase(testcase, job_type, fuzzer_override=None):
       return None, None, None
 
   # Extract the testcase and any of its resources to the input directory.
-  file_list, input_directory, testcase_file_path = unpack_testcase(testcase)
+  file_list, input_directory, testcase_file_path = unpack_testcase(
+      testcase, testcase_download_url)
   if not file_list:
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
@@ -304,14 +308,13 @@ def _is_testcase_minimized(testcase):
   return testcase.minimized_keys and testcase.minimized_keys != 'NA'
 
 
-def download_possibly_wrapped(wrapped, key, dst):
-  signed_download_url = getattr(wrapped, 'signed_download_url', None)
-  if signed_download_url:
-    return storage.download_url(wrapped.signed_download_url, dst)
+def download_testcase(key, testcase_download_url, dst):
+  if testcase_download_url:
+    return storage.download_signed_url(testcase_download_url, dst)
   return blobs.read_blob_to_disk(key, dst)
 
 
-def unpack_testcase(testcase):
+def unpack_testcase(testcase, testcase_download_url=None):
   """Unpack a testcase and return all files it is composed of."""
   # Figure out where the testcase file should be stored.
   input_directory, testcase_file_path = _get_testcase_file_and_path(testcase)
@@ -327,7 +330,7 @@ def unpack_testcase(testcase):
   else:
     temp_filename = testcase_file_path
 
-  if not download_possibly_wrapped(testcase, key, temp_filename):
+  if not download_testcase(key, testcase_download_url, temp_filename):
     return None, input_directory, testcase_file_path
 
   file_list = []

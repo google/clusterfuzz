@@ -360,7 +360,7 @@ class GcsProvider(StorageProvider):
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
-    return download_url(signed_url)
+    return _download_url(signed_url)
 
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
@@ -1256,9 +1256,9 @@ def uworker_io_bucket():
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.download_url',
+    function='google_cloud_utils.storage._download_url',
     exception_type=HttpError)
-def download_url(url):
+def _download_url(url):
   """Downloads |url| and returns the contents."""
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not request.ok:
@@ -1270,8 +1270,7 @@ def download_url(url):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.upload_signed_url',
-    retry_on_false=True)
+    function='google_cloud_utils.storage.upload_signed_url')
 def upload_signed_url(data, url):
   """Uploads data to the |signed_url|."""
   return _provider().upload_signed_url(data, url)

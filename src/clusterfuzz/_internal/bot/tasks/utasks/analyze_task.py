@@ -85,9 +85,8 @@ def setup_build(testcase):
 
 
 # !!! Testcase download URL.
-def utask_main(testcase, job_type):
+def utask_main(testcase, testcase_download_url, job_type):
   """Executes the untrusted part of analyze_task."""
-  set_uworker_env(uworker_env)
   environment.reset_current_memory_tool_options(redzone_size=128)
 
   # Unset window location size and position properties so as to use default.
@@ -99,7 +98,8 @@ def utask_main(testcase, job_type):
     leak_blacklist.create_empty_local_blacklist()
 
     # Set up testcase and get absolute testcase path.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
+  file_list, _, testcase_file_path = setup.setup_testcase(
+      testcase, job_type, testcase_download_url=testcase_download_url)
   if not file_list:
     return
 
@@ -250,7 +250,12 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   #   environment.set_value('CRASH_RETRIES', metadata.retries)
   #   untrusted_env['CRASH_RETRIES'] = metadata.retries
 
-  return {'testcase': testcase, 'uworker_env': uworker_env}
+  testcase_download_url = setup.get_testcase_download_url(testcase)
+  return {
+      'testcase': testcase,
+      'uworker_env': uworker_env,
+      'testcase_download_url': testcase_download_url
+  }
 
 
 def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase):

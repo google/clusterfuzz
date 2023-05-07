@@ -209,7 +209,7 @@ class UworkerEntityWrapper:
   entire entity when writing to the db, but can instead update just the modified
   fields."""
 
-  def __init__(self, entity, signed_download_url=None, signed_upload_url=None):
+  def __init__(self, entity):
     # Everything set here, must be in the list in __setattr__
     self._entity = entity
 

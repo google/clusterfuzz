@@ -14,6 +14,7 @@
 """Module for executing the different parts of a utask."""
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.system import environment
 
 
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
