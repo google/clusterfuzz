@@ -145,6 +145,14 @@ class StorageProvider(object):
     """Signs an upload URL for a remote file."""
     raise NotImplementedError
 
+  def download_signed_url(self, signed_url, local_path):
+    """Downloads |signed_url| to |local_path|."""
+    raise NotImplementedError
+
+  def upload_signed_url(self, data, signed_url):
+    """Uploads |data| to |signed_url|."""
+    raise NotImplementedError
+
 
 class GcsProvider(StorageProvider):
   """GCS storage provider."""
@@ -342,6 +350,14 @@ class GcsProvider(StorageProvider):
   def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
     """Signs an upload URL for a remote file."""
     return _sign_url(remote_path, method='PUT', minutes=minutes)
+
+  def download_signed_url(self, signed_url, local_path):
+    """Downloads |signed_url| to |local_path|."""
+    raise requests.get(signed_url).content
+
+  def upload_signed_url(self, data, signed_url):
+    """Uploads |data| to |signed_url|."""
+    requests.put(signed_url, data=data)
 
 
 def _sign_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES, method='GET'):
@@ -547,14 +563,24 @@ class FileSystemProvider(StorageProvider):
     return True
 
   def sign_download_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
-    """Signs a download URL for a remote file."""
+    """Returns remote_path since we are pretending to sign a URL for
+    download."""
     del minutes
     return remote_path
 
   def sign_upload_url(self, remote_path, minutes=SIGNED_EXPIRATION_MINUTES):
-    """Signs an upload URL for a remote file."""
+    """Returns remote_path since we are pretending to sign a URL for
+    upload."""
     del minutes
     return remote_path
+
+  def download_signed_url(self, signed_url):
+    """Downloads |signed_url| to |local_path|."""
+    return self.read_data(signed_url)
+
+  def upload_signed_url(self, data, signed_url):
+    """Uploads |data| to |signed_url|."""
+    return self.write_data(data, signed_url)
 
 
 class GcsBlobInfo(object):
@@ -1222,16 +1248,25 @@ def download_url(url, filename=None):
     return False
   if filename is None:
     return request.content
-  os.makedirs(os.path.dirname(filename), exist_ok=True)
-  with open(filename, 'wb') as file_handle:
+
     file_handle.write(request.content)
   return request.content
 
 
-def upload_signed_url(signed_url, data):
+def upload_signed_url(data, url):
   """Uploads data to the |signed_url|."""
   # TODO(metzman): Deal with providers.
-  return requests.put(signed_url, data=data)
+  return _provider().upload_signed_url(data, url)
+
+
+def download_signed_url(url, local_path=None):
+  contents = _provider().download_signed_url(url)
+  if not local_path:
+    return contents
+  os.makedirs(os.path.dirname(local_path), exist_ok=True)
+  with open(local_path, 'wb') as fp:
+    fp.write(contents)
+  return contents
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_EXPIRATION_MINUTES):

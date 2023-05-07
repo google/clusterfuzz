@@ -146,8 +146,8 @@ def serialize_and_upload_uworker_input(uworker_input, job_type,
 
 
 def download_and_deserialize_uworker_input(uworker_input_download_url) -> str:
-  req = requests.get(uworker_input_download_url)
-  return deserialize_uworker_input(req.content)
+  data = storage.download_signed_url(uworker_input_download_url)
+  return deserialize_uworker_input(data)
 
 
 def serialize_uworker_output(uworker_output):
@@ -220,12 +220,6 @@ class UworkerEntityWrapper:
     getattr(self._entity, '_wrapped_changed_attributes')[attribute] = value
     # Make the attribute change.
     setattr(self._entity, attribute, value)
-
-
-def download_url(url):
-  req = requests.get(url)
-  # !!! check errors.
-  return req.content
 
 
 def download_and_deserialize_uworker_output(output_url) -> str:
