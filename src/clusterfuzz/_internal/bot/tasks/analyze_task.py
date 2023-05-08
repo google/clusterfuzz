@@ -229,11 +229,12 @@ def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
   task_creation.create_impact_task_if_needed(testcase)
 
 
-def update_testcase_after_crash(testcase, state, job_type):
+def update_testcase_after_crash(testcase, state, job_type, http_flag):
   """Updates |testcase| based on |state|."""
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
   testcase.crash_state = state.crash_state
+  testcase.http_flag = http_flag
 
   testcase.security_flag = crash_analyzer.is_security_issue(
       state.crash_stacktrace, state.crash_type, state.crash_address)
@@ -261,6 +262,8 @@ def execute_task(testcase_id, job_type):
         'Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
     return
+
+  prepare_environment(metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
   if is_lsan_enabled:
@@ -313,9 +316,8 @@ def execute_task(testcase_id, job_type):
     handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout)
     return
 
-  testcase.http_flag = http_flag
   # Update testcase crash parameters.
-  update_testcase_after_crash(testcase, state, job_type)
+  update_testcase_after_crash(testcase, state, job_type, http_flag)
 
   log_message = (
       f'Testcase crashed in {crash_time} seconds (r{testcase.crash_revision})')
