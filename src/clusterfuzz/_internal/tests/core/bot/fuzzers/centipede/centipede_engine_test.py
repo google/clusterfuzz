@@ -39,13 +39,16 @@ _TEST_DATA_SRC = pathlib.Path(__file__).parent / 'test_data'
 
 @contextlib.contextmanager
 def get_test_paths():
+  """Returns temporary test_paths that can be used for centipede."""
   with tempfile.TemporaryDirectory() as temp_dir:
     temp_dir = pathlib.Path(temp_dir)
     data_dir = temp_dir / 'test_data'
-    os.environ['BUILD_DIR'] = str(data_dir)
     shutil.copytree(_TEST_DATA_SRC, data_dir)
     test_paths = TestPaths(data_dir, temp_dir / 'corpus', temp_dir / 'crashes',
-                           data_dir / 'centipede', data_dir / 'centipede-old')
+                           str(data_dir / 'centipede'),
+                           str(data_dir / 'centipede-old'))
+    os.mkdir(test_paths.corpus)
+    os.mkdir(test_paths.crashes)
     yield test_paths
 
 
@@ -99,7 +102,7 @@ class IntegrationTest(unittest.TestCase):
     test_helpers.patch_environ(self)
     with get_test_paths() as test_paths:
       self.test_paths = test_paths
-      os.environ['BUILD_DIR'] = self.test_paths.data
+      os.environ['BUILD_DIR'] = str(self.test_paths.data)
       super().run(*args, **kwargs)
 
   def setUp(self):
@@ -200,15 +203,15 @@ class IntegrationTest(unittest.TestCase):
           for flag in options.arguments
       ]
 
-    results = engine_impl.fuzz(target_path, options,
-                               self.test_paths.crashes_dir, MAX_TIME)
+    results = engine_impl.fuzz(target_path, options, self.test_paths.crashes,
+                               MAX_TIME)
 
     expected_command = [self.test_paths.centipede]
     if dictionary:
       expected_command.append(f'--dictionary={dictionary}')
     expected_command.extend([
         f'--workdir={work_dir}',
-        f'--corpus_dir={self.test_paths.corpus_dir}',
+        f'--corpus_dir={self.test_paths.corpus}',
         f'--binary={target_path}',
         f'--extra_binaries={sanitized_target_path}',
         f'--timeout_per_input={_TIMEOUT_PER_INPUT}',
@@ -233,7 +236,7 @@ class IntegrationTest(unittest.TestCase):
     """Tests fuzzing (no crash)."""
     dictionary = self.test_paths.data / 'test_fuzzer.dict'
     self._run_centipede(target_name='test_fuzzer', dictionary=dictionary)
-    self.assertTrue(self.test_paths.corpus_dir.iterdir())
+    self.assertTrue(self.test_paths.corpus.iterdir())
 
   def _test_crash_log_regex(self,
                             crash_regex,
@@ -254,7 +257,7 @@ class IntegrationTest(unittest.TestCase):
     self.assertEqual(1, len(results.crashes))
     crash = results.crashes[0]
     # Check the crash was saved properly.
-    self.assertEqual(self.test_paths.crashes_dir,
+    self.assertEqual(self.test_paths.crashes,
                      pathlib.Path(crash.input_path).parent)
     # Check the regex can capture the crash info in the stacktrace.
     self.assertRegex(crash.stacktrace, crash_regex)
