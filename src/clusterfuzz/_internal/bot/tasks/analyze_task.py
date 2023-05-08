@@ -86,39 +86,13 @@ def setup_build(testcase):
   build_manager.setup_build(revision)
 
 
-def execute_task(testcase_id, job_type):
-  """Run analyze task."""
+def prepare_environment(metadata):
+  """Prepares the environment for execute_task."""
   # Reset redzones.
   environment.reset_current_memory_tool_options(redzone_size=128)
 
   # Unset window location size and position properties so as to use default.
   environment.set_value('WINDOW_ARG', '')
-
-  # Locate the testcase associated with the id.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return
-
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
-
-  metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-  if not metadata:
-    logs.log_error(
-        'Testcase %s has no associated upload metadata.' % testcase_id)
-    testcase.key.delete()
-    return
-
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
-    # Creates empty local blacklist so all leaks will be visible to uploader.
-    leak_blacklist.create_empty_local_blacklist()
-
-  # Store the bot name and timestamp in upload metadata.
-  bot_name = environment.get_value('BOT_NAME')
-  metadata.bot_name = bot_name
-  metadata.timestamp = datetime.datetime.utcnow()
-  metadata.put()
 
   # Adjust the test timeout, if user has provided one.
   if metadata.timeout:
@@ -128,10 +102,14 @@ def execute_task(testcase_id, job_type):
   if metadata.retries is not None:
     environment.set_value('CRASH_RETRIES', metadata.retries)
 
+
+def setup_testcase_and_build(testcase, metadata, job_type, testcase_id):
+  """Sets up the |testcase| and builds. Returns the path to the testcase on
+  success, None on error."""
   # Set up testcase and get absolute testcase path.
   file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
   if not file_list:
-    return
+    return None
 
   # Set up build.
   setup_build(testcase)
@@ -149,8 +127,13 @@ def execute_task(testcase_id, job_type):
     else:
       data_handler.close_invalid_uploaded_testcase(testcase, metadata,
                                                    'Build setup failed')
-    return
+    return None
 
+  return testcase_file_path
+
+
+def initialize_testcase(testcase, testcase_file_path, job_type):
+  """Initializes a testcase for the crash testing phase."""
   # Update initial testcase information.
   testcase.absolute_path = testcase_file_path
   testcase.job_type = job_type
@@ -172,15 +155,26 @@ def execute_task(testcase_id, job_type):
 
   # Update other fields not set at upload time.
   testcase.crash_revision = environment.get_value('APP_REVISION')
-  data_handler.set_initial_testcase_metadata(testcase)
   testcase.put()
 
-  # Initialize some variables.
-  gestures = testcase.gestures
-  http_flag = testcase.http_flag
-  test_timeout = environment.get_value('TEST_TIMEOUT')
 
+def save_minidump(testcase, state, application_command_line, gestures):
+  """Saves a minidump when on Windows."""
+  # Get crash info object with minidump info. Also, re-generate unsymbolized
+  # stacktrace if needed.
+  crash_info, _ = (
+      crash_uploader.get_crash_info_and_stacktrace(
+          application_command_line, state.crash_stacktrace, gestures))
+  if crash_info:
+    testcase.minidump_keys = crash_info.store_minidump()
+
+
+def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
+  """Tests for a crash with retries. Tries with HTTP (with retries) if initial
+  attempts fail. Returns the most recent crash result and the possibly updated
+  HTTP flag."""
   # Get the crash output.
+  http_flag = testcase.http_flag
   result = testcase_manager.test_for_crash_with_retries(
       testcase,
       testcase_file_path,
@@ -203,7 +197,91 @@ def execute_task(testcase_id, job_type):
       logs.log('Testcase needs http flag for crash.')
       http_flag = True
       result = result_with_http
+    return result, http_flag
 
+  return result, http_flag
+
+
+def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
+  """Handles a non-crashing testcase. Either deletes the testcase or schedules
+  another, final analysis."""
+  # Could not reproduce the crash.
+  log_message = (
+      f'Testcase didn\'t crash in {test_timeout} seconds (with retries)')
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
+                                       log_message)
+
+  # For an unreproducible testcase, retry once on another bot to confirm
+  # our results and in case this bot is in a bad state which we didn't catch
+  # through our usual means.
+  if data_handler.is_first_retry_for_task(testcase):
+    testcase.status = 'Unreproducible, retrying'
+    testcase.put()
+
+    tasks.add_task('analyze', testcase_id, job_type)
+    return
+
+  data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                               'Unreproducible')
+
+  # A non-reproducing testcase might still impact production branches.
+  # Add the impact task to get that information.
+  task_creation.create_impact_task_if_needed(testcase)
+
+
+def update_testcase_after_crash(testcase, state, job_type):
+  """Updates |testcase| based on |state|."""
+  testcase.crash_type = state.crash_type
+  testcase.crash_address = state.crash_address
+  testcase.crash_state = state.crash_state
+
+  testcase.security_flag = crash_analyzer.is_security_issue(
+      state.crash_stacktrace, state.crash_type, state.crash_address)
+  # If it is, guess the severity.
+  if testcase.security_flag:
+    testcase.security_severity = severity_analyzer.get_security_severity(
+        state.crash_type, state.crash_stacktrace, job_type,
+        bool(testcase.gestures))
+
+
+def execute_task(testcase_id, job_type):
+  """Run analyze task."""
+
+  # Locate the testcase associated with the id.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase:
+    return
+
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+
+  metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  if not metadata:
+    logs.log_error(
+        'Testcase %s has no associated upload metadata.' % testcase_id)
+    testcase.key.delete()
+    return
+
+  is_lsan_enabled = environment.get_value('LSAN')
+  if is_lsan_enabled:
+    # Creates empty local blacklist so all leaks will be visible to uploader.
+    leak_blacklist.create_empty_local_blacklist()
+
+  metadata.bot_name = environment.get_value('BOT_NAME')
+  metadata.timestamp = datetime.datetime.utcnow()
+  metadata.put()
+
+  testcase_file_path = setup_testcase_and_build(testcase, metadata, job_type,
+                                                testcase_id)
+  if not testcase_file_path:
+    return
+  initialize_testcase(testcase, testcase_file_path, job_type)
+
+  # Initialize some variables.
+  gestures = testcase.gestures
+  test_timeout = environment.get_value('TEST_TIMEOUT')
+  result, http_flag = test_for_crash_with_retries(testcase, testcase_file_path,
+                                                  test_timeout)
   # Refresh our object.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
@@ -218,73 +296,29 @@ def execute_task(testcase_id, job_type):
   crashed = result.is_crash()
   crash_time = result.get_crash_time()
   state = result.get_symbolized_data()
+
+  save_minidump(testcase, state, application_command_line, gestures)
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
-  # Get crash info object with minidump info. Also, re-generate unsymbolized
-  # stacktrace if needed.
-  crash_info, _ = (
-      crash_uploader.get_crash_info_and_stacktrace(
-          application_command_line, state.crash_stacktrace, gestures))
-  if crash_info:
-    testcase.minidump_keys = crash_info.store_minidump()
-
-  if not crashed:
-    # Could not reproduce the crash.
-    log_message = (
-        'Testcase didn\'t crash in %d seconds (with retries)' % test_timeout)
-    data_handler.update_testcase_comment(
-        testcase, data_types.TaskState.FINISHED, log_message)
-
-    # In the general case, we will not attempt to symbolize if we do not detect
-    # a crash. For user uploads, we should symbolize anyway to provide more
-    # information about what might be happening.
-    crash_stacktrace_output = utils.get_crash_stacktrace_output(
-        application_command_line, state.crash_stacktrace,
-        unsymbolized_crash_stacktrace)
-    testcase.crash_stacktrace = data_handler.filter_stacktrace(
-        crash_stacktrace_output)
-
-    # For an unreproducible testcase, retry once on another bot to confirm
-    # our results and in case this bot is in a bad state which we didn't catch
-    # through our usual means.
-    if data_handler.is_first_retry_for_task(testcase):
-      testcase.status = 'Unreproducible, retrying'
-      testcase.put()
-
-      tasks.add_task('analyze', testcase_id, job_type)
-      return
-
-    data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-                                                 'Unreproducible')
-
-    # A non-reproducing testcase might still impact production branches.
-    # Add the impact task to get that information.
-    task_creation.create_impact_task_if_needed(testcase)
-    return
-
-  # Update testcase crash parameters.
-  testcase.http_flag = http_flag
-  testcase.crash_type = state.crash_type
-  testcase.crash_address = state.crash_address
-  testcase.crash_state = state.crash_state
+  # In the general case, we will not attempt to symbolize if we do not detect
+  # a crash. For user uploads, we should symbolize anyway to provide more
+  # information about what might be happening.
   crash_stacktrace_output = utils.get_crash_stacktrace_output(
       application_command_line, state.crash_stacktrace,
       unsymbolized_crash_stacktrace)
   testcase.crash_stacktrace = data_handler.filter_stacktrace(
       crash_stacktrace_output)
 
-  # Try to guess if the bug is security or not.
-  security_flag = crash_analyzer.is_security_issue(
-      state.crash_stacktrace, state.crash_type, state.crash_address)
-  testcase.security_flag = security_flag
+  if not crashed:
+    handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout)
+    return
 
-  # If it is, guess the severity.
-  if security_flag:
-    testcase.security_severity = severity_analyzer.get_security_severity(
-        state.crash_type, state.crash_stacktrace, job_type, bool(gestures))
+  testcase.http_flag = http_flag
+  # Update testcase crash parameters.
+  update_testcase_after_crash(testcase, state, job_type)
 
-  log_message = ('Testcase crashed in %d seconds (r%d)' %
-                 (crash_time, testcase.crash_revision))
+  log_message = (
+      f'Testcase crashed in {crash_time} seconds (r{testcase.crash_revision})')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
                                        log_message)
 
@@ -297,7 +331,7 @@ def execute_task(testcase_id, job_type):
   # Test for reproducibility.
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
       testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
-      state.crash_type, state.crash_state, security_flag, test_timeout,
+      state.crash_type, state.crash_state, testcase.security_flag, test_timeout,
       http_flag, gestures)
   testcase.one_time_crasher_flag = one_time_crasher_flag
 
@@ -332,7 +366,7 @@ def execute_task(testcase_id, job_type):
   testcase.put()
 
   # Update the upload metadata.
-  metadata.security_flag = security_flag
+  metadata.security_flag = testcase.security_flag
   metadata.put()
 
   _add_default_issue_metadata(testcase)
