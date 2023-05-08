@@ -149,8 +149,8 @@ class Engine(engine.Engine):
     # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
     build_dir = environment.get_value('BUILD_DIR')
     sanitized_target_name = pathlib.Path(target_path).name
-    sanitized_target_path = pathlib.Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
-                                 sanitized_target_name)
+    sanitized_target_path = pathlib.Path(
+        build_dir, fuzzer_utils.EXTRA_BUILD_DIR, sanitized_target_name)
     return sanitized_target_path
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
