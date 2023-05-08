@@ -402,7 +402,7 @@ class Engine(engine.Engine):
         input_path, timeout=max_time, additional_args=arguments)
 
     if result.timed_out:
-      logs.log_error('Reproducing timed out.', fuzzer_output=result.output)
+      logs.log_warning('Reproducing timed out.', fuzzer_output=result.output)
       raise TimeoutError('Reproducing timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
