@@ -105,12 +105,25 @@ class Engine(engine.Engine):
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
     arguments.append(f'--corpus_dir={corpus_dir}')
 
-    # The unsanitized binary, Centipede requires it to be the main fuzz target.
-    arguments.append(f'--binary={target_path}')
-
+    # Centipede requires at least one of:
+    # 1. The unsanitized target binary.
+    # 2. The sanitized target binary.
+    unsanitized_target_path = pathlib.Path(target_path)
+    unsan_bin_exists = unsanitized_target_path.exists()
     sanitized_target_path = self._get_sanitized_target_path(target_path)
+    san_bin_exists = sanitized_target_path.exists()
+    if not unsan_bin_exists and not san_bin_exists:
+      raise RuntimeError('No fuzz target: Centipede cannot find unsanitized '
+                         f'binary {unsanitized_target_path}, or sanitized '
+                         f'binary {sanitized_target_path}.')
 
-    if sanitized_target_path.exists():
+    # Centipede uses unsanitized binary as the main fuzz target when provided.
+    if unsan_bin_exists:
+      arguments.append(f'--binary={target_path}')
+    else:
+      logs.log_info('Unable to find unsanitized target binary.')
+
+    if san_bin_exists:
       arguments.append(f'--extra_binaries={sanitized_target_path}')
     else:
       logs.log_warn('Unable to find sanitized target binary.')
