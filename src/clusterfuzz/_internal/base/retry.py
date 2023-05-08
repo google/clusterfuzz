@@ -38,13 +38,17 @@ def wrap(retries,
          delay,
          function,
          backoff=2,
-         exception_type=Exception,
+         exception_types=[Exception],
          retry_on_false=False):
   """Retry decorator for a function."""
 
   assert delay > 0
   assert backoff >= 1
   assert retries >= 0
+
+  def is_exception_type(exception):
+    return any(isinstance(exception, exception_type)
+               for exception_type in exception_types)
 
   def decorator(func):
     """Decorator for the given function."""
@@ -59,7 +63,7 @@ def wrap(retries,
       from clusterfuzz._internal.metrics import monitoring_metrics
 
       if (exception is None or
-          isinstance(exception, exception_type)) and num_try < tries:
+          is_exception_type(exception) and num_try < tries):
         logs.log(
             'Retrying on %s failed with %s. Retrying again.' %
             (function_with_type, sys.exc_info()[1]),
