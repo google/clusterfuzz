@@ -213,7 +213,7 @@ def execute(_):
     _execute_command_and_track_error(
         f'{base_pylint_cmd} --max-line-length=240 {" ".join(py_changed_tests)}')
 
-  py_changed_file_paths = (py_changed_nontests + py_changed_tests)
+  py_changed_file_paths = py_changed_nontests + py_changed_tests
   if py_changed_file_paths:
     _execute_command_and_track_error(
         f'yapf -p -d {" ".join(py_changed_file_paths)}')
