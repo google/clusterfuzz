@@ -169,20 +169,6 @@ def is_auto_generated_file(filepath):
               'grammars'))
 
 
-def seperate_python_tests(python_files):
-  """Returns a tuple containing a list of python tests and a list of python
-  non-tests in |python_files|."""
-  nontests = []
-  tests = []
-  for file_path in python_files:
-    if '_test.py' in file_path:
-      tests.append(file_path)
-    else:
-      nontests.append(file_path)
-
-  return tests, nontests
-
-
 def execute(_):
   """Lint changed code."""
   pythonpath = os.getenv('PYTHONPATH', '')
