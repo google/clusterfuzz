@@ -194,6 +194,8 @@ if __name__ == '__main__':
     exit_code = 0
   except Exception:
     traceback.print_exc()
+    sys.stdout.flush()
+    sys.stderr.flush()
     exit_code = 1
 
   monitor.stop()
