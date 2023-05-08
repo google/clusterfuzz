@@ -125,4 +125,6 @@ def execute(args):
     exit_code = proc.wait()
   except KeyboardInterrupt:
     _stop_handler()
+    # exit_code should be 0 when Ctrl-Ced.
+
   return exit_code

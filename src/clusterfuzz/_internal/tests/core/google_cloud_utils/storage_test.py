@@ -263,14 +263,12 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
 
   def test_sign_upload_url(self):
     """Tests sign_upload_url."""
-    # The remote_path passed is actually a filesystem path.
     url = 'gs://test-bucket/upload'
     return self.assertEqual(
         self.provider.sign_upload_url(url), '/local/test-bucket/objects/upload')
 
   def test_sign_download_url(self):
     """Tests sign_download_url."""
-    # The remote_path passed is actually a filesystem path.
     url = 'gs://test-bucket/download'
     return self.assertEqual(
         self.provider.sign_download_url(url),

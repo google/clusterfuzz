@@ -197,22 +197,37 @@ def execute(_):
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
   ]
-  py_changed_file_paths = [
-      f for f in file_paths
-      if f.endswith('.py') and not is_auto_generated_file(f)
-  ]
-  py_changed_test_file_paths, py_changed_nontest_file_paths = (
-      seperate_python_tests(py_changed_file_paths))
+
+  py_changed_tests = []
+  py_changed_nontests = []
+  go_changed_file_paths = []
+  yaml_changed_file_paths = []
+  for file_path in file_paths:
+    if file_path.endswith('.go'):
+      go_changed_file_paths.append(file_path)
+      continue
+    if file_path.endswith('.yaml'):
+      yaml_changed_file_paths.append(file_path)
+      continue
+    if not file_path.endswith('.py') or is_auto_generated_file(file_path):
+      continue
+    if file_path.endswith('_test.py'):
+      py_changed_tests.append(file_path)
+    else:
+      py_changed_nontests.append(file_path)
 
   # Use --score no to make output less noisy.
-  base_pylint_cmd = 'pylint --score=no --jobs=0 '
-  if py_changed_nontest_file_paths:
-    _execute_command_and_track_error(base_pylint_cmd +
-                                     ' '.join(py_changed_nontest_file_paths))
-  if py_changed_test_file_paths:
-    _execute_command_and_track_error((base_pylint_cmd + '--max-line-length=240 '
-                                     ) + ' '.join(py_changed_test_file_paths))
+  base_pylint_cmd = 'pylint --score=no --jobs=0'
+  # Test for existence of files before running tools to avoid errors from
+  # misusing the tools.
+  if py_changed_nontests:
+    _execute_command_and_track_error(
+        f'{base_pylint_cmd} {" ".join(py_changed_nontests)}')
+  if py_changed_tests:
+    _execute_command_and_track_error(
+        f'{base_pylint_cmd} --max-line-length=240 {" ".join(py_changed_tests)}')
 
+  py_changed_file_paths = py_changed_nontests + py_changed_tests
   if py_changed_file_paths:
     _execute_command_and_track_error(
         f'yapf -p -d {" ".join(py_changed_file_paths)}')

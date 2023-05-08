@@ -1244,13 +1244,18 @@ def blobs_bucket():
 
 
 def uworker_io_bucket():
+  """Returns the bucket where uworker I/O is done."""
   test_uworker_io_bucket = environment.get_value('TEST_UWORKER_IO_BUCKET')
   if test_uworker_io_bucket:
     return test_uworker_io_bucket
 
   assert not environment.get_value('PY_UNITTESTS')
   # TODO(metzman): Use local config.
-  return environment.get_value('UWORKER_IO_BUCKET')
+  bucket = environment.get_value('UWORKER_IO_BUCKET')
+  if not bucket:
+    logs.log_error('UWORKER_IO_BUCKET is not defined.')
+  return bucket
+
 
 
 @retry.wrap(
