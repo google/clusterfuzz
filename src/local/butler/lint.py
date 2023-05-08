@@ -187,7 +187,7 @@ def execute(_):
   py_changed_tests = []
   py_changed_nontests = []
   for file_path in file_paths:
-    if not f.endswith('.py') or is_auto_generated_file(f):
+    if not file_path.endswith('.py') or is_auto_generated_file(file_path):
       continue
     if file_path.endswith('_test.py'):
       py_changed_tests.append(file_path)
@@ -203,10 +203,9 @@ def execute(_):
         f'{base_pylint_cmd} {" ".join(py_changed_nontests)}')
   if py_changed_tests:
     _execute_command_and_track_error(
-        f'{base_pylint_cmd} --max-line-length=240 {" ".join(py_changed_tests}')
+        f'{base_pylint_cmd} --max-line-length=240 {" ".join(py_changed_tests)}')
 
-  py_changed_file_paths = (
-      py_changed_nontests + py_changed_tests)
+  py_changed_file_paths = (py_changed_nontests + py_changed_tests)
   if py_changed_file_paths:
     _execute_command_and_track_error(
         f'yapf -p -d {" ".join(py_changed_file_paths)}')
