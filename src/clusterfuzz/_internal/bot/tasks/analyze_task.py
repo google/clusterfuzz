@@ -246,7 +246,7 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
 
 
 def execute_task(testcase_id, job_type):
-  """Run analyze task."""
+  """Runs analyze task."""
 
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
