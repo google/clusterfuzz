@@ -186,7 +186,15 @@ def execute(_):
 
   py_changed_tests = []
   py_changed_nontests = []
+  go_changed_file_paths = []
+  yaml_changed_file_paths = []
   for file_path in file_paths:
+    if file_path.endswith('.go'):
+      go_changed_file_paths.append(file_path)
+      continue
+    if file_path.endswith('.yaml'):
+      yaml_changed_file_paths.append(file_path)
+      continue
     if not file_path.endswith('.py') or is_auto_generated_file(file_path):
       continue
     if file_path.endswith('_test.py'):
@@ -215,7 +223,6 @@ def execute(_):
   for file_path in py_changed_file_paths:
     py_test_init_check(file_path)
 
-  go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
   golint_path = os.path.join('local', 'bin', 'golint')
   for file_path in go_changed_file_paths:
     if not os.path.basename(file_path) in _GOLINT_EXCEPTIONS:
@@ -225,7 +232,6 @@ def execute(_):
     if output.strip():
       _error()
 
-  yaml_changed_file_paths = [f for f in file_paths if f.endswith('.yaml')]
   for file_path in yaml_changed_file_paths:
     yaml_validate(file_path)
 
