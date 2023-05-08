@@ -122,7 +122,6 @@ def execute(args):
 
     signal.signal(signal.SIGTERM, _stop_handler)
     common.process_proc_output(proc)
-    proc.wait()
     exit_code = proc.wait()
   except KeyboardInterrupt:
     _stop_handler()
