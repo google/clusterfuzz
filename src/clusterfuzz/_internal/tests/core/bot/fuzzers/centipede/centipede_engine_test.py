@@ -154,7 +154,7 @@ class IntegrationTest(unittest.TestCase):
     testcase_path = setup_testcase('oom', self.test_paths)
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     # For testing oom only.
-    os.environ['CENTIPEDE_RUNNER_FLAGS'] = (f':rss_limit_mb={_RSS_LIMIT_TEST}:')
+    os.environ['CENTIPEDE_RUNNER_FLAGS'] = f':rss_limit_mb={_RSS_LIMIT_TEST}:'
     self._test_reproduce(constants.OUT_OF_MEMORY_REGEX, testcase_path)
     if existing_runner_flags:
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
