@@ -38,7 +38,7 @@ def wrap(retries,
          delay,
          function,
          backoff=2,
-         exception_types=[Exception],
+         exception_types=None,
          retry_on_false=False):
   """Retry decorator for a function."""
 
@@ -46,9 +46,13 @@ def wrap(retries,
   assert backoff >= 1
   assert retries >= 0
 
+  if exception_types is None:
+    exception_types = [Exception]
+
   def is_exception_type(exception):
-    return any(isinstance(exception, exception_type)
-               for exception_type in exception_types)
+    return any(
+        isinstance(exception, exception_type)
+        for exception_type in exception_types)
 
   def decorator(func):
     """Decorator for the given function."""
