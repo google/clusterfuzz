@@ -14,7 +14,7 @@
 """Centipede engine interface."""
 
 import os
-from pathlib import Path
+import pathlib
 import re
 import shutil
 
@@ -49,7 +49,7 @@ class CentipedeError(Exception):
 
 def _get_runner():
   """Gets the Centipede runner."""
-  centipede_path = Path(environment.get_value('BUILD_DIR'), 'centipede')
+  centipede_path = pathlib.Path(environment.get_value('BUILD_DIR'), 'centipede')
   if not centipede_path.exists():
     raise CentipedeError('Centipede not found in build')
 
@@ -64,8 +64,8 @@ def _get_reproducer_path(log, reproducers_dir):
   crash_match = CRASH_REGEX.search(log)
   if not crash_match:
     return None
-  tmp_crash_path = Path(crash_match.group(1))
-  crash_path = Path(reproducers_dir) / tmp_crash_path.name
+  tmp_crash_path = pathlib.Path(crash_match.group(1))
+  crash_path = pathlib.Path(reproducers_dir) / tmp_crash_path.name
   shutil.copy(tmp_crash_path, crash_path)
   return crash_path
 
@@ -90,7 +90,7 @@ class Engine(engine.Engine):
       A FuzzOptions object.
    """
     arguments = []
-    dict_path = Path(
+    dict_path = pathlib.Path(
         dictionary_manager.get_default_dictionary_path(target_path))
     if dict_path.exists():
       arguments.append(f'--dictionary={dict_path}')
@@ -148,8 +148,8 @@ class Engine(engine.Engine):
     # Extra sanitized binaries, Centipede requires to build them separately.
     # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
     build_dir = environment.get_value('BUILD_DIR')
-    sanitized_target_name = Path(target_path).name
-    sanitized_target_path = Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
+    sanitized_target_name = pathlib.Path(target_path).name
+    sanitized_target_path = pathlib.Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
                                  sanitized_target_name)
     return sanitized_target_path
 
@@ -238,7 +238,7 @@ class Engine(engine.Engine):
 
   def _create_temp_dir(self, name):
     """Creates temporary directory for fuzzing."""
-    new_directory = Path(fuzzer_utils.get_temp_dir(), name)
+    new_directory = pathlib.Path(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_directory)
     return new_directory
 
