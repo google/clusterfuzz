@@ -1324,7 +1324,7 @@ def use_radamsa_mutator_plugin(extra_env):
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if environment.is_lib() or not is_linux_asan():
+  if environment.is_lib() or not is_linux_asan() or environment.is_android():
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
