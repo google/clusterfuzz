@@ -1253,10 +1253,10 @@ def uworker_io_bucket():
 
   assert not environment.get_value('PY_UNITTESTS')
   # TODO(metzman): Use local config.
-  uworker_io_bucket = environment.get_value('UWORKER_IO_BUCKET')
-  if not uworker_io_bucket:
+  bucket = environment.get_value('UWORKER_IO_BUCKET')
+  if not bucket:
     logs.log_error('UWORKER_IO_BUCKET is not defined.')
-  return uworker_io_bucket
+  return bucket
 
 
 @retry.wrap(
