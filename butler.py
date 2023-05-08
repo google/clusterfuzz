@@ -55,7 +55,7 @@ def _setup_args_for_remote(parser):
       '-i',
       '--instance-name',
       required=True,
-      help=('The instance name (e.g. clusterfuzz-linux-0005).'))
+      help='The instance name (e.g. clusterfuzz-linux-0005).')
   parser.add_argument('--project', help='The Project ID.')
   parser.add_argument('--zone', help='The Project Zone.')
 
@@ -211,11 +211,11 @@ def main():
       'running normally.')
 
   parser_remote = subparsers.add_parser(
-      'remote', help=('Run command-line tasks on a remote bot.'))
+      'remote', help='Run command-line tasks on a remote bot.')
   _setup_args_for_remote(parser_remote)
 
   parser_clean_indexes = subparsers.add_parser(
-      'clean_indexes', help=('Clean up undefined indexes (in index.yaml).'))
+      'clean_indexes', help='Clean up undefined indexes (in index.yaml).')
   parser_clean_indexes.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
 
@@ -252,7 +252,7 @@ def main():
   args = parser.parse_args()
   if not args.command:
     parser.print_help()
-    return
+    return 0
 
   _setup()
   command = importlib.import_module(f'local.butler.{args.command}')
