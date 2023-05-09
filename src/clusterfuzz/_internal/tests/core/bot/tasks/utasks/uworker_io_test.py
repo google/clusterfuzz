@@ -32,8 +32,8 @@ DEFAULT_SIGNED_URL_MINUTES = 1440
 
 
 class UworkerEntityWrapperTest(unittest.TestCase):
-  """Tests for UworkerEntityWrapper a core part of how ndb models/data_types are
-  used by uworkers."""
+  """Tests for UworkerEntityWrapper, a core part of how ndb models/data_types
+  are used by uworkers."""
   VALUE = 1
   NEW_VALUE = 2
 
@@ -83,7 +83,7 @@ class UworkerEntityWrapperTest(unittest.TestCase):
 
   def test_not_adding_fields(self):
     """Tests that UworkerEntityWrapper isn't adding fields to the
-    underlying_entity."""
+    underlying_entity when not intended by the user."""
     # Change the underlying entity to something that isn't MagicMock.
     self.wrapped._entity = {}
 
@@ -94,8 +94,9 @@ class UworkerEntityWrapperTest(unittest.TestCase):
       getattr(self.wrapped, 'also_non_existent')  # pylint: disable=pointless-statement
 
 
-class TestUploadUworkerInput(unittest.TestCase):
-  """Tests that upload_uworker_input works."""
+class TestGetUrls(unittest.TestCase):
+  """Tests that functions for getting urls for uploading and downloading input
+  and output work properly."""
   FAKE_URL = 'https://fake'
   WORKER_IO_BUCKET = 'UWORKER_IO'
   NEW_IO_FILE_NAME = 'new-filename'

@@ -37,7 +37,7 @@ def get_uworker_io_gcs_path():
   io_bucket = storage.uworker_io_bucket()
   io_file_name = generate_new_io_file_name()
   if storage.get(storage.get_cloud_storage_file_path(io_bucket, io_file_name)):
-    raise RuntimeError(f'UUID collision found: {io_file_name}.')  # !!!
+    raise RuntimeError(f'UUID collision found: {io_file_name}.')
   return f'/{io_bucket}/{io_file_name}'
 
 
@@ -69,23 +69,23 @@ def upload_uworker_input(uworker_input):
 
 
 def make_ndb_entity_input_obj_serializable(obj):
-  # !!! consider urlsafe.
+  """Returns a dictionary that can be JSON serialized representing an NDB
+  entity. Does not include datetime fields."""
   obj_dict = obj.to_dict()
-  # !!! We can't handle datetimes.
+  # TOOD(metzman): Handle datetimes.
   for key in list(obj_dict.keys()):
     value = obj_dict[key]
     if isinstance(value, datetime.datetime):
       del obj_dict[key]
   return {
       'key': base64.b64encode(obj.key.serialized()).decode(),
-      # 'model': type(ndb_entity).__name__,
       'properties': obj_dict,
   }
 
 
-def get_entity_with_changed_properties(ndb_key: ndb.Key,
-                                       properties) -> ndb.Model:
-  """Returns the entity pointed to by ndb_key and changes properties.."""
+def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
+  """Returns the entity pointed to by ndb_key and sets the properties on the
+  entity as the |properties| dictionary specifies."""
   model_name = ndb_key.kind()
   model_cls = getattr(data_types, model_name)
   entity = model_cls()
@@ -105,14 +105,13 @@ def deserialize_uworker_input(serialized_uworker_input):
     entity_key = entity_dict['key']
     serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
     ndb_key = ndb.Key(serialized=serialized_key)
-    # !!! make entity in uworker
-    entity = get_entity_with_changed_properties(ndb_key,
-                                                entity_dict['properties'])
+    entity = get_entity_with_properties(ndb_key, entity_dict['properties'])
     uworker_input[name] = UworkerEntityWrapper(entity)
   return uworker_input
 
 
 def serialize_uworker_input(uworker_input):
+  """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
   serializable = {}
   ndb_entities = {}
   for key, value in uworker_input.items():
@@ -124,15 +123,10 @@ def serialize_uworker_input(uworker_input):
   return json.dumps({'serializable': serializable, 'entities': ndb_entities})
 
 
-# !!! pickle is scary, replace
-# return base64.b64encode(pickle.dumps(uworker_input))
-
-
 def serialize_and_upload_uworker_input(uworker_input, job_type,
                                        uworker_output_upload_url) -> str:
   """Serializes input for the untrusted portion of a task."""
-  # Add remaining fields.
-
+  # Add remaining fields to the input.
   assert 'job_type' not in uworker_input
   uworker_input['job_type'] = job_type
   assert 'uworker_output_upload_url' not in uworker_input
@@ -144,6 +138,8 @@ def serialize_and_upload_uworker_input(uworker_input, job_type,
 
 
 def download_and_deserialize_uworker_input(uworker_input_download_url) -> str:
+  """Downloads and deserializes the input to the uworker from the signed
+  download URL."""
   data = storage.download_signed_url(uworker_input_download_url)
   return deserialize_uworker_input(data)
 
@@ -160,7 +156,6 @@ def serialize_uworker_output(uworker_output):
       serializable[name] = value
       continue
     entities[name] = {
-        # Not same as dict key !!!
         'key': base64.b64encode(value.key.serialized()).decode(),
         'changed': value._wrapped_changed_attributes,  # pylint: disable=protected-access
     }
@@ -197,7 +192,8 @@ def deserialize_uworker_output(uworker_output):
     entity = ndb_key.get()
     deserialized_output[name] = entity
     for attr, new_value in entity_dict['changed'].items():
-      # !!! insecure
+      # TODO(metzman): Don't allow setting all fields on every entity since this
+      # might have some security problems.
       setattr(entity, attr, new_value)
   return deserialized_output
 
