@@ -32,7 +32,7 @@ DEFAULT_SIGNED_URL_MINUTES = 1440
 
 
 class UworkerEntityWrapperTest(unittest.TestCase):
-  """Tests for UworkerEntityWrapper a core part of how ndb models/data_types are
+p  """Tests for UworkerEntityWrapper a core part of how ndb models/data_types are
   used by uworkers."""
   VALUE = 1
   NEW_VALUE = 2
@@ -92,12 +92,6 @@ class UworkerEntityWrapperTest(unittest.TestCase):
 
     with self.assertRaises(AttributeError):
       getattr(self.wrapped, 'also_non_existent')  # pylint: disable=pointless-statement
-
-
-# class TestGetIOUrls(unittest.TestCase):
-#   def setUp(self):
-#     helpers.patch_environ(self)
-#     os.environ['TEST_WORKER_IO_BUCKET'] = self.WORKER_IO_BUCKET
 
 
 class TestUploadUworkerInput(unittest.TestCase):
@@ -225,18 +219,23 @@ class RoundTripTest(unittest.TestCase):
                      downloaded_testcase.key.serialized)
 
   def test_upload_and_download_output(self):
-    """Tests that uploading and downloading input works. This means that input
-    serialization and deserialization works."""
+    """Tests that uploading and downloading uworker output works. This means
+    that output serialization and deserialization works."""
+    # Set up a wrapped testcase and modify it as a uworker would.
     testcase = uworker_io.UworkerEntityWrapper(self.testcase)
     testcase.newattr = 'newattr-value'
-    testcase.crash_type = 'crash_type'
+    testcase.crash_type = 'new-crash_type'
+
+    # Prepare an output that tests db entity change tracking and
+    # (de)serialization.
     output = uworker_io.UworkerOutput()
     output.testcase = testcase
     field_value = 'field'
     output.field = field_value
 
+    # Create a version of upload_signed_url that will "upload" the data to a
+    # known file on disk that we can read back.
     upload_signed_url_tempfile = None
-
     def upload_signed_url(data, src):
       del src
       with open(upload_signed_url_tempfile.name, 'w') as fp:
@@ -253,6 +252,8 @@ class RoundTripTest(unittest.TestCase):
       upload_signed_url_tempfile = temp_file
       uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
 
+      # Create a version of copy_file_from that will "downloads" the data from
+      # the file upload_signed_url wrote it to.
       def copy_file_from(gcs_url, local_path):
         del gcs_url
         shutil.copyfile(temp_file.name, local_path)
@@ -261,11 +262,12 @@ class RoundTripTest(unittest.TestCase):
       with mock.patch(copy_file_from_name, copy_file_from) as _:
         downloaded_output = uworker_io.download_and_deserialize_uworker_output(
             self.FAKE_URL)
-    self.assertEqual(downloaded_output['field'], output.field)
-    downloaded_testcase = downloaded_output.pop('testcase')
 
+    # Test that the entity (de)serialization and change tracking working.
+    downloaded_testcase = downloaded_output.pop('testcase')
     self.assertEqual(downloaded_testcase.newattr, testcase.newattr)
     self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
+
     self.assertEqual(downloaded_testcase.key.serialized(),
                      self.testcase.key.serialized())
     self.assertDictEqual(downloaded_output, {
