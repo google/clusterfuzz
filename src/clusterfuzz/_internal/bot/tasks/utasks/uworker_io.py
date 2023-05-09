@@ -41,27 +41,26 @@ def get_uworker_io_gcs_path():
   return f'/{io_bucket}/{io_file_name}'
 
 
-def get_uworker_output_upload_urls():
-  """Returns a GCS path for the tworker/preprocess to upload the input to and a
-  signed download URL for the uworker to download the input."""
+def get_uworker_output_urls():
+  """Returns a signed download URL for the uworker to upload the output and a
+  GCS url for the tworker to download the output."""
   gcs_path = get_uworker_io_gcs_path()
-  # Note that the signed upload URL can't automatically be downloaded from.
+  # Note that the signed upload URL can't be directly downloaded from.
   return storage.get_signed_upload_url(gcs_path), gcs_path
 
 
 def get_uworker_input_urls():
-  """Returns a GCS path for the tworker/preprocess to upload the input to and a
-  signed download URL for the uworker to download the input."""
+  """Returns a signed download URL for the uworker to download the input and a
+  GCS url for the tworker to upload it (this happens first)."""
   gcs_path = get_uworker_io_gcs_path()
-  return gcs_path, storage.get_signed_download_url(gcs_path)
+  return storage.get_signed_download_url(gcs_path), gcs_path
 
 
 def upload_uworker_input(uworker_input):
   """Uploads input for the untrusted portion of a task."""
-  gcs_path, signed_download_url = get_uworker_input_urls()
+  signed_download_url, gcs_path = get_uworker_input_urls()
 
-  with tempfile.TemporaryDirectory() as tmp_dir:
-    uworker_input_filename = os.path.join(tmp_dir, 'uworker_input')
+  with tempfile.NamedTemporaryFile() as uworker_input_filename:
     with open(uworker_input_filename, 'w') as fp:
       fp.write(uworker_input)
     if not storage.copy_file_to(uworker_input_filename, gcs_path):
@@ -168,9 +167,19 @@ def serialize_uworker_output(uworker_output):
   return json.dumps({'serializable': serializable, 'entities': entities})
 
 
-def serialize_and_upload_uworker_output(uworker_output, upload_url) -> str:
+def serialize_and_upload_uworker_output(uworker_output, upload_url):
+  """Serializes |uworker_output| and uploads it to |upload_url."""
   uworker_output = serialize_uworker_output(uworker_output)
   storage.upload_signed_url(uworker_output, upload_url)
+
+
+def download_and_deserialize_uworker_output(output_url) -> str:
+  """Downloads and deserializes uworker output."""
+  with tempfile.NamedTemporaryFile() as uworker_output_local_path:
+    storage.copy_file_from(output_url, uworker_output_local_path)
+    with open(uworker_output_local_path) as uworker_output_file_handle:
+      uworker_output = uworker_output_file_handle.read()
+  return deserialize_uworker_output(uworker_output)
 
 
 def deserialize_uworker_output(uworker_output):
@@ -193,29 +202,32 @@ def deserialize_uworker_output(uworker_output):
 
 class UworkerEntityWrapper:
   """Wrapper for db entities on the uworker. This wrapper functions the same as
-  the entity but also tracks changes made to the entity. This makes for easier
-  results processing by trusted workers (who now don't need to clobber the
-  entire entity when writing to the db, but can instead update just the modified
-  fields."""
+  the entity but also tracks changes made to the entity. This is useful for
+  uworkers, since they can't directly save any changes to db entities. This
+  makes for easier results processing by trusted workers (who now don't need to
+  clobber the entire entity when writing to the db, but can instead update just
+  the modified fields)."""
 
   def __init__(self, entity):
     # Everything set here, must be in the list in __setattr__
     self._entity = entity
+    self._wrapped_changed_attributes = {}
 
   def __getattr__(self, attribute):
+    if attribute in ['_entity', '_wrapped_changed_attributes']:
+      # Allow setting and changing _entity and _wrapped_changed_attributes.
+      # Stack overflow in __init__ otherwise.
+      return super().__getattr__(attribute)
     return getattr(self._entity, attribute)
 
   def __setattr__(self, attribute, value):
-    if attribute in ['_entity']:
+    if attribute in ['_entity', '_wrapped_changed_attributes']:
       # Allow setting and changing _entity. Stack overflow in __init__
       # otherwise.
       super().__setattr__(attribute, value)
       return
-    if getattr(self._entity, '_wrapped_changed_attributes', None) is None:
-      # Ensure we can track changes.
-      setattr(self._entity, '_wrapped_changed_attributes', {})
     # Record the attribute change.
-    getattr(self._entity, '_wrapped_changed_attributes')[attribute] = value
+    self._wrapped_changed_attributes[attribute] = value
     # Make the attribute change.
     setattr(self._entity, attribute, value)
 
@@ -230,12 +242,3 @@ class UworkerOutput:
 
   def to_dict(self):
     return self.__dict__
-
-
-def download_and_deserialize_uworker_output(output_url) -> str:
-  with tempfile.TemporaryDirectory() as temp_dir:
-    uworker_output_local_path = os.path.join(temp_dir, 'temp')
-    storage.copy_file_from(output_url, uworker_output_local_path)
-    with open(uworker_output_local_path) as uworker_output_file_handle:
-      uworker_output = uworker_output_file_handle.read()
-  return deserialize_uworker_output(uworker_output)

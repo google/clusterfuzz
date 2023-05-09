@@ -31,8 +31,8 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   # Get URLs for the uworker's output. We need a signed upload URL so it can
   # write its output. Also get a download URL in case the caller wants to read
   # the output.
-  uworker_output_upload_url, uworker_output_download_url = (
-      uworker_io.get_uworker_output_upload_urls())
+  uworker_output_upload_url, uworker_output_download_gcs_url = (
+      uworker_io.get_uworker_output_urls())
 
   # Write the uworker's input to GCS and get the URL to download the input in
   # case the caller needs it.
@@ -41,9 +41,9 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
 
   # Return the uworker_input_download_url for the remote executor to pass to the
   # batch job and for the local executor to download locally. Return
-  # uworker_output_download_url for the local executor to download the output
-  # after local execution of the utask_main.
-  return uworker_input_download_url, uworker_output_download_url
+  # uworker_output_download_gcs_url for the local executor to download the
+  # output after local execution of the utask_main.
+  return uworker_input_download_url, uworker_output_download_gcs_url
 
 
 def set_uworker_env(uworker_env):
