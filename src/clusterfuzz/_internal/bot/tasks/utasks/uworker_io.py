@@ -1,4 +1,4 @@
-# copyright 2023 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,8 +83,7 @@ def make_ndb_entity_input_obj_serializable(obj):
   }
 
 
-def get_entity_with_properties(ndb_key: ndb.Key,
-                               properties) -> ndb.Model:
+def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
   """Returns the entity pointed to by ndb_key and sets the properties on the
   entity as the |properties| dictionary specifies."""
   model_name = ndb_key.kind()
