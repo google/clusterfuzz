@@ -32,7 +32,7 @@ DEFAULT_SIGNED_URL_MINUTES = 1440
 
 
 class UworkerEntityWrapperTest(unittest.TestCase):
-p  """Tests for UworkerEntityWrapper a core part of how ndb models/data_types are
+  """Tests for UworkerEntityWrapper a core part of how ndb models/data_types are
   used by uworkers."""
   VALUE = 1
   NEW_VALUE = 2
@@ -174,12 +174,15 @@ class RoundTripTest(unittest.TestCase):
   def test_upload_and_download_input(self):
     """Tests that uploading and downloading input works. This means that input
     serialization and deserialization works."""
+    # Create input for the uworker.
     uworker_input = {
         'testcase': self.testcase,
         'env': self.env,
         'download_url': self.FAKE_URL
     }
 
+    # Create a mocked version of copy_file_to so that when we upload the uworker
+    # input, it goes to a known file we can read from.
     copy_file_to_tempfile = None
 
     def copy_file_to(src, _):
@@ -191,8 +194,11 @@ class RoundTripTest(unittest.TestCase):
 
     with tempfile.NamedTemporaryFile() as temp_file, mock.patch(
         copy_file_to_name, copy_file_to) as _:
+      # copy_file_to will now copy the file to temp_file.
       copy_file_to_tempfile = temp_file
 
+      # Create a mocked version of download_signed_url that will read the data
+      # from the file copy_file_to wrote to.
       def download_signed_url(url, local_path=None):
         del url
         del local_path
@@ -206,17 +212,19 @@ class RoundTripTest(unittest.TestCase):
           download_signed_url) as _:
         downloaded_input = uworker_io.download_and_deserialize_uworker_input(
             self.FAKE_URL)
-    initial_testcase = uworker_input.pop('testcase')
+
+    # Test that testcase (de)serialization worked.
     downloaded_testcase = downloaded_input.pop('testcase')
-    self.assertDictEqual(uworker_input, downloaded_input)
-    self.assertEqual(initial_testcase.crash_type,
-                     downloaded_testcase.crash_type)
-    self.assertEqual(initial_testcase.crash_address,
+    self.assertEqual(self.testcase.crash_type, downloaded_testcase.crash_type)
+    self.assertEqual(self.testcase.crash_address,
                      downloaded_testcase.crash_address)
-    self.assertEqual(initial_testcase.crash_state,
-                     downloaded_testcase.crash_state)
-    self.assertEqual(initial_testcase.key.serialized,
+    self.assertEqual(self.testcase.crash_state, downloaded_testcase.crash_state)
+    self.assertEqual(self.testcase.key.serialized,
                      downloaded_testcase.key.serialized)
+
+    # Now test that the rest of the input was (de)serialized properly.
+    del uworker_input['testcase']
+    self.assertDictEqual(uworker_input, downloaded_input)
 
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading uworker output works. This means
@@ -236,6 +244,7 @@ class RoundTripTest(unittest.TestCase):
     # Create a version of upload_signed_url that will "upload" the data to a
     # known file on disk that we can read back.
     upload_signed_url_tempfile = None
+
     def upload_signed_url(data, src):
       del src
       with open(upload_signed_url_tempfile.name, 'w') as fp:
@@ -268,6 +277,7 @@ class RoundTripTest(unittest.TestCase):
     self.assertEqual(downloaded_testcase.newattr, testcase.newattr)
     self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
 
+    # Test that the rest of the output was (de)serialized correctly.
     self.assertEqual(downloaded_testcase.key.serialized(),
                      self.testcase.key.serialized())
     self.assertDictEqual(downloaded_output, {

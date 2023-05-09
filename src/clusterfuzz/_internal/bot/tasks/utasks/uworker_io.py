@@ -22,8 +22,8 @@ import uuid
 from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.metrics import logs
 
 
 def generate_new_io_file_name():
