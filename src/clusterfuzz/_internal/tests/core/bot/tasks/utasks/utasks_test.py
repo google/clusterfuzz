@@ -59,6 +59,21 @@ class TworkerPreprocessTest(unittest.TestCase):
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
 
+class SetUworkerEnvTest(unittest.TestCase):
+  UWORKER_ENV = {'ENVVAR': 'VALUE', 'ENVVAR2': 'NEWVALUE'}
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_set_uworker_env(self):
+    """Tests that set_uworker_env works."""
+    # Test overwriting.
+    os.environ['ENVVAR2'] = 'original'
+    utasks.set_uworker_env(self.UWORKER_ENV)
+    self.assertEqual(os.environ['ENVVAR'], 'VALUE')
+    self.assertEqual(os.environ['ENVVAR2'], 'NEWVALUE')
+
+
+
 class TworkerPostproceessTest(unittest.TestCase):
   OUTPUT_DOWNLOAD_GCS_URL = '/output-download-gcs'
   OUTPUT = {'output1': 'something', 'output2': 'something else'}
