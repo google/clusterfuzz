@@ -36,8 +36,6 @@ class TworkerPreprocessTest(unittest.TestCase):
   INPUT = {'input': 'something'}
 
   def setUp(self):
-    # helpers.patch_environ(self)
-    # os.environ['TEST_CORPUS_BUCKET'] = 'UWORKER_IO_TEST'
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.get_uworker_output_urls',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
@@ -52,7 +50,33 @@ class TworkerPreprocessTest(unittest.TestCase):
     module.utask_preprocess.return_value = self.INPUT
     result = utasks.tworker_preprocess(module, self.TASK_ARGUMENT,
                                        self.JOB_TYPE, self.UWORKER_ENV)
-    self.mock.serialize_and_upload_uworker_input.assert_called_with(self.INPUT, self.JOB_TYPE, self.OUTPUT_SIGNED_UPLOAD_URL)
-    self.assertEqual((self.INPUT_SIGNED_DOWNLOAD_URL,
-                      self.OUTPUT_DOWNLOAD_GCS_URL),
-                     result)
+
+    module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
+                                               self.JOB_TYPE, self.UWORKER_ENV)
+    self.mock.serialize_and_upload_uworker_input.assert_called_with(
+        self.INPUT, self.JOB_TYPE, self.OUTPUT_SIGNED_UPLOAD_URL)
+    self.assertEqual(
+        (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
+
+
+class TworkerPostproceessTest(unittest.TestCase):
+  OUTPUT_DOWNLOAD_GCS_URL = '/output-download-gcs'
+  OUTPUT = {'output1': 'something', 'output2': 'something else'}
+
+  def setUp(self):
+    # helpers.patch_environ(self)
+    # os.environ['TEST_CORPUS_BUCKET'] = 'UWORKER_IO_TEST'
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
+    ])
+    self.mock.download_and_deserialize_uworker_output.return_value = self.OUTPUT
+
+  def test_worker_postrocess(self):
+    module = mock.MagicMock()
+    module.utask_postrocess.return_value = None
+    utasks.tworker_postprocess(module, self.OUTPUT_DOWNLOAD_GCS_URL)
+    self.mock.download_and_deserialize_uworker_output.assert_called_with(
+        self.OUTPUT_DOWNLOAD_GCS_URL)
+    module.utask_postprocess.assert_called_with(
+        output1='something', output2='something else')
