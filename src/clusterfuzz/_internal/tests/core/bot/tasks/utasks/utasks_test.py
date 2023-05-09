@@ -73,8 +73,39 @@ class SetUworkerEnvTest(unittest.TestCase):
     self.assertEqual(os.environ['ENVVAR2'], 'NEWVALUE')
 
 
+class UworkerMainTest(unittest.TestCase):
+  """Tests that uworker_main works as intended."""
+  UWORKER_ENV = {'ENVVAR': 'VALUE', 'ENVVAR2': 'NEWVALUE'}
+  UWORKER_OUTPUT_UPLOAD_URL = 'https://uworker_output_upload_url'
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.deserialize_and_upload_uworker_output',
+    ])
+    uworker_input = {'inputarg': 'input-val', 'uworker_env': self.UWORKER_ENV,
+                     'uworker_output_upload_url' self.UWORKER_OUTPUT_UPLOAD_URL}
+    self.mock.download_and_deserialize_uworker_input.return_value = (
+        uworker_input)
+
+  def test_uworker_main(self):
+    """Tests that uworker_main works as intended."""
+    module = mock.MagicMock()
+    uworker_output = {'uworker-output': 'uworker-output'}
+    module.utask_main.return_value = uworker_output
+    input_download_url = 'http://input'
+    utasks.uworker_main(module, input_download_url)
+    self.download_and_deserialize_uworker_input.assert_called_with(input_download_url)
+    # Tests that the uworker_env was used.
+    self.assertEqual(self.UWORKER_ENV['ENVVAR'], os.environ['ENVVAR'])
+    self.mock.serialize_and_upload_uworker_output.assert_called_with(
+        uworker_output, self.UWORKER_OUTPUT_UPLOAD_URL)
+    module.utask_main.assert_called_with(inputarg='input-val')
+
+
 
 class TworkerPostproceessTest(unittest.TestCase):
+  """Tests that tworker_postprocess works as intended."""
   OUTPUT_DOWNLOAD_GCS_URL = '/output-download-gcs'
   OUTPUT = {'output1': 'something', 'output2': 'something else'}
 
@@ -87,7 +118,8 @@ class TworkerPostproceessTest(unittest.TestCase):
     ])
     self.mock.download_and_deserialize_uworker_output.return_value = self.OUTPUT
 
-  def test_worker_postrocess(self):
+  def test_tworker_postrocess(self):
+    """Tests that tworker_postprocess works as intended."""
     module = mock.MagicMock()
     module.utask_postrocess.return_value = None
     utasks.tworker_postprocess(module, self.OUTPUT_DOWNLOAD_GCS_URL)
