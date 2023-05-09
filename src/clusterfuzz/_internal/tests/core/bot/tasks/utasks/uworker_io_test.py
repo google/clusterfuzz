@@ -175,7 +175,7 @@ class RoundTripTest(unittest.TestCase):
     self.env = {'ENVVAR': '1'}
     self.download_url = 'https://fake-signed-download-url'
     self.job_type = 'job'
-    self.maxDiff = None
+    self.maxDiff = None  # pylint: disable=invalid-name
 
   def test_upload_and_download_input(self):
     """Tests that uploading and downloading input works. This means that input
@@ -196,7 +196,7 @@ class RoundTripTest(unittest.TestCase):
                          'copy_file_to')
 
     with tempfile.NamedTemporaryFile() as temp_file, mock.patch(
-        copy_file_to_name, copy_file_to) as mocked_copy_file_to:
+        copy_file_to_name, copy_file_to) as _:
       copy_file_to_tempfile = temp_file
 
       def download_signed_url(url, local_path=None):
@@ -207,13 +207,11 @@ class RoundTripTest(unittest.TestCase):
 
       uworker_io.serialize_and_upload_uworker_input(
           uworker_input, self.job_type, self.FAKE_URL)
-      # mocked_copy_file_to.assert_called_with()
       with mock.patch(
           'clusterfuzz._internal.google_cloud_utils.storage.download_signed_url',
-          download_signed_url) as mocked_download_signed_url:
+          download_signed_url) as _:
         downloaded_input = uworker_io.download_and_deserialize_uworker_input(
             self.FAKE_URL)
-        # mocked_download_signed_url.assert_called_with()
     initial_testcase = uworker_input.pop('testcase')
     downloaded_testcase = downloaded_input.pop('testcase')
     self.assertDictEqual(uworker_input, downloaded_input)
@@ -229,11 +227,6 @@ class RoundTripTest(unittest.TestCase):
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading input works. This means that input
     serialization and deserialization works."""
-    uworker_input = {
-        'testcase': self.testcase,
-        'env': self.env,
-        'download_url': self.FAKE_URL
-    }
     testcase = uworker_io.UworkerEntityWrapper(self.testcase)
     testcase.newattr = 'newattr-value'
     testcase.crash_type = 'crash_type'
@@ -245,6 +238,7 @@ class RoundTripTest(unittest.TestCase):
     upload_signed_url_tempfile = None
 
     def upload_signed_url(data, src):
+      del src
       with open(upload_signed_url_tempfile.name, 'w') as fp:
         fp.write(data)
       return True
@@ -255,7 +249,7 @@ class RoundTripTest(unittest.TestCase):
                            'copy_file_from')
 
     with tempfile.NamedTemporaryFile() as temp_file, mock.patch(
-        upload_signed_url_name, upload_signed_url) as mocked_upload_signed_url:
+        upload_signed_url_name, upload_signed_url) as _:
       upload_signed_url_tempfile = temp_file
       uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
 

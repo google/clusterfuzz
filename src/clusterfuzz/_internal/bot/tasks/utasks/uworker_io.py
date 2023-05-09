@@ -16,13 +16,13 @@
 import base64
 import datetime
 import json
-import os
 import tempfile
 import uuid
 
 from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.google_cloud_utils import storage
 
 
