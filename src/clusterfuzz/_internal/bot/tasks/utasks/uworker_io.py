@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,10 +60,10 @@ def upload_uworker_input(uworker_input):
   """Uploads input for the untrusted portion of a task."""
   signed_download_url, gcs_path = get_uworker_input_urls()
 
-  with tempfile.NamedTemporaryFile() as uworker_input_filename:
-    with open(uworker_input_filename, 'w') as fp:
+  with tempfile.NamedTemporaryFile() as uworker_input_file:
+    with open(uworker_input_file.name, 'w') as fp:
       fp.write(uworker_input)
-    if not storage.copy_file_to(uworker_input_filename, gcs_path):
+    if not storage.copy_file_to(uworker_input_file.name, gcs_path):
       raise RuntimeError('Failed to upload uworker_input.')
   return signed_download_url
 
@@ -176,8 +176,10 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 def download_and_deserialize_uworker_output(output_url) -> str:
   """Downloads and deserializes uworker output."""
   with tempfile.NamedTemporaryFile() as uworker_output_local_path:
-    storage.copy_file_from(output_url, uworker_output_local_path)
-    with open(uworker_output_local_path) as uworker_output_file_handle:
+    if not storage.copy_file_from(output_url, uworker_output_local_path.name):
+      logs.log_error('Could not download uworker output from %s' % output_url)
+      return None
+    with open(uworker_output_local_path.name) as uworker_output_file_handle:
       uworker_output = uworker_output_file_handle.read()
   return deserialize_uworker_output(uworker_output)
 
@@ -211,6 +213,9 @@ class UworkerEntityWrapper:
   def __init__(self, entity):
     # Everything set here, must be in the list in __setattr__
     self._entity = entity
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Deal with key
+    # which won't be possible to set on a model when there's no datastore
+    # connection.
     self._wrapped_changed_attributes = {}
 
   def __getattr__(self, attribute):

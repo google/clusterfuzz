@@ -648,8 +648,8 @@ class GcsBlobInfo(object):
 def _provider():
   """Get the current storage provider."""
   local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
-  # if local_buckets_path:
-  #   return FileSystemProvider(local_buckets_path)
+  if local_buckets_path:
+    return FileSystemProvider(local_buckets_path)
   return GcsProvider()
 
 
@@ -1255,7 +1255,6 @@ def uworker_io_bucket():
   if not bucket:
     logs.log_error('UWORKER_IO_BUCKET is not defined.')
   return bucket
-
 
 
 @retry.wrap(
