@@ -38,6 +38,7 @@ UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
     'Out-of-memory', 'Stack-overflow', 'Timeout'
 ]
 TRIAGE_MESSAGE_KEY = 'triage_message'
+bug_filing_max_24_hours_per_job = {}
 
 
 def _add_triage_message(testcase, message):
@@ -61,6 +62,8 @@ def _create_filed_bug_metadata(testcase):
   metadata.crash_state = testcase.crash_state
   metadata.security_flag = testcase.security_flag
   metadata.platform_id = testcase.platform_id
+  metadata.project_name = testcase.project_name
+  metadata.job_type = testcase.job_type
   metadata.put()
 
 
@@ -249,11 +252,61 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
   return False
 
+def _get_job_bugs_filing_max(job_type):
+  """Get bugs filing max for given job.."""
+  if job_type in bug_filing_max_24_hours_per_job:
+    return bug_filing_max_24_hours_per_job.get(job_type)
+  
+  max_bugs = None
+  job = data_types.Job.query(data_types.Job.name == job_type).get()
+  if job and 'BUG_FILING_MAX_24_HOURS_PER_JOB' in job.get_environment():
+    max_bugs = int(job.get_environment().get('BUG_FILING_MAX_24_HOURS_PER_JOB'))
+  
+  bug_filing_max_24_hours_per_job[job_type] = max_bugs
 
-def _file_issue(testcase, issue_tracker):
+  return max_bugs
+
+
+def _throttle_bug(testcase, bug_filed_24_hours_per_job,
+                  bug_filed_24_hours_per_project):
+  """Return whether current bug needs to be throttled."""
+  bug_filing_job_max = _get_job_bugs_filing_max(testcase.job_type)
+  valid_timestamp = datetime.datetime.now() - datetime.timedelta(hours=24)
+  count = 0
+  if bug_filing_job_max:
+    if testcase.job_type in bug_filed_24_hours_per_job:
+      count = bug_filed_24_hours_per_job.get(testcase.job_type)
+    else:
+      count = data_types.FiledBug.query(
+          data_types.FiledBug.job_type == testcase.job_type
+          and data_types.FiledBug.timestamp >= valid_timestamp).count()
+    if count < bug_filing_job_max:
+      bug_filed_24_hours_per_job[testcase.job_type] = count + 1
+      return False
+  else:
+    if testcase.project_name in bug_filed_24_hours_per_project:
+      count = bug_filed_24_hours_per_project.get(testcase.project_name)
+    else:
+      count = data_types.FiledBug.query(
+          data_types.FiledBug.project_name == testcase.project_name
+          and data_types.FiledBug.timestamp >= valid_timestamp).count()
+    if count < issue_tracker_utils.get_issue_tracker_project_bug_filing_max():
+      bug_filed_24_hours_per_project[testcase.project_name] = count + 1
+      return False
+  return True
+
+def _file_issue(testcase, issue_tracker, bug_filed_24_hours_per_job,
+                bug_filed_24_hours_per_project):
   """File an issue for the testcase."""
   filed = False
   file_exception = None
+
+  if _throttle_bug(testcase, bug_filed_24_hours_per_job, 
+                   bug_filed_24_hours_per_project):
+    logs.log(f'Skipping bug filing for {testcase.key.id()} as it is throttled')
+    _add_triage_message(
+        testcase, 'Skipping filing as this is throttled.')
+    return False
 
   if crash_analyzer.is_experimental_crash(testcase.crash_type):
     logs.log(f'Skipping bug filing for {testcase.key.id()} as it '
@@ -300,6 +353,9 @@ class Handler(base_handler.Handler):
     # Get a list of all jobs. This is used to filter testcases whose jobs have
     # been removed.
     all_jobs = data_handler.get_all_job_type_names()
+
+    bug_filed_24_hours_per_job = {}
+    bug_filed_24_hours_per_project = {}
 
     for testcase_id in data_handler.get_open_testcase_id_iterator():
       try:
@@ -369,7 +425,7 @@ class Handler(base_handler.Handler):
       testcase.delete_metadata(TRIAGE_MESSAGE_KEY, update_testcase=False)
 
       # File the bug first and then create filed bug metadata.
-      if not _file_issue(testcase, issue_tracker):
+      if not _file_issue(testcase, issue_tracker, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project):
         continue
 
       _create_filed_bug_metadata(testcase)
