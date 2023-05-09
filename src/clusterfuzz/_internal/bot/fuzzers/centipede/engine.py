@@ -211,10 +211,18 @@ class Engine(engine.Engine):
     """
     sanitized_target_path = self._get_sanitized_target_path(target_path)
     if sanitized_target_path.exists():
+      # The sanitized target is in __extra_build/ by default.
       sanitized_target = str(sanitized_target_path)
+    elif pathlib.Path(target_path).exists():
+      # The sanitized target is in the build directory if no unsanitized target
+      # was provided.
+      sanitized_target = sanitized_target_path
     else:
-      logs.log_warn(
+      logs.log_error(
           f'Unable to find sanitized target binary: {sanitized_target_path}')
+      raise RuntimeError('No sanitized target: Centipede cannot find a '
+                         f'sanitized target in {sanitized_target_path} or '
+                         f'{target_path}.')
 
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:

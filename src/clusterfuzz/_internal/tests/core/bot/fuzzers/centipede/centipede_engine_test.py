@@ -130,6 +130,18 @@ class IntegrationTest(unittest.TestCase):
 
     return re.search(regex, result.output)
 
+  def test_reproduce_uaf_without_unsanitized_target_binary(self):
+    """Tests reproducing an ASAN heap-use-after-free crash when no unsanitized
+    target binary was provided."""
+    testcase_path = setup_testcase('uaf', self.test_paths)
+    crash_info = self._test_reproduce(
+        constants.ASAN_REGEX, testcase_path,
+        'clusterfuzz_format_target_no_unsanitized')
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+    self.assertIn('heap-use-after-free', crash_info.group(2))
+
   def test_reproduce_uaf_old(self):
     """Tests reproducing an old ASAN heap-use-after-free crash."""
     testcase_path = setup_testcase('crash', self.test_paths)
