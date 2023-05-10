@@ -368,7 +368,7 @@ class Testcase(Model):
   # First x stack frames.
   crash_state = ndb.StringProperty()
 
-  # Complete stacktrace.g
+  # Complete stacktrace.
   crash_stacktrace = ndb.TextProperty(indexed=False)
 
   # Last tested crash stacktrace using the latest revision.
