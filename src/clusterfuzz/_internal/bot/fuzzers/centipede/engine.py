@@ -13,6 +13,7 @@
 # limitations under the License.
 """Centipede engine interface."""
 
+from collections import namedtuple
 import os
 import pathlib
 import re
@@ -105,26 +106,14 @@ class Engine(engine.Engine):
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
     arguments.append(f'--corpus_dir={corpus_dir}')
 
-    # Centipede requires an unsanitized target binary or a sanitized one.
-    unsanitized_target_path = pathlib.Path(target_path)
-    unsanitized_target_exists = unsanitized_target_path.exists()
-    sanitized_target_path = self._get_sanitized_target_path(target_path)
-    sanitized_target_exists = sanitized_target_path.exists()
-    if not unsanitized_target_exists and not sanitized_target_exists:
-      raise RuntimeError('No fuzz target: Centipede cannot find unsanitized '
-                         f'target {unsanitized_target_path}, or sanitized '
-                         f'target {sanitized_target_path}.')
-
-    # Centipede uses unsanitized binary as the main fuzz target when provided.
-    if unsanitized_target_exists:
-      arguments.append(f'--binary={target_path}')
+    target_binaries = self._get_binary_paths(target_path)
+    if target_binaries.unsanitized is None:
+      # Assme the only binary is always sanitized (e.g., from Chrome).
+      arguments.append(f'--binary={target_binaries.sanitized}')
+      logs.log_warn('Unable to find unsanitized target binary.')
     else:
-      logs.log_info('Unable to find unsanitized target binary.')
-
-    if sanitized_target_exists:
-      arguments.append(f'--extra_binaries={sanitized_target_path}')
-    else:
-      logs.log_warn('Unable to find sanitized target binary.')
+      arguments.append(f'--binary={target_binaries.unsanitized}')
+      arguments.append(f'--extra_binaries={target_binaries.sanitized}')
 
     arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT_FUZZ}')
 
@@ -132,24 +121,58 @@ class Engine(engine.Engine):
 
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
-  def _get_sanitized_target_path(self, target_path):
-    """Get the path to the sanitized target based on the unsanitized target.
-    Sanitized targets are required by fuzzing (as an auxiliary) and crash
-    reproduction.
-
+  def _get_binary_paths(self, target_path):
+    """Gets the paths to the main and the auxiliary binaries.
     Args:
-      target_path: Path to the unsanitized target in a string.
+      target_path: Path to the main target in a string.
 
     Returns:
-      Path to the sanitized binary as a pathlib.Path.
+      A named tuple containing paths to both target binaries as pathlib.Path.
     """
-    # Extra sanitized binaries, Centipede requires to build them separately.
+    # Centipede expects one or two target binaries:
+    # |-------------------------------------------------------|
+    # |            | main target path | auxiliary target path |
+    # |-------------------------------------------------------|
+    # | 1 binary   | sanitized        | -                     |
+    # |-------------------------------------------------------|
+    # | 2 binaries | unsanitized      | sanitized             |
+    # |-------------------------------------------------------|
+
+    main_target_path = pathlib.Path(target_path)
+    auxiliary_target_path = self._get_auxiliary_target_path(target_path)
+
+    Binary = namedtuple('Binary', ['unsanitized', 'sanitized'])
+    if main_target_path.exists() and auxiliary_target_path.exists():
+      # 2 binaries were provided.
+      target_binaries = Binary(main_target_path, auxiliary_target_path)
+    elif main_target_path.exists():
+      # 1 binary was provided.
+      target_binaries = Binary(None, main_target_path)
+    else:
+      assert not auxiliary_target_path.exists()
+      raise RuntimeError('No fuzz target: Centipede cannot find main target '
+                         f'{main_target_path}, or auxiliary target '
+                         f'{auxiliary_target_path}.')
+
+    return target_binaries
+
+  def _get_auxiliary_target_path(self, target_path):
+    """Gets the auxiliary target path based on the main target path.
+    When exists, it points to the sanitized binary, which is required by fuzzing
+    (as an auxiliary) and crash reproduction.
+
+    Args:
+      target_path: Path to the main target in a string.
+
+    Returns:
+      Path to the auxiliary binary as a pathlib.Path.
+    """
     # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
     build_dir = environment.get_value('BUILD_DIR')
-    sanitized_target_name = pathlib.Path(target_path).name
-    sanitized_target_path = pathlib.Path(
-        build_dir, fuzzer_utils.EXTRA_BUILD_DIR, sanitized_target_name)
-    return sanitized_target_path
+    auxiliary_target_name = pathlib.Path(target_path).name
+    auxiliary_target_path = pathlib.Path(
+        build_dir, fuzzer_utils.EXTRA_BUILD_DIR, auxiliary_target_name)
+    return auxiliary_target_path
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
     """Runs a fuzz session.
@@ -209,20 +232,8 @@ class Engine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    sanitized_target_path = self._get_sanitized_target_path(target_path)
-    if sanitized_target_path.exists():
-      # The sanitized target is in __extra_build/ by default.
-      sanitized_target = str(sanitized_target_path)
-    elif pathlib.Path(target_path).exists():
-      # The sanitized target is in the build directory if no unsanitized target
-      # was provided.
-      sanitized_target = sanitized_target_path
-    else:
-      logs.log_error(
-          f'Unable to find sanitized target binary: {sanitized_target_path}')
-      raise RuntimeError('No sanitized target: Centipede cannot find a '
-                         f'sanitized target in {sanitized_target_path} or '
-                         f'{target_path}.')
+    target_binaries = self._get_binary_paths(target_path)
+    sanitized_target = str(target_binaries.sanitized)
 
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
