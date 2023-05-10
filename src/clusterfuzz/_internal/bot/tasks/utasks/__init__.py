@@ -46,13 +46,13 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   return uworker_input_download_url, uworker_output_download_gcs_url
 
 
-def set_uworker_env(uworker_env):
+def set_uworker_env(uworker_env) -> None:
   """Sets all env vars in |uworker_env| in the actual environment."""
   for key, value in uworker_env.items():
     environment.set_value(key, value)
 
 
-def uworker_main(task_module, input_download_url):
+def uworker_main(task_module, input_download_url) -> None:
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
@@ -70,7 +70,7 @@ def uworker_main(task_module, input_download_url):
                                                  uworker_output_upload_url)
 
 
-def tworker_postprocess(task_module, output_download_url):
+def tworker_postprocess(task_module, output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   uworker_output_dict = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
