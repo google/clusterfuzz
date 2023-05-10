@@ -243,3 +243,7 @@ class UworkerOutput:
 
   def to_dict(self):
     return self.__dict__
+
+
+def uworker_output_from_dict(task_module, output_dict):
+  return task_module.Output(**output_dict)

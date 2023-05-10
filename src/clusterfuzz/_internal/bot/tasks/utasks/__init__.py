@@ -70,6 +70,8 @@ def uworker_main(task_module, input_download_url):
 
 def tworker_postprocess(task_module, output_download_url):
   """Executes the postprocess step on the trusted (t)worker."""
-  uworker_output = uworker_io.download_and_deserialize_uworker_output(
+  uworker_output_dict = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
-  task_module.utask_postprocess(**uworker_output)
+  uworker_output = uworker_io.uworker_output_from_dict(task_module,
+                                                       uworker_output)
+  task_module.utask_postprocess(uworker_output)

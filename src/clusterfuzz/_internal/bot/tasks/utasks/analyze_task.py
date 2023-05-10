@@ -89,6 +89,8 @@ def setup_build(testcase):
 
 
 def prepare_env_for_main(metadata):
+  """Prepares the environment for execute_task."""
+  # Reset redzones.
   environment.reset_current_memory_tool_options(redzone_size=128)
 
   # Unset window location size and position properties so as to use default.
@@ -105,12 +107,14 @@ def prepare_env_for_main(metadata):
 
 def setup_testcase_and_build(testcase, metadata, job_type,
                              testcase_download_url):
+  """Sets up the |testcase| and builds. Returns the path to the testcase on
+  success, None on error."""
   # Set up testcase and get absolute testcase path.
   file_list, _, testcase_file_path = setup.setup_testcase(
       testcase, job_type, testcase_download_url=testcase_download_url)
   if not file_list:
-    return None, AnalyzeUworkerOutput(
-        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
+    return None, UworkerOutput(
+        testcase=testcase, metadata=metadata, error=ErrorType.BUILD_SETUP)
 
   # Set up build.
   setup_build(testcase)
@@ -119,8 +123,8 @@ def setup_testcase_and_build(testcase, metadata, job_type,
   # to setup correctly.
   if not build_manager.check_app_path():
     # Let postprocess handle BUILD_SETUP and restart tasks if needed.
-    return None, AnalyzeUworkerOutput(
-        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
+    return None, UworkerOutput(
+        testcase=testcase, metadata=metadata, error=ErrorType.BUILD_SETUP)
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
 
@@ -189,35 +193,35 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   return result
 
 
-def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
+def handle_noncrash(output):
   """Handles a non-crashing testcase. Either deletes the testcase or schedules
   another, final analysis."""
   # Could not reproduce the crash.
   log_message = (
-      f'Testcase didn\'t crash in {test_timeout} seconds (with retries)')
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
-                                       log_message)
+      f'Testcase didn\'t crash in {output.test_timeout} seconds (with retries)')
+  data_handler.update_testcase_comment(
+      output.testcase, data_types.TaskState.FINISHED, log_message)
 
   # For an unreproducible testcase, retry once on another bot to confirm
   # our results and in case this bot is in a bad state which we didn't catch
   # through our usual means.
-  if data_handler.is_first_retry_for_task(testcase):
-    testcase.status = 'Unreproducible, retrying'
-    testcase.put()
+  if data_handler.is_first_retry_for_task(output.testcase):
+    output.testcase.status = 'Unreproducible, retrying'
+    output.testcase.put()
 
-    tasks.add_task('analyze', testcase_id, job_type)
+    tasks.add_task('analyze', output.testcase_id, output.job_type)
     return
 
-  data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+  data_handler.close_invalid_uploaded_testcase(output.testcase, output.metadata,
                                                'Unreproducible')
 
   # A non-reproducing testcase might still impact production branches.
   # Add the impact task to get that information.
-  task_creation.create_impact_task_if_needed(testcase)
+  task_creation.create_impact_task_if_needed(output.testcase)
 
 
-def update_testcase_after_crash(testcase, state, crash_stacktrace, job_type):
-
+def update_testcase_after_crash(testcase, state, job_type):
+  """Updates |testcase| based on |state| ."""
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
   testcase.crash_state = state.crash_state
@@ -243,7 +247,7 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   testcase_file_path, output = setup_testcase_and_build(
       testcase, metadata, job_type, testcase_download_url)
 
-  if not setup_success:
+  if not testcase_file_path:
     return output
   # output is None on success.
 
@@ -259,6 +263,7 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
 
   # Get the crash data.
   crashed = result.is_crash()
+  crash_time = result.get_crash_time()
   state = result.get_symbolized_data()
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
   save_minidump(testcase, state, application_command_line)
@@ -270,18 +275,24 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
       crash_stacktrace_output)
 
   if not crashed:
-    return AnalyzeUworkerOutput(testcase, metadata=metadata, testcase_id=testcase_id, crashed=False, error=Error.NO_CRASH, crash_time=test_timeout, job_type=job_type)
+    return UworkerOutput(
+        testcase,
+        metadata=metadata,
+        testcase_id=testcase_id,
+        error=ErrorType.NO_CRASH,
+        crash_time=test_timeout,
+        job_type=job_type)
   # Update testcase crash parameters.
-  update_testcase_after_crash(testcase, state, crash_stacktrace, job_type)
-  test_for_reproducibility(testcase, test_timeout)
-  return AnalyzeUworkerOutput(
+  update_testcase_after_crash(testcase, state, job_type)
+  test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
+  return UworkerOutput(
       testcase=testcase,
-      crash_stacktrace=crash_stacktrace,
+      crash_stacktrace=testcase.crash_stacktrace,
       crashed=crashed,
       crash_time=crash_time)
 
 
-def test_for_reproducibility(testcase, test_timeout):
+def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
   reproduces = testcase_manager.test_for_reproducibility(
       testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
       state.crash_type, state.crash_state, testcase.security_flag, test_timeout,
@@ -289,24 +300,29 @@ def test_for_reproducibility(testcase, test_timeout):
   testcase.one_time_crasher_flag = reproduces
 
 
-class AnalyzeUworkerOutput(uworker_io.UworkerOutput):
+class UworkerOutput(uworker_io.UworkerOutput):
+  """UworkerOutput for analyze_task."""
 
   def __init__(self,
                testcase,
                error=None,
                crash_stacktrace=None,
-               crashed=False,
                job_type=None,
-               crash_time=None):
+               crash_time=None,
+               testcase_id=None,
+               metadata=None):
     super().__init__(testcase, error)
     self.crash_stacktrace = crash_stacktrace
-    self.crashed = crash_stacktrace
+    self.job_type = job_type
+    self.metadata = metadata
     self.crash_time = crash_time
+    self.testcase_id = testcase_id
 
 
-class Error(enum.Enum):
+class ErrorType(enum.Enum):
   BUILD_SETUP = 1
   NO_CRASH = 2
+
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run analyze task."""
@@ -325,7 +341,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     logs.log_error(
         'Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
-    return
+    return None
 
   # Store the bot name and timestamp in upload metadata.
   bot_name = environment.get_value('BOT_NAME')
@@ -336,12 +352,12 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # Adjust the test timeout, if user has provided one.
   if metadata.timeout:
     environment.set_value('TEST_TIMEOUT', metadata.timeout)
-    untrusted_env['TEST_TIMEOUT'] = metadata.timeout
+    uworker_env['TEST_TIMEOUT'] = metadata.timeout
 
   # Adjust the number of retries, if user has provided one.
   if metadata.retries is not None:
     environment.set_value('CRASH_RETRIES', metadata.retries)
-    untrusted_env['CRASH_RETRIES'] = metadata.retries
+    uworker_env['CRASH_RETRIES'] = metadata.retries
 
   testcase_download_url = setup.get_testcase_download_url(testcase)
   return {
@@ -352,84 +368,81 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   }
 
 
-def utask_handle_errors(testcase, metadata, error):
-  if error == Error.BUILD_SETUP:
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Build setup failed')
+def utask_handle_errors(output):
+  """Handles errors that happened in utask_main."""
+  if output.error == ErrorType.BUILD_SETUP:
+    data_handler.update_testcase_comment(
+        output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
-    if data_handler.is_first_retry_for_task(testcase):
+    if data_handler.is_first_retry_for_task(output.testcase):
       build_fail_wait = environment.get_value('FAIL_WAIT')
       tasks.add_task(
-          'analyze', testcase_id, job_type, wait_time=build_fail_wait)
+          'analyze',
+          output.testcase_id,
+          output.job_type,
+          wait_time=build_fail_wait)
     else:
-      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-                                                   'Build setup failed')
+      data_handler.close_invalid_uploaded_testcase(
+          output.testcase, output.metadata, 'Build setup failed')
 
-  if error == Error.NO_CRASH:
-    # !!!
-    pass
+  if output.error == ErrorType.NO_CRASH:
+    handle_noncrash(output)
 
 
-def utask_postprocess(crash_stacktrace, crash_time, testcase_id, job_type, testcase, error, metadata):
-
+def utask_postprocess(output):
   """Trusted: Clean up after a uworker execute_task, write anything needed to
   the db."""
-  if error:
-    utask_handle_errors(testcase, metadata, error)
-
-  # # !!! Check for bad build.
-  # data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-  #                                              'Build setup failed')
-  if error == Error.NO_CRASH:
-    handle_noncrash(testcase, metadata, testcase_id, crash_time)
+  if output.error:
+    utask_handle_errors(output)
     return
 
   log_message = ('Testcase crashed in %d seconds (r%d)' %
-                 (crash_time, testcase.crash_revision))
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
-                                       log_message)
+                 (output.crash_time, output.testcase.crash_revision))
+  data_handler.update_testcase_comment(
+      output.testcase, data_types.TaskState.FINISHED, log_message)
 
   # See if we have to ignore this crash.
-  if crash_analyzer.ignore_stacktrace(crash_stacktrace):
-    data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-                                                 'Irrelavant')
+  if crash_analyzer.ignore_stacktrace(output.crash_stacktrace):
+    data_handler.close_invalid_uploaded_testcase(output.testcase,
+                                                 output.metadata, 'Irrelavant')
     return
 
   # Check to see if this is a duplicate.
-  data_handler.check_uploaded_testcase_duplicate(testcase, metadata)
+  data_handler.check_uploaded_testcase_duplicate(output.testcase,
+                                                 output.metadata)
 
   # Set testcase and metadata status if not set already.
-  if testcase.status == 'Duplicate':
+  if output.testcase.status == 'Duplicate':
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
-    if metadata.quiet_flag:
-      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-                                                   'Duplicate')
+    if output.metadata.quiet_flag:
+      data_handler.close_invalid_uploaded_testcase(output.testcase,
+                                                   output.metadata, 'Duplicate')
     return
-  else:
-    # New testcase.
-    testcase.status = 'Processed'
-    metadata.status = 'Confirmed'
 
-    # Reset the timestamp as well, to respect
-    # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
-    # triage task prematurely without the grouper having a chance to run on this
-    # testcase.
-    testcase.timestamp = utils.utcnow()
+  # New testcase.
+  output.testcase.status = 'Processed'
+  output.metadata.status = 'Confirmed'
 
-    # Add new leaks to global blacklist to avoid detecting duplicates.
-    # Only add if testcase has a direct leak crash and if it's reproducible.
-    is_lsan_enabled = environment.get_value('LSAN')
-    if is_lsan_enabled:
-      leak_blacklist.add_crash_to_global_blacklist_if_needed(testcase)
+  # Reset the timestamp as well, to respect
+  # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
+  # triage task prematurely without the grouper having a chance to run on this
+  # testcase.
+  output.testcase.timestamp = utils.utcnow()
+
+  # Add new leaks to global blacklist to avoid detecting duplicates.
+  # Only add if testcase has a direct leak crash and if it's reproducible.
+  is_lsan_enabled = environment.get_value('LSAN')
+  if is_lsan_enabled:
+    leak_blacklist.add_crash_to_global_blacklist_if_needed(output.testcase)
 
   # Update the testcase values.
-  testcase.put()
+  output.testcase.put()
 
   # Update the upload metadata.
-  metadata.security_flag = security_flag
-  metadata.put()
-  _add_default_issue_metadata(testcase)
+  output.metadata.security_flag = testcase.security_flag
+  output.metadata.put()
+  _add_default_issue_metadata(output.testcase)
 
   # Create tasks to
   # 1. Minimize testcase (minimize).
@@ -438,7 +451,7 @@ def utask_postprocess(crash_stacktrace, crash_time, testcase_id, job_type, testc
   # 4. Check whether testcase is fixed (progression).
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
-  task_creation.create_tasks(testcase)
+  task_creation.create_tasks(output.testcase)
 
 
 def get_application_command_line(testcase):
