@@ -237,13 +237,21 @@ class UworkerOutput:
   """Convenience class for results from uworker_main. This is useful for
   ensuring we are returning values for fields expected by utask_postprocess."""
 
-  def __init__(self, testcase=None, error=None):
+  def __init__(self, testcase=None, error=None, **kwargs):
     self.testcase = testcase
     self.error = error
+    for key, value in kwargs.items():
+      setattr(self, key, value)
 
   def to_dict(self):
     return self.__dict__
 
 
 def uworker_output_from_dict(task_module, output_dict):
-  return task_module.Output(**output_dict)
+  return UworkerOutput(**output_dict)
+
+class UworkerInput:
+  def __init__(self, task_arg, job_type, uworker_env):
+    self.task_arg = task_arg
+    self.job_type = job_type
+    self.uworker_env = uworker_env

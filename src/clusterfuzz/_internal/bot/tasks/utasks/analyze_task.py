@@ -278,7 +278,6 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
     return UworkerOutput(
         testcase,
         metadata=metadata,
-        testcase_id=testcase_id,
         error=ErrorType.NO_CRASH,
         crash_time=test_timeout,
         job_type=job_type)
@@ -288,7 +287,6 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   return UworkerOutput(
       testcase=testcase,
       crash_stacktrace=testcase.crash_stacktrace,
-      crashed=crashed,
       crash_time=crash_time)
 
 
@@ -298,25 +296,6 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
       state.crash_type, state.crash_state, testcase.security_flag, test_timeout,
       testcase.http_flag, testcase.gestures)
   testcase.one_time_crasher_flag = reproduces
-
-
-class UworkerOutput(uworker_io.UworkerOutput):
-  """UworkerOutput for analyze_task."""
-
-  def __init__(self,
-               testcase,
-               error=None,
-               crash_stacktrace=None,
-               job_type=None,
-               crash_time=None,
-               testcase_id=None,
-               metadata=None):
-    super().__init__(testcase, error)
-    self.crash_stacktrace = crash_stacktrace
-    self.job_type = job_type
-    self.metadata = metadata
-    self.crash_time = crash_time
-    self.testcase_id = testcase_id
 
 
 class ErrorType(enum.Enum):
@@ -375,10 +354,10 @@ def utask_handle_errors(output):
         output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
     if data_handler.is_first_retry_for_task(output.testcase):
-      build_fail_wait = environment.get_value('FAIL_WAIT')
+      build_fail_wait = output.uworker_input.['uworker_env'].get('FAIL_WAIT')
       tasks.add_task(
           'analyze',
-          output.testcase_id,
+          output.uworker_input['testcase_id']
           output.job_type,
           wait_time=build_fail_wait)
     else:
@@ -440,7 +419,7 @@ def utask_postprocess(output):
   output.testcase.put()
 
   # Update the upload metadata.
-  output.metadata.security_flag = testcase.security_flag
+  output.metadata.security_flag = output.testcase.security_flag
   output.metadata.put()
   _add_default_issue_metadata(output.testcase)
 
