@@ -145,8 +145,8 @@ def py_test_init_check(file_path):
 
   test_directory = os.path.dirname(file_path)
   if _PY_INIT_FILENAME not in os.listdir(test_directory):
-    _error('Failed: Missing {filename} file in test directory {dir}.'.format(
-        filename=_PY_INIT_FILENAME, dir=test_directory))
+    _error(f'Failed: Missing {_PY_INIT_FILENAME} file in test '
+           f'directory {test_directory}.')
 
 
 def yaml_validate(file_path):
@@ -183,24 +183,44 @@ def execute(_):
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
   ]
-  py_changed_file_paths = [
-      f for f in file_paths
-      if f.endswith('.py') and not is_auto_generated_file(f)
-  ]
-  go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
-  yaml_changed_file_paths = [f for f in file_paths if f.endswith('.yaml')]
+
+  py_changed_tests = []
+  py_changed_nontests = []
+  go_changed_file_paths = []
+  yaml_changed_file_paths = []
+  for file_path in file_paths:
+    if file_path.endswith('.go'):
+      go_changed_file_paths.append(file_path)
+      continue
+    if file_path.endswith('.yaml'):
+      yaml_changed_file_paths.append(file_path)
+      continue
+    if not file_path.endswith('.py') or is_auto_generated_file(file_path):
+      continue
+    if file_path.endswith('_test.py'):
+      py_changed_tests.append(file_path)
+    else:
+      py_changed_nontests.append(file_path)
+
+  # Use --score no to make output less noisy.
+  base_pylint_cmd = 'pylint --score=no --jobs=0'
+  # Test for existence of files before running tools to avoid errors from
+  # misusing the tools.
+  if py_changed_nontests:
+    _execute_command_and_track_error(
+        f'{base_pylint_cmd} {" ".join(py_changed_nontests)}')
+  if py_changed_tests:
+    _execute_command_and_track_error(
+        f'{base_pylint_cmd} --max-line-length=240 {" ".join(py_changed_tests)}')
+
+  py_changed_file_paths = py_changed_nontests + py_changed_tests
+  if py_changed_file_paths:
+    _execute_command_and_track_error(
+        f'yapf -p -d {" ".join(py_changed_file_paths)}')
+    _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c '
+                                     f'{" ".join(py_changed_file_paths)}')
 
   for file_path in py_changed_file_paths:
-    line_length_override = ''
-    if '_test.py' in file_path:
-      line_length_override = '--max-line-length=240'
-
-    # Use --score no to make output less noisy.
-    _execute_command_and_track_error(
-        f'pylint --score no {line_length_override} {file_path}')
-    _execute_command_and_track_error(f'yapf -d {file_path}')
-    _execute_command_and_track_error(f'{formatter.ISORT_CMD} -c {file_path}')
-
     py_test_init_check(file_path)
 
   golint_path = os.path.join('local', 'bin', 'golint')
