@@ -1261,7 +1261,7 @@ def uworker_io_bucket():
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage._download_url',
-    exception_type=[HttpError])
+    exception_types=[HttpError])
 def _download_url(url):
   """Downloads |url| and returns the contents."""
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
