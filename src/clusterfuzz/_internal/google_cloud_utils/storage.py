@@ -827,7 +827,7 @@ def generate_life_cycle_config(action, age=None, num_newer_versions=None):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.copy_file_from',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def copy_file_from(cloud_storage_file_path, local_file_path, use_cache=False):
   """Saves a cloud storage file locally."""
   if use_cache and get_file_from_cache_if_exists(local_file_path):
@@ -847,7 +847,7 @@ def copy_file_from(cloud_storage_file_path, local_file_path, use_cache=False):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.copy_file_to',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def copy_file_to(local_file_path_or_handle,
                  cloud_storage_file_path,
                  metadata=None):
@@ -865,7 +865,7 @@ def copy_file_to(local_file_path_or_handle,
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.copy_blob',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
   """Copy two blobs on GCS 'in the cloud' without touching local disk."""
   return _provider().copy_blob(cloud_storage_source_path,
@@ -876,7 +876,7 @@ def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.delete',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def delete(cloud_storage_file_path):
   """Delete a cloud storage file given its path."""
   return _provider().delete(cloud_storage_file_path)
@@ -902,7 +902,7 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.last_updated',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def last_updated(cloud_storage_file_path):
   """Return last updated value by parsing stats for all blobs under a cloud
   storage path."""
@@ -920,7 +920,7 @@ def last_updated(cloud_storage_file_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.read_data',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def read_data(cloud_storage_file_path):
   """Return content of a cloud storage file."""
   return _provider().read_data(cloud_storage_file_path)
@@ -930,7 +930,7 @@ def read_data(cloud_storage_file_path):
 #     retries=DEFAULT_FAIL_RETRIES,
 #     delay=DEFAULT_FAIL_WAIT,
 #     function='google_cloud_utils.storage.write_data',
-#     exception_type=google.cloud.exceptions.GoogleCloudError)
+#     exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def write_data(data, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
@@ -941,7 +941,7 @@ def write_data(data, cloud_storage_file_path, metadata=None):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.get_blobs',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def get_blobs(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
@@ -952,7 +952,7 @@ def get_blobs(cloud_storage_path, recursive=True):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.list_blobs',
-    exception_type=google.cloud.exceptions.GoogleCloudError)
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
@@ -1261,7 +1261,7 @@ def uworker_io_bucket():
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage._download_url',
-    exception_type=HttpError)
+    exception_type=[HttpError])
 def _download_url(url):
   """Downloads |url| and returns the contents."""
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
