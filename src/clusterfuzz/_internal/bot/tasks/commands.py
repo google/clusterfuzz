@@ -40,22 +40,73 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
-COMMAND_MAP = {
-    'analyze': analyze_task,
-    'blame': blame_task,
-    'corpus_pruning': corpus_pruning_task,
-    'fuzz': fuzz_task,
-    'impact': impact_task,
-    'minimize': minimize_task,
-    'progression': progression_task,
-    'regression': regression_task,
-    'symbolize': symbolize_task,
-    'unpack': unpack_task,
-    'upload_reports': upload_reports_task,
-    'variant': variant_task,
-}
-
 TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
+
+
+class BaseTask:
+  """Base module for tasks."""
+
+  def __init__(self, module):
+    self.module = module
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a task."""
+    raise NotImplementedError('Child class must implement.')
+
+
+class TrustedTask(BaseTask):
+  """Implementation of a task that is run on a single machine. These tasks were
+  the original ones in ClusterFuzz."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    # Simple tasks can just use the environment they don't need the uworker env.
+    del uworker_env
+    self.module.execute_task(task_argument, job_type)
+
+
+def utask_factory(task_module):
+  """Returns a task implemention for a utask. Depending on the global
+  configuration, the implementation will either execute the utask entirely on
+  one machine or on multiple."""
+  if environment.get_value('UTASK_REMOTE_EXECUTION'):
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Make remote
+    # execution opt-out.
+    return UTask(task_module)
+
+  return UTaskLocalExecutor(task_module)
+
+
+class UTaskLocalExecutor(BaseTask):
+  """Represents an untrusted task. Executes it entirely locally."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally."""
+    raise NotImplementedError('UTask local executor not implemented yet.')
+
+
+class UTask(BaseTask):
+  """Represents an untrusted task. Executes it remotely."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask remotely."""
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Implement.
+    raise NotImplementedError('UTask remote executor not implemented yet.')
+
+
+COMMAND_MAP = {
+    'analyze': TrustedTask(analyze_task),
+    'blame': TrustedTask(blame_task),
+    'corpus_pruning': TrustedTask(corpus_pruning_task),
+    'fuzz': TrustedTask(fuzz_task),
+    'impact': TrustedTask(impact_task),
+    'minimize': TrustedTask(minimize_task),
+    'progression': TrustedTask(progression_task),
+    'regression': TrustedTask(regression_task),
+    'symbolize': TrustedTask(symbolize_task),
+    'unpack': TrustedTask(unpack_task),
+    'upload_reports': TrustedTask(upload_reports_task),
+    'variant': TrustedTask(variant_task),
+}
 
 
 class Error(Exception):
@@ -107,16 +158,16 @@ def is_supported_cpu_arch_for_job():
 def update_environment_for_job(environment_string):
   """Process the environment variable string included with a job."""
   # Now parse the job's environment definition.
-  environment_values = (
-      environment.parse_environment_definition(environment_string))
-
-  for key, value in environment_values.items():
+  env = environment.parse_environment_definition(environment_string)
+  uworker_env = env.copy()
+  for key, value in env.items():
     environment.set_value(key, value)
 
   # If we share the build with another job type, force us to be a custom binary
   # job type.
   if environment.get_value('SHARE_BUILD_WITH_JOB_TYPE'):
     environment.set_value('CUSTOM_BINARY', True)
+    uworker_env['CUSTOM_BINARY'] = 'True'
 
   # Allow the default FUZZ_TEST_TIMEOUT and MAX_TESTCASES to be overridden on
   # machines that are preempted more often.
@@ -124,16 +175,19 @@ def update_environment_for_job(environment_string):
       'FUZZ_TEST_TIMEOUT_OVERRIDE')
   if fuzz_test_timeout_override:
     environment.set_value('FUZZ_TEST_TIMEOUT', fuzz_test_timeout_override)
+    uworker_env['FUZZ_TEST_TIMEOUT'] = fuzz_test_timeout_override
 
   max_testcases_override = environment.get_value('MAX_TESTCASES_OVERRIDE')
   if max_testcases_override:
     environment.set_value('MAX_TESTCASES', max_testcases_override)
+    uworker_env['MAX_TESTCASES'] = max_testcases_override
 
   if environment.is_trusted_host():
-    environment_values['JOB_NAME'] = environment.get_value('JOB_NAME')
+    env['JOB_NAME'] = environment.get_value('JOB_NAME')
     from clusterfuzz._internal.bot.untrusted_runner import \
         environment as worker_environment
-    worker_environment.update_environment(environment_values)
+    worker_environment.update_environment(env)
+  return uworker_env
 
 
 def set_task_payload(func):
@@ -180,13 +234,13 @@ def start_web_server_if_needed():
     logs.log_error('Failed to start web server, skipping.')
 
 
-def run_command(task_name, task_argument, job_name):
+def run_command(task_name, task_argument, job_name, uworker_env):
   """Run the command."""
   if task_name not in COMMAND_MAP:
     logs.log_error("Unknown command '%s'" % task_name)
     return
 
-  task_module = COMMAND_MAP[task_name]
+  task = COMMAND_MAP[task_name]
 
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
@@ -198,7 +252,7 @@ def run_command(task_name, task_argument, job_name):
       raise AlreadyRunningError
 
   try:
-    task_module.execute_task(task_argument, job_name)
+    task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -223,7 +277,7 @@ def run_command(task_name, task_argument, job_name):
 @set_task_payload
 def process_command(task):
   """Figures out what to do with the given task and executes the command."""
-  logs.log("Executing command '%s'" % task.payload())
+  logs.log(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
     logs.log_error('Empty task received.')
     return
@@ -362,7 +416,7 @@ def process_command(task):
       environment_string += additional_variables_for_job
 
     # Update environment for the job.
-    update_environment_for_job(environment_string)
+    uworker_env = update_environment_for_job(environment_string)
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
@@ -382,7 +436,7 @@ def process_command(task):
   start_web_server_if_needed()
 
   try:
-    run_command(task_name, task_argument, job_name)
+    run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
     cleanup_task_state()
