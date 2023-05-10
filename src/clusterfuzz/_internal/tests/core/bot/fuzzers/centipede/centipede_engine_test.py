@@ -268,7 +268,8 @@ class IntegrationTest(unittest.TestCase):
     self.assertTrue(self.test_paths.corpus.iterdir())
 
   def test_fuzz_no_crash_without_unsanitized_binary(self):
-    """Tests fuzzing (no crash)."""
+    """Tests fuzzing (no crash) when no unsanitized target binary was provided.
+    """
     dictionary = self.test_paths.data / 'test_fuzzer_sanitized.dict'
     self._run_centipede(
         target_name='test_fuzzer_sanitized',
@@ -336,7 +337,8 @@ class IntegrationTest(unittest.TestCase):
         centipede_bin=self.test_paths.centipede_old)
 
   def test_crash_uaf_without_unsanitized(self):
-    """Tests fuzzing that results in a ASAN heap-use-after-free crash."""
+    """Tests fuzzing that results in a ASAN heap-use-after-free crash when no
+    unsanitized target binary was provided."""
     setup_testcase('uaf', self.test_paths)
     crash_info = self._test_crash_log_regex(
         constants.ASAN_REGEX,

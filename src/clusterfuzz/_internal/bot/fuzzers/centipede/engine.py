@@ -108,7 +108,7 @@ class Engine(engine.Engine):
 
     target_binaries = self._get_binary_paths(target_path)
     if target_binaries.unsanitized is None:
-      # Assme the only binary is always sanitized (e.g., from Chrome).
+      # Assuming the only binary is always sanitized (e.g., from Chrome).
       arguments.append(f'--binary={target_binaries.sanitized}')
       logs.log_warn('Unable to find unsanitized target binary.')
     else:
@@ -122,7 +122,7 @@ class Engine(engine.Engine):
     return engine.FuzzOptions(corpus_dir, arguments, {})
 
   def _get_binary_paths(self, target_path):
-    """Gets the paths to the main and the auxiliary binaries.
+    """Gets the paths to the main and auxiliary binaries based on |target_path|
     Args:
       target_path: Path to the main target in a string.
 
@@ -157,7 +157,7 @@ class Engine(engine.Engine):
     return target_binaries
 
   def _get_auxiliary_target_path(self, target_path):
-    """Gets the auxiliary target path based on the main target path.
+    """Gets the auxiliary target path based on the main |target_path|.
     When exists, it points to the sanitized binary, which is required by fuzzing
     (as an auxiliary) and crash reproduction.
 
