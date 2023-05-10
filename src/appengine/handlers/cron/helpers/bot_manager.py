@@ -139,7 +139,7 @@ class Resource(object):
       RETRY_COUNT,
       RETRY_DELAY,
       'handlers.cron.helpers.bot_manager.Resource.execute',
-      exception_type=RetryableError)
+      exception_types=[RetryableError])
   def execute(self, request, result_proc=None):
     """Execute a request."""
     if result_proc is None:
