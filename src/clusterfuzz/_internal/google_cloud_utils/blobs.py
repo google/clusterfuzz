@@ -147,7 +147,7 @@ def write_blob(file_handle_or_path):
   blob_name = generate_new_blob_name()
 
   if storage.get(storage.get_cloud_storage_file_path(blobs_bucket, blob_name)):
-    raise BlobsException('UUID collision found: %s.' % blob_name)
+    raise BlobsException('UUID collision found: %s' % blob_name)
 
   if isinstance(file_handle_or_path, str):
     filename = os.path.basename(file_handle_or_path)

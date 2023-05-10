@@ -323,7 +323,6 @@ class GcsProvider(StorageProvider):
 
   def get(self, remote_path):
     """Get information about a remote file."""
-
     client = create_discovery_storage_client()
     bucket, path = get_bucket_name_and_path(remote_path)
     try:
@@ -926,11 +925,11 @@ def read_data(cloud_storage_file_path):
   return _provider().read_data(cloud_storage_file_path)
 
 
-# @retry.wrap(
-#     retries=DEFAULT_FAIL_RETRIES,
-#     delay=DEFAULT_FAIL_WAIT,
-#     function='google_cloud_utils.storage.write_data',
-#     exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.write_data',
+    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def write_data(data, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
@@ -1171,10 +1170,10 @@ def store_file_in_cache(file_path,
     logs.log('Completed storing file %s into cache.' % filename)
 
 
-# @retry.wrap(#
-#     retries=DEFAULT_FAIL_RETRIES,
-#     delay=DEFAULT_FAIL_WAIT,
-#     function='google_cloud_utils.storage.get')
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.get')
 def get(cloud_storage_file_path):
   """Get GCS object data."""
   return _provider().get(cloud_storage_file_path)

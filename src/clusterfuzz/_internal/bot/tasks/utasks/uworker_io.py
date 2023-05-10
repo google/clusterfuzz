@@ -157,7 +157,6 @@ def serialize_uworker_output(uworker_output_obj):
     if isinstance(uworker_input[key], UworkerEntityWrapper):
       del uworker_input[key]
       continue
-
   entities = {}
   serializable = {}
 
