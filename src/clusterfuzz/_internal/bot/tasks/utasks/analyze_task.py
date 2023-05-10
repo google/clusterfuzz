@@ -88,7 +88,81 @@ def setup_build(testcase):
   build_manager.setup_build(revision)
 
 
+def prepare_env_for_main(metadata):
+  environment.reset_current_memory_tool_options(redzone_size=128)
+
+  # Unset window location size and position properties so as to use default.
+  environment.set_value('WINDOW_ARG', '')
+
+  # Adjust the test timeout, if user has provided one.
+  if metadata.timeout:
+    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+
+  # Adjust the number of retries, if user has provided one.
+  if metadata.retries is not None:
+    environment.set_value('CRASH_RETRIES', metadata.retries)
+
+
+def setup_testcase_and_build(testcase, metadata, job_type,
+                             testcase_download_url):
+  # Set up testcase and get absolute testcase path.
+  file_list, _, testcase_file_path = setup.setup_testcase(
+      testcase, job_type, testcase_download_url=testcase_download_url)
+  if not file_list:
+    return None, AnalyzeUworkerOutput(
+        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
+
+  # Set up build.
+  setup_build(testcase)
+
+  # Check if we have an application path. If not, our build failed
+  # to setup correctly.
+  if not build_manager.check_app_path():
+    # Let postprocess handle BUILD_SETUP and restart tasks if needed.
+    return None, AnalyzeUworkerOutput(
+        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
+  testcase.absolute_path = testcase_file_path
+  return testcase_file_path, None
+
+
+def initialize_testcase_for_main(testcase, job_type):
+  """Initializes a testcase for the crash testing phase."""
+  # Update initial testcase information.
+  testcase.job_type = job_type
+  testcase.queue = tasks.default_queue()
+  testcase.crash_state = ''
+
+  # Set initial testcase metadata fields (e.g. build url, etc).
+  data_handler.set_initial_testcase_metadata(testcase)
+
+  # Update minimized arguments and use ones provided during user upload.
+  if not testcase.minimized_arguments:
+    minimized_arguments = environment.get_value('APP_ARGS') or ''
+    additional_command_line_flags = testcase.get_metadata(
+        'uploaded_additional_args')
+    if additional_command_line_flags:
+      minimized_arguments += ' %s' % additional_command_line_flags
+    environment.set_value('APP_ARGS', minimized_arguments)
+    testcase.minimized_arguments = minimized_arguments
+
+  # Update other fields not set at upload time.
+  testcase.crash_revision = environment.get_value('APP_REVISION')
+
+
+def save_minidump(testcase, state, application_command_line):
+  # Get crash info object with minidump info. Also, re-generate unsymbolized
+  # stacktrace if needed.
+  crash_info, _ = (
+      crash_uploader.get_crash_info_and_stacktrace(
+          application_command_line, state.crash_stacktrace, testcase.gestures))
+  if crash_info:
+    testcase.minidump_keys = crash_info.store_minidump()
+
+
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
+  """Tests for crash multiple times. May also try to reproduce with HTTP. If can
+  only successfully reproduce with HTTP, then HTTP property is set it to
+  True."""
   # Get the crash output.
   result = testcase_manager.test_for_crash_with_retries(
       testcase,
@@ -115,81 +189,34 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   return result
 
 
-def prepare_env_for_main(metadata):
-  environment.reset_current_memory_tool_options(redzone_size=128)
+def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
+  """Handles a non-crashing testcase. Either deletes the testcase or schedules
+  another, final analysis."""
+  # Could not reproduce the crash.
+  log_message = (
+      f'Testcase didn\'t crash in {test_timeout} seconds (with retries)')
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
+                                       log_message)
 
-  # Unset window location size and position properties so as to use default.
-  environment.set_value('WINDOW_ARG', '')
+  # For an unreproducible testcase, retry once on another bot to confirm
+  # our results and in case this bot is in a bad state which we didn't catch
+  # through our usual means.
+  if data_handler.is_first_retry_for_task(testcase):
+    testcase.status = 'Unreproducible, retrying'
+    testcase.put()
 
-  # Adjust the test timeout, if user has provided one.
-  if metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+    tasks.add_task('analyze', testcase_id, job_type)
+    return
 
-  # Adjust the number of retries, if user has provided one.
-  if metadata.retries is not None:
-    environment.set_value('CRASH_RETRIES', metadata.retries)
+  data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                               'Unreproducible')
 
-
-def setup_testcase_and_build(testcase, metadata, job_type,
-                             testcase_download_url):
-  # Set up testcase and get absolute testcase path.
-  file_list, _, testcase_file_path = setup.setup_testcase(
-      testcase, job_type, testcase_download_url=testcase_download_url)
-  if not file_list:
-    return False, AnalyzeUworkerOutput(
-        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
-
-  # Set up build.
-  setup_build(testcase)
-
-  # Check if we have an application path. If not, our build failed
-  # to setup correctly.
-  if not build_manager.check_app_path():
-    return False, AnalyzeUworkerOutput(
-        testcase=testcase, metadata=metadata, error=Error.BUILD_SETUP)
-  return True, None
+  # A non-reproducing testcase might still impact production branches.
+  # Add the impact task to get that information.
+  task_creation.create_impact_task_if_needed(testcase)
 
 
-def initialize_testcase_for_main(testcase, file_path, job_type):
-  # Update initial testcase information.
-  testcase.absolute_path = testcase_file_path
-  testcase.job_type = job_type
-  testcase.queue = tasks.default_queue()
-  testcase.crash_state = ''
-
-  # Set initial testcase metadata fields (e.g. build url, etc).
-  data_handler.set_initial_testcase_metadata(testcase)
-
-  # Update minimized arguments and use ones provided during user upload.
-  if not testcase.minimized_arguments:
-    minimized_arguments = environment.get_value('APP_ARGS') or ''
-    additional_command_line_flags = testcase.get_metadata(
-        'uploaded_additional_args')
-    if additional_command_line_flags:
-      minimized_arguments += ' %s' % additional_command_line_flags
-    environment.set_value('APP_ARGS', minimized_arguments)
-    testcase.minimized_arguments = minimized_arguments
-
-  # Update other fields not set at upload time.
-  testcase.crash_revision = environment.get_value('APP_REVISION')
-
-
-def save_minidump(testcase, application_command_line, state):
-  # Get crash info object with minidump info. Also, re-generate unsymbolized
-  # stacktrace if needed.
-  crash_info, _ = (
-      crash_uploader.get_crash_info_and_stacktrace(
-          application_command_line, state.crash_stacktrace, testcase.gestures))
-  if crash_info:
-    testcase.minidump_keys = crash_info.store_minidump()
-
-
-def get_application_command_line(testcase):
-  return testcase_manager.get_command_line_for_application(
-      testcase.absolute_path, needs_http=testcase.http_flag)
-
-
-def update_testcase(testcase, state, crash_stacktrace, job_type):
+def update_testcase_after_crash(testcase, state, crash_stacktrace, job_type):
 
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
@@ -204,7 +231,6 @@ def update_testcase(testcase, state, crash_stacktrace, job_type):
         bool(testcase.gestures))
 
 
-# !!! Testcase download URL.
 def utask_main(testcase, testcase_download_url, job_type, metadata):
   """Executes the untrusted part of analyze_task."""
   prepare_env_for_main(metadata)
@@ -214,14 +240,15 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
     # Creates empty local blacklist so all leaks will be visible to uploader.
     leak_blacklist.create_empty_local_blacklist()
 
-  setup_success, output = setup_testcase_and_build(testcase, metadata, job_type,
-                                                   testcase_download_url)
+  testcase_file_path, output = setup_testcase_and_build(
+      testcase, metadata, job_type, testcase_download_url)
+
   if not setup_success:
     return output
+  # output is None on success.
 
-  initialize_testcase_for_main(testcase, file_path, job_type)
+  initialize_testcase_for_main(testcase, job_type)
 
-  # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
 
   result = test_for_crash_with_retries(testcase, testcase_file_path,
@@ -234,7 +261,7 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   crashed = result.is_crash()
   state = result.get_symbolized_data()
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
-  save_minidump(testcase, application_command_line, state)
+  save_minidump(testcase, state, application_command_line)
 
   crash_stacktrace_output = utils.get_crash_stacktrace_output(
       application_command_line, state.crash_stacktrace,
@@ -243,9 +270,9 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
       crash_stacktrace_output)
 
   if not crashed:
-    pass
+    return AnalyzeUworkerOutput(testcase, error=Error.NO_CRASH)
   # Update testcase crash parameters.
-  update_testcase(testcase, state, crash_stacktrace, job_type)
+  update_testcase_after_crash(testcase, state, crash_stacktrace, job_type)
   test_for_reproducibility(testcase, test_timeout)
   return AnalyzeUworkerOutput(
       testcase=testcase,
@@ -432,3 +459,8 @@ def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase, error,
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
   task_creation.create_tasks(testcase)
+
+
+def get_application_command_line(testcase):
+  return testcase_manager.get_command_line_for_application(
+      testcase.absolute_path, needs_http=testcase.http_flag)
