@@ -363,7 +363,7 @@ class FileIssueTest(unittest.TestCase):
     ])
     data_types.Job(
         name='test_content_shell_drt',
-        environment_string=('BUG_FILING_MAX_24_HOURS_PER_JOB = 2')).put()
+        environment_string='BUG_FILING_MAX_24_HOURS_PER_JOB = 2').put()
     self.testcase = test_utils.create_generic_testcase()
     self.issue = appengine_test_utils.create_generic_issue()
     self.issue_tracker = self.issue.issue_tracker
@@ -371,14 +371,16 @@ class FileIssueTest(unittest.TestCase):
   def test_no_exception(self):
     """Test no exception."""
     self.mock.file_issue.return_value = 'ID', None
-    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertIsNone(testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_recovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.return_value = 'ID', Exception('recovered')
-    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: recovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -386,7 +388,8 @@ class FileIssueTest(unittest.TestCase):
   def test_unrecovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.side_effect = Exception('unrecovered')
-    self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+    self.assertFalse(
+        triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: unrecovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -396,27 +399,34 @@ class FileIssueTest(unittest.TestCase):
     self.mock.file_issue.return_value = 'ID', None
     for crash_type in ['Arbitrary file open', 'Command injection']:
       self.testcase.crash_type = crash_type
-      self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+      self.assertFalse(
+          triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
       testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
       self.assertEqual('Skipping filing as this is an experimental crash type.',
                        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
-  
+
   def test_throttle_bug(self):
     """Test not filing issue due to throttle"""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
 
-    triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project)
-    triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project)
-    self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project))
+    triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
+                         bug_filed_24_hours_per_project)
+    triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
+                         bug_filed_24_hours_per_project)
+    self.assertFalse(
+        triage._file_issue(self.testcase, self.issue_tracker,
+                           bug_filed_24_hours_per_job,
+                           bug_filed_24_hours_per_project))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
-    self.assertEqual('Skipping filing as this is throttled.',
-                       testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+    self.assertEqual('Skipping filing as it is throttled.',
+                     testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
 
 @test_utils.with_cloud_emulators('datastore')
 class ThrottleBugTest(unittest.TestCase):
   """Tests for _throttle_bug."""
+
   def setUp(self):
     self.testcase = test_utils.create_generic_testcase()
 
@@ -426,14 +436,18 @@ class ThrottleBugTest(unittest.TestCase):
     bug_filed_24_hours_per_project = {}
     data_types.FiledBug(
         project_name='project',
-        job_type='test_job_without_limit',
+        job_type='test_content_shell_drt',
         timestamp=datetime.datetime.now() - datetime.timedelta(hours=30)).put()
     data_types.FiledBug(
         project_name='project',
         job_type='test_content_shell_drt',
         timestamp=datetime.datetime.now()).put()
-    self.assertFalse(triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project))
-    self.assertTrue(triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project))
+    self.assertFalse(
+        triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
+                             bug_filed_24_hours_per_project))
+    self.assertTrue(
+        triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
+                             bug_filed_24_hours_per_project))
 
   def test_throttle_bug_with_project_limit(self):
     """Test the throttling bug with a project limit."""
@@ -446,6 +460,10 @@ class ThrottleBugTest(unittest.TestCase):
         project_name='project',
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
-    for i in range(99):
-      self.assertFalse(triage._throttle_bug(testcase, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project))
-    self.assertTrue(triage._throttle_bug(testcase, bug_filed_24_hours_per_job, bug_filed_24_hours_per_project))
+    for _ in range(99):
+      self.assertFalse(
+          triage._throttle_bug(testcase, bug_filed_24_hours_per_job,
+                               bug_filed_24_hours_per_project))
+    self.assertTrue(
+        triage._throttle_bug(testcase, bug_filed_24_hours_per_job,
+                             bug_filed_24_hours_per_project))
