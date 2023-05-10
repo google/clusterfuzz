@@ -169,20 +169,6 @@ def is_auto_generated_file(filepath):
               'grammars'))
 
 
-def seperate_python_tests(python_files):
-  """Returns a tuple containing a list of python tests and a list of python
-  non-tests in |python_files|."""
-  nontests = []
-  tests = []
-  for file_path in python_files:
-    if '_test.py' in file_path:
-      tests.append(file_path)
-    else:
-      nontests.append(file_path)
-
-  return tests, nontests
-
-
 def execute(_):
   """Lint changed code."""
   pythonpath = os.getenv('PYTHONPATH', '')
@@ -237,7 +223,6 @@ def execute(_):
   for file_path in py_changed_file_paths:
     py_test_init_check(file_path)
 
-  go_changed_file_paths = [f for f in file_paths if f.endswith('.go')]
   golint_path = os.path.join('local', 'bin', 'golint')
   for file_path in go_changed_file_paths:
     if not os.path.basename(file_path) in _GOLINT_EXCEPTIONS:
@@ -247,7 +232,6 @@ def execute(_):
     if output.strip():
       _error()
 
-  yaml_changed_file_paths = [f for f in file_paths if f.endswith('.yaml')]
   for file_path in yaml_changed_file_paths:
     yaml_validate(file_path)
 

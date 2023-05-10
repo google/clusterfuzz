@@ -193,7 +193,6 @@ if __name__ == '__main__':
       main()
     exit_code = 0
   except Exception:
-    print('yippie')
     traceback.print_exc()
     sys.stdout.flush()
     sys.stderr.flush()
