@@ -18,10 +18,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import utasks
-<<<<<<< HEAD
-=======
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
->>>>>>> origin/master
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
