@@ -808,27 +808,36 @@ def set_initial_testcase_metadata(testcase):
   testcase.platform_id = environment.get_platform_id()
 
 
-def update_testcase_comment(testcase,
-                            task_state,
-                            message=None,
-                            upload_url=None,
-                            download_url=None):
+def update_testcase_comment(testcase, task_state, message=None):
   """Add task status and message to the test case's comment field."""
-  if not testcase.comment_url:
-    _update_testcase_db_comment(testcase, task_state, message=message)
-  else:
+  bot_name = environment.get_value('BOT_NAME', 'Unknown')
+  task_name = environment.get_value('TASK_NAME', 'Unknown')
+  task_string = '%s task' % task_name.capitalize()
+  timestamp = utils.current_date_time()
 
-    if download_url:
-      comments = storage.download_signed_url(download_url)
-    else:
-      comments = storage.read_data(testcase.comment_url)
+  # For some tasks like blame, progression and impact, we need to delete lines
+  # from old task executions to avoid clutter.
+  if (task_name in ['blame', 'progression', 'impact'] and
+      task_state == data_types.TaskState.STARTED):
+    pattern = r'.*?: %s.*\n' % task_string
+    testcase.comments = re.sub(pattern, '', testcase.comments)
 
-    comments = _update_comments_str(comments, testcase, task_state, message)
+  testcase.comments += '[%s] %s: %s %s' % (timestamp, bot_name, task_string,
+                                           task_state)
+  if message:
+    testcase.comments += ': %s' % message.rstrip('.')
+  testcase.comments += '.\n'
 
-    if upload_url:
-      storage.upload_signed_url(comments, upload_url)
-    else:
-      storage.write_data(comments, testcase.comment_url)
+  # Truncate if too long.
+  if len(testcase.comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
+    logs.log_error(
+        'Testcase comments truncated (testcase {testcase_id}, job {job_type}).'.
+        format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
+    testcase.comments = testcase.comments[
+        -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
+
+  testcase.put()
+
   # Log the message in stackdriver after the testcase.put() call as otherwise
   # the testcase key might not available yet (i.e. for new testcase).
   if message:
@@ -839,38 +848,6 @@ def update_testcase_comment(testcase,
         message=message,
         testcase_id=testcase.key.id(),
         job_type=testcase.job_type))
-
-
-def _update_comments_str(comments, testcase, task_state, message):
-  bot_name = environment.get_value('BOT_NAME', 'Unknown')
-  task_name = environment.get_value('TASK_NAME', 'Unknown')
-  task_string = '%s task' % task_name.capitalize()
-  timestamp = utils.current_date_time()
-  # For some tasks like blame, progression and impact, we need to delete lines
-  # from old task executions to avoid clutter.
-  if (task_name in ['blame', 'progression', 'impact'] and
-      task_state == data_types.TaskState.STARTED):
-    pattern = r'.*?: %s.*\n' % task_string
-    comments = re.sub(pattern, '', comments)
-
-  comments += '[%s] %s: %s %s' % (timestamp, bot_name, task_string, task_state)
-  if message:
-    comments += ': %s' % message.rstrip('.')
-  comments += '.\n'
-  # Truncate if too long.
-  if len(comments) > data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:
-    logs.log_error(
-        'Testcase comments truncated (testcase {testcase_id}, job {job_type}).'.
-        format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
-    comments = comments[-data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
-
-  return comments
-
-
-def _update_testcase_db_comment(testcase, task_state):
-  """yoya"""
-  testcase.comments = _update_comments_str(testcase.comments)
-  testcase.put()
 
 
 def get_open_testcase_id_iterator():
