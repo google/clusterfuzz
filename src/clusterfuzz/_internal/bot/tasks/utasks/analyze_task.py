@@ -254,8 +254,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     return None
 
   # Store the bot name and timestamp in upload metadata.
-  bot_name = environment.get_value('BOT_NAME')
-  metadata.bot_name = bot_name
+  metadata.bot_name = environment.get_value('BOT_NAME')
   metadata.timestamp = datetime.datetime.utcnow()
   metadata.put()
 
