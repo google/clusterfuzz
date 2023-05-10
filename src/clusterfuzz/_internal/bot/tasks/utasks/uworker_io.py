@@ -138,7 +138,7 @@ def serialize_and_upload_uworker_input(uworker_input, job_type,
   return uworker_input_download_url
 
 
-def download_and_deserialize_uworker_input(uworker_input_download_url) -> str:
+def download_and_deserialize_uworker_input(uworker_input_download_url):
   """Downloads and deserializes the input to the uworker from the signed
   download URL."""
   data = storage.download_signed_url(uworker_input_download_url)
