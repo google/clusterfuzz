@@ -297,8 +297,9 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   crashed = result.is_crash()
   crash_time = result.get_crash_time()
   state = result.get_symbolized_data()
-  unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
+
   save_minidump(testcase, state, application_command_line)
+  unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
   crash_stacktrace_output = utils.get_crash_stacktrace_output(
       application_command_line, state.crash_stacktrace,
