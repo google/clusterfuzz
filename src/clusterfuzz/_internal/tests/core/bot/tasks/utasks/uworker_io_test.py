@@ -146,13 +146,11 @@ class RoundTripTest(unittest.TestCase):
     helpers.patch_environ(self)
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['TEST_UWORKER_IO_BUCKET'] = self.WORKER_IO_BUCKET
-    helpers.patch(
-        self,
-        [
-            'clusterfuzz._internal.google_cloud_utils.storage.get',
-            'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
-            'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_io_file_name',
-        ])
+    helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.get',
+        'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_io_file_name',
+    ])
     self.mock.get.return_value = False
     self.mock._sign_url.return_value = self.FAKE_URL
     self.mock.generate_new_io_file_name.return_value = self.NEW_IO_FILE_NAME
