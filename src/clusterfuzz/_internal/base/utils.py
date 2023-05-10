@@ -218,7 +218,6 @@ def get_application_id():
   """Return application id. Code simplified based off original implementation in
   AppEngine SDK get_identity.get_application_id."""
   app_id = environment.get_value('APPLICATION_ID')
-
   if app_id is None:
     return None
 

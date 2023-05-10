@@ -234,6 +234,49 @@ def update_testcase_after_crash(testcase, state, job_type):
         state.crash_type, state.crash_stacktrace, job_type,
         bool(testcase.gestures))
 
+def utask_preprocess(testcase_id, job_type, uworker_env):
+  """Run analyze task."""
+  # Reset redzones.
+  # Locate the testcase associated with the id.
+  del job_type
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase:
+    return None
+
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+
+  metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  if not metadata:
+    logs.log_error(
+        'Testcase %s has no associated upload metadata.' % testcase_id)
+    testcase.key.delete()
+    return None
+
+  # Store the bot name and timestamp in upload metadata.
+  bot_name = environment.get_value('BOT_NAME')
+  metadata.bot_name = bot_name
+  metadata.timestamp = datetime.datetime.utcnow()
+  metadata.put()
+
+  # Adjust the test timeout, if user has provided one.
+  if metadata.timeout:
+    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+    uworker_env['TEST_TIMEOUT'] = metadata.timeout
+
+  # Adjust the number of retries, if user has provided one.
+  if metadata.retries is not None:
+    environment.set_value('CRASH_RETRIES', metadata.retries)
+    uworker_env['CRASH_RETRIES'] = metadata.retries
+
+  testcase_download_url = setup.get_testcase_download_url(testcase)
+  return {
+      'metadata': metadata,
+      'testcase': testcase,
+      'uworker_env': uworker_env,
+      'testcase_download_url': testcase_download_url
+  }
+
 
 def utask_main(testcase, testcase_download_url, job_type, metadata):
   """Executes the untrusted part of analyze_task."""
@@ -291,60 +334,16 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
 
 
 def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
-  reproduces = testcase_manager.test_for_reproducibility(
+  one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
       testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
       state.crash_type, state.crash_state, testcase.security_flag, test_timeout,
       testcase.http_flag, testcase.gestures)
-  testcase.one_time_crasher_flag = reproduces
+  testcase.one_time_crasher_flag = one_time_crasher_flag
 
 
 class ErrorType(enum.Enum):
   BUILD_SETUP = 1
   NO_CRASH = 2
-
-
-def utask_preprocess(testcase_id, job_type, uworker_env):
-  """Run analyze task."""
-  # Reset redzones.
-  # Locate the testcase associated with the id.
-  del job_type
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return None
-
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
-
-  metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-  if not metadata:
-    logs.log_error(
-        'Testcase %s has no associated upload metadata.' % testcase_id)
-    testcase.key.delete()
-    return None
-
-  # Store the bot name and timestamp in upload metadata.
-  bot_name = environment.get_value('BOT_NAME')
-  metadata.bot_name = bot_name
-  metadata.timestamp = datetime.datetime.utcnow()
-  metadata.put()
-
-  # Adjust the test timeout, if user has provided one.
-  if metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
-    uworker_env['TEST_TIMEOUT'] = metadata.timeout
-
-  # Adjust the number of retries, if user has provided one.
-  if metadata.retries is not None:
-    environment.set_value('CRASH_RETRIES', metadata.retries)
-    uworker_env['CRASH_RETRIES'] = metadata.retries
-
-  testcase_download_url = setup.get_testcase_download_url(testcase)
-  return {
-      'metadata': metadata,
-      'testcase': testcase,
-      'uworker_env': uworker_env,
-      'testcase_download_url': testcase_download_url
-  }
 
 
 def utask_handle_errors(output):
