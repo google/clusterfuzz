@@ -270,7 +270,7 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
       crash_stacktrace_output)
 
   if not crashed:
-    return AnalyzeUworkerOutput(testcase, error=Error.NO_CRASH)
+    return AnalyzeUworkerOutput(testcase, metadata=metadata, testcase_id=testcase_id, crashed=False, error=Error.NO_CRASH, crash_time=test_timeout, job_type=job_type)
   # Update testcase crash parameters.
   update_testcase_after_crash(testcase, state, crash_stacktrace, job_type)
   test_for_reproducibility(testcase, test_timeout)
@@ -296,6 +296,7 @@ class AnalyzeUworkerOutput(uworker_io.UworkerOutput):
                error=None,
                crash_stacktrace=None,
                crashed=False,
+               job_type=None,
                crash_time=None):
     super().__init__(testcase, error)
     self.crash_stacktrace = crash_stacktrace
@@ -305,7 +306,7 @@ class AnalyzeUworkerOutput(uworker_io.UworkerOutput):
 
 class Error(enum.Enum):
   BUILD_SETUP = 1
-
+  NO_CRASH = 2
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run analyze task."""
@@ -369,8 +370,8 @@ def utask_handle_errors(testcase, metadata, error):
     pass
 
 
-def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase, error,
-                      metadata):
+def utask_postprocess(crash_stacktrace, crash_time, testcase_id, job_type, testcase, error, metadata):
+
   """Trusted: Clean up after a uworker execute_task, write anything needed to
   the db."""
   if error:
@@ -379,29 +380,9 @@ def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase, error,
   # # !!! Check for bad build.
   # data_handler.close_invalid_uploaded_testcase(testcase, metadata,
   #                                              'Build setup failed')
-  if not crashed:
-    # Could not reproduce the crash.
-    log_message = (
-        'Testcase didn\'t crash in %d seconds (with retries)' % test_timeout)
-    data_handler.update_testcase_comment(
-        testcase, data_types.TaskState.FINISHED, log_message)
-
-    # For an unreproducible testcase, retry once on another bot to confirm
-    # our results and in case this bot is in a bad state which we didn't catch
-    # through our usual means.
-    if data_handler.is_first_retry_for_task(testcase):
-      testcase.status = 'Unreproducible, retrying'
-      testcase.put()
-
-      tasks.add_task('analyze', testcase.id, job_type)
-      return
-      # data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-      #                                              'Unreproducible')
-
-      # A non-reproducing testcase might still impact production branches.
-      # Add the impact task to get that information.
-      task_creation.create_impact_task_if_needed(testcase)
-      return
+  if error == Error.NO_CRASH:
+    handle_noncrash(testcase, metadata, testcase_id, crash_time)
+    return
 
   log_message = ('Testcase crashed in %d seconds (r%d)' %
                  (crash_time, testcase.crash_revision))
@@ -410,25 +391,25 @@ def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase, error,
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(crash_stacktrace):
-    # data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-    #                                              'Irrelavant')
+    data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                 'Irrelavant')
     return
 
   # Check to see if this is a duplicate.
-  # data_handler.check_uploaded_testcase_duplicate(testcase, metadata)
+  data_handler.check_uploaded_testcase_duplicate(testcase, metadata)
 
   # Set testcase and metadata status if not set already.
   if testcase.status == 'Duplicate':
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
-    # if metadata.quiet_flag:
-    #   data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-    #                                                'Duplicate')
+    if metadata.quiet_flag:
+      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                   'Duplicate')
     return
   else:
     # New testcase.
     testcase.status = 'Processed'
-    # metadata.status = 'Confirmed'
+    metadata.status = 'Confirmed'
 
     # Reset the timestamp as well, to respect
     # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
@@ -445,11 +426,10 @@ def utask_postprocess(crashed, crash_stacktrace, crash_time, testcase, error,
   # Update the testcase values.
   testcase.put()
 
-  # !!! Ignore metadata for now.
-  # # Update the upload metadata.
-  # metadata.security_flag = security_flag
-  # metadata.put()
-  # _add_default_issue_metadata(testcase)
+  # Update the upload metadata.
+  metadata.security_flag = security_flag
+  metadata.put()
+  _add_default_issue_metadata(testcase)
 
   # Create tasks to
   # 1. Minimize testcase (minimize).
