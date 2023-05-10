@@ -84,7 +84,7 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
-    commands.run_command('fuzz', 'fuzzer', 'job')
+    commands.run_command('fuzz', 'fuzzer', 'job', {})
 
     self.assertEqual(1, self.mock.fuzz_execute_task.call_count)
     self.mock.fuzz_execute_task.assert_called_with('fuzzer', 'job')
@@ -95,7 +95,7 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_progression(self):
     """Test run_command with a progression task."""
-    commands.run_command('progression', '123', 'job')
+    commands.run_command('progression', '123', 'job', {})
 
     self.assertEqual(1, self.mock.progression_execute_task.call_count)
     self.mock.progression_execute_task.assert_called_with('123', 'job')
@@ -119,7 +119,7 @@ class RunCommandTest(unittest.TestCase):
     self.mock.progression_execute_task.side_effect = Exception
 
     with self.assertRaises(Exception):
-      commands.run_command('progression', '123', 'job')
+      commands.run_command('progression', '123', 'job', {})
 
     # TaskStatus should indicate failure.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -135,7 +135,7 @@ class RunCommandTest(unittest.TestCase):
   def test_run_command_invalid_testcase(self):
     """Test run_command with an invalid testcase exception."""
     self.mock.progression_execute_task.side_effect = errors.InvalidTestcaseError
-    commands.run_command('progression', '123', 'job')
+    commands.run_command('progression', '123', 'job', {})
 
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))
@@ -157,7 +157,7 @@ class RunCommandTest(unittest.TestCase):
         status='started').put()
 
     with self.assertRaises(commands.AlreadyRunningError):
-      commands.run_command('progression', '123', 'job')
+      commands.run_command('progression', '123', 'job', {})
 
     self.assertEqual(0, self.mock.progression_execute_task.call_count)
 
@@ -180,7 +180,7 @@ class RunCommandTest(unittest.TestCase):
         time=datetime.datetime(1970, 1, 1),
         status='started').put()
 
-    commands.run_command('progression', '123', 'job')
+    commands.run_command('progression', '123', 'job', {})
     self.assertEqual(1, self.mock.progression_execute_task.call_count)
 
     task_status_entities = list(data_types.TaskStatus.query())
