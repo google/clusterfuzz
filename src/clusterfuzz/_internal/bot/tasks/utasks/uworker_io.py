@@ -17,6 +17,7 @@ import base64
 import datetime
 import json
 import tempfile
+from typing import Optional
 import uuid
 
 from google.cloud import ndb
@@ -168,7 +169,7 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
-def download_and_deserialize_uworker_output(output_url) -> str:
+def download_and_deserialize_uworker_output(output_url) -> Optional[str]:
   """Downloads and deserializes uworker output."""
   with tempfile.NamedTemporaryFile() as uworker_output_local_path:
     if not storage.copy_file_from(output_url, uworker_output_local_path.name):
@@ -181,7 +182,7 @@ def download_and_deserialize_uworker_output(output_url) -> str:
 
 def deserialize_uworker_output(uworker_output):
   """Deserializes uworker's execute output for postprocessing. Returns a dict
-  that can be passed as kwargs to postprocess. changes made db entities that
+  that can be passed as kwargs to postprocess. Changes made db entities that
   were modified during the untrusted portion of the task will be done to those
   entities here."""
   uworker_output = json.loads(uworker_output)

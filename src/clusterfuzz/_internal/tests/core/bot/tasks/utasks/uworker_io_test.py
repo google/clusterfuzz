@@ -26,7 +26,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-DEFAULT_SIGNED_URL_MINUTES = 1440
+DEFAULT_SIGNED_URL_MINUTES = 24 * 60
 
 # pylint: disable=protected-access
 
@@ -150,7 +150,6 @@ class RoundTripTest(unittest.TestCase):
         self,
         [
             'clusterfuzz._internal.google_cloud_utils.storage.get',
-            # 'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
             'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
             'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_io_file_name',
         ])
