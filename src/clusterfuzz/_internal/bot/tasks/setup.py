@@ -313,18 +313,17 @@ def download_testcase(key, testcase_download_url, dst):
 
 
 def unpack_testcase(testcase, testcase_download_url=None):
-  """Unpack a testcase and return all files it is composed of."""
+  """Unpacks a testcase and returns all files it is composed of."""
   # Figure out where the testcase file should be stored.
   input_directory, testcase_file_path = _get_testcase_file_and_path(testcase)
 
   key, archived = _get_testcase_key_and_archive_status(testcase)
-  if archived:
-    if _is_testcase_minimized(testcase):
-      temp_filename = (
-          os.path.join(input_directory,
-                       str(testcase.key.id()) + _TESTCASE_ARCHIVE_EXTENSION))
-    else:
-      temp_filename = os.path.join(input_directory, testcase.archive_filename)
+  if _is_testcase_minimized(testcase) and archived:
+    temp_filename = (
+        os.path.join(input_directory,
+                     str(testcase.key.id()) + _TESTCASE_ARCHIVE_EXTENSION))
+  elif archived:
+    temp_filename = os.path.join(input_directory, testcase.archive_filename)
   else:
     temp_filename = testcase_file_path
 
