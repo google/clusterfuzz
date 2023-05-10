@@ -26,7 +26,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
-DEFAULT_SIGNED_URL_MINUTES = 1440
+DEFAULT_SIGNED_URL_MINUTES = 24 * 60
 
 # pylint: disable=protected-access
 
