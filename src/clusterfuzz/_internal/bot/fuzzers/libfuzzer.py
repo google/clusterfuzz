@@ -1487,20 +1487,20 @@ def pick_strategies(strategy_pool,
         '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
   extra_env = {}
-  # if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
-  #     use_mutator_plugin(target_name, extra_env)):
-  #   fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
+  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
+      use_mutator_plugin(target_name, extra_env)):
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
 
-  # if (not has_existing_mutator_strategy(fuzzing_strategies) and
-  #     strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
-  #     use_peach_mutator(extra_env, grammar)):
-  #   fuzzing_strategies.append(
-  #       '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
+  if (not has_existing_mutator_strategy(fuzzing_strategies) and
+      strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
+      use_peach_mutator(extra_env, grammar)):
+    fuzzing_strategies.append(
+        '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 
-  # if (not has_existing_mutator_strategy(fuzzing_strategies) and
-  #     strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
-  #     use_radamsa_mutator_plugin(extra_env)):
-  #   fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
+  if (not has_existing_mutator_strategy(fuzzing_strategies) and
+      strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
+      use_radamsa_mutator_plugin(extra_env)):
+    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
 
   if (environment.platform() == 'LINUX' and utils.is_oss_fuzz() and
       strategy_pool.do_strategy(strategy.USE_EXTRA_SANITIZERS_STRATEGY)):

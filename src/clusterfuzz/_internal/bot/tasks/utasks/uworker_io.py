@@ -174,7 +174,7 @@ def serialize_uworker_output(uworker_output_obj):
 
 def serialize_and_upload_uworker_output(uworker_output, upload_url):
   """Serializes |uworker_output| and uploads it to |upload_url."""
-  uworker_output = serialize_uworker_output(uworker_output.to_dict())
+  uworker_output = serialize_uworker_output(uworker_output)
   storage.upload_signed_url(uworker_output, upload_url)
 
 
