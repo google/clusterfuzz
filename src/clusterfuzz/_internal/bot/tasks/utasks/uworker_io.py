@@ -145,10 +145,18 @@ def download_and_deserialize_uworker_input(uworker_input_download_url):
   return deserialize_uworker_input(data)
 
 
-def serialize_uworker_output(uworker_output):
+def serialize_uworker_output(uworker_output_obj):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
-  uworker_output = uworker_output.to_dict()
+  uworker_output = uworker_output_obj.to_dict()
+  # Delete entities from uworker_input, they are annoying to serialize and
+  # unnecessary since the only reason they would be passed as input is if they
+  # are modified and will be output.
+  uworker_input = uworker_output['uworker_input']
+  for key in list(uworker_input.keys()):
+    if isinstance(uworker_input[key], UworkerEntityWrapper):
+      del uworker_input[key]
+      continue
   entities = {}
   serializable = {}
 
@@ -238,9 +246,15 @@ class UworkerOutput:
   """Convenience class for results from uworker_main. This is useful for
   ensuring we are returning values for fields expected by utask_postprocess."""
 
-  def __init__(self, testcase=None, error=None):
+  def __init__(self, testcase=None, error=None, **kwargs):
     self.testcase = testcase
     self.error = error
+    for key, value in kwargs.items():
+      setattr(self, key, value)
 
   def to_dict(self):
     return self.__dict__
+
+
+def uworker_output_from_dict(output_dict):
+  return UworkerOutput(**output_dict)
