@@ -325,6 +325,7 @@ class GcsProvider(StorageProvider):
     """Get information about a remote file."""
     client = create_discovery_storage_client()
     bucket, path = get_bucket_name_and_path(remote_path)
+
     try:
       return client.objects().get(bucket=bucket, object=path).execute()
     except HttpError as e:

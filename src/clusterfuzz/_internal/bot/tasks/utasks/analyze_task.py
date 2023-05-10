@@ -164,9 +164,9 @@ def save_minidump(testcase, state, application_command_line):
 
 
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
-  """Tests for crash multiple times. May also try to reproduce with HTTP. If can
-  only successfully reproduce with HTTP, then HTTP property is set it to
-  True."""
+  """Tests for a crash with retries. Tries with HTTP (with retries) if initial
+  attempts fail. Returns the most recent crash result updates the HTTP flag if
+  needed."""
   # Get the crash output.
   result = testcase_manager.test_for_crash_with_retries(
       testcase,
@@ -221,7 +221,7 @@ def handle_noncrash(output):
 
 
 def update_testcase_after_crash(testcase, state, job_type):
-  """Updates |testcase| based on |state| ."""
+  """Updates |testcase| based on |state|."""
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
   testcase.crash_state = state.crash_state
@@ -249,7 +249,6 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
 
   if not testcase_file_path:
     return output
-  # output is None on success.
 
   initialize_testcase_for_main(testcase, job_type)
 
