@@ -1,4 +1,4 @@
-# copyright 2023 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -147,7 +147,15 @@ def download_and_deserialize_uworker_input(uworker_input_download_url) -> str:
 def serialize_uworker_output(uworker_output):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
-  uworker_output = uworker_output.to_dict()
+  # Delete entities from uworker_input, they are annoying to serialize and
+  # unnecessary since the only reason they would be passed as input is if they
+  # are modified and will be output.
+  uworker_input = uworker_output['uworker_input']
+  for key in list(uworker_input.keys()):
+    if isinstance(uworker_input[key], UworkerEntityWrapper):
+      del uworker_input[key]
+      continue
+
   entities = {}
   serializable = {}
 
@@ -164,7 +172,7 @@ def serialize_uworker_output(uworker_output):
 
 def serialize_and_upload_uworker_output(uworker_output, upload_url):
   """Serializes |uworker_output| and uploads it to |upload_url."""
-  uworker_output = serialize_uworker_output(uworker_output)
+  uworker_output = serialize_uworker_output(uworker_output.to_dict())
   storage.upload_signed_url(uworker_output, upload_url)
 
 
@@ -250,8 +258,6 @@ class UworkerOutput:
 def uworker_output_from_dict(task_module, output_dict):
   return UworkerOutput(**output_dict)
 
-class UworkerInput:
-  def __init__(self, task_arg, job_type, uworker_env):
-    self.task_arg = task_arg
-    self.job_type = job_type
-    self.uworker_env = uworker_env
+
+
+# !!! ITS NOT WORKING TO PASS THE INPUT BACK

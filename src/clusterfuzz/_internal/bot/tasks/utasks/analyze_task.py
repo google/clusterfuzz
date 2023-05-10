@@ -113,7 +113,7 @@ def setup_testcase_and_build(testcase, metadata, job_type,
   file_list, _, testcase_file_path = setup.setup_testcase(
       testcase, job_type, testcase_download_url=testcase_download_url)
   if not file_list:
-    return None, UworkerOutput(
+    return None, uworker_io.UworkerOutput(
         testcase=testcase, metadata=metadata, error=ErrorType.BUILD_SETUP)
 
   # Set up build.
@@ -123,7 +123,7 @@ def setup_testcase_and_build(testcase, metadata, job_type,
   # to setup correctly.
   if not build_manager.check_app_path():
     # Let postprocess handle BUILD_SETUP and restart tasks if needed.
-    return None, UworkerOutput(
+    return None, uworker_io.UworkerOutput(
         testcase=testcase, metadata=metadata, error=ErrorType.BUILD_SETUP)
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
@@ -275,7 +275,7 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
       crash_stacktrace_output)
 
   if not crashed:
-    return UworkerOutput(
+    return uworker_io.UworkerOutput(
         testcase,
         metadata=metadata,
         error=ErrorType.NO_CRASH,
@@ -284,7 +284,8 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   # Update testcase crash parameters.
   update_testcase_after_crash(testcase, state, job_type)
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
-  return UworkerOutput(
+  return uworker_io.UworkerOutput(
+      metadata=metadata,
       testcase=testcase,
       crash_stacktrace=testcase.crash_stacktrace,
       crash_time=crash_time)
@@ -354,10 +355,10 @@ def utask_handle_errors(output):
         output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
     if data_handler.is_first_retry_for_task(output.testcase):
-      build_fail_wait = output.uworker_input.['uworker_env'].get('FAIL_WAIT')
+      build_fail_wait = output.uworker_env.get('FAIL_WAIT')
       tasks.add_task(
           'analyze',
-          output.uworker_input['testcase_id']
+          output.uworker_input['testcase_id'],
           output.job_type,
           wait_time=build_fail_wait)
     else:
@@ -411,7 +412,7 @@ def utask_postprocess(output):
 
   # Add new leaks to global blacklist to avoid detecting duplicates.
   # Only add if testcase has a direct leak crash and if it's reproducible.
-  is_lsan_enabled = environment.get_value('LSAN')
+  is_lsan_enabled = output.uworker_env.get('LSAN')
   if is_lsan_enabled:
     leak_blacklist.add_crash_to_global_blacklist_if_needed(output.testcase)
 

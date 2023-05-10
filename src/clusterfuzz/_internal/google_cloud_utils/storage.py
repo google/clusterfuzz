@@ -647,9 +647,9 @@ class GcsBlobInfo(object):
 
 def _provider():
   """Get the current storage provider."""
-  local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
-  if local_buckets_path:
-    return FileSystemProvider(local_buckets_path)
+  # local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
+  # if local_buckets_path:
+  #   return FileSystemProvider(local_buckets_path)
   return GcsProvider()
 
 
