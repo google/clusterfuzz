@@ -25,7 +25,7 @@ from clusterfuzz._internal.metrics import logs
 
 def sleep(seconds):
   """Invoke time.sleep. This is to avoid the flakiness of time.sleep. See:
-    crbug.com/770375"""
+  crbug.com/770375"""
   time.sleep(seconds)
 
 
@@ -67,7 +67,7 @@ def wrap(retries,
       from clusterfuzz._internal.metrics import monitoring_metrics
 
       if (exception is None or
-          is_exception_type(exception) and num_try < tries):
+          is_exception_type(exception)) and num_try < tries:
         logs.log(
             'Retrying on %s failed with %s. Retrying again.' %
             (function_with_type, sys.exc_info()[1]),
