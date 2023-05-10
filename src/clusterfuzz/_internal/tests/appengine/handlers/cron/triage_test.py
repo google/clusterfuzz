@@ -406,7 +406,7 @@ class FileIssueTest(unittest.TestCase):
                        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_throttle_bug(self):
-    """Test not filing issue due to throttle"""
+    """Test not filing issue due to throttle."""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
 
@@ -451,13 +451,13 @@ class ThrottleBugTest(unittest.TestCase):
 
   def test_throttle_bug_with_project_limit(self):
     """Test the throttling bug with a project limit."""
-    testcase = data_types.Testcase()
-    testcase.job_type = 'test_job_without_limit'
-    testcase.project_name = 'project'
+    testcase = test_utils.create_generic_testcase_variant()
+    testcase.project_name = 'test_project'
+
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
     data_types.FiledBug(
-        project_name='project',
+        project_name='test_project',
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
     for _ in range(99):

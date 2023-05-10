@@ -254,14 +254,19 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
 
 def _get_job_bugs_filing_max(job_type):
-  """Get bugs filing max for given job.."""
+  """"Gets the maximum number of bugs that can be filed for a given job."""
   if job_type in bug_filing_max_24_hours_per_job:
-    return bug_filing_max_24_hours_per_job.get(job_type)
+    return bug_filing_max_24_hours_per_job[job_type]
 
   max_bugs = None
   job = data_types.Job.query(data_types.Job.name == job_type).get()
   if job and 'BUG_FILING_MAX_24_HOURS_PER_JOB' in job.get_environment():
-    max_bugs = int(job.get_environment().get('BUG_FILING_MAX_24_HOURS_PER_JOB'))
+    try:
+      max_bugs = int(job.get_environment()['BUG_FILING_MAX_24_HOURS_PER_JOB'])
+    except Exception:
+      logs.log_error(
+          'Invalid environment value of \'BUG_FILING_MAX_24_HOURS_PER_JOB\' '
+          f'for job type {job_type}.')
 
   bug_filing_max_24_hours_per_job[job_type] = max_bugs
 
@@ -270,30 +275,43 @@ def _get_job_bugs_filing_max(job_type):
 
 def _throttle_bug(testcase, bug_filed_24_hours_per_job,
                   bug_filed_24_hours_per_project):
-  """Return whether current bug needs to be throttled."""
-  bug_filing_job_max = _get_job_bugs_filing_max(testcase.job_type)
+  """Returns whether the current bug needs to be throttled."""
+  job_bugs_filing_max = _get_job_bugs_filing_max(testcase.job_type)
   valid_timestamp = datetime.datetime.now() - datetime.timedelta(hours=24)
-  count = 0
-  if bug_filing_job_max:
-    if testcase.job_type in bug_filed_24_hours_per_job:
-      count = bug_filed_24_hours_per_job.get(testcase.job_type)
-    else:
-      count = data_types.FiledBug.query(
-          data_types.FiledBug.job_type == testcase.job_type and
-          data_types.FiledBug.timestamp >= valid_timestamp).count()
-    if count < bug_filing_job_max:
-      bug_filed_24_hours_per_job[testcase.job_type] = count + 1
+
+  # Check if the job type has a bug filing limit.
+  if job_bugs_filing_max:
+    # Get the number of bugs filed for the current job in the past 24 hours.
+    # First check the cache, then query the datastore if the value is not found.
+    count_per_job = bug_filed_24_hours_per_job.get(
+        testcase.job_type,
+        data_types.FiledBug.query(
+            data_types.FiledBug.job_type == testcase.job_type and
+            data_types.FiledBug.timestamp >= valid_timestamp).count())
+    if count_per_job < job_bugs_filing_max:
+      bug_filed_24_hours_per_job[testcase.job_type] = count_per_job + 1
       return False
-  else:
-    if testcase.project_name in bug_filed_24_hours_per_project:
-      count = bug_filed_24_hours_per_project.get(testcase.project_name)
-    else:
-      count = data_types.FiledBug.query(
+    logs.log(
+        f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
+        f'{count_per_job} bugs have been filed fom {valid_timestamp} '
+        f'to {datetime.datetime.now()} for job {testcase.job_type}')
+    return True
+
+  # Check if the current bug has exceeded the maximum number of bugs
+  # that can be filed per project.
+  count_per_project = bug_filed_24_hours_per_project.get(
+      testcase.project_name,
+      data_types.FiledBug.query(
           data_types.FiledBug.project_name == testcase.project_name and
-          data_types.FiledBug.timestamp >= valid_timestamp).count()
-    if count < issue_tracker_utils.get_issue_tracker_project_bug_filing_max():
-      bug_filed_24_hours_per_project[testcase.project_name] = count + 1
-      return False
+          data_types.FiledBug.timestamp >= valid_timestamp).count())
+
+  if count_per_project < issue_tracker_utils.get_issue_tracker_project_bug_filing_max():
+    bug_filed_24_hours_per_project[
+        testcase.project_name] = count_per_project + 1
+    return False
+  logs.log(f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
+           f'{count_per_project} bugs have been filed from {valid_timestamp} '
+           f'to {datetime.datetime.now()} for project {testcase.project_name}')
   return True
 
 
@@ -305,7 +323,6 @@ def _file_issue(testcase, issue_tracker, bug_filed_24_hours_per_job,
 
   if _throttle_bug(testcase, bug_filed_24_hours_per_job,
                    bug_filed_24_hours_per_project):
-    logs.log(f'Skipping bug filing for {testcase.key.id()} as it is throttled')
     _add_triage_message(testcase, 'Skipping filing as it is throttled.')
     return False
 

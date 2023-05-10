@@ -44,7 +44,7 @@ def _get_issue_tracker_project_name(testcase=None):
   return data_handler.get_issue_tracker_name(job_type)
 
 
-def get_issue_tracker_project_bug_filing_max():
+def get_issue_tracker_project_bugs_filing_max():
   """Return issue tracker project bug filing max."""
   issue_tracker_config = local_config.IssueTrackerConfig()
   bug_limit = issue_tracker_config.get('BUG_FILING_MAX_24_HOURS_PER_PROJECT')
