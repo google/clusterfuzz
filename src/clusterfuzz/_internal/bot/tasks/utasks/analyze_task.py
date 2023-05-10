@@ -259,16 +259,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   metadata.timestamp = datetime.datetime.utcnow()
   metadata.put()
 
-  # Adjust the test timeout, if user has provided one.
-  if metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
-    uworker_env['TEST_TIMEOUT'] = metadata.timeout
-
-  # Adjust the number of retries, if user has provided one.
-  if metadata.retries is not None:
-    environment.set_value('CRASH_RETRIES', metadata.retries)
-    uworker_env['CRASH_RETRIES'] = metadata.retries
-
   testcase_download_url = setup.get_testcase_download_url(testcase)
   return {
       'metadata': metadata,
