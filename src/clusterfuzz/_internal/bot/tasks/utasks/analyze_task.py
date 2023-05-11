@@ -192,7 +192,8 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
       logs.log('Testcase needs http flag for crash.')
       http_flag = True
       result = result_with_http
-  # TODO(metzman): Just change http_flag here.
+      return result, http_flag
+
   return result, http_flag
 
 
@@ -239,11 +240,10 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
         bool(testcase.gestures))
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(testcase_id, _, uworker_env):
   """Runs preprocessing for analyze task."""
 
   # Locate the testcase associated with the id.
-  del job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
     return None
@@ -286,13 +286,11 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
 
   if not testcase_file_path:
     return output
-
   initialize_testcase_for_main(testcase, testcase_file_path, job_type)
 
   # Initialize some variables.
   gestures = testcase.gestures
   test_timeout = environment.get_value('TEST_TIMEOUT')
-
   result, http_flag = test_for_crash_with_retries(testcase, testcase_file_path,
                                                   test_timeout)
 
@@ -365,7 +363,7 @@ def utask_handle_errors(output):
 
 
 def utask_postprocess(output):
-  """Trusted: Clean up after a uworker execute_task, write anything needed to
+  """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   # TODO(metzman): Get rid of this after main migration PR.
   testcase = output.testcase
