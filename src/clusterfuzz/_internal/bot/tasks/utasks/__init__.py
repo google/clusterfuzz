@@ -20,7 +20,7 @@ from clusterfuzz._internal.system import environment
 
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
-  logs.info('Starting utask_preprocess: %s.' % utask_module)
+  logs.log_info('Starting utask_preprocess: %s.' % utask_module)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
@@ -33,7 +33,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
 def uworker_main_no_io(utask_module, uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  logs.info('Starting utask_main: %s.' % utask_module)
+  logs.log_info('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
   # Deal with the environment.
   uworker_env = uworker_input.pop('uworker_env')
@@ -55,7 +55,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
-  logs.info('Starting utask_preprocess: %s.' % utask_module)
+  logs.log_info('Starting utask_preprocess: %s.' % utask_module)
   # Do preprocessing.
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
@@ -90,7 +90,7 @@ def set_uworker_env(uworker_env: dict) -> None:
 def uworker_main(utask_module, input_download_url) -> None:
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  logs.info('Starting utask_main: %s.' % utask_module)
+  logs.log_info('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
   uworker_output_upload_url = uworker_input.pop('uworker_output_upload_url')
@@ -108,7 +108,7 @@ def uworker_main(utask_module, input_download_url) -> None:
 
 def tworker_postprocess(utask_module, output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
-  logs.info('Starting utask_postprocess: %s.' % utask_module)
+  logs.log_info('Starting utask_postprocess: %s.' % utask_module)
   uworker_output_dict = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
   uworker_output = uworker_io.uworker_output_from_dict(uworker_output_dict)
