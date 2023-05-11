@@ -31,6 +31,7 @@ from clusterfuzz._internal.bot.tasks import regression_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
+from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks import variant_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
@@ -81,7 +82,16 @@ class UTaskLocalExecutor(BaseTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    raise NotImplementedError('UTask local executor not implemented yet.')
+    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
+                                                  job_type, uworker_env)
+
+    if preprocess_result is None:
+      return
+
+    input_download_url, output_download_url = preprocess_result
+    utasks.uworker_main(self.module, input_download_url)
+    utasks.tworker_postprocess(self.module, output_download_url)
+    logs.log('utask local: done')
 
 
 class UTask(BaseTask):
