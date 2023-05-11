@@ -15,6 +15,7 @@
 
 import datetime
 import enum
+from typing import Optional
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -105,8 +106,8 @@ def prepare_env_for_main(metadata):
     environment.set_value('CRASH_RETRIES', metadata.retries)
 
 
-def setup_testcase_and_build(testcase, metadata, job_type,
-                             testcase_download_url):
+def setup_testcase_and_build(testcase, metadata, job_type, testcase_download_url
+                            ) -> (Optional[str], Optional[uworker_io.Output]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
@@ -114,7 +115,7 @@ def setup_testcase_and_build(testcase, metadata, job_type,
       testcase, job_type, testcase_download_url=testcase_download_url)
   if not file_list:
     return None, uworker_io.UworkerOutput(
-        testcase=testcase, metadata=metadata, error=ErrorType.BUILD_SETUP)
+        testcase=testcase, metadata=metadata, error=ErrorType.TESTCASE_SETUP)
 
   # Set up build.
   setup_build(testcase)
@@ -263,6 +264,8 @@ def utask_preprocess(testcase_id, _, uworker_env):
   metadata.timestamp = datetime.datetime.utcnow()
   metadata.put()
 
+  initialize_testcase_for_main(testcase, job_type)
+
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
   return {
       'metadata': metadata,
@@ -286,7 +289,6 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
 
   if not testcase_file_path:
     return output
-  initialize_testcase_for_main(testcase, testcase_file_path, job_type)
 
   # Initialize some variables.
   gestures = testcase.gestures
@@ -295,7 +297,9 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
                                                   test_timeout)
 
   # Set application command line with the correct http flag.
-  application_command_line = get_application_command_line(testcase)
+  application_command_line = (
+      testcase_manager.get_command_line_for_application(
+          testcase_file_path, needs_http=http_flag))
 
   # Get the crash data.
   crashed = result.is_crash()
@@ -356,10 +360,14 @@ def utask_handle_errors(output):
     else:
       data_handler.close_invalid_uploaded_testcase(
           output.testcase, output.metadata, 'Build setup failed')
-
-  if output.error == ErrorType.NO_CRASH:
+  elif output.error == ErrorType.NO_CRASH:
     handle_noncrash(output.testcase, output.metadata, output.testcase_id,
                     output.job_type, output.test_timeout)
+  elif output.error == ErrorType.TESTCASE_SETUP:
+    # Unclear if this state is ever actually reached.
+    data_handler.update_testcase_comment(
+        output.testcase, data_types.TaskState.ERROR, 'Testcase setup failed')
+    pass
 
 
 def utask_postprocess(output):
@@ -372,8 +380,8 @@ def utask_postprocess(output):
     utask_handle_errors(output)
     return
 
-  log_message = ('Testcase crashed in %d seconds (r%d)' %
-                 (output.crash_time, testcase.crash_revision))
+    log_message = (f'Testcase crashed in {output.crash_time} seconds '
+                   f'(r{testcase.crash_revision})')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
                                        log_message)
 
@@ -430,12 +438,8 @@ def utask_postprocess(output):
   task_creation.create_tasks(testcase)
 
 
-def get_application_command_line(testcase):
-  return testcase_manager.get_command_line_for_application(
-      testcase.absolute_path, needs_http=testcase.http_flag)
-
-
 class ErrorType(enum.Enum):
   """Errors during utask_main."""
   BUILD_SETUP = 1
   NO_CRASH = 2
+  TESTCASE_SETUP = 3
