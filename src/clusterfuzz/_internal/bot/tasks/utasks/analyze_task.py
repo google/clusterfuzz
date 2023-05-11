@@ -259,7 +259,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   metadata.timestamp = datetime.datetime.utcnow()
   metadata.put()
 
-  testcase_download_url = setup.get_testcase_download_url(testcase)
+  testcase_download_url = setup.get_signed_testcase_download_url(testcase)
   return {
       'metadata': metadata,
       'testcase': testcase,

@@ -57,7 +57,7 @@ else:
 TEST_CONFIG_DIR = os.path.join('configs', 'test')
 
 # Application id for local testing.
-TEST_APP_ID = 'metzman'
+TEST_APP_ID = 'test-clusterfuzz'
 TEST_APP_ID_WITH_DEV_PREFIX = 'dev~' + TEST_APP_ID
 
 DEV_APPSERVER_PORT = 9000
