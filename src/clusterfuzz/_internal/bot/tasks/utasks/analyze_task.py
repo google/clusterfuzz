@@ -126,13 +126,14 @@ def setup_testcase_and_build(testcase, metadata, job_type, testcase_download_url
     # Let postprocess handle BUILD_SETUP and restart tasks if needed.
     return None, uworker_io.UworkerOutput(
         testcase=testcase, metadata=metadata, error=ErrorType.BUILD_SETUP)
+
+  testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
 
 
-def initialize_testcase_for_main(testcase, testcase_file_path, job_type):
+def initialize_testcase_for_main(testcase, job_type):
   """Initializes a testcase for the crash testing phase."""
   # Update initial testcase information.
-  testcase.absolute_path = testcase_file_path
   testcase.job_type = job_type
   testcase.queue = tasks.default_queue()
   testcase.crash_state = ''
@@ -241,7 +242,7 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
         bool(testcase.gestures))
 
 
-def utask_preprocess(testcase_id, _, uworker_env):
+def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
 
   # Locate the testcase associated with the id.
@@ -379,8 +380,8 @@ def utask_postprocess(output):
     utask_handle_errors(output)
     return
 
-    log_message = (f'Testcase crashed in {output.crash_time} seconds '
-                   f'(r{testcase.crash_revision})')
+  log_message = (f'Testcase crashed in {output.crash_time} seconds '
+                 f'(r{testcase.crash_revision})')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
                                        log_message)
 
