@@ -237,6 +237,7 @@ def update_testcase_after_crash(testcase, state, job_type):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
+
   # Locate the testcase associated with the id.
   del job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
