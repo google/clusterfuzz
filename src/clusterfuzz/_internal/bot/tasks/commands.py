@@ -74,7 +74,7 @@ def utask_factory(task_module):
     # execution opt-out.
     return UTask(task_module)
 
-  return UTaskLocalExecutor(task_module)
+  return UTaskLocalInMemoryExecutor(task_module)
 
 
 class UTaskLocalExecutor(BaseTask):
