@@ -91,7 +91,22 @@ class UTaskLocalExecutor(BaseTask):
     input_download_url, output_download_url = preprocess_result
     utasks.uworker_main(self.module, input_download_url)
     utasks.tworker_postprocess(self.module, output_download_url)
-    logs.log('utask local: done')
+    logs.log('Utask local: done.')
+
+
+class UTaskLocalInmemoryExecutor(BaseTask):
+  """Represents an untrusted task. Executes it entirely locally and in
+  memory."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally in-memory."""
+    uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
+                                                    job_type, uworker_env)
+    if uworker_input is None:
+      return
+    uworker_output = utasks.uworker_main_no_io(self.module, uworker_input)
+    utasks.uworker_postprocess_no_io(self.module, uworker_output)
+    logs.log('Utask local: done.')
 
 
 class UTask(BaseTask):
