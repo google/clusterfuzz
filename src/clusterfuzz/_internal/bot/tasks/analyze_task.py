@@ -14,6 +14,7 @@
 """Analyze task for handling user uploads."""
 
 import datetime
+import enum
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -86,7 +87,7 @@ def setup_build(testcase):
   build_manager.setup_build(revision)
 
 
-def prepare_environment(metadata):
+def prepare_env_for_main(metadata):
   """Prepares the environment for execute_task."""
   # Reset redzones.
   environment.reset_current_memory_tool_options(redzone_size=128)
@@ -132,7 +133,7 @@ def setup_testcase_and_build(testcase, metadata, job_type, testcase_id):
   return testcase_file_path
 
 
-def initialize_testcase(testcase, testcase_file_path, job_type):
+def initialize_testcase_for_main(testcase, testcase_file_path, job_type):
   """Initializes a testcase for the crash testing phase."""
   # Update initial testcase information.
   testcase.absolute_path = testcase_file_path
@@ -251,7 +252,7 @@ def execute_task(testcase_id, job_type):
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
-    return
+    return None
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
@@ -261,24 +262,25 @@ def execute_task(testcase_id, job_type):
     logs.log_error(
         'Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
-    return
+    return None
 
-  prepare_environment(metadata)
+  # Store the bot name and timestamp in upload metadata.
+  metadata.bot_name = environment.get_value('BOT_NAME')
+  metadata.timestamp = datetime.datetime.utcnow()
+  metadata.put()
+
+  prepare_env_for_main(metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
   if is_lsan_enabled:
     # Creates empty local blacklist so all leaks will be visible to uploader.
     leak_blacklist.create_empty_local_blacklist()
 
-  metadata.bot_name = environment.get_value('BOT_NAME')
-  metadata.timestamp = datetime.datetime.utcnow()
-  metadata.put()
-
   testcase_file_path = setup_testcase_and_build(testcase, metadata, job_type,
                                                 testcase_id)
   if not testcase_file_path:
-    return
-  initialize_testcase(testcase, testcase_file_path, job_type)
+    return None
+  initialize_testcase_for_main(testcase, testcase_file_path, job_type)
 
   # Initialize some variables.
   gestures = testcase.gestures
@@ -288,7 +290,7 @@ def execute_task(testcase_id, job_type):
   # Refresh our object.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
-    return
+    return None
 
   # Set application command line with the correct http flag.
   application_command_line = (
@@ -314,7 +316,7 @@ def execute_task(testcase_id, job_type):
 
   if not crashed:
     handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout)
-    return
+    return None
 
   # Update testcase crash parameters.
   update_testcase_after_crash(testcase, state, job_type, http_flag)
@@ -328,7 +330,7 @@ def execute_task(testcase_id, job_type):
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     data_handler.close_invalid_uploaded_testcase(testcase, metadata,
                                                  'Irrelavant')
-    return
+    return None
 
   # Test for reproducibility.
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
@@ -347,7 +349,7 @@ def execute_task(testcase_id, job_type):
     if metadata.quiet_flag:
       data_handler.close_invalid_uploaded_testcase(testcase, metadata,
                                                    'Duplicate')
-      return
+      return None
   else:
     # New testcase.
     testcase.status = 'Processed'
@@ -381,3 +383,10 @@ def execute_task(testcase_id, job_type):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
   task_creation.create_tasks(testcase)
+  return None
+
+
+class ErrorType(enum.Enum):
+  """Errors during utask_main."""
+  BUILD_SETUP = 1
+  NO_CRASH = 2
