@@ -20,6 +20,7 @@ import json
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -34,11 +35,14 @@ from libs.issue_management import issue_tracker_utils
 
 from . import grouper
 
+BUG_FILING_MAX_24_HOURS_PER_PROJECT_DEFAULT = 100
 UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
     'Out-of-memory', 'Stack-overflow', 'Timeout'
 ]
 TRIAGE_MESSAGE_KEY = 'triage_message'
-bug_filing_max_24_hours_per_job = {}
+
+_bug_filing_max_24_hours_per_job = {}
+_bug_filing_max_24_hours_per_project = None
 
 
 def _add_triage_message(testcase, message):
@@ -255,8 +259,8 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
 def _get_job_bugs_filing_max(job_type):
   """"Gets the maximum number of bugs that can be filed for a given job."""
-  if job_type in bug_filing_max_24_hours_per_job:
-    return bug_filing_max_24_hours_per_job[job_type]
+  if job_type in _bug_filing_max_24_hours_per_job:
+    return _bug_filing_max_24_hours_per_job[job_type]
 
   max_bugs = None
   job = data_types.Job.query(data_types.Job.name == job_type).get()
@@ -268,9 +272,23 @@ def _get_job_bugs_filing_max(job_type):
           'Invalid environment value of \'BUG_FILING_MAX_24_HOURS_PER_JOB\' '
           f'for job type {job_type}.')
 
-  bug_filing_max_24_hours_per_job[job_type] = max_bugs
-
+  _bug_filing_max_24_hours_per_job[job_type] = max_bugs
   return max_bugs
+
+
+def _get_project_bugs_filing_max():
+  """Gets the maximum number of bugs that can be filed per project."""
+  global _bug_filing_max_24_hours_per_project
+  if not _bug_filing_max_24_hours_per_project:
+    config = local_config.IssueTrackerConfig()
+    try:
+      _bug_filing_max_24_hours_per_project = int(
+          config.get('BUG_FILING_MAX_24_HOURS_PER_PROJECT',
+                     BUG_FILING_MAX_24_HOURS_PER_PROJECT_DEFAULT))
+    except:
+      logs.log_error(
+          'Invalid config value of \'BUG_FILING_MAX_24_HOURS_PER_PROJECT\'')
+  return _bug_filing_max_24_hours_per_project
 
 
 def _throttle_bug(testcase, bug_filed_24_hours_per_job,
@@ -305,10 +323,11 @@ def _throttle_bug(testcase, bug_filed_24_hours_per_job,
           data_types.FiledBug.project_name == testcase.project_name and
           data_types.FiledBug.timestamp >= valid_timestamp).count())
 
-  if count_per_project < issue_tracker_utils.get_issue_tracker_project_bug_filing_max():
+  if count_per_project < _get_project_bugs_filing_max():
     bug_filed_24_hours_per_project[
         testcase.project_name] = count_per_project + 1
     return False
+
   logs.log(f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
            f'{count_per_project} bugs have been filed from {valid_timestamp} '
            f'to {datetime.datetime.now()} for project {testcase.project_name}')

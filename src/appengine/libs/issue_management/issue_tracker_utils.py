@@ -26,7 +26,6 @@ _ISSUE_TRACKER_CONSTRUCTORS = {
     'monorail': monorail.get_issue_tracker,
     'jira': jira.get_issue_tracker
 }
-BUG_FILING_MAX_24_HOURS_PER_PROJECT = 100
 
 
 def register_issue_tracker(tracker_type, constructor):
@@ -42,13 +41,6 @@ def _get_issue_tracker_project_name(testcase=None):
   from clusterfuzz._internal.datastore import data_handler
   job_type = testcase.job_type if testcase else None
   return data_handler.get_issue_tracker_name(job_type)
-
-
-def get_issue_tracker_project_bugs_filing_max():
-  """Return issue tracker project bug filing max."""
-  issue_tracker_config = local_config.IssueTrackerConfig()
-  bug_limit = issue_tracker_config.get('BUG_FILING_MAX_24_HOURS_PER_PROJECT')
-  return bug_limit if bug_limit else BUG_FILING_MAX_24_HOURS_PER_PROJECT
 
 
 @request_cache.wrap(capacity=_ISSUE_TRACKER_CACHE_CAPACITY)

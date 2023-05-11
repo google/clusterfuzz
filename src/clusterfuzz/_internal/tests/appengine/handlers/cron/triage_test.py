@@ -359,6 +359,7 @@ class FileIssueTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
         'libs.issue_management.issue_filer.file_issue',
     ])
     data_types.Job(
@@ -367,6 +368,7 @@ class FileIssueTest(unittest.TestCase):
     self.testcase = test_utils.create_generic_testcase()
     self.issue = appengine_test_utils.create_generic_issue()
     self.issue_tracker = self.issue.issue_tracker
+    self.mock.get.return_value = None
 
   def test_no_exception(self):
     """Test no exception."""
@@ -429,6 +431,10 @@ class ThrottleBugTest(unittest.TestCase):
 
   def setUp(self):
     self.testcase = test_utils.create_generic_testcase()
+    helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+    ])
+    self.mock.get.return_value = 5
 
   def test_throttle_bug_with_job_limit(self):
     """Test the throttling bug with a job limit."""
@@ -460,7 +466,7 @@ class ThrottleBugTest(unittest.TestCase):
         project_name='test_project',
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
-    for _ in range(99):
+    for _ in range(4):
       self.assertFalse(
           triage._throttle_bug(testcase, bug_filed_24_hours_per_job,
                                bug_filed_24_hours_per_project))
