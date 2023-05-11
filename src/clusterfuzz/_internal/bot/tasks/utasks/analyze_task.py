@@ -154,6 +154,7 @@ def initialize_testcase_for_main(testcase, testcase_file_path, job_type):
 
 
 def save_minidump(testcase, state, application_command_line, gestures):
+  """Saves a minidump when on Windows."""
   # Get crash info object with minidump info. Also, re-generate unsymbolized
   # stacktrace if needed.
   crash_info, _ = (
@@ -165,8 +166,8 @@ def save_minidump(testcase, state, application_command_line, gestures):
 
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   """Tests for a crash with retries. Tries with HTTP (with retries) if initial
-  attempts fail. Returns the most recent crash result updates the HTTP flag if
-  needed."""
+  attempts fail. Returns the most recent crash result and the possibly updated
+  HTTP flag."""
   # Get the crash output.
   http_flag = testcase.http_flag
   result = testcase_manager.test_for_crash_with_retries(
@@ -189,7 +190,8 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
         compare_crash=False)
     if result_with_http.is_crash():
       logs.log('Testcase needs http flag for crash.')
-      testcase.http_flag = True
+      http_flag = True
+      result = result_with_http
   return result
 
 
@@ -220,11 +222,12 @@ def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
   task_creation.create_impact_task_if_needed(testcase)
 
 
-def update_testcase_after_crash(testcase, state, job_type):
+def update_testcase_after_crash(testcase, state, job_type, http_flag):
   """Updates |testcase| based on |state|."""
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
   testcase.crash_state = state.crash_state
+  testcase.http_flag = http_flag
 
   testcase.security_flag = crash_analyzer.is_security_issue(
       state.crash_stacktrace, state.crash_type, state.crash_address)
@@ -283,12 +286,14 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   if not testcase_file_path:
     return output
 
-  initialize_testcase_for_main(testcase, job_type)
+  initialize_testcase_for_main(testcase, testcase_file_path, job_type)
 
+  # Initialize some variables.
+  gestures = testcase.gestures
   test_timeout = environment.get_value('TEST_TIMEOUT')
 
-  result = test_for_crash_with_retries(testcase, testcase_file_path,
-                                       test_timeout)
+  result, http_flag = test_for_crash_with_retries(testcase, testcase_file_path,
+                                                  test_timeout)
 
   # Set application command line with the correct http flag.
   application_command_line = get_application_command_line(testcase)
@@ -298,9 +303,12 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   crash_time = result.get_crash_time()
   state = result.get_symbolized_data()
 
-  save_minidump(testcase, state, application_command_line)
+  save_minidump(testcase, state, application_command_line, gestures)
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
+  # In the general case, we will not attempt to symbolize if we do not detect a
+  # crash. For user uploads, we should symbolize anyway to provide more
+  # information about what might be happening.
   crash_stacktrace_output = utils.get_crash_stacktrace_output(
       application_command_line, state.crash_stacktrace,
       unsymbolized_crash_stacktrace)
@@ -351,63 +359,67 @@ def utask_handle_errors(output):
           output.testcase, output.metadata, 'Build setup failed')
 
   if output.error == ErrorType.NO_CRASH:
-    handle_noncrash(output)
+    handle_noncrash(output.testcase, output.metadata, output.testcase_id,
+                    output.job_type, test_timeout)
 
 
 def utask_postprocess(output):
   """Trusted: Clean up after a uworker execute_task, write anything needed to
   the db."""
+  # TODO(metzman): Get rid of this after main migration PR.
+  testcase = output.testcase
+  metadata = output.metadata
   if output.error:
     utask_handle_errors(output)
     return
 
   log_message = ('Testcase crashed in %d seconds (r%d)' %
-                 (output.crash_time, output.testcase.crash_revision))
+                 (output.crash_time, testcase.crash_revision))
   data_handler.update_testcase_comment(
-      output.testcase, data_types.TaskState.FINISHED, log_message)
+      testcase, data_types.TaskState.FINISHED, log_message)
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(output.crash_stacktrace):
-    data_handler.close_invalid_uploaded_testcase(output.testcase,
-                                                 output.metadata, 'Irrelavant')
+    data_handler.close_invalid_uploaded_testcase(testcase,
+                                                 metadata, 'Irrelavant')
     return
 
   # Check to see if this is a duplicate.
-  data_handler.check_uploaded_testcase_duplicate(output.testcase,
-                                                 output.metadata)
+  data_handler.check_uploaded_testcase_duplicate(testcase,
+                                                 metadata)
 
   # Set testcase and metadata status if not set already.
-  if output.testcase.status == 'Duplicate':
+  if testcase.status == 'Duplicate':
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
     if metadata.quiet_flag:
-      data_handler.close_invalid_uploaded_testcase(output.testcase,
-                                                   output.metadata, 'Duplicate')
+      data_handler.close_invalid_uploaded_testcase(testcase,
+                                                   metadata, 'Duplicate')
       return
   else:
     # New testcase.
-    output.testcase.status = 'Processed'
-    output.metadata.status = 'Confirmed'
+    testcase.status = 'Processed'
+    metadata.status = 'Confirmed'
 
-  # Reset the timestamp as well, to respect
-  # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
-  # triage task prematurely without the grouper having a chance to run on this
-  # testcase.
-  output.testcase.timestamp = utils.utcnow()
+    # Reset the timestamp as well, to respect
+    # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
+    # triage task prematurely without the grouper having a chance to run on this
+    # testcase.
+    testcase.timestamp = utils.utcnow()
 
-  # Add new leaks to global blacklist to avoid detecting duplicates.
-  # Only add if testcase has a direct leak crash and if it's reproducible.
-  is_lsan_enabled = output.uworker_env.get('LSAN')
-  if is_lsan_enabled:
-    leak_blacklist.add_crash_to_global_blacklist_if_needed(output.testcase)
+    # Add new leaks to global blacklist to avoid detecting duplicates.
+    # Only add if testcase has a direct leak crash and if it's reproducible.
+    is_lsan_enabled = output.uworker_env.get('LSAN')
+    if is_lsan_enabled:
+      leak_blacklist.add_crash_to_global_blacklist_if_needed(testcase)
 
   # Update the testcase values.
-  output.testcase.put()
+  testcase.put()
 
   # Update the upload metadata.
-  output.metadata.security_flag = output.testcase.security_flag
-  output.metadata.put()
-  _add_default_issue_metadata(output.testcase)
+  metadata.security_flag = testcase.security_flag
+  metadata.put()
+  _add_default_issue_metadata(testcase)
 
   # Create tasks to
   # 1. Minimize testcase (minimize).
@@ -416,7 +428,7 @@ def utask_postprocess(output):
   # 4. Check whether testcase is fixed (progression).
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
-  task_creation.create_tasks(output.testcase)
+  task_creation.create_tasks(testcase)
 
 
 def get_application_command_line(testcase):
