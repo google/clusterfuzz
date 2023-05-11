@@ -31,13 +31,16 @@ FAIL_WAIT = 10
 
 def _use_anonymous_credentials():
   """Returns whether or not to use anonymous credentials."""
-  if (environment.get_value('INTEGRATION') or
-      environment.get_value('UNTRUSTED_RUNNER_TESTS')):
-    # Integration tests need real credentials.
-    return False
+  # !!!
+  # NEED TO ACCESS REAL GCS.
+  return False
+  # if (environment.get_value('INTEGRATION') or
+  #     environment.get_value('UNTRUSTED_RUNNER_TESTS')):
+  #   # Integration tests need real credentials.
+  #   return False
 
-  return (environment.get_value('LOCAL_DEVELOPMENT') or
-          environment.get_value('PY_UNITTESTS'))
+  # return (environment.get_value('LOCAL_DEVELOPMENT') or
+  #         environment.get_value('PY_UNITTESTS'))
 
 
 @retry.wrap(

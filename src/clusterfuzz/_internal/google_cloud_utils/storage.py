@@ -647,10 +647,9 @@ class GcsBlobInfo(object):
 
 def _provider():
   """Get the current storage provider."""
-  local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
-  if local_buckets_path:
-    return FileSystemProvider(local_buckets_path)
-
+  # local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
+  # if local_buckets_path:
+  #   return FileSystemProvider(local_buckets_path)
   return GcsProvider()
 
 
@@ -801,7 +800,6 @@ def create_bucket_if_needed(bucket_name, object_lifecycle=None, cors=None):
   return True
 
 
-@environment.local_noop
 def create_discovery_storage_client():
   """Create a storage client using discovery APIs."""
   return build('storage', 'v1', cache_discovery=False)

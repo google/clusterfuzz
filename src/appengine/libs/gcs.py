@@ -130,7 +130,7 @@ def prepare_upload(bucket_name, path, expiry=DEFAULT_URL_VALID_SECONDS):
           'conditions': conditions,
       }).encode('utf-8'))
 
-  local_server = environment.get_value('LOCAL_GCS_SERVER_HOST')
+  local_server = False  #environment.get_value('LOCAL_GCS_SERVER_HOST')
   if local_server:
     url = local_server
     signature = b'SIGNATURE'
