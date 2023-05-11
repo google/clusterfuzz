@@ -264,15 +264,12 @@ class FileSystemProviderTests(fake_filesystem_unittest.TestCase):
   def test_sign_upload_url(self):
     """Tests sign_upload_url."""
     url = 'gs://test-bucket/upload'
-    return self.assertEqual(
-        self.provider.sign_upload_url(url), '/local/test-bucket/objects/upload')
+    return self.assertEqual(self.provider.sign_upload_url(url), url)
 
   def test_sign_download_url(self):
     """Tests sign_download_url."""
     url = 'gs://test-bucket/download'
-    return self.assertEqual(
-        self.provider.sign_download_url(url),
-        '/local/test-bucket/objects/download')
+    return self.assertEqual(self.provider.sign_download_url(url), url)
 
   def test_download_signed_url(self):
     """Tests download_signed_url."""
