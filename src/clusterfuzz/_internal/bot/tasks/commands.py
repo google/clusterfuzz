@@ -269,13 +269,12 @@ def run_command(task_name, task_argument, job_name, uworker_env):
 
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
-  # !!! development needed to rerun analyze if it fails
-  # if should_update_task_status(task_name):
-  #   if not data_handler.update_task_status(task_state_name,
-  #                                          data_types.TaskState.STARTED):
-  #     logs.log('Another instance of "{}" already '
-  #              'running, exiting.'.format(task_state_name))
-  #     raise AlreadyRunningError
+  if should_update_task_status(task_name):
+    if not data_handler.update_task_status(task_state_name,
+                                           data_types.TaskState.STARTED):
+      logs.log('Another instance of "{}" already '
+               'running, exiting.'.format(task_state_name))
+      raise AlreadyRunningError
 
   try:
     task.execute(task_argument, job_name, uworker_env)
