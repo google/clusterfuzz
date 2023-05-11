@@ -106,8 +106,9 @@ def prepare_env_for_main(metadata):
     environment.set_value('CRASH_RETRIES', metadata.retries)
 
 
-def setup_testcase_and_build(testcase, metadata, job_type, testcase_download_url
-                            ) -> (Optional[str], Optional[uworker_io.Output]):
+def setup_testcase_and_build(
+    testcase, metadata, job_type, testcase_download_url
+) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
