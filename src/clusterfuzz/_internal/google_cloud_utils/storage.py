@@ -650,6 +650,7 @@ def _provider():
   local_buckets_path = environment.get_value('LOCAL_GCS_BUCKETS_PATH')
   if local_buckets_path:
     return FileSystemProvider(local_buckets_path)
+
   return GcsProvider()
 
 
@@ -798,6 +799,7 @@ def create_bucket_if_needed(bucket_name, object_lifecycle=None, cors=None):
 
   time.sleep(CREATE_BUCKET_DELAY)
   return True
+
 
 @environment.local_noop
 def create_discovery_storage_client():

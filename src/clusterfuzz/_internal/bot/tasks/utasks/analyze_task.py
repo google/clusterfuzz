@@ -199,8 +199,8 @@ def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
   # Could not reproduce the crash.
   log_message = (
       f'Testcase didn\'t crash in {test_timeout} seconds (with retries)')
-  data_handler.update_testcase_comment(
-      testcase, data_types.TaskState.FINISHED, log_message)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
+                                       log_message)
 
   # For an unreproducible testcase, retry once on another bot to confirm
   # our results and in case this bot is in a bad state which we didn't catch
