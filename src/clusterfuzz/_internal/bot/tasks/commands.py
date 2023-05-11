@@ -106,6 +106,7 @@ class UTaskLocalInmemoryExecutor(BaseTask):
       return
     uworker_output = utasks.uworker_main_no_io(self.module, uworker_input)
     utasks.uworker_postprocess_no_io(self.module, uworker_output)
+    logs.log('Utask local: done.')
 
 
 class UTask(BaseTask):
