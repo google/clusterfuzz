@@ -192,7 +192,8 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
       logs.log('Testcase needs http flag for crash.')
       http_flag = True
       result = result_with_http
-  return result
+  # TODO(metzman): Just change http_flag here.
+  return result, http_flag
 
 
 def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
@@ -306,8 +307,8 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   save_minidump(testcase, state, application_command_line, gestures)
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
-  # In the general case, we will not attempt to symbolize if we do not detect a
-  # crash. For user uploads, we should symbolize anyway to provide more
+  # In the general case, we will not attempt to symbolize if we do not detect
+  # a crash. For user uploads, we should symbolize anyway to provide more
   # information about what might be happening.
   crash_stacktrace_output = utils.get_crash_stacktrace_output(
       application_command_line, state.crash_stacktrace,
@@ -360,7 +361,7 @@ def utask_handle_errors(output):
 
   if output.error == ErrorType.NO_CRASH:
     handle_noncrash(output.testcase, output.metadata, output.testcase_id,
-                    output.job_type, test_timeout)
+                    output.job_type, output.test_timeout)
 
 
 def utask_postprocess(output):
@@ -375,26 +376,25 @@ def utask_postprocess(output):
 
   log_message = ('Testcase crashed in %d seconds (r%d)' %
                  (output.crash_time, testcase.crash_revision))
-  data_handler.update_testcase_comment(
-      testcase, data_types.TaskState.FINISHED, log_message)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
+                                       log_message)
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(output.crash_stacktrace):
-    data_handler.close_invalid_uploaded_testcase(testcase,
-                                                 metadata, 'Irrelavant')
+    data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                 'Irrelavant')
     return
 
   # Check to see if this is a duplicate.
-  data_handler.check_uploaded_testcase_duplicate(testcase,
-                                                 metadata)
+  data_handler.check_uploaded_testcase_duplicate(testcase, metadata)
 
   # Set testcase and metadata status if not set already.
   if testcase.status == 'Duplicate':
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
     if metadata.quiet_flag:
-      data_handler.close_invalid_uploaded_testcase(testcase,
-                                                   metadata, 'Duplicate')
+      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
+                                                   'Duplicate')
       return
   else:
     # New testcase.
@@ -419,6 +419,7 @@ def utask_postprocess(output):
   # Update the upload metadata.
   metadata.security_flag = testcase.security_flag
   metadata.put()
+
   _add_default_issue_metadata(testcase)
 
   # Create tasks to
