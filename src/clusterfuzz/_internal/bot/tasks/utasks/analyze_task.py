@@ -154,6 +154,7 @@ def initialize_testcase_for_main(testcase, job_type):
 
   # Update other fields not set at upload time.
   testcase.crash_revision = environment.get_value('APP_REVISION')
+  testcase.put()
 
 
 def save_minidump(testcase, state, application_command_line, gestures):
@@ -334,7 +335,7 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
   return uworker_io.UworkerOutput(
       metadata=metadata,
       testcase=testcase,
-      crash_stacktrace=testcase.crash_stacktrace,
+      crash_stacktrace=state.crash_stacktrace,
       crash_time=crash_time)
 
 
