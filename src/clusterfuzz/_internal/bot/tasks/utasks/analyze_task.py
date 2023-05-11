@@ -338,7 +338,10 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
 
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(
-      metadata=metadata, testcase=testcase, crash_time=crash_time)
+      testcase=testcase,
+      metadata=metadata,
+      test_timeout=test_timeout,
+      crash_time=crash_time)
 
 
 def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
