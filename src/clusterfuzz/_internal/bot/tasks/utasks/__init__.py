@@ -17,8 +17,39 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.system import environment
 
 
+def tworker_preprocess_no_io(utask_module, task_argument, job_type,
+                             uworker_env):
+  uworker_input = utask_module.utask_preprocess(task_argument, job_type,
+                                                uworker_env)
+  if not uworker_input:
+    return None
+  assert 'job_type' not in uworker_input
+  uworker_input['job_type'] = job_type
+  return uworker_io.serialize_uworker_input(uworker_input)
+
+
+def uworker_main_no_io(utask_module, uworker_input):
+  """Exectues the main part of a utask on the uworker (locally if not using
+  remote executor)."""
+  uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+  # Deal with the environment.
+  uworker_env = uworker_input.pop('uworker_env')
+  set_uworker_env(uworker_env)
+
+  uworker_output = utask_module.utask_main(**uworker_input)
+  uworker_output.uworker_env = uworker_env
+  uworker_output.uworker_input = uworker_input
+  return uworker_io.serialize_uworker_output(uworker_output)
+
+
+def uworker_postprocess_no_io(utask_module, uworker_output):
+  uworker_output_dict = uworker_io.deserialize_uworker_output(uworker_output)
+  uworker_output = uworker_io.uworker_output_from_dict(uworker_output_dict)
+  utask_module.utask_postprocess(uworker_output)
+
+
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
-  """Executes the preprocessing step of the utask |task_module| and returns the
+  """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
   # Do preprocessing.
@@ -26,7 +57,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
                                                 uworker_env)
   if not uworker_input:
     # Bail if preprocessing failed since we can't proceed.
-    return None, None
+    return None
 
   # Get URLs for the uworker's output. We need a signed upload URL so it can
   # write its output. Also get a download URL in case the caller wants to read
@@ -46,13 +77,13 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   return uworker_input_download_url, uworker_output_download_gcs_url
 
 
-def set_uworker_env(uworker_env) -> None:
+def set_uworker_env(uworker_env: dict) -> None:
   """Sets all env vars in |uworker_env| in the actual environment."""
   for key, value in uworker_env.items():
     environment.set_value(key, value)
 
 
-def uworker_main(task_module, input_download_url) -> None:
+def uworker_main(utask_module, input_download_url) -> None:
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
@@ -63,16 +94,16 @@ def uworker_main(task_module, input_download_url) -> None:
   uworker_env = uworker_input.pop('uworker_env')
   set_uworker_env(uworker_env)
 
-  uworker_output = task_module.utask_main(**uworker_input)
+  uworker_output = utask_module.utask_main(**uworker_input)
   uworker_output.uworker_env = uworker_env
   uworker_output.uworker_input = uworker_input
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
 
 
-def tworker_postprocess(task_module, output_download_url) -> None:
+def tworker_postprocess(utask_module, output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   uworker_output_dict = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
   uworker_output = uworker_io.uworker_output_from_dict(uworker_output_dict)
-  task_module.utask_postprocess(uworker_output)
+  utask_module.utask_postprocess(uworker_output)

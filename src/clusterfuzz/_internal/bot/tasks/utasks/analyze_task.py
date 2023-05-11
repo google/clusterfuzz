@@ -333,11 +333,6 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
   testcase.one_time_crasher_flag = one_time_crasher_flag
 
 
-class ErrorType(enum.Enum):
-  BUILD_SETUP = 1
-  NO_CRASH = 2
-
-
 def utask_handle_errors(output):
   """Handles errors that happened in utask_main."""
   if output.error == ErrorType.BUILD_SETUP:
@@ -385,14 +380,14 @@ def utask_postprocess(output):
   if output.testcase.status == 'Duplicate':
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
-    if output.metadata.quiet_flag:
+    if metadata.quiet_flag:
       data_handler.close_invalid_uploaded_testcase(output.testcase,
                                                    output.metadata, 'Duplicate')
-    return
-
-  # New testcase.
-  output.testcase.status = 'Processed'
-  output.metadata.status = 'Confirmed'
+      return
+  else:
+    # New testcase.
+    output.testcase.status = 'Processed'
+    output.metadata.status = 'Confirmed'
 
   # Reset the timestamp as well, to respect
   # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
@@ -427,3 +422,9 @@ def utask_postprocess(output):
 def get_application_command_line(testcase):
   return testcase_manager.get_command_line_for_application(
       testcase.absolute_path, needs_http=testcase.http_flag)
+
+
+class ErrorType(enum.Enum):
+  """Errors during utask_main."""
+  BUILD_SETUP = 1
+  NO_CRASH = 2
