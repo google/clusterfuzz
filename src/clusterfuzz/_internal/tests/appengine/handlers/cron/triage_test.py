@@ -411,11 +411,15 @@ class FileIssueTest(unittest.TestCase):
     """Test not filing issue due to throttle."""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
-
-    triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
-                         bug_filed_24_hours_per_project)
-    triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
-                         bug_filed_24_hours_per_project)
+    self.mock.file_issue.return_value = 'ID', None
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker,
+                           bug_filed_24_hours_per_job,
+                           bug_filed_24_hours_per_project))
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker,
+                           bug_filed_24_hours_per_job,
+                           bug_filed_24_hours_per_project))
     self.assertFalse(
         triage._file_issue(self.testcase, self.issue_tracker,
                            bug_filed_24_hours_per_job,
