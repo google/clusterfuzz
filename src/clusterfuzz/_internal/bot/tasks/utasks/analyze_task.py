@@ -326,17 +326,19 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
         testcase,
         metadata=metadata,
         error=ErrorType.NO_CRASH,
-        crash_time=test_timeout,
+        test_timeout=test_timeout,
         job_type=job_type)
   # Update testcase crash parameters.
   update_testcase_after_crash(testcase, state, job_type, http_flag)
 
+  # See if we have to ignore this crash.
+  if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
+    return uworker_io.UworkerOutput(
+        testcase=testcase, metadata=metadata, error=ErrorType.IGNORE_STACK)
+
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(
-      metadata=metadata,
-      testcase=testcase,
-      crash_stacktrace=state.crash_stacktrace,
-      crash_time=crash_time)
+      metadata=metadata, testcase=testcase, crash_time=crash_time)
 
 
 def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
@@ -370,6 +372,9 @@ def utask_handle_errors(output):
     # Unclear if this state is ever actually reached.
     data_handler.update_testcase_comment(
         output.testcase, data_types.TaskState.ERROR, 'Testcase setup failed')
+  elif output.error == ErrorType.IGNORE_STACK:
+    data_handler.close_invalid_uploaded_testcase(output.testcase,
+                                                 output.metadata, 'Irrelavant')
 
 
 def utask_postprocess(output):
@@ -382,16 +387,10 @@ def utask_postprocess(output):
     utask_handle_errors(output)
     return
 
-  log_message = (f'Testcase crashed in {output.crash_time} seconds '
+  log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
                                        log_message)
-
-  # See if we have to ignore this crash.
-  if crash_analyzer.ignore_stacktrace(output.crash_stacktrace):
-    data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-                                                 'Irrelavant')
-    return
 
   # Check to see if this is a duplicate.
   data_handler.check_uploaded_testcase_duplicate(testcase, metadata)
@@ -445,3 +444,4 @@ class ErrorType(enum.Enum):
   BUILD_SETUP = 1
   NO_CRASH = 2
   TESTCASE_SETUP = 3
+  IGNORE_STACK = 4
