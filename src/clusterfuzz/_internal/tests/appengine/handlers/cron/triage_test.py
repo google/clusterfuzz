@@ -359,16 +359,18 @@ class FileIssueTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig',
         'libs.issue_management.issue_filer.file_issue',
     ])
-    data_types.Job(
-        name='test_content_shell_drt',
-        environment_string='BUG_FILING_MAX_24_HOURS_PER_JOB = 2').put()
     self.testcase = test_utils.create_generic_testcase()
     self.issue = appengine_test_utils.create_generic_issue()
     self.issue_tracker = self.issue.issue_tracker
-    self.mock.get.return_value = None
+    data_types.Job(
+        name=self.testcase.job_type,
+        environment_string='BUG_FILING_MAX_24_HOURS_PER_JOB = 2').put()
+    self.mock.IssueTrackerConfig.return_value = {
+        'BUG_FILING_MAX_24_HOURS_PER_PROJECT': 5
+    }
 
   def test_no_exception(self):
     """Test no exception."""
@@ -412,6 +414,9 @@ class FileIssueTest(unittest.TestCase):
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
     self.mock.file_issue.return_value = 'ID', None
+
+    self.assertEqual(2, triage._get_job_bugs_filing_max(self.testcase.job_type))
+    self.assertEqual(5, triage._get_project_bugs_filing_max())
     self.assertTrue(
         triage._file_issue(self.testcase, self.issue_tracker,
                            bug_filed_24_hours_per_job,
@@ -436,22 +441,25 @@ class ThrottleBugTest(unittest.TestCase):
   def setUp(self):
     self.testcase = test_utils.create_generic_testcase()
     helpers.patch(self, [
-        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig',
     ])
-    self.mock.get.return_value = 5
 
   def test_throttle_bug_with_job_limit(self):
     """Test the throttling bug with a job limit."""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
+
+    # The current count does not include bugs over 24 hours.
     data_types.FiledBug(
-        project_name='project',
-        job_type='test_content_shell_drt',
+        project_name=self.testcase.project_name,
+        job_type=self.testcase.job_type,
         timestamp=datetime.datetime.now() - datetime.timedelta(hours=30)).put()
     data_types.FiledBug(
-        project_name='project',
-        job_type='test_content_shell_drt',
+        project_name=self.testcase.project_name,
+        job_type=self.testcase.job_type,
         timestamp=datetime.datetime.now()).put()
+
+    self.assertEqual(2, triage._get_job_bugs_filing_max(self.testcase.job_type))
     self.assertFalse(
         triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
                              bug_filed_24_hours_per_project))
@@ -467,9 +475,11 @@ class ThrottleBugTest(unittest.TestCase):
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
     data_types.FiledBug(
-        project_name='test_project',
+        project_name=testcase.project_name,
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
+
+    self.assertEqual(5, triage._get_project_bugs_filing_max())
     for _ in range(4):
       self.assertFalse(
           triage._throttle_bug(testcase, bug_filed_24_hours_per_job,
