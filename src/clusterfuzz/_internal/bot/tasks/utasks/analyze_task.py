@@ -125,13 +125,13 @@ def setup_testcase_and_build(testcase, metadata, job_type,
     # Let postprocess handle BUILD_SETUP and restart tasks if needed.
     return None, uworker_io.UworkerOutput(
         testcase=testcase, metadata=metadata, error=ErrorType.BUILD_SETUP)
-  testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
 
 
-def initialize_testcase_for_main(testcase, job_type):
+def initialize_testcase_for_main(testcase, testcase_file_path, job_type):
   """Initializes a testcase for the crash testing phase."""
   # Update initial testcase information.
+  testcase.absolute_path = testcase_file_path
   testcase.job_type = job_type
   testcase.queue = tasks.default_queue()
   testcase.crash_state = ''
@@ -153,12 +153,12 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.crash_revision = environment.get_value('APP_REVISION')
 
 
-def save_minidump(testcase, state, application_command_line):
+def save_minidump(testcase, state, application_command_line, gestures):
   # Get crash info object with minidump info. Also, re-generate unsymbolized
   # stacktrace if needed.
   crash_info, _ = (
       crash_uploader.get_crash_info_and_stacktrace(
-          application_command_line, state.crash_stacktrace, testcase.gestures))
+          application_command_line, state.crash_stacktrace, gestures))
   if crash_info:
     testcase.minidump_keys = crash_info.store_minidump()
 
@@ -168,17 +168,18 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   attempts fail. Returns the most recent crash result updates the HTTP flag if
   needed."""
   # Get the crash output.
+  http_flag = testcase.http_flag
   result = testcase_manager.test_for_crash_with_retries(
       testcase,
       testcase_file_path,
       test_timeout,
-      http_flag=testcase.http_flag,
+      http_flag=http_flag,
       compare_crash=False)
 
   # If we don't get a crash, try enabling http to see if we can get a crash.
   # Skip engine fuzzer jobs (e.g. libFuzzer, AFL) for which http testcase paths
   # are not applicable.
-  if (not result.is_crash() and not testcase.http_flag and
+  if (not result.is_crash() and not http_flag and
       not environment.is_engine_fuzzer_job()):
     result_with_http = testcase_manager.test_for_crash_with_retries(
         testcase,
@@ -189,35 +190,34 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
     if result_with_http.is_crash():
       logs.log('Testcase needs http flag for crash.')
       testcase.http_flag = True
-      result = result_with_http
   return result
 
 
-def handle_noncrash(output):
+def handle_noncrash(testcase, metadata, testcase_id, job_type, test_timeout):
   """Handles a non-crashing testcase. Either deletes the testcase or schedules
   another, final analysis."""
   # Could not reproduce the crash.
   log_message = (
-      f'Testcase didn\'t crash in {output.test_timeout} seconds (with retries)')
+      f'Testcase didn\'t crash in {test_timeout} seconds (with retries)')
   data_handler.update_testcase_comment(
-      output.testcase, data_types.TaskState.FINISHED, log_message)
+      testcase, data_types.TaskState.FINISHED, log_message)
 
   # For an unreproducible testcase, retry once on another bot to confirm
   # our results and in case this bot is in a bad state which we didn't catch
   # through our usual means.
-  if data_handler.is_first_retry_for_task(output.testcase):
-    output.testcase.status = 'Unreproducible, retrying'
-    output.testcase.put()
+  if data_handler.is_first_retry_for_task(testcase):
+    testcase.status = 'Unreproducible, retrying'
+    testcase.put()
 
-    tasks.add_task('analyze', output.testcase_id, output.job_type)
+    tasks.add_task('analyze', testcase_id, job_type)
     return
 
-  data_handler.close_invalid_uploaded_testcase(output.testcase, output.metadata,
+  data_handler.close_invalid_uploaded_testcase(testcase, metadata,
                                                'Unreproducible')
 
   # A non-reproducing testcase might still impact production branches.
   # Add the impact task to get that information.
-  task_creation.create_impact_task_if_needed(output.testcase)
+  task_creation.create_impact_task_if_needed(testcase)
 
 
 def update_testcase_after_crash(testcase, state, job_type):
@@ -315,7 +315,8 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
         crash_time=test_timeout,
         job_type=job_type)
   # Update testcase crash parameters.
-  update_testcase_after_crash(testcase, state, job_type)
+  update_testcase_after_crash(testcase, state, job_type, http_flag)
+
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(
       metadata=metadata,
