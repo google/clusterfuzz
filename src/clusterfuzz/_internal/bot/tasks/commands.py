@@ -94,7 +94,7 @@ class UTaskLocalExecutor(BaseTask):
     logs.log('Utask local: done.')
 
 
-class UTaskLocalInmemoryExecutor(BaseTask):
+class UTaskLocalInMemoryExecutor(BaseTask):
   """Represents an untrusted task. Executes it entirely locally and in
   memory."""
 
