@@ -238,6 +238,7 @@ class RoundTripTest(unittest.TestCase):
     output.testcase = testcase
     field_value = 'field'
     output.field = field_value
+    output.uworker_input = {}
 
     # Create a version of upload_signed_url that will "upload" the data to a
     # known file on disk that we can read back.
@@ -280,5 +281,6 @@ class RoundTripTest(unittest.TestCase):
                      self.testcase.key.serialized())
     self.assertDictEqual(downloaded_output, {
         'error': None,
-        'field': field_value
+        'field': field_value,
+        'uworker_input': {}
     })
