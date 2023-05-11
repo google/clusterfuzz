@@ -192,7 +192,7 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
       logs.log('Testcase needs http flag for crash.')
       http_flag = True
       result = result_with_http
-      return result, http_flag
+    return result, http_flag
 
   return result, http_flag
 
