@@ -367,7 +367,6 @@ def utask_handle_errors(output):
     # Unclear if this state is ever actually reached.
     data_handler.update_testcase_comment(
         output.testcase, data_types.TaskState.ERROR, 'Testcase setup failed')
-    pass
 
 
 def utask_postprocess(output):
