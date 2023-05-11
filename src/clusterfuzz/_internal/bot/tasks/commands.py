@@ -282,6 +282,7 @@ def process_command(task):
     logs.log_error('Empty task received.')
     return
 
+  uworker_env = None
   # Parse task payload.
   task_name = task.command
   task_argument = task.argument
