@@ -59,6 +59,7 @@ def get_default(scopes=None):
     delay=FAIL_WAIT,
     function='google_cloud_utils.credentials.get_signing_creds')
 def get_signing_credentials():
+  """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
     return None
   creds, project = get_default()
