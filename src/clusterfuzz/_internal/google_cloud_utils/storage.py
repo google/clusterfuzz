@@ -380,7 +380,10 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   blob = bucket.blob(object_path)
   signing_creds = _signing_credentials()
   url = blob.generate_signed_url(
-      version='v4', expiration=minutes, method=method, credentials=signing_creds)
+      version='v4',
+      expiration=minutes,
+      method=method,
+      credentials=signing_creds)
   return url
 
 
