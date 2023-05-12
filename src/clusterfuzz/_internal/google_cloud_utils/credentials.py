@@ -13,7 +13,10 @@
 # limitations under the License.
 """Cloud credential helpers."""
 
+from google.auth import compute_engine
 from google.auth import credentials
+from google.auth.transport import requests
+
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.system import environment
@@ -50,3 +53,17 @@ def get_default(scopes=None):
     return credentials.AnonymousCredentials(), ''
 
   return google.auth.default(scopes=scopes)
+
+
+@retry.wrap(
+    retries=FAIL_RETRIES,
+    delay=FAIL_WAIT,
+    function='google_cloud_utils.credentials.get_signing_creds')
+def get_signing_credentials():
+  if _use_anonymous_credentials():
+    return None
+  service_account_email, _ = get_default()[0].service_account_email
+  request = requests.Request()
+  default_credentials.refresh(request)
+  return compute_engine.IDTokenCredentials(request, '',
+                                           service_account_email=service_account_email )
