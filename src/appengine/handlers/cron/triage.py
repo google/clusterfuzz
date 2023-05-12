@@ -43,7 +43,6 @@ UNREPRODUCIBLE_CRASH_IGNORE_CRASH_TYPES = [
 TRIAGE_MESSAGE_KEY = 'triage_message'
 
 _bug_filing_max_24_hours_per_job = {}
-_bug_filing_max_24_hours_per_project = None
 
 
 def _add_triage_message(testcase, message):
