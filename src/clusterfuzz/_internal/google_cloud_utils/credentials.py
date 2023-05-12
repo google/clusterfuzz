@@ -62,8 +62,8 @@ def get_signing_credentials():
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
     return None
-  creds, project = get_default()
-  service_account_email creds.service_account_email
+  creds, _ = get_default()
+  service_account_email = creds.service_account_email
   request = requests.Request()
   creds.refresh(request)
   return compute_engine.IDTokenCredentials(
