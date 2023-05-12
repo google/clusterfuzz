@@ -14,6 +14,7 @@
 """Automated bug filing."""
 
 import datetime
+from functools import lru_cache
 import itertools
 import json
 
@@ -257,8 +258,24 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
   return False
 
 
+def _query_job_bugs_filed_count(job_type, valid_timestamp):
+  """Gets the number of bugs that have been filed for a given job
+  within a given time period."""
+  return data_types.FiledBug.query(
+      data_types.FiledBug.job_type == job_type and
+      data_types.FiledBug.timestamp >= valid_timestamp).count()
+
+
+def _query_project_bugs_filed_count(project_name, valid_timestamp):
+  """Gets the number of bugs that have been filed for a given project
+  within a given time period."""
+  return data_types.FiledBug.query(
+      data_types.FiledBug.project_name == project_name and
+      data_types.FiledBug.timestamp >= valid_timestamp).count()
+
+
 def _get_job_bugs_filing_max(job_type):
-  """"Gets the maximum number of bugs that can be filed for a given job."""
+  """Gets the maximum number of bugs that can be filed for a given job."""
   if job_type in _bug_filing_max_24_hours_per_job:
     return _bug_filing_max_24_hours_per_job[job_type]
 
@@ -276,19 +293,19 @@ def _get_job_bugs_filing_max(job_type):
   return max_bugs
 
 
+@lru_cache(1)
 def _get_project_bugs_filing_max():
   """Gets the maximum number of bugs that can be filed per project."""
-  global _bug_filing_max_24_hours_per_project
-  if not _bug_filing_max_24_hours_per_project:
-    config = local_config.IssueTrackerConfig()
-    try:
-      _bug_filing_max_24_hours_per_project = int(
-          config.get('BUG_FILING_MAX_24_HOURS_PER_PROJECT',
-                     BUG_FILING_MAX_24_HOURS_PER_PROJECT_DEFAULT))
-    except:
-      logs.log_error(
-          'Invalid config value of \'BUG_FILING_MAX_24_HOURS_PER_PROJECT\'')
-  return _bug_filing_max_24_hours_per_project
+  config = local_config.IssueTrackerConfig()
+  try:
+    return int(
+        config.get('BUG_FILING_MAX_24_HOURS_PER_PROJECT',
+                   BUG_FILING_MAX_24_HOURS_PER_PROJECT_DEFAULT))
+  except:
+    logs.log_error(
+        'Invalid config value of \'BUG_FILING_MAX_24_HOURS_PER_PROJECT\'')
+
+  return BUG_FILING_MAX_24_HOURS_PER_PROJECT_DEFAULT
 
 
 def _throttle_bug(testcase, bug_filed_24_hours_per_job,
@@ -302,10 +319,8 @@ def _throttle_bug(testcase, bug_filed_24_hours_per_job,
     # Get the number of bugs filed for the current job in the past 24 hours.
     # First check the cache, then query the datastore if the value is not found.
     count_per_job = bug_filed_24_hours_per_job.get(
-        testcase.job_type,
-        data_types.FiledBug.query(
-            data_types.FiledBug.job_type == testcase.job_type and
-            data_types.FiledBug.timestamp >= valid_timestamp).count())
+        testcase.job_type) or _query_job_bugs_filed_count(
+            testcase.job_type, valid_timestamp)
     if count_per_job < job_bugs_filing_max:
       bug_filed_24_hours_per_job[testcase.job_type] = count_per_job + 1
       return False
@@ -318,14 +333,11 @@ def _throttle_bug(testcase, bug_filed_24_hours_per_job,
   # Check if the current bug has exceeded the maximum number of bugs
   # that can be filed per project.
   count_per_project = bug_filed_24_hours_per_project.get(
-      testcase.project_name,
-      data_types.FiledBug.query(
-          data_types.FiledBug.project_name == testcase.project_name and
-          data_types.FiledBug.timestamp >= valid_timestamp).count())
-
+      testcase.project_name) or _query_project_bugs_filed_count(
+          testcase.project_name, valid_timestamp)
   if count_per_project < _get_project_bugs_filing_max():
-    bug_filed_24_hours_per_project[
-        testcase.project_name] = count_per_project + 1
+    bug_filed_24_hours_per_project[testcase.project_name] = (
+        count_per_project + 1)
     return False
 
   logs.log(f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'

@@ -362,6 +362,7 @@ class FileIssueTest(unittest.TestCase):
         'clusterfuzz._internal.config.local_config.IssueTrackerConfig',
         'libs.issue_management.issue_filer.file_issue',
     ])
+
     self.testcase = test_utils.create_generic_testcase()
     self.issue = appengine_test_utils.create_generic_issue()
     self.issue_tracker = self.issue.issue_tracker
@@ -410,10 +411,10 @@ class FileIssueTest(unittest.TestCase):
                        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_throttle_bug(self):
-    """Test not filing issue due to throttle."""
+    """Tests not filing issue due to throttle."""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
-    self.mock.file_issue.return_value = 'ID', None
+    self.mock.file_issue.return_value = ('ID', None)
 
     self.assertEqual(2, triage._get_job_bugs_filing_max(self.testcase.job_type))
     self.assertEqual(5, triage._get_project_bugs_filing_max())
@@ -445,7 +446,7 @@ class ThrottleBugTest(unittest.TestCase):
     ])
 
   def test_throttle_bug_with_job_limit(self):
-    """Test the throttling bug with a job limit."""
+    """Tests the throttling bug with a job limit."""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
 
@@ -468,7 +469,7 @@ class ThrottleBugTest(unittest.TestCase):
                              bug_filed_24_hours_per_project))
 
   def test_throttle_bug_with_project_limit(self):
-    """Test the throttling bug with a project limit."""
+    """Tests the throttling bug with a project limit."""
     testcase = test_utils.create_generic_testcase_variant()
     testcase.project_name = 'test_project'
 
