@@ -47,7 +47,7 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
-def _set_timeout_value_from_user_upload(testcase_id):
+ def _set_timeout_value_from_user_upload(testcase_id):
   """Get the timeout associated with this testcase."""
   metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
@@ -171,6 +171,14 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
+
+def handle_setup_testcase_error(error, testcase, task_name, testcase_id, job_type):
+  del error
+  testcase_fail_wait = environment.get_value('FAIL_WAIT')
+  tasks.add_task(
+        task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
+
+
 def setup_testcase(testcase,
                    job_type,
                    fuzzer_override=None,
@@ -179,7 +187,6 @@ def setup_testcase(testcase,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   task_name = environment.get_value('TASK_NAME')
-  testcase_fail_wait = environment.get_value('FAIL_WAIT')
   testcase_id = testcase.key.id()
 
   # Clear testcase directories.
@@ -211,8 +218,7 @@ def setup_testcase(testcase,
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      tasks.add_task(
-          task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
+      handle_setup_testcase_error(testcase, task_name, testcase_id, job_type)
       return None, None, None
 
   # Extract the testcase and any of its resources to the input directory.
@@ -222,8 +228,7 @@ def setup_testcase(testcase,
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    tasks.add_task(
-        task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
+    handle_setup_testcase_error(testcase, task_name, testcase_id, job_type)
     return None, None, None
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
