@@ -14,7 +14,7 @@
 
 # Application id for the Appengine project (usually same as Google Cloud Project
 # ID).
-application_id: test-clusterfuzz
+application_id: metzman
 
 # Define these if you would like to use a custom domain.
 # domains:

@@ -284,7 +284,7 @@ def _get_testcase_file_and_path(testcase):
   return input_directory, testcase_path
 
 
-def get_signed_testcase_download_url(testcase):
+def get_testcase_download_url(testcase):
   """Returns a signed download URL for the testcase."""
   key, _ = _get_testcase_key_and_archive_status(testcase)
   return blobs.get_signed_download_url(key)

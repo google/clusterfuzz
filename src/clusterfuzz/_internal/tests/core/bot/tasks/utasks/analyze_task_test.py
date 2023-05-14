@@ -15,7 +15,7 @@
 
 import unittest
 
-from clusterfuzz._internal.bot.tasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 

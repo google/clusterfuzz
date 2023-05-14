@@ -20,7 +20,6 @@ import time
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import analyze_task
 from clusterfuzz._internal.bot.tasks import blame_task
 from clusterfuzz._internal.bot.tasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks import fuzz_task
@@ -33,6 +32,7 @@ from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks import variant_task
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -119,7 +119,7 @@ class UTask(BaseTask):
 
 
 COMMAND_MAP = {
-    'analyze': TrustedTask(analyze_task),
+    'analyze': utask_factory(analyze_task),
     'blame': TrustedTask(blame_task),
     'corpus_pruning': TrustedTask(corpus_pruning_task),
     'fuzz': TrustedTask(fuzz_task),
@@ -269,12 +269,13 @@ def run_command(task_name, task_argument, job_name, uworker_env):
 
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
-  if should_update_task_status(task_name):
-    if not data_handler.update_task_status(task_state_name,
-                                           data_types.TaskState.STARTED):
-      logs.log('Another instance of "{}" already '
-               'running, exiting.'.format(task_state_name))
-      raise AlreadyRunningError
+  # !!! development needed to rerun analyze if it fails
+  # if should_update_task_status(task_name):
+  #   if not data_handler.update_task_status(task_state_name,
+  #                                          data_types.TaskState.STARTED):
+  #     logs.log('Another instance of "{}" already '
+  #              'running, exiting.'.format(task_state_name))
+  #     raise AlreadyRunningError
 
   try:
     task.execute(task_argument, job_name, uworker_env)
