@@ -67,5 +67,5 @@ def get_signing_credentials():
   request = requests.Request()
   creds.refresh(request)
   signing_creds = compute_engine.IDTokenCredentials(
-      request, "", service_account_email=creds.service_account_email)
+      request, '', service_account_email=creds.service_account_email)
   return signing_creds
