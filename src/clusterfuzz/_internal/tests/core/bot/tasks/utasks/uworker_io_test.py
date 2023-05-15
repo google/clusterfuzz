@@ -21,6 +21,7 @@ from unittest import mock
 
 from google.cloud import ndb
 
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -269,7 +270,7 @@ class RoundTripTest(unittest.TestCase):
 
       with mock.patch(copy_file_from_name, copy_file_from) as _:
         downloaded_output = uworker_io.download_and_deserialize_uworker_output(
-            self.FAKE_URL)
+            analyze_task, self.FAKE_URL)
 
     # Test that the entity (de)serialization and change tracking working.
     downloaded_testcase = downloaded_output.pop('testcase')
