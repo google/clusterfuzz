@@ -46,7 +46,8 @@ def uworker_main_no_io(utask_module, uworker_input):
 
 
 def uworker_postprocess_no_io(utask_module, uworker_output):
-  uworker_output_dict = uworker_io.deserialize_uworker_output(uworker_output)
+  uworker_output_dict = uworker_io.deserialize_uworker_output(
+      utask_module, uworker_output)
   uworker_output = uworker_io.uworker_output_from_dict(uworker_output_dict)
   utask_module.utask_postprocess(uworker_output)
 
