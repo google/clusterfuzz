@@ -55,3 +55,12 @@ RUN chmod a+rx /usr/local/bin/*
 
 # The ClusterFuzz checkout is typically mounted in with a different owner UID.
 RUN git config --global --add safe.directory /workspace
+ENV PIPENV_CACHE_DIR = /.pipenv-cache
+
+RUN git clone https://github.com/google/clusterfuzz --depth 1 && \
+    cd clusterfuzz && \
+    export PIPENV_VENV_IN_PROJECT=1 && \
+    pipenv sync --dev --python=python3.7 && \
+    pipenv run setup && \
+    cd - && \
+    rm -rf clusterfuzz
