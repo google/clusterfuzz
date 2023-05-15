@@ -279,8 +279,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   }
 
 
-def utask_main(
-    testcase, testcase_id, testcase_download_url, job_type, metadata):
+def utask_main(testcase, testcase_id, testcase_download_url, job_type,
+               metadata):
   """Executes the untrusted part of analyze_task."""
   del testcase_id
   prepare_env_for_main(metadata)
