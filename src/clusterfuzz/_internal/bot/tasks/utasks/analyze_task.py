@@ -363,14 +363,15 @@ def utask_handle_errors(output):
       tasks.add_task(
           'analyze',
           output.uworker_input['testcase_id'],
-          output.job_type,
+          output.uworker_input['job_type'],
           wait_time=build_fail_wait)
     else:
       data_handler.close_invalid_uploaded_testcase(
           output.testcase, output.metadata, 'Build setup failed')
   elif output.error == ErrorType.NO_CRASH:
-    handle_noncrash(output.testcase, output.metadata, output.testcase_id,
-                    output.job_type, output.test_timeout)
+    handle_noncrash(output.testcase, output.metadata,
+                    output.uworker_input['testcase_id'],
+                    output.uworker_input['job_type'], output.test_timeout)
   elif output.error == ErrorType.TESTCASE_SETUP:
     # Unclear if this state is ever actually reached.
     data_handler.update_testcase_comment(
