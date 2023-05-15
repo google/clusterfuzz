@@ -110,6 +110,6 @@ def tworker_postprocess(utask_module, output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   logs.log('Starting utask_postprocess: %s.' % utask_module)
   uworker_output_dict = uworker_io.download_and_deserialize_uworker_output(
-      output_download_url)
+      utask_module, output_download_url)
   uworker_output = uworker_io.uworker_output_from_dict(uworker_output_dict)
   utask_module.utask_postprocess(uworker_output)

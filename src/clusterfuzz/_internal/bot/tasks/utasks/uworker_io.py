@@ -159,6 +159,9 @@ def serialize_uworker_output(uworker_output_obj):
       continue
   entities = {}
   serializable = {}
+  error = uworker_output.pop('error', None)
+  if error:
+    error = error.value
 
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
@@ -168,7 +171,8 @@ def serialize_uworker_output(uworker_output_obj):
         'key': base64.b64encode(value.key.serialized()).decode(),
         'changed': value._wrapped_changed_attributes,  # pylint: disable=protected-access
     }
-  return json.dumps({'serializable': serializable, 'entities': entities})
+  output = {'serializable': serializable, 'entities': entities, 'error': error}
+  return json.dumps(output)
 
 
 def serialize_and_upload_uworker_output(uworker_output, upload_url):
@@ -177,7 +181,8 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
-def download_and_deserialize_uworker_output(output_url) -> Optional[str]:
+def download_and_deserialize_uworker_output(module,
+                                            output_url) -> Optional[str]:
   """Downloads and deserializes uworker output."""
   with tempfile.NamedTemporaryFile() as uworker_output_local_path:
     if not storage.copy_file_from(output_url, uworker_output_local_path.name):
@@ -185,16 +190,21 @@ def download_and_deserialize_uworker_output(output_url) -> Optional[str]:
       return None
     with open(uworker_output_local_path.name) as uworker_output_file_handle:
       uworker_output = uworker_output_file_handle.read()
-  return deserialize_uworker_output(uworker_output)
+  return deserialize_uworker_output(module, uworker_output)
 
 
-def deserialize_uworker_output(uworker_output):
+def deserialize_uworker_output(module, uworker_output):
   """Deserializes uworker's execute output for postprocessing. Returns a dict
   that can be passed as kwargs to postprocess. Changes made db entities that
   were modified during the untrusted portion of the task will be done to those
   entities here."""
   uworker_output = json.loads(uworker_output)
   deserialized_output = uworker_output['serializable']
+  error = uworker_output.pop('error')
+  if error is not None:
+    deserialized_output['error'] = module.ErrorType(error)
+  else:
+    deserialized_output['error'] = None
   for name, entity_dict in uworker_output['entities'].items():
     key = entity_dict['key']
     ndb_key = ndb.Key(serialized=base64.b64decode(key))
