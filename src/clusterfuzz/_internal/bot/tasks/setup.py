@@ -47,10 +47,11 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
- def _set_timeout_value_from_user_upload(testcase_id):
+ def _set_timeout_value_from_user_upload(testcase_id, metadata):
   """Get the timeout associated with this testcase."""
-  metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  if metadata is None:
+    metadata = data_types.TestcaseUploadMetadata.query(
+        data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   if metadata and metadata.timeout:
     environment.set_value('TEST_TIMEOUT', metadata.timeout)
 
@@ -182,7 +183,8 @@ def handle_setup_testcase_error(error, testcase, task_name, testcase_id, job_typ
 def setup_testcase(testcase,
                    job_type,
                    fuzzer_override=None,
-                   testcase_download_url=None):
+                   testcase_download_url=None,
+                   metadata=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
@@ -195,7 +197,7 @@ def setup_testcase(testcase,
   # Adjust the test timeout value if this is coming from an user uploaded
   # testcase.
   if testcase.uploader_email:
-    _set_timeout_value_from_user_upload(testcase_id)
+    _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if fuzzer_name:
