@@ -57,14 +57,15 @@ def get_default(scopes=None):
 @retry.wrap(
     retries=FAIL_RETRIES,
     delay=FAIL_WAIT,
-    function='google_cloud_utils.credentials.get_signing_creds')
+    function='google_cloud_utils.credentials.get_signing_credentials')
 def get_signing_credentials():
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
     return None
+
   creds, _ = get_default()
-  service_account_email = creds.service_account_email
   request = requests.Request()
   creds.refresh(request)
-  return compute_engine.IDTokenCredentials(
-      request, '', service_account_email=service_account_email)
+  signing_creds = compute_engine.IDTokenCredentials(
+      request, '', service_account_email=creds.service_account_email)
+  return signing_creds
