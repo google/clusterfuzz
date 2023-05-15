@@ -273,13 +273,16 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   return {
       'metadata': metadata,
       'testcase': testcase,
+      'testcase_id': testcase_id,
       'uworker_env': uworker_env,
       'testcase_download_url': testcase_download_url
   }
 
 
-def utask_main(testcase, testcase_download_url, job_type, metadata):
+def utask_main(
+    testcase, testcase_id, testcase_download_url, job_type, metadata):
   """Executes the untrusted part of analyze_task."""
+  del testcase_id
   prepare_env_for_main(metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
