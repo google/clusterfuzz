@@ -152,8 +152,6 @@ def initialize_testcase_for_main(testcase, job_type):
     environment.set_value('APP_ARGS', minimized_arguments)
     testcase.minimized_arguments = minimized_arguments
 
-  # Update other fields not set at upload time.
-  testcase.crash_revision = environment.get_value('APP_REVISION')
   testcase.put()
 
 
@@ -289,6 +287,7 @@ def utask_main(testcase, testcase_download_url, job_type, metadata):
 
   testcase_file_path, output = setup_testcase_and_build(
       testcase, metadata, job_type, testcase_download_url)
+  testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
     return output
