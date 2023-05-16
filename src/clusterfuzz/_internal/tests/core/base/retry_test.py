@@ -56,7 +56,7 @@ class WrapTest(unittest.TestCase):
       delay=10,
       backoff=2,
       function='_func',
-      exception_type=_FakeException)
+      exception_types=[_FakeException])
   def _func_exception_type(self, a):
     return self.func_body(a)
 
@@ -65,7 +65,7 @@ class WrapTest(unittest.TestCase):
       delay=10,
       backoff=2,
       function='_func',
-      exception_type=_FakeException)
+      exception_types=[_FakeException])
   def _yield_func_exception_type(self, a):
     for _ in range(3):
       yield self.func_body(a)
