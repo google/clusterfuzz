@@ -47,7 +47,7 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
- def _set_timeout_value_from_user_upload(testcase_id, metadata):
+def _set_timeout_value_from_user_upload(testcase_id, metadata):
   """Get the timeout associated with this testcase."""
   if metadata is None:
     metadata = data_types.TestcaseUploadMetadata.query(
