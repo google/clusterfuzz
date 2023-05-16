@@ -314,7 +314,7 @@ def _throttle_bug(testcase, bug_filed_24_hours_per_job,
   valid_timestamp = datetime.datetime.now() - datetime.timedelta(hours=24)
 
   # Check if the job type has a bug filing limit.
-  if job_bugs_filing_max:
+  if job_bugs_filing_max is not None:
     # Get the number of bugs filed for the current job in the past 24 hours.
     # First check the cache, then query the datastore if the value is not found.
     count_per_job = bug_filed_24_hours_per_job.get(
