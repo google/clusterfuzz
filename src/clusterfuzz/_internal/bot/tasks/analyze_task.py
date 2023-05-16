@@ -108,7 +108,7 @@ def setup_testcase_and_build(testcase, metadata, job_type, testcase_id):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
+  file_list, testcase_file_path = setup.setup_testcase(testcase, job_type)
   if not file_list:
     return None
 

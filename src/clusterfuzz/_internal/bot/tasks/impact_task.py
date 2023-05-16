@@ -405,7 +405,7 @@ def execute_task(testcase_id, job_type):
     return
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
+  file_list, testcase_file_path = setup.setup_testcase(testcase, job_type)
   if not file_list:
     return
 

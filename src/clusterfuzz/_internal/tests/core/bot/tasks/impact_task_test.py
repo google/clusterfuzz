@@ -50,7 +50,7 @@ class ExecuteTaskTest(unittest.TestCase):
     self.mock.is_custom_binary.return_value = False
     self.mock.has_production_builds.return_value = True
     self.mock.get_impacts_from_url.return_value = impacts
-    self.mock.setup_testcase.return_value = (['a'], None, 'path')
+    self.mock.setup_testcase.return_value = (['a'], 'path')
     self.mock.get_impacts_on_prod_builds.return_value = impacts
 
     self.testcase = data_types.Testcase()
