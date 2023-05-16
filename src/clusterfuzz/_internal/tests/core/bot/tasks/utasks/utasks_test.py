@@ -121,7 +121,7 @@ class TworkerPostproceessTest(unittest.TestCase):
     module.utask_postrocess.return_value = None
     utasks.tworker_postprocess(module, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.download_and_deserialize_uworker_output.assert_called_with(
-        self.OUTPUT_DOWNLOAD_GCS_URL)
+        module, self.OUTPUT_DOWNLOAD_GCS_URL)
     args = module.utask_postprocess.call_args[0][0]
     self.assertEqual(args.output1, 'something')
     self.assertEqual(args.output2, 'something else')

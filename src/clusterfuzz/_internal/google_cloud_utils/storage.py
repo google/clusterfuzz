@@ -375,11 +375,15 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
+  signing_creds = _signing_creds()
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
   url = blob.generate_signed_url(
-      version='v4', expiration=minutes, method=method)
+      version='v4',
+      expiration=minutes,
+      method=method,
+      credentials=signing_creds)
   return url
 
 
@@ -670,6 +674,13 @@ def _storage_client():
 
   _local.client = _create_storage_client_new()
   return _local.client
+
+
+def _signing_creds():
+  if hasattr(_local, 'signing_creds'):
+    return _local.signing_creds
+  _local.signing_creds = credentials.get_signing_credentials()
+  return _local.signing_creds
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
