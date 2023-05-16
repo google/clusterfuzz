@@ -51,7 +51,8 @@ def _set_timeout_value_from_user_upload(testcase_id, metadata):
   """Get the timeout associated with this testcase."""
   if metadata is None:
     metadata = data_types.TestcaseUploadMetadata.query(
-        data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+        data_types.TestcaseUploadMetadata.testcase_id == int(
+            testcase_id)).get()
   if metadata and metadata.timeout:
     environment.set_value('TEST_TIMEOUT', metadata.timeout)
 
@@ -172,12 +173,9 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
-
-def handle_setup_testcase_error(error, testcase, task_name, testcase_id, job_type):
-  del error
+def handle_setup_testcase_error(task_name, testcase_id, job_type):
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
-  tasks.add_task(
-        task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
+  tasks.add_task(task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
 
 
 def setup_testcase(testcase,
@@ -220,17 +218,17 @@ def setup_testcase(testcase,
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      handle_setup_testcase_error(testcase, task_name, testcase_id, job_type)
+      handle_setup_testcase_error(task_name, testcase_id, job_type)
       return None, None
 
   # Extract the testcase and any of its resources to the input directory.
-  file_list, testcase_file_path = unpack_testcase(
-      testcase, testcase_download_url)
+  file_list, testcase_file_path = unpack_testcase(testcase,
+                                                  testcase_download_url)
   if not file_list:
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    handle_setup_testcase_error(testcase, task_name, testcase_id, job_type)
+    handle_setup_testcase_error(task_name, testcase_id, job_type)
     return None, None
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the

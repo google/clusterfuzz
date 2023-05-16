@@ -39,6 +39,8 @@ from clusterfuzz._internal.system import shell
 MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
 STORED_TESTCASES_LIST = []
 
+# pylint: disable=broad-exception-raised
+
 
 def unpack_crash_testcases(crash_testcases_directory):
   """Unpacks the old crash testcases in the provided directory."""

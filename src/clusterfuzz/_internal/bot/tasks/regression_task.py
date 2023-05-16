@@ -268,7 +268,7 @@ def find_regression_range(testcase_id, job_type):
       testcase, testcase_file_path, job_type, max_revision, should_log=False)
   if not crashes_in_max_revision:
     testcase = data_handler.get_testcase_by_id(testcase_id)
-    error_message = ('Known crash revision %d did not crash' % max_revision)
+    error_message = f'Known crash revision {max_revision} did not crash'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     task_creation.mark_unreproducible_if_flaky(testcase, True)
