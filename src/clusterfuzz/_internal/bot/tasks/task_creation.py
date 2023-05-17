@@ -158,9 +158,9 @@ def create_variant_tasks_if_needed(testcase):
   testcase_job_is_engine = environment.is_engine_fuzzer_job(testcase.job_type)
   initial_job_app_name = None
   if not testcase_job_is_engine:
-    initial_job = list(
-        data_types.Job.query(data_types.Job.name == testcase.job_type))[0]
-    initial_job_environment = job.get_environment()
+    initial_job = (
+        data_types.Job.query(data_types.Job.name == testcase.job_type).get())
+    initial_job_environment = initial_job.get_environment()
     initial_job_app_name = initial_job_environment.get('APP_NAME')
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
@@ -182,8 +182,8 @@ def create_variant_tasks_if_needed(testcase):
     if utils.string_is_true(job_environment.get('DISABLE_VARIANT')):
       continue
 
-    if (not testcase_job_is_engine and job_environment.get('APP_NAME') !=
-        initial_job_app_name):
+    if (not testcase_job_is_engine and
+        job_environment.get('APP_NAME') != initial_job_app_name):
       continue
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
