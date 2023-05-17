@@ -145,7 +145,7 @@ class ExecuteTaskTest(unittest.TestCase):
   def test_bail_out_setup_testcase(self):
     """Test bailing out when setting up testcase fails."""
     self.mock.has_production_builds.return_value = True
-    self.mock.setup_testcase.return_value = ([], None, 'path')
+    self.mock.setup_testcase.return_value = ([], 'path')
     impact_task.execute_task(self.testcase.key.id(), 'job')
     self.expect_unchanged()
 
