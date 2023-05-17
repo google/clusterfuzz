@@ -380,7 +380,7 @@ def utask_postprocess(output):
   testcase = output.testcase
   metadata = output.metadata
   if output.error is not None:
-    uworker_handle_errors(output)
+    uworker_handle_errors.handle(output)
     return
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
