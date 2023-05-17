@@ -161,10 +161,10 @@ def serialize_uworker_output(uworker_output_obj):
   entities = {}
   serializable = {}
   error = uworker_output.pop('error', None)
-  if error:
-    error_dict = error.to_dict()
+  if error is not None:
+    error = error.to_dict()
     # Change from enum type to the int so we can serialize.
-    error_dict['error_value'] = error_dict['error_value'].value
+    error['error_type'] = error['error_type'].value
 
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
@@ -205,7 +205,7 @@ def deserialize_uworker_output(uworker_output):
   error = uworker_output.pop('error')
   if error is not None:
     error_type = uworker_errors.Type(error.pop('error_type'))
-    deserialized_output['error'] = uworker_errors.Error(error_type, error)
+    deserialized_output['error'] = uworker_errors.Error(error_type, **error)
   else:
     deserialized_output['error'] = None
   for name, entity_dict in uworker_output['entities'].items():
@@ -273,7 +273,8 @@ class UworkerOutput:
       setattr(self, key, value)
 
   def to_dict(self):
-    return self.__dict__
+    # Make a copy so calls to pop don't modify the object.
+    return self.__dict__.copy()
 
 
 def uworker_output_from_dict(output_dict):

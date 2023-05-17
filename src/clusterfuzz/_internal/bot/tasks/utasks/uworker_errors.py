@@ -30,3 +30,7 @@ class Error:
     assert error_type not in kwargs
     for key, value in kwargs.items():
       setattr(self, key, value)
+
+  def to_dict(self):
+    # Make a copy so calls to pop don't modify the object.
+    return self.__dict__.copy()
