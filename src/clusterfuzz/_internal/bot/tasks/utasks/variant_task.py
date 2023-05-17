@@ -18,6 +18,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
@@ -55,7 +56,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
   return variant_testcase
 
 
-def execute_task(testcase_id, job_type):
+def utask_preprocess(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
@@ -71,7 +72,11 @@ def execute_task(testcase_id, job_type):
   # a different fuzzing engine.
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
+  variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
 
+  return {'original_job_type': original_job_type, 'testcase': testcase, 'variant': variant}
+
+def utask_main(original_job_type, testcase):
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
   if error:
@@ -144,24 +149,32 @@ def execute_task(testcase_id, job_type):
     security_flag = False
     crash_stacktrace_output = 'No crash occurred.'
 
-  if original_job_type == job_type:
+  # Regular case of variant analysis.
+  variant.status = status
+  variant.revision = revision
+  variant.crash_type = crash_type
+  variant.crash_state = crash_state
+  variant.security_flag = security_flag
+  variant.is_similar = is_similar
+  variant.platform = environment.platform().lower()
+
+  return uworker_io.UworkerOutput(
+      testcase=testcase,
+      variant=variant,
+      job_type=job_type,
+      original_job_type=original_job_type,
+      revision=revision,
+      crash_stacktrace_output=crash_stacktrace_output)
+
+def utask_postprocess(output):
+  if output.original_job_type == output.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    testcase.last_tested_crash_stacktrace = (
-        data_handler.filter_stacktrace(crash_stacktrace_output))
-    testcase.set_metadata(
-        'last_tested_crash_revision', revision, update_testcase=True)
+    output.testcase.last_tested_crash_stacktrace = (
+        data_handler.filter_stacktrace(output.crash_stacktrace_output))
+    output.testcase.set_metadata(
+        'last_tested_crash_revision', output.revision, update_testcase=True)
   else:
-    # Regular case of variant analysis.
-    variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
-    variant.status = status
-    variant.revision = revision
-    variant.crash_type = crash_type
-    variant.crash_state = crash_state
-    variant.security_flag = security_flag
-    variant.is_similar = is_similar
-    variant.platform = environment.platform().lower()
     # Explicitly skipping crash stacktrace for now as it make entities larger
     # and we plan to use only crash paramaters in UI.
-    variant.put()
+    output.variant.put()
