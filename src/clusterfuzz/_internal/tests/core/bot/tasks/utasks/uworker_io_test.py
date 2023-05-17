@@ -270,7 +270,7 @@ class RoundTripTest(unittest.TestCase):
 
       with mock.patch(copy_file_from_name, copy_file_from) as _:
         downloaded_output = uworker_io.download_and_deserialize_uworker_output(
-            analyze_task, self.FAKE_URL)
+            self.FAKE_URL)
 
     # Test that the entity (de)serialization and change tracking working.
     downloaded_testcase = downloaded_output.pop('testcase')
