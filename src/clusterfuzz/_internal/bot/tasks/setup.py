@@ -174,7 +174,8 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
-def handle_testcase_setup_error(error):
+def handle_setup_testcase_error(error):
+  """Handler for setup_testcase that is called by uworker_postprocess."""
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   tasks.add_task(
@@ -207,7 +208,9 @@ def setup_testcase(testcase,
     try:
       update_successful = update_fuzzer_and_data_bundles(fuzzer_name)
     except errors.InvalidFuzzerError:
-      # Don't need to use an error handler here.
+      # Don't need to use an error handler here becasue we're only updating a db
+      # entity. This can be done on the uworker as long as they return it to the
+      # tworker for saving.
       # Close testcase and don't recreate tasks if this fuzzer is invalid.
       testcase.open = False
       testcase.fixed = 'NA'

@@ -14,7 +14,6 @@
 """Analyze task for handling user uploads."""
 
 import datetime
-import enum
 from typing import Optional
 
 from clusterfuzz._internal.base import errors
@@ -380,7 +379,7 @@ def utask_postprocess(output):
   # TODO(metzman): Get rid of this after main migration PR.
   testcase = output.testcase
   metadata = output.metadata
-  if output.error:
+  if output.error is not None:
     uworker_handle_errors(output)
     return
 
@@ -434,10 +433,3 @@ def utask_postprocess(output):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
   task_creation.create_tasks(testcase)
-
-
-class ErrorType(enum.Enum):
-  """Errors during utask_main."""
-  BUILD_SETUP = 1
-  NO_CRASH = 2
-  TESTCASE_SETUP = 3
