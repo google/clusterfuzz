@@ -251,6 +251,13 @@ class UworkerEntityWrapper:
     # Make the attribute change.
     setattr(self._entity, attribute, value)
 
+  def put(self, *args, **kwargs):
+    """Block put method since wrapped objects can't be written by the
+    uworker."""
+    del args
+    del kwargs
+    logs.log(f'Not putting {self._entity}.')
+
 
 class UworkerOutput:
   """Convenience class for results from uworker_main. This is useful for

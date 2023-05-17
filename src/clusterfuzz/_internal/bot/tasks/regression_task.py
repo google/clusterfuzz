@@ -238,7 +238,7 @@ def find_regression_range(testcase_id, job_type):
   revision_list = build_manager.get_revisions_list(
       build_bucket_path, testcase=testcase)
   if not revision_list:
-    data_handler.close_testcase_with_error(testcase_id,
+    data_handler.close_testcase_with_error(testcase,
                                            'Failed to fetch revision list')
     return
 
