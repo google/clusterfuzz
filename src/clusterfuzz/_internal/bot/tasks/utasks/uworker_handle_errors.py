@@ -15,6 +15,7 @@
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 
 
 def noop(*args, **kwargs):
@@ -27,9 +28,12 @@ def handle(error_or_output):
   # objects directly and only handle utask output objects.
   if isinstance(error_or_output, uworker_errors.Error):
     error_type = error_or_output.type
+    output = error_or_output
   else:
     error_type = error_or_output.error.type
-  return MAPPING[error_type](error_or_output)
+    output = uworker_io.UworkerOutput(error=error)
+
+  return MAPPING[error_type](output)
 
 
 MAPPING = {

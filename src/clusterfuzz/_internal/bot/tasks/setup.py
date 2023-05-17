@@ -174,10 +174,11 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
-def handle_setup_testcase_error(error):
+def handle_setup_testcase_error(uworker_output):
   """Handler for setup_testcase that is called by uworker_postprocess."""
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
+  error = uworker_output
   tasks.add_task(
       task_name,
       error.testcase_id,
