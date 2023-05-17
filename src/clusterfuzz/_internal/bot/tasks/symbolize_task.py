@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
@@ -48,10 +49,9 @@ def execute_task(testcase_id, job_type):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  file_list, testcase_file_path, retry_task = setup.setup_testcase(
-      testcase, job_type)
-  if retry_task:
-    setup.retry_task(testcase_id, job_type)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  if error:
+    uworker_handle_errors.handle(error)
     return
 
   # Initialize variables.

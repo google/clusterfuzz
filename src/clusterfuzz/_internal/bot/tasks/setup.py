@@ -24,6 +24,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
+from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -173,11 +174,13 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
-def retry_task(testcase_id, job_type):
+def handle_testcase_setup_error(error):
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   tasks.add_task(
-      task_name, output.testcase_id, output.job_type,
+      task_name,
+      error.testcase_id,
+      error.job_type,
       wait_time=testcase_fail_wait)
 
 
@@ -204,6 +207,7 @@ def setup_testcase(testcase,
     try:
       update_successful = update_fuzzer_and_data_bundles(fuzzer_name)
     except errors.InvalidFuzzerError:
+      # Don't need to use an error handler here.
       # Close testcase and don't recreate tasks if this fuzzer is invalid.
       testcase.open = False
       testcase.fixed = 'NA'
@@ -214,13 +218,16 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None
+      return None, None, None
 
     if not update_successful:
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, True
+      return None, None, uworker_errors.Error(
+          uworker_errors.Type.TESTCASE_SETUP,
+          job_type=job_type,
+          testcase_id=testcase_id)
 
   # Extract the testcase and any of its resources to the input directory.
   file_list, testcase_file_path = unpack_testcase(testcase,
@@ -229,7 +236,10 @@ def setup_testcase(testcase,
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    return None, None, True
+    return None, None, uworker_errors.Error(
+        uworker_errors.Type.TESTCASE_SETUP,
+        job_type=job_type,
+        testcase_id=testcase_id)
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.
@@ -247,9 +257,10 @@ def setup_testcase(testcase,
     # Get local blacklist without this testcase's entry.
     leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
 
+  task_name = environment.get_value('TASK_NAME')
   prepare_environment_for_testcase(testcase, job_type, task_name)
 
-  return file_list, testcase_file_path
+  return file_list, testcase_file_path, None
 
 
 def _get_testcase_file_and_path(testcase):
@@ -569,6 +580,8 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
   _clear_old_data_bundles_if_needed()
 
   # Setup data bundles associated with this fuzzer.
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to a
+  # seperate function.
   data_bundles = ndb_utils.get_all_from_query(
       data_types.DataBundle.query(
           data_types.DataBundle.name == fuzzer.data_bundle_name))
