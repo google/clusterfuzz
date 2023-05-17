@@ -14,6 +14,7 @@
 """Module for enumerating errors in utasks."""
 import enum
 
+
 class Type(enum.Enum):
   """Errors during utask_main."""
   ANALYZE_BUILD_SETUP = 1
@@ -21,7 +22,9 @@ class Type(enum.Enum):
   TESTCASE_SETUP = 3
   NO_FUZZER = 4
 
+
 class Error:
+
   def __init__(self, error_type, **kwargs):
     self.error_type = error_type
     assert error_type not in kwargs

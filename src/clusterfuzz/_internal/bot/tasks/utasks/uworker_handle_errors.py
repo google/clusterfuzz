@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module for handling errors in utasks."""
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
-from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 
 
 def noop(*args, **kwargs):
-  pass
+  del args
+  del kwargs
+
 
 def handle(error_or_output):
   # TODO(metzman): Once every task supports utasks we can stop handling errors
@@ -27,13 +29,16 @@ def handle(error_or_output):
     error_type = error_or_output.type
   else:
     error_type = error_or_output.error.type
-  return MAPPING[error_output.type](error_or_output)
+  return MAPPING[error_type](error_or_output)
 
 
 MAPPING = {
-  uworker_errors.Type.ANALYZE_NO_CRASH: analyze_task.handle_noncrash,
-  uworker_errors.Type.ANALYZE_BUILD_SETUP:
-      analyze_task.handle_build_setup_error,
-  uworker_errors.Type.TESTCASE_SETUP: setup.handle_testcase_setup_error,
-  uworker_errors.Type.NO_FUZZER: noop,
+    uworker_errors.Type.ANALYZE_NO_CRASH:
+        analyze_task.handle_noncrash,
+    uworker_errors.Type.ANALYZE_BUILD_SETUP:
+        analyze_task.handle_build_setup_error,
+    uworker_errors.Type.TESTCASE_SETUP:
+        setup.handle_testcase_setup_error,
+    uworker_errors.Type.NO_FUZZER:
+        noop,
 }
