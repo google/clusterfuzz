@@ -24,14 +24,16 @@ def noop(*args, **kwargs):
 
 
 def handle(error_or_output):
+  """Handles the errors bubbled up from the uworker."""
   # TODO(metzman): Once every task supports utasks we can stop handling errors
   # objects directly and only handle utask output objects.
   if isinstance(error_or_output, uworker_errors.Error):
-    error_type = error_or_output.type
-    output = error_or_output
+    error = error_or_output
+    error_type = error.type
+    output = uworker_io.UworkerOutput(error=error)
   else:
     error_type = error_or_output.error.type
-    output = uworker_io.UworkerOutput(error=error)
+    output = error_or_output
 
   return MAPPING[error_type](output)
 
