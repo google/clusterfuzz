@@ -366,9 +366,10 @@ def execute_task(testcase_id, job_type):
   # Setup testcase and its dependencies. Also, allow setting up a different
   # fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
-  file_list, testcase_file_path = setup.setup_testcase(
+  file_list, testcase_file_path, retry_task = setup.setup_testcase(
       testcase, job_type, fuzzer_override=minimize_fuzzer_override)
-  if not file_list:
+  if retry_task:
+    setup.retry_task(testcase_id, job_type)
     return
 
   # Initialize variables.

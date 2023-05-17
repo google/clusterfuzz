@@ -73,7 +73,8 @@ def execute_task(testcase_id, job_type):
 
   # Setup testcase and its dependencies.
   file_list, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
+  if retry_task:
+    setup.retry_task(testcase_id, job_type)
     return
 
   # Set up a custom or regular build. We explicitly omit the crash revision

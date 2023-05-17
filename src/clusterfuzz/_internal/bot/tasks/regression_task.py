@@ -226,12 +226,10 @@ def find_regression_range(testcase_id, job_type):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  file_list, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Failed to setup testcase')
-    tasks.add_task('regression', testcase_id, job_type)
+  file_list, testcase_file_path, retry_task = setup.setup_testcase(
+      testcase, job_type)
+  if retry_task:
+    setup.retry_task(testcase_id, job_type)
     return
 
   build_bucket_path = build_manager.get_primary_bucket_path()

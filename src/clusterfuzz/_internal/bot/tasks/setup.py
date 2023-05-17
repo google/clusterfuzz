@@ -173,9 +173,12 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
-def handle_setup_testcase_error(task_name, testcase_id, job_type):
+def retry_task(testcase_id, job_type):
+  task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
-  tasks.add_task(task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
+  tasks.add_task(
+      task_name, output.testcase_id, output.job_type,
+      wait_time=testcase_fail_wait)
 
 
 def setup_testcase(testcase,
@@ -186,7 +189,6 @@ def setup_testcase(testcase,
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
-  task_name = environment.get_value('TASK_NAME')
   testcase_id = testcase.key.id()
 
   # Clear testcase directories.
@@ -218,8 +220,7 @@ def setup_testcase(testcase,
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      handle_setup_testcase_error(task_name, testcase_id, job_type)
-      return None, None
+      return None, None, True
 
   # Extract the testcase and any of its resources to the input directory.
   file_list, testcase_file_path = unpack_testcase(testcase,
@@ -228,8 +229,7 @@ def setup_testcase(testcase,
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    handle_setup_testcase_error(task_name, testcase_id, job_type)
-    return None, None
+    return None, None, True
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.

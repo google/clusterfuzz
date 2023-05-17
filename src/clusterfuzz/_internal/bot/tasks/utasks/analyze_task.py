@@ -112,9 +112,9 @@ def setup_testcase_and_build(
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
-  file_list, testcase_file_path = setup.setup_testcase(
+  file_list, testcase_file_path, retry_task = setup.setup_testcase(
       testcase, job_type, testcase_download_url=testcase_download_url)
-  if not file_list:
+  if not retry_task:
     return None, uworker_io.UworkerOutput(
         testcase=testcase, metadata=metadata, error=ErrorType.TESTCASE_SETUP)
 
@@ -361,12 +361,9 @@ def utask_handle_errors(output):
         output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
     if data_handler.is_first_retry_for_task(output.testcase):
-      build_fail_wait = output.uworker_env.get('FAIL_WAIT')
-      tasks.add_task(
-          'analyze',
+      setup.retry_task(
           output.uworker_input['testcase_id'],
-          output.uworker_input['job_type'],
-          wait_time=build_fail_wait)
+          output.uworker_input['job_type'])
     else:
       data_handler.close_invalid_uploaded_testcase(
           output.testcase, output.metadata, 'Build setup failed')
@@ -376,8 +373,8 @@ def utask_handle_errors(output):
                     output.uworker_input['job_type'], output.test_timeout)
   elif output.error == ErrorType.TESTCASE_SETUP:
     # Unclear if this state is ever actually reached.
-    data_handler.update_testcase_comment(
-        output.testcase, data_types.TaskState.ERROR, 'Testcase setup failed')
+    setup.retry_task(
+        output.uworker_input['testcase_id'], output.uworker_input['job_type'])
   elif output.error == ErrorType.IGNORE_STACK:
     data_handler.close_invalid_uploaded_testcase(output.testcase,
                                                  output.metadata, 'Irrelavant')
