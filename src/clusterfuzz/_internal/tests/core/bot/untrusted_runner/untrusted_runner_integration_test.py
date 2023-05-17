@@ -426,13 +426,11 @@ class UntrustedRunnerIntegrationTest(
 
     testcase.put()
 
-    file_list, input_directory, testcase_file_path = (
-        setup.setup_testcase(testcase, job_type))
+    file_list, testcase_file_path = setup.setup_testcase(testcase, job_type)
 
     self.assertCountEqual(file_list, [
         testcase.absolute_path,
     ])
-    self.assertEqual(input_directory, fuzz_inputs)
     self.assertEqual(testcase_file_path, testcase.absolute_path)
 
     worker_fuzz_inputs = file_host.rebase_to_worker_root(fuzz_inputs)

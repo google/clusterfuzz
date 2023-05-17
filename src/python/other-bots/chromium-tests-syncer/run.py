@@ -39,6 +39,8 @@ from clusterfuzz._internal.system import shell
 MAX_TESTCASE_DIRECTORY_SIZE = 10 * 1024 * 1024  # in bytes.
 STORED_TESTCASES_LIST = []
 
+# pylint: disable=broad-exception-raised
+
 
 def unpack_crash_testcases(crash_testcases_directory):
   """Unpacks the old crash testcases in the provided directory."""
@@ -82,7 +84,7 @@ def unpack_crash_testcases(crash_testcases_directory):
 
     # Un-pack testcase.
     try:
-      _, input_directory, _ = setup.unpack_testcase(testcase)
+      setup.unpack_testcase(testcase)
     except Exception:
       logs.log_error('Failed to unpack testcase %d.' % testcase.key.id())
       continue
@@ -90,6 +92,7 @@ def unpack_crash_testcases(crash_testcases_directory):
     # Move this to our crash testcases directory.
     crash_testcase_directory = os.path.join(crash_testcases_directory,
                                             str(testcase_id))
+    input_directory = environment.get_value('FUZZ_INPUTS')
     shell.move(input_directory, crash_testcase_directory)
 
     # Re-create input directory for unpacking testcase in next iteration.

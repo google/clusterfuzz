@@ -112,7 +112,7 @@ def setup_testcase_and_build(
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
-  file_list, _, testcase_file_path = setup.setup_testcase(
+  file_list, testcase_file_path = setup.setup_testcase(
       testcase, job_type, testcase_download_url=testcase_download_url)
   if not file_list:
     return None, uworker_io.UworkerOutput(

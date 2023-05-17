@@ -47,10 +47,12 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
-def _set_timeout_value_from_user_upload(testcase_id):
+def _set_timeout_value_from_user_upload(testcase_id, metadata):
   """Get the timeout associated with this testcase."""
-  metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  if metadata is None:
+    metadata = data_types.TestcaseUploadMetadata.query(
+        data_types.TestcaseUploadMetadata.testcase_id == int(
+            testcase_id)).get()
   if metadata and metadata.timeout:
     environment.set_value('TEST_TIMEOUT', metadata.timeout)
 
@@ -171,15 +173,20 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
+def handle_setup_testcase_error(task_name, testcase_id, job_type):
+  testcase_fail_wait = environment.get_value('FAIL_WAIT')
+  tasks.add_task(task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
+
+
 def setup_testcase(testcase,
                    job_type,
                    fuzzer_override=None,
-                   testcase_download_url=None):
+                   testcase_download_url=None,
+                   metadata=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   task_name = environment.get_value('TASK_NAME')
-  testcase_fail_wait = environment.get_value('FAIL_WAIT')
   testcase_id = testcase.key.id()
 
   # Clear testcase directories.
@@ -188,7 +195,7 @@ def setup_testcase(testcase,
   # Adjust the test timeout value if this is coming from an user uploaded
   # testcase.
   if testcase.uploader_email:
-    _set_timeout_value_from_user_upload(testcase_id)
+    _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if fuzzer_name:
@@ -205,26 +212,24 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, None
+      return None, None
 
     if not update_successful:
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      tasks.add_task(
-          task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
-      return None, None, None
+      handle_setup_testcase_error(task_name, testcase_id, job_type)
+      return None, None
 
   # Extract the testcase and any of its resources to the input directory.
-  file_list, input_directory, testcase_file_path = unpack_testcase(
-      testcase, testcase_download_url)
+  file_list, testcase_file_path = unpack_testcase(testcase,
+                                                  testcase_download_url)
   if not file_list:
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    tasks.add_task(
-        task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
-    return None, None, None
+    handle_setup_testcase_error(task_name, testcase_id, job_type)
+    return None, None
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.
@@ -244,7 +249,7 @@ def setup_testcase(testcase,
 
   prepare_environment_for_testcase(testcase, job_type, task_name)
 
-  return file_list, input_directory, testcase_file_path
+  return file_list, testcase_file_path
 
 
 def _get_testcase_file_and_path(testcase):
@@ -328,7 +333,7 @@ def unpack_testcase(testcase, testcase_download_url=None):
     temp_filename = testcase_file_path
 
   if not download_testcase(key, testcase_download_url, temp_filename):
-    return None, input_directory, testcase_file_path
+    return None, testcase_file_path
 
   file_list = []
   if archived:
@@ -347,11 +352,11 @@ def unpack_testcase(testcase, testcase_download_url=None):
           'Expected file to run %s is not in archive. Base directory is %s and '
           'files in archive are [%s].' % (testcase_file_path, input_directory,
                                           ','.join(file_list)))
-      return None, input_directory, testcase_file_path
+      return None, testcase_file_path
   else:
     file_list.append(testcase_file_path)
 
-  return file_list, input_directory, testcase_file_path
+  return file_list, testcase_file_path
 
 
 def _get_data_bundle_update_lock_name(data_bundle_name):
