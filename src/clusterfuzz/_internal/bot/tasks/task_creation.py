@@ -157,12 +157,12 @@ def create_variant_tasks_if_needed(testcase):
   project = data_handler.get_project_name(testcase.job_type)
   jobs = data_types.Job.query(data_types.Job.project == project)
   testcase_job_is_engine = environment.is_engine_fuzzer_job(testcase.job_type)
-  initial_job_app_name = None
+  testcase_job_app_name = None
   if not testcase_job_is_engine:
-    initial_job = (
+    testcase_job = (
         data_types.Job.query(data_types.Job.name == testcase.job_type).get())
-    initial_job_environment = initial_job.get_environment()
-    initial_job_app_name = initial_job_environment.get('APP_NAME')
+    testcase_job_environment = testcase_job.get_environment()
+    testcase_job_app_name = testcase_job_environment.get('APP_NAME')
   num_variant_tasks = 0
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
@@ -185,7 +185,7 @@ def create_variant_tasks_if_needed(testcase):
       continue
 
     if (not testcase_job_is_engine and
-        job_environment.get('APP_NAME') != initial_job_app_name):
+        job_environment.get('APP_NAME') != testcase_job_app_name):
       continue
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
@@ -194,7 +194,7 @@ def create_variant_tasks_if_needed(testcase):
     variant.status = data_types.TestcaseVariantStatus.PENDING
     variant.put()
     num_variant_tasks += 1
-  logs.log(f'Number of variant tasks {num_variant_tasks}.')
+  logs.log(f'Number of variant tasks: {num_variant_tasks}.')
 
 
 def create_symbolize_task_if_needed(testcase):
