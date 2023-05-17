@@ -236,8 +236,8 @@ class RoundTripTest(unittest.TestCase):
     # Prepare an output that tests db entity change tracking and
     # (de)serialization.
     error_field = 'error-field-value'
-    output_error = uworker_errors.Error(uworker_errors.Type.ANALYZE_BUILD_SETUP,
-                                        error_field=error_field)
+    output_error = uworker_errors.Error(
+        uworker_errors.Type.ANALYZE_BUILD_SETUP, error_field=error_field)
     field_value = 'field-value'
     output = uworker_io.UworkerOutput(error=output_error)
     output.field = field_value
