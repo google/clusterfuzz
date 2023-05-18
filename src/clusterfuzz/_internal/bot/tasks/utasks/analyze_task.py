@@ -377,12 +377,11 @@ def handle_build_setup_error(output):
 def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
-  # TODO(metzman): Get rid of this after main migration PR.
-  testcase = output.testcase
-  metadata = output.metadata
   if output.error is not None:
     uworker_handle_errors.handle(output)
     return
+  testcase = output.testcase
+  metadata = output.metadata
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
