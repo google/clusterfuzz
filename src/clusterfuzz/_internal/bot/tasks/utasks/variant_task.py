@@ -71,6 +71,10 @@ def utask_preprocess(testcase_id, job_type):
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
 
+  if not environment.is_engine_fuzzer_job(testcase.job_type):
+    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
+    testcase.put = lambda: None
+
   return {
       'original_job_type': original_job_type,
       'testcase': testcase,
@@ -190,6 +194,10 @@ def utask_postprocess(output):
   if not environment.is_engine_fuzzer_job(output.testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     output.testcase.put = lambda: None
+
+  if output.error is not None:
+    uworker_handle_errors.handle(output)
+    return
 
   if output.original_job_type == output.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
