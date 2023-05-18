@@ -79,7 +79,7 @@ def cast(value, field):
     return datetime.datetime.utcfromtimestamp(float(value))
   if field['type'] in {'RECORD'}:
     return convert_row(value, field['fields'])
-  raise Exception(f'The type field["type"] is unsupported.')  # pylint: disable=broad-exception-raised
+  raise Exception(f'The type field[{"type"}] is unsupported.')  # pylint: disable=broad-exception-raised
 
 
 def convert_row(raw_row, fields):
@@ -233,7 +233,7 @@ class Client(object):
 
       if (time.time() - start_time) > timeout:
         raise Exception(
-            f'Timeout: the query doesn't finish within {timeout} seconds.') # pylint: disable=broad-exception-raised
+            f'Timeout: the query doesn\'t finish within {timeout} seconds.') # pylint: disable=broad-exception-raised
       time.sleep(1)
 
   def query(self,

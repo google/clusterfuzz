@@ -357,6 +357,7 @@ class FixedWidthBucketer(_Bucketer):
   """Fixed width bucketer."""
 
   def __init__(self, width, num_finite_buckets=100):
+    super().__init__()
     self.width = width
     self.num_finite_buckets = num_finite_buckets
 
@@ -370,6 +371,7 @@ class GeometricBucketer(_Bucketer):
   """Geometric bucketer."""
 
   def __init__(self, growth_factor=10**0.2, num_finite_buckets=100, scale=1.0):
+    super().__init__()
     self.growth_factor = growth_factor
     self.num_finite_buckets = num_finite_buckets
     self.scale = scale
