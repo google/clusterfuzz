@@ -128,11 +128,11 @@ def setup_testcase_and_build(
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
   if not build_manager.check_app_path():
-    # Let postprocess handle BUILD_SETUP and restart tasks if needed.
+    # Let postprocess handle ANALYZE_BUILD_SETUP and restart tasks if needed.
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         metadata=metadata,
-        error=uworker_errors.Error(uworker_errors.Type.BUILD_SETUP))
+        error=uworker_errors.Error(uworker_errors.Type.ANALYZE_BUILD_SETUP))
 
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
