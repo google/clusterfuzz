@@ -24,7 +24,6 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz.fuzz import engine
 
-
 # pylint:disable=no-member
 
 

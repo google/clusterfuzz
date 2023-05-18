@@ -60,8 +60,10 @@ def iterator(archive_path,
   archive_type = get_archive_type(archive_path)
 
   if not file_match_callback:
+
     def file_match_callback_fallback(_):
       return True
+
     file_match_callback = file_match_callback_fallback
 
   def maybe_extract(extract_func, info):

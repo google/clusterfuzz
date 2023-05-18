@@ -232,8 +232,8 @@ class Client(object):
         return result
 
       if (time.time() - start_time) > timeout:
-        raise Exception(
-            f'Timeout: the query doesn\'t finish within {timeout} seconds.') # pylint: disable=broad-exception-raised
+        raise Exception(  # pylint: disable=broad-exception-raised
+            f'Timeout: the query doesn\'t finish within {timeout} seconds.')
       time.sleep(1)
 
   def query(self,

@@ -23,8 +23,8 @@ from clusterfuzz._internal.system import process_handler
 from . import environment
 from . import host
 
-
 # pylint:disable=no-member
+
 
 def process_result_from_proto(process_result_proto):
   """Convert ProcessResult proto to new_process.ProcessResult."""

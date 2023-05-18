@@ -72,12 +72,14 @@ MUTATOR_STRATEGIES = [
     strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
 ]
 
+# pylint: disable=no-member
+
 
 class LibFuzzerException(Exception):
   """LibFuzzer exception."""
 
 
-class LibFuzzerCommon(object):  # pylint disable=no-member
+class LibFuzzerCommon(object):
   """Provides common libFuzzer functionality."""
 
   # Window of time for libFuzzer to exit gracefully before we KILL it.

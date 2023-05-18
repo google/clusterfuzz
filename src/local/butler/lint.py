@@ -203,19 +203,21 @@ def execute(_):
       py_changed_nontests.append(file_path)
 
   # Use --score no to make output less noisy.
-  base_pylint_cmd = 'pylint --score=no --ignore=protos,tests,grammars --jobs=0'
+  base_pylint_cmd = 'pylint --score=no --jobs=0'
   # Test for existence of files before running tools to avoid errors from
   # misusing the tools.
   module_parent_path = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
   third_party_path = os.path.join(module_parent_path, 'third_party')
   os.environ['PYTHONPATH'] = f'{module_parent_path}:{third_party_path}'
-  py_changed_nontests = [os.path.join(module_parent_path, 'clusterfuzz')]
+  py_nontests = [os.path.join(module_parent_path, 'clusterfuzz')]
   if py_changed_nontests:
     _execute_command_and_track_error(
-        f'{base_pylint_cmd} {" ".join(py_changed_nontests)}')
+        f'{base_pylint_cmd} --ignore=protos,tests,grammars clusterfuzz')
+
   if py_changed_tests:
     _execute_command_and_track_error(
-        f'{base_pylint_cmd} --max-line-length=240 {" ".join(py_changed_tests)}')
+        f'{base_pylint_cmd} --ignore=protos,grammars --max-line-length=240 '
+        f'{py_tests}')
 
   py_changed_file_paths = py_changed_nontests + py_changed_tests
   if py_changed_file_paths:

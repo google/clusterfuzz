@@ -61,7 +61,7 @@ def post_with_retries(upload_url, params, files):
     try:
       result = requests.post(
           upload_url, data=params, files=files, timeout=POST_TIMEOUT_SECONDS)
-      if result.status_code == requests.codes.ok: # pylint: disable=no-member
+      if result.status_code == requests.codes.ok:  # pylint: disable=no-member
         return result.text
 
       # No need to retry on a non-200 status code.

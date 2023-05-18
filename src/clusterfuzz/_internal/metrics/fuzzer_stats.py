@@ -1060,7 +1060,7 @@ def upload_stats(stats_list, filename=None):
   # Handle runs that bleed into the next day.
   def timestamp_start_of_day(s):
     utils.utc_date_to_timestamp(
-      datetime.datetime.utcfromtimestamp(s.timestamp).date())
+        datetime.datetime.utcfromtimestamp(s.timestamp).date())
 
   stats_list.sort(key=lambda s: s.timestamp)
 
