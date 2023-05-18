@@ -376,7 +376,7 @@ def handle_build_setup_error(output):
         wait_time=testcase_fail_wait)
   else:
     data_handler.close_invalid_uploaded_testcase(
-        output.testcase, output.metadata, 'Build setup failed)')
+        output.testcase, output.metadata, 'Build setup failed')
 
 
 def utask_postprocess(output):
