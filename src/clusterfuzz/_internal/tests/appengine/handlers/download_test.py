@@ -334,7 +334,7 @@ class DownloadTest(unittest.TestCase):
         testcase_id=self.testcase.key.id(),
         expect_filename=expect_filename)
 
-    expect_filename = ('clusterfuzz-testcase-%s.ext' % self.testcase.key.id())
+    expect_filename = 'clusterfuzz-testcase-%s.ext' % self.testcase.key.id()
     self._test_download(
         self.fuzzed_key,
         testcase_id=self.testcase.key.id(),

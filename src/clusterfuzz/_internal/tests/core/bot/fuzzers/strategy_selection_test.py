@@ -84,7 +84,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzerPatch(unittest.TestCase):
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
-    strategy2.strategy_name = ('random_max_len,value_profile,')
+    strategy2.strategy_name = 'random_max_len,value_profile,'
     strategy2.probability = 0.34
     strategy2.engine = 'libFuzzer'
     data.append(strategy2)
@@ -129,7 +129,7 @@ class TestMultiArmedBanditStrategySelectionLibFuzzer(unittest.TestCase):
     data = []
 
     strategy1 = data_types.FuzzStrategyProbability()
-    strategy1.strategy_name = ('random_max_len,value_profile,')
+    strategy1.strategy_name = 'random_max_len,value_profile,'
     strategy1.probability = 1
     strategy1.engine = 'libFuzzer'
     data.append(strategy1)
@@ -211,13 +211,13 @@ class TestMultiArmedBanditStrategySelectionAFLPatch(unittest.TestCase):
     data.append(strategy1)
 
     strategy2 = data_types.FuzzStrategyProbability()
-    strategy2.strategy_name = ('corpus_mutations_radamsa,corpus_subset,')
+    strategy2.strategy_name = 'corpus_mutations_radamsa,corpus_subset,'
     strategy2.probability = 0.34
     strategy2.engine = 'afl'
     data.append(strategy2)
 
     strategy3 = data_types.FuzzStrategyProbability()
-    strategy3.strategy_name = ('corpus_subset,')
+    strategy3.strategy_name = 'corpus_subset,'
     strategy3.probability = 0.33
     strategy3.engine = 'afl'
     data.append(strategy3)
