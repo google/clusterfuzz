@@ -334,7 +334,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
     return uworker_io.UworkerOutput(
         testcase,
         metadata=metadata,
-        error=uworker_errors.Error(uworker_errors.Type.NO_CRASH),
+        error=uworker_errors.Error(uworker_errors.Type.ANALYZE_NO_CRASH),
         test_timeout=test_timeout,
         job_type=job_type)
   # Update testcase crash parameters.
