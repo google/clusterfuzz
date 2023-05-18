@@ -21,3 +21,4 @@ class Type(enum.Enum):
   ANALYZE_NO_CRASH = 2
   TESTCASE_SETUP = 3
   NOOP_HANDLER = 4
+  VARIANT_BUILD_SETUP = 5

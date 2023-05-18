@@ -15,6 +15,7 @@
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
+from clusterfuzz._internal.bot.tasks.utasks import variant_task
 
 
 def noop(*args, **kwargs):
@@ -34,6 +35,8 @@ MAPPING = {
         analyze_task.handle_build_setup_error,
     uworker_errors.Type.TESTCASE_SETUP:
         setup.handle_setup_testcase_error,
+    uworker_errors.Type.VARIANT_BUILD_SETUP:
+        variant_task.handle_build_setup_testcase_error,
     uworker_errors.Type.NOOP_HANDLER:
         noop,
 }

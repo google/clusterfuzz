@@ -18,7 +18,6 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
-from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
