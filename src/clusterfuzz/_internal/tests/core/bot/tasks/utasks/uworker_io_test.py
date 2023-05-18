@@ -218,8 +218,8 @@ class RoundTripTest(unittest.TestCase):
     self.assertEqual(self.testcase.crash_address,
                      downloaded_testcase.crash_address)
     self.assertEqual(self.testcase.crash_state, downloaded_testcase.crash_state)
-    self.assertEqual(self.testcase.key.serialized,
-                     downloaded_testcase.key.serialized)
+    self.assertEqual(self.testcase.key.serialized(),
+                     downloaded_testcase.key.serialized())
 
     # Now test that the rest of the input was (de)serialized properly.
     del uworker_input['testcase']
