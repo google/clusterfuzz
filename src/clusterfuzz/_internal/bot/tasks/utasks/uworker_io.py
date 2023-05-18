@@ -237,7 +237,7 @@ class UworkerEntityWrapper:
     if attribute in ['_entity', '_wrapped_changed_attributes']:
       # Allow setting and changing _entity and _wrapped_changed_attributes.
       # Stack overflow in __init__ otherwise.
-      return super().__getattr__(attribute)
+      return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self._entity, attribute)
 
   def __setattr__(self, attribute, value):

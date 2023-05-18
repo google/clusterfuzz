@@ -17,6 +17,10 @@ import base64
 
 from clusterfuzz._internal.datastore import data_types
 
+# TODO(https://github.com/google/clusterfuzz/issues/3077): Get rid of this, if
+# safe.
+# pylint: disable=unnecessary-dunder-call
+
 BASE64_MARKER = 'base64;'
 
 

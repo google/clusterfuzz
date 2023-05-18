@@ -432,7 +432,7 @@ class AflFuzzInputDirectory(object):
     self.original_input_directory = None
 
 
-class AflRunnerCommon(object):
+class AflRunnerCommon(object):  # pylint: disable=no-member
   """Afl runner common routines."""
 
   # Window of time for afl to exit gracefully before we kill it.

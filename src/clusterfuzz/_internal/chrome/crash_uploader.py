@@ -51,6 +51,7 @@ PRODUCT_MAP = {
 PROCESSED_REPORT_FILE_KEY = 'processedReport'
 MINIDUMP_FILE_KEY = 'upload_file_minidump'
 VERSION_KEY = 'version'
+POST_TIMEOUT_SECONDS = 120
 
 
 def post_with_retries(upload_url, params, files):
@@ -58,8 +59,9 @@ def post_with_retries(upload_url, params, files):
   retry_limit = environment.get_value('FAIL_RETRIES')
   for _ in range(retry_limit):
     try:
-      result = requests.post(upload_url, data=params, files=files)
-      if result.status_code == requests.codes.ok:
+      result = requests.post(
+          upload_url, data=params, files=files, timeout=POST_TIMEOUT_SECONDS)
+      if result.status_code == requests.codes.ok: # pylint: disable=no-member
         return result.text
 
       # No need to retry on a non-200 status code.
@@ -551,7 +553,7 @@ def get_symbolized_stack_bytes(crash_type, crash_address, symbolized_stack):
 
   try:
     for stack in symbolized_stack:
-      thread = process_state.threads.add()
+      thread = process_state.threads.add()  # pylint: disable=no-member
       thread.frames.extend([stackframe.to_proto() for stackframe in stack])
 
     return process_state.SerializeToString()

@@ -27,6 +27,7 @@ from clusterfuzz.fuzz import engine
 
 from . import host
 
+# pylint: disable=no-member
 
 def _fuzz_target_to_proto(fuzz_target):
   """Convert fuzz_target to protobuf."""

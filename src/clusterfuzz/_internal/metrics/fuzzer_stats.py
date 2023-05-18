@@ -1058,8 +1058,10 @@ def upload_stats(stats_list, filename=None):
     filename = '%016x' % random.randint(0, (1 << 64) - 1) + '.json'
 
   # Handle runs that bleed into the next day.
-  timestamp_start_of_day = lambda s: utils.utc_date_to_timestamp(
+  def timestamp_start_of_day(s):
+    utils.utc_date_to_timestamp(
       datetime.datetime.utcfromtimestamp(s.timestamp).date())
+
   stats_list.sort(key=lambda s: s.timestamp)
 
   for timestamp, stats in itertools.groupby(stats_list, timestamp_start_of_day):

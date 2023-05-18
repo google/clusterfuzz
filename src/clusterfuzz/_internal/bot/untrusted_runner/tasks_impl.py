@@ -25,6 +25,9 @@ from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz.fuzz import engine
 
 
+# pylint:disable=no-member
+
+
 def _proto_to_fuzz_target(proto):
   """Convert protobuf to FuzzTarget."""
   return data_types.FuzzTarget(

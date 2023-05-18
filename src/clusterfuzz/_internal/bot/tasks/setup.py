@@ -225,7 +225,7 @@ def setup_testcase(testcase,
       return None, None, uworker_io.Output(error=uworker_errors.Type.NO_FUZZER)
 
     if not update_successful:
-      error_message = 'Unable to setup fuzzer %s' % fuzzer_name
+      error_message = f'Unable to setup fuzzer {fuzzer_name}'
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       return None, None, uworker_io.Output(

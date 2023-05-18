@@ -111,8 +111,8 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
 def _check_channel_state(wait_time):
   """Check the channel's state."""
   with _host_state.channel_condition:
-    if (_host_state.channel_state == ChannelState.READY or
-        _host_state.channel_state == ChannelState.INCONSISTENT):
+    if (_host_state.channel_state in
+        (ChannelState.READY, ChannelState.INCONSISTENT)):
       # Nothing to do in these states.
       return _host_state.channel_state
 

@@ -29,6 +29,8 @@ from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+# pylint: disable=no-member
+
 REQUEST_TIMEOUT = 60
 QUERY_TIMEOUT = 10 * 60
 QUERY_MAX_RESULTS = 10000
@@ -77,7 +79,7 @@ def cast(value, field):
     return datetime.datetime.utcfromtimestamp(float(value))
   if field['type'] in {'RECORD'}:
     return convert_row(value, field['fields'])
-  raise Exception('The type %s is unsupported.' % field['type'])
+  raise Exception(f'The type field["type"] is unsupported.')  # pylint: disable=broad-exception-raised
 
 
 def convert_row(raw_row, fields):
@@ -231,7 +233,7 @@ class Client(object):
 
       if (time.time() - start_time) > timeout:
         raise Exception(
-            "Timeout: the query doesn't finish within %d seconds." % timeout)
+            f'Timeout: the query doesn't finish within {timeout} seconds.') # pylint: disable=broad-exception-raised
       time.sleep(1)
 
   def query(self,

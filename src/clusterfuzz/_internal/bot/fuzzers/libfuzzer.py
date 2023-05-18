@@ -77,7 +77,7 @@ class LibFuzzerException(Exception):
   """LibFuzzer exception."""
 
 
-class LibFuzzerCommon(object):
+class LibFuzzerCommon(object):  # pylint disable=no-member
   """Provides common libFuzzer functionality."""
 
   # Window of time for libFuzzer to exit gracefully before we KILL it.
