@@ -50,7 +50,7 @@ class ExecuteTaskTest(unittest.TestCase):
     self.mock.is_custom_binary.return_value = False
     self.mock.has_production_builds.return_value = True
     self.mock.get_impacts_from_url.return_value = impacts
-    self.mock.setup_testcase.return_value = (['a'], 'path')
+    self.mock.setup_testcase.return_value = (['a'], 'path', None)
     self.mock.get_impacts_on_prod_builds.return_value = impacts
 
     self.testcase = data_types.Testcase()
@@ -145,8 +145,10 @@ class ExecuteTaskTest(unittest.TestCase):
   def test_bail_out_setup_testcase(self):
     """Test bailing out when setting up testcase fails."""
     self.mock.has_production_builds.return_value = True
-    self.mock.setup_testcase.return_value = ([], 'path')
-    impact_task.execute_task(self.testcase.key.id(), 'job')
+    self.mock.setup_testcase.return_value = ([], 'path', True)
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_handle_errors.handle'):
+      impact_task.execute_task(self.testcase.key.id(), 'job')
     self.expect_unchanged()
 
   def test_build_failed_exception(self):

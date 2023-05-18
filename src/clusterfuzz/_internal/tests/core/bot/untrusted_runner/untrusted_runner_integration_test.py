@@ -426,7 +426,10 @@ class UntrustedRunnerIntegrationTest(
 
     testcase.put()
 
-    file_list, testcase_file_path = setup.setup_testcase(testcase, job_type)
+    file_list, testcase_file_path, error = setup.setup_testcase(
+        testcase, job_type)
+
+    self.assertIsNone(error)
 
     self.assertCountEqual(file_list, [
         testcase.absolute_path,

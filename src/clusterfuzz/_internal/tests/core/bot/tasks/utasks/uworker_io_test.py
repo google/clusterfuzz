@@ -21,7 +21,7 @@ from unittest import mock
 
 from google.cloud import ndb
 
-from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -235,10 +235,13 @@ class RoundTripTest(unittest.TestCase):
 
     # Prepare an output that tests db entity change tracking and
     # (de)serialization.
-    output = uworker_io.UworkerOutput()
-    output.testcase = testcase
-    field_value = 'field'
+    error_field = 'error-field-value'
+    output_error = uworker_errors.Error(
+        uworker_errors.Type.ANALYZE_BUILD_SETUP, error_field=error_field)
+    field_value = 'field-value'
+    output = uworker_io.UworkerOutput(error=output_error)
     output.field = field_value
+    output.testcase = testcase
     output.uworker_input = {}
 
     # Create a version of upload_signed_url that will "upload" the data to a
@@ -270,7 +273,7 @@ class RoundTripTest(unittest.TestCase):
 
       with mock.patch(copy_file_from_name, copy_file_from) as _:
         downloaded_output = uworker_io.download_and_deserialize_uworker_output(
-            analyze_task, self.FAKE_URL)
+            self.FAKE_URL)
 
     # Test that the entity (de)serialization and change tracking working.
     downloaded_testcase = downloaded_output.pop('testcase')
@@ -280,8 +283,11 @@ class RoundTripTest(unittest.TestCase):
     # Test that the rest of the output was (de)serialized correctly.
     self.assertEqual(downloaded_testcase.key.serialized(),
                      self.testcase.key.serialized())
+    downloaded_error = downloaded_output.pop('error')
+    self.assertEqual(downloaded_error.error_type, output.error.error_type)
+    self.assertIsInstance(downloaded_error.error_type, uworker_errors.Type)
+    self.assertEqual(downloaded_error.error_field, output.error.error_field)
     self.assertDictEqual(downloaded_output, {
-        'error': None,
         'field': field_value,
         'uworker_input': {}
     })

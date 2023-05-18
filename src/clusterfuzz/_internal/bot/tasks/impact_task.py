@@ -18,6 +18,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
@@ -405,8 +406,9 @@ def execute_task(testcase_id, job_type):
     return
 
   # Setup testcase and its dependencies.
-  file_list, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  if error:
+    uworker_handle_errors.handle(error)
     return
 
   # Setup extended stable, stable, beta builds
