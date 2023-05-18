@@ -362,6 +362,7 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
 
 
 def handle_build_setup_error(output):
+  """Handles errrors for scenarios where build setup fails."""
   data_handler.update_testcase_comment(
       output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
