@@ -367,8 +367,13 @@ def handle_build_setup_error(output):
       output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
   if data_handler.is_first_retry_for_task(output.testcase):
-    setup.retry_task(output.uworker_input['testcase_id'],
-                     output.uworker_input['job_type'])
+    task_name = environment.get_value('TASK_NAME')
+    testcase_fail_wait = environment.get_value('FAIL_WAIT')
+    tasks.add_task(
+        task_name,
+        output.testcase_id,
+        output.job_type,
+        wait_time=testcase_fail_wait)
   else:
     data_handler.close_invalid_uploaded_testcase(
         output.testcase, output.metadata, 'Build setup failed)')
