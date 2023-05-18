@@ -371,8 +371,8 @@ def handle_build_setup_error(output):
     testcase_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
         task_name,
-        output.testcase_id,
-        output.job_type,
+        output.uworker_input['testcase_id'],
+        output.uworker_input['job_type'],
         wait_time=testcase_fail_wait)
   else:
     data_handler.close_invalid_uploaded_testcase(
