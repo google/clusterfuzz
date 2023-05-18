@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@ class Error:
 
   def __init__(self, error_type, **kwargs):
     self.error_type = error_type
-    assert error_type not in kwargs
     for key, value in kwargs.items():
       setattr(self, key, value)
 
