@@ -29,10 +29,10 @@ def handle(error_or_output):
   # objects directly and only handle utask output objects.
   if isinstance(error_or_output, uworker_errors.Error):
     error = error_or_output
-    error_type = error.type
+    error_type = error.error_type
     output = uworker_io.UworkerOutput(error=error)
   else:
-    error_type = error_or_output.error.type
+    error_type = error_or_output.error.error_type
     output = error_or_output
 
   return MAPPING[error_type](output)
