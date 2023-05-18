@@ -34,8 +34,6 @@ MAPPING = {
         analyze_task.handle_build_setup_error,
     uworker_errors.Type.TESTCASE_SETUP:
         setup.handle_setup_testcase_error,
-    uworker_errors.Type.NO_FUZZER:
-        noop,
-    uworker_errors.Type.UNHANDLED:
+    uworker_errors.Type.NOOP_HANDLER:
         noop,
 }

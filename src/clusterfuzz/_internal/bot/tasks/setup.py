@@ -222,7 +222,8 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_io.Output(error=uworker_errors.Type.NO_FUZZER)
+      return None, None, uworker_io.Output(
+          error=uworker_errors.Type.NOOP_HANDLER)
 
     if not update_successful:
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name

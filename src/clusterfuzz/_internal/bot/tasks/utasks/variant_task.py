@@ -17,6 +17,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -50,9 +51,6 @@ def _get_variant_testcase_for_job(testcase, job_type):
   variant_testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name
   variant_testcase.job_type = job_type
 
-  # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-  variant_testcase.put = lambda: None
-
   return variant_testcase
 
 
@@ -60,13 +58,13 @@ def utask_preprocess(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
-    return
+    return None
 
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
     # We should never reach here. But in case we do, we should bail out as
     # otherwise we will run into exceptions.
-    return
+    return None
 
   # Use a cloned testcase entity with different fuzz target paramaters for
   # a different fuzzing engine.
@@ -74,14 +72,27 @@ def utask_preprocess(testcase_id, job_type):
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
 
-  return {'original_job_type': original_job_type, 'testcase': testcase, 'variant': variant}
+  return {
+      'original_job_type': original_job_type,
+      'testcase': testcase,
+      'variant': variant,
+      'job_type': job_type,
+  }
 
-def utask_main(original_job_type, testcase):
+
+def utask_main(original_job_type, testcase, variant, job_type):
+  """The main part of the variant task. Downloads the testcase and build checks
+  if the build can reproduce the error."""
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
   if error:
-    uworker_handle_errors.handle(error)
-    return
+    return error
+
+  if not environment.is_engine_fuzzer_job(testcase.job_type):
+    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
+    # Repeat this because the in-memory executor may allow puts.
+    # TODO(metzman): Remove this when we use batch.
+    testcase.put = lambda: None
 
   # Set up a custom or regular build. We explicitly omit the crash revision
   # since we want to test against the latest build here.
@@ -89,16 +100,16 @@ def utask_main(original_job_type, testcase):
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return
+    return uworker_errors.Error(uworker_errors.Type.NOOP_HANDLER)
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    data_handler.update_testcase_comment(
-        testcase, data_types.TaskState.ERROR,
-        'Build setup failed with job: ' + job_type)
-    return
+    return uworker_io.UworkerOutput(
+        error=uworker_errors.Error(
+            uworker_errors.Type.VARIANT_BUILD_SETUP,
+            testcase=testcase,
+            job_type=job_type))
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
@@ -166,7 +177,21 @@ def utask_main(original_job_type, testcase):
       revision=revision,
       crash_stacktrace_output=crash_stacktrace_output)
 
+
+def handle_build_setup_error(output):
+  testcase = data_handler.get_testcase_by_id(
+      output.uworker_input['testcase_id'])
+  data_handler.update_testcase_comment(
+      testcase, data_types.TaskState.ERROR,
+      f'Build setup failed with job: {output.uworker_input["testcase_id"]}')
+
+
 def utask_postprocess(output):
+  """Handle the output from utask_main."""
+  if not environment.is_engine_fuzzer_job(output.testcase.job_type):
+    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
+    output.testcase.put = lambda: None
+
   if output.original_job_type == output.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
