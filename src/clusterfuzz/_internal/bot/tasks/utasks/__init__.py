@@ -30,7 +30,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
   return uworker_io.serialize_uworker_input(uworker_input)
 
 
-def uworker_main_no_io(utask_module, uworker_input):
+def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
   logs.log('Starting utask_main: %s.' % utask_module)

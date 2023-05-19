@@ -172,10 +172,13 @@ def serialize_uworker_output(uworker_output_obj):
     # Change from enum type to the int so we can serialize.
     error['error_type'] = error['error_type'].value
 
+  proto_output = uworker_msg_pb2.Output()
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
       serializable[name] = value
       continue
+
+
     entities[name] = {
         'key': base64.b64encode(value.key.serialized()).decode(),
         'changed': value._wrapped_changed_attributes,  # pylint: disable=protected-access

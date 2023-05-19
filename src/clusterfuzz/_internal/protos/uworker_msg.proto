@@ -42,13 +42,19 @@ enum ErrorType {
 message Error {
   ErrorType type = 1;
   string job_type = 2;
-  string testcase_id = 3;
+  int64 testcase_id = 3;
+}
+
+message ChangedEntity {
+  string key = 1;
+  Json changed = 2;
 }
 
 message Output {
-  optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity metadata = 2;
+  optional Json testcase = 1;
+  optional Json metadata = 2;
   optional Error error = 3;
+  // TODO(metzman): Stop trusting this.
   optional Json uworker_env = 4;
   optional int64 test_timeout = 5;
   optional int64 crash_time = 6;
