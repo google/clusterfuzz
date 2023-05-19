@@ -24,7 +24,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -223,14 +223,14 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_errors.Error(uworker_errors.Type.NO_FUZZER)
+      return None, None, uworker_msg_pb2.Error(uworker_msg_pb2.ErrorType.NO_FUZZER)
 
     if not update_successful:
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_errors.Error(
-          uworker_errors.Type.TESTCASE_SETUP,
+      return None, None, uworker_msg_pb2.Error(
+          uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
           job_type=job_type,
           testcase_id=testcase_id)
 
@@ -241,10 +241,10 @@ def setup_testcase(testcase,
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    return None, None, uworker_errors.Error(
-        uworker_errors.Type.TESTCASE_SETUP,
-        job_type=job_type,
-        testcase_id=testcase_id)
+    return None, None, uworker_msg_pb2.Error(
+          uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+          job_type=job_type,
+          testcase_id=testcase_id)
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.

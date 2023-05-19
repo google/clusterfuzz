@@ -28,7 +28,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.protos import uworker_pipe_pb2
+from clusterfuzz._internal.protos import uworker_msg_pb2
 
 
 def generate_new_io_file_name():
@@ -104,13 +104,13 @@ def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
 
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
-  uworker_input_proto = uworker_pipe_pb2.Input()
+  uworker_input_proto = uworker_msg_pb2.Input()
   uworker_input_proto.ParseFromString(serialized_uworker_input)
   input_dict = {}
   for descriptor, field in uworker_input_proto.ListFields():
     if isinstance(field, entity_pb2.Entity):
       input_dict[descriptor.name] = model._entity_from_protobuf(field)  # pylint: disable=protected-access
-    elif isinstance(field, uworker_pipe_pb2.Json):
+    elif isinstance(field, uworker_msg_pb2.Json):
       input_dict[descriptor.name] = json.loads(field.serialized)
     else:
       input_dict[descriptor.name] = field
@@ -125,9 +125,9 @@ def serialize_uworker_input(uworker_input):
       uworker_input[key] = model._entity_to_protobuf(value)  # pylint: disable=protected-access
     elif isinstance(value, dict):
       value = json.dumps(value)
-      uworker_input[key] = uworker_pipe_pb2.Json(serialized=value)
+      uworker_input[key] = uworker_msg_pb2.Json(serialized=value)
 
-  uworker_input = uworker_pipe_pb2.Input(**uworker_input)
+  uworker_input = uworker_msg_pb2.Input(**uworker_input)
   return uworker_input.SerializeToString()
 
 
