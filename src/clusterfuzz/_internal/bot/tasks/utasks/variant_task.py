@@ -74,20 +74,26 @@ def utask_preprocess(testcase_id, job_type):
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
-
+  testcase_download_url = setup.get_signed_testcase_download_url(testcase)
   return {
       'original_job_type': original_job_type,
       'testcase': testcase,
+      'metadata': testcase.get_metadata(),
       'variant': variant,
       'job_type': job_type,
+      'testcase_download_url': testcase_download_url,
   }
 
 
-def utask_main(original_job_type, testcase, variant, job_type):
+def utask_main(original_job_type, testcase, variant, job_type, testcase_download_url, metadata):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
   # Setup testcase and its dependencies.
-  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  _, testcase_file_path, error = setup.setup_testcase(
+      testcase,
+      job_type,
+      metadata=metadata,
+      testcase_download_url=testcase_download_url)
   if error:
     return error
 
