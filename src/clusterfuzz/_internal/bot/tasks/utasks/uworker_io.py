@@ -17,7 +17,6 @@ import base64
 import datetime
 import json
 import tempfile
-from typing import Optional
 import uuid
 
 from google.cloud import ndb
@@ -28,25 +27,26 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 
 
-def generate_new_io_file_name():
+def generate_new_input_file_name():
   """Generates a new I/O file name."""
   return str(uuid.uuid4()).lower()
 
 
-def get_uworker_io_gcs_path():
+def get_uworker_input_gcs_path():
   """Returns a GCS path for uworker I/O."""
   # Inspired by blobs.write_blob.
   io_bucket = storage.uworker_io_bucket()
-  io_file_name = generate_new_io_file_name()
+  io_file_name = generate_new_input_file_name()
   if storage.get(storage.get_cloud_storage_file_path(io_bucket, io_file_name)):
     raise RuntimeError(f'UUID collision found: {io_file_name}.')
   return f'/{io_bucket}/{io_file_name}'
 
 
-def get_uworker_output_urls():
+def get_uworker_output_urls(input_gcs_path):
   """Returns a signed download URL for the uworker to upload the output and a
-  GCS url for the tworker to download the output."""
-  gcs_path = get_uworker_io_gcs_path()
+  GCS url for the tworker to download the output. Make sure we can infer the
+  actual input since the output is not trusted."""
+  gcs_path = input_gcs_path + '.output'
   # Note that the signed upload URL can't be directly downloaded from.
   return storage.get_signed_upload_url(gcs_path), gcs_path
 
@@ -54,20 +54,18 @@ def get_uworker_output_urls():
 def get_uworker_input_urls():
   """Returns a signed download URL for the uworker to download the input and a
   GCS url for the tworker to upload it (this happens first)."""
-  gcs_path = get_uworker_io_gcs_path()
+  gcs_path = get_uworker_input_gcs_path()
   return storage.get_signed_download_url(gcs_path), gcs_path
 
 
-def upload_uworker_input(uworker_input):
+def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
-  signed_download_url, gcs_path = get_uworker_input_urls()
 
   with tempfile.NamedTemporaryFile() as uworker_input_file:
     with open(uworker_input_file.name, 'w') as fp:
       fp.write(uworker_input)
     if not storage.copy_file_to(uworker_input_file.name, gcs_path):
       raise RuntimeError('Failed to upload uworker_input.')
-  return signed_download_url
 
 
 def make_ndb_entity_input_obj_serializable(obj):
@@ -125,18 +123,26 @@ def serialize_uworker_input(uworker_input):
   return json.dumps({'serializable': serializable, 'entities': ndb_entities})
 
 
-def serialize_and_upload_uworker_input(uworker_input, job_type,
-                                       uworker_output_upload_url) -> str:
+def serialize_and_upload_uworker_input(uworker_input, job_type) -> str:
   """Serializes input for the untrusted portion of a task."""
   # Add remaining fields to the input.
   assert 'job_type' not in uworker_input
   uworker_input['job_type'] = job_type
+
+  signed_input_download_url, input_gcs_url = get_uworker_input_urls()
+  # Get URLs for the uworker'ps output. We need a signed upload URL so it can
+  # write its output. Also get a download URL in case the caller wants to read
+  # the output.
+  signed_output_upload_url, output_gcs_url = get_uworker_output_urls(
+      input_gcs_url)
+
   assert 'uworker_output_upload_url' not in uworker_input
-  uworker_input['uworker_output_upload_url'] = uworker_output_upload_url
+  uworker_input['uworker_output_upload_url'] = signed_output_upload_url
 
   uworker_input = serialize_uworker_input(uworker_input)
-  uworker_input_download_url = upload_uworker_input(uworker_input)
-  return uworker_input_download_url
+  upload_uworker_input(uworker_input, input_gcs_url)
+
+  return signed_input_download_url, output_gcs_url
 
 
 def download_and_deserialize_uworker_input(uworker_input_download_url):
@@ -184,15 +190,29 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
-def download_and_deserialize_uworker_output(output_url) -> Optional[str]:
-  """Downloads and deserializes uworker output."""
-  with tempfile.NamedTemporaryFile() as uworker_output_local_path:
-    if not storage.copy_file_from(output_url, uworker_output_local_path.name):
-      logs.log_error('Could not download uworker output from %s' % output_url)
+def _download_uworker_io_from_gcs(gcs_url):
+  with tempfile.NamedTemporaryFile() as local_path:
+    if not storage.copy_file_from(gcs_url, local_path.name):
+      logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
       return None
-    with open(uworker_output_local_path.name) as uworker_output_file_handle:
-      uworker_output = uworker_output_file_handle.read()
-  return deserialize_uworker_output(uworker_output)
+    with open(local_path.name) as file_handle:
+      return file_handle.read()
+
+
+def download_and_deserialize_uworker_output(output_url: str):
+  """Downloads and deserializes uworker output."""
+  serialized_uworker_output = _download_uworker_io_from_gcs(output_url)
+  uworker_output = deserialize_uworker_output(serialized_uworker_output)
+
+  # Now download the input, which is stored securely so that the uworker cannot
+  # tamper with it.
+  # Get the portion that does not contain ".output".
+  input_url = output_url.split('.output')[0]
+  serialized_uworker_input = _download_uworker_io_from_gcs(input_url)
+  uworker_input = deserialize_uworker_output(serialized_uworker_input)
+  uworker_output.uworker_env = uworker_input.uworker_env
+  uworker_output.uworker_input = uworker_input
+  return uworker_output
 
 
 def deserialize_uworker_output(uworker_output):
