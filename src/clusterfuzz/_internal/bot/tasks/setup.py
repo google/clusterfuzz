@@ -502,10 +502,17 @@ def update_data_bundle(fuzzer, data_bundle):
 
   return True
 
+def get_fuzzer_setup_data():
+  pass
+
+def get_testcase_setup_data():
+  pass
+
+
 
 def update_fuzzer_and_data_bundles(fuzzer_name):
   """Update the fuzzer with a given name if necessary."""
-  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
+
   if not fuzzer:
     logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
     raise errors.InvalidFuzzerError

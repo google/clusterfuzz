@@ -26,6 +26,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_pipe_pb2
 
 
 def generate_new_io_file_name():
@@ -63,7 +64,7 @@ def upload_uworker_input(uworker_input):
   signed_download_url, gcs_path = get_uworker_input_urls()
 
   with tempfile.NamedTemporaryFile() as uworker_input_file:
-    with open(uworker_input_file.name, 'w') as fp:
+    with open(uworker_input_file.name, 'wb') as fp:
       fp.write(uworker_input)
     if not storage.copy_file_to(uworker_input_file.name, gcs_path):
       raise RuntimeError('Failed to upload uworker_input.')
@@ -101,8 +102,9 @@ def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
 
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
-  serialized_uworker_input = json.loads(serialized_uworker_input)
-  uworker_input = serialized_uworker_input['serializable']
+  uworker_input = uworker_pipe_pb2.Input()
+  uworker_input.ParseFromString(serialized_uworker_input)
+  uworker_input = serialized_uworker_input
   for name, entity_dict in serialized_uworker_input['entities'].items():
     entity_key = entity_dict['key']
     serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
@@ -114,15 +116,33 @@ def deserialize_uworker_input(serialized_uworker_input):
 
 def serialize_uworker_input(uworker_input):
   """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
-  serializable = {}
-  ndb_entities = {}
+  uworker_input = uworker_input.copy()
+  dicts = {}
   for key, value in uworker_input.items():
     if not isinstance(value, ndb.Model):
-      serializable[key] = value
+      uworker_input[key] = value
       continue
-    ndb_entities[key] = make_ndb_entity_input_obj_serializable(value)
+    uworker_input[key] = make_ndb_entity_input_obj_serializable(value)
 
-  return json.dumps({'serializable': serializable, 'entities': ndb_entities})
+  for key in list(uworker_input.keys()):
+    value = uworker_input[key]
+    if not isinstance(value, dict):
+      continue
+    value = json.dumps(value)
+    uworker_input[key] = uworker_pipe_pb2.Json(serialized=value)
+
+    # import "google/cloud/datastore_v1/proto/entity.proto";
+
+    # message Input {
+    #     optional google.datastore.v1.Entity testcase = 1;
+    #     optional google.datastore.v1.Entity metadata = 2;
+    # https://github.com/googleapis/python-ndb/blob/a3a181a427cc292882691d963b30bc78c05c6592/google/cloud/ndb/model.py#L738
+    # _entity_from_protobuf
+    # _entity_from_ds_entity
+  uworker_input = uworker_pipe_pb2.Input(**uworker_input)
+
+
+  return uworker_input.SerializeToString()
 
 
 def serialize_and_upload_uworker_input(uworker_input, job_type,

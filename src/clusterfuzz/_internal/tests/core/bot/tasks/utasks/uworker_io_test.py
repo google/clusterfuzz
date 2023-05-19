@@ -176,8 +176,8 @@ class RoundTripTest(unittest.TestCase):
     # Create input for the uworker.
     uworker_input = {
         'testcase': self.testcase,
-        'env': self.env,
-        'download_url': self.FAKE_URL
+        'uworker_env': self.env,
+        'testcase_download_url': self.FAKE_URL
     }
 
     # Create a mocked version of copy_file_to so that when we upload the uworker
