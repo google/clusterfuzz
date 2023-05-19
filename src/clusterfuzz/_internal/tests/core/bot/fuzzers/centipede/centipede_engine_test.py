@@ -53,7 +53,7 @@ def get_test_paths():
 
 
 TEST_PATH = pathlib.Path(__file__).parent
-MAX_TIME = 5
+MAX_TIME = 25
 
 # Centipede's runtime args for testing.
 _SERVER_COUNT = 1
@@ -109,7 +109,6 @@ class IntegrationTest(unittest.TestCase):
     self.maxDiff = None  # pylint: disable=invalid-name
     test_helpers.patch(self, ['os.getpid'])
     self.mock.getpid.return_value = 1337
-    os.environ['BUILD_DIR'] = str(self.test_paths.data)
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
