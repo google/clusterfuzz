@@ -21,6 +21,7 @@ class Type(enum.Enum):
   ANALYZE_NO_CRASH = 2
   TESTCASE_SETUP = 3
   NO_FUZZER = 4
+  UNHANDLED = 5
 
 
 class Error:
