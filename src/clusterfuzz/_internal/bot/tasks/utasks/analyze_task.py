@@ -133,7 +133,7 @@ def setup_testcase_and_build(
   # Set up build.
   error_output = setup_build(testcase)
   if error_output:
-    return error_output
+    return None, error_output
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
