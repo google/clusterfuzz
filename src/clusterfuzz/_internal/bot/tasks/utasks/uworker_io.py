@@ -21,6 +21,7 @@ from typing import Optional
 import uuid
 
 from google.cloud import ndb
+from google.cloud.ndb import model
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.datastore import data_types
@@ -104,14 +105,15 @@ def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
   uworker_input = uworker_pipe_pb2.Input()
   uworker_input.ParseFromString(serialized_uworker_input)
-  uworker_input = serialized_uworker_input
+  # uworker_input = serialized_uworker_input
   from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
-  for name, entity_dict in serialized_uworker_input['entities'].items():
-    entity_key = entity_dict['key']
-    serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
-    ndb_key = ndb.Key(serialized=serialized_key)
-    entity = get_entity_with_properties(ndb_key, entity_dict['properties'])
-    uworker_input[name] = UworkerEntityWrapper(entity)
+
+  # for name, entity_dict in serialized_uworker_input['entities'].items():
+  #   entity_key = entity_dict['key']
+  #   serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
+  #   ndb_key = ndb.Key(serialized=serialized_key)
+  #   entity = get_entity_with_properties(ndb_key, entity_dict['properties'])
+  #   uworker_input[name] = UworkerEntityWrapper(entity)
   return uworker_input
 
 
@@ -120,10 +122,9 @@ def serialize_uworker_input(uworker_input):
   uworker_input = uworker_input.copy()
   dicts = {}
   for key, value in uworker_input.items():
-    if not isinstance(value, ndb.Model):
-      uworker_input[key] = value
-      continue
-    uworker_input[key] = make_ndb_entity_input_obj_serializable(value)
+    if isinstance(value, ndb.Model):
+      uworker_input[key] = model._entity_to_protobuf(value)
+    # uworker_input[key] = make_ndb_entity_input_obj_serializable(value)
 
   for key in list(uworker_input.keys()):
     value = uworker_input[key]
