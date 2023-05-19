@@ -84,7 +84,13 @@ def setup_build(testcase):
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
-      raise errors.BuildNotFoundError(revision, testcase.job_type)
+      data_handler.update_testcase_comment(
+          output.testcase, data_types.TaskState.ERROR,
+          f'Build {testcase.job_type} r{revision} does not exist')
+      return uworker_io.UworkerOutput(
+          testcase=testcase,
+          metadata=metadata,
+          error=uworker_errors.Error(uworker_errors.Type.ANALYZE_BUILD_SETUP))
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
