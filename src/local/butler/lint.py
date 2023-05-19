@@ -172,7 +172,12 @@ def is_auto_generated_file(filepath):
 def execute(_):
   """Lint changed code."""
   pythonpath = os.getenv('PYTHONPATH', '')
-  os.environ['PYTHONPATH'] = appengine.find_sdk_path() + ':' + pythonpath
+  module_parent_path = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
+  third_party_path = os.path.join(module_parent_path, 'third_party')
+  os.environ['PYTHONPATH'] = ':'.join([appengine.find_sdk_path(),
+                                       module_parent_path,
+                                       third_party_path,
+                                       pythonpath])
 
   if 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
@@ -182,11 +187,8 @@ def execute(_):
 
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
-  ]
+ ]
 
-  module_parent_path = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
-  third_party_path = os.path.join(module_parent_path, 'third_party')
-  os.environ['PYTHONPATH'] = f'{module_parent_path}:{third_party_path}'
   module_path = os.path.join(module_parent_path, 'clusterfuzz')
 
   py_changed_tests = []
@@ -215,7 +217,6 @@ def execute(_):
   base_pylint_cmd = 'pylint --score=no --jobs=0'
   # Test for existence of files before running tools to avoid errors from
   # misusing the tools.
-
   if py_changed_nontests:
     _execute_command_and_track_error(
         f'{base_pylint_cmd} --ignore=protos,tests,grammars clusterfuzz ' +
