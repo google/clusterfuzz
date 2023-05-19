@@ -16,7 +16,6 @@
 import datetime
 from typing import Optional
 
-from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -68,7 +67,8 @@ def _add_default_issue_metadata(testcase):
     testcase.set_metadata(key, new_value)
 
 
-def setup_build(testcase):
+def setup_build(
+    testcase: data_types.Testcase) -> Optional[uworker_io.UworkerOutput]:
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -79,21 +79,24 @@ def setup_build(testcase):
     revision_list = build_manager.get_revisions_list(
         build_bucket_path, testcase=testcase)
     if not revision_list:
-      logs.log_error('Failed to fetch revision list.')
-      return
+      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                           'Failed to fetch revision list')
+      return uworker_io.UworkerOutput(
+          testcase=testcase,
+          error=uworker_errors.Error(uworker_errors.Type.ANALYZE_BUILD_SETUP))
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
       data_handler.update_testcase_comment(
-          output.testcase, data_types.TaskState.ERROR,
+          testcase, data_types.TaskState.ERROR,
           f'Build {testcase.job_type} r{revision} does not exist')
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          metadata=metadata,
           error=uworker_errors.Error(uworker_errors.Type.ANALYZE_BUILD_SETUP))
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
+  return None
 
 
 def prepare_env_for_main(metadata):
@@ -128,7 +131,9 @@ def setup_testcase_and_build(
     return None, error
 
   # Set up build.
-  setup_build(testcase)
+  error_output = setup_build(testcase)
+  if error_output:
+    return error_output
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
@@ -367,7 +372,7 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
 
 
 def handle_build_setup_error(output):
-  """Handles errrors for scenarios where build setup fails."""
+  """Handles errors for scenarios where build setup fails."""
   data_handler.update_testcase_comment(
       output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
