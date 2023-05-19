@@ -27,11 +27,17 @@ def handle(output):
   """Handles the errors bubbled up from the uworker."""
   return MAPPING[output.error](output)
 
+
 def get_mapping():
   return {
-      uworker_errors.Type.ANALYZE_NO_CRASH: analyze_task.handle_noncrash,
-      uworker_errors.Type.ANALYZE_BUILD_SETUP: analyze_task.handle_build_setup_error,
-      uworker_errors.Type.TESTCASE_SETUP: setup.handle_setup_testcase_error,
-      uworker_errors.Type.VARIANT_BUILD_SETUP: variant_task.handle_build_setup_error,
-      uworker_errors.Type.NOOP_HANDLER: noop,
-}
+      uworker_errors.Type.ANALYZE_NO_CRASH:
+          analyze_task.handle_noncrash,
+      uworker_errors.Type.ANALYZE_BUILD_SETUP:
+          analyze_task.handle_build_setup_error,
+      uworker_errors.Type.TESTCASE_SETUP:
+          setup.handle_setup_testcase_error,
+      uworker_errors.Type.VARIANT_BUILD_SETUP:
+          variant_task.handle_build_setup_error,
+      uworker_errors.Type.NOOP_HANDLER:
+          noop,
+  }
