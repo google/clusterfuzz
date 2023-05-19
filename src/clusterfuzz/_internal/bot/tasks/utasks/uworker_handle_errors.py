@@ -47,4 +47,6 @@ MAPPING = {
         setup.handle_setup_testcase_error,
     uworker_errors.Type.NO_FUZZER:
         noop,
+    uworker_errors.Type.UNHANDLED:
+        noop,
 }
