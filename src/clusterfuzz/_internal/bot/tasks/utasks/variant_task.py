@@ -50,6 +50,8 @@ def _get_variant_testcase_for_job(testcase, job_type):
   variant_testcase.fuzzer_name = engine_name
   variant_testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name
   variant_testcase.job_type = job_type
+
+  # Remove put() method to avoid updates. DO NOT REMOVE THIS.
   variant_testcase.put = lambda: None
 
   return variant_testcase
@@ -89,7 +91,7 @@ def utask_main(original_job_type, testcase, variant, job_type):
   if error:
     return error
 
-  if not environment.is_engine_fuzzer_job(testcase.job_type):
+  if environment.is_engine_fuzzer_job(testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     # Repeat this because the in-memory executor may allow puts.
     # TODO(metzman): Remove this when we use batch.
@@ -189,7 +191,7 @@ def handle_build_setup_error(output):
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  if not environment.is_engine_fuzzer_job(output.testcase.job_type):
+  if environment.is_engine_fuzzer_job(output.testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     output.testcase.put = lambda: None
 
