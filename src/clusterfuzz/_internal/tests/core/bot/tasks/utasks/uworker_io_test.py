@@ -109,16 +109,16 @@ class TestGetUrls(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_io_file_name',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_input_file_name',
     ])
 
     self.mock.get.return_value = False
     self.mock._sign_url.return_value = self.FAKE_URL
-    self.mock.generate_new_io_file_name.return_value = self.NEW_IO_FILE_NAME
+    self.mock.generate_new_input_file_name.return_value = self.NEW_IO_FILE_NAME
 
   def test_get_uworker_output_urls(self):
     """Tests that get_uworker_output_urls works."""
-    expected_urls = (self.FAKE_URL, self.EXPECTED_GCS_PATH)
+    expected_urls = (self.FAKE_URL, self.EXPECTED_GCS_PATH + '.output')
     self.assertEqual(uworker_io.get_uworker_output_urls(), expected_urls)
     self.mock._sign_url.assert_called_with(
         self.EXPECTED_GCS_PATH,
@@ -150,11 +150,11 @@ class RoundTripTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_io_file_name',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_input_file_name',
     ])
     self.mock.get.return_value = False
     self.mock._sign_url.return_value = self.FAKE_URL
-    self.mock.generate_new_io_file_name.return_value = self.NEW_IO_FILE_NAME
+    self.mock.generate_new_input_file_name.return_value = self.NEW_IO_FILE_NAME
     crash_type = 'type'
     crash_addr = 'addr'
     crash_state = 'NY :-)'
