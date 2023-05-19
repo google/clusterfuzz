@@ -22,12 +22,14 @@ import uuid
 
 from google.cloud import ndb
 from google.cloud.ndb import model
+from google.cloud.datastore_v1.proto import entity_pb2
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_pipe_pb2
+
 
 
 def generate_new_io_file_name():
@@ -103,18 +105,17 @@ def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
 
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
-  uworker_input = uworker_pipe_pb2.Input()
-  uworker_input.ParseFromString(serialized_uworker_input)
-  # uworker_input = serialized_uworker_input
-  from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
-
-  # for name, entity_dict in serialized_uworker_input['entities'].items():
-  #   entity_key = entity_dict['key']
-  #   serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
-  #   ndb_key = ndb.Key(serialized=serialized_key)
-  #   entity = get_entity_with_properties(ndb_key, entity_dict['properties'])
-  #   uworker_input[name] = UworkerEntityWrapper(entity)
-  return uworker_input
+  uworker_input_proto = uworker_pipe_pb2.Input()
+  uworker_input_proto.ParseFromString(serialized_uworker_input)
+  input_dict = {}
+  for descriptor, field in uworker_input_proto.ListFields():
+    if isinstance(field, entity_pb2.Entity):
+      input_dict[descriptor.name] = model._entity_from_protobuf(field)
+    elif isinstance(field, uworker_pipe_pb2.Json):
+      input_dict[descriptor.name] = json.loads(field.serialized)
+    else:
+      input_dict[descriptor.name] = field
+  return input_dict
 
 
 def serialize_uworker_input(uworker_input):
@@ -141,9 +142,8 @@ def serialize_uworker_input(uworker_input):
     # https://github.com/googleapis/python-ndb/blob/a3a181a427cc292882691d963b30bc78c05c6592/google/cloud/ndb/model.py#L738
     # _entity_from_protobuf
     # _entity_from_ds_entity
+
   uworker_input = uworker_pipe_pb2.Input(**uworker_input)
-
-
   return uworker_input.SerializeToString()
 
 
