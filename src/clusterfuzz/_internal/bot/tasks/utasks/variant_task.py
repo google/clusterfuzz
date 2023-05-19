@@ -18,6 +18,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -50,6 +51,10 @@ def _get_variant_testcase_for_job(testcase, job_type):
   variant_testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name
   variant_testcase.job_type = job_type
 
+  if not environment.is_engine_fuzzer_job(variant_testcase.job_type):
+    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
+    variant_testcase.put = lambda: None
+
   return variant_testcase
 
 
@@ -70,10 +75,6 @@ def utask_preprocess(testcase_id, job_type):
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
-
-  if not environment.is_engine_fuzzer_job(testcase.job_type):
-    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-    testcase.put = lambda: None
 
   return {
       'original_job_type': original_job_type,
