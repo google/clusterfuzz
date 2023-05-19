@@ -85,7 +85,8 @@ def utask_preprocess(testcase_id, job_type):
   }
 
 
-def utask_main(original_job_type, testcase, variant, job_type, testcase_download_url, metadata):
+def utask_main(original_job_type, testcase, variant, job_type,
+               testcase_download_url, metadata):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
   # Setup testcase and its dependencies.
