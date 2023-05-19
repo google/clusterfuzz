@@ -18,7 +18,6 @@ import sys
 
 import yaml
 
-from local.butler import appengine
 from local.butler import common
 from local.butler import format as formatter
 
@@ -174,10 +173,8 @@ def execute(_):
   pythonpath = os.getenv('PYTHONPATH', '')
   module_parent_path = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
   third_party_path = os.path.join(module_parent_path, 'third_party')
-  os.environ['PYTHONPATH'] = ':'.join([appengine.find_sdk_path(),
-                                       module_parent_path,
-                                       third_party_path,
-                                       pythonpath])
+  os.environ['PYTHONPATH'] = ':'.join(
+      [third_party_path, module_parent_path, pythonpath])
 
   if 'GOOGLE_CLOUDBUILD' in os.environ:
     # Explicitly compare against master if we're running on the CI
@@ -187,7 +184,7 @@ def execute(_):
 
   file_paths = [
       f.decode('utf-8') for f in output.splitlines() if os.path.exists(f)
- ]
+  ]
 
   module_path = os.path.join(module_parent_path, 'clusterfuzz')
 
