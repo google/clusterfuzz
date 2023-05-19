@@ -35,6 +35,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
@@ -132,7 +133,8 @@ def setup_testcase_and_build(
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         metadata=metadata,
-        error=uworker_errors.Error(uworker_errors.Type.ANALYZE_BUILD_SETUP))
+        error=uworker_errors.Error(
+            uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP))
 
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
@@ -334,7 +336,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
     return uworker_io.UworkerOutput(
         testcase,
         metadata=metadata,
-        error=uworker_errors.Error(uworker_errors.Type.ANALYZE_NO_CRASH),
+        error=uworker_errors.Error(uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH),
         test_timeout=test_timeout,
         job_type=job_type)
   # Update testcase crash parameters.
@@ -344,7 +346,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     data_handler.close_invalid_uploaded_testcase(output.testcase,
                                                  output.metadata, 'Irrelevant')
-    error = uworker_errors.Error(uworker_errors.Type.UNHANDLED)
+    error = uworker_errors.Error(uworker_msg_pb2.ErrorType.UNHANDLED)
     return uworker_io.UworkerOutput(
         testcase=testcase, metadata=metadata, error=error)
 

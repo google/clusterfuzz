@@ -12,16 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module for enumerating errors in utasks."""
-import enum
-
-
-class Type(enum.Enum):
-  """Errors during utask_main."""
-  ANALYZE_BUILD_SETUP = 1
-  ANALYZE_NO_CRASH = 2
-  TESTCASE_SETUP = 3
-  NO_FUZZER = 4
-  UNHANDLED = 5
 
 
 class Error:

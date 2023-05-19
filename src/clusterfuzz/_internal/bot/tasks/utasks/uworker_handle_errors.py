@@ -16,6 +16,7 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.protos import uworker_msg_pb2
 
 
 def noop(*args, **kwargs):
@@ -39,14 +40,14 @@ def handle(error_or_output):
 
 
 MAPPING = {
-    uworker_errors.Type.ANALYZE_NO_CRASH:
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
         analyze_task.handle_noncrash,
-    uworker_errors.Type.ANALYZE_BUILD_SETUP:
+    uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
         analyze_task.handle_build_setup_error,
-    uworker_errors.Type.TESTCASE_SETUP:
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP:
         setup.handle_setup_testcase_error,
-    uworker_errors.Type.NO_FUZZER:
+    uworker_msg_pb2.ErrorType.NO_FUZZER:
         noop,
-    uworker_errors.Type.UNHANDLED:
+    uworker_msg_pb2.ErrorType.UNHANDLED:
         noop,
 }

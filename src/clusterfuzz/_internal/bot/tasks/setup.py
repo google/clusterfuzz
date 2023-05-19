@@ -24,7 +24,6 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -37,6 +36,7 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -223,7 +223,8 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_msg_pb2.Error(uworker_msg_pb2.ErrorType.NO_FUZZER)
+      return None, None, uworker_msg_pb2.Error(
+          uworker_msg_pb2.ErrorType.NO_FUZZER)
 
     if not update_successful:
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
@@ -242,9 +243,9 @@ def setup_testcase(testcase,
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     return None, None, uworker_msg_pb2.Error(
-          uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-          job_type=job_type,
-          testcase_id=testcase_id)
+        uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+        job_type=job_type,
+        testcase_id=testcase_id)
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.
