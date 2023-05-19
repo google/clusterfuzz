@@ -82,7 +82,6 @@ class GetVariantTestcaseForJob(unittest.TestCase):
 
     # Test that a put() call does not change original testcase.
     variant_testcase.comments = 'ABC'
-
     variant_testcase.put()
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertEqual('', testcase.comments)
