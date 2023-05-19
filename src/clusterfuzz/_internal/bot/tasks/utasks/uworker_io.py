@@ -105,6 +105,7 @@ def deserialize_uworker_input(serialized_uworker_input):
   uworker_input = uworker_pipe_pb2.Input()
   uworker_input.ParseFromString(serialized_uworker_input)
   uworker_input = serialized_uworker_input
+  from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
   for name, entity_dict in serialized_uworker_input['entities'].items():
     entity_key = entity_dict['key']
     serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
