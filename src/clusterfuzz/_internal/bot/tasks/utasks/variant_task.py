@@ -50,10 +50,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
   variant_testcase.fuzzer_name = engine_name
   variant_testcase.overridden_fuzzer_name = fully_qualified_fuzzer_name
   variant_testcase.job_type = job_type
-
-  if not environment.is_engine_fuzzer_job(variant_testcase.job_type):
-    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-    variant_testcase.put = lambda: None
+  variant_testcase.put = lambda: None
 
   return variant_testcase
 
