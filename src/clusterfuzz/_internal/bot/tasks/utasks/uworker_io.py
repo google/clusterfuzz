@@ -22,6 +22,7 @@ import uuid
 
 from google.cloud import ndb
 
+from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -161,9 +162,7 @@ def serialize_uworker_output(uworker_output_obj):
   serializable = {}
   error = uworker_output.pop('error', None)
   if error is not None:
-    error = error.to_dict()
-    # Change from enum type to the int so we can serialize.
-    error['error'] = error['error'].value
+    error = error.value
 
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
@@ -201,6 +200,11 @@ def deserialize_uworker_output(uworker_output):
   entities here."""
   uworker_output = json.loads(uworker_output)
   deserialized_output = uworker_output['serializable']
+  error = uworker_output.pop('error')
+  if error is not None:
+    deserialized_output['error'] = uworker_errors.Type(error)
+  else:
+    deserialized_output['error'] = None
   for name, entity_dict in uworker_output['entities'].items():
     key = entity_dict['key']
     ndb_key = ndb.Key(serialized=base64.b64decode(key))
