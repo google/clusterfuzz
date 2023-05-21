@@ -118,12 +118,13 @@ class TestGetUrls(unittest.TestCase):
 
   def test_get_uworker_output_urls(self):
     """Tests that get_uworker_output_urls works."""
-    expected_urls = (self.FAKE_URL, self.EXPECTED_GCS_PATH + '.output')
-    self.assertEqual(uworker_io.get_uworker_output_urls(), expected_urls)
+    expected_upload_url = self.EXPECTED_GCS_PATH + '.output'
+    expected_urls = (self.FAKE_URL, expected_upload_url)
+    self.assertEqual(
+        uworker_io.get_uworker_output_urls(self.EXPECTED_GCS_PATH),
+        expected_urls)
     self.mock._sign_url.assert_called_with(
-        self.EXPECTED_GCS_PATH,
-        method='PUT',
-        minutes=DEFAULT_SIGNED_URL_MINUTES)
+        expected_upload_url, method='PUT', minutes=DEFAULT_SIGNED_URL_MINUTES)
 
   def test_get_uworker_input_urls(self):
     """Tests that get_uworker_input_urls works."""
@@ -204,8 +205,8 @@ class RoundTripTest(unittest.TestCase):
         with open(temp_file.name, 'rb') as fp:
           return fp.read()
 
-      uworker_io.serialize_and_upload_uworker_input(
-          uworker_input, self.job_type, self.FAKE_URL)
+      uworker_io.serialize_and_upload_uworker_input(uworker_input,
+                                                    self.job_type)
       with mock.patch(
           'clusterfuzz._internal.google_cloud_utils.storage.download_signed_url',
           download_signed_url) as _:
@@ -242,7 +243,6 @@ class RoundTripTest(unittest.TestCase):
     output = uworker_io.UworkerOutput(error=output_error)
     output.field = field_value
     output.testcase = testcase
-    output.uworker_input = {}
 
     # Create a version of upload_signed_url that will "upload" the data to a
     # known file on disk that we can read back.
@@ -256,26 +256,35 @@ class RoundTripTest(unittest.TestCase):
 
     upload_signed_url_name = ('clusterfuzz._internal.google_cloud_utils.'
                               'storage.upload_signed_url')
-    copy_file_from_name = ('clusterfuzz._internal.google_cloud_utils.storage.'
-                           'copy_file_from')
+    copy_file_from_name = (
+        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from')
 
-    with tempfile.NamedTemporaryFile() as temp_file, mock.patch(
+    with tempfile.NamedTemporaryFile() as output_temp_file, mock.patch(
         upload_signed_url_name, upload_signed_url) as _:
-      upload_signed_url_tempfile = temp_file
+      upload_signed_url_tempfile = output_temp_file
       uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
 
       # Create a version of copy_file_from that will "downloads" the data from
       # the file upload_signed_url wrote it to.
       def copy_file_from(gcs_url, local_path):
         del gcs_url
-        shutil.copyfile(temp_file.name, local_path)
+        shutil.copyfile(output_temp_file.name, local_path)
         return True
 
-      with mock.patch(copy_file_from_name, copy_file_from) as _:
+      download_uworker_input_name = (
+          'clusterfuzz._internal.bot.tasks.utasks.uworker_io._download_uworker_input_from_gcs'
+      )
+      uworker_env = {'PATH': '/blah'}
+      uworker_input = {'uworker_env': uworker_env, 'input': 1}
+      serialized_uworker_input = uworker_io.serialize_uworker_input(
+          uworker_input)
+      with mock.patch(copy_file_from_name, copy_file_from) as _, mock.patch(
+          download_uworker_input_name, return_value=serialized_uworker_input):
         downloaded_output = uworker_io.download_and_deserialize_uworker_output(
             self.FAKE_URL)
 
     # Test that the entity (de)serialization and change tracking working.
+    downloaded_output = downloaded_output.to_dict()
     downloaded_testcase = downloaded_output.pop('testcase')
     self.assertEqual(downloaded_testcase.newattr, testcase.newattr)
     self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
@@ -287,7 +296,11 @@ class RoundTripTest(unittest.TestCase):
     self.assertEqual(downloaded_error.error_type, output.error.error_type)
     self.assertIsInstance(downloaded_error.error_type, uworker_errors.Type)
     self.assertEqual(downloaded_error.error_field, output.error.error_field)
-    self.assertDictEqual(downloaded_output, {
-        'field': field_value,
-        'uworker_input': {}
-    })
+    self.assertDictEqual(
+        downloaded_output, {
+            'field': field_value,
+            'uworker_input': uworker_input,
+            'uworker_env': {
+                'PATH': '/blah'
+            }
+        })

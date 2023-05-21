@@ -50,9 +50,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
 
 def uworker_postprocess_no_io(utask_module, uworker_output):
-  uworker_output_dict = uworker_io.deserialize_uworker_output(uworker_output)
-
-  uworker_output = uworker_io.uworker_output_from_dict(uworker_output_dict)
+  uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
   utask_module.utask_postprocess(uworker_output)
 
 
@@ -106,7 +104,6 @@ def uworker_main(utask_module, input_download_url) -> None:
 def tworker_postprocess(utask_module, output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   logs.log('Starting utask_postprocess: %s.' % utask_module)
-  uworker_output_dict = uworker_io.download_and_deserialize_uworker_output(
+  uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
-  uworker_output = uworker_io.uworker_output_from_dict(uworker_output_dict)
   utask_module.utask_postprocess(uworker_output)

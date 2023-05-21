@@ -156,14 +156,6 @@ def serialize_uworker_output(uworker_output_obj):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
   uworker_output = uworker_output_obj.to_dict()
-  # Delete entities from uworker_input, they are annoying to serialize and
-  # unnecessary since the only reason they would be passed as input is if they
-  # are modified and will be output.
-  uworker_input = uworker_output['uworker_input']
-  for key in list(uworker_input.keys()):
-    if isinstance(uworker_input[key], UworkerEntityWrapper):
-      del uworker_input[key]
-      continue
   entities = {}
   serializable = {}
   error = uworker_output.pop('error', None)
@@ -199,6 +191,10 @@ def _download_uworker_io_from_gcs(gcs_url):
       return file_handle.read()
 
 
+def _download_uworker_input_from_gcs(gcs_url):
+  return _download_uworker_io_from_gcs(gcs_url)
+
+
 def download_and_deserialize_uworker_output(output_url: str):
   """Downloads and deserializes uworker output."""
   serialized_uworker_output = _download_uworker_io_from_gcs(output_url)
@@ -208,9 +204,9 @@ def download_and_deserialize_uworker_output(output_url: str):
   # tamper with it.
   # Get the portion that does not contain ".output".
   input_url = output_url.split('.output')[0]
-  serialized_uworker_input = _download_uworker_io_from_gcs(input_url)
-  uworker_input = deserialize_uworker_output(serialized_uworker_input)
-  uworker_output.uworker_env = uworker_input.uworker_env
+  serialized_uworker_input = _download_uworker_input_from_gcs(input_url)
+  uworker_input = deserialize_uworker_input(serialized_uworker_input)
+  uworker_output.uworker_env = uworker_input['uworker_env']
   uworker_output.uworker_input = uworker_input
   return uworker_output
 
@@ -237,7 +233,7 @@ def deserialize_uworker_output(uworker_output):
       # TODO(metzman): Don't allow setting all fields on every entity since this
       # might have some security problems.
       setattr(entity, attr, new_value)
-  return deserialized_output
+  return uworker_output_from_dict(deserialized_output)
 
 
 class UworkerEntityWrapper:
