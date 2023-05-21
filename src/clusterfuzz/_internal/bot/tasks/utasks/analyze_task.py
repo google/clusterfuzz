@@ -343,9 +343,10 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     data_handler.close_invalid_uploaded_testcase(output.testcase,
                                                  output.metadata, 'Irrelevant')
-    error = uworker_io.Output(uworker_errors.Type.UNHANDLED)
     return uworker_io.UworkerOutput(
-        testcase=testcase, metadata=metadata, error=error)
+        testcase=testcase,
+        metadata=metadata,
+        error=uworker_errors.Type.UNHANDLED)
 
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(
