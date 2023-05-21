@@ -281,8 +281,8 @@ class RoundTripTest(unittest.TestCase):
     # Test that the rest of the output was (de)serialized correctly.
     self.assertEqual(downloaded_testcase.key.serialized(),
                      self.testcase.key.serialized())
-    self.assertEqual(downloaded_testcase.error,
-                     uworker_errors.Type.ANALYZE_BUILD_SETUP)
+    error = downloaded_output.pop('error')
+    self.assertEqual(error, uworker_errors.Type.ANALYZE_BUILD_SETUP)
     self.assertDictEqual(downloaded_output, {
         'field': field_value,
         'uworker_input': {}
