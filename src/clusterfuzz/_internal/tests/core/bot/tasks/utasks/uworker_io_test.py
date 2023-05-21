@@ -235,11 +235,9 @@ class RoundTripTest(unittest.TestCase):
 
     # Prepare an output that tests db entity change tracking and
     # (de)serialization.
-    error_field = 'error-field-value'
-    output_error = uworker_errors.Error(
-        uworker_errors.Type.ANALYZE_BUILD_SETUP, error_field=error_field)
     field_value = 'field-value'
-    output = uworker_io.UworkerOutput(error=output_error)
+    output = uworker_io.UworkerOutput(
+        error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
     output.field = field_value
     output.testcase = testcase
     output.uworker_input = {}
@@ -283,10 +281,8 @@ class RoundTripTest(unittest.TestCase):
     # Test that the rest of the output was (de)serialized correctly.
     self.assertEqual(downloaded_testcase.key.serialized(),
                      self.testcase.key.serialized())
-    downloaded_error = downloaded_output.pop('error')
-    self.assertEqual(downloaded_error.error_type, output.error.error_type)
-    self.assertIsInstance(downloaded_error.error_type, uworker_errors.Type)
-    self.assertEqual(downloaded_error.error_field, output.error.error_field)
+    self.assertEqual(downloaded_testcase.error,
+                     uworker_errors.Type.ANALYZE_BUILD_SETUP)
     self.assertDictEqual(downloaded_output, {
         'field': field_value,
         'uworker_input': {}
