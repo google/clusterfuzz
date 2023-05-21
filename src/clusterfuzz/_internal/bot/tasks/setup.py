@@ -349,6 +349,7 @@ def unpack_testcase(testcase, testcase_download_url=None):
     temp_filename = testcase_file_path
 
   if not download_testcase(key, testcase_download_url, temp_filename):
+    logs.log(f'Couldn\'t download testcase {key} {testcase_download_url}.')
     return None, testcase_file_path
 
   file_list = []
