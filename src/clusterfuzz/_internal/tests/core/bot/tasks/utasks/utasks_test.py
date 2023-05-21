@@ -40,7 +40,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.mock.get_uworker_output_urls.return_value = (
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
-        self.INPUT_SIGNED_DOWNLOAD_URL)
+        self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
 
   def test_worker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
@@ -52,7 +52,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
     self.mock.serialize_and_upload_uworker_input.assert_called_with(
-        self.INPUT, self.JOB_TYPE, self.OUTPUT_SIGNED_UPLOAD_URL)
+        self.INPUT, self.JOB_TYPE)
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
@@ -106,7 +106,8 @@ class UworkerMainTest(unittest.TestCase):
 class TworkerPostproceessTest(unittest.TestCase):
   """Tests that tworker_postprocess works as intended."""
   OUTPUT_DOWNLOAD_GCS_URL = '/output-download-gcs'
-  OUTPUT = {'output1': 'something', 'output2': 'something else'}
+  OUTPUT = uworker_io.UworkerOutput(
+      output1='something', output2='something else')
 
   def setUp(self):
     helpers.patch(self, [
