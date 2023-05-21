@@ -119,8 +119,7 @@ def setup_testcase_and_build(
       testcase_download_url=testcase_download_url,
       metadata=metadata)
   if error:
-    return None, uworker_io.UworkerOutput(
-        testcase=testcase, metadata=metadata, error=error)
+    return None, error
 
   # Set up build.
   setup_build(testcase)
@@ -132,7 +131,7 @@ def setup_testcase_and_build(
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         metadata=metadata,
-        error=uworker_errors.Error(uworker_errors.Type.ANALYZE_BUILD_SETUP))
+        error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
 
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
@@ -334,7 +333,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
     return uworker_io.UworkerOutput(
         testcase,
         metadata=metadata,
-        error=uworker_errors.Error(uworker_errors.Type.ANALYZE_NO_CRASH),
+        error=uworker_errors.Type.ANALYZE_NO_CRASH,
         test_timeout=test_timeout,
         job_type=job_type)
   # Update testcase crash parameters.
@@ -344,9 +343,10 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     data_handler.close_invalid_uploaded_testcase(output.testcase,
                                                  output.metadata, 'Irrelevant')
-    error = uworker_errors.Error(uworker_errors.Type.UNHANDLED)
     return uworker_io.UworkerOutput(
-        testcase=testcase, metadata=metadata, error=error)
+        testcase=testcase,
+        metadata=metadata,
+        error=uworker_errors.Type.UNHANDLED)
 
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(
