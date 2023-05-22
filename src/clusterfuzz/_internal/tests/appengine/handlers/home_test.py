@@ -44,13 +44,12 @@ class HomeTests(unittest.TestCase):
         environment_string=('PROJECT_NAME = lib\n'
                             'CORPUS_PRUNE = True')).put()
     data_types.Job(
-        name='afl_asan_lib', environment_string=('PROJECT_NAME = lib\n')).put()
+        name='afl_asan_lib', environment_string='PROJECT_NAME = lib\n').put()
     data_types.Job(
         name='libfuzzer_msan_lib',
         environment_string='PROJECT_NAME = lib').put()
     data_types.Job(
-        name='afl_asan_lib2',
-        environment_string=('PROJECT_NAME = lib2\n')).put()
+        name='afl_asan_lib2', environment_string='PROJECT_NAME = lib2\n').put()
 
     data_types.Job(
         name='libfuzzer_asan_lib2',

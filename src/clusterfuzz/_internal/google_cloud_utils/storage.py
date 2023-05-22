@@ -35,6 +35,8 @@ from clusterfuzz._internal.system import shell
 
 from . import credentials
 
+# pylint: disable=no-member
+
 try:
   import google.cloud
   from google.cloud import storage as gcs

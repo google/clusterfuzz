@@ -226,7 +226,7 @@ class CrashReportsTest(CrashBaseTest):
                              'run_process') as mock_run_process:
         # First try expected retry success.
         mock_get_crash_info.side_effect = [None, EXPECTED_REPORT_INFO]
-        mock_run_process.side_effect = ([(None, None, SAMPLE_OUTPUT)] * 2)
+        mock_run_process.side_effect = [(None, None, SAMPLE_OUTPUT)] * 2
         crash_info, _ = crash_uploader.get_crash_info_and_stacktrace(
             '', SAMPLE_OUTPUT, None)
         if crash_info is None:

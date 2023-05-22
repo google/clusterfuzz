@@ -58,17 +58,16 @@ class GetApplicationArgumentsTest(unittest.TestCase):
 
     data_types.Job(
         name='linux_asan_chrome',
-        environment_string=('APP_ARGS = --orig-arg1 --orig-arg2')).put()
+        environment_string='APP_ARGS = --orig-arg1 --orig-arg2').put()
     data_types.Job(
         name='linux_msan_chrome_variant',
         environment_string=(
             'APP_ARGS = --arg1 --arg2 --arg3="--flag1 --flag2"')).put()
 
-    data_types.Job(name='libfuzzer_asan_chrome', environment_string=('')).put()
+    data_types.Job(name='libfuzzer_asan_chrome', environment_string='').put()
     data_types.Job(
-        name='libfuzzer_msan_chrome_variant', environment_string=('')).put()
-    data_types.Job(
-        name='afl_asan_chrome_variant', environment_string=('')).put()
+        name='libfuzzer_msan_chrome_variant', environment_string='').put()
+    data_types.Job(name='afl_asan_chrome_variant', environment_string='').put()
 
     self.testcase = test_utils.create_generic_testcase()
 
