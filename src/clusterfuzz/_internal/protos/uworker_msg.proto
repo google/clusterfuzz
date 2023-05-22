@@ -53,7 +53,6 @@ message Output {
   optional Json testcase = 1;
   optional Json metadata = 2;
   optional Error error = 3;
-  // TODO(metzman): Stop trusting this.
   optional Json uworker_env = 4;
   optional int64 test_timeout = 5;
   optional int64 crash_time = 6;
