@@ -390,7 +390,7 @@ class IsDiffOriginMasterTest(unittest.TestCase):
         return (0, self.head)
       if cmd == 'git diff origin/master --stat':
         return (0, self.diff)
-      raise Exception()
+      raise Exception()  # pylint: disable=broad-exception-raised
 
     self.mock.execute.side_effect = execute
 

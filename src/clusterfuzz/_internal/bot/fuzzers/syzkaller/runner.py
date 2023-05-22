@@ -34,6 +34,8 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
+GET_TIMEOUT_SECONDS = 120
+
 LOCAL_HOST = '127.0.0.1'
 RAWCOVER_RETRIEVE_INTERVAL = 180  # retrieve rawcover every 180 seconds
 
@@ -245,7 +247,8 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       return
 
     try:
-      rawcover = requests.get(f'http://localhost:{port}/rawcover').text
+      rawcover = requests.get(
+          f'http://localhost:{port}/rawcover', timeout=GET_TIMEOUT_SECONDS).text
     except requests.exceptions.RequestException:
       logs.log_warn('Connection to Syzkaller Failed')
       return

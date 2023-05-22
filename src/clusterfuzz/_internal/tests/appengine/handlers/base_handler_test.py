@@ -43,14 +43,14 @@ class ExceptionJsonHandler(base_handler.Handler):
 
   def get(self):
     self.is_json = True
-    raise Exception('message')
+    raise Exception('message')  # pylint: disable=broad-exception-raised
 
 
 class ExceptionHtmlHandler(base_handler.Handler):
   """Render exception in HTML response for testing."""
 
   def get(self):
-    raise Exception('unique_message')
+    raise Exception('unique_message')  # pylint: disable=broad-exception-raised
 
 
 class EarlyExceptionHandler(base_handler.Handler):

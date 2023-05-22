@@ -16,7 +16,6 @@
 import datetime
 from typing import Optional
 
-from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -69,7 +68,8 @@ def _add_default_issue_metadata(testcase):
     testcase.set_metadata(key, new_value)
 
 
-def setup_build(testcase):
+def setup_build(
+    testcase: data_types.Testcase) -> Optional[uworker_io.UworkerOutput]:
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -80,15 +80,22 @@ def setup_build(testcase):
     revision_list = build_manager.get_revisions_list(
         build_bucket_path, testcase=testcase)
     if not revision_list:
-      logs.log_error('Failed to fetch revision list.')
-      return
+      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                           'Failed to fetch revision list')
+      return uworker_io.UworkerOutput(
+          testcase=testcase, error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
-      raise errors.BuildNotFoundError(revision, testcase.job_type)
+      data_handler.update_testcase_comment(
+          testcase, data_types.TaskState.ERROR,
+          f'Build {testcase.job_type} r{revision} does not exist')
+      return uworker_io.UworkerOutput(
+          testcase=testcase, error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
+  return None
 
 
 def prepare_env_for_main(metadata):
@@ -120,11 +127,12 @@ def setup_testcase_and_build(
       testcase_download_url=testcase_download_url,
       metadata=metadata)
   if error:
-    return None, uworker_io.UworkerOutput(
-        testcase=testcase, metadata=metadata, error=error)
+    return None, error
 
   # Set up build.
-  setup_build(testcase)
+  error_output = setup_build(testcase)
+  if error_output:
+    return None, error_output
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
@@ -133,8 +141,7 @@ def setup_testcase_and_build(
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         metadata=metadata,
-        error=uworker_errors.Error(
-            uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP))
+        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
@@ -229,10 +236,6 @@ def handle_noncrash(output):
 
   data_handler.close_invalid_uploaded_testcase(output.testcase, output.metadata,
                                                'Unreproducible')
-
-  # A non-reproducing testcase might still impact production branches.
-  # Add the impact task to get that information.
-  task_creation.create_impact_task_if_needed(output.testcase)
 
 
 def update_testcase_after_crash(testcase, state, job_type, http_flag):
@@ -336,7 +339,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
     return uworker_io.UworkerOutput(
         testcase,
         metadata=metadata,
-        error=uworker_errors.Error(uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH),
+        error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
         test_timeout=test_timeout,
         job_type=job_type)
   # Update testcase crash parameters.
@@ -345,10 +348,11 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     data_handler.close_invalid_uploaded_testcase(output.testcase,
-                                                 output.metadata, 'Irrelevant')
-    error = uworker_errors.Error(uworker_msg_pb2.ErrorType.UNHANDLED)
+                                                 output.metadata, 'Irrelevant')  # pylint: disable=no-member
     return uworker_io.UworkerOutput(
-        testcase=testcase, metadata=metadata, error=error)
+        testcase=testcase,
+        metadata=metadata,
+        error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(
@@ -367,7 +371,7 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
 
 
 def handle_build_setup_error(output):
-  """Handles errrors for scenarios where build setup fails."""
+  """Handles errors for scenarios where build setup fails."""
   data_handler.update_testcase_comment(
       output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 

@@ -34,7 +34,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
   logs.log('Starting utask_main: %s.' % utask_module)
-  uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+  uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
   # Deal with the environment.
   uworker_env = uworker_input.pop('uworker_env')
   set_uworker_env(uworker_env)

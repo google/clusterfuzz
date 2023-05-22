@@ -24,7 +24,6 @@ from google.cloud import ndb
 from google.cloud.datastore_v1.proto import entity_pb2
 from google.cloud.ndb import model
 
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -168,16 +167,13 @@ def serialize_uworker_output(uworker_output_obj):
   serializable = {}
   error = uworker_output.pop('error', None)
   if error is not None:
-    error = error.to_dict()
-    # Change from enum type to the int so we can serialize.
-    error['error_type'] = error['error_type'].value
+    error = error.value
 
   proto_output = uworker_msg_pb2.Output()
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
       serializable[name] = value
       continue
-
 
     entities[name] = {
         'key': base64.b64encode(value.key.serialized()).decode(),
@@ -213,8 +209,8 @@ def deserialize_uworker_output(uworker_output):
   deserialized_output = uworker_output['serializable']
   error = uworker_output.pop('error')
   if error is not None:
-    error_type = uworker_errors.Type(error.pop('error_type'))
-    deserialized_output['error'] = uworker_errors.Error(error_type, **error)
+    # !!!
+    deserialized_output['error'] = uworker_msg_pb2.ErrorType(error)
   else:
     deserialized_output['error'] = None
   for name, entity_dict in uworker_output['entities'].items():
@@ -249,7 +245,7 @@ class UworkerEntityWrapper:
     if attribute in ['_entity', '_wrapped_changed_attributes']:
       # Allow setting and changing _entity and _wrapped_changed_attributes.
       # Stack overflow in __init__ otherwise.
-      return super().__getattr__(attribute)
+      return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self._entity, attribute)
 
   def __setattr__(self, attribute, value):

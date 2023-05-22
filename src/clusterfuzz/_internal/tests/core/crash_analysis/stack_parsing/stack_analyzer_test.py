@@ -213,7 +213,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('android_kernel.txt')
     expected_type = 'Kernel failure\nREAD Translation Fault, Section (5)'
     expected_address = '0x12345678'
-    expected_state = ('top_frame\nnext_frame\nlast_frame\n')
+    expected_state = 'top_frame\nnext_frame\nlast_frame\n'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -227,7 +227,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('android_kernel_no_parens.txt')
     expected_type = 'Kernel failure\nREAD Translation Fault, Section (5)'
     expected_address = '0x12345678'
-    expected_state = ('top_frame\nnext_frame\nlast_frame\n')
+    expected_state = 'top_frame\nnext_frame\nlast_frame\n'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -380,7 +380,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the ubsan bool format."""
     data = self._read_test_data('ubsan_invalid_bool_value.txt')
     expected_type = 'Invalid-bool-value'
-    expected_state = ('tsm_screen_tab_left\nparse_data\ntsm_vte_input\n')
+    expected_state = 'tsm_screen_tab_left\nparse_data\ntsm_vte_input\n'
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
@@ -409,7 +409,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ubsan_non_positive_vla_bound_value.txt')
     expected_type = 'Non-positive-vla-bound-value'
     expected_address = ''
-    expected_state = ('boom_internal\nanother_boom\nboom\n')
+    expected_state = 'boom_internal\nanother_boom\nboom\n'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -497,7 +497,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ubsan_object_size.txt')
     expected_type = 'Object-size'
     expected_address = ''
-    expected_state = ('boom_internal\nanother_boom\nboom\n')
+    expected_state = 'boom_internal\nanother_boom\nboom\n'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -525,7 +525,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ubsan_pointer_overflow_null_zero_offset.txt')
     expected_type = 'Pointer-overflow'
     expected_address = ''
-    expected_state = ('cff_subfont_load\ncff_font_load\ncff_face_init\n')
+    expected_state = 'cff_subfont_load\ncff_font_load\ncff_face_init\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -705,7 +705,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('ignore_honggfuzz.txt')
     expected_type = 'Segv on unknown address'
     expected_address = ''
-    expected_state = ('function1\nfunction2\nfunction3\n')
+    expected_state = 'function1\nfunction2\nfunction3\n'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -849,7 +849,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('v8_check_windows.txt')
     expected_type = 'CHECK failure'
     expected_address = ''
-    expected_state = ('!field_type->NowStable() in objects-debug.cc\n')
+    expected_state = '!field_type->NowStable() in objects-debug.cc\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -1393,7 +1393,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the ASan ILL format."""
     data = self._read_test_data('asan_ill.txt')
     expected_type = 'Ill'
-    expected_state = ('boom_internal\nboom_intermediate\nboom\n')
+    expected_state = 'boom_internal\nboom_intermediate\nboom\n'
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
@@ -1406,7 +1406,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the UBSan ILL format."""
     data = self._read_test_data('ubsan_ill.txt')
     expected_type = 'Ill'
-    expected_state = ('boom_internal\nboom_intermediate\nboom\n')
+    expected_state = 'boom_internal\nboom_intermediate\nboom\n'
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
@@ -1419,7 +1419,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test the ASan ILL format with a null address."""
     data = self._read_test_data('asan_ill_null_address.txt')
     expected_type = 'Ill'
-    expected_state = ('boom_internal\nboom_intermediate\nboom\n')
+    expected_state = 'boom_internal\nboom_intermediate\nboom\n'
     expected_address = '0x000000000000'
     expected_stacktrace = data
     expected_security_flag = True
@@ -1696,7 +1696,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('gsignal_at_first_stack_frame.txt')
     expected_type = 'UNKNOWN'
     expected_address = '0x5668a000177a5'
-    expected_state = ('AbbreviatedMonthsMap\nget\nGetInstance\n')
+    expected_state = 'AbbreviatedMonthsMap\nget\nGetInstance\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -1709,7 +1709,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('sanitizer_signal_abrt.txt')
     expected_type = 'Abrt'
     expected_address = ''
-    expected_state = ('/tmp/coredump\n/tmp/coredump\n')
+    expected_state = '/tmp/coredump\n/tmp/coredump\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -1750,7 +1750,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test syzkaller kasan."""
     data = self._read_test_data('kasan_syzkaller_android.txt')
     expected_type = 'Kernel failure\nNull-ptr-deref\nWRITE 4'
-    expected_state = ('sockfs_setattr\nnotify_change2\nchown_common\n')
+    expected_state = 'sockfs_setattr\nnotify_change2\nchown_common\n'
     expected_address = '0x00000000027c'
     expected_stacktrace = data
     expected_security_flag = True
@@ -1823,7 +1823,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test a KASan use-after-free."""
     data = self._read_test_data('kasan_uaf.txt')
     expected_type = 'Kernel failure\nUse-after-free\nREAD 4'
-    expected_state = ('ip6_append_data\nudpv6_sendmsg\ninet_sendmsg\n')
+    expected_state = 'ip6_append_data\nudpv6_sendmsg\ninet_sendmsg\n'
     expected_address = '0xffff88005031ee80'
     expected_stacktrace = data
     expected_security_flag = True
@@ -2366,7 +2366,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                   'Check failed: query failed = "fuzzed456$data"')]:
       expected_type = 'CHECK failure'
       expected_address = ''
-      expected_state = ('query failed in file.cc\n')
+      expected_state = 'query failed in file.cc\n'
       expected_stacktrace = data
       expected_security_flag = False
 
@@ -2693,7 +2693,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
         'libfuzzer_llvm_fuzzer_test_one_input_crash.txt')
     expected_type = 'Abrt'
     expected_address = '0x03e900003b7b'
-    expected_state = ('deflate_set_dictionary_fuzzer.cc\n')
+    expected_state = 'deflate_set_dictionary_fuzzer.cc\n'
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
@@ -2817,7 +2817,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('assert_failure_google.txt')
     expected_type = 'ASSERT'
     expected_address = ''
-    expected_state = ('Blah.empty() && "Failure!"\nFrame\npath.cc\n')
+    expected_state = 'Blah.empty() && "Failure!"\nFrame\npath.cc\n'
 
     expected_stacktrace = data
     expected_security_flag = True
@@ -2830,7 +2830,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('log_fatal_google.txt')
     expected_type = 'Fatal error'
     expected_address = ''
-    expected_state = ('Log fatal in file.h\nFrame\npath.cc\n')
+    expected_state = 'Log fatal in file.h\nFrame\npath.cc\n'
 
     expected_stacktrace = data
     expected_security_flag = False
@@ -3354,7 +3354,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test googlefuzzztest stacktrace."""
     data = self._read_test_data('googlefuzztest.txt')
     expected_type = 'Heap-buffer-overflow\nREAD 1'
-    expected_state = ('foo::Bar\nblah::Foo\n')
+    expected_state = 'foo::Bar\nblah::Foo\n'
     expected_address = '0x602000004efe'
     expected_stacktrace = data
     expected_security_flag = True
@@ -3379,7 +3379,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test android kernel panic with modules stacktrace."""
     data = self._read_test_data('android_kernel_panic_modules.txt')
     expected_type = 'Kernel failure\npt_handle_check-physical-memory-group-manager-5-unknown'
-    expected_state = ('pt_client_enable\npt_client_enable\nmgm_alloc_page\n')
+    expected_state = 'pt_client_enable\npt_client_enable\nmgm_alloc_page\n'
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = True
@@ -3564,7 +3564,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test Jazzer.js JS stacktrace."""
     data = self._read_test_data('jazzer_js_javascript.txt')
     expected_type = 'Uncaught exception'
-    expected_state = ('check\nmodule.exports.fuzz\n')
+    expected_state = 'check\nmodule.exports.fuzz\n'
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
@@ -3576,7 +3576,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test Jazzer.js TS stacktrace."""
     data = self._read_test_data('jazzer_js_typescript.txt')
     expected_type = 'Uncaught exception'
-    expected_state = ('exploreMe\nfuzz\n')
+    expected_state = 'exploreMe\nfuzz\n'
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
@@ -3588,7 +3588,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('trusty_symbolized_kernel_stacktrace.txt')
     expected_type = 'Trusted app crash'
     expected_address = ''
-    expected_state = ('fe_invert\nDiceSign\nDiceCoseSignAndEncodeSign1\n')
+    expected_state = 'fe_invert\nDiceSign\nDiceCoseSignAndEncodeSign1\n'
     expected_stacktrace = data
     expected_security_flag = True
 

@@ -418,7 +418,7 @@ def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-
 class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   """Tests for running testcases."""
 
-  GREYBOX_FUZZER_NO_CRASH = ('Command: cmd\nTime ran: 0\n\noutput')
+  GREYBOX_FUZZER_NO_CRASH = 'Command: cmd\nTime ran: 0\n\noutput'
   GREYBOX_FUZZER_CRASH = 'Command: cmd\nTime ran: 1\n\ncrash'
 
   def setUp(self):

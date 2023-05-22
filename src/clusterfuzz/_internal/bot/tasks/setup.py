@@ -179,11 +179,10 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
   """Handles for setup_testcase that is called by uworker_postprocess."""
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
-  error = uworker_output
   tasks.add_task(
       task_name,
-      error.testcase_id,
-      error.job_type,
+      uworker_output.testcase_id,
+      uworker_output.job_type,
       wait_time=testcase_fail_wait)
 
 
@@ -223,15 +222,15 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_msg_pb2.Error(
-          uworker_msg_pb2.ErrorType.NO_FUZZER)
+      return None, None, uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.NOOP_HANDLER)
 
     if not update_successful:
-      error_message = 'Unable to setup fuzzer %s' % fuzzer_name
+      error_message = f'Unable to setup fuzzer {fuzzer_name}'
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_msg_pb2.Error(
-          uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+      return None, None, uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
           job_type=job_type,
           testcase_id=testcase_id)
 
@@ -242,8 +241,8 @@ def setup_testcase(testcase,
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    return None, None, uworker_msg_pb2.Error(
-        uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+    return None, None, uworker_io.UworkerOutput(
+        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
         job_type=job_type,
         testcase_id=testcase_id)
 
@@ -330,6 +329,7 @@ def _is_testcase_minimized(testcase):
 
 def download_testcase(key, testcase_download_url, dst):
   if testcase_download_url:
+    logs.log(f'Downloading testcase from: {testcase_download_url}')
     return storage.download_signed_url(testcase_download_url, dst)
   return blobs.read_blob_to_disk(key, dst)
 
@@ -350,6 +350,7 @@ def unpack_testcase(testcase, testcase_download_url=None):
     temp_filename = testcase_file_path
 
   if not download_testcase(key, testcase_download_url, temp_filename):
+    logs.log(f'Couldn\'t download testcase {key} {testcase_download_url}.')
     return None, testcase_file_path
 
   file_list = []

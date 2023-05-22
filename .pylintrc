@@ -22,8 +22,6 @@ disable=
   locally-disabled,
   misplaced-comparison-constant,
   multiple-imports,
-  no-member,
-  no-name-in-module,
   no-self-use,
   relative-import,
   similarities,

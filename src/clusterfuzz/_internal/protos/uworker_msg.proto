@@ -35,7 +35,6 @@ enum ErrorType {
   ANALYZE_BUILD_SETUP = 0;
   ANALYZE_NO_CRASH = 1;
   TESTCASE_SETUP = 2;
-  NO_FUZZER = 3;
   UNHANDLED = 4;
 }
 
