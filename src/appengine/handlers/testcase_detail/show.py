@@ -478,7 +478,7 @@ def get_testcase_detail(testcase):
 
   if testcase.one_time_crasher_flag:
     last_crash_time = (
-        testcase.get_metadata('last_tested_crash_time') or testcase.timestamp)
+        crash_stats.get_last_crash_time(testcase) or testcase.timestamp)
 
     # Set auto-delete timestamp for unreproducible testcases with
     # no associated bug.

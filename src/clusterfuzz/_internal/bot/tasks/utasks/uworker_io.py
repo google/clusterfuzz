@@ -166,8 +166,6 @@ def serialize_uworker_output(uworker_output_obj):
   entities = {}
   serializable = {}
   error = uworker_output.pop('error', None)
-  if error is not None:
-    error = error.value
 
   proto_output = uworker_msg_pb2.Output()
   for name, value in uworker_output.items():
@@ -207,12 +205,6 @@ def deserialize_uworker_output(uworker_output):
   entities here."""
   uworker_output = json.loads(uworker_output)
   deserialized_output = uworker_output['serializable']
-  error = uworker_output.pop('error')
-  if error is not None:
-    # !!!
-    deserialized_output['error'] = uworker_msg_pb2.ErrorType(error)
-  else:
-    deserialized_output['error'] = None
   for name, entity_dict in uworker_output['entities'].items():
     key = entity_dict['key']
     ndb_key = ndb.Key(serialized=base64.b64decode(key))

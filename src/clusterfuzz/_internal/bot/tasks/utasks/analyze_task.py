@@ -22,7 +22,6 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -83,7 +82,7 @@ def setup_build(
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            'Failed to fetch revision list')
       return uworker_io.UworkerOutput(
-          testcase=testcase, error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
+          testcase=testcase, error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
@@ -91,7 +90,7 @@ def setup_build(
           testcase, data_types.TaskState.ERROR,
           f'Build {testcase.job_type} r{revision} does not exist')
       return uworker_io.UworkerOutput(
-          testcase=testcase, error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
+          testcase=testcase, error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
