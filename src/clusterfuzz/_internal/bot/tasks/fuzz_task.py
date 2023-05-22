@@ -1418,7 +1418,7 @@ class FuzzingSession(object):
     else:
       argument_separator = '='
 
-    command_format = ('%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d')
+    command_format = '%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d'
     fuzzer_command = str(
         command_format % (command, argument_separator, self.data_directory,
                           argument_separator, self.testcase_directory,

@@ -28,7 +28,7 @@ class IgnoreStacktraceTest(unittest.TestCase):
 
   def test_search_excludes(self):
     """Test SEARCH_EXCLUDES env var works."""
-    crash_stacktrace = ('aaa\nbbbbbbb\nccc\nddd\n\n')
+    crash_stacktrace = 'aaa\nbbbbbbb\nccc\nddd\n\n'
     self.assertFalse(crash_analyzer.ignore_stacktrace(crash_stacktrace))
 
     os.environ['SEARCH_EXCLUDES'] = r'eeee'
@@ -50,8 +50,8 @@ class IgnoreStacktraceTest(unittest.TestCase):
         self, ['clusterfuzz._internal.config.local_config.ProjectConfig.get'])
     self.mock.get.side_effect = _mock_config_get
 
-    crash_stacktrace = ('aaa\nbbbbbbb\nzzzccc\nddd\n\n')
+    crash_stacktrace = 'aaa\nbbbbbbb\nzzzccc\nddd\n\n'
     self.assertTrue(crash_analyzer.ignore_stacktrace(crash_stacktrace))
 
-    crash_stacktrace = ('aaa\nbbbbbbb\nddd\n\n')
+    crash_stacktrace = 'aaa\nbbbbbbb\nddd\n\n'
     self.assertFalse(crash_analyzer.ignore_stacktrace(crash_stacktrace))

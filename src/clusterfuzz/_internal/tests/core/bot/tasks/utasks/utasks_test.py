@@ -42,7 +42,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
 
-  def test_worker_preprocess(self):
+  def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
     module = mock.MagicMock()
     module.utask_preprocess.return_value = self.INPUT
