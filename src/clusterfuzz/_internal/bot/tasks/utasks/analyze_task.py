@@ -227,10 +227,6 @@ def handle_noncrash(output):
   data_handler.close_invalid_uploaded_testcase(output.testcase, output.metadata,
                                                'Unreproducible')
 
-  # A non-reproducing testcase might still impact production branches.
-  # Add the impact task to get that information.
-  task_creation.create_impact_task_if_needed(output.testcase)
-
 
 def update_testcase_after_crash(testcase, state, job_type, http_flag):
   """Updates |testcase| based on |state|."""
