@@ -17,6 +17,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
@@ -72,8 +73,9 @@ def execute_task(testcase_id, job_type):
   testcase = _get_variant_testcase_for_job(testcase, job_type)
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  if error:
+    uworker_handle_errors.handle(error)
     return
 
   # Set up a custom or regular build. We explicitly omit the crash revision
