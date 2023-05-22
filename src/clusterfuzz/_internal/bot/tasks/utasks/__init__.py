@@ -40,17 +40,20 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   set_uworker_env(uworker_env)
 
   uworker_output = utask_module.utask_main(**uworker_input)
-
-  # Do this to simulate out-of-band tamper-proof storage of the input.
-  uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
-  uworker_env = uworker_input.pop('uworker_env')
-  uworker_output.uworker_env = uworker_env
-  uworker_output.uworker_input = uworker_input
   return uworker_io.serialize_uworker_output(uworker_output)
 
 
-def uworker_postprocess_no_io(utask_module, uworker_output):
+def add_uworker_input_to_output(uworker_output, uworker_input):
+  uworker_env = uworker_input.pop('uworker_env')
+  uworker_output.uworker_env = uworker_env
+  uworker_output.uworker_input = uworker_input
+
+
+def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+  # Do this to simulate out-of-band tamper-proof storage of the input.
+  uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+  add_uworker_input_to_output(uworker_output, uworker_input)
   utask_module.utask_postprocess(uworker_output)
 
 
@@ -101,9 +104,13 @@ def uworker_main(utask_module, input_download_url) -> None:
                                                  uworker_output_upload_url)
 
 
-def tworker_postprocess(utask_module, output_download_url) -> None:
+def tworker_postprocess(utask_module, output_download_url,
+                        input_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   logs.log('Starting utask_postprocess: %s.' % utask_module)
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
+  uworker_input = uworker_io.download_and_deserialize_uworker_input(
+      input_download_url)
+  add_uworker_input_to_output(uworker_output, uworker_input)
   utask_module.utask_postprocess(uworker_output)

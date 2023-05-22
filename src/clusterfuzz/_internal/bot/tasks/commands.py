@@ -90,7 +90,8 @@ class UTaskLocalExecutor(BaseTask):
 
     input_download_url, output_download_url = preprocess_result
     utasks.uworker_main(self.module, input_download_url)
-    utasks.tworker_postprocess(self.module, output_download_url)
+    utasks.tworker_postprocess(self.module, output_download_url,
+                               input_download_url)
     logs.log('Utask local: done.')
 
 
@@ -105,7 +106,7 @@ class UTaskLocalInMemoryExecutor(BaseTask):
     if uworker_input is None:
       return
     uworker_output = utasks.uworker_main_no_io(self.module, uworker_input)
-    utasks.uworker_postprocess_no_io(self.module, uworker_output)
+    utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.log('Utask local: done.')
 
 
