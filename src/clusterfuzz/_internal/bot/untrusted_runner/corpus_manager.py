@@ -37,4 +37,4 @@ class RemoteFuzzTargetCorpus(corpus_manager.FuzzTargetCorpus):
         quarantine,
         # Never log results for remote corpora since the state is on the worker.
         log_results=False,
-        _gsutil_runner=RemoteGSUtilRunner)
+        gsutil_runner_func=RemoteGSUtilRunner)

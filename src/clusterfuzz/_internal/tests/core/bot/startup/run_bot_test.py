@@ -70,7 +70,7 @@ class MonitorTest(unittest.TestCase):
     with self.assertRaises(Exception):
       with run_bot._Monitor(task, time_module=self.time):
         self.time.advance(5)
-        raise Exception('test')
+        raise Exception('test')  # pylint: disable=broad-exception-raised
 
     self.assertEqual(
         1, monitoring_metrics.TASK_COUNT.get({

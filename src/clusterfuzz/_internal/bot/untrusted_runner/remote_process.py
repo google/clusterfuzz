@@ -29,7 +29,7 @@ def process_result_to_proto(process_result):
       time_executed=process_result.time_executed,
       timed_out=process_result.timed_out)
 
-  process_result_proto.command.extend(process_result.command)
+  process_result_proto.command.extend(process_result.command)  # pylint: disable=no-member
 
   return process_result_proto
 

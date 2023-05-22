@@ -72,6 +72,8 @@ MUTATOR_STRATEGIES = [
     strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
 ]
 
+# pylint: disable=no-member
+
 
 class LibFuzzerException(Exception):
   """LibFuzzer exception."""

@@ -243,7 +243,11 @@ class StackParser:
       # anonymous namespaces in the crash state.
       if (frame_struct and frame_struct.module_offset and
           not frame_struct.function_name):
-        frame_filter = lambda s: s
+
+        def new_frame_filter(s):
+          return s
+
+        frame_filter = new_frame_filter
 
       # Update stacktrace frames list with frame struct.
       new_thread = state.last_frame_id < 0

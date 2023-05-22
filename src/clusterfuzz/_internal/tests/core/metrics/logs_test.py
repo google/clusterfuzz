@@ -109,7 +109,7 @@ class UpdateEntryWithExc(unittest.TestCase):
       # We do this because we need the traceback instance.
       exc_info = sys.exc_info()
 
-    logs.update_entry_with_exc(entry, exc_info)
+    logs.update_entry_with_exc(entry, exc_info)  # pylint: disable=used-before-assignment
     self.maxDiff = None  # pylint: disable=invalid-name
 
     self.assertEqual({

@@ -155,7 +155,7 @@ def get_latest_artifact_info(branch, target, signed=False):
   if not client:
     return None
 
-  request = client.build().list(
+  request = client.build().list(  # pylint: disable=no-member
       buildType='submitted',
       branch=branch,
       target=target,

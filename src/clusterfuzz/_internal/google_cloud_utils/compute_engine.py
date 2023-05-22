@@ -29,6 +29,8 @@ OPERATION_TIMEOUT = 15 * 60
 POLL_INTERVAL = 30
 SLEEP_TIME = 10
 
+# pylint: disable=no-member
+
 # TODO(ochang): Allow batching.
 
 
