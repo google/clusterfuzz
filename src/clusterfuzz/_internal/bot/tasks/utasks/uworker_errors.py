@@ -20,25 +20,5 @@ class Type(enum.Enum):
   ANALYZE_BUILD_SETUP = 1
   ANALYZE_NO_CRASH = 2
   TESTCASE_SETUP = 3
-<<<<<<< HEAD
   NOOP_HANDLER = 4
   VARIANT_BUILD_SETUP = 5
-=======
-  VARIANT_BUILD_SETUP = 4
-  UNHANDLED = 5
-
-
-class Error:
-  """Class representing error messages from the untrusted worker. This should
-  contain the type of the error |error_type| as well as any other data to handle
-  the error."""
-
-  def __init__(self, error_type, **kwargs):
-    self.error_type = error_type
-    for key, value in kwargs.items():
-      setattr(self, key, value)
-
-  def to_dict(self):
-    # Make a copy so calls to pop don't modify the object.
-    return self.__dict__.copy()
->>>>>>> b15b8e52 (fix)
