@@ -110,16 +110,15 @@ def utask_main(original_job_type, testcase, variant, job_type,
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_errors.Error(uworker_errors.Type.NOOP_HANDLER)
+    return uworker_io.UworkerOutput(Error=uworker_errors.Type.NOOP_HANDLER)
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        error=uworker_errors.Error(
-            uworker_errors.Type.VARIANT_BUILD_SETUP,
-            testcase=testcase,
-            job_type=job_type))
+        error=uworker_errors.Type.VARIANT_BUILD_SETUP,
+        testcase=testcase,
+        job_type=job_type)
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
