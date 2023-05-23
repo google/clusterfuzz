@@ -353,7 +353,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
     return uworker_io.UworkerOutput(
         testcase=testcase,
         metadata=metadata,
-        error=uworker_msg_pb2.ErrorType.NOOP_HANDLER)
+        error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(
