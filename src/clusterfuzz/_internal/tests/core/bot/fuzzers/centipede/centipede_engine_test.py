@@ -53,7 +53,7 @@ def get_test_paths():
 
 
 TEST_PATH = pathlib.Path(__file__).parent
-MAX_TIME = 25
+MAX_TIME = 2
 
 # Centipede's runtime args for testing.
 _SERVER_COUNT = 1
@@ -61,7 +61,7 @@ _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
 _TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
-_TIMEOUT_PER_INPUT_TEST = 5  # For testing timeout only.
+_TIMEOUT_PER_INPUT_TEST = 1  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
