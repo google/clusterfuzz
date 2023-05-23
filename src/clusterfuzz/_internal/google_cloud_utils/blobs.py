@@ -215,3 +215,10 @@ def get_blob_mapping(blob_key):
 def generate_new_blob_name():
   """Generate a new blob name."""
   return str(uuid.uuid4()).lower()
+
+
+def get_signed_download_url(blob_key):
+  """Returns a signed download URL that can be used to download the blob pointed
+  to by |blob_key|."""
+  gcs_path = get_gcs_path(blob_key)
+  return storage.get_signed_download_url(gcs_path)

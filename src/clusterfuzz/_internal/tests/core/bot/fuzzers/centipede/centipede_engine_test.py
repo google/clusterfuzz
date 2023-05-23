@@ -61,6 +61,7 @@ _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
 _TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
+<<<<<<< HEAD
 _TIMEOUT_PER_INPUT_TEST = 1  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
@@ -105,16 +106,16 @@ class IntegrationTest(unittest.TestCase):
   """Integration tests."""
 
   def run(self, *args, **kwargs):
-    test_helpers.patch_environ(self)
     with get_test_paths() as test_paths:
       self.test_paths = test_paths
-      os.environ['BUILD_DIR'] = str(self.test_paths.data)
       super().run(*args, **kwargs)
 
   def setUp(self):
     self.maxDiff = None  # pylint: disable=invalid-name
     test_helpers.patch(self, ['os.getpid'])
     self.mock.getpid.return_value = 1337
+    test_helpers.patch_environ(self)
+    os.environ['BUILD_DIR'] = str(self.test_paths.data)
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""

@@ -24,6 +24,8 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
+from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -47,10 +49,12 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
-def _set_timeout_value_from_user_upload(testcase_id):
+def _set_timeout_value_from_user_upload(testcase_id, metadata):
   """Get the timeout associated with this testcase."""
-  metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  if metadata is None:
+    metadata = data_types.TestcaseUploadMetadata.query(
+        data_types.TestcaseUploadMetadata.testcase_id == int(
+            testcase_id)).get()
   if metadata and metadata.timeout:
     environment.set_value('TEST_TIMEOUT', metadata.timeout)
 
@@ -171,12 +175,25 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
     environment.set_value('APP_ARGS', app_args)
 
 
-def setup_testcase(testcase, job_type, fuzzer_override=None):
+def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
+  """Handles for setup_testcase that is called by uworker_postprocess."""
+  task_name = environment.get_value('TASK_NAME')
+  testcase_fail_wait = environment.get_value('FAIL_WAIT')
+  tasks.add_task(
+      task_name,
+      uworker_output.testcase_id,
+      uworker_output.job_type,
+      wait_time=testcase_fail_wait)
+
+
+def setup_testcase(testcase,
+                   job_type,
+                   fuzzer_override=None,
+                   testcase_download_url=None,
+                   metadata=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
-  task_name = environment.get_value('TASK_NAME')
-  testcase_fail_wait = environment.get_value('FAIL_WAIT')
   testcase_id = testcase.key.id()
 
   # Clear testcase directories.
@@ -185,13 +202,16 @@ def setup_testcase(testcase, job_type, fuzzer_override=None):
   # Adjust the test timeout value if this is coming from an user uploaded
   # testcase.
   if testcase.uploader_email:
-    _set_timeout_value_from_user_upload(testcase_id)
+    _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if fuzzer_name:
     try:
       update_successful = update_fuzzer_and_data_bundles(fuzzer_name)
     except errors.InvalidFuzzerError:
+      # Don't need to use an error handler here becasue we're only updating a db
+      # entity. This can be done on the uworker as long as they return it to the
+      # tworker for saving.
       # Close testcase and don't recreate tasks if this fuzzer is invalid.
       testcase.open = False
       testcase.fixed = 'NA'
@@ -202,25 +222,28 @@ def setup_testcase(testcase, job_type, fuzzer_override=None):
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, None
+      return None, None, uworker_io.Output(error=uworker_errors.Type.NO_FUZZER)
 
     if not update_successful:
       error_message = 'Unable to setup fuzzer %s' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      tasks.add_task(
-          task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
-      return None, None, None
+      return None, None, uworker_io.Output(
+          error=uworker_errors.Type.TESTCASE_SETUP,
+          job_type=job_type,
+          testcase_id=testcase_id)
 
   # Extract the testcase and any of its resources to the input directory.
-  file_list, input_directory, testcase_file_path = unpack_testcase(testcase)
+  file_list, testcase_file_path = unpack_testcase(testcase,
+                                                  testcase_download_url)
   if not file_list:
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    tasks.add_task(
-        task_name, testcase_id, job_type, wait_time=testcase_fail_wait)
-    return None, None, None
+    return None, None, uworker_io.Output(
+        error=uworker_errors.Type.TESTCASE_SETUP,
+        job_type=job_type,
+        testcase_id=testcase_id)
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.
@@ -238,9 +261,10 @@ def setup_testcase(testcase, job_type, fuzzer_override=None):
     # Get local blacklist without this testcase's entry.
     leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
 
+  task_name = environment.get_value('TASK_NAME')
   prepare_environment_for_testcase(testcase, job_type, task_name)
 
-  return file_list, input_directory, testcase_file_path
+  return file_list, testcase_file_path, None
 
 
 def _get_testcase_file_and_path(testcase):
@@ -280,31 +304,53 @@ def _get_testcase_file_and_path(testcase):
   return input_directory, testcase_path
 
 
-def unpack_testcase(testcase):
-  """Unpack a testcase and return all files it is composed of."""
+def get_signed_testcase_download_url(testcase):
+  """Returns a signed download URL for the testcase."""
+  key, _ = _get_testcase_key_and_archive_status(testcase)
+  return blobs.get_signed_download_url(key)
+
+
+def _get_testcase_key_and_archive_status(testcase):
+  """Returns the testcase's key and whether or not it is archived."""
+  if _is_testcase_minimized(testcase):
+    key = testcase.minimized_keys
+    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
+    return key, archived
+
+  key = testcase.fuzzed_keys
+  archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)
+  return key, archived
+
+
+def _is_testcase_minimized(testcase):
+  return testcase.minimized_keys and testcase.minimized_keys != 'NA'
+
+
+def download_testcase(key, testcase_download_url, dst):
+  if testcase_download_url:
+    logs.log(f'Downloading testcase from: {testcase_download_url}')
+    return storage.download_signed_url(testcase_download_url, dst)
+  return blobs.read_blob_to_disk(key, dst)
+
+
+def unpack_testcase(testcase, testcase_download_url=None):
+  """Unpacks a testcase and returns all files it is composed of."""
   # Figure out where the testcase file should be stored.
   input_directory, testcase_file_path = _get_testcase_file_and_path(testcase)
 
-  minimized = testcase.minimized_keys and testcase.minimized_keys != 'NA'
-  if minimized:
-    key = testcase.minimized_keys
-    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
-  else:
-    key = testcase.fuzzed_keys
-    archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)
-
-  if archived:
-    if minimized:
-      temp_filename = (
-          os.path.join(input_directory,
-                       str(testcase.key.id()) + _TESTCASE_ARCHIVE_EXTENSION))
-    else:
-      temp_filename = os.path.join(input_directory, testcase.archive_filename)
+  key, archived = _get_testcase_key_and_archive_status(testcase)
+  if _is_testcase_minimized(testcase) and archived:
+    temp_filename = (
+        os.path.join(input_directory,
+                     str(testcase.key.id()) + _TESTCASE_ARCHIVE_EXTENSION))
+  elif archived:
+    temp_filename = os.path.join(input_directory, testcase.archive_filename)
   else:
     temp_filename = testcase_file_path
 
-  if not blobs.read_blob_to_disk(key, temp_filename):
-    return None, input_directory, testcase_file_path
+  if not download_testcase(key, testcase_download_url, temp_filename):
+    logs.log(f'Couldn\'t download testcase {key} {testcase_download_url}.')
+    return None, testcase_file_path
 
   file_list = []
   if archived:
@@ -323,11 +369,11 @@ def unpack_testcase(testcase):
           'Expected file to run %s is not in archive. Base directory is %s and '
           'files in archive are [%s].' % (testcase_file_path, input_directory,
                                           ','.join(file_list)))
-      return None, input_directory, testcase_file_path
+      return None, testcase_file_path
   else:
     file_list.append(testcase_file_path)
 
-  return file_list, input_directory, testcase_file_path
+  return file_list, testcase_file_path
 
 
 def _get_data_bundle_update_lock_name(data_bundle_name):
@@ -540,6 +586,8 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
   _clear_old_data_bundles_if_needed()
 
   # Setup data bundles associated with this fuzzer.
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to a
+  # seperate function.
   data_bundles = ndb_utils.get_all_from_query(
       data_types.DataBundle.query(
           data_types.DataBundle.name == fuzzer.data_bundle_name))
