@@ -61,7 +61,6 @@ _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
 _TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
-<<<<<<< HEAD
 _TIMEOUT_PER_INPUT_TEST = 1  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
