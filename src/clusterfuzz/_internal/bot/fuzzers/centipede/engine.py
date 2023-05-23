@@ -42,6 +42,7 @@ _DEFAULT_ARGUMENTS = [
 
 CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
+TargetBinaries = namedtuple('TargetBinaries', ['unsanitized', 'sanitized'])
 
 
 class CentipedeError(Exception):
@@ -141,13 +142,12 @@ class Engine(engine.Engine):
     main_target_path = pathlib.Path(target_path)
     auxiliary_target_path = self._get_auxiliary_target_path(target_path)
 
-    Binary = namedtuple('Binary', ['unsanitized', 'sanitized'])
     if main_target_path.exists() and auxiliary_target_path.exists():
       # 2 binaries were provided.
-      target_binaries = Binary(main_target_path, auxiliary_target_path)
+      target_binaries = TargetBinaries(main_target_path, auxiliary_target_path)
     elif main_target_path.exists():
       # 1 binary was provided.
-      target_binaries = Binary(None, main_target_path)
+      target_binaries = TargetBinaries(None, main_target_path)
     else:
       assert not auxiliary_target_path.exists()
       raise RuntimeError('No fuzz target: Centipede cannot find main target '
