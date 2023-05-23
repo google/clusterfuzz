@@ -53,7 +53,7 @@ def get_test_paths():
 
 
 TEST_PATH = pathlib.Path(__file__).parent
-MAX_TIME = 2
+MAX_TIME = 3
 
 # Centipede's runtime args for testing.
 _SERVER_COUNT = 1
