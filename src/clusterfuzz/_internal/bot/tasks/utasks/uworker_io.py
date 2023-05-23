@@ -123,8 +123,8 @@ def serialize_uworker_input(uworker_input):
     if isinstance(value, ndb.Model):
       uworker_input[key] = model._entity_to_protobuf(value)  # pylint: disable=protected-access
     elif isinstance(value, dict):
-      value = json.dumps(value)
-      uworker_input[key] = uworker_msg_pb2.Json(serialized=value)
+      serialized = json.dumps(value)
+      uworker_input[key] = uworker_msg_pb2.Json(serialized=serialized)
 
   uworker_input = uworker_msg_pb2.Input(**uworker_input)
   return uworker_input.SerializeToString()
@@ -163,22 +163,20 @@ def serialize_uworker_output(uworker_output_obj):
     if isinstance(uworker_input[key], UworkerEntityWrapper):
       del uworker_input[key]
       continue
-  entities = {}
-  serializable = {}
-  error = uworker_output.pop('error', None)
 
   proto_output = uworker_msg_pb2.Output()
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
-      serializable[name] = value
+      setattr(proto_output, name, value)
       continue
 
-    entities[name] = {
+    entity = {
         'key': base64.b64encode(value.key.serialized()).decode(),
         'changed': value._wrapped_changed_attributes,  # pylint: disable=protected-access
     }
-  output = {'serializable': serializable, 'entities': entities, 'error': error}
-  return json.dumps(output)
+    entity = json.dumps(entity)
+    setattr(proto_output, name, entity)
+  return proto_output
 
 
 def serialize_and_upload_uworker_output(uworker_output, upload_url):

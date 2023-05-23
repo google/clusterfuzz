@@ -21,9 +21,9 @@ from unittest import mock
 
 from google.cloud import ndb
 
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -237,7 +237,7 @@ class RoundTripTest(unittest.TestCase):
     # (de)serialization.
     field_value = 'field-value'
     output = uworker_io.UworkerOutput(
-        error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
+        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     output.field = field_value
     output.testcase = testcase
     output.uworker_input = {}
@@ -282,7 +282,7 @@ class RoundTripTest(unittest.TestCase):
     self.assertEqual(downloaded_testcase.key.serialized(),
                      self.testcase.key.serialized())
     error = downloaded_output.pop('error')
-    self.assertEqual(error, uworker_errors.Type.ANALYZE_BUILD_SETUP)
+    self.assertEqual(error, uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     self.assertDictEqual(downloaded_output, {
         'field': field_value,
         'uworker_input': {}
