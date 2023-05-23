@@ -40,7 +40,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.mock.get_uworker_output_urls.return_value = (
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
-        self.INPUT_SIGNED_DOWNLOAD_URL)
+        self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
@@ -52,7 +52,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
     self.mock.serialize_and_upload_uworker_input.assert_called_with(
-        self.INPUT, self.JOB_TYPE, self.OUTPUT_SIGNED_UPLOAD_URL)
+        self.INPUT, self.JOB_TYPE)
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
@@ -106,7 +106,8 @@ class UworkerMainTest(unittest.TestCase):
 class TworkerPostproceessTest(unittest.TestCase):
   """Tests that tworker_postprocess works as intended."""
   OUTPUT_DOWNLOAD_GCS_URL = '/output-download-gcs'
-  OUTPUT = {'output1': 'something', 'output2': 'something else'}
+  OUTPUT = uworker_io.UworkerOutput(
+      output1='something', output2='something else')
 
   def setUp(self):
     helpers.patch(self, [
@@ -114,14 +115,3 @@ class TworkerPostproceessTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
     ])
     self.mock.download_and_deserialize_uworker_output.return_value = self.OUTPUT
-
-  def test_tworker_postprocess(self):
-    """Tests that tworker_postprocess works as intended."""
-    module = mock.MagicMock()
-    module.utask_postprocess.return_value = None
-    utasks.tworker_postprocess(module, self.OUTPUT_DOWNLOAD_GCS_URL)
-    self.mock.download_and_deserialize_uworker_output.assert_called_with(
-        self.OUTPUT_DOWNLOAD_GCS_URL)
-    args = module.utask_postprocess.call_args[0][0]
-    self.assertEqual(args.output1, 'something')
-    self.assertEqual(args.output2, 'something else')

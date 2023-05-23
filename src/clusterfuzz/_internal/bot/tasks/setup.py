@@ -330,7 +330,7 @@ def _is_testcase_minimized(testcase):
 def download_testcase(key, testcase_download_url, dst):
   if testcase_download_url:
     logs.log(f'Downloading testcase from: {testcase_download_url}')
-    return storage.download_signed_url(testcase_download_url, dst)
+    return storage.download_signed_url_to_file(testcase_download_url, dst)
   return blobs.read_blob_to_disk(key, dst)
 
 
