@@ -57,7 +57,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
   return variant_testcase
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
@@ -82,7 +82,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       'variant': variant,
       'job_type': job_type,
       'testcase_download_url': testcase_download_url,
-      'uworker_env': uworker_env,
   }
 
 
