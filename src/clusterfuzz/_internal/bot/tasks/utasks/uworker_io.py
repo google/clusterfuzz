@@ -147,6 +147,10 @@ def serialize_uworker_output(uworker_output_obj):
   proto_output = uworker_msg_pb2.Output()
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
+      field_descriptor = proto_output.DESCRIPTOR.fields_by_name[name]
+      if field_descriptor.message_type is not None:
+        logs.log_error(f'field: {name} {value} is '
+                       f'{field_descriptor.message_type}')
       setattr(proto_output, name, value)
       continue
 
@@ -271,9 +275,9 @@ class UworkerOutput:
   """Convenience class for results from uworker_main. This is useful for
   ensuring we are returning values for fields expected by utask_postprocess."""
 
-  def __init__(self, testcase=None, error=None, **kwargs):
-    self.testcase = testcase
-    self.error = error
+  def __init__(self, **kwargs):
+    # Don't have any default fields, or it will cause us to send None back to
+    # the tworker.
     for key, value in kwargs.items():
       setattr(self, key, value)
 
