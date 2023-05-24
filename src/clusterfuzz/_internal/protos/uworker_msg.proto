@@ -25,6 +25,8 @@ message UworkerEntityWrapper {
   Json changed = 2;
 }
 
+// TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
+// field was unset or set to None.
 message Input {
   optional google.datastore.v1.Entity testcase = 1;
   optional google.datastore.v1.Entity metadata = 2;
