@@ -52,8 +52,6 @@ _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 def _set_timeout_value_from_user_upload(testcase_id, metadata):
   """Get the timeout associated with this testcase."""
   if metadata is None:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
-    # query once consolidation is complete.
     metadata = data_types.TestcaseUploadMetadata.query(
         data_types.TestcaseUploadMetadata.testcase_id == int(
             testcase_id)).get()
