@@ -35,7 +35,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"\x8c\x03\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x32\n\x08metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_url\"H\n\x05\x45rror\x12\x18\n\x04type\x18\x01 \x01(\x0e\x32\n.ErrorType\x12\x10\n\x08job_type\x18\x02 \x01(\t\x12\x13\n\x0btestcase_id\x18\x03 \x01(\x03\"4\n\rChangedEntity\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\x89\x02\n\x06Output\x12\x1c\n\x08testcase\x18\x01 \x01(\x0b\x32\x05.JsonH\x00\x88\x01\x01\x12\x1c\n\x08metadata\x18\x02 \x01(\x0b\x32\x05.JsonH\x01\x88\x01\x01\x12\x1a\n\x05\x65rror\x18\x03 \x01(\x0b\x32\x06.ErrorH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x17\n\ncrash_time\x18\x06 \x01(\x03H\x05\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x08\n\x06_errorB\x0e\n\x0c_uworker_envB\x0f\n\r_test_timeoutB\r\n\x0b_crash_time*v\n\tErrorType\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x00\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x01\x12\x12\n\x0eTESTCASE_SETUP\x10\x02\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\x8c\x03\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x32\n\x08metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_url\"\xad\x02\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12,\n\x08metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x03 \x01(\x0e\x32\n.ErrorTypeH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x17\n\ncrash_time\x18\x06 \x01(\x03H\x05\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x08\n\x06_errorB\x0e\n\x0c_uworker_envB\x0f\n\r_test_timeoutB\r\n\x0b_crash_time*v\n\tErrorType\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x00\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x01\x12\x12\n\x0eTESTCASE_SETUP\x10\x02\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,])
 
@@ -74,8 +74,8 @@ _ERRORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=919,
-  serialized_end=1037,
+  serialized_start=920,
+  serialized_end=1038,
 )
 _sym_db.RegisterEnumDescriptor(_ERRORTYPE)
 
@@ -117,6 +117,45 @@ _JSON = _descriptor.Descriptor(
   ],
   serialized_start=96,
   serialized_end=122,
+)
+
+
+_UWORKERENTITYWRAPPER = _descriptor.Descriptor(
+  name='UworkerEntityWrapper',
+  full_name='UworkerEntityWrapper',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='entity', full_name='UworkerEntityWrapper.entity', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='changed', full_name='UworkerEntityWrapper.changed', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=124,
+  serialized_end=215,
 )
 
 
@@ -224,93 +263,8 @@ _INPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=125,
-  serialized_end=521,
-)
-
-
-_ERROR = _descriptor.Descriptor(
-  name='Error',
-  full_name='Error',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='type', full_name='Error.type', index=0,
-      number=1, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='job_type', full_name='Error.job_type', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='testcase_id', full_name='Error.testcase_id', index=2,
-      number=3, type=3, cpp_type=2, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=523,
-  serialized_end=595,
-)
-
-
-_CHANGEDENTITY = _descriptor.Descriptor(
-  name='ChangedEntity',
-  full_name='ChangedEntity',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  create_key=_descriptor._internal_create_key,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='key', full_name='ChangedEntity.key', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='changed', full_name='ChangedEntity.changed', index=1,
-      number=2, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=597,
-  serialized_end=649,
+  serialized_start=218,
+  serialized_end=614,
 )
 
 
@@ -338,8 +292,8 @@ _OUTPUT = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='error', full_name='Output.error', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
+      number=3, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -406,10 +360,12 @@ _OUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=652,
-  serialized_end=917,
+  serialized_start=617,
+  serialized_end=918,
 )
 
+_UWORKERENTITYWRAPPER.fields_by_name['entity'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
+_UWORKERENTITYWRAPPER.fields_by_name['changed'].message_type = _JSON
 _INPUT.fields_by_name['testcase'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['metadata'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['uworker_env'].message_type = _JSON
@@ -434,11 +390,9 @@ _INPUT.fields_by_name['job_type'].containing_oneof = _INPUT.oneofs_by_name['_job
 _INPUT.oneofs_by_name['_uworker_output_upload_url'].fields.append(
   _INPUT.fields_by_name['uworker_output_upload_url'])
 _INPUT.fields_by_name['uworker_output_upload_url'].containing_oneof = _INPUT.oneofs_by_name['_uworker_output_upload_url']
-_ERROR.fields_by_name['type'].enum_type = _ERRORTYPE
-_CHANGEDENTITY.fields_by_name['changed'].message_type = _JSON
-_OUTPUT.fields_by_name['testcase'].message_type = _JSON
-_OUTPUT.fields_by_name['metadata'].message_type = _JSON
-_OUTPUT.fields_by_name['error'].message_type = _ERROR
+_OUTPUT.fields_by_name['testcase'].message_type = _UWORKERENTITYWRAPPER
+_OUTPUT.fields_by_name['metadata'].message_type = _UWORKERENTITYWRAPPER
+_OUTPUT.fields_by_name['error'].enum_type = _ERRORTYPE
 _OUTPUT.fields_by_name['uworker_env'].message_type = _JSON
 _OUTPUT.oneofs_by_name['_testcase'].fields.append(
   _OUTPUT.fields_by_name['testcase'])
@@ -459,9 +413,8 @@ _OUTPUT.oneofs_by_name['_crash_time'].fields.append(
   _OUTPUT.fields_by_name['crash_time'])
 _OUTPUT.fields_by_name['crash_time'].containing_oneof = _OUTPUT.oneofs_by_name['_crash_time']
 DESCRIPTOR.message_types_by_name['Json'] = _JSON
+DESCRIPTOR.message_types_by_name['UworkerEntityWrapper'] = _UWORKERENTITYWRAPPER
 DESCRIPTOR.message_types_by_name['Input'] = _INPUT
-DESCRIPTOR.message_types_by_name['Error'] = _ERROR
-DESCRIPTOR.message_types_by_name['ChangedEntity'] = _CHANGEDENTITY
 DESCRIPTOR.message_types_by_name['Output'] = _OUTPUT
 DESCRIPTOR.enum_types_by_name['ErrorType'] = _ERRORTYPE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -473,26 +426,19 @@ Json = _reflection.GeneratedProtocolMessageType('Json', (_message.Message,), {
   })
 _sym_db.RegisterMessage(Json)
 
+UworkerEntityWrapper = _reflection.GeneratedProtocolMessageType('UworkerEntityWrapper', (_message.Message,), {
+  'DESCRIPTOR' : _UWORKERENTITYWRAPPER,
+  '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
+  # @@protoc_insertion_point(class_scope:UworkerEntityWrapper)
+  })
+_sym_db.RegisterMessage(UworkerEntityWrapper)
+
 Input = _reflection.GeneratedProtocolMessageType('Input', (_message.Message,), {
   'DESCRIPTOR' : _INPUT,
   '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
   # @@protoc_insertion_point(class_scope:Input)
   })
 _sym_db.RegisterMessage(Input)
-
-Error = _reflection.GeneratedProtocolMessageType('Error', (_message.Message,), {
-  'DESCRIPTOR' : _ERROR,
-  '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
-  # @@protoc_insertion_point(class_scope:Error)
-  })
-_sym_db.RegisterMessage(Error)
-
-ChangedEntity = _reflection.GeneratedProtocolMessageType('ChangedEntity', (_message.Message,), {
-  'DESCRIPTOR' : _CHANGEDENTITY,
-  '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
-  # @@protoc_insertion_point(class_scope:ChangedEntity)
-  })
-_sym_db.RegisterMessage(ChangedEntity)
 
 Output = _reflection.GeneratedProtocolMessageType('Output', (_message.Message,), {
   'DESCRIPTOR' : _OUTPUT,
