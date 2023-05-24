@@ -26,6 +26,7 @@ def handle(output):
   """Handles the errors bubbled up from the uworker."""
   return get_mapping()[output.error](output)
 
+
 def get_mapping():
   return {
       uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
