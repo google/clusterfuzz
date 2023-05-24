@@ -151,13 +151,15 @@ def serialize_uworker_output(uworker_output_obj):
       continue
 
     wrapped_entity_proto = serialize_wrapped_entity(value)
-    setattr(proto_output, name, wrapped_entity_proto)
-  return proto_output
+    field = getattr(proto_output, name)
+    field.CopyFrom(wrapped_entity_proto)
+  return proto_output.SerializeToString()
 
 
 def serialize_wrapped_entity(wrapped_entity):
   entity_proto = model._entity_to_protobuf(wrapped_entity._entity)  # pylint: disable=protected-access
   changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))  # pylint: disable=protected-access
+  changed = uworker_msg_pb2.Json(serialized=changed)
   wrapped_entity_proto = uworker_msg_pb2.UworkerEntityWrapper(
       entity=entity_proto, changed=changed)
   return wrapped_entity_proto
@@ -174,7 +176,7 @@ def _download_uworker_io_from_gcs(gcs_url):
     if not storage.copy_file_from(gcs_url, local_path.name):
       logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
       return None
-    with open(local_path.name) as file_handle:
+    with open(local_path.name, 'rb') as file_handle:
       return file_handle.read()
 
 
@@ -185,6 +187,7 @@ def _download_uworker_input_from_gcs(gcs_url):
 def download_and_deserialize_uworker_output(output_url: str):
   """Downloads and deserializes uworker output."""
   serialized_uworker_output = _download_uworker_io_from_gcs(output_url)
+
   uworker_output = deserialize_uworker_output(serialized_uworker_output)
 
   # Now download the input, which is stored securely so that the uworker cannot
@@ -202,7 +205,7 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   # TODO(metzman): Add verification to ensure only the correct object is
   # retreived.
   changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
-  changes = json.loads(wrapped_entity_proto.changed)
+  changes = json.loads(wrapped_entity_proto.changed.serialized)
   original_entity = changed_entity.key.get()
   for changed_attr_name in changes:
     changed_attr_value = getattr(changed_entity, changed_attr_name)
@@ -222,9 +225,8 @@ def deserialize_uworker_output(uworker_output_str):
   # Convert the proto to a Python object that can contain real ndb models and
   # other python objects, instead of only the python serialized versions.
   uworker_output = UworkerOutput()
-  for field_descriptor in uworker_output_proto.DESCRIPTOR.fields:
-    field = getattr(uworker_output_proto, field_descriptor.name)
-    if isinstance(field_descriptor.type, uworker_msg_pb2.UworkerEntityWrapper):
+  for field_descriptor, field in uworker_output_proto.ListFields():
+    if isinstance(field, uworker_msg_pb2.UworkerEntityWrapper):
       field = deserialize_wrapped_entity(field)
     setattr(uworker_output, field_descriptor.name, field)
   return uworker_output

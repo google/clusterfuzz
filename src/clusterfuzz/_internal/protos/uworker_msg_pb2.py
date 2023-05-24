@@ -35,7 +35,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\x8c\x03\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x32\n\x08metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_url\"\xad\x02\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12,\n\x08metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x03 \x01(\x0e\x32\n.ErrorTypeH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x17\n\ncrash_time\x18\x06 \x01(\x03H\x05\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x08\n\x06_errorB\x0e\n\x0c_uworker_envB\x0f\n\r_test_timeoutB\r\n\x0b_crash_time*v\n\tErrorType\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x00\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x01\x12\x12\n\x0eTESTCASE_SETUP\x10\x02\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\x8c\x03\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x32\n\x08metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_url\"\xad\x02\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12,\n\x08metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x03 \x01(\x0e\x32\n.ErrorTypeH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x17\n\ncrash_time\x18\x06 \x01(\x03H\x05\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x08\n\x06_errorB\x0e\n\x0c_uworker_envB\x0f\n\r_test_timeoutB\r\n\x0b_crash_time*\x84\x01\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x12\n\x0eTESTCASE_SETUP\x10\x03\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,])
 
@@ -47,42 +47,48 @@ _ERRORTYPE = _descriptor.EnumDescriptor(
   create_key=_descriptor._internal_create_key,
   values=[
     _descriptor.EnumValueDescriptor(
-      name='ANALYZE_BUILD_SETUP', index=0, number=0,
+      name='NO_ERROR', index=0, number=0,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='ANALYZE_NO_CRASH', index=1, number=1,
+      name='ANALYZE_BUILD_SETUP', index=1, number=1,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='TESTCASE_SETUP', index=2, number=2,
+      name='ANALYZE_NO_CRASH', index=2, number=2,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='UNHANDLED', index=3, number=4,
+      name='TESTCASE_SETUP', index=3, number=3,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='VARIANT_BUILD_SETUP', index=4, number=5,
+      name='UNHANDLED', index=4, number=4,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='VARIANT_BUILD_SETUP', index=5, number=5,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=920,
-  serialized_end=1038,
+  serialized_start=921,
+  serialized_end=1053,
 )
 _sym_db.RegisterEnumDescriptor(_ERRORTYPE)
 
 ErrorType = enum_type_wrapper.EnumTypeWrapper(_ERRORTYPE)
-ANALYZE_BUILD_SETUP = 0
-ANALYZE_NO_CRASH = 1
-TESTCASE_SETUP = 2
+NO_ERROR = 0
+ANALYZE_BUILD_SETUP = 1
+ANALYZE_NO_CRASH = 2
+TESTCASE_SETUP = 3
 UNHANDLED = 4
 VARIANT_BUILD_SETUP = 5
 

@@ -231,15 +231,15 @@ class RoundTripTest(unittest.TestCase):
     that output serialization and deserialization works."""
     # Set up a wrapped testcase and modify it as a uworker would.
     testcase = uworker_io.UworkerEntityWrapper(self.testcase)
-    testcase.newattr = 'newattr-value'
+    testcase.regression = '1'
     testcase.crash_type = 'new-crash_type'
 
     # Prepare an output that tests db entity change tracking and
     # (de)serialization.
-    field_value = 'field-value'
+    crash_time = 1
     output = uworker_io.UworkerOutput(
         error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
-    output.field = field_value
+    output.crash_time = crash_time
     output.testcase = testcase
 
     # Create a version of upload_signed_url that will "upload" the data to a
@@ -248,7 +248,7 @@ class RoundTripTest(unittest.TestCase):
 
     def upload_signed_url(data, src):
       del src
-      with open(upload_signed_url_tempfile.name, 'w') as fp:
+      with open(upload_signed_url_tempfile.name, 'wb') as fp:
         fp.write(data)
       return True
 
@@ -273,7 +273,7 @@ class RoundTripTest(unittest.TestCase):
           'clusterfuzz._internal.bot.tasks.utasks.uworker_io._download_uworker_input_from_gcs'
       )
       uworker_env = {'PATH': '/blah'}
-      uworker_input = {'uworker_env': uworker_env, 'input': 1}
+      uworker_input = {'uworker_env': uworker_env, 'testcase_id': 'one-two'}
       serialized_uworker_input = uworker_io.serialize_uworker_input(
           uworker_input)
       with mock.patch(copy_file_from_name, copy_file_from) as _, mock.patch(
@@ -284,7 +284,8 @@ class RoundTripTest(unittest.TestCase):
     # Test that the entity (de)serialization and change tracking working.
     downloaded_output = downloaded_output.to_dict()
     downloaded_testcase = downloaded_output.pop('testcase')
-    self.assertEqual(downloaded_testcase.newattr, testcase.newattr)
+    self.assertEqual(downloaded_testcase.regression, testcase.regression)
+
     self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
 
     # Test that the rest of the output was (de)serialized correctly.
@@ -292,7 +293,7 @@ class RoundTripTest(unittest.TestCase):
                      self.testcase.key.serialized())
     self.assertDictEqual(
         downloaded_output, {
-            'field': field_value,
+            'crash_time': 1,
             'error': uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
             'uworker_input': uworker_input,
             'uworker_env': {
