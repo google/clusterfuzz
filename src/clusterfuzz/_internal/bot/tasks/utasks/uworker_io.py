@@ -89,7 +89,8 @@ def deserialize_uworker_input(serialized_uworker_input):
   input_dict = {}
   for descriptor, field in uworker_input_proto.ListFields():
     if isinstance(field, entity_pb2.Entity):
-      input_dict[descriptor.name] = model._entity_from_protobuf(field)  # pylint: disable=protected-access
+      input_dict[descriptor.name] = UworkerEntityWrapper(
+          model._entity_from_protobuf(field))  # pylint: disable=protected-access
     elif isinstance(field, uworker_msg_pb2.Json):
       input_dict[descriptor.name] = json.loads(field.serialized)
     else:
@@ -97,17 +98,17 @@ def deserialize_uworker_input(serialized_uworker_input):
   return input_dict
 
 
-def serialize_uworker_input(uworker_input):
+def serialize_uworker_input(uworker_input_dict):
   """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
-  uworker_input = uworker_input.copy()
-  for key, value in uworker_input.items():
+  uworker_input_dict = uworker_input_dict.copy()
+  for key, value in uworker_input_dict.items():
     if isinstance(value, ndb.Model):
-      uworker_input[key] = model._entity_to_protobuf(value)  # pylint: disable=protected-access
+      uworker_input_dict[key] = model._entity_to_protobuf(value)  # pylint: disable=protected-access
     elif isinstance(value, dict):
       serialized = json.dumps(value)
-      uworker_input[key] = uworker_msg_pb2.Json(serialized=serialized)
+      uworker_input_dict[key] = uworker_msg_pb2.Json(serialized=serialized)
 
-  uworker_input = uworker_msg_pb2.Input(**uworker_input)
+  uworker_input = uworker_msg_pb2.Input(**uworker_input_dict)
   return uworker_input.SerializeToString()
 
 
@@ -149,7 +150,7 @@ def serialize_uworker_output(uworker_output_obj):
     if not isinstance(value, UworkerEntityWrapper):
       field_descriptor = proto_output.DESCRIPTOR.fields_by_name[name]
       if field_descriptor.message_type is not None:
-        logs.log_error(f'field: {name} {value} is '
+        logs.log_error(f'field: {name} value: {value} type: {type(value)} is '
                        f'{field_descriptor.message_type}')
       setattr(proto_output, name, value)
       continue

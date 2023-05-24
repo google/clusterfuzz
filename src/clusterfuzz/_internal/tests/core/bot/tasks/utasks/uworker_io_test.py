@@ -179,7 +179,7 @@ class RoundTripTest(unittest.TestCase):
     uworker_input = {
         'testcase': self.testcase,
         'uworker_env': self.env,
-        'testcase_download_url': self.FAKE_URL
+        'testcase_download_url': self.FAKE_URL,
     }
 
     # Create a mocked version of copy_file_to so that when we upload the uworker
@@ -222,6 +222,8 @@ class RoundTripTest(unittest.TestCase):
     self.assertEqual(self.testcase.crash_state, downloaded_testcase.crash_state)
     self.assertEqual(self.testcase.key.serialized(),
                      downloaded_testcase.key.serialized())
+    # Things will break horribly if we pass an unwrapped entity.
+    self.assertIsInstance(downloaded_testcase, uworker_io.UworkerEntityWrapper)
 
     # Now test that the rest of the input was (de)serialized properly.
     del uworker_input['testcase']
