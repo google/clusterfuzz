@@ -15,6 +15,7 @@
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.bot.tasks.utasks import variant_task
 
 
 def noop(*args, **kwargs):
@@ -24,10 +25,11 @@ def noop(*args, **kwargs):
 
 def handle(output):
   """Handles the errors bubbled up from the uworker."""
-  return MAPPING[output.error](output)
+  return get_mapping()[output.error](output)
 
 
-MAPPING = {
+def get_mapping():
+  return {
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
         analyze_task.handle_noncrash,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
@@ -36,4 +38,6 @@ MAPPING = {
         setup.handle_setup_testcase_error,
     uworker_msg_pb2.ErrorType.UNHANDLED:
         noop,
-}
+    uworker_errors.Type.VARIANT_BUILD_SETUP:
+          variant_task.handle_build_setup_error,
+  }

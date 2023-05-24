@@ -36,6 +36,7 @@ enum ErrorType {
   ANALYZE_NO_CRASH = 1;
   TESTCASE_SETUP = 2;
   UNHANDLED = 4;
+  VARIANT_BUILD_SETUP = 5;
 }
 
 message Error {

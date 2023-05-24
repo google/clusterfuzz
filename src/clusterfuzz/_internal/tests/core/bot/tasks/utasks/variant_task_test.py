@@ -14,7 +14,7 @@
 """variant_task tests."""
 import unittest
 
-from clusterfuzz._internal.bot.tasks import variant_task
+from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
