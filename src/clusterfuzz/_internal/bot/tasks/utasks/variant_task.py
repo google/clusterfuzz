@@ -89,12 +89,6 @@ def utask_main(original_job_type, testcase, variant, job_type,
                testcase_download_url, metadata):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
-  if environment.is_engine_fuzzer_job(testcase.job_type):
-    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-    # Repeat this because the in-memory executor may allow puts.
-    # TODO(metzman): Remove this when we use batch.
-    testcase.put = lambda: None
-
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(
       testcase,
@@ -104,13 +98,19 @@ def utask_main(original_job_type, testcase, variant, job_type,
   if error:
     return error
 
+  if environment.is_engine_fuzzer_job(testcase.job_type):
+    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
+    # Repeat this because the in-memory executor may allow puts.
+    # TODO(metzman): Remove this when we use batch.
+    testcase.put = lambda: None
+
   # Set up a custom or regular build. We explicitly omit the crash revision
   # since we want to test against the latest build here.
   try:
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_io.UworkerOutput(error=uworker_errors.Type.UNHANDLED)
+    return uworker_io.UworkerOutput(Error=uworker_errors.Type.UNHANDLED)
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
