@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for uworker_io."""
 
+import datetime
 import os
 import shutil
 import tempfile
@@ -232,6 +233,7 @@ class RoundTripTest(unittest.TestCase):
     # Set up a wrapped testcase and modify it as a uworker would.
     testcase = uworker_io.UworkerEntityWrapper(self.testcase)
     testcase.regression = '1'
+    testcase.timestamp = datetime.datetime.now()
     testcase.crash_type = 'new-crash_type'
 
     # Prepare an output that tests db entity change tracking and
@@ -285,8 +287,8 @@ class RoundTripTest(unittest.TestCase):
     downloaded_output = downloaded_output.to_dict()
     downloaded_testcase = downloaded_output.pop('testcase')
     self.assertEqual(downloaded_testcase.regression, testcase.regression)
-
     self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
+    self.assertEqual(downloaded_testcase.timestamp, testcase.timestamp)
 
     # Test that the rest of the output was (de)serialized correctly.
     self.assertEqual(downloaded_testcase.key.serialized(),
