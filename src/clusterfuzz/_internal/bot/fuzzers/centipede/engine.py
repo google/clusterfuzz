@@ -27,7 +27,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
-_CLEAN_EXIT_SECS = 5
+_CLEAN_EXIT_SECS = 10
 _SERVER_COUNT = 1
 _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096

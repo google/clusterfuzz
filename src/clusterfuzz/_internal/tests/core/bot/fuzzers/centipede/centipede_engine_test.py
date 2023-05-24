@@ -21,6 +21,7 @@ import re
 import shutil
 import tempfile
 import unittest
+from mock import patch
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -196,6 +197,7 @@ class IntegrationTest(unittest.TestCase):
     else:
       os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
 
+  @patch('clusterfuzz._internal.bot.fuzzers.centipede.engine._CLEAN_EXIT_SECS', 5)
   def _run_centipede(self,
                      target_name,
                      dictionary=None,
