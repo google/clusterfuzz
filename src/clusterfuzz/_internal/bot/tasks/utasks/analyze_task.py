@@ -341,8 +341,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
         testcase=testcase,
         metadata=metadata,
         error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
-        test_timeout=test_timeout,
-        job_type=job_type)
+        test_timeout=test_timeout)
   # Update testcase crash parameters.
   update_testcase_after_crash(testcase, state, job_type, http_flag)
 
