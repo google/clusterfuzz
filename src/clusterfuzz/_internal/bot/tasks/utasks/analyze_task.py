@@ -22,7 +22,6 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -34,6 +33,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
@@ -82,7 +82,8 @@ def setup_build(
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            'Failed to fetch revision list')
       return uworker_io.UworkerOutput(
-          testcase=testcase, error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
+          testcase=testcase,
+          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
@@ -90,7 +91,8 @@ def setup_build(
           testcase, data_types.TaskState.ERROR,
           f'Build {testcase.job_type} r{revision} does not exist')
       return uworker_io.UworkerOutput(
-          testcase=testcase, error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
+          testcase=testcase,
+          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
@@ -140,7 +142,7 @@ def setup_testcase_and_build(
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         metadata=metadata,
-        error=uworker_errors.Type.ANALYZE_BUILD_SETUP)
+        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
@@ -338,7 +340,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
     return uworker_io.UworkerOutput(
         testcase,
         metadata=metadata,
-        error=uworker_errors.Type.ANALYZE_NO_CRASH,
+        error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
         test_timeout=test_timeout,
         job_type=job_type)
   # Update testcase crash parameters.
@@ -351,7 +353,7 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
     return uworker_io.UworkerOutput(
         testcase=testcase,
         metadata=metadata,
-        error=uworker_errors.Type.UNHANDLED)
+        error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
   return uworker_io.UworkerOutput(

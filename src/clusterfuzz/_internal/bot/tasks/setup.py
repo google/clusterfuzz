@@ -24,7 +24,6 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -37,6 +36,7 @@ from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -223,14 +223,14 @@ def setup_testcase(testcase,
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       return None, None, uworker_io.UworkerOutput(
-          error=uworker_errors.Type.NO_FUZZER)
+          error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       return None, None, uworker_io.UworkerOutput(
-          error=uworker_errors.Type.TESTCASE_SETUP,
+          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
           job_type=job_type,
           testcase_id=testcase_id)
 
@@ -242,7 +242,7 @@ def setup_testcase(testcase,
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     return None, None, uworker_io.UworkerOutput(
-        error=uworker_errors.Type.TESTCASE_SETUP,
+        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
         job_type=job_type,
         testcase_id=testcase_id)
 

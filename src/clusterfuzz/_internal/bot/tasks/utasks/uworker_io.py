@@ -13,18 +13,18 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
-import base64
-import datetime
 import json
 import tempfile
 import uuid
 
 from google.cloud import ndb
+from google.cloud.datastore_v1.proto import entity_pb2
+from google.cloud.ndb import model
 
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 
 
 def generate_new_input_file_name():
@@ -62,25 +62,10 @@ def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
 
   with tempfile.NamedTemporaryFile() as uworker_input_file:
-    with open(uworker_input_file.name, 'w') as fp:
+    with open(uworker_input_file.name, 'wb') as fp:
       fp.write(uworker_input)
     if not storage.copy_file_to(uworker_input_file.name, gcs_path):
       raise RuntimeError('Failed to upload uworker_input.')
-
-
-def make_ndb_entity_input_obj_serializable(obj):
-  """Returns a dictionary that can be JSON serialized representing an NDB
-  entity. Does not include datetime fields."""
-  obj_dict = obj.to_dict()
-  # TOOD(metzman): Handle datetimes.
-  for key in list(obj_dict.keys()):
-    value = obj_dict[key]
-    if isinstance(value, datetime.datetime):
-      del obj_dict[key]
-  return {
-      'key': base64.b64encode(obj.key.serialized()).decode(),
-      'properties': obj_dict,
-  }
 
 
 def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
@@ -99,28 +84,31 @@ def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
 
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
-  serialized_uworker_input = json.loads(serialized_uworker_input)
-  uworker_input = serialized_uworker_input['serializable']
-  for name, entity_dict in serialized_uworker_input['entities'].items():
-    entity_key = entity_dict['key']
-    serialized_key = base64.b64decode(bytes(entity_key, 'utf-8'))
-    ndb_key = ndb.Key(serialized=serialized_key)
-    entity = get_entity_with_properties(ndb_key, entity_dict['properties'])
-    uworker_input[name] = UworkerEntityWrapper(entity)
-  return uworker_input
+  uworker_input_proto = uworker_msg_pb2.Input()
+  uworker_input_proto.ParseFromString(serialized_uworker_input)
+  input_dict = {}
+  for descriptor, field in uworker_input_proto.ListFields():
+    if isinstance(field, entity_pb2.Entity):
+      input_dict[descriptor.name] = model._entity_from_protobuf(field)  # pylint: disable=protected-access
+    elif isinstance(field, uworker_msg_pb2.Json):
+      input_dict[descriptor.name] = json.loads(field.serialized)
+    else:
+      input_dict[descriptor.name] = field
+  return input_dict
 
 
 def serialize_uworker_input(uworker_input):
   """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
-  serializable = {}
-  ndb_entities = {}
+  uworker_input = uworker_input.copy()
   for key, value in uworker_input.items():
-    if not isinstance(value, ndb.Model):
-      serializable[key] = value
-      continue
-    ndb_entities[key] = make_ndb_entity_input_obj_serializable(value)
+    if isinstance(value, ndb.Model):
+      uworker_input[key] = model._entity_to_protobuf(value)  # pylint: disable=protected-access
+    elif isinstance(value, dict):
+      serialized = json.dumps(value)
+      uworker_input[key] = uworker_msg_pb2.Json(serialized=serialized)
 
-  return json.dumps({'serializable': serializable, 'entities': ndb_entities})
+  uworker_input = uworker_msg_pb2.Input(**uworker_input)
+  return uworker_input.SerializeToString()
 
 
 def serialize_and_upload_uworker_input(uworker_input, job_type) -> str:
@@ -156,22 +144,25 @@ def serialize_uworker_output(uworker_output_obj):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
   uworker_output = uworker_output_obj.to_dict()
-  entities = {}
-  serializable = {}
-  error = uworker_output.pop('error', None)
-  if error is not None:
-    error = error.value
-
+  proto_output = uworker_msg_pb2.Output()
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
-      serializable[name] = value
+      setattr(proto_output, name, value)
       continue
-    entities[name] = {
-        'key': base64.b64encode(value.key.serialized()).decode(),
-        'changed': value._wrapped_changed_attributes,  # pylint: disable=protected-access
-    }
-  output = {'serializable': serializable, 'entities': entities, 'error': error}
-  return json.dumps(output)
+
+    wrapped_entity_proto = serialize_wrapped_entity(value)
+    field = getattr(proto_output, name)
+    field.CopyFrom(wrapped_entity_proto)
+  return proto_output.SerializeToString()
+
+
+def serialize_wrapped_entity(wrapped_entity):
+  entity_proto = model._entity_to_protobuf(wrapped_entity._entity)  # pylint: disable=protected-access
+  changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))  # pylint: disable=protected-access
+  changed = uworker_msg_pb2.Json(serialized=changed)
+  wrapped_entity_proto = uworker_msg_pb2.UworkerEntityWrapper(
+      entity=entity_proto, changed=changed)
+  return wrapped_entity_proto
 
 
 def serialize_and_upload_uworker_output(uworker_output, upload_url):
@@ -185,7 +176,7 @@ def _download_uworker_io_from_gcs(gcs_url):
     if not storage.copy_file_from(gcs_url, local_path.name):
       logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
       return None
-    with open(local_path.name) as file_handle:
+    with open(local_path.name, 'rb') as file_handle:
       return file_handle.read()
 
 
@@ -196,6 +187,7 @@ def _download_uworker_input_from_gcs(gcs_url):
 def download_and_deserialize_uworker_output(output_url: str):
   """Downloads and deserializes uworker output."""
   serialized_uworker_output = _download_uworker_io_from_gcs(output_url)
+
   uworker_output = deserialize_uworker_output(serialized_uworker_output)
 
   # Now download the input, which is stored securely so that the uworker cannot
@@ -209,28 +201,35 @@ def download_and_deserialize_uworker_output(output_url: str):
   return uworker_output
 
 
-def deserialize_uworker_output(uworker_output):
+def deserialize_wrapped_entity(wrapped_entity_proto):
+  # TODO(metzman): Add verification to ensure only the correct object is
+  # retreived.
+  changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
+  changes = json.loads(wrapped_entity_proto.changed.serialized)
+  original_entity = changed_entity.key.get()
+  for changed_attr_name in changes:
+    changed_attr_value = getattr(changed_entity, changed_attr_name)
+    setattr(original_entity, changed_attr_name, changed_attr_value)
+  return original_entity
+
+
+def deserialize_uworker_output(uworker_output_str):
   """Deserializes uworker's execute output for postprocessing. Returns a dict
   that can be passed as kwargs to postprocess. Changes made db entities that
   were modified during the untrusted portion of the task will be done to those
   entities here."""
-  uworker_output = json.loads(uworker_output)
-  deserialized_output = uworker_output['serializable']
-  error = uworker_output.pop('error')
-  if error is not None:
-    deserialized_output['error'] = uworker_errors.Type(error)
-  else:
-    deserialized_output['error'] = None
-  for name, entity_dict in uworker_output['entities'].items():
-    key = entity_dict['key']
-    ndb_key = ndb.Key(serialized=base64.b64decode(key))
-    entity = ndb_key.get()
-    deserialized_output[name] = entity
-    for attr, new_value in entity_dict['changed'].items():
-      # TODO(metzman): Don't allow setting all fields on every entity since this
-      # might have some security problems.
-      setattr(entity, attr, new_value)
-  return uworker_output_from_dict(deserialized_output)
+  # Deserialize the proto.
+  uworker_output_proto = uworker_msg_pb2.Output()
+  uworker_output_proto.ParseFromString(uworker_output_str)
+
+  # Convert the proto to a Python object that can contain real ndb models and
+  # other python objects, instead of only the python serialized versions.
+  uworker_output = UworkerOutput()
+  for field_descriptor, field in uworker_output_proto.ListFields():
+    if isinstance(field, uworker_msg_pb2.UworkerEntityWrapper):
+      field = deserialize_wrapped_entity(field)
+    setattr(uworker_output, field_descriptor.name, field)
+  return uworker_output
 
 
 class UworkerEntityWrapper:
@@ -281,7 +280,3 @@ class UworkerOutput:
   def to_dict(self):
     # Make a copy so calls to pop don't modify the object.
     return self.__dict__.copy()
-
-
-def uworker_output_from_dict(output_dict):
-  return UworkerOutput(**output_dict)
