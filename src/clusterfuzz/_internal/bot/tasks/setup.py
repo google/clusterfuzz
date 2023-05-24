@@ -181,8 +181,8 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   tasks.add_task(
       task_name,
-      uworker_output.testcase_id,
-      uworker_output.job_type,
+      uworker_output.uworker_input['testcase_id'],
+      uworker_output.uworker_input['job_type'],
       wait_time=testcase_fail_wait)
 
 
@@ -230,9 +230,7 @@ def setup_testcase(testcase,
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       return None, None, uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-          job_type=job_type,
-          testcase_id=testcase_id)
+          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
   # Extract the testcase and any of its resources to the input directory.
   file_list, testcase_file_path = unpack_testcase(testcase,
@@ -242,9 +240,7 @@ def setup_testcase(testcase,
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     return None, None, uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-        job_type=job_type,
-        testcase_id=testcase_id)
+        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.

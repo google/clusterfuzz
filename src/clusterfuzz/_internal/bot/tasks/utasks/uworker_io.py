@@ -147,10 +147,10 @@ def serialize_uworker_output(uworker_output_obj):
   proto_output = uworker_msg_pb2.Output()
   for name, value in uworker_output.items():
     if not isinstance(value, UworkerEntityWrapper):
-      if proto_output.fields_by_name[name].message_type is not None:
-        logs.log_error(
-            f'field: {name} {value} is '
-            f'{proto_output.fields_by_name[name].message_type}')
+      field_descriptor = proto_output.DESCRIPTOR.fields_by_name[name]
+      if field_descriptor.message_type is not None:
+        logs.log_error(f'field: {name} {value} is '
+                       f'{field_descriptor.message_type}')
       setattr(proto_output, name, value)
       continue
 
