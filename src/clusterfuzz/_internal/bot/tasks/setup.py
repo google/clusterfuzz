@@ -52,8 +52,6 @@ _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 def _set_timeout_value_from_user_upload(testcase_id, metadata):
   """Get the timeout associated with this testcase."""
   if metadata is None:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
-    # query once consolidation is complete.
     metadata = data_types.TestcaseUploadMetadata.query(
         data_types.TestcaseUploadMetadata.testcase_id == int(
             testcase_id)).get()
@@ -225,7 +223,7 @@ def setup_testcase(testcase,
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       return None, None, uworker_io.UworkerOutput(
-          error=uworker_errors.Type.UNHANDLED)
+          error=uworker_errors.Type.NO_FUZZER)
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'

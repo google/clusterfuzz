@@ -17,9 +17,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
@@ -57,52 +55,28 @@ def _get_variant_testcase_for_job(testcase, job_type):
   return variant_testcase
 
 
-def utask_preprocess(testcase_id, job_type):
+def execute_task(testcase_id, job_type):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
-    return None
+    return
 
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
     # We should never reach here. But in case we do, we should bail out as
     # otherwise we will run into exceptions.
-    return None
+    return
 
   # Use a cloned testcase entity with different fuzz target paramaters for
   # a different fuzzing engine.
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
-  variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
-  testcase_download_url = setup.get_signed_testcase_download_url(testcase)
-  return {
-      'original_job_type': original_job_type,
-      'testcase': testcase,
-      'metadata': testcase.get_metadata(),
-      'variant': variant,
-      'job_type': job_type,
-      'testcase_download_url': testcase_download_url,
-  }
 
-
-def utask_main(original_job_type, testcase, variant, job_type,
-               testcase_download_url, metadata):
-  """The main part of the variant task. Downloads the testcase and build checks
-  if the build can reproduce the error."""
   # Setup testcase and its dependencies.
-  _, testcase_file_path, error = setup.setup_testcase(
-      testcase,
-      job_type,
-      metadata=metadata,
-      testcase_download_url=testcase_download_url)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
   if error:
-    return error
-
-  if environment.is_engine_fuzzer_job(testcase.job_type):
-    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-    # Repeat this because the in-memory executor may allow puts.
-    # TODO(metzman): Remove this when we use batch.
-    testcase.put = lambda: None
+    uworker_handle_errors.handle(error)
+    return
 
   # Set up a custom or regular build. We explicitly omit the crash revision
   # since we want to test against the latest build here.
@@ -110,15 +84,16 @@ def utask_main(original_job_type, testcase, variant, job_type,
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_io.UworkerOutput(Error=uworker_errors.Type.UNHANDLED)
+    return
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
-    return uworker_io.UworkerOutput(
-        error=uworker_errors.Type.VARIANT_BUILD_SETUP,
-        testcase=testcase,
-        job_type=job_type)
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    data_handler.update_testcase_comment(
+        testcase, data_types.TaskState.ERROR,
+        'Build setup failed with job: ' + job_type)
+    return
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
@@ -169,50 +144,24 @@ def utask_main(original_job_type, testcase, variant, job_type,
     security_flag = False
     crash_stacktrace_output = 'No crash occurred.'
 
-  # Regular case of variant analysis.
-  variant.status = status
-  variant.revision = revision
-  variant.crash_type = crash_type
-  variant.crash_state = crash_state
-  variant.security_flag = security_flag
-  variant.is_similar = is_similar
-  variant.platform = environment.platform().lower()
-
-  return uworker_io.UworkerOutput(
-      testcase=testcase,
-      variant=variant,
-      job_type=job_type,
-      original_job_type=original_job_type,
-      revision=revision,
-      crash_stacktrace_output=crash_stacktrace_output)
-
-
-def handle_build_setup_error(output):
-  testcase = data_handler.get_testcase_by_id(
-      output.uworker_input['testcase_id'])
-  data_handler.update_testcase_comment(
-      testcase, data_types.TaskState.ERROR,
-      f'Build setup failed with job: {output.uworker_input["testcase_id"]}')
-
-
-def utask_postprocess(output):
-  """Handle the output from utask_main."""
-  if environment.is_engine_fuzzer_job(output.testcase.job_type):
-    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-    output.testcase.put = lambda: None
-
-  if output.error is not None:
-    uworker_handle_errors.handle(output)
-    return
-
-  if output.original_job_type == output.job_type:
+  if original_job_type == job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
-    output.testcase.last_tested_crash_stacktrace = (
-        data_handler.filter_stacktrace(output.crash_stacktrace_output))
-    output.testcase.set_metadata(
-        'last_tested_crash_revision', output.revision, update_testcase=True)
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase.last_tested_crash_stacktrace = (
+        data_handler.filter_stacktrace(crash_stacktrace_output))
+    testcase.set_metadata(
+        'last_tested_crash_revision', revision, update_testcase=True)
   else:
+    # Regular case of variant analysis.
+    variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
+    variant.status = status
+    variant.revision = revision
+    variant.crash_type = crash_type
+    variant.crash_state = crash_state
+    variant.security_flag = security_flag
+    variant.is_similar = is_similar
+    variant.platform = environment.platform().lower()
     # Explicitly skipping crash stacktrace for now as it make entities larger
     # and we plan to use only crash paramaters in UI.
-    output.variant.put()
+    variant.put()
