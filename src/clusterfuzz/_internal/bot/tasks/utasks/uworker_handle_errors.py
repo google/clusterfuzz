@@ -38,6 +38,6 @@ def get_mapping():
           setup.handle_setup_testcase_error,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
-      uworker_errors.Type.VARIANT_BUILD_SETUP:
+      uworker_msg_pb2.Type.VARIANT_BUILD_SETUP:
           variant_task.handle_build_setup_error,
   }
