@@ -302,3 +302,14 @@ class RoundTripTest(unittest.TestCase):
                 'PATH': '/blah'
             }
         })
+
+  def test_output_error_serialization(self):
+    """Tests that errors can be returned by the tasks."""
+    job_type = 'libfuzzer_chrome_asan'
+    testcase_id = '1'
+    output = uworker_io.UworkerOutput(
+        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+        job_type=job_type,
+        testcase_id=testcase_id)
+    serialized = uworker_io.serialize_uworker_output(output)
+    processed_output = uworker_io.deserialize_uworker_output(serialized)
