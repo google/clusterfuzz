@@ -52,6 +52,6 @@ message Output {
   optional UworkerEntityWrapper metadata = 2;
   optional ErrorType error = 3;
   optional Json uworker_env = 4;
-  optional int64 test_timeout = 5;
-  optional int64 crash_time = 6;
+  optional float test_timeout = 5;
+  optional float crash_time = 6;
 }
