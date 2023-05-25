@@ -348,8 +348,8 @@ def utask_main(testcase, testcase_id, testcase_download_url, job_type,
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     data_handler.close_invalid_uploaded_testcase(
-        output.testcase,  # pylint: disable=no-member
-        output.metadata,  # pylint: disable=no-member
+        testcase,
+        metadata,
         'Irrelevant')
     return uworker_io.UworkerOutput(
         testcase=testcase,
