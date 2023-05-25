@@ -278,7 +278,8 @@ class UworkerOutput:
 
   def __init__(self, **kwargs):
     self._set_attrs = set()
-    # Reset _set_attrs so we don't consider these set by the user unless they actually do.
+    # Reset _set_attrs so we don't consider these set by the user unless they
+    # explictly set them.
     self.testcase = None
     self.error = None
     self._set_attrs = set()
@@ -289,7 +290,11 @@ class UworkerOutput:
   def to_dict(self):
     # Make a copy so calls to pop don't modify the object.
     dictionary = self.__dict__.copy()
-    return {key: value for key, value in dictionary.items() if key in self._set_attrs}
+    return {
+        key: value
+        for key, value in dictionary.items()
+        if key in self._set_attrs
+    }
 
   def __setattr__(self, attribute, value):
     super().__setattr__(attribute, value)
@@ -298,4 +303,4 @@ class UworkerOutput:
       # otherwise.
       return
     # Record the attribute change.
-    self._set_attrs.add(attribute)i
+    self._set_attrs.add(attribute)
