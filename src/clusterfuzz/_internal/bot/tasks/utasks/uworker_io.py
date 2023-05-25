@@ -277,11 +277,30 @@ class UworkerOutput:
   ensuring we are returning values for fields expected by utask_postprocess."""
 
   def __init__(self, **kwargs):
-    # Don't have any default fields, or it will cause us to send None back to
-    # the tworker.
+    self._set_attrs = set()
+    # Reset _set_attrs so we don't consider these set by the user unless they
+    # explictly set them.
+    self.testcase = None
+    self.error = None
+    self._set_attrs = set()
+
     for key, value in kwargs.items():
       setattr(self, key, value)
 
   def to_dict(self):
     # Make a copy so calls to pop don't modify the object.
-    return self.__dict__.copy()
+    dictionary = self.__dict__.copy()
+    return {
+        key: value
+        for key, value in dictionary.items()
+        if key in self._set_attrs
+    }
+
+  def __setattr__(self, attribute, value):
+    super().__setattr__(attribute, value)
+    if attribute in ['_set_attrs']:
+      # Allow setting and changing _entity. Stack overflow in __init__
+      # otherwise.
+      return
+    # Record the attribute change.
+    self._set_attrs.add(attribute)

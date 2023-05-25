@@ -137,6 +137,33 @@ class TestGetUrls(unittest.TestCase):
         minutes=DEFAULT_SIGNED_URL_MINUTES)
 
 
+class UworkerOutputTest(unittest.TestCase):
+  """Tests for UworkerOutput."""
+
+  def setUp(self):
+    self.output = uworker_io.UworkerOutput()
+
+  def test_error_and_testcase_behavior(self):
+    """Tests that the error and testcase attrs are handled properly,
+    in that they can be accessed with out being explicitly set
+    (defaulting to None) but don't appear in to_dict until they are
+    set."""
+    # Test that these can be accessed without an attribute error.
+    self.output.testcase  # pylint: disable=pointless-statement
+    self.output.error  # pylint: disable=pointless-statement
+    self.assertEqual(self.output.to_dict(), {})
+    value = 'ERROR'
+    self.output.error = value
+    self.assertEqual(self.output.error, value)
+    self.assertEqual(self.output.to_dict(), {'error': value})
+
+  def to_dict(self):
+    """Tests that to_dict functions as intended."""
+    self.assertEqual(self.output.to_dict(), {})
+    self.output.j = 1
+    self.assertEqual(self.output.to_dict(), {'j': 1})
+
+
 @test_utils.with_cloud_emulators('datastore')
 class RoundTripTest(unittest.TestCase):
   """Tests round trips for download and uploading inputs and outputs."""
