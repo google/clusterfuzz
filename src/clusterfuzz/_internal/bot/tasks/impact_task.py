@@ -14,11 +14,7 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
-from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
