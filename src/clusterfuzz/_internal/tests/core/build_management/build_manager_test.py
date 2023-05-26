@@ -24,7 +24,6 @@ import unittest
 import mock
 import parameterized
 from pyfakefs import fake_filesystem_unittest
-import six
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -217,7 +216,7 @@ class FuchsiaBuildTest(unittest.TestCase):
 
     # pylint: disable=protected-access
     targets = build._get_fuzz_targets_from_dir(build.build_dir)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'example_fuzzers/baz_fuzzer',
         'example_fuzzers/overflow_fuzzer',
         'example_fuzzers/trap_fuzzer',
@@ -926,7 +925,7 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
 
     os.environ['STABLE_BUILD_BUCKET_PATH'] = (
         'gs://path/file-stable-([0-9.]+).zip')
-    os.environ['BETA_BUILD_BUCKET_PATH'] = ('gs://path/file-beta-([0-9.]+).zip')
+    os.environ['BETA_BUILD_BUCKET_PATH'] = 'gs://path/file-beta-([0-9.]+).zip'
 
     self.mock._unpack_build.side_effect = _mock_unpack_build
     self.mock.get_build_urls_list.side_effect = self._mock_get_build_urls_list
@@ -1946,7 +1945,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/subdir/target3/',
         '/subdir/targets.list',
     )
-    self.mock.read_data.return_value = (b'target1\ntarget2\ntarget3\n')
+    self.mock.read_data.return_value = b'target1\ntarget2\ntarget3\n'
 
     self.target_weights = {
         'target1': 0.0,
@@ -2058,7 +2057,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
     targets_list = build_manager._get_targets_list(
         os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'])
-    six.assertCountEqual(self, ['target1', 'target3'], targets_list)
+    self.assertCountEqual(['target1', 'target3'], targets_list)
 
   def test_target_no_longer_built(self):
     """Test a target that's not longer listed in target.list."""

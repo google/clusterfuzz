@@ -20,8 +20,6 @@ import threading
 import time
 import zipfile
 
-import six
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -37,6 +35,7 @@ from clusterfuzz._internal.bot.minimizer import js_minimizer
 from clusterfuzz._internal.bot.minimizer import minimizer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
@@ -368,9 +367,10 @@ def execute_task(testcase_id, job_type):
   # Setup testcase and its dependencies. Also, allow setting up a different
   # fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
-  file_list, input_directory, testcase_file_path = setup.setup_testcase(
+  file_list, testcase_file_path, error = setup.setup_testcase(
       testcase, job_type, fuzzer_override=minimize_fuzzer_override)
-  if not file_list:
+  if error:
+    uworker_handle_errors.handle(error)
     return
 
   # Initialize variables.
@@ -424,6 +424,7 @@ def execute_task(testcase_id, job_type):
     required_arguments = '%s %s' % (required_arguments,
                                     additional_required_arguments)
 
+  input_directory = environment.get_value('FUZZ_INPUTS')
   test_runner = TestRunner(testcase, testcase_file_path, file_list,
                            input_directory, app_arguments, required_arguments,
                            max_threads, deadline)
@@ -1282,7 +1283,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
       continue
 
     minimized_options = options.copy()
-    for options_name, options_value in six.iteritems(options):
+    for options_name, options_value in options.items():
       if utils.is_oss_fuzz() and options_name in MANDATORY_OSS_FUZZ_OPTIONS:
         continue
 

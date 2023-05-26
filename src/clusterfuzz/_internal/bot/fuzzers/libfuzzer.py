@@ -24,13 +24,11 @@ import string
 import sys
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import mutator_plugin
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer.peach import pits
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
@@ -74,6 +72,8 @@ MUTATOR_STRATEGIES = [
     strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
 ]
 
+# pylint: disable=no-member
+
 
 class LibFuzzerException(Exception):
   """LibFuzzer exception."""
@@ -108,46 +108,6 @@ class LibFuzzerCommon(object):
         return match.group(1)
 
     return None
-
-  def analyze_dictionary(self,
-                         dictionary_path,
-                         corpus_directory,
-                         analyze_timeout,
-                         artifact_prefix=None,
-                         additional_args=None):
-    """Runs a dictionary analysis command.
-
-    Args:
-      dictionary_path: Path to a dictionary file to be passed to libFuzzer for
-          the analysis.
-      corpus_directory: Path to corpus directory to be passed to libFuzzer.
-      analyze_timeout: The maximum time in seconds that libFuzzer is allowed to
-          run for.
-      artifact_prefix: The directory to store new fuzzing artifacts (crashes,
-          timeouts, slow units)
-      additional_args: A sequence of additional arguments to be passed to the
-          executable.
-
-    Returns:
-      A process.ProcessResult.
-    """
-    additional_args = copy.copy(additional_args)
-    if additional_args is None:
-      additional_args = []
-
-    additional_args.append(constants.ANALYZE_DICT_ARGUMENT)
-    additional_args.append(constants.DICT_FLAG + dictionary_path)
-
-    if artifact_prefix:
-      additional_args.append(
-          '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
-                    self._normalize_artifact_prefix(artifact_prefix)))
-
-    additional_args.append(corpus_directory)
-    return self.run_and_wait(
-        additional_args=additional_args,
-        timeout=analyze_timeout,
-        max_stdout_len=MAX_OUTPUT_LEN)
 
   def get_total_timeout(self, timeout):
     """Calculate the total process timeout.
@@ -693,28 +653,6 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
       self.chroot.add_binding(
           minijail.ChrootBinding(corpus_directory, target_dir, writeable=True))
 
-  def analyze_dictionary(self,
-                         dictionary_path,
-                         corpus_directory,
-                         analyze_timeout,
-                         artifact_prefix=None,
-                         additional_args=None):
-    """LibFuzzerCommon.analyze_dictionary override."""
-    bind_directories = [corpus_directory]
-    if artifact_prefix:
-      bind_directories.append(artifact_prefix)
-
-    self._bind_corpus_dirs(bind_directories)
-    corpus_directory = self._get_chroot_directory(corpus_directory)
-
-    if artifact_prefix:
-      artifact_prefix = self._get_chroot_directory(artifact_prefix)
-
-    with self._chroot_testcase(dictionary_path) as chroot_dictionary_path:
-      return LibFuzzerCommon.analyze_dictionary(
-          self, chroot_dictionary_path, corpus_directory, analyze_timeout,
-          artifact_prefix, additional_args)
-
   def fuzz(self,
            corpus_directories,
            fuzz_timeout,
@@ -872,13 +810,17 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     """Return a set of default arguments to pass to adb binary."""
     default_args = ['shell']
 
-    # Add directory containing libclang_rt.ubsan_standalone-aarch64-android.so
-    # to LD_LIBRARY_PATH.
+    # LD_LIBRARY_PATH set to search for fuzzer deps first, and then
+    # sanitizers if any are found.
     ld_library_path = ''
     if not android.settings.is_automotive():
       # TODO(MHA3): Remove this auto check.
-      ld_library_path = android.sanitizer.get_ld_library_path_for_sanitizers()
-    if ld_library_path:
+      executable_dir = os.path.dirname(executable_path)
+      deps_path = os.path.join(self._get_device_path(executable_dir), 'lib')
+      ld_library_path += deps_path
+      sanitizer_path = android.sanitizer.get_ld_library_path_for_sanitizers()
+      if sanitizer_path:
+        ld_library_path += ':' + sanitizer_path
       default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
 
     # Add sanitizer options.
@@ -932,11 +874,66 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       android.adb.copy_remote_directory_to_local(device_directory,
                                                  local_directory)
 
-  def _append_logcat_output_if_needed(self, output):
+  def _extract_trusty_stacktrace_from_logcat(self, logcat):
+    """Finds and returns a TA stacktrace from a logcat"""
+    begin, end = 'panic notifier - trusty version', 'Built:'
+    target_idx = logcat.rfind(begin)
+
+    if target_idx != -1:
+      #Logcat contains kernel panic
+      begin = logcat[:target_idx].rfind('\n')
+      end_idx = target_idx + logcat[target_idx:].find('\n')
+      end_idx += logcat[end_idx:].find(end)
+      end_idx += logcat[end_idx:].find('\n')
+
+      ta_stacktrace = []
+      split_marker = 'trusty:log: '
+      for line in logcat[begin:end_idx].splitlines():
+        split_idx = line.find(split_marker) + len(split_marker)
+        ta_stacktrace.append(line[split_idx:])
+
+      return '\n'.join(ta_stacktrace)
+
+    begin = '---------'
+    target = 'Backtrace for thread:'
+    target_idx = logcat.rfind(target)
+    if target_idx == -1:
+      return 'No TA crash stacktrace found in logcat.\n'
+
+    begin_idx = logcat[:target_idx].rfind(begin)
+    end_idx = target_idx + logcat[target_idx:].find(end)
+    end_idx += logcat[end_idx:].find('\n')
+
+    return logcat[begin_idx:end_idx]
+
+  def _add_trusty_stacktrace_if_needed(self, output):
+    """Add trusty stacktrace to beginning of output if found in logcat."""
+
+    if android.adb.get_device_state() == 'is-ramdump-mode:yes':
+      logcat = android.adb.extract_logcat_from_ramdump_and_reboot()
+    else:
+      logcat = android.logger.log_output()
+
+    ta_stacktrace = self._extract_trusty_stacktrace_from_logcat(logcat)
+
+    # Defer imports since stack_symbolizer pulls in a lot of things.
+    from clusterfuzz._internal.crash_analysis.stack_parsing import \
+        stack_symbolizer
+    loop = stack_symbolizer.SymbolizationLoop()
+    ta_stacktrace = loop.process_trusty_stacktrace(ta_stacktrace)
+
+    return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
+      \n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
+        ta_stacktrace=ta_stacktrace, output=output, logcat_output=logcat)
+
+  def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
     processes if current output has no sanitizer crash."""
     if 'Sanitizer: ' in output:
       return output
+
+    if environment.is_android_emulator():
+      return self._add_trusty_stacktrace_if_needed(output)
 
     return '{output}\n\nLogcat:\n{logcat_output}'.format(
         output=output, logcat_output=android.logger.log_output())
@@ -962,28 +959,6 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       return path
 
     return self._get_local_path(path)
-
-  def analyze_dictionary(self,
-                         dictionary_path,
-                         corpus_directory,
-                         analyze_timeout,
-                         artifact_prefix=None,
-                         additional_args=None):
-    """LibFuzzerCommon.analyze_dictionary override."""
-    sync_directories = [corpus_directory]
-    if artifact_prefix:
-      sync_directories.append(artifact_prefix)
-
-    self._copy_local_directories_to_device(sync_directories)
-    corpus_directory = self._get_device_path(corpus_directory)
-
-    if artifact_prefix:
-      artifact_prefix = self._get_device_path(artifact_prefix)
-
-    with self._device_file(dictionary_path) as device_dictionary_path:
-      return LibFuzzerCommon.analyze_dictionary(
-          self, device_dictionary_path, corpus_directory, analyze_timeout,
-          artifact_prefix, additional_args)
 
   def fuzz(self,
            corpus_directories,
@@ -1023,7 +998,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
         additional_args=additional_args,
         extra_env=extra_env)
 
-    result.output = self._append_logcat_output_if_needed(result.output)
+    result.output = self._add_logcat_output_if_needed(result.output)
 
     self._copy_local_directories_from_device(sync_directories)
     return result
@@ -1078,7 +1053,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     with self._device_file(testcase_path) as device_testcase_path:
       result = LibFuzzerCommon.run_single_testcase(self, device_testcase_path,
                                                    timeout, additional_args)
-      result.output = self._append_logcat_output_if_needed(result.output)
+      result.output = self._add_logcat_output_if_needed(result.output)
       return result
 
   def minimize_crash(self,
@@ -1202,114 +1177,6 @@ def get_runner(fuzzer_path, temp_dir=None, use_minijail=None):
   return runner
 
 
-def add_recommended_dictionary(arguments, fuzzer_name, fuzzer_path):
-  """Add recommended dictionary from GCS to existing .dict file or create
-  a new one and update the arguments as needed.
-  This function modifies |arguments| list in some cases."""
-  recommended_dictionary_path = os.path.join(
-      fuzzer_utils.get_temp_dir(),
-      dictionary_manager.RECOMMENDED_DICTIONARY_FILENAME)
-
-  dict_manager = dictionary_manager.DictionaryManager(fuzzer_name)
-
-  try:
-    # Bail out if cannot download recommended dictionary from GCS.
-    if not dict_manager.download_recommended_dictionary_from_gcs(
-        recommended_dictionary_path):
-      return False
-  except Exception as ex:
-    logs.log_error(
-        'Exception downloading recommended dictionary:\n%s.' % str(ex))
-    return False
-
-  # Bail out if the downloaded dictionary is empty.
-  if not os.path.getsize(recommended_dictionary_path):
-    return False
-
-  # Check if there is an existing dictionary file in arguments.
-  original_dictionary_path = fuzzer_utils.extract_argument(
-      arguments, constants.DICT_FLAG)
-  merged_dictionary_path = (
-      original_dictionary_path or
-      dictionary_manager.get_default_dictionary_path(fuzzer_path))
-  merged_dictionary_path += MERGED_DICT_SUFFIX
-
-  dictionary_manager.merge_dictionary_files(original_dictionary_path,
-                                            recommended_dictionary_path,
-                                            merged_dictionary_path)
-  arguments.append(constants.DICT_FLAG + merged_dictionary_path)
-  return True
-
-
-def get_dictionary_analysis_timeout():
-  """Get timeout for dictionary analysis."""
-  return engine_common.get_overridable_timeout(5 * 60,
-                                               'DICTIONARY_TIMEOUT_OVERRIDE')
-
-
-def analyze_and_update_recommended_dictionary(runner, fuzzer_name, log_lines,
-                                              corpus_directory, arguments):
-  """Extract and analyze recommended dictionary from fuzzer output, then update
-  the corresponding dictionary stored in GCS if needed."""
-  if environment.platform() == 'FUCHSIA':
-    # TODO(flowerhack): Support this.
-    return None
-
-  logs.log(
-      'Extracting and analyzing recommended dictionary for %s.' % fuzzer_name)
-
-  # Extract recommended dictionary elements from the log.
-  dict_manager = dictionary_manager.DictionaryManager(fuzzer_name)
-  recommended_dictionary = (
-      dict_manager.parse_recommended_dictionary_from_log_lines(log_lines))
-  if not recommended_dictionary:
-    logs.log('No recommended dictionary in output from %s.' % fuzzer_name)
-    return None
-
-  # Write recommended dictionary into a file and run '-analyze_dict=1'.
-  temp_dictionary_filename = (
-      fuzzer_name + dictionary_manager.DICTIONARY_FILE_EXTENSION + '.tmp')
-  temp_dictionary_path = os.path.join(fuzzer_utils.get_temp_dir(),
-                                      temp_dictionary_filename)
-
-  with open(temp_dictionary_path, 'wb') as file_handle:
-    file_handle.write('\n'.join(recommended_dictionary).encode('utf-8'))
-
-  dictionary_analysis = runner.analyze_dictionary(
-      temp_dictionary_path,
-      corpus_directory,
-      analyze_timeout=get_dictionary_analysis_timeout(),
-      additional_args=arguments)
-
-  if dictionary_analysis.timed_out:
-    logs.log_warn(
-        'Recommended dictionary analysis for %s timed out.' % fuzzer_name)
-    return None
-
-  if dictionary_analysis.return_code != 0:
-    logs.log_warn('Recommended dictionary analysis for %s failed: %d.' %
-                  (fuzzer_name, dictionary_analysis.return_code))
-    return None
-
-  # Extract dictionary elements considered useless, calculate the result.
-  useless_dictionary = dict_manager.parse_useless_dictionary_from_data(
-      dictionary_analysis.output)
-
-  logs.log('%d out of %d recommended dictionary elements for %s are useless.' %
-           (len(useless_dictionary), len(recommended_dictionary), fuzzer_name))
-
-  recommended_dictionary = set(recommended_dictionary) - set(useless_dictionary)
-  if not recommended_dictionary:
-    return None
-
-  new_elements_added = dict_manager.update_recommended_dictionary(
-      recommended_dictionary)
-  logs.log('Added %d new elements to the recommended dictionary for %s.' %
-           (new_elements_added, fuzzer_name))
-
-  return recommended_dictionary
-
-
 def create_corpus_directory(name):
   """Create a corpus directory with a give name in temp directory and return its
   full path."""
@@ -1417,8 +1284,7 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   """Get the fuzz timeout."""
   fuzz_timeout = (
       engine_common.get_hard_timeout(total_timeout=total_timeout) -
-      engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT) -
-      get_dictionary_analysis_timeout())
+      engine_common.get_merge_timeout(DEFAULT_MERGE_TIMEOUT))
 
   if is_mutations_run:
     fuzz_timeout -= engine_common.get_new_testcase_mutations_timeout()
@@ -1460,7 +1326,7 @@ def use_radamsa_mutator_plugin(extra_env):
   # Radamsa will only work on LINUX ASAN jobs.
   # TODO(mpherman): Include architecture info in job definition and exclude
   # i386.
-  if environment.is_lib() or not is_linux_asan():
+  if environment.is_lib() or not is_linux_asan() or environment.is_android():
     return False
 
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
@@ -1549,9 +1415,6 @@ def pick_strategies(strategy_pool,
   """Pick strategies."""
   build_directory = environment.get_value('BUILD_DIR')
   target_name = os.path.basename(fuzzer_path)
-  project_qualified_fuzzer_name = data_types.fuzz_target_project_qualified_name(
-      utils.current_project(), target_name)
-
   fuzzing_strategies = []
   arguments = []
   additional_corpus_dirs = []
@@ -1585,16 +1448,12 @@ def pick_strategies(strategy_pool,
   if is_mutations_run:
     new_testcase_mutations_directory = create_corpus_directory('mutations')
     generator_used = engine_common.generate_new_testcase_mutations(
-        corpus_directory, new_testcase_mutations_directory,
-        project_qualified_fuzzer_name, candidate_generator)
+        corpus_directory, new_testcase_mutations_directory, candidate_generator)
 
     # Add the used generator strategy to our fuzzing strategies list.
-    if generator_used:
-      if candidate_generator == engine_common.Generator.RADAMSA:
-        fuzzing_strategies.append(
-            strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
-      elif candidate_generator == engine_common.Generator.ML_RNN:
-        fuzzing_strategies.append(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name)
+    if (generator_used and
+        candidate_generator == engine_common.Generator.RADAMSA):
+      fuzzing_strategies.append(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name)
 
     additional_corpus_dirs.append(new_testcase_mutations_directory)
 
@@ -1605,11 +1464,6 @@ def pick_strategies(strategy_pool,
       max_length = random.SystemRandom().randint(1, MAX_VALUE_FOR_MAX_LENGTH)
       arguments.append('%s%d' % (constants.MAX_LEN_FLAG, max_length))
       fuzzing_strategies.append(strategy.RANDOM_MAX_LENGTH_STRATEGY.name)
-
-  if (strategy_pool.do_strategy(strategy.RECOMMENDED_DICTIONARY_STRATEGY) and
-      add_recommended_dictionary(arguments, project_qualified_fuzzer_name,
-                                 fuzzer_path)):
-    fuzzing_strategies.append(strategy.RECOMMENDED_DICTIONARY_STRATEGY.name)
 
   if strategy_pool.do_strategy(strategy.VALUE_PROFILE_STRATEGY):
     arguments.append(constants.VALUE_PROFILE_ARGUMENT)

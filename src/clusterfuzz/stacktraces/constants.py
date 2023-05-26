@@ -69,8 +69,10 @@ ASSERT_REGEX_GLIBC = re.compile(
 ASSERT_REGEX_GLIBC_SUFFIXED = re.compile(
     r'.*\S.*\/.*:\d+:\s*assertion .* failed:\s*(\S.*)')
 ASSERT_NOT_REACHED_REGEX = re.compile(r'^\s*SHOULD NEVER BE REACHED\s*$')
-CENTIPEDE_TIMEOUT_REGEX = re.compile(
-    r'^========= Timeout of \d+ seconds exceeded; exiting')
+CENTIPEDE_TIMEOUT_REGEX = re.compile(r'(?:%s)' % '|'.join([
+    r'========= Timeout of \d+ seconds exceeded; exiting',
+    r'========= Per-input timeout exceeded:'
+]))
 CFI_ERROR_REGEX = re.compile(
     r'(.*): runtime error: control flow integrity check for type (.*) '
     r'failed during (.*vtable address ([xX0-9a-fA-F]+)|.*)')
@@ -179,7 +181,8 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
     r'libFuzzer: out-of-memory \(',
     r'rss limit exhausted',
     r'in rust_oom',
-    r'Failure description: out-of-memory',  # Centipede.
+    r'Failure description: out-of-memory',  # Centipede old.
+    r'========= RSS limit exceeded:',  # Centipede new.
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
@@ -234,9 +237,13 @@ SECURITY_CHECK_FAILURE_REGEX = re.compile(
     r'.*\[[^\]]*[:]([^\](]*).*\].*Security CHECK failed[:]\s*(.*)\.\s*')
 SECURITY_DCHECK_FAILURE_REGEX = re.compile(
     r'.*\[[^\]]*[:]([^\](]*).*\].*Security DCHECK failed[:]\s*(.*)\.\s*')
+TRUSTY_STACK_FRAME_REGEX = re.compile(
+    r'(uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16}) in (\w+)')
 UBSAN_DIVISION_BY_ZERO_REGEX = re.compile(r'.*division by zero.*')
 UBSAN_FLOAT_CAST_OVERFLOW_REGEX = re.compile(r'.*outside the range of '
                                              r'representable values.*')
+UBSAN_IMPLICIT_CONVERSION_REGEX = re.compile(
+    r'.*implicit conversion from type.*')
 UBSAN_INCORRECT_FUNCTION_POINTER_REGEX = re.compile(
     r'.*call to function [^\s]+ through pointer to incorrect function type.*')
 UBSAN_INDEX_OOB_REGEX = re.compile(r'.*out of bounds for type.*')
@@ -304,7 +311,7 @@ WINDOWS_CDB_STACK_OVERFLOW_REGEX = re.compile(
 WINDOWS_SAN_ILL_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: illegal-instruction')
 
 WYCHEPROOF_JAVA_EXCEPTION = re.compile(
-    r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-z0-9]*\))')
+    r'.*\) (.*\(com\.google\.security\.wycheproof\.[a-zA-Z0-9]*\))')
 
 # Golang specific regular expressions.
 GOLANG_DIVISION_BY_ZERO_REGEX = re.compile(
@@ -631,6 +638,7 @@ STATE_STOP_MARKERS = [
 UBSAN_CRASH_TYPES_MAP = [
     (UBSAN_DIVISION_BY_ZERO_REGEX, 'Divide-by-zero'),
     (UBSAN_FLOAT_CAST_OVERFLOW_REGEX, 'Float-cast-overflow'),
+    (UBSAN_IMPLICIT_CONVERSION_REGEX, 'Implicit-conversion'),
     (UBSAN_INCORRECT_FUNCTION_POINTER_REGEX, 'Incorrect-function-pointer-type'),
     (UBSAN_INDEX_OOB_REGEX, 'Index-out-of-bounds'),
     (UBSAN_INVALID_BOOL_VALUE_REGEX, 'Invalid-bool-value'),

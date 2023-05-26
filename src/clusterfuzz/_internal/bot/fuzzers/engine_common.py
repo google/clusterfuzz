@@ -17,14 +17,12 @@ import contextlib
 import glob
 import json
 import os
-import pipes
 import random
 import re
+import shlex
 import shutil
 import sys
 import time
-
-import six
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import options
@@ -67,9 +65,6 @@ COMPONENTS_FILE_EXTENSION = '.components'
 # Extension for additional metadata to be added to issue descriptions.
 METADATA_FILE_EXTENSION = '.issue_metadata'
 
-# Header format for logs.
-LOG_HEADER_FORMAT = ('Command: {command}\n' + 'Time ran: {time}\n')
-
 # Number of radamsa mutations.
 RADAMSA_MUTATIONS = 2000
 
@@ -81,7 +76,6 @@ class Generator(object):
   """Generators we can use."""
   NONE = 0
   RADAMSA = 1
-  ML_RNN = 2
 
 
 def select_generator(strategy_pool, fuzzer_path):
@@ -96,21 +90,18 @@ def select_generator(strategy_pool, fuzzer_path):
   # These generators don't produce testcases that LPM fuzzers can use.
   if (environment.platform() == 'WINDOWS' or is_lpm_fuzz_target(fuzzer_path)):
     return Generator.NONE
-  if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_ML_RNN_STRATEGY):
-    return Generator.ML_RNN
   if strategy_pool.do_strategy(strategy.CORPUS_MUTATION_RADAMSA_STRATEGY):
     return Generator.RADAMSA
 
   return Generator.NONE
 
 
-def generate_new_testcase_mutations(corpus_directory,
-                                    new_testcase_mutations_directory,
-                                    fuzzer_name, candidate_generator):
+def generate_new_testcase_mutations(
+    corpus_directory, new_testcase_mutations_directory, candidate_generator):
   """Generate new testcase mutations, using existing corpus directory or other
   methods.
 
-  Returns true if mutations are successfully generated using radamsa or ml rnn.
+  Returns true if mutations are successfully generated using radamsa.
   A false return signifies either no generator use or unsuccessful generation of
   testcase mutations."""
   generation_timeout = get_new_testcase_mutations_timeout()
@@ -121,11 +112,6 @@ def generate_new_testcase_mutations(corpus_directory,
   if candidate_generator == Generator.RADAMSA:
     generate_new_testcase_mutations_using_radamsa(
         corpus_directory, new_testcase_mutations_directory, generation_timeout)
-  # Generate new testcase mutations using ML RNN model.
-  elif candidate_generator == Generator.ML_RNN:
-    generate_new_testcase_mutations_using_ml_rnn(
-        corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-        generation_timeout)
 
   # If new mutations are successfully generated, return true.
   if shell.get_directory_file_count(
@@ -205,24 +191,6 @@ def generate_new_testcase_mutations_using_radamsa(
       new_testcase_mutations_directory)
   logs.log('Added %d tests using Radamsa mutations.' %
            (new_corpus_size - old_corpus_size))
-
-
-def generate_new_testcase_mutations_using_ml_rnn(
-    corpus_directory, new_testcase_mutations_directory, fuzzer_name,
-    generation_timeout):
-  """Generate new testcase mutations using ML RNN model."""
-  # No return value for now. Will add later if this is necessary.
-  # Defer import to prevent issues with tensorflow causing hangs with
-  # multiprocessing.
-  try:
-    from clusterfuzz._internal.bot.fuzzers.ml.rnn import \
-        generator as ml_rnn_generator
-  except Exception:
-    logs.log_warn('Failed to import ml_rnn generator, skipping.')
-    return
-
-  ml_rnn_generator.execute(corpus_directory, new_testcase_mutations_directory,
-                           fuzzer_name, generation_timeout)
 
 
 def get_radamsa_path():
@@ -332,7 +300,7 @@ def find_fuzzer_path(build_directory, fuzzer_name):
 
 def get_command_quoted(command):
   """Return shell quoted command string."""
-  return ' '.join(pipes.quote(part) for part in command)
+  return ' '.join(shlex.quote(part) for part in command)
 
 
 def get_overridable_timeout(default_timeout, override_env_var):
@@ -518,8 +486,7 @@ def format_fuzzing_strategies(fuzzing_strategies):
   else:
     # New format.
     assert isinstance(fuzzing_strategies, dict)
-    value = ','.join('{}:{}'.format(key, value)
-                     for key, value in six.iteritems(fuzzing_strategies))
+    value = ','.join(f'{key}:{val}' for key, val in fuzzing_strategies.items())
 
   return 'cf::fuzzing_strategies: ' + value
 
@@ -539,7 +506,7 @@ def recreate_directory(directory_path):
   """Delete directory if exists, create empty directory. Throw an exception if
   either fails."""
   if not shell.remove_directory(directory_path, recreate=True):
-    raise Exception('Failed to recreate directory: ' + directory_path)
+    raise OSError('Failed to recreate directory: ' + directory_path)
 
 
 def strip_minijail_command(command, fuzzer_path):
@@ -702,5 +669,5 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
 
 def get_log_header(command, time_executed):
   """Get the log header."""
-  return LOG_HEADER_FORMAT.format(
-      command=get_command_quoted(command), time=time_executed)
+  quoted_command = get_command_quoted(command)
+  return f'Command: {quoted_command}\nTime ran: {time_executed}\n'

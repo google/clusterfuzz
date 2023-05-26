@@ -1,0 +1,86 @@
+I0403 23:21:12.307646 3060030 environment.cc:326] --timeout_per_batch default wasn't overridden; auto-computed to be 694 sec (see --help for details)
+I0403 23:21:12.309620 3060030 centipede_interface.cc:193] Coverage dir /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/clusterfuzz_format_target-107df8b7dd5c028d9d4a840ac311d3823f8edaf9
+I0403 23:21:12.309691 3060030 centipede_default_callbacks.cc:36] Detecting custom mutator in target...
+I0403 23:21:12.309711 3060030 command.cc:100] Starting fork server for /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target
+I0403 23:21:12.309739 3060030 command.cc:116] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-3060030-139745253978816/207d52d549d92eea057d378aa0975960d347cd51_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-3060030-139745253978816/207d52d549d92eea057d378aa0975960d347cd51_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50:path_level=0:use_pc_features:use_cmp_features:use_auto_dictionary:use_dataflow_features::shmem:arg1=/centipede-shm1-3060030-139745253978816:arg2=/centipede-shm2-3060030-139745253978816:failure_description_path=/tmp/centipede-3060030-139745253978816/failure_description:: \
+/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target \
+> /tmp/centipede-3060030-139745253978816/log \
+2>&1 &
+I0403 23:21:12.315898 3060030 centipede_default_callbacks.cc:44] Custom mutator undetected or misbehaving: will use built-in
+I0403 23:21:12.315947 3060030 centipede_default_callbacks.cc:45] external_mutator_ran=false mutants.size()=0 
+W0403 23:21:12.327635 3060030 symbol_table.cc:59] Symbolizer unspecified: debug symbols will not be used
+I0403 23:21:12.328022 3060039 centipede_default_callbacks.cc:36] Detecting custom mutator in target...
+I0403 23:21:12.328080 3060039 command.cc:100] Starting fork server for /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target
+I0403 23:21:12.328132 3060039 command.cc:116] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-3060030-139745253639936/207d52d549d92eea057d378aa0975960d347cd51_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-3060030-139745253639936/207d52d549d92eea057d378aa0975960d347cd51_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50:path_level=0:use_pc_features:use_cmp_features:use_auto_dictionary:use_dataflow_features::shmem:arg1=/centipede-shm1-3060030-139745253639936:arg2=/centipede-shm2-3060030-139745253639936:failure_description_path=/tmp/centipede-3060030-139745253639936/failure_description:: \
+/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target \
+> /tmp/centipede-3060030-139745253639936/log \
+2>&1 &
+I0403 23:21:12.333976 3060039 centipede_default_callbacks.cc:44] Custom mutator undetected or misbehaving: will use built-in
+I0403 23:21:12.334012 3060039 centipede_default_callbacks.cc:45] external_mutator_ran=false mutants.size()=0 
+I0403 23:21:12.373631 3060039 centipede.cc:553] Shard: 0/1 /tmp/centipede-3060030-139745253639936 seed: 139746937289238
+
+
+I0403 23:21:12.376354 3060039 centipede.cc:205] [0] begin-fuzz: ft: 0 cov: 0 cnt: 0 df: 0 cmp: 0 path: 0 pair: 0 usr: 0 corp: 0/0 fr: 0 max/avg: 0/0 d0/f0 exec/s: 0 mb: 273
+I0403 23:21:12.376544 3060039 centipede.cc:392] 2 inputs to rerun
+I0403 23:21:18.379932 3060039 centipede.cc:703] ReportCrash[0]: Batch execution failed:
+Binary               : /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target
+Exit code            : 1
+Failure              : per-input-timeout-exceeded
+Number of inputs     : 2
+Number of inputs read: 1
+Suspect input index  : 1
+Crash log            :
+
+CRASH LOG: Starting watchdog thread: timeout_per_input: 5 sec; timeout_per_batch: 694 sec; rss_limit_mb: 4096 MB
+CRASH LOG: Centipede fuzz target runner; argv[0]: /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_target flags: :timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50:path_level=0:use_pc_features:use_cmp_features:use_auto_dictionary:use_dataflow_features::shmem:arg1=/centipede-shm1-3060030-139745253639936:arg2=/centipede-shm2-3060030-139745253639936:failure_description_path=/tmp/centipede-3060030-139745253639936/failure_description::
+CRASH LOG: ========= Per-input timeout exceeded: 6 > 5 (sec); exiting
+
+I0403 23:21:18.379986 3060039 centipede.cc:740] ReportCrash[0]: Executing inputs one-by-one, trying to find the reproducer
+I0403 23:21:24.383455 3060039 centipede.cc:750] ReportCrash[0]: Detected crash-reproducing input:
+Input index    : 1
+Input bytes    : slo
+Exit code      : 1
+Failure        : per-input-timeout-exceeded
+Saving input to: /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/crashes/1549273518d5db36938cb11944fb3b44fbb2ab0f
+I0403 23:21:24.383566 3060039 command.cc:100] Starting fork server for /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target
+I0403 23:21:24.383615 3060039 command.cc:116] Fork server command:
+CENTIPEDE_FORK_SERVER_FIFO0=/tmp/centipede-3060030-139745253639936/cca0757b97d218afe9ca01d72ffaf5eab2b86659_FIFO0 \
+CENTIPEDE_FORK_SERVER_FIFO1=/tmp/centipede-3060030-139745253639936/cca0757b97d218afe9ca01d72ffaf5eab2b86659_FIFO1 \
+CENTIPEDE_RUNNER_FLAGS=:timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50::shmem:arg1=/centipede-shm1-3060030-139745253639936:arg2=/centipede-shm2-3060030-139745253639936:failure_description_path=/tmp/centipede-3060030-139745253639936/failure_description:: \
+/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target \
+> /tmp/centipede-3060030-139745253639936/log \
+2>&1 &
+I0403 23:21:30.404248 3060039 centipede.cc:703] ReportCrash[1]: Batch execution failed:
+Binary               : /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target
+Exit code            : 1
+Failure              : per-input-timeout-exceeded
+Number of inputs     : 2
+Number of inputs read: 1
+Suspect input index  : 1
+Crash log            :
+
+CRASH LOG: Starting watchdog thread: timeout_per_input: 5 sec; timeout_per_batch: 694 sec; rss_limit_mb: 4096 MB
+CRASH LOG: Not using RLIMIT_AS; VmSize is 20480Gb, suspecting ASAN/MSAN/TSAN
+CRASH LOG: Centipede fuzz target runner; argv[0]: /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/blaze-out/k8-fastbuild/bin/third_party/centipede/testing/clusterfuzz_format_test.runfiles/google3/third_party/centipede/testing/clusterfuzz_format_sanitized_target flags: :timeout_per_input=5:timeout_per_batch=694:address_space_limit_mb=4096:rss_limit_mb=4096:crossover_level=50::shmem:arg1=/centipede-shm1-3060030-139745253639936:arg2=/centipede-shm2-3060030-139745253639936:failure_description_path=/tmp/centipede-3060030-139745253639936/failure_description::
+CRASH LOG: ========= Per-input timeout exceeded: 6 > 5 (sec); exiting
+
+I0403 23:21:30.404310 3060039 centipede.cc:740] ReportCrash[1]: Executing inputs one-by-one, trying to find the reproducer
+I0403 23:21:36.409458 3060039 centipede.cc:750] ReportCrash[1]: Detected crash-reproducing input:
+Input index    : 1
+Input bytes    : slo
+Exit code      : 1
+Failure        : per-input-timeout-exceeded
+Saving input to: /usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/crashes/1549273518d5db36938cb11944fb3b44fbb2ab0f
+I0403 23:21:36.409617 3060039 centipede.cc:205] [2] rerun-old: ft: 14 cov: 4 cnt: 0 df: 0 cmp: 10 path: 0 pair: 0 usr: 0 corp: 1/1 fr: 0 max/avg: 3/3 d0/f0 exec/s: 0 mb: 273
+I0403 23:21:36.409782 3060039 centipede.cc:205] [2] init-done: ft: 14 cov: 4 cnt: 0 df: 0 cmp: 10 path: 0 pair: 0 usr: 0 corp: 1/1 fr: 0 max/avg: 3/3 d0/f0 exec/s: 0 mb: 273
+I0403 23:21:36.409878 3060039 centipede.cc:420] Generate coverage report: batch_index=0 coverage_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/coverage-report-clusterfuzz_format_target.000000.initial.txt 
+I0403 23:21:36.409944 3060039 centipede.cc:436] Generate corpus stats: batch_index=0 stats_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/corpus-stats-clusterfuzz_format_target.000000.initial.json 
+I0403 23:21:36.410145 3060039 centipede.cc:420] Generate coverage report: batch_index=0 coverage_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/coverage-report-clusterfuzz_format_target.000000.latest.txt 
+I0403 23:21:36.410207 3060039 centipede.cc:436] Generate corpus stats: batch_index=0 stats_path=/usr/local/google/_blaze_donggeliu/c99a381297d78294e8cda3db51b03909/execroot/google3/_tmp/1d0ae78f4fca98545c8998887a8a0eb0/test_crashing_target/WD/corpus-stats-clusterfuzz_format_target.000000.latest.json 
+I0403 23:21:36.410356 3060039 centipede.cc:205] [0] end-fuzz: ft: 14 cov: 4 cnt: 0 df: 0 cmp: 10 path: 0 pair: 0 usr: 0 corp: 1/1 fr: 0 max/avg: 3/3 d0/f0 exec/s: 0 mb: 273

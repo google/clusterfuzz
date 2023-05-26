@@ -16,13 +16,14 @@
 import re
 
 from google.cloud import ndb
-import six
 
 from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import search_tokenizer
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+# pylint: disable=no-member,arguments-differ
 
 # Prefix used when a large testcase is stored in the blobstore.
 BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
@@ -137,9 +138,9 @@ COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
 def clone_entity(e, **extra_args):
   """Clones a DataStore entity and returns the clone."""
   ent_class = e.__class__
-  # pylint: disable=protected-access
+  # pylint: disable=protected-access,unnecessary-dunder-call
   props = dict((v._code_name, v.__get__(e, ent_class))
-               for v in six.itervalues(ent_class._properties)
+               for v in ent_class._properties.values()
                if not isinstance(v, ndb.ComputedProperty))
   props.update(extra_args)
   return ent_class(**props)
@@ -425,9 +426,6 @@ class Testcase(Model):
 
   # File name of the original uploaded archive.
   archive_filename = ndb.TextProperty()
-
-  # Is this a binary file?
-  binary_flag = ndb.BooleanProperty(default=False, indexed=False)
 
   # Timestamp.
   timestamp = ndb.DateTimeProperty()
@@ -982,7 +980,7 @@ class Job(Model):
     variables in its template. Avoid using this if possible."""
     environment_string = ''
     job_environment = self.get_environment()
-    for key, value in six.iteritems(job_environment):
+    for key, value in job_environment.items():
       environment_string += f'{key} = {value}\n'
 
     return environment_string
@@ -1363,12 +1361,6 @@ class CoverageInformation(Model):
     """Pre-put hook."""
     self.key = ndb.Key(CoverageInformation,
                        coverage_information_key(self.fuzzer, self.date))
-
-
-class CorpusTag(Model):
-  """Corpus Tags for sharing corpora between fuzz targets."""
-  tag = ndb.StringProperty()
-  fully_qualified_fuzz_target_name = ndb.StringProperty()
 
 
 def coverage_information_date_to_string(date):

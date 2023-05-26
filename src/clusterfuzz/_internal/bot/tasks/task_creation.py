@@ -19,6 +19,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
@@ -155,6 +156,14 @@ def create_variant_tasks_if_needed(testcase):
   testcase_id = testcase.key.id()
   project = data_handler.get_project_name(testcase.job_type)
   jobs = data_types.Job.query(data_types.Job.project == project)
+  testcase_job_is_engine = environment.is_engine_fuzzer_job(testcase.job_type)
+  testcase_job_app_name = None
+  if not testcase_job_is_engine:
+    testcase_job = (
+        data_types.Job.query(data_types.Job.name == testcase.job_type).get())
+    testcase_job_environment = testcase_job.get_environment()
+    testcase_job_app_name = testcase_job_environment.get('APP_NAME')
+  num_variant_tasks = 0
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
     job_type = job.name
@@ -163,8 +172,7 @@ def create_variant_tasks_if_needed(testcase):
 
     # Don't try to reproduce engine fuzzer testcase with blackbox fuzzer
     # testcases and vice versa.
-    if (environment.is_engine_fuzzer_job(testcase.job_type) !=
-        environment.is_engine_fuzzer_job(job_type)):
+    if testcase_job_is_engine != environment.is_engine_fuzzer_job(job_type):
       continue
 
     # Skip experimental jobs.
@@ -176,12 +184,17 @@ def create_variant_tasks_if_needed(testcase):
     if utils.string_is_true(job_environment.get('DISABLE_VARIANT')):
       continue
 
+    if (not testcase_job_is_engine and
+        job_environment.get('APP_NAME') != testcase_job_app_name):
+      continue
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
     variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
     variant.status = data_types.TestcaseVariantStatus.PENDING
     variant.put()
+    num_variant_tasks += 1
+  logs.log(f'Number of variant tasks: {num_variant_tasks}.')
 
 
 def create_symbolize_task_if_needed(testcase):

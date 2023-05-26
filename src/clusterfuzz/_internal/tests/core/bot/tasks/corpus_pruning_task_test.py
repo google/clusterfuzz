@@ -22,7 +22,6 @@ import tempfile
 import unittest
 
 import mock
-import six
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
@@ -54,8 +53,6 @@ class BaseTest(object):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
-        'clusterfuzz._internal.bot.tasks.corpus_pruning_task.'
-        'choose_cross_pollination_strategy',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
@@ -71,7 +68,6 @@ class BaseTest(object):
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
-    self.mock.choose_cross_pollination_strategy.return_value = ('random', None)
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -178,7 +174,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(4, len(corpus))
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '39e0574a4abfd646565a3e436c548eeb1684fb57',
         '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
@@ -239,8 +235,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
-    context = corpus_pruning_task.Context(
-        fuzz_target, [], corpus_pruning_task.Pollination.RANDOM, None)
+    context = corpus_pruning_task.Context(fuzz_target, [])
 
     runner = corpus_pruning_task.Runner(self.build_dir, context)
     flags = runner.get_libfuzzer_flags()
@@ -248,7 +243,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=5242880',
         '-detect_leaks=1', '-use_value_profile=1'
     ]
-    six.assertCountEqual(self, flags, expected_default_flags)
+    self.assertCountEqual(flags, expected_default_flags)
 
     runner.fuzzer_options = options.FuzzerOptions(
         os.path.join(self.build_dir, 'test_get_libfuzzer_flags.options'))
@@ -257,7 +252,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         '-timeout=5', '-rss_limit_mb=2560', '-max_len=1337', '-detect_leaks=0',
         '-use_value_profile=1'
     ]
-    six.assertCountEqual(self, flags, expected_custom_flags)
+    self.assertCountEqual(flags, expected_custom_flags)
 
 
 class CorpusPruningTestMinijail(CorpusPruningTest):
@@ -324,14 +319,14 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
         'libfuzzer_asan_fuchsia')
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '801c34269f74ed383fc97de33604b8a905adb635',
         '7cf184f4c67ad58283ecb19349720b0cae756829'
     ], corpus)
     quarantine = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantine))
-    six.assertCountEqual(
-        self, ['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'], quarantine)
+    self.assertCountEqual(['crash-7a8dc3985d2a90fb6e62e94910fc11d31949c348'],
+                          quarantine)
 
 
 class CorpusPruningTestUntrusted(
@@ -432,12 +427,11 @@ class CorpusPruningTestUntrusted(
     corpus_backup_date = (
         datetime.datetime.utcnow().date() -
         datetime.timedelta(days=data_types.CORPUS_BACKUP_PUBLIC_LOOKBACK_DAYS))
-    corpus_backup_dir = ('gs://{bucket}/corpus/libfuzzer/test2_fuzzer/')
     gsutil.GSUtilRunner().run_gsutil([
         'cp',
-        (corpus_backup_dir + 'backup.zip').format(bucket=TEST2_BACKUP_BUCKET),
-        (corpus_backup_dir +
-         '%s.zip' % corpus_backup_date).format(bucket=self.backup_bucket)
+        f'gs://{TEST2_BACKUP_BUCKET}/corpus/libfuzzer/test2_fuzzer/backup.zip',
+        (f'gs://{self.backup_bucket}/corpus/libfuzzer/'
+         f'test2_fuzzer/{corpus_backup_date}.zip')
     ])
 
   def tearDown(self):
@@ -450,9 +444,7 @@ class CorpusPruningTestUntrusted(
     self.mock._record_cross_pollination_stats.side_effect = (
         self.get_mock_record_compare(
             project_qualified_name='test_fuzzer',
-            method='random',
             sources='test2_fuzzer',
-            tags='',
             initial_corpus_size=5,
             corpus_size=3,
             initial_edge_coverage=0,
@@ -467,7 +459,7 @@ class CorpusPruningTestUntrusted(
     os.mkdir(corpus_dir)
     self.corpus.rsync_to_disk(corpus_dir)
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         '39e0574a4abfd646565a3e436c548eeb1684fb57',
         '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
@@ -478,9 +470,8 @@ class CorpusPruningTestUntrusted(
     os.mkdir(quarantine_dir)
     self.quarantine_corpus.rsync_to_disk(quarantine_dir)
 
-    six.assertCountEqual(self,
-                         ['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'],
-                         os.listdir(quarantine_dir))
+    self.assertCountEqual(['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'],
+                          os.listdir(quarantine_dir))
 
     testcases = list(data_types.Testcase.query())
     self.assertEqual(1, len(testcases))
@@ -538,8 +529,8 @@ class CorpusPruningTestUntrusted(
         'gs://{}/corpus/libFuzzer/test_fuzzer/'.format(
             self.backup_bucket) + '%s.zip' % today)
 
-  def get_mock_record_compare(self, project_qualified_name, method, sources,
-                              tags, initial_corpus_size, corpus_size,
+  def get_mock_record_compare(self, project_qualified_name, sources,
+                              initial_corpus_size, corpus_size,
                               initial_edge_coverage, edge_coverage,
                               initial_feature_coverage, feature_coverage):
     """Given all of the expected stats, returns a function
@@ -549,8 +540,6 @@ class CorpusPruningTestUntrusted(
       """Mock record_cross_pollination_stats. Make sure function was called
       with the correct arguments."""
       self.assertEqual(project_qualified_name, stats.project_qualified_name)
-      self.assertEqual(method, stats.method)
-      self.assertEqual(tags, stats.tags)
       self.assertEqual(sources, stats.sources)
       self.assertEqual(initial_corpus_size, stats.initial_corpus_size)
       self.assertEqual(corpus_size, stats.corpus_size)
@@ -560,36 +549,3 @@ class CorpusPruningTestUntrusted(
       self.assertEqual(stats.feature_coverage, feature_coverage)
 
     return compare
-
-
-@test_utils.with_cloud_emulators('datastore')
-class CrossPollinationTest(unittest.TestCase):
-  """Tests for cross pollination."""
-
-  def test_select_targets_with_tagged_cross_pollination(self):
-    """Test that selecting targets with a given tag returns the right target."""
-    data_types.CorpusTag(
-        tag='test_tag',
-        fully_qualified_fuzz_target_name='libFuzzer_test_fuzzer').put()
-
-    data_types.CorpusTag(
-        tag='test_tag',
-        fully_qualified_fuzz_target_name=
-        'libFuzzer_cross_pollination_test_fuzzer').put()
-
-    similar_target = data_types.FuzzTarget(
-        engine='libFuzzer',
-        binary='cross_pollination_test_fuzzer',
-        project='test-project')
-    similar_target.put()
-
-    similar_job = data_types.FuzzTargetJob(
-        fuzz_target_name='libFuzzer_cross_pollination_test_fuzzer',
-        engine='libFuzzer',
-        job='libfuzzer_asan_job')
-    similar_job.put()
-
-    selected = corpus_pruning_task._select_targets_and_jobs_for_pollination(
-        'libFuzzer', 'libFuzzer_test_fuzzer', 'tagged', 'test_tag')
-
-    self.assertEqual([(similar_target, similar_job)], selected)

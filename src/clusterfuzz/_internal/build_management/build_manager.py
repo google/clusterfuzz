@@ -1350,7 +1350,7 @@ def setup_symbolized_builds(revision):
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteSymbolizedBuild
+    build_class = build_setup_host.RemoteSymbolizedBuild  # pylint: disable=no-member
 
   build = build_class(base_build_dir, revision, sym_release_build_url,
                       sym_debug_build_url)

@@ -209,7 +209,7 @@ class GcsCorpus(object):
                bucket_name,
                bucket_path='/',
                log_results=True,
-               _gsutil_runner=DEFAULT_GSUTIL_RUNNER):
+               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
     """Inits the GcsCorpus.
 
     Args:
@@ -219,7 +219,7 @@ class GcsCorpus(object):
     self._bucket_name = bucket_name
     self._bucket_path = bucket_path
     self._log_results = log_results
-    self._gsutil_runner = _gsutil_runner()
+    self._gsutil_runner = gsutil_runner_func()
 
   @property
   def bucket_name(self):
@@ -317,7 +317,7 @@ class FuzzTargetCorpus(GcsCorpus):
                quarantine=False,
                log_results=True,
                include_regressions=False,
-               _gsutil_runner=DEFAULT_GSUTIL_RUNNER):
+               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
     """Inits the FuzzTargetCorpus.
 
     Args:
@@ -348,7 +348,7 @@ class FuzzTargetCorpus(GcsCorpus):
         sync_corpus_bucket_name,
         '/%s/%s' % (self._engine, self._project_qualified_target_name),
         log_results=log_results,
-        _gsutil_runner=_gsutil_runner,
+        gsutil_runner_func=gsutil_runner_func,
     )
 
     self._regressions_corpus = GcsCorpus(
@@ -356,7 +356,7 @@ class FuzzTargetCorpus(GcsCorpus):
         '/%s/%s%s' % (self._engine, self._project_qualified_target_name,
                       REGRESSIONS_GCS_PATH_SUFFIX),
         log_results=log_results,
-        _gsutil_runner=_gsutil_runner) if include_regressions else None
+        gsutil_runner_func=gsutil_runner_func) if include_regressions else None
 
   @property
   def engine(self):

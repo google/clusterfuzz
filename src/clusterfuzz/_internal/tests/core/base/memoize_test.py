@@ -16,7 +16,6 @@
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
-import six
 
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import persistent_cache
@@ -203,13 +202,13 @@ class _MockRedis(object):
 
   def get(self, key):
     """Get a value."""
-    assert isinstance(key, six.string_types)
+    assert isinstance(key, str)
     return self._store.get(key)
 
   def set(self, key, value, ex=None):  # pylint: disable=unused-argument
     """Set a value."""
-    assert isinstance(key, six.string_types)
-    assert isinstance(value, six.string_types)
+    assert isinstance(key, str)
+    assert isinstance(value, str)
     self._store[key] = value
 
 

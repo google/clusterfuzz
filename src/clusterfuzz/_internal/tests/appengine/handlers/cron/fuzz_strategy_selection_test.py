@@ -53,18 +53,18 @@ class TestFuzzStrategySelection(unittest.TestCase):
         fuzz_strategy_selection.LIBFUZZER_ENGINE)
     row1 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
-        'corpus_mutations_ml_rnn,fork,').get()
-    self.assertEqual(row1.probability, 0.0061753988734031835)
+        'fork,corpus_subset,').get()
+    self.assertEqual(row1.probability, 0.005077124089195762)
     self.assertEqual(row1.engine, 'libFuzzer')
     row2 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
-        'corpus_mutations_ml_rnn,fork,corpus_subset,').get()
-    self.assertEqual(row2.probability, 0.005077124089195762)
+        'random_max_len,recommended_dict,').get()
+    self.assertEqual(row2.probability, 0.014589232349521633)
     self.assertEqual(row2.engine, 'libFuzzer')
     row3 = data_types.FuzzStrategyProbability.query(
         data_types.FuzzStrategyProbability.strategy_name ==
-        'random_max_len,corpus_mutations_ml_rnn,recommended_dict,').get()
-    self.assertEqual(row3.probability, 0.011855451527667878)
+        'random_max_len,').get()
+    self.assertEqual(row3.probability, 0.013159009132143623)
     self.assertEqual(row3.engine, 'libFuzzer')
 
   def test_delete_from_table(self):

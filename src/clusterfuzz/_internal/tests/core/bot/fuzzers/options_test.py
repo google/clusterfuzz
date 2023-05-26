@@ -76,7 +76,7 @@ class GetFuzzTargetOptions(fake_filesystem_unittest.TestCase):
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
 
-    input_data = ('[libfuzzer]\nclose_fd_mask=1\n')
+    input_data = '[libfuzzer]\nclose_fd_mask=1\n'
     self.fs.create_file('/path/fuzz_target.options', contents=input_data)
 
   def _get_arguments(self, fuzz_target_path):

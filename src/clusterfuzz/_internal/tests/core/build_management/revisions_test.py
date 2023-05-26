@@ -76,8 +76,7 @@ class RevisionsTestcase(unittest.TestCase):
             'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
             'chrome-test-builds/android/revisions/%s')).put()
     data_types.Job(
-        name=BASIC_JOB_TYPE,
-        environment_string=('HELP_URL = help_url\n')).put()
+        name=BASIC_JOB_TYPE, environment_string='HELP_URL = help_url\n').put()
     data_types.Job(
         name=SRCMAP_JOB_TYPE,
         environment_string=(
@@ -87,7 +86,7 @@ class RevisionsTestcase(unittest.TestCase):
             'blah-%s.srcmap.json')).put()
     data_types.Job(
         name=CUSTOM_BINARY_JOB_TYPE,
-        environment_string=('CUSTOM_BINARY = True\n')).put()
+        environment_string='CUSTOM_BINARY = True\n').put()
 
   # General helper functions.
   @staticmethod

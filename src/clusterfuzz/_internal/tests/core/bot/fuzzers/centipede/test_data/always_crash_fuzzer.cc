@@ -25,8 +25,7 @@ void Foo(const uint8_t *Data) {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
-  if (!Size)
-    return 0;
+  if (!Size) return 0;
 
   Foo(Data);
   return 0;

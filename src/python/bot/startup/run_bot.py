@@ -95,7 +95,7 @@ def task_loop():
           commands.process_command(task)
     except SystemExit as e:
       exception_occurred = True
-      clean_exit = (e.code == 0)
+      clean_exit = e.code == 0
       if not clean_exit and not isinstance(e, untrusted.HostException):
         logs.log_error('SystemExit occurred while working on task.')
 
@@ -194,6 +194,8 @@ if __name__ == '__main__':
     exit_code = 0
   except Exception:
     traceback.print_exc()
+    sys.stdout.flush()
+    sys.stderr.flush()
     exit_code = 1
 
   monitor.stop()

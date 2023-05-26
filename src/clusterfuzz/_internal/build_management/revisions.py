@@ -21,8 +21,6 @@ import re
 import time
 import urllib.parse
 
-import six
-
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.build_management import overrides
@@ -54,7 +52,7 @@ def _add_components_from_dict(deps_dict, vars_dict, revisions_dict):
     # If the dictionary is None, bail out early.
     return
 
-  for key, value in six.iteritems(deps_dict):
+  for key, value in deps_dict.items():
     url = rev = None
     if isinstance(value, str):
       url, _, rev = value.partition('@')

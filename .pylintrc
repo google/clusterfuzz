@@ -22,8 +22,6 @@ disable=
   locally-disabled,
   misplaced-comparison-constant,
   multiple-imports,
-  no-member,
-  no-name-in-module,
   no-self-use,
   relative-import,
   similarities,
@@ -104,9 +102,9 @@ good-names=main,_
 # Bad variable names which should always be refused, separated by a comma.
 bad-names=
 
+# FIXME: Renable this.
 # List of builtins function names that should not be used, separated by a comma.
-bad-functions=input,apply,reduce
-
+#bad-builtin=input
 
 [FORMAT]
 
@@ -118,10 +116,6 @@ max-module-lines=99999
 
 # String used as indentation unit. We differ from PEP8's normal 4 spaces.
 indent-string='  '
-
-# Make sure : in dicts and trailing commas are checked for whitespace.
-no-space-check=
-
 
 [TYPECHECK]
 

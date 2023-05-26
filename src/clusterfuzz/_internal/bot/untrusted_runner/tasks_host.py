@@ -17,7 +17,6 @@ import datetime
 
 from google.protobuf import wrappers_pb2
 import grpc
-import six
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import corpus_pruning_task
@@ -27,6 +26,8 @@ from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz.fuzz import engine
 
 from . import host
+
+# pylint: disable=no-member
 
 
 def _fuzz_target_to_proto(fuzz_target):
@@ -88,9 +89,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   result_stats = response.cross_pollination_stats
   pollination_stats = corpus_pruning_task.CrossPollinationStats(
       project_qualified_name=result_stats.project_qualified_name,
-      method=result_stats.method,
       sources=result_stats.sources,
-      tags=result_stats.tags,
       initial_corpus_size=result_stats.initial_corpus_size,
       corpus_size=result_stats.corpus_size,
       initial_edge_coverage=result_stats.initial_edge_coverage,
@@ -139,7 +138,7 @@ def process_testcase(engine_name, tool_name, target_name, arguments,
 def _unpack_values(values):
   """Unpack protobuf values."""
   unpacked = {}
-  for key, packed_value in six.iteritems(values):
+  for key, packed_value in values.items():
     if packed_value.Is(wrappers_pb2.DoubleValue.DESCRIPTOR):
       value = wrappers_pb2.DoubleValue()
     elif packed_value.Is(wrappers_pb2.Int64Value.DESCRIPTOR):

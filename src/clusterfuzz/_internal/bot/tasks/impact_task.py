@@ -14,9 +14,11 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
-import six
-
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot import testcase_manager
+from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
@@ -122,7 +124,7 @@ def get_component_information_by_name(chromium_revision,
     return None
 
   all_details = []
-  for value in six.itervalues(component_revisions):
+  for value in component_revisions.values():
     if value and 'name' in value and value['name'].lower() == lower_name:
       all_details.append(value)
   # If we found several components with the same name, return nothing useful.

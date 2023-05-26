@@ -20,8 +20,6 @@ import re
 import shlex
 import time
 
-import six
-
 try:
   from shlex import quote
 except ImportError:
@@ -343,7 +341,7 @@ def _get_memory_tool_options(testcase):
     return []
 
   result = []
-  for options_name, options_value in sorted(six.iteritems(env)):
+  for options_name, options_value in sorted(env.items()):
     # Strip symbolize flag, use default symbolize=1.
     options_value.pop('symbolize', None)
     if not options_value:
@@ -712,9 +710,9 @@ def _get_security_severity(crash, job_type, gestures):
 def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    one_time_crasher_flag, crash_revision, comment,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
-                   job_type, archived, archive_filename, binary_flag, http_flag,
-                   gestures, redzone, disable_ubsan, minidump_keys,
-                   window_argument, timeout_multiplier, minimized_arguments):
+                   job_type, archived, archive_filename, http_flag, gestures,
+                   redzone, disable_ubsan, minidump_keys, window_argument,
+                   timeout_multiplier, minimized_arguments):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -749,7 +747,6 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.queue = tasks.default_queue()
   testcase.archive_state = archive_state
   testcase.archive_filename = archive_filename
-  testcase.binary_flag = binary_flag
   testcase.http_flag = http_flag
   testcase.timestamp = datetime.datetime.utcnow()
   testcase.gestures = gestures
@@ -769,11 +766,10 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Get testcase id from newly created testcase.
   testcase_id = testcase.key.id()
-  logs.log(
-      ('Created new testcase %d (reproducible:%s, security:%s, binary:%s).\n'
-       'crash_type: %s\ncrash_state:\n%s\n') %
-      (testcase_id, not testcase.one_time_crasher_flag, testcase.security_flag,
-       testcase.binary_flag, testcase.crash_type, testcase.crash_state))
+  logs.log(('Created new testcase %d (reproducible:%s, security:%s).\n'
+            'crash_type: %s\ncrash_state:\n%s\n') %
+           (testcase_id, not testcase.one_time_crasher_flag,
+            testcase.security_flag, testcase.crash_type, testcase.crash_state))
 
   # Update global blacklist to avoid finding this leak again (if needed).
   is_lsan_enabled = environment.get_value('LSAN')
@@ -1329,7 +1325,7 @@ def create_user_uploaded_testcase(key,
         'fuzzer_binary_name', fuzzer_binary_name, update_testcase=False)
 
   if additional_metadata:
-    for metadata_key, metadata_value in six.iteritems(additional_metadata):
+    for metadata_key, metadata_value in additional_metadata.items():
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
   testcase.timestamp = utils.utcnow()
@@ -1677,9 +1673,8 @@ def get_coverage_information(fuzzer_name, date, create_if_needed=False):
   return coverage_info
 
 
-def close_testcase_with_error(testcase_id, error_message):
+def close_testcase_with_error(testcase, error_message):
   """Close testcase (fixed=NA) with an error message."""
-  testcase = get_testcase_by_id(testcase_id)
   update_testcase_comment(testcase, data_types.TaskState.ERROR, error_message)
   testcase.fixed = 'NA'
   testcase.open = False
