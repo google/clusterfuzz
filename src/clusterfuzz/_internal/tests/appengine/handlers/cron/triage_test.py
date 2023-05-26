@@ -359,7 +359,8 @@ class FileIssueTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.config.local_config.IssueTrackerConfig',
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.datastore.data_handler.get_issue_tracker_name',
         'libs.issue_management.issue_filer.file_issue',
     ])
 
@@ -369,23 +370,25 @@ class FileIssueTest(unittest.TestCase):
     data_types.Job(
         name=self.testcase.job_type,
         environment_string='BUG_FILING_MAX_24_HOURS_PER_JOB = 2').put()
-    self.mock.IssueTrackerConfig.return_value = {
-        'BUG_FILING_MAX_24_HOURS_PER_PROJECT': 5
-    }
+    self.mock.get.return_value = {'bug_filing_max_24_hours_per_project': 5}
 
   def test_no_exception(self):
     """Test no exception."""
     self.mock.file_issue.return_value = 'ID', None
+    valid_time = datetime.datetime.now() - datetime.timedelta(hours=24)
     self.assertTrue(
-        triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+        triage._file_issue(self.testcase, self.issue_tracker, {}, {},
+                           valid_time, {}, None))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertIsNone(testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_recovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.return_value = 'ID', Exception('recovered')
+    valid_time = datetime.datetime.now() - datetime.timedelta(hours=24)
     self.assertTrue(
-        triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+        triage._file_issue(self.testcase, self.issue_tracker, {}, {},
+                           valid_time, {}, None))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: recovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -393,8 +396,10 @@ class FileIssueTest(unittest.TestCase):
   def test_unrecovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.side_effect = Exception('unrecovered')
+    valid_time = datetime.datetime.now() - datetime.timedelta(hours=24)
     self.assertFalse(
-        triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+        triage._file_issue(self.testcase, self.issue_tracker, {}, {},
+                           valid_time, {}, None))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: unrecovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -404,8 +409,10 @@ class FileIssueTest(unittest.TestCase):
     self.mock.file_issue.return_value = 'ID', None
     for crash_type in ['Arbitrary file open', 'Command injection']:
       self.testcase.crash_type = crash_type
+      valid_time = datetime.datetime.now() - datetime.timedelta(hours=24)
       self.assertFalse(
-          triage._file_issue(self.testcase, self.issue_tracker, {}, {}))
+          triage._file_issue(self.testcase, self.issue_tracker, {}, {},
+                             valid_time, {}, None))
       testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
       self.assertEqual('Skipping filing as this is an experimental crash type.',
                        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -414,22 +421,37 @@ class FileIssueTest(unittest.TestCase):
     """Tests not filing issue due to throttle."""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
+    valid_timestamp = datetime.datetime.now() - datetime.timedelta(hours=24)
+    bug_filing_max_24_hours_per_job = {}
+    bug_filing_max_24_hours_per_project = []
     self.mock.file_issue.return_value = ('ID', None)
 
-    self.assertEqual(2, triage._get_job_bugs_filing_max(self.testcase.job_type))
-    self.assertEqual(5, triage._get_project_bugs_filing_max())
+    self.assertEqual(
+        2,
+        triage._get_job_bugs_filing_max(self.testcase.job_type,
+                                        bug_filing_max_24_hours_per_job))
+    self.assertEqual(
+        5,
+        triage._get_project_bugs_filing_max(
+            bug_filing_max_24_hours_per_project))
     self.assertTrue(
         triage._file_issue(self.testcase, self.issue_tracker,
                            bug_filed_24_hours_per_job,
-                           bug_filed_24_hours_per_project))
+                           bug_filed_24_hours_per_project, valid_timestamp,
+                           bug_filing_max_24_hours_per_job,
+                           bug_filing_max_24_hours_per_project))
     self.assertTrue(
         triage._file_issue(self.testcase, self.issue_tracker,
                            bug_filed_24_hours_per_job,
-                           bug_filed_24_hours_per_project))
+                           bug_filed_24_hours_per_project, valid_timestamp,
+                           bug_filing_max_24_hours_per_job,
+                           bug_filing_max_24_hours_per_project))
     self.assertFalse(
         triage._file_issue(self.testcase, self.issue_tracker,
                            bug_filed_24_hours_per_job,
-                           bug_filed_24_hours_per_project))
+                           bug_filed_24_hours_per_project, valid_timestamp,
+                           bug_filing_max_24_hours_per_job,
+                           bug_filing_max_24_hours_per_project))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Skipping filing as it is throttled.',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -442,13 +464,22 @@ class ThrottleBugTest(unittest.TestCase):
   def setUp(self):
     self.testcase = test_utils.create_generic_testcase()
     helpers.patch(self, [
-        'clusterfuzz._internal.config.local_config.IssueTrackerConfig',
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.datastore.data_handler.get_issue_tracker_name',
     ])
+    self.mock.get_issue_tracker_name.return_value = 'project'
+    data_types.Job(
+        name=self.testcase.job_type,
+        environment_string='BUG_FILING_MAX_24_HOURS_PER_JOB = 2').put()
+    self.mock.get.return_value = {'bug_filing_max_24_hours_per_project': 5}
 
   def test_throttle_bug_with_job_limit(self):
     """Tests the throttling bug with a job limit."""
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
+    valid_timestamp = datetime.datetime.now() - datetime.timedelta(hours=24)
+    bug_filing_max_24_hours_per_job = {}
+    bug_filing_max_24_hours_per_project = None
 
     # The current count does not include bugs over 24 hours.
     data_types.FiledBug(
@@ -459,14 +490,20 @@ class ThrottleBugTest(unittest.TestCase):
         project_name=self.testcase.project_name,
         job_type=self.testcase.job_type,
         timestamp=datetime.datetime.now()).put()
-
-    self.assertEqual(2, triage._get_job_bugs_filing_max(self.testcase.job_type))
+    self.assertEqual(
+        2,
+        triage._get_job_bugs_filing_max(self.testcase.job_type,
+                                        bug_filing_max_24_hours_per_job))
     self.assertFalse(
         triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
-                             bug_filed_24_hours_per_project))
+                             bug_filed_24_hours_per_project, valid_timestamp,
+                             bug_filing_max_24_hours_per_job,
+                             bug_filing_max_24_hours_per_project))
     self.assertTrue(
         triage._throttle_bug(self.testcase, bug_filed_24_hours_per_job,
-                             bug_filed_24_hours_per_project))
+                             bug_filed_24_hours_per_project, valid_timestamp,
+                             bug_filing_max_24_hours_per_job,
+                             bug_filing_max_24_hours_per_project))
 
   def test_throttle_bug_with_project_limit(self):
     """Tests the throttling bug with a project limit."""
@@ -475,16 +512,26 @@ class ThrottleBugTest(unittest.TestCase):
 
     bug_filed_24_hours_per_job = {}
     bug_filed_24_hours_per_project = {}
+    valid_timestamp = datetime.datetime.now() - datetime.timedelta(hours=24)
+    bug_filing_max_24_hours_per_job = {}
+    bug_filing_max_24_hours_per_project = []
     data_types.FiledBug(
         project_name=testcase.project_name,
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
-
-    self.assertEqual(5, triage._get_project_bugs_filing_max())
+    triage._get_project_bugs_filing_max(bug_filing_max_24_hours_per_project)
+    self.assertEqual(
+        5,
+        triage._get_project_bugs_filing_max(
+            bug_filing_max_24_hours_per_project))
     for _ in range(4):
       self.assertFalse(
           triage._throttle_bug(testcase, bug_filed_24_hours_per_job,
-                               bug_filed_24_hours_per_project))
+                               bug_filed_24_hours_per_project, valid_timestamp,
+                               bug_filing_max_24_hours_per_job,
+                               bug_filing_max_24_hours_per_project))
     self.assertTrue(
         triage._throttle_bug(testcase, bug_filed_24_hours_per_job,
-                             bug_filed_24_hours_per_project))
+                             bug_filed_24_hours_per_project, valid_timestamp,
+                             bug_filing_max_24_hours_per_job,
+                             bug_filing_max_24_hours_per_project))
