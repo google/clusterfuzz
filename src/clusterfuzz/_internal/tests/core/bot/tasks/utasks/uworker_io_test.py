@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests for uworker_io."""
 
+import datetime
 import os
 import shutil
 import tempfile
@@ -21,9 +22,9 @@ from unittest import mock
 
 from google.cloud import ndb
 
-from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -109,21 +110,22 @@ class TestGetUrls(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_io_file_name',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_input_file_name',
     ])
 
     self.mock.get.return_value = False
     self.mock._sign_url.return_value = self.FAKE_URL
-    self.mock.generate_new_io_file_name.return_value = self.NEW_IO_FILE_NAME
+    self.mock.generate_new_input_file_name.return_value = self.NEW_IO_FILE_NAME
 
   def test_get_uworker_output_urls(self):
     """Tests that get_uworker_output_urls works."""
-    expected_urls = (self.FAKE_URL, self.EXPECTED_GCS_PATH)
-    self.assertEqual(uworker_io.get_uworker_output_urls(), expected_urls)
+    expected_upload_url = self.EXPECTED_GCS_PATH + '.output'
+    expected_urls = (self.FAKE_URL, expected_upload_url)
+    self.assertEqual(
+        uworker_io.get_uworker_output_urls(self.EXPECTED_GCS_PATH),
+        expected_urls)
     self.mock._sign_url.assert_called_with(
-        self.EXPECTED_GCS_PATH,
-        method='PUT',
-        minutes=DEFAULT_SIGNED_URL_MINUTES)
+        expected_upload_url, method='PUT', minutes=DEFAULT_SIGNED_URL_MINUTES)
 
   def test_get_uworker_input_urls(self):
     """Tests that get_uworker_input_urls works."""
@@ -133,6 +135,33 @@ class TestGetUrls(unittest.TestCase):
         self.EXPECTED_GCS_PATH,
         method='GET',
         minutes=DEFAULT_SIGNED_URL_MINUTES)
+
+
+class UworkerOutputTest(unittest.TestCase):
+  """Tests for UworkerOutput."""
+
+  def setUp(self):
+    self.output = uworker_io.UworkerOutput()
+
+  def test_error_and_testcase_behavior(self):
+    """Tests that the error and testcase attrs are handled properly,
+    in that they can be accessed with out being explicitly set
+    (defaulting to None) but don't appear in to_dict until they are
+    set."""
+    # Test that these can be accessed without an attribute error.
+    self.output.testcase  # pylint: disable=pointless-statement
+    self.output.error  # pylint: disable=pointless-statement
+    self.assertEqual(self.output.to_dict(), {})
+    value = 'ERROR'
+    self.output.error = value
+    self.assertEqual(self.output.error, value)
+    self.assertEqual(self.output.to_dict(), {'error': value})
+
+  def to_dict(self):
+    """Tests that to_dict functions as intended."""
+    self.assertEqual(self.output.to_dict(), {})
+    self.output.j = 1
+    self.assertEqual(self.output.to_dict(), {'j': 1})
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -150,11 +179,11 @@ class RoundTripTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_io_file_name',
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.generate_new_input_file_name',
     ])
     self.mock.get.return_value = False
     self.mock._sign_url.return_value = self.FAKE_URL
-    self.mock.generate_new_io_file_name.return_value = self.NEW_IO_FILE_NAME
+    self.mock.generate_new_input_file_name.return_value = self.NEW_IO_FILE_NAME
     crash_type = 'type'
     crash_addr = 'addr'
     crash_state = 'NY :-)'
@@ -176,8 +205,8 @@ class RoundTripTest(unittest.TestCase):
     # Create input for the uworker.
     uworker_input = {
         'testcase': self.testcase,
-        'env': self.env,
-        'download_url': self.FAKE_URL
+        'uworker_env': self.env,
+        'testcase_download_url': self.FAKE_URL,
     }
 
     # Create a mocked version of copy_file_to so that when we upload the uworker
@@ -204,8 +233,8 @@ class RoundTripTest(unittest.TestCase):
         with open(temp_file.name, 'rb') as fp:
           return fp.read()
 
-      uworker_io.serialize_and_upload_uworker_input(
-          uworker_input, self.job_type, self.FAKE_URL)
+      uworker_io.serialize_and_upload_uworker_input(uworker_input,
+                                                    self.job_type)
       with mock.patch(
           'clusterfuzz._internal.google_cloud_utils.storage.download_signed_url',
           download_signed_url) as _:
@@ -218,8 +247,10 @@ class RoundTripTest(unittest.TestCase):
     self.assertEqual(self.testcase.crash_address,
                      downloaded_testcase.crash_address)
     self.assertEqual(self.testcase.crash_state, downloaded_testcase.crash_state)
-    self.assertEqual(self.testcase.key.serialized,
-                     downloaded_testcase.key.serialized)
+    self.assertEqual(self.testcase.key.serialized(),
+                     downloaded_testcase.key.serialized())
+    # Things will break horribly if we pass an unwrapped entity.
+    self.assertIsInstance(downloaded_testcase, uworker_io.UworkerEntityWrapper)
 
     # Now test that the rest of the input was (de)serialized properly.
     del uworker_input['testcase']
@@ -230,16 +261,17 @@ class RoundTripTest(unittest.TestCase):
     that output serialization and deserialization works."""
     # Set up a wrapped testcase and modify it as a uworker would.
     testcase = uworker_io.UworkerEntityWrapper(self.testcase)
-    testcase.newattr = 'newattr-value'
+    testcase.regression = '1'
+    testcase.timestamp = datetime.datetime.now()
     testcase.crash_type = 'new-crash_type'
 
     # Prepare an output that tests db entity change tracking and
     # (de)serialization.
-    output = uworker_io.UworkerOutput()
+    crash_time = 1
+    output = uworker_io.UworkerOutput(
+        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+    output.crash_time = crash_time
     output.testcase = testcase
-    field_value = 'field'
-    output.field = field_value
-    output.uworker_input = {}
 
     # Create a version of upload_signed_url that will "upload" the data to a
     # known file on disk that we can read back.
@@ -247,41 +279,65 @@ class RoundTripTest(unittest.TestCase):
 
     def upload_signed_url(data, src):
       del src
-      with open(upload_signed_url_tempfile.name, 'w') as fp:
+      with open(upload_signed_url_tempfile.name, 'wb') as fp:
         fp.write(data)
       return True
 
     upload_signed_url_name = ('clusterfuzz._internal.google_cloud_utils.'
                               'storage.upload_signed_url')
-    copy_file_from_name = ('clusterfuzz._internal.google_cloud_utils.storage.'
-                           'copy_file_from')
+    copy_file_from_name = (
+        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from')
 
-    with tempfile.NamedTemporaryFile() as temp_file, mock.patch(
+    with tempfile.NamedTemporaryFile() as output_temp_file, mock.patch(
         upload_signed_url_name, upload_signed_url) as _:
-      upload_signed_url_tempfile = temp_file
+      upload_signed_url_tempfile = output_temp_file
       uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
 
       # Create a version of copy_file_from that will "downloads" the data from
       # the file upload_signed_url wrote it to.
       def copy_file_from(gcs_url, local_path):
         del gcs_url
-        shutil.copyfile(temp_file.name, local_path)
+        shutil.copyfile(output_temp_file.name, local_path)
         return True
 
-      with mock.patch(copy_file_from_name, copy_file_from) as _:
+      download_uworker_input_name = (
+          'clusterfuzz._internal.bot.tasks.utasks.uworker_io._download_uworker_input_from_gcs'
+      )
+      uworker_env = {'PATH': '/blah'}
+      uworker_input = {'uworker_env': uworker_env, 'testcase_id': 'one-two'}
+      serialized_uworker_input = uworker_io.serialize_uworker_input(
+          uworker_input)
+      with mock.patch(copy_file_from_name, copy_file_from) as _, mock.patch(
+          download_uworker_input_name, return_value=serialized_uworker_input):
         downloaded_output = uworker_io.download_and_deserialize_uworker_output(
-            analyze_task, self.FAKE_URL)
+            self.FAKE_URL)
 
     # Test that the entity (de)serialization and change tracking working.
+    downloaded_output = downloaded_output.to_dict()
     downloaded_testcase = downloaded_output.pop('testcase')
-    self.assertEqual(downloaded_testcase.newattr, testcase.newattr)
+    self.assertEqual(downloaded_testcase.regression, testcase.regression)
     self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
+    self.assertEqual(downloaded_testcase.timestamp, testcase.timestamp)
 
     # Test that the rest of the output was (de)serialized correctly.
     self.assertEqual(downloaded_testcase.key.serialized(),
                      self.testcase.key.serialized())
-    self.assertDictEqual(downloaded_output, {
-        'error': None,
-        'field': field_value,
-        'uworker_input': {}
-    })
+    self.assertDictEqual(
+        downloaded_output, {
+            'crash_time': 1,
+            'error': uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
+            'uworker_input': uworker_input,
+            'uworker_env': {
+                'PATH': '/blah'
+            }
+        })
+
+  def test_output_error_serialization(self):
+    """Tests that errors can be returned by the tasks."""
+    test_timeout = 1337
+    output = uworker_io.UworkerOutput(
+        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+        test_timeout=test_timeout)
+    serialized = uworker_io.serialize_uworker_output(output)
+    processed_output = uworker_io.deserialize_uworker_output(serialized)
+    self.assertEqual(processed_output.test_timeout, test_timeout)

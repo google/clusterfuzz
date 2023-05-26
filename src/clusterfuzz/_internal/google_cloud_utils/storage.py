@@ -35,6 +35,8 @@ from clusterfuzz._internal.system import shell
 
 from . import credentials
 
+# pylint: disable=no-member
+
 try:
   import google.cloud
   from google.cloud import storage as gcs
@@ -1293,15 +1295,17 @@ def upload_signed_url(data, url):
   return _provider().upload_signed_url(data, url)
 
 
-def download_signed_url(url, local_path=None):
+def download_signed_url(url):
   """Returns contents of |url|. Writes to |local_path| if provided."""
-  contents = _provider().download_signed_url(url)
-  if not local_path:
-    return contents
-  os.makedirs(os.path.dirname(local_path), exist_ok=True)
-  with open(local_path, 'wb') as fp:
+  return _provider().download_signed_url(url)
+
+
+def download_signed_url_to_file(url, filepath):
+  contents = download_signed_url(url)
+  os.makedirs(os.path.dirname(filepath), exist_ok=True)
+  with open(filepath, 'wb') as fp:
     fp.write(contents)
-  return contents
+  return True
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):

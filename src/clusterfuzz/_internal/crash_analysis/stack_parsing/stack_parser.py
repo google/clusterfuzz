@@ -149,10 +149,10 @@ class StackFrameStructure(object):
     if self.address is not None:
       frame_proto.instruction = unsigned_to_signed(self.address)
     if self.module_base is not None:
-      frame_proto.module.base_address = unsigned_to_signed(
+      frame_proto.module.base_address = unsigned_to_signed(  # pylint: disable=no-member
           int(self.module_base))
     if self.module_name is not None:
-      frame_proto.module.code_file = self.module_name
+      frame_proto.module.code_file = self.module_name  # pylint: disable=no-member
     if self.function_name is not None:
       frame_proto.function_name = self.function_name
     if self.function_base is not None:

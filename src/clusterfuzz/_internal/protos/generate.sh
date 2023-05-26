@@ -17,7 +17,7 @@
 SCRIPT_DIR=$( readlink -f $( dirname ${BASH_SOURCE[0]} ) )
 PARENT_DIR=$( dirname $( dirname $( dirname ${SCRIPT_DIR} ) ) )
 
-python -m grpc_tools.protoc --proto_path=$PARENT_DIR --python_out=$PARENT_DIR --grpc_python_out=$PARENT_DIR $SCRIPT_DIR/*.proto
+python -m grpc_tools.protoc --proto_path=$PARENT_DIR:/usr/local/google/home/metzman/clusterfuzz/src/third_party --python_out=$PARENT_DIR --grpc_python_out=$PARENT_DIR $SCRIPT_DIR/*.proto
 
 read -r -d '' COPYRIGHT_HEADER <<EOF
 # Copyright 2020 Google LLC

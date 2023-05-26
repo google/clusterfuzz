@@ -22,6 +22,8 @@ import shutil
 import tempfile
 import unittest
 
+from mock import patch
+
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.centipede import engine
@@ -53,7 +55,7 @@ def get_test_paths():
 
 
 TEST_PATH = pathlib.Path(__file__).parent
-MAX_TIME = 25
+MAX_TIME = 3
 
 # Centipede's runtime args for testing.
 _SERVER_COUNT = 1
@@ -61,7 +63,7 @@ _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
 _TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
-_TIMEOUT_PER_INPUT_TEST = 5  # For testing timeout only.
+_TIMEOUT_PER_INPUT_TEST = 1  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
     '--exit_on_crash=1',
     f'--fork_server={_SERVER_COUNT}',
@@ -80,12 +82,18 @@ def setup_testcase(testcase, test_paths):
   return copied_testcase_path
 
 
-def setup_centipede(target_name, test_paths, centipede_bin=None):
+def setup_centipede(target_name,
+                    test_paths,
+                    centipede_bin=None,
+                    sanitized_target_dir=None):
   """Sets up Centipede for fuzzing."""
   # Setup Centipede's fuzz target.
   engine_impl = engine.Engine()
   target_path = engine_common.find_fuzzer_path(test_paths.data, target_name)
-  sanitized_target_path = test_paths.data / fuzzer_utils.EXTRA_BUILD_DIR / target_name
+
+  if sanitized_target_dir is None:
+    sanitized_target_dir = test_paths.data / fuzzer_utils.EXTRA_BUILD_DIR
+  sanitized_target_path = sanitized_target_dir / target_name
 
   # Setup Centipede's binary.
   if centipede_bin and centipede_bin != test_paths.centipede:
@@ -99,16 +107,16 @@ class IntegrationTest(unittest.TestCase):
   """Integration tests."""
 
   def run(self, *args, **kwargs):
-    test_helpers.patch_environ(self)
     with get_test_paths() as test_paths:
       self.test_paths = test_paths
-      os.environ['BUILD_DIR'] = str(self.test_paths.data)
       super().run(*args, **kwargs)
 
   def setUp(self):
     self.maxDiff = None  # pylint: disable=invalid-name
     test_helpers.patch(self, ['os.getpid'])
     self.mock.getpid.return_value = 1337
+    test_helpers.patch_environ(self)
+    os.environ['BUILD_DIR'] = str(self.test_paths.data)
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
@@ -117,10 +125,11 @@ class IntegrationTest(unittest.TestCase):
   def _test_reproduce(self,
                       regex,
                       testcase_path,
-                      target_name='clusterfuzz_format_target'):
+                      target_name='clusterfuzz_format_target',
+                      sanitized_target_dir=None):
     """Tests reproducing a crash."""
     engine_impl, target_path, sanitized_target_path = setup_centipede(
-        target_name, self.test_paths)
+        target_name, self.test_paths, sanitized_target_dir=sanitized_target_dir)
 
     result = engine_impl.reproduce(target_path, testcase_path, [], MAX_TIME)
 
@@ -129,6 +138,20 @@ class IntegrationTest(unittest.TestCase):
     self.assertRegex(result.output, regex)
 
     return re.search(regex, result.output)
+
+  def test_reproduce_uaf_without_unsanitized_binary(self):
+    """Tests reproducing an ASAN heap-use-after-free crash when no unsanitized
+    target binary was provided."""
+    testcase_path = setup_testcase('uaf', self.test_paths)
+    crash_info = self._test_reproduce(
+        constants.ASAN_REGEX,
+        testcase_path,
+        'clusterfuzz_format_target_sanitized',
+        sanitized_target_dir=self.test_paths.data)
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+    self.assertIn('heap-use-after-free', crash_info.group(2))
 
   def test_reproduce_uaf_old(self):
     """Tests reproducing an old ASAN heap-use-after-free crash."""
@@ -175,17 +198,23 @@ class IntegrationTest(unittest.TestCase):
     else:
       os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
 
+  @patch('clusterfuzz._internal.bot.fuzzers.centipede.engine._CLEAN_EXIT_SECS',
+         5)
   def _run_centipede(self,
                      target_name,
                      dictionary=None,
                      timeout_flag=None,
                      rss_limit=_RSS_LIMIT,
-                     centipede_bin=None):
+                     centipede_bin=None,
+                     sanitized_target_dir=None):
     """Run Centipede for other unittest."""
     if centipede_bin is None:
       centipede_bin = self.test_paths.centipede
     engine_impl, target_path, sanitized_target_path = setup_centipede(
-        target_name, self.test_paths, centipede_bin)
+        target_name,
+        self.test_paths,
+        centipede_bin,
+        sanitized_target_dir=sanitized_target_dir)
     work_dir = '/tmp/temp-1337/workdir'
 
     options = engine_impl.prepare(self.test_paths.corpus, target_path,
@@ -228,6 +257,10 @@ class IntegrationTest(unittest.TestCase):
           for flag in expected_command
       ]
 
+    # Only one binary is provided.
+    if str(target_path) == str(sanitized_target_path):
+      expected_command.remove(f'--extra_binaries={sanitized_target_path}')
+
     self.compare_arguments(expected_command, results.command)
     return results
 
@@ -238,20 +271,33 @@ class IntegrationTest(unittest.TestCase):
     self._run_centipede(target_name='test_fuzzer', dictionary=dictionary)
     self.assertTrue(self.test_paths.corpus.iterdir())
 
+  def test_fuzz_no_crash_without_unsanitized_binary(self):
+    """Tests fuzzing (no crash) when no unsanitized target binary was provided.
+    """
+    dictionary = self.test_paths.data / 'test_fuzzer_sanitized.dict'
+    self._run_centipede(
+        target_name='test_fuzzer_sanitized',
+        dictionary=dictionary,
+        sanitized_target_dir=self.test_paths.data)
+    self.assertTrue(self.test_paths.corpus.iterdir())
+
   def _test_crash_log_regex(self,
                             crash_regex,
                             content,
                             timeout_flag=None,
                             rss_limit=_RSS_LIMIT,
-                            centipede_bin=None):
+                            centipede_bin=None,
+                            target_name='clusterfuzz_format_target',
+                            sanitized_target_dir=None):
     """Fuzzes the target and check if regex matches Centipede's crash log."""
     if centipede_bin is None:
       centipede_bin = self.test_paths.centipede
     results = self._run_centipede(
-        target_name='clusterfuzz_format_target',
+        target_name=target_name,
         timeout_flag=timeout_flag,
         rss_limit=rss_limit,
-        centipede_bin=centipede_bin)
+        centipede_bin=centipede_bin,
+        sanitized_target_dir=sanitized_target_dir)
 
     # Check there is one and only one expected crash.
     self.assertEqual(1, len(results.crashes))
@@ -293,6 +339,20 @@ class IntegrationTest(unittest.TestCase):
         'oom',
         rss_limit=_RSS_LIMIT_TEST,
         centipede_bin=self.test_paths.centipede_old)
+
+  def test_crash_uaf_without_unsanitized(self):
+    """Tests fuzzing that results in a ASAN heap-use-after-free crash when no
+    unsanitized target binary was provided."""
+    setup_testcase('uaf', self.test_paths)
+    crash_info = self._test_crash_log_regex(
+        constants.ASAN_REGEX,
+        'uaf',
+        target_name='clusterfuzz_format_target_sanitized',
+        sanitized_target_dir=self.test_paths.data)
+
+    # Check the crash reason was parsed correctly.
+    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+    self.assertIn('heap-use-after-free', crash_info.group(2))
 
   def test_crash_uaf(self):
     """Tests fuzzing that results in a ASAN heap-use-after-free crash."""

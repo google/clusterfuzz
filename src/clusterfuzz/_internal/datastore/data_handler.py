@@ -1673,9 +1673,8 @@ def get_coverage_information(fuzzer_name, date, create_if_needed=False):
   return coverage_info
 
 
-def close_testcase_with_error(testcase_id, error_message):
+def close_testcase_with_error(testcase, error_message):
   """Close testcase (fixed=NA) with an error message."""
-  testcase = get_testcase_by_id(testcase_id)
   update_testcase_comment(testcase, data_types.TaskState.ERROR, error_message)
   testcase.fixed = 'NA'
   testcase.open = False

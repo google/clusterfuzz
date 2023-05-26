@@ -83,7 +83,7 @@ def remount_if_needed():
 
   # Make sure that check file exists.
   if not os.path.exists(check_file_path):
-    raise Exception('Failed to write check file on nfs volume.')
+    raise Exception('Failed to write check file on nfs volume.')  # pylint: disable=broad-exception-raised
 
 
 def run():

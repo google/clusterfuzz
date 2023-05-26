@@ -96,7 +96,7 @@ class _FlusherThread(threading.Thread):
               monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE):
             start_time = end_time
 
-          series = monitoring_v3.types.TimeSeries()
+          series = monitoring_v3.types.TimeSeries()  # pylint: disable=no-member
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           time_series.append(series)
@@ -341,6 +341,9 @@ class _GaugeMetric(Metric):
 class _Bucketer(object):
   """Bucketer."""
 
+  def __init__(self):
+    self._lower_bounds = None
+
   def bucket_for_value(self, value):
     """Get the bucket index for the given value."""
     return bisect.bisect(self._lower_bounds, value) - 1
@@ -354,6 +357,7 @@ class FixedWidthBucketer(_Bucketer):
   """Fixed width bucketer."""
 
   def __init__(self, width, num_finite_buckets=100):
+    super().__init__()
     self.width = width
     self.num_finite_buckets = num_finite_buckets
 
@@ -367,6 +371,7 @@ class GeometricBucketer(_Bucketer):
   """Geometric bucketer."""
 
   def __init__(self, growth_factor=10**0.2, num_finite_buckets=100, scale=1.0):
+    super().__init__()
     self.growth_factor = growth_factor
     self.num_finite_buckets = num_finite_buckets
     self.scale = scale
@@ -487,7 +492,7 @@ def stub_unavailable(module):
 def _initialize_monitored_resource():
   """Monitored resources."""
   global _monitored_resource
-  _monitored_resource = monitoring_v3.types.MonitoredResource()
+  _monitored_resource = monitoring_v3.types.MonitoredResource()  # pylint: disable=no-member
 
   # TODO(ochang): Use generic_node when that is available.
   _monitored_resource.type = 'gce_instance'

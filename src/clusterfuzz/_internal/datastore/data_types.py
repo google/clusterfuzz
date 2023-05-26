@@ -23,6 +23,8 @@ from clusterfuzz._internal.datastore import search_tokenizer
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+# pylint: disable=no-member,arguments-differ
+
 # Prefix used when a large testcase is stored in the blobstore.
 BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
 
