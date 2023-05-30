@@ -20,7 +20,8 @@ import unittest
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from src.appengine.handlers.cron.Throttler import Throttler
+from src.appengine.handlers.cron.throttler import Throttler
+
 
 @test_utils.with_cloud_emulators('datastore')
 class ThrottleBugTest(unittest.TestCase):
@@ -53,12 +54,9 @@ class ThrottleBugTest(unittest.TestCase):
         job_type=self.testcase.job_type,
         timestamp=datetime.datetime.now()).put()
     self.assertEqual(
-        2,
-        self.throttler._get_job_bugs_filing_max(self.testcase.job_type))
-    self.assertFalse(
-        self.throttler.should_throttle(self.testcase))
-    self.assertTrue(
-        self.throttler.should_throttle(self.testcase))
+        2, self.throttler._get_job_bugs_filing_max(self.testcase.job_type))
+    self.assertFalse(self.throttler.should_throttle(self.testcase))
+    self.assertTrue(self.throttler.should_throttle(self.testcase))
 
   def test_throttle_bug_with_project_limit(self):
     """Tests the throttling bug with a project limit."""
@@ -70,12 +68,9 @@ class ThrottleBugTest(unittest.TestCase):
         project_name=testcase.project_name,
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
-    self.throttler._get_project_bugs_filing_max(testcase.job_type )
+    self.throttler._get_project_bugs_filing_max(testcase.job_type)
     self.assertEqual(
-        5,
-        self.throttler._get_project_bugs_filing_max(testcase.job_type))
+        5, self.throttler._get_project_bugs_filing_max(testcase.job_type))
     for _ in range(4):
-      self.assertFalse(
-          self.throttler.should_throttle(testcase))
-    self.assertTrue(
-        self.throttler.should_throttle(testcase))
+      self.assertFalse(self.throttler.should_throttle(testcase))
+    self.assertTrue(self.throttler.should_throttle(testcase))

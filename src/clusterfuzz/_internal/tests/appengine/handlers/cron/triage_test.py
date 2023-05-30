@@ -23,7 +23,7 @@ from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.cron import triage
-from src.appengine.handlers.cron.Throttler import Throttler
+from src.appengine.handlers.cron.throttler import Throttler
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -372,14 +372,16 @@ class FileIssueTest(unittest.TestCase):
   def test_no_exception(self):
     """Test no exception."""
     self.mock.file_issue.return_value = 'ID', None
-    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertIsNone(testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_recovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.return_value = 'ID', Exception('recovered')
-    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: recovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -387,7 +389,8 @@ class FileIssueTest(unittest.TestCase):
   def test_unrecovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.side_effect = Exception('unrecovered')
-    self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
+    self.assertFalse(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: unrecovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -397,7 +400,8 @@ class FileIssueTest(unittest.TestCase):
     self.mock.file_issue.return_value = 'ID', None
     for crash_type in ['Arbitrary file open', 'Command injection']:
       self.testcase.crash_type = crash_type
-      self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
+      self.assertFalse(
+          triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
       testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
       self.assertEqual('Skipping filing as this is an experimental crash type.',
                        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -406,7 +410,8 @@ class FileIssueTest(unittest.TestCase):
     """Tests not filing issue due to throttle."""
     self.mock.should_throttle.return_value = True
     self.mock.file_issue.return_value = ('ID', None)
-    self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
+    self.assertFalse(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Skipping filing as it is throttled.',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))

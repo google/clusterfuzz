@@ -31,7 +31,7 @@ from libs import handler
 from libs.issue_management import issue_filer
 from libs.issue_management import issue_tracker_policy
 from libs.issue_management import issue_tracker_utils
-from src.appengine.handlers.cron.Throttler import Throttler
+from src.appengine.handlers.cron.throttler import Throttler
 
 from . import grouper
 
