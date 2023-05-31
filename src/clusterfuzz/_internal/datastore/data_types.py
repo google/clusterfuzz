@@ -1327,6 +1327,12 @@ class FiledBug(Model):
   # Platform id.
   platform_id = ndb.StringProperty()
 
+  # Project name that is associated with the filed issue.
+  project_name = ndb.StringProperty()
+
+  # Job type that is associated with the filed issue.
+  job_type = ndb.StringProperty()
+
 
 class CoverageInformation(Model):
   """Coverage info."""

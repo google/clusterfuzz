@@ -23,6 +23,7 @@ from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.cron import triage
+from src.appengine.handlers.cron.triage import Throttler
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -360,8 +361,10 @@ class FileIssueTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'libs.issue_management.issue_filer.file_issue',
+        'src.appengine.handlers.cron.triage.Throttler.should_throttle',
     ])
-
+    self.throttler = Throttler()
+    self.mock.should_throttle.return_value = False
     self.testcase = test_utils.create_generic_testcase()
     self.issue = appengine_test_utils.create_generic_issue()
     self.issue_tracker = self.issue.issue_tracker
@@ -369,14 +372,16 @@ class FileIssueTest(unittest.TestCase):
   def test_no_exception(self):
     """Test no exception."""
     self.mock.file_issue.return_value = 'ID', None
-    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker))
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertIsNone(testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
 
   def test_recovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.return_value = 'ID', Exception('recovered')
-    self.assertTrue(triage._file_issue(self.testcase, self.issue_tracker))
+    self.assertTrue(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: recovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -384,7 +389,8 @@ class FileIssueTest(unittest.TestCase):
   def test_unrecovered_exception(self):
     """Test recovered exception."""
     self.mock.file_issue.side_effect = Exception('unrecovered')
-    self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker))
+    self.assertFalse(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual('Failed to file issue due to exception: unrecovered',
                      testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
@@ -394,7 +400,71 @@ class FileIssueTest(unittest.TestCase):
     self.mock.file_issue.return_value = 'ID', None
     for crash_type in ['Arbitrary file open', 'Command injection']:
       self.testcase.crash_type = crash_type
-      self.assertFalse(triage._file_issue(self.testcase, self.issue_tracker))
+      self.assertFalse(
+          triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
       testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
       self.assertEqual('Skipping filing as this is an experimental crash type.',
                        testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+  def test_throttle_bug(self):
+    """Tests not filing issue due to throttle."""
+    self.mock.should_throttle.return_value = True
+    self.mock.file_issue.return_value = ('ID', None)
+    self.assertFalse(
+        triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
+    testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
+    self.assertEqual('Skipping filing as it is throttled.',
+                     testcase.get_metadata(triage.TRIAGE_MESSAGE_KEY))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class ThrottleBugTest(unittest.TestCase):
+  """Tests for throttler."""
+
+  def setUp(self):
+    self.testcase = test_utils.create_generic_testcase()
+    self.throttler = Throttler()
+    helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.datastore.data_handler.get_issue_tracker_name',
+        'clusterfuzz._internal.datastore.data_handler.get_project_name'
+    ])
+    self.mock.get_issue_tracker_name.return_value = 'project'
+    self.mock.get_project_name.return_value = self.testcase.project_name
+    data_types.Job(
+        name=self.testcase.job_type,
+        environment_string='MAX_BUGS_PER_24HRS = 2').put()
+    self.mock.get.return_value = {'max_bugs_per_project_per_24hrs': 5}
+
+  def test_throttle_bug_with_job_limit(self):
+    """Tests the throttling bug with a job limit."""
+    # The current count does not include bugs over 24 hours.
+    data_types.FiledBug(
+        project_name=self.testcase.project_name,
+        job_type=self.testcase.job_type,
+        timestamp=datetime.datetime.now() - datetime.timedelta(hours=30)).put()
+    data_types.FiledBug(
+        project_name=self.testcase.project_name,
+        job_type=self.testcase.job_type,
+        timestamp=datetime.datetime.now()).put()
+    self.assertEqual(
+        2, self.throttler._get_job_bugs_filing_max(self.testcase.job_type))
+    self.assertFalse(self.throttler.should_throttle(self.testcase))
+    self.assertTrue(self.throttler.should_throttle(self.testcase))
+
+  def test_throttle_bug_with_project_limit(self):
+    """Tests the throttling bug with a project limit."""
+    testcase = test_utils.create_generic_testcase_variant()
+    testcase.project_name = 'test_project'
+    testcase.job_type = 'test_job_without_limit'
+    self.mock.get_project_name.return_value = testcase.project_name
+    data_types.FiledBug(
+        project_name=testcase.project_name,
+        job_type='test_job_without_limit',
+        timestamp=datetime.datetime.now()).put()
+    self.throttler._get_project_bugs_filing_max(testcase.job_type)
+    self.assertEqual(
+        5, self.throttler._get_project_bugs_filing_max(testcase.job_type))
+    for _ in range(4):
+      self.assertFalse(self.throttler.should_throttle(testcase))
+    self.assertTrue(self.throttler.should_throttle(testcase))
