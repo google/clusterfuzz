@@ -49,9 +49,9 @@ class CentipedeError(Exception):
   """Base exception class."""
 
 
-def _get_runner():
+def _get_runner(target_path):
   """Gets the Centipede runner."""
-  centipede_path = pathlib.Path(environment.get_value('BUILD_DIR'), 'centipede')
+  centipede_path = pathlib.Path(target_path).parent / 'centipede'
   if not centipede_path.exists():
     raise CentipedeError('Centipede not found in build')
 
@@ -187,7 +187,7 @@ class Engine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    runner = _get_runner()
+    runner = _get_runner(target_path)
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=options.arguments, timeout=timeout)
