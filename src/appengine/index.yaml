@@ -87,12 +87,12 @@ indexes:
   - name: entity_name
   - name: entity_kind
 
-- Kind: FiledBug
+- kind: FiledBug
   properties:
   - name: timestamp
   - name: job_type
 
-- Kind: FiledBug
+- kind: FiledBug
   properties:
   - name: timestamp
   - name: project_name
