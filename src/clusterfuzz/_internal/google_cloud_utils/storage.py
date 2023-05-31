@@ -24,6 +24,7 @@ import time
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import requests
+import requests.exceptions
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -1276,7 +1277,7 @@ def uworker_io_bucket():
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage._download_url',
-    exception_types=[HttpError])
+    exception_types=[HttpError, requests.exceptions.ConnectionError])
 def _download_url(url):
   """Downloads |url| and returns the contents."""
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
