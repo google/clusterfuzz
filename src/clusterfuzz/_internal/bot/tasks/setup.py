@@ -233,14 +233,14 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return testcase_setup_error_result
+      return None, None, uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+      return testcase_setup_error_result
 
   # Extract the testcase and any of its resources to the input directory.
   file_list, testcase_file_path = unpack_testcase(testcase,
