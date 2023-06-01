@@ -14,7 +14,7 @@
 """Build manager."""
 
 from collections import namedtuple
-from distutils import spawn
+from distutils import spawn  # pylint: disable=deprecated-module
 import os
 import re
 import subprocess

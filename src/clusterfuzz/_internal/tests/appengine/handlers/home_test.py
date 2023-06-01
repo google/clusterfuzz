@@ -103,21 +103,21 @@ class HomeTests(unittest.TestCase):
                 'projects': [{
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'libfuzzer_asan_lib',
+                        'name': 'libfuzzer_asan_lib',
                         'single_target': None,
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: memory (MSAN)',
-                        'name': u'libfuzzer_msan_lib',
+                        'name': 'libfuzzer_msan_lib',
                         'single_target': None,
                         'engine_name': 'libFuzzer',
                         'engine_display_name': 'libFuzzer',
                         'has_stats': True,
                     }],
                     'name':
-                        u'lib',
+                        'lib',
                     'coverage_job':
                         'libfuzzer_asan_lib',
                     'has_introspector':
@@ -142,28 +142,28 @@ class HomeTests(unittest.TestCase):
                 'projects': [{
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'afl_asan_lib',
+                        'name': 'afl_asan_lib',
                         'single_target': None,
                         'engine_display_name': 'AFL',
                         'engine_name': 'afl',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'libfuzzer_asan_lib',
+                        'name': 'libfuzzer_asan_lib',
                         'single_target': None,
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: memory (MSAN)',
-                        'name': u'libfuzzer_msan_lib',
+                        'name': 'libfuzzer_msan_lib',
                         'single_target': None,
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }],
                     'name':
-                        u'lib',
+                        'lib',
                     'coverage_job':
                         'libfuzzer_asan_lib',
                     'has_introspector':
@@ -173,28 +173,28 @@ class HomeTests(unittest.TestCase):
                 }, {
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'afl_asan_lib2',
+                        'name': 'afl_asan_lib2',
                         'single_target': 'afl_lib2_fuzzer',
                         'engine_display_name': 'AFL',
                         'engine_name': 'afl',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'libfuzzer_asan_lib2',
+                        'name': 'libfuzzer_asan_lib2',
                         'single_target': 'libFuzzer_lib2_fuzzer',
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: undefined (UBSAN)',
-                        'name': u'libfuzzer_ubsan_lib2',
+                        'name': 'libfuzzer_ubsan_lib2',
                         'single_target': 'libFuzzer_lib2_fuzzer',
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }],
                     'name':
-                        u'lib2',
+                        'lib2',
                     'coverage_job':
                         'libfuzzer_asan_lib2',
                     'has_introspector':
@@ -218,28 +218,28 @@ class HomeTests(unittest.TestCase):
                 'projects': [{
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'afl_asan_lib',
+                        'name': 'afl_asan_lib',
                         'single_target': None,
                         'engine_display_name': 'AFL',
                         'engine_name': 'afl',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'libfuzzer_asan_lib',
+                        'name': 'libfuzzer_asan_lib',
                         'single_target': None,
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: memory (MSAN)',
-                        'name': u'libfuzzer_msan_lib',
+                        'name': 'libfuzzer_msan_lib',
                         'single_target': None,
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }],
                     'name':
-                        u'lib',
+                        'lib',
                     'coverage_job':
                         'libfuzzer_asan_lib',
                     'has_introspector':
@@ -247,28 +247,28 @@ class HomeTests(unittest.TestCase):
                 }, {
                     'jobs': [{
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'afl_asan_lib2',
+                        'name': 'afl_asan_lib2',
                         'single_target': 'afl_lib2_fuzzer',
                         'engine_display_name': 'AFL',
                         'engine_name': 'afl',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: address (ASAN)',
-                        'name': u'libfuzzer_asan_lib2',
+                        'name': 'libfuzzer_asan_lib2',
                         'single_target': 'libFuzzer_lib2_fuzzer',
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }, {
                         'sanitizer_string': 'Sanitizer: undefined (UBSAN)',
-                        'name': u'libfuzzer_ubsan_lib2',
+                        'name': 'libfuzzer_ubsan_lib2',
                         'single_target': 'libFuzzer_lib2_fuzzer',
                         'engine_display_name': 'libFuzzer',
                         'engine_name': 'libFuzzer',
                         'has_stats': True,
                     }],
                     'name':
-                        u'lib2',
+                        'lib2',
                     'coverage_job':
                         'libfuzzer_asan_lib2',
                     'has_introspector':

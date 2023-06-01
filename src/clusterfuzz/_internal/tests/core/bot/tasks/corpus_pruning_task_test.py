@@ -198,9 +198,9 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertDictEqual(
         {
             'corpus_backup_location':
-                u'backup_link',
+                'backup_link',
             'corpus_location':
-                u'gs://bucket/libFuzzer/test_fuzzer/',
+                'gs://bucket/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
                 8,
             'corpus_size_units':
@@ -218,11 +218,11 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
             'functions_total':
                 None,
             'fuzzer':
-                u'test_fuzzer',
+                'test_fuzzer',
             'html_report_url':
                 None,
             'quarantine_location':
-                u'gs://bucket-quarantine/libFuzzer/test_fuzzer/',
+                'gs://bucket-quarantine/libFuzzer/test_fuzzer/',
             'quarantine_size_bytes':
                 2,
             'quarantine_size_units':
@@ -482,7 +482,7 @@ class CorpusPruningTestUntrusted(
                      testcases[0].get_metadata('fuzzer_binary_name'))
 
     self.mock.add_task.assert_has_calls([
-        mock.call('minimize', testcases[0].key.id(), u'libfuzzer_asan_job'),
+        mock.call('minimize', testcases[0].key.id(), 'libfuzzer_asan_job'),
     ])
 
     today = datetime.datetime.utcnow().date()
@@ -493,7 +493,7 @@ class CorpusPruningTestUntrusted(
     self.assertDictEqual(
         {
             'corpus_location':
-                u'gs://{}/libFuzzer/test_fuzzer/'.format(self.corpus_bucket),
+                'gs://{}/libFuzzer/test_fuzzer/'.format(self.corpus_bucket),
             'corpus_size_bytes':
                 8,
             'corpus_size_units':
@@ -511,11 +511,11 @@ class CorpusPruningTestUntrusted(
             'functions_total':
                 None,
             'fuzzer':
-                u'test_fuzzer',
+                'test_fuzzer',
             'html_report_url':
                 None,
             'quarantine_location':
-                u'gs://{}/libFuzzer/test_fuzzer/'.format(self.quarantine_bucket
+                'gs://{}/libFuzzer/test_fuzzer/'.format(self.quarantine_bucket
                                                         ),
             'quarantine_size_bytes':
                 2,
