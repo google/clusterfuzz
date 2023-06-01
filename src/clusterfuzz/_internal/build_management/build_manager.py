@@ -1022,9 +1022,7 @@ def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   base_path_with_seperator = base_path + '/' if base_path else ''
 
   for build_url in build_urls:
-    match_pattern = '{base_path_with_seperator}({file_pattern})'.format(
-        base_path_with_seperator=base_path_with_seperator,
-        file_pattern=file_pattern)
+    match_pattern = f'{base_path_with_seperator}({file_pattern})'
     match = re.match(match_pattern, build_url)
     if match:
       filename = match.group(1)

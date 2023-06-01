@@ -371,7 +371,7 @@ class CorpusPruningTestUntrusted(
     job = data_types.Job(
         name='libfuzzer_asan_job2',
         environment_string=('APP_NAME = test2_fuzzer\n'
-                            f'BACKUP_BUCKET = {backup_bucket}\n'
+                            f'BACKUP_BUCKET = {self.backup_bucket}\n'
                             'CORPUS_FUZZER_NAME_OVERRIDE = libfuzzer\n'))
     job.put()
 

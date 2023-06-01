@@ -1763,7 +1763,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
                     {
                         'author': 'b@example.com',
                         'description': 'halb',
-                        'url': 'lr'
+                        'url': 'lru'
                     },
                 ]
             }
@@ -1794,7 +1794,7 @@ class UpdateIssueOwnerAndCCsFromPredatorResultsTest(unittest.TestCase):
                     {
                         'author': 'b@example.com',
                         'description': 'halb',
-                        'url': 'lr'
+                        'url': 'lru'
                     },
                 ]
             }
