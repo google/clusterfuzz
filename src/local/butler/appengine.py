@@ -13,7 +13,6 @@
 # limitations under the License.
 """App Engine helpers."""
 
-from distutils import spawn
 import os
 import shutil
 import sys
@@ -75,7 +74,7 @@ def find_sdk_path():
   if common.get_platform() == 'windows':
     _, gcloud_path = common.execute('where gcloud.cmd', print_output=False)
   else:
-    gcloud_path = spawn.find_executable('gcloud')
+    gcloud_path = shutil.which('gcloud')
 
   if not gcloud_path:
     print('Please install the Google Cloud SDK and set up PATH to point to it.')
