@@ -79,6 +79,7 @@ def utask_preprocess(testcase_id, job_type, _):
       'original_job_type': original_job_type,
       'testcase': testcase,
       'metadata': testcase.get_metadata(),
+      'uworker_env': uworker_env,
       'variant': variant,
       'testcase_download_url': testcase_download_url,
   }
