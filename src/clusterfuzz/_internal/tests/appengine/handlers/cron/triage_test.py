@@ -426,14 +426,12 @@ class ThrottleBugTest(unittest.TestCase):
     self.throttler = Throttler()
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
-        'clusterfuzz._internal.datastore.data_handler.get_issue_tracker_name',
-        'clusterfuzz._internal.datastore.data_handler.get_project_name'
+        'clusterfuzz._internal.datastore.data_handler.get_issue_tracker_name'
     ])
-    self.mock.get_issue_tracker_name.return_value = 'project'
-    self.mock.get_project_name.return_value = self.testcase.project_name
     data_types.Job(
         name=self.testcase.job_type,
         environment_string='MAX_BUGS_PER_24HRS = 2').put()
+    self.mock.get_issue_tracker_name.return_value = 'project'
     self.mock.get.return_value = {'max_bugs_per_project_per_24hrs': 5}
 
   def test_throttle_bug_with_job_limit(self):
@@ -447,24 +445,38 @@ class ThrottleBugTest(unittest.TestCase):
         project_name=self.testcase.project_name,
         job_type=self.testcase.job_type,
         timestamp=datetime.datetime.now()).put()
-    self.assertEqual(
-        2, self.throttler._get_job_bugs_filing_max(self.testcase.job_type))
     self.assertFalse(self.throttler.should_throttle(self.testcase))
     self.assertTrue(self.throttler.should_throttle(self.testcase))
+    self.assertEqual(
+        2, self.throttler._get_job_bugs_filing_max(self.testcase.job_type))
 
   def test_throttle_bug_with_project_limit(self):
     """Tests the throttling bug with a project limit."""
     testcase = test_utils.create_generic_testcase_variant()
     testcase.project_name = 'test_project'
     testcase.job_type = 'test_job_without_limit'
-    self.mock.get_project_name.return_value = testcase.project_name
     data_types.FiledBug(
         project_name=testcase.project_name,
         job_type='test_job_without_limit',
         timestamp=datetime.datetime.now()).put()
-    self.throttler._get_project_bugs_filing_max(testcase.job_type)
-    self.assertEqual(
-        5, self.throttler._get_project_bugs_filing_max(testcase.job_type))
     for _ in range(4):
       self.assertFalse(self.throttler.should_throttle(testcase))
     self.assertTrue(self.throttler.should_throttle(testcase))
+    self.assertEqual(
+        5, self.throttler._get_project_bugs_filing_max(testcase.job_type))
+
+  def test_default_limit(self):
+    """Tests the throttling bug with default limit."""
+    self.mock.get.return_value = {}
+    testcase = test_utils.create_generic_testcase_variant()
+    testcase.project_name = 'test_project'
+    testcase.job_type = 'test_job_without_limit'
+    data_types.FiledBug(
+        project_name=testcase.project_name,
+        job_type='test_job_without_limit',
+        timestamp=datetime.datetime.now()).put()
+
+    self.assertEqual(
+        100, self.throttler._get_project_bugs_filing_max(testcase.job_type))
+    self.assertEqual(None,
+                     self.throttler._get_job_bugs_filing_max(testcase.job_type))
