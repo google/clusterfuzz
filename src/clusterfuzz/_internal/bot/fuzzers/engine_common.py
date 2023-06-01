@@ -248,7 +248,8 @@ def get_testcase_run(stats, fuzzer_command):
                                           current_timestamp())
 
   testcase_run['command'] = fuzzer_command
-  testcase_run.update(stats)
+  if stats is not None:
+    testcase_run.update(stats)
   return testcase_run
 
 
