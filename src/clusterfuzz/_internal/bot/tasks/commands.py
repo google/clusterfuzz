@@ -65,7 +65,7 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-def utask_factory(task_module):
+def utask_factory(task_module, use_gcs_for_io=False):
   """Returns a task implemention for a utask. Depending on the global
   configuration, the implementation will either execute the utask entirely on
   one machine or on multiple."""
@@ -73,6 +73,9 @@ def utask_factory(task_module):
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Make remote
     # execution opt-out.
     return UTask(task_module)
+
+  if use_gcs_for_io:
+    return UTaskLocalExecutor(task_module)
 
   return UTaskLocalInMemoryExecutor(task_module)
 
@@ -120,7 +123,7 @@ class UTask(BaseTask):
 
 
 COMMAND_MAP = {
-    'analyze': utask_factory(analyze_task),
+    'analyze': utask_factory(analyze_task, use_gcs_for_io=True),
     'blame': TrustedTask(blame_task),
     'corpus_pruning': TrustedTask(corpus_pruning_task),
     'fuzz': TrustedTask(fuzz_task),
