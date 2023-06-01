@@ -255,7 +255,7 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
         bool(testcase.gestures))
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(testcase_id, job_type, _):
   """Runs preprocessing for analyze task."""
 
   # Locate the testcase associated with the id.
@@ -285,7 +285,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       'metadata': metadata,
       'testcase': testcase,
       'testcase_id': testcase_id,
-      'uworker_env': uworker_env,
       'testcase_download_url': testcase_download_url
   }
 

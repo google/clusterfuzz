@@ -17,7 +17,6 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.utasks import uworker_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
@@ -25,6 +24,7 @@ from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
@@ -57,7 +57,7 @@ def _get_variant_testcase_for_job(testcase, job_type):
   return variant_testcase
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(testcase_id, job_type, _):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
@@ -81,7 +81,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       'metadata': testcase.get_metadata(),
       'variant': variant,
       'testcase_download_url': testcase_download_url,
-      'uworker_env': uworker_env,
   }
 
 
@@ -110,13 +109,13 @@ def utask_main(original_job_type, testcase, variant, job_type,
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_io.UworkerOutput(error=uworker_errors.Type.UNHANDLED)
+    return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        error=uworker_errors.Type.VARIANT_BUILD_SETUP,
+        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
         testcase=testcase,
         job_type=job_type)
 
