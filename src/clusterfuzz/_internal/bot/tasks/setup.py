@@ -196,6 +196,17 @@ def setup_testcase(testcase,
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
 
+  # Prepare an error result to return in case of error.
+  # Only include uworker_input for callers that aren't deserializing the output
+  # and thus, uworker_io is not adding the input to.
+  # TODO(metzman): Remove this when the consolidation is complete.
+  uworker_error_input = {'testcase_id': testcase_id, 'job_type': job_type}
+  uworker_error_output = uworker_io.UworkerOutput(
+      uworker_input=uworker_error_input,
+      error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+
+  testcase_setup_error_result = (None, None, uworker_error_output)
+
   # Clear testcase directories.
   shell.clear_testcase_directories()
 
@@ -222,8 +233,7 @@ def setup_testcase(testcase,
       error_message = 'Fuzzer %s no longer exists' % fuzzer_name
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return testcase_setup_error_result
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'
@@ -239,8 +249,7 @@ def setup_testcase(testcase,
     error_message = 'Unable to setup testcase %s' % testcase_file_path
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    return None, None, uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+    return testcase_setup_error_result
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
   # one on the device.

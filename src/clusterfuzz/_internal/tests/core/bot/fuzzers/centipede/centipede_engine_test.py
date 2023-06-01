@@ -378,6 +378,21 @@ class IntegrationTest(unittest.TestCase):
         timeout_flag=f'--timeout_per_input={_TIMEOUT_PER_INPUT_TEST}')
 
 
+class GetRunnerTest(unittest.TestCase):
+  """Tests that _get_runner works as intended."""
+
+  def test_get_runner(self):
+    """Tests that _get_runner works as intended."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+      build_dir = pathlib.Path(tmp_dir) / 'build'
+      os.makedirs(build_dir)
+      centipede_path = build_dir / 'centipede'
+      target_path = build_dir / 'target'
+      with open(centipede_path, 'w') as fp:
+        fp.write('')
+      self.assertIsNotNone(engine._get_runner(target_path))  # pylint: disable=protected-access
+
+
 @test_utils.integration
 class UnshareIntegrationTest(IntegrationTest):
   """Integration tests."""

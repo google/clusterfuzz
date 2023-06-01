@@ -908,45 +908,6 @@ class SymbolizedBuild(Build):
     return True
 
 
-class ProductionBuild(Build):
-  """Production build."""
-
-  def __init__(self, base_build_dir, version, build_url, build_type):
-    super().__init__(base_build_dir, version)
-    self.build_url = build_url
-    self.build_type = build_type
-    self._build_dir = os.path.join(self.base_build_dir, self.build_type)
-
-  @property
-  def build_dir(self):
-    return self._build_dir
-
-  def setup(self):
-    """Sets up build with a particular revision."""
-    self._pre_setup()
-    logs.log('Retrieving %s branch (%s).' % (self.build_type, self.revision))
-    environment.set_value('BUILD_URL', self.build_url)
-
-    version_file = os.path.join(self.build_dir, 'VERSION')
-    build_update = revisions.needs_update(version_file, self.revision)
-
-    if build_update:
-      if not self._unpack_build(self.base_build_dir, self.build_dir,
-                                self.build_url):
-        return False
-
-      revisions.write_revision_to_revision_file(version_file, self.revision)
-      logs.log('Retrieved %s branch (%s).' % (self.build_type, self.revision))
-    else:
-      logs.log('Build already exists.')
-
-    self._setup_application_path(build_update=build_update)
-
-    # 'VERSION' file already written.
-    self._post_setup_success(update_revision=False)
-    return True
-
-
 class CustomBuild(Build):
   """Custom binary."""
 
@@ -1437,51 +1398,6 @@ def setup_custom_binary(target_weights=None):
   return None
 
 
-def setup_production_build(build_type):
-  """Sets up build with a particular revision."""
-  # Bail out if there are not extended stable, stable and beta build urls.
-  if build_type == 'extended_stable':
-    build_bucket_path = environment.get_value(
-        'EXTENDED_STABLE_BUILD_BUCKET_PATH')
-  elif build_type == 'stable':
-    build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
-  elif build_type == 'beta':
-    build_bucket_path = environment.get_value('BETA_BUILD_BUCKET_PATH')
-  else:
-    logs.log_error('Unknown build type %s.' % build_type)
-    return None
-
-  build_urls = get_build_urls_list(build_bucket_path)
-  if not build_urls:
-    logs.log_error(
-        'Error getting list of build urls from %s.' % build_bucket_path)
-    return None
-
-  # First index is the latest build for that version.
-  build_url = build_urls[0]
-  version_pattern = environment.get_value('VERSION_PATTERN')
-  v_match = re.match(version_pattern, build_url)
-  if not v_match:
-    logs.log_error(
-        'Unable to find version information from the build url %s.' % build_url)
-    return None
-
-  version = v_match.group(1)
-  base_build_dir = _base_build_dir(build_bucket_path)
-
-  build_class = ProductionBuild
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteProductionBuild  # pylint: disable=no-member
-
-  build = build_class(base_build_dir, version, build_url, build_type)
-
-  if build.setup():
-    return build
-
-  return None
-
-
 def setup_system_binary():
   """Set up a build that we assume is already installed on the system."""
   system_binary_directory = environment.get_value('SYSTEM_BINARY_DIR', '')
@@ -1536,14 +1452,6 @@ def is_custom_binary():
   """Determine if this is a custom or preinstalled system binary."""
   return (environment.get_value('CUSTOM_BINARY') or
           environment.get_value('SYSTEM_BINARY_DIR'))
-
-
-def has_production_builds():
-  """Return a bool on if job type has build urls for extended stable, stable and
-  beta builds."""
-  return (environment.get_value('STABLE_BUILD_BUCKET_PATH') and
-          environment.get_value('BETA_BUILD_BUCKET_PATH') and
-          environment.get_value('EXTENDED_STABLE_BUILD_BUCKET_PATH'))
 
 
 def has_symbolized_builds():
