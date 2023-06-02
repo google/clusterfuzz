@@ -78,7 +78,7 @@ def extend_json_request(req):
   try:
     params = json.loads(req.data)
   except ValueError as e:
-    raise helpers.EarlyExitException(
+    raise helpers.EarlyExitError(
         'Parsing the JSON request body failed: %s' % req.data, 400) from e
 
   extend_request(req, params)
@@ -94,7 +94,7 @@ def cron():
     def wrapper(self):
       """Wrapper."""
       if not self.is_cron():
-        raise helpers.AccessDeniedException('You are not a cron.')
+        raise helpers.AccessDeniedError('You are not a cron.')
 
       result = func(self)
       if result is None:
@@ -117,7 +117,7 @@ def check_admin_access(func):
   def wrapper(self):
     """Wrapper."""
     if not auth.is_current_user_admin():
-      raise helpers.AccessDeniedException('Admin access is required.')
+      raise helpers.AccessDeniedError('Admin access is required.')
 
     return func(self)
 
@@ -152,7 +152,7 @@ def unsupported_on_local_server(func):
   def wrapper(self, *args, **kwargs):
     """Wrapper."""
     if environment.is_running_on_app_engine_development():
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'This feature is not available in local App Engine Development '
           'environment.', 400)
 
@@ -204,7 +204,7 @@ def get_email_and_access_token(authorization):
 
     return data['email'], authorization
   except (KeyError, ValueError) as e:
-    raise helpers.EarlyExitException(
+    raise helpers.EarlyExitError(
         'Parsing the JSON response body failed: %s' % response.text, 500) from e
 
 
@@ -271,7 +271,7 @@ def check_user_access(need_privileged_access):
     def wrapper(self, *args, **kwargs):
       """Wrapper."""
       if not access.has_access(need_privileged_access=need_privileged_access):
-        raise helpers.AccessDeniedException()
+        raise helpers.AccessDeniedError()
 
       return func(self, *args, **kwargs)
 
@@ -405,19 +405,19 @@ def require_csrf_token(func):
     token_value = request.get('csrf_token')
     user = auth.get_current_user()
     if not user:
-      raise helpers.AccessDeniedException('Not logged in.')
+      raise helpers.AccessDeniedError('Not logged in.')
 
     query = data_types.CSRFToken.query(
         data_types.CSRFToken.value == token_value,
         data_types.CSRFToken.user_email == user.email)
     token = query.get()
     if not token:
-      raise helpers.AccessDeniedException('Invalid CSRF token.')
+      raise helpers.AccessDeniedError('Invalid CSRF token.')
 
     # Make sure that the token is not expired.
     if token.expiration_time < datetime.datetime.utcnow():
       token.key.delete()
-      raise helpers.AccessDeniedException('Expired CSRF token.')
+      raise helpers.AccessDeniedError('Expired CSRF token.')
 
     return func(self, *args, **kwargs)
 

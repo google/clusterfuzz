@@ -51,7 +51,7 @@ elif sys.version_info.major == 3 and sys.version_info.minor == 9:
 elif sys.version_info.major == 3 and sys.version_info.minor == 10:
   ABIS = {'linux': 'cp310', 'windows': 'cp310', 'macos': 'cp310'}
 else:
-  raise Exception('Only python versions 3.7-3.9 are supported.')
+  raise RuntimeError('Only python versions 3.7-3.9 are supported.')
 
 # Config directory to use for tests.
 TEST_CONFIG_DIR = os.path.join('configs', 'test')

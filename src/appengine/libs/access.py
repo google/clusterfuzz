@@ -170,14 +170,14 @@ def check_access_and_get_testcase(testcase_id):
     raise helpers.UnauthorizedException()
 
   if not testcase_id:
-    raise helpers.EarlyExitException('No test case specified!', 404)
+    raise helpers.EarlyExitError('No test case specified!', 404)
 
   try:
     testcase = data_handler.get_testcase_by_id(testcase_id)
   except errors.InvalidTestcaseError:
-    raise helpers.EarlyExitException('Invalid test case!', 404)
+    raise helpers.EarlyExitError('Invalid test case!', 404)
 
   if not can_user_access_testcase(testcase):
-    raise helpers.AccessDeniedException()
+    raise helpers.AccessDeniedError()
 
   return testcase

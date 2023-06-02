@@ -125,7 +125,7 @@ class GroupFilterTest(unittest.TestCase):
 
   def test_raise_exception(self):
     """Test raising exceptions."""
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       self.filter.add(self.query, {'group': '123x4'})
 
     self.query.filter.assert_has_calls([])

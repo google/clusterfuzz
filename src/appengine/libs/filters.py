@@ -96,7 +96,7 @@ class SimpleFilter(Filter):
     value = params.get(self.param_key)
     if is_empty(value):
       if self.required:
-        raise helpers.EarlyExitException("'%s' is required." % self.param_key,
+        raise helpers.EarlyExitError("'%s' is required." % self.param_key,
                                          400)
       return
 
@@ -104,7 +104,7 @@ class SimpleFilter(Filter):
       for transformer in self.transformers:
         value = transformer(value)
     except ValueError:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           "Invalid '%s': %s" % (self.param_key, sys.exc_info()[1]), 400)
 
     query.filter(self.field, value, **self.extras)

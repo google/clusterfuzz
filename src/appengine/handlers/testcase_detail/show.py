@@ -628,7 +628,7 @@ class DeprecatedHandler(base_handler.Handler):
     """Serve the redirect to the current test case detail page."""
     testcase_id = request.args.get('key')
     if not testcase_id:
-      raise helpers.EarlyExitException('No testcase key provided.', 400)
+      raise helpers.EarlyExitError('No testcase key provided.', 400)
 
     return self.redirect('/testcase-detail/%s' % testcase_id)
 

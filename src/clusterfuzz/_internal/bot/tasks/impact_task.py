@@ -24,14 +24,6 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-class BuildFailedException(Exception):
-  """Represents the build failure."""
-
-
-class AppFailedException(Exception):
-  """Represents the app failure."""
-
-
 class Impact(object):
   """Represents impact on a build type."""
 

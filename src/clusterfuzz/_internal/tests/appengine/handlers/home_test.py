@@ -83,7 +83,7 @@ class HomeTests(unittest.TestCase):
     self.mock.allowed_jobs_for_user.return_value = []
     self.mock.get_access.return_value = access.UserAccess.Denied
 
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       home.get_results()
 
   def test_results_external(self):

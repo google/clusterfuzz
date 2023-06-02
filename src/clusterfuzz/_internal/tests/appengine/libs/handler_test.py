@@ -315,7 +315,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
   def test_no_testcase_id(self):
     """Test no testcase id."""
     self.mock.check_access_and_get_testcase.side_effect = (
-        helpers.AccessDeniedException())
+        helpers.AccessDeniedError())
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
@@ -329,7 +329,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
   def test_invalid_testcase_id(self):
     """Test invalid testcase id."""
     self.mock.check_access_and_get_testcase.side_effect = (
-        helpers.AccessDeniedException())
+        helpers.AccessDeniedError())
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
@@ -342,7 +342,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
   def test_forbidden(self):
     """Test forbidden."""
     self.mock.check_access_and_get_testcase.side_effect = (
-        helpers.AccessDeniedException())
+        helpers.AccessDeniedError())
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
@@ -569,7 +569,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     """Test invalid json."""
     self.mock.get.return_value = mock.Mock(status_code=200, text='test')
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(500, cm.exception.status)
     self.assertEqual('Parsing the JSON response body failed: test',
@@ -586,7 +586,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
             'email_verified': False
         }))
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertIn(
@@ -604,7 +604,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
             'email_verified': False
         }))
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertIn('The email (test@test.com) is not verified',

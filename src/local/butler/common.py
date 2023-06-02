@@ -254,7 +254,7 @@ def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
         stderr=subprocess.DEVNULL)
 
   if return_code != 0:
-    raise Exception('Failed to generate requirements from Pipfile.')
+    raise RuntimeError('Failed to generate requirements from Pipfile.')
 
   with open(requirements_path, 'wb') as f:
     f.write(output)
@@ -277,7 +277,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
   """Install platform specific pip packages."""
   pip_platform = constants.PLATFORMS.get(platform_name)
   if not pip_platform:
-    raise Exception('Unknown platform: %s.' % platform_name)
+    raise RuntimeError(f'Unknown platform: {platform_name}.')
 
   # Some platforms can specify multiple pip platforms (e.g. macOS has multiple
   # SDK versions).
@@ -310,7 +310,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
     break
 
   if return_code != 0:
-    raise Exception('Failed to find package in supported platforms: %s' +
+    raise RuntimeError('Failed to find package in supported platforms: %s' +
                     str(pip_platforms))
 
 
@@ -418,7 +418,7 @@ def get_platform():
   if platform.system() == 'Windows':
     return 'windows'
 
-  raise Exception('Unknown platform: %s.' % platform.system())
+  raise OSError('Unknown platform: %s.' % platform.system())
 
 
 def update_dir(src_dir, dst_dir):

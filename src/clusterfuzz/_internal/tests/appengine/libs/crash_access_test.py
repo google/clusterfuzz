@@ -58,7 +58,7 @@ class AddScopeTest(unittest.TestCase):
   def test_forbidden(self):
     """Test when user is forbidden."""
     self.mock.has_access.return_value = False
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       crash_access.add_scope(self.query, self.params, 'security_flag',
                              'job_type', 'fuzzer_name')
 

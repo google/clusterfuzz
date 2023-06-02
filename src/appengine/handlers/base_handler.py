@@ -131,7 +131,7 @@ def make_logout_url(dest_url):
 def check_redirect_url(url):
   """Check redirect URL is safe."""
   if not _SAFE_URL_PATTERN.match(url):
-    raise helpers.EarlyExitException('Invalid redirect.', 403)
+    raise helpers.EarlyExitError('Invalid redirect.', 403)
 
 
 class _MenuItem(object):
@@ -233,7 +233,7 @@ class Handler(MethodView):
           'status': status,
           'type': exception.__class__.__name__
       }
-      if isinstance(exception, helpers.EarlyExitException):
+      if isinstance(exception, helpers.EarlyExitError):
         status = exception.status
         values = exception.to_dict()
 
@@ -298,7 +298,7 @@ class GcsUploadHandler(Handler):
 
     blob_info = storage.GcsBlobInfo.from_key(upload_key)
     if not blob_info:
-      raise helpers.EarlyExitException('Failed to upload.', 500)
+      raise helpers.EarlyExitError('Failed to upload.', 500)
 
     self.upload = blob_info
     return self.upload

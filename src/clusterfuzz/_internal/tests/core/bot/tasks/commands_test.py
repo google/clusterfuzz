@@ -36,7 +36,7 @@ def dummy(_):
 @commands.set_task_payload
 def dummy_exception(_):
   """A dummy function."""
-  raise Exception(os.environ['TASK_PAYLOAD'])  # pylint: disable=broad-exception-raised
+  raise RuntimeError(os.environ['TASK_PAYLOAD'])
 
 
 class SetTaskPayloadTest(unittest.TestCase):

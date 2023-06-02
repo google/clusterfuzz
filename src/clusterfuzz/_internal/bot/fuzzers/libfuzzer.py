@@ -75,8 +75,8 @@ MUTATOR_STRATEGIES = [
 # pylint: disable=no-member
 
 
-class LibFuzzerException(Exception):
-  """LibFuzzer exception."""
+class LibFuzzerError(Exception):
+  """LibFuzzer error."""
 
 
 class LibFuzzerCommon(object):
@@ -612,7 +612,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
         return os.path.join(binding.src_path,
                             os.path.relpath(path, binding.dest_path))
 
-    raise LibFuzzerException('Invalid testcase path ' + path)
+    raise LibFuzzerError('Invalid testcase path ' + path)
 
   def _get_chroot_corpus_paths(self, corpus_directories):
     """Return chroot relative paths for the given corpus directories.
@@ -636,8 +636,8 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
     """
     binding = self.chroot.get_binding(directory_path)
     if not binding:
-      raise LibFuzzerException(
-          'Failed to get chroot binding for "%s".' % directory_path)
+      raise LibFuzzerError(
+          f'Failed to get chroot binding for "{directory_path}".')
     return binding.dest_path
 
   def _bind_corpus_dirs(self, corpus_directories):

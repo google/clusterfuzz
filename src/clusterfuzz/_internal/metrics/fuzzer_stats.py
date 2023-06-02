@@ -102,7 +102,7 @@ JOB_RUN_SCHEMA = {
 }
 
 
-class FuzzerStatsException(Exception):
+class FuzzerStatsError(ValueError):
   """Fuzzer stats exception."""
 
 
@@ -698,7 +698,7 @@ class Query(object):
   def _ensure_valid_name(self, name, regex):
     """Ensure that the given name is valid for fuzzer/jobs."""
     if name and not regex.match(name):
-      raise FuzzerStatsException('Invalid fuzzer or job name.')
+      raise FuzzerStatsError('Invalid fuzzer or job name.')
 
   def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
                date_end, base_table, alias):

@@ -36,7 +36,7 @@ class BuiltinFuzzerResult(object):
     self.corpus_directory = corpus_directory
 
 
-class BuiltinFuzzerException(Exception):
+class BuiltinFuzzerError(Exception):
   """Exception that should be thrown when there is an issue preventing a builtin
   fuzzer from running, or if there is a very unusual exception encountered
   during a run."""
@@ -87,12 +87,12 @@ class EngineFuzzer(BuiltinFuzzer):
     build_directory = environment.get_value('BUILD_DIR')
 
     if not build_directory:
-      raise BuiltinFuzzerException('BUILD_DIR environment variable is not set.')
+      raise BuiltinFuzzerError('BUILD_DIR environment variable is not set.')
 
     fuzzers = fuzzers_utils.get_fuzz_targets(build_directory)
 
     if not fuzzers:
-      raise BuiltinFuzzerException(
+      raise BuiltinFuzzerError(
           'No fuzzer binaries found in |BUILD_DIR| directory.')
 
     fuzzer_binary_name = environment.get_value('FUZZ_TARGET')
@@ -166,4 +166,4 @@ def _get_fuzzer_path(target_list, fuzzer_name):
     if os.path.basename(path) == fuzzer_filename:
       return path
 
-  raise BuiltinFuzzerException('Failed to find chosen target ' + fuzzer_name)
+  raise BuiltinFuzzerError('Failed to find chosen target ' + fuzzer_name)

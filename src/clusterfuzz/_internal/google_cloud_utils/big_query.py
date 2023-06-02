@@ -79,7 +79,7 @@ def cast(value, field):
     return datetime.datetime.utcfromtimestamp(float(value))
   if field['type'] in {'RECORD'}:
     return convert_row(value, field['fields'])
-  raise Exception(f'The type field[{"type"}] is unsupported.')  # pylint: disable=broad-exception-raised
+  raise RuntimeError(f'The type field[{"type"}] is unsupported.')
 
 
 def convert_row(raw_row, fields):
@@ -136,7 +136,7 @@ def write_range(table_id, testcase, range_name, start, end):
     logs.log_error(
         ("Ignoring error writing the testcase's %s range (%s) to "
          'BigQuery.' % (range_name, testcase.key.id())),
-        exception=Exception(error))
+        exception=ValueError(error))
 
 
 def _get_max_results(max_results, limit, count_so_far):
@@ -232,7 +232,7 @@ class Client(object):
         return result
 
       if (time.time() - start_time) > timeout:
-        raise Exception(  # pylint: disable=broad-exception-raised
+        raise RuntimeError(
             f'Timeout: the query doesn\'t finish within {timeout} seconds.')
       time.sleep(1)
 

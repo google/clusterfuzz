@@ -81,7 +81,7 @@ class SimpleFilterTest(unittest.TestCase):
     fltr = filters.SimpleFilter(
         'field', 'param', transformers=[lambda v: '1'], required=True)
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       fltr.add(self.query, {'param': ''})
 
     self.assertEqual("'param' is required.", str(cm.exception))
@@ -179,7 +179,7 @@ class BooleanTest(unittest.TestCase):
 
   def test_exception(self):
     """Test exception."""
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       self.filter.add(self.query, {'param': 'wsdljf'})
     self.query.assert_not_called()
 
@@ -203,7 +203,7 @@ class IntTest(unittest.TestCase):
 
   def test_exception(self):
     """Test exception."""
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       self.filter.add(self.query, {'param': 'wsdljf'})
     self.query.assert_not_called()
 

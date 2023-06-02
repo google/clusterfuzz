@@ -29,7 +29,7 @@ OPTIONS_FILE_EXTENSION = '.options'
 ENV_VAR_WHITELIST = {afl_constants.DONT_DEFER_ENV_VAR, 'GODEBUG'}
 
 
-class FuzzerOptionsException(Exception):
+class FuzzerOptionsError(Exception):
   """Exceptions for fuzzer options."""
 
 
@@ -79,7 +79,7 @@ class FuzzerOptions(object):
 
   def __init__(self, options_file_path, cwd=None):
     if not os.path.exists(options_file_path):
-      raise FuzzerOptionsException('fuzzer options file does not exist.')
+      raise FuzzerOptionsError('fuzzer options file does not exist.')
 
     if cwd:
       self._cwd = cwd
@@ -91,7 +91,7 @@ class FuzzerOptions(object):
       try:
         self._config.read_file(f)
       except configparser.Error:
-        raise FuzzerOptionsException('Failed to parse fuzzer options file.')
+        raise FuzzerOptionsError('Failed to parse fuzzer options file.')
 
   def _get_dict_path(self, relative_dict_path):
     """Return a full path to the dictionary."""
@@ -174,6 +174,6 @@ def get_fuzz_target_options(fuzz_target_path):
 
   try:
     return FuzzerOptions(options_file_path, cwd=options_cwd)
-  except FuzzerOptionsException:
+  except FuzzerOptionsError:
     logs.log_error('Invalid options file: %s.' % options_file_path)
     return None

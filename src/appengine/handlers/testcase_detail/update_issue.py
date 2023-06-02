@@ -40,12 +40,12 @@ class Handler(base_handler.Handler):
                                 Exception)
 
     if not issue.is_open:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           ('The issue (%d) is already closed and further updates are not'
            ' allowed. Please file a new issue instead!') % issue_id, 400)
 
     if not testcase.is_crash():
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'This is not a crash testcase, so issue update is not applicable.',
           400)
 

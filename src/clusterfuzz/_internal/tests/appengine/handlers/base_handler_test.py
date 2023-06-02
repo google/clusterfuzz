@@ -43,14 +43,14 @@ class ExceptionJsonHandler(base_handler.Handler):
 
   def get(self):
     self.is_json = True
-    raise Exception('message')  # pylint: disable=broad-exception-raised
+    raise RuntimeError('message')
 
 
 class ExceptionHtmlHandler(base_handler.Handler):
   """Render exception in HTML response for testing."""
 
   def get(self):
-    raise Exception('unique_message')  # pylint: disable=broad-exception-raised
+    raise RuntimeError('unique_message')
 
 
 class EarlyExceptionHandler(base_handler.Handler):
@@ -58,14 +58,14 @@ class EarlyExceptionHandler(base_handler.Handler):
 
   def get(self):
     self.is_json = True
-    raise helpers.EarlyExitException('message', 500, [])
+    raise helpers.EarlyExitError('message', 500, [])
 
 
-class AccessDeniedExceptionHandler(base_handler.Handler):
+class AccessDeniedErrorHandler(base_handler.Handler):
   """Render forbidden in HTML response for testing."""
 
   def get(self):
-    raise helpers.AccessDeniedException('this_random_message')
+    raise helpers.AccessDeniedError('this_random_message')
 
 
 class FlaskRedirectHandler(base_handler.Handler):
@@ -99,7 +99,7 @@ class HandlerTest(unittest.TestCase):
     self.assertDictEqual(response.json, {'test': 'value'})
 
   def test_render_early_exception(self):
-    """Ensure it renders JSON response for EarlyExitException properly."""
+    """Ensure it renders JSON response for EarlyExitError properly."""
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule('/', view_func=EarlyExceptionHandler.as_view('/'))
     app = webtest.TestApp(flaskapp)
@@ -143,7 +143,7 @@ class HandlerTest(unittest.TestCase):
 
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
-        '/', view_func=AccessDeniedExceptionHandler.as_view('/'))
+        '/', view_func=AccessDeniedErrorHandler.as_view('/'))
     app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 302)
@@ -154,7 +154,7 @@ class HandlerTest(unittest.TestCase):
     """Ensure it renders forbidden response correctly (when logged in)."""
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
-        '/', view_func=AccessDeniedExceptionHandler.as_view('/'))
+        '/', view_func=AccessDeniedErrorHandler.as_view('/'))
     app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 403)

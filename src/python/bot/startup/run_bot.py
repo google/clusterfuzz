@@ -96,7 +96,7 @@ def task_loop():
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0
-      if not clean_exit and not isinstance(e, untrusted.HostException):
+      if not clean_exit and not isinstance(e, untrusted.HostError):
         logs.log_error('SystemExit occurred while working on task.')
 
       stacktrace = traceback.format_exc()

@@ -293,7 +293,7 @@ class Handler(base_handler.Handler):
         response.raise_for_status()
         build_status = json.loads(response.text)
       except (requests.exceptions.RequestException, ValueError) as e:
-        raise helpers.EarlyExitException(str(e), response.status_code)
+        raise helpers.EarlyExitError(str(e), response.status_code)
 
       projects = build_status['projects']
 

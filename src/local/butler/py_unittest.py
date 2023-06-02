@@ -74,7 +74,7 @@ class TrackedTestRunner(unittest.TextTestRunner):
 
     self.stream.writeln('\nSlow tests:')
     for elapsed_time, test_name in sorted(result.slow_tests, reverse=True):
-      print('%6.2fs: %s' % (elapsed_time, test_name))
+      print('%6.2fs: %os' % (elapsed_time, test_name))
 
     return result
 
@@ -154,7 +154,7 @@ def run_tests_parallel(args, test_directory, top_level_dir):
       # this is how we can get a ModuleImportFailure error.
       if subsuite.__class__.__name__ == 'ModuleImportFailure':
         unittest.TextTestRunner(verbosity=1).run(subsuite)
-        raise Exception('A failure occurred while importing the module.')
+        raise RuntimError('A failure occurred while importing the module.')
 
       for test_class in subsuite._tests:  # pylint: disable=protected-access
         test_classes.append((test_class.__module__,

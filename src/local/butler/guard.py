@@ -24,7 +24,7 @@ def check_virtualenv():
   is_in_virtualenv = bool(os.getenv('VIRTUAL_ENV'))
 
   if not is_in_virtualenv:
-    raise Exception(
+    raise RuntimeError(
         'You are not in a virtual env environment. Please install it with'
         ' `./local/install_deps.bash` or load it with'
         ' `pipenv shell`. Then, you can re-run this command.')

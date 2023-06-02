@@ -173,10 +173,10 @@ def _do_bigquery_query(query):
   try:
     results = client.raw_query(query, max_results=10000)
   except HttpError as e:
-    raise helpers.EarlyExitException(str(e), 500)
+    raise helpers.EarlyExitError(str(e), 500)
 
   if 'rows' not in results:
-    raise helpers.EarlyExitException('No stats.', 404)
+    raise helpers.EarlyExitError('No stats.', 404)
 
   return results
 
@@ -294,7 +294,7 @@ def build_results(fuzzer, jobs, group_by, date_start, date_end):
   those wrappers to call based on how long query should be cached for."""
   datetime_end = _parse_date(date_end)
   if not datetime_end:
-    raise helpers.EarlyExitException('Missing end date.', 400)
+    raise helpers.EarlyExitError('Missing end date.', 400)
 
   if datetime_end < utils.utcnow().date():
     logs.log('Building results for older stats %s %s %s %s %s.' %
@@ -328,11 +328,11 @@ def _build_results(fuzzer, jobs, group_by, date_start, date_end):
   date_end = _parse_date(date_end)
 
   if not fuzzer or not group_by or not date_start or not date_end:
-    raise helpers.EarlyExitException('Missing params.', 400)
+    raise helpers.EarlyExitError('Missing params.', 400)
 
   fuzzer_entity = _get_fuzzer_or_engine(fuzzer)
   if not fuzzer_entity:
-    raise helpers.EarlyExitException('Fuzzer not found.', 404)
+    raise helpers.EarlyExitError('Fuzzer not found.', 404)
 
   if fuzzer_entity.stats_columns:
     stats_columns = fuzzer_entity.stats_columns
@@ -341,7 +341,7 @@ def _build_results(fuzzer, jobs, group_by, date_start, date_end):
 
   group_by = _parse_group_by(group_by)
   if group_by is None:
-    raise helpers.EarlyExitException('Invalid grouping.', 400)
+    raise helpers.EarlyExitError('Invalid grouping.', 400)
 
   table_query = fuzzer_stats.TableQuery(fuzzer, jobs, stats_columns, group_by,
                                         date_start, date_end)
@@ -396,7 +396,7 @@ class Handler(base_handler.Handler):
           user_email, include_from_jobs=True, include_parents=True)
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedException(
+        raise helpers.AccessDeniedError(
             "You don't have access to any fuzzers.")
 
     return self.render('fuzzer-stats.html', {})
@@ -434,7 +434,7 @@ class LoadFiltersHandler(base_handler.Handler):
               user_email, include_from_jobs=True, include_parents=True))
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedException(
+        raise helpers.AccessDeniedError(
             "You don't have access to any fuzzers.")
 
       jobs_list = sorted(external_users.allowed_jobs_for_user(user_email))
@@ -470,7 +470,7 @@ class LoadHandler(base_handler.Handler):
       if allowed_jobs:
         return allowed_jobs
 
-    raise helpers.AccessDeniedException()
+    raise helpers.AccessDeniedError()
 
   @handler.post(handler.JSON, handler.JSON)
   def post(self):

@@ -165,7 +165,7 @@ class TestBuildResults(unittest.TestCase):
 
   def test_build_invalid_params(self):
     """Tests build_results with invalid/missing params."""
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       fuzzer_stats.build_results('', '', '', '', '')
 
   def test_build_by_fuzzer(self):

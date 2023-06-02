@@ -48,7 +48,7 @@ class WrapTest(unittest.TestCase):
   def _func2(self, a):
     return self.func_body(a)
 
-  class _FakeException(Exception):
+  class _FakeError(Exception):
     pass
 
   @retry.wrap(
@@ -56,7 +56,7 @@ class WrapTest(unittest.TestCase):
       delay=10,
       backoff=2,
       function='_func',
-      exception_types=[_FakeException])
+      exception_types=[_FakeError])
   def _func_exception_type(self, a):
     return self.func_body(a)
 
@@ -65,14 +65,14 @@ class WrapTest(unittest.TestCase):
       delay=10,
       backoff=2,
       function='_func',
-      exception_types=[_FakeException])
+      exception_types=[_FakeError])
   def _yield_func_exception_type(self, a):
     for _ in range(3):
       yield self.func_body(a)
 
   def test_retry_and_succeed(self):
     """Test when retry once and succeed for regular function.."""
-    self.func_body.side_effect = [self._FakeException(), 456]
+    self.func_body.side_effect = [self._FakeError(), 456]
 
     self.assertEqual(456, self._func(123))
 
@@ -97,7 +97,7 @@ class WrapTest(unittest.TestCase):
 
   def test_retry_and_succeed_yield(self):
     """Test when retry once and succeed for generator function.."""
-    self.func_body.side_effect = [self._FakeException(), 1, 2, 3]
+    self.func_body.side_effect = [self._FakeError(), 1, 2, 3]
 
     results = list(self._yield_func(123))
     self.assertEqual([1, 2, 3], results)
@@ -129,8 +129,8 @@ class WrapTest(unittest.TestCase):
     """Test when retry once and succeed for generator function with exceptions
     happening after the first element."""
     self.func_body.side_effect = [
-        1, self._FakeException(), 1, 2,
-        self._FakeException(), 1, 2, 3
+        1, self._FakeError(), 1, 2,
+        self._FakeError(), 1, 2, 3
     ]
 
     results = list(self._yield_func(123))
@@ -157,9 +157,9 @@ class WrapTest(unittest.TestCase):
 
   def test_exceed_try_limit(self):
     """Test when exceeding limit for regular function."""
-    self.func_body.side_effect = self._FakeException()
+    self.func_body.side_effect = self._FakeError()
 
-    with self.assertRaises(self._FakeException):
+    with self.assertRaises(self._FakeError):
       self._func(123)
 
     self.assertEqual(5, self.func_body.call_count)
@@ -187,9 +187,9 @@ class WrapTest(unittest.TestCase):
 
   def test_exceed_try_limit_yield(self):
     """Test when exceeding limit for generator function."""
-    self.func_body.side_effect = self._FakeException()
+    self.func_body.side_effect = self._FakeError()
 
-    with self.assertRaises(self._FakeException):
+    with self.assertRaises(self._FakeError):
       for _ in self._yield_func(123):
         pass
 
@@ -261,7 +261,7 @@ class WrapTest(unittest.TestCase):
 
   def test_retry_exception_type_match(self):
     """Test retry with exception matching type for regular function."""
-    self.func_body.side_effect = [self._FakeException(), 456]
+    self.func_body.side_effect = [self._FakeError(), 456]
 
     self.assertEqual(456, self._func_exception_type(123))
     self.assertEqual(2, self.func_body.call_count)
@@ -281,7 +281,7 @@ class WrapTest(unittest.TestCase):
 
   def test_retry_exception_type_match_yield(self):
     """Test retry with exception matching type for generator function."""
-    self.func_body.side_effect = [self._FakeException(), 1, 2, 3]
+    self.func_body.side_effect = [self._FakeError(), 1, 2, 3]
 
     results = list(self._yield_func_exception_type(123))
     self.assertEqual([1, 2, 3], results)

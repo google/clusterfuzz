@@ -450,6 +450,6 @@ class CheckAccessAndGetTestcase(unittest.TestCase):
     self.mock.has_access.return_value = True
     access.check_access_and_get_testcase(self.testcase.key.id())
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       access.check_access_and_get_testcase(self.testcase.key.id() + 1)
     self.assertEqual(404, cm.exception.status)

@@ -253,7 +253,7 @@ def _connect():
     host_exit_no_return(return_code=0)
 
   if channel_state != ChannelState.READY:
-    raise untrusted.HostException('Failed to connect to worker.')
+    raise untrusted.HostError('Failed to connect to worker.')
 
   environment.set_value('WORKER_BOT_NAME', worker_assignment.worker_name)
 
@@ -284,7 +284,7 @@ def _channel_connectivity_changed(connectivity):
         logs.log('Worker shutting down.')
         return
 
-      raise untrusted.HostException('Unrecoverable error.')
+      raise untrusted.HostError('Unrecoverable error.')
   except AttributeError:
     # Python sets all globals to None on shutdown. Ignore.
     logs.log('Shutting down.')
@@ -363,7 +363,7 @@ def host_exit_no_return(return_code=1):
   # This should bypass most exception handlers and avoid callers from catching
   # this incorrectly.
   logs.log('Shutting down host.', return_code=return_code)
-  raise untrusted.HostException(return_code)
+  raise untrusted.HostError(return_code)
 
 
 def is_initialized():

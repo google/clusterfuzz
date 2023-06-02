@@ -37,7 +37,7 @@ class Query(big_query_query.Query):
   def set_time_params(self, end, days, block):
     """Set time-related params."""
     if block == 'hour' and days > MAX_DAYS_FOR_BY_HOURS:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           ('When viewing by hours, selecting more than %d days is not allowed.'
            % MAX_DAYS_FOR_BY_HOURS), 400)
 

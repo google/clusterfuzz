@@ -93,7 +93,7 @@ TARGETS_LIST_FILENAME = 'targets.list'
 BuildUrls = namedtuple('BuildUrls', ['bucket_path', 'urls_list'])
 
 
-class BuildManagerException(Exception):
+class BuildManagerError(Exception):
   """Build manager exceptions."""
 
 
@@ -255,7 +255,7 @@ def _get_file_match_callback():
 def _remove_scheme(bucket_path):
   """Remove scheme from the bucket path."""
   if '://' not in bucket_path:
-    raise BuildManagerException('Invalid bucket path: ' + bucket_path)
+    raise BuildManagerError('Invalid bucket path: ' + bucket_path)
 
   return bucket_path.split('://')[1]
 
@@ -1009,7 +1009,7 @@ class SystemBuild(Build):
     return True
 
   def delete(self):
-    raise BuildManagerException('Cannot delete system build.')
+    raise BuildManagerError('Cannot delete system build.')
 
 
 def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
@@ -1100,11 +1100,11 @@ def get_primary_bucket_path():
   if fuzz_target_build_bucket_path:
     fuzz_target = environment.get_value('FUZZ_TARGET')
     if not fuzz_target:
-      raise BuildManagerException('FUZZ_TARGET is not defined.')
+      raise BuildManagerError('FUZZ_TARGET is not defined.')
 
     return _full_fuzz_target_path(fuzz_target_build_bucket_path, fuzz_target)
 
-  raise BuildManagerException(
+  raise BuildManagerError(
       'RELEASE_BUILD_BUCKET_PATH or FUZZ_TARGET_BUILD_BUCKET_PATH '
       'needs to be defined.')
 
@@ -1178,13 +1178,13 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   """Set up targets build."""
   targets_list = _get_targets_list(bucket_path)
   if not targets_list:
-    raise BuildManagerException(
+    raise BuildManagerError(
         'No targets found in targets.list (path=%s).' % bucket_path)
 
   fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
   if not fuzz_target:
-    raise BuildManagerException(
+    raise BuildManagerError(
         'Failed to choose a fuzz target (path=%s).' % bucket_path)
 
   if fuzz_target not in targets_list:
@@ -1463,7 +1463,7 @@ def _set_rpaths_chrpath(binary_path, rpaths):
   """Set rpaths using chrpath."""
   chrpath = environment.get_default_tool_path('chrpath')
   if not chrpath:
-    raise BuildManagerException('Failed to find chrpath')
+    raise BuildManagerError('Failed to find chrpath')
 
   subprocess.check_output(
       [chrpath, '-r', ':'.join(rpaths), binary_path], stderr=subprocess.PIPE)
@@ -1473,7 +1473,7 @@ def _set_rpaths_patchelf(binary_path, rpaths):
   """Set rpaths using patchelf."""
   patchelf = spawn.find_executable('patchelf')
   if not patchelf:
-    raise BuildManagerException('Failed to find patchelf')
+    raise BuildManagerError('Failed to find patchelf')
 
   subprocess.check_output(
       [patchelf, '--force-rpath', '--set-rpath', ':'.join(rpaths), binary_path],
@@ -1496,7 +1496,7 @@ def get_rpaths(binary_path):
   """Get rpath of a binary."""
   chrpath = environment.get_default_tool_path('chrpath')
   if not chrpath:
-    raise BuildManagerException('Failed to find chrpath')
+    raise BuildManagerError('Failed to find chrpath')
 
   try:
     rpaths = subprocess.check_output(
