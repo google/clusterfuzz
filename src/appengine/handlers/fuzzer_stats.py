@@ -395,7 +395,8 @@ class Handler(base_handler.Handler):
           user_email, include_from_jobs=True, include_parents=True)
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedError("You don't have access to any fuzzers.")
+        raise helpers.AccessDeniedError(
+            'You don\'t have access to any fuzzers.')
 
     return self.render('fuzzer-stats.html', {})
 
@@ -432,7 +433,8 @@ class LoadFiltersHandler(base_handler.Handler):
               user_email, include_from_jobs=True, include_parents=True))
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedError("You don't have access to any fuzzers.")
+        raise helpers.AccessDeniedError(
+            'You don\'t have access to any fuzzers.')
 
       jobs_list = sorted(external_users.allowed_jobs_for_user(user_email))
       projects_list = sorted(
