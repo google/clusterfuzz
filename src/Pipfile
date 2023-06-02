@@ -15,7 +15,7 @@ google-cloud-monitoring = "==0.36.0"
 google-cloud-ndb = "==1.4.0"
 google-cloud-profiler = "==1.0.3"
 google-cloud-storage = "==1.28.1"
-grpcio = "==1.38.0"
+grpcio = "==1.54.2"
 httplib2 = "==0.19.0"
 lxml = "==4.6.5"
 mozprocess = "==1.1.0"
@@ -27,9 +27,9 @@ requests = "==2.21.0"
 six = "==1.14.0"
 tlslite-ng = "==0.7.6"
 twisted = "==20.3.0"
-
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
+
 [dev-packages]
 cryptography = "==3.4.8"
 firebase-admin = "==2.16.0"
