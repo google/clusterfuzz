@@ -24,7 +24,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-class Impact(object):
+class Impact:
   """Represents impact on a build type."""
 
   def __init__(self, version='', likely=False, extra_trace=''):
@@ -45,7 +45,7 @@ class Impact(object):
             self.extra_trace == other.extra_trace)
 
 
-class Impacts(object):
+class Impacts:
   """Represents impacts on different release channels."""
 
   def __init__(self, stable=None, beta=None, extended_stable=None, head=None):
@@ -131,7 +131,7 @@ def get_component_impacts_from_url(component_name,
            (component_name, regression_range, str(job_type), str(platform)))
   start_revision, end_revision = get_start_and_end_revision(
       regression_range, job_type)
-  logs.log('Start and end revision %s, %s' % (start_revision, end_revision))
+  logs.log(f'Start and end revision {start_revision}, {end_revision}')
   if not end_revision:
     return Impacts()
 
@@ -142,7 +142,7 @@ def get_component_impacts_from_url(component_name,
   found_impacts = {}
   for build in ['extended_stable', 'stable', 'beta', 'canary']:
     mapping = build_revision_mappings.get(build)
-    logs.log('Considering impacts for %s.' % (build))
+    logs.log(f'Considering impacts for {build}.')
     # TODO(yuanjunh): bypass for now but remove it after ES is enabled.
     if build == 'extended_stable' and not mapping:
       found_impacts[build] = Impact()
@@ -154,15 +154,15 @@ def get_component_impacts_from_url(component_name,
     if not mapping:
       return Impacts()
     chromium_revision = mapping['revision']
-    logs.log('Chromium revision is %s.' % (chromium_revision))
+    logs.log(f'Chromium revision is {chromium_revision}.')
     component_revision = get_component_information_by_name(
         chromium_revision, component_name)
-    logs.log('Component revision is %s.' % (component_revision))
+    logs.log(f'Component revision is {component_revision}.')
     if not component_revision:
       return Impacts()
     branched_from = revisions.revision_to_branched_from(
         component_revision['url'], component_revision['rev'])
-    logs.log('Branched from revision is %s.' % (branched_from))
+    logs.log(f'Branched from revision is {branched_from}.')
     if not branched_from:
       # This is a head revision, not branched.
       branched_from = component_revision['rev']
@@ -170,7 +170,7 @@ def get_component_impacts_from_url(component_name,
         'revision': branched_from,
         'version': mapping['version']
     }, start_revision, end_revision, build == 'canary')
-    logs.log('Resulting impact is %s.' % (str(impact)))
+    logs.log(f'Resulting impact is {str(impact)}.')
     found_impacts[build] = impact
   return Impacts(found_impacts['stable'], found_impacts['beta'],
                  found_impacts['extended_stable'], found_impacts['canary'])

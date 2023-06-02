@@ -167,7 +167,7 @@ def highlight_common_stack_frames(crash_stacktrace):
 
       # We only care about highlighting the first two stacks.
       if stack_index <= 1 and frame_index >= match_index[stack_index]:
-        line = '<b>%s</b>' % line
+        line = f'<b>{line}</b>'
 
     highlighted_crash_stacktrace_lines.append(line)
 
@@ -212,7 +212,7 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   return highlight_common_stack_frames(filtered_crash_stacktrace)
 
 
-class Line(object):
+class Line:
   """Represent a stacktrace line."""
 
   def __init__(self, line_number, content, important):
@@ -239,7 +239,7 @@ class Line(object):
     }
 
 
-class Gap(object):
+class Gap:
   """Represent a gap in a previewed stacktrace."""
 
   def __init__(self, size):
@@ -342,8 +342,7 @@ def _get_revision_range_html(job_type,
   component_rev_list = revisions.get_component_range_list(
       start_revision, end_revision, job_type, platform_id=platform_id)
   if not component_rev_list:
-    return ('%s:%s (No component revisions found!)' % (start_revision,
-                                                       end_revision))
+    return f'{start_revision}:{end_revision} (No component revisions found!)'
 
   return revisions.format_revision_list(component_rev_list)
 
@@ -499,7 +498,7 @@ def get_testcase_detail(testcase):
   memory_tool_display_label = memory_tool_display_string.split(':')[0]
   memory_tool_display_value = memory_tool_display_string.split(':')[1].strip()
 
-  helpers.log('Testcase %s' % testcase.key.id(), helpers.VIEW_OPERATION)
+  helpers.log(f'Testcase {testcase.key.id()}', helpers.VIEW_OPERATION)
   return {
       'id':
           testcase.key.id(),
@@ -630,7 +629,7 @@ class DeprecatedHandler(base_handler.Handler):
     if not testcase_id:
       raise helpers.EarlyExitError('No testcase key provided.', 400)
 
-    return self.redirect('/testcase-detail/%s' % testcase_id)
+    return self.redirect(f'/testcase-detail/{testcase_id}')
 
 
 class RefreshHandler(base_handler.Handler):

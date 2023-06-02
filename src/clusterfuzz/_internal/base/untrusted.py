@@ -45,7 +45,7 @@ def untrusted_noop(return_value=None):
 
 def internal_network_domain():
   """Return the internal network domain."""
-  return '.c.%s.internal' % utils.get_application_id()
+  return f'.c.{utils.get_application_id()}.internal'
 
 
 def platform_name(project, platform):

@@ -28,7 +28,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 
-class BuiltinFuzzerResult(object):
+class BuiltinFuzzerResult:
   """Result of running a builtin fuzzer."""
 
   def __init__(self, output, corpus_directory=None):
@@ -42,7 +42,7 @@ class BuiltinFuzzerError(Exception):
   during a run."""
 
 
-class BuiltinFuzzer(object):
+class BuiltinFuzzer:
   """Builtin fuzzer."""
 
   def run(self, input_directory, output_directory, no_of_files):
@@ -136,19 +136,19 @@ class EngineFuzzer(BuiltinFuzzer):
 
     output = 'Generated %d testcase for fuzzer %s.\n' % (no_of_files,
                                                          fuzzer_binary_name)
-    output += 'metadata::fuzzer_binary_name: %s\n' % fuzzer_binary_name
+    output += f'metadata::fuzzer_binary_name: {fuzzer_binary_name}\n'
 
     issue_owners = engine_common.get_issue_owners(fuzzer_path)
     if issue_owners:
-      output += 'metadata::issue_owners: %s\n' % ','.join(issue_owners)
+      output += f'metadata::issue_owners: {",".join(issue_owners)}\n'
 
     issue_labels = engine_common.get_issue_labels(fuzzer_path)
     if issue_labels:
-      output += 'metadata::issue_labels: %s\n' % ','.join(issue_labels)
+      output += f'metadata::issue_labels: {",".join(issue_labels)}\n'
 
     issue_components = engine_common.get_issue_components(fuzzer_path)
     if issue_components:
-      output += 'metadata::issue_components: %s\n' % ','.join(issue_components)
+      output += f'metadata::issue_components: {",".join(issue_components)}\n'
 
     # Update *SAN_OPTIONS in current environment from .options file. This
     # environment is used in fuzz task later for deriving the environment

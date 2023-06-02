@@ -32,5 +32,5 @@ class ReportCspFailureHandler(base_handler.Handler):
     if not report:
       raise helpers.EarlyExitError('No CSP report.', 400)
 
-    logs.log_error('CSP violation: {}'.format(report))
+    logs.log_error(f'CSP violation: {report}')
     return 'OK'

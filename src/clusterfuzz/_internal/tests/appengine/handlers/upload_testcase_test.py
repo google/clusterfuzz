@@ -117,7 +117,7 @@ class UploadOAuthTest(unittest.TestCase):
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
-    with open(os.path.join(DATA_DIRECTORY, name), 'r') as handle:
+    with open(os.path.join(DATA_DIRECTORY, name)) as handle:
       return handle.read()
 
   def assert_dict_has_items(self, expected, actual):

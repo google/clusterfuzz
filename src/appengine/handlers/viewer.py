@@ -60,11 +60,11 @@ class Handler(base_handler.Handler):
       except Exception:
         raise helpers.EarlyExitError('Failed to read content.', 400)
     else:
-      content = u''
+      content = ''
 
     line_count = len(content.splitlines())
     size = len(content)
-    title = '%s, %s' % (utils.get_line_count_string(line_count),
-                        utils.get_size_string(size))
+    title = (f'{utils.get_line_count_string(line_count)}, '
+             f'{utils.get_size_string(size)}')
 
     return self.render('viewer.html', {'content': content, 'title': title})

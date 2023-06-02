@@ -68,7 +68,7 @@ def remount_if_needed():
   # Mount the nfs drive.
   logs.log_warn('Trying to remount the NFS volume.')
 
-  nfs_volume_path = '%s:/%s' % (nfs_host, nfs_volume)
+  nfs_volume_path = f'{nfs_host}:/{nfs_volume}'
   subprocess.check_call([
       'mount', '-o', 'anon', '-o', 'nolock', '-o', 'retry=10', nfs_volume_path,
       nfs_root

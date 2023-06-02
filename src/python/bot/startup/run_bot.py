@@ -42,7 +42,7 @@ from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 
 
-class _Monitor(object):
+class _Monitor:
   """Monitor one task."""
 
   def __init__(self, task, time_module=time):
@@ -157,7 +157,7 @@ def main():
 
     # Print the error trace to the console.
     if not clean_exit:
-      print('Exception occurred while running "%s".' % task_payload)
+      print(f'Exception occurred while running "{task_payload}".')
       print('-' * 80)
       print(error_stacktrace)
       print('-' * 80)
@@ -169,7 +169,7 @@ def main():
       return
 
     logs.log_error(
-        'Task exited with exception (payload="%s").' % task_payload,
+        f'Task exited with exception (payload="{task_payload}").',
         error_stacktrace=error_stacktrace)
 
     should_hang = errors.error_in_list(error_stacktrace,

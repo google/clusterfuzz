@@ -37,8 +37,7 @@ def _build_rows_and_columns(performance_report):
   cols = []
   for column in constants.DISPLAY_COLUMNS:
     label = (
-        column['title'] +
-        '<paper-tooltip>%s</paper-tooltip>' % column['tooltip'])
+        column['title'] + f'<paper-tooltip>{column["tooltip"]}</paper-tooltip>')
     cols.append({'label': label, 'type': 'string'})
 
   # Build the rows.
@@ -67,12 +66,11 @@ def _get_link_html(directory_path, relative_path):
     # Invalid timestamp, can't create link. Bail out.
     return 'Invalid!'
 
-  link_path = '%s/%s' % (directory_path, relative_path)
+  link_path = f'{directory_path}/{relative_path}'
   link_name = filename
-  link_url = '/gcs-redirect?%s' % urllib.parse.urlencode({'path': link_path})
+  link_url = f'/gcs-redirect?{urllib.parse.urlencode({"path": link_path})}'
   # TODO(mmoroz): build links and other markup things in polymer.
-  return '<a href="{link_url}">{link_name}</a>'.format(
-      link_url=link_url, link_name=link_name)
+  return f'<a href="{link_url}">{link_name}</a>'
 
 
 def _get_performance_features(fuzzer_name, job_type, datetime_start,

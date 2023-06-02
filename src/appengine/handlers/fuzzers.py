@@ -130,12 +130,10 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     try:
       value = int(value)
     except (ValueError, TypeError):
-      raise helpers.EarlyExitError(
-          '{key} must be an integer.'.format(key=key), 400)
+      raise helpers.EarlyExitError(f'{key} must be an integer.', 400)
 
     if value <= 0:
-      raise helpers.EarlyExitError(
-          '{key} must be > 0.'.format(key=key), 400)
+      raise helpers.EarlyExitError(f'{key} must be > 0.', 400)
 
     return value
 
@@ -201,7 +199,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer)
 
-    helpers.log('Uploaded fuzzer %s.' % fuzzer.name, helpers.MODIFY_OPERATION)
+    helpers.log(f'Uploaded fuzzer {fuzzer.name}.', helpers.MODIFY_OPERATION)
     return self.redirect('/fuzzers')
 
 
@@ -272,7 +270,7 @@ class DeleteHandler(base_handler.Handler):
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer, mappings=[])
     fuzzer.key.delete()
 
-    helpers.log('Deleted fuzzer %s' % fuzzer.name, helpers.MODIFY_OPERATION)
+    helpers.log(f'Deleted fuzzer {fuzzer.name}', helpers.MODIFY_OPERATION)
     return self.redirect('/fuzzers')
 
 
