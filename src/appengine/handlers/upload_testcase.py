@@ -597,7 +597,7 @@ class UploadHandlerCommon:
         issue.save(new_comment=comment)
 
     helpers.log(f'Uploaded testcase {testcase_id}', helpers.VIEW_OPERATION)
-    return self.render_json({'id': f'{testcase_id}'})
+    return self.render_json({'id': f'{testcase_id}'})  # pylint: disable=no-member
 
 
 class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):

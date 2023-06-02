@@ -967,14 +967,14 @@ class TableQuery:
 
   def _join_subqueries(self):
     """Create an inner join for subqueries."""
+    testcase_run_query = self.testcase_run_query
+    group_by = group_by_to_field_name(self.group_by)
     result = [
         f'({self.job_run_query.build()}) as {self.job_run_query.alias}',
         'INNER JOIN',
-        f'({self.testcase_run_query.build()}) as {self.testcase_run_query.alias}',
-        'ON', '{job_alias}.{group_by} = {testcase_alias}.{group_by}'.format(
-            job_alias=self.job_run_query.alias,
-            testcase_alias=self.testcase_run_query.alias,
-            group_by=group_by_to_field_name(self.group_by))
+        f'({testcase_run_query.build()}) as {testcase_run_query.alias}', 'ON',
+        f'{self.job_run_query.alias}.{group_by} = '
+        f'{testcase_run_query.alias}.{group_by}'
     ]
     return ' '.join(result)
 

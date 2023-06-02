@@ -48,6 +48,8 @@ BEARER_PREFIX = 'Bearer '
 
 _auth_config_obj = None
 
+HTTP_GET_TIMEOUT_SECS = 20
+
 
 def _auth_config():
   """Return a config with auth root."""
@@ -178,7 +180,7 @@ def get_email_and_access_token(authorization):
       timeout=HTTP_GET_TIMEOUT_SECS)
   if response.status_code != 200:
     raise helpers.UnauthorizedException(
-        f'Failed to authorize. The Authorization header {autorization} '
+        f'Failed to authorize. The Authorization header {authorization} '
         'might be invalid.')
   try:
     data = json.loads(response.text)
