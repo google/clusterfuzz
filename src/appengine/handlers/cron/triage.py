@@ -438,13 +438,15 @@ class Throttler:
       return self._max_bugs_per_project_per_24hrs[project]
 
     issue_tracker_config = local_config.IssueTrackerConfig()
-    config = issue_tracker_config.get(data_handler.get_issue_tracker_name())
+    issue_tracker_name = data_handler.get_issue_tracker_name()
+    config = issue_tracker_config.get(issue_tracker_name, {})
     max_bugs = MAX_BUGS_PER_PROJECT_PER_24HRS_DEFAULT
     try:
       max_bugs = int(config.get('max_bugs_per_project_per_24hrs', max_bugs))
     except:
       logs.log_error(
-          'Invalid config value of \'max_bugs_per_project_per_24hrs\'')
+          'Invalid config value of \'max_bugs_per_project_per_24hrs\' '
+          f'for issue tracker {issue_tracker_name}')
 
     self._max_bugs_per_project_per_24hrs[project] = max_bugs
     return max_bugs
