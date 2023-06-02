@@ -14,14 +14,12 @@
 """common.py contains common methods and variables that are used by multiple
    commands."""
 
-# TODO(ochang): Fix these.
-# pylint: disable=consider-using-f-string
-
 import datetime
 from distutils import dir_util
 import io
 import os
 import platform
+from shlex import quote
 import shutil
 import stat
 import subprocess
@@ -31,11 +29,6 @@ import urllib.request
 import zipfile
 
 from local.butler import constants
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
 
 INVALID_FILENAMES = ['src/third_party/setuptools/script (dev).tmpl']
 

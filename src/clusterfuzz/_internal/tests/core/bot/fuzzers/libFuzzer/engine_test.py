@@ -15,6 +15,7 @@
 # pylint: disable=unused-argument
 
 import os
+from shlex import quote
 import shutil
 import tempfile
 import unittest
@@ -41,11 +42,6 @@ from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import android_helpers
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEST_DIR = os.path.join(TEST_PATH, 'libfuzzer_test_data')
