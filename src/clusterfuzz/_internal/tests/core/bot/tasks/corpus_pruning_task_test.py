@@ -198,9 +198,9 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertDictEqual(
         {
             'corpus_backup_location':
-                u'backup_link',
+                'backup_link',
             'corpus_location':
-                u'gs://bucket/libFuzzer/test_fuzzer/',
+                'gs://bucket/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
                 8,
             'corpus_size_units':
@@ -218,11 +218,11 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
             'functions_total':
                 None,
             'fuzzer':
-                u'test_fuzzer',
+                'test_fuzzer',
             'html_report_url':
                 None,
             'quarantine_location':
-                u'gs://bucket-quarantine/libFuzzer/test_fuzzer/',
+                'gs://bucket-quarantine/libFuzzer/test_fuzzer/',
             'quarantine_size_bytes':
                 2,
             'quarantine_size_units':
@@ -357,26 +357,22 @@ class CorpusPruningTestUntrusted(
     job = data_types.Job(
         name='libfuzzer_asan_job',
         environment_string=('APP_NAME = test_fuzzer\n'
-                            'CORPUS_BUCKET = {corpus_bucket}\n'
-                            'QUARANTINE_BUCKET = {quarantine_bucket}\n'
-                            'BACKUP_BUCKET={backup_bucket}\n'
+                            f'CORPUS_BUCKET = {self.corpus_bucket}\n'
+                            f'QUARANTINE_BUCKET = {self.quarantine_bucket}\n'
+                            f'BACKUP_BUCKET={self.backup_bucket}\n'
                             'RELEASE_BUILD_BUCKET_PATH = '
                             'gs://clusterfuzz-test-data/test_libfuzzer_builds/'
                             'test-libfuzzer-build-([0-9]+).zip\n'
                             'REVISION_VARS_URL = gs://clusterfuzz-test-data/'
                             'test_libfuzzer_builds/'
-                            'test-libfuzzer-build-%s.srcmap.json\n'.format(
-                                corpus_bucket=self.corpus_bucket,
-                                quarantine_bucket=self.quarantine_bucket,
-                                backup_bucket=self.backup_bucket)))
+                            'test-libfuzzer-build-%s.srcmap.json\n'))
     job.put()
 
     job = data_types.Job(
         name='libfuzzer_asan_job2',
         environment_string=('APP_NAME = test2_fuzzer\n'
-                            'BACKUP_BUCKET = {backup_bucket}\n'
-                            'CORPUS_FUZZER_NAME_OVERRIDE = libfuzzer\n'.format(
-                                backup_bucket=self.backup_bucket)))
+                            f'BACKUP_BUCKET = {self.backup_bucket}\n'
+                            'CORPUS_FUZZER_NAME_OVERRIDE = libfuzzer\n'))
     job.put()
 
     os.environ['PROJECT_NAME'] = 'oss-fuzz'
@@ -482,7 +478,7 @@ class CorpusPruningTestUntrusted(
                      testcases[0].get_metadata('fuzzer_binary_name'))
 
     self.mock.add_task.assert_has_calls([
-        mock.call('minimize', testcases[0].key.id(), u'libfuzzer_asan_job'),
+        mock.call('minimize', testcases[0].key.id(), 'libfuzzer_asan_job'),
     ])
 
     today = datetime.datetime.utcnow().date()
@@ -493,7 +489,7 @@ class CorpusPruningTestUntrusted(
     self.assertDictEqual(
         {
             'corpus_location':
-                u'gs://{}/libFuzzer/test_fuzzer/'.format(self.corpus_bucket),
+                f'gs://{self.corpus_bucket}/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
                 8,
             'corpus_size_units':
@@ -511,12 +507,11 @@ class CorpusPruningTestUntrusted(
             'functions_total':
                 None,
             'fuzzer':
-                u'test_fuzzer',
+                'test_fuzzer',
             'html_report_url':
                 None,
             'quarantine_location':
-                u'gs://{}/libFuzzer/test_fuzzer/'.format(self.quarantine_bucket
-                                                        ),
+                f'gs://{self.quarantine_bucket}/libFuzzer/test_fuzzer/',
             'quarantine_size_bytes':
                 2,
             'quarantine_size_units':
@@ -526,8 +521,7 @@ class CorpusPruningTestUntrusted(
 
     self.assertEqual(
         coverage_info.corpus_backup_location,
-        'gs://{}/corpus/libFuzzer/test_fuzzer/'.format(
-            self.backup_bucket) + '%s.zip' % today)
+        f'gs://{self.backup_bucket}/corpus/libFuzzer/test_fuzzer/{today}.zip')
 
   def get_mock_record_compare(self, project_qualified_name, sources,
                               initial_corpus_size, corpus_size,
