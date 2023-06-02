@@ -333,42 +333,42 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
             'consecutive_failures': 1,
             'issue_id': None,
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj1'
+            'project_name': 'proj1'
         },
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 3,
             'issue_id': '1',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj2'
+            'project_name': 'proj2'
         },
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 1,
             'issue_id': None,
             'last_checked_timestamp': datetime.datetime(2018, 1, 31, 0, 0),
-            'project_name': u'proj3'
+            'project_name': 'proj3'
         },
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 4,
             'issue_id': '1337',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj4'
+            'project_name': 'proj4'
         },
         {
             'build_type': 'coverage',
             'consecutive_failures': 6,
             'issue_id': '31337',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj5'
+            'project_name': 'proj5'
         },
         {
             'build_type': 'coverage',
             'consecutive_failures': 3,
             'issue_id': '2',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj6'
+            'project_name': 'proj6'
         },
     ], [
         failure.to_dict() for failure in data_types.OssFuzzBuildFailure.query()
@@ -553,7 +553,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
             'consecutive_failures': 2,
             'issue_id': None,
             'last_checked_timestamp': datetime.datetime(2018, 1, 31, 0, 0),
-            'project_name': u'disabled_proj',
+            'project_name': 'disabled_proj',
         },
     ], [
         failure.to_dict() for failure in data_types.OssFuzzBuildFailure.query()
