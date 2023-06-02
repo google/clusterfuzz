@@ -32,8 +32,8 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz.stacktraces import constants
 
-TestPaths = collections.namedtuple(
-    'TestPaths', ['data', 'corpus', 'crashes', 'centipede'])
+TestPaths = collections.namedtuple('TestPaths',
+                                   ['data', 'corpus', 'crashes', 'centipede'])
 
 # test_data in the repo.
 _TEST_DATA_SRC = pathlib.Path(__file__).parent / 'test_data'
