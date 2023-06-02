@@ -29,6 +29,7 @@ tlslite-ng = "==0.7.6"
 twisted = "==20.3.0"
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
+google-cloud-batch = "==0.2.0"
 
 [dev-packages]
 cryptography = "==3.4.8"

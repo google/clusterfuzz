@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "aa29f7cc6fe8db929595459a023ffd792e9ca5a1b1df3448d421ed55262517c8"
+            "sha256": "ed9207982cb480c2303a084c2f05f7dbbd7c9a77f7303d650a3c0d89eaa60a41"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -83,7 +83,6 @@
             "version": "==0.18.0"
         },
         "google-api-core": {
-            "extras": [],
             "hashes": [
                 "sha256:101c3c4cf8e7d53badd1dbca7071464353a04b17319a3dbb3a94eaa893da091c",
                 "sha256:ead664143b52dccb4f9c8ba865e38d316c5e1c2f8dc1ff5791908c3e0c17ad3f"
@@ -121,6 +120,14 @@
             ],
             "index": "pypi",
             "version": "==0.4.1"
+        },
+        "google-cloud-batch": {
+            "hashes": [
+                "sha256:954110f4cb7a9a4dc7b74e6b4e53fe6a3498281dcc2b84f7e162ad5ae91f5fd2",
+                "sha256:bb1c762fc6f383a70d1cd2bd6e0fa743433a31d740354d418280d1d18991aeda"
+            ],
+            "index": "pypi",
+            "version": "==0.2.0"
         },
         "google-cloud-core": {
             "hashes": [
@@ -192,6 +199,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==1.56.4"
+        },
+        "grpc-google-iam-v1": {
+            "hashes": [
+                "sha256:312801ae848aeb8408c099ea372b96d253077e7851aae1a9e745df984f81f20c",
+                "sha256:3f0ac2c940b9a855d7ce7e31fde28bddb0d9ac362d32d07c67148306931a0e30"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==0.12.4"
         },
         "grpcio": {
             "hashes": [
@@ -383,6 +398,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==23.1"
+        },
+        "proto-plus": {
+            "hashes": [
+                "sha256:0e8cda3d5a634d9895b75c573c9352c16486cb75deb0e078b5fda34db4243165",
+                "sha256:de34e52d6c9c6fcd704192f09767cb561bb4ee64e70eede20b0834d841f0be4d"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==1.22.2"
         },
         "protobuf": {
             "hashes": [
@@ -858,7 +881,6 @@
             "version": "==1.1.2"
         },
         "google-api-core": {
-            "extras": [],
             "hashes": [
                 "sha256:101c3c4cf8e7d53badd1dbca7071464353a04b17319a3dbb3a94eaa893da091c",
                 "sha256:ead664143b52dccb4f9c8ba865e38d316c5e1c2f8dc1ff5791908c3e0c17ad3f"
