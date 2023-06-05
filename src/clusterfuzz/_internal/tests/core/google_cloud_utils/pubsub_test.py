@@ -38,7 +38,6 @@ class PubSubTest(unittest.TestCase):
     self.subscription = pubsub.subscription_name(PROJECT_NAME, 'subscription')
 
     self.client = pubsub.PubSubClient()
-    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     self.client.create_topic(self.topic)
     self.client.create_subscription(
         self.subscription, self.topic, ack_deadline=ACK_DEADLINE)
