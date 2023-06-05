@@ -596,8 +596,8 @@ class UploadHandlerCommon(object):
                    'Developers can follow the progress at %s.' % report_url)
         issue.save(new_comment=comment)
 
-    helpers.log('Uploaded testcase %s' % testcase_id, helpers.VIEW_OPERATION)
-    return self.render_json({'id': '%s' % testcase_id})
+    helpers.log(f'Uploaded testcase {testcase_id}', helpers.VIEW_OPERATION)
+    return self.render_json({'id': str(testcase_id)})  # pylint: disable=no-member
 
 
 class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):

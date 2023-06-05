@@ -135,7 +135,7 @@ def run_tests_single_core(args, test_directory, top_level_dir):
   # Verbosity=2 since we want to see real-time test execution with test name
   # and result.
   result = TrackedTestRunner(
-      verbosity=2, buffer=(not args.unsuppress_output)).run(suites)
+      verbosity=2, buffer=not args.unsuppress_output).run(suites)
 
   if result.errors or result.failures:
     sys.exit(1)
@@ -154,7 +154,7 @@ def run_tests_parallel(args, test_directory, top_level_dir):
       # this is how we can get a ModuleImportFailure error.
       if subsuite.__class__.__name__ == 'ModuleImportFailure':
         unittest.TextTestRunner(verbosity=1).run(subsuite)
-        raise RuntimError('A failure occurred while importing the module.')
+        raise RuntimeError('A failure occurred while importing the module.')
 
       for test_class in subsuite._tests:  # pylint: disable=protected-access
         test_classes.append((test_class.__module__,

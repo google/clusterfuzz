@@ -71,7 +71,7 @@ class Handler(object):
     return self.clusterfuzz_parent_path + '\\clusterfuzz\\' + path
 
   def _log_path(self, log_name):
-    return fr'{self._abspath("bot\\logs")}\{log_name}.log'
+    return r'{}\{}.log'.format(self._abspath("bot\\logs"), log_name)
 
   def tail(self, log_name, line_count):
     """Print the last `size` lines of ./bot/logs/`log_name`.log."""

@@ -87,7 +87,7 @@ class Handler(object):
     if not pids:
       raise RuntimeError('No run_bot.py is running.')
 
-    self._run(f'kill {\' \'.join(pids)}')
+    self._run(f'kill {" ".join(pids)}')
     time.sleep(3)
 
     for _ in range(30):

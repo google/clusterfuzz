@@ -36,6 +36,8 @@ from libs import auth
 from libs import csp
 from libs import helpers
 
+HTTP_GET_TIMEOUT_SECS = 30
+
 JSON = 'json'
 FORM = 'form'
 HTML = 'html'
@@ -67,7 +69,7 @@ def extend_request(req, params):
 
   def _get(key, default_value=None):
     """Return the value of the key or the default value."""
-    return params.get(key, default_value)
+    return params.get(key, default_value, timeout=HTTP_GET_TIMEOUT_SECS)
 
   req.get = _get
   req.iterparams = _iterparams
