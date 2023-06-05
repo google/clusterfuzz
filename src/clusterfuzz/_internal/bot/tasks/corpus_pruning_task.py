@@ -483,15 +483,15 @@ class CorpusPruner(object):
       raise CorpusPruningError(
           'Corpus pruning timed out while minimizing corpus\n' + repr(e))
     except engine.Error as e:
-      raise CorpusPruningError(
-          'Corpus pruning failed to minimize corpus\n' + repr(e))
+      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
+                               repr(e))
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
     # Sanity check that there are files in minimized corpus after merging.
     if not shell.get_directory_file_count(minimized_corpus_path):
-      raise CorpusPruningError(
-          'Corpus pruning failed to minimize corpus\n' + symbolized_output)
+      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
+                               symbolized_output)
 
     logs.log('Corpus merge finished successfully.', output=symbolized_output)
 
@@ -891,8 +891,7 @@ def execute_task(full_fuzzer_name, job_type):
 
   # Setup fuzzer and data bundle.
   if not setup.update_fuzzer_and_data_bundles(fuzz_target.engine):
-    raise CorpusPruningError(
-        'Failed to set up fuzzer %s.' % fuzz_target.engine)
+    raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(

@@ -311,7 +311,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
 
   if return_code != 0:
     raise RuntimeError('Failed to find package in supported platforms: %s' +
-                    str(pip_platforms))
+                       str(pip_platforms))
 
 
 def _remove_invalid_files():

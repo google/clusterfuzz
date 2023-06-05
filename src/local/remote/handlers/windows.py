@@ -81,7 +81,7 @@ class Handler(object):
   def tailf(self, log_names):
     """Print ./bot/logs/`name`.log in real-time (equivalent to `tail -f`)."""
     if len(log_names) > 1:
-      raise RuntimeError(o'Sorry, on windows, we cannot tailf multiple logs')
+      raise RuntimeError('Sorry, on windows, we cannot tailf multiple logs')
 
     self._powershell(
         fr'Get-Content -Path {self._log_path(log_names[0])} -Wait -Tail 100')

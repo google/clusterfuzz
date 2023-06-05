@@ -389,12 +389,12 @@ class UploadHandlerCommon(object):
     crash_data = None
     if job.is_external():
       if not stacktrace:
-        raise helpers.EarlyExitError(
-            'Stacktrace required for external jobs.', 400)
+        raise helpers.EarlyExitError('Stacktrace required for external jobs.',
+                                     400)
 
       if not crash_revision:
         raise helpers.EarlyExitError('Revision required for external jobs.',
-                                         400)
+                                     400)
 
       crash_data = stack_analyzer.get_crash_data(
           stacktrace,

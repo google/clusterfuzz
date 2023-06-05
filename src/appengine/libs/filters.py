@@ -96,8 +96,7 @@ class SimpleFilter(Filter):
     value = params.get(self.param_key)
     if is_empty(value):
       if self.required:
-        raise helpers.EarlyExitError("'%s' is required." % self.param_key,
-                                         400)
+        raise helpers.EarlyExitError("'%s' is required." % self.param_key, 400)
       return
 
     try:

@@ -134,8 +134,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
           '{key} must be an integer.'.format(key=key), 400)
 
     if value <= 0:
-      raise helpers.EarlyExitError(
-          '{key} must be > 0.'.format(key=key), 400)
+      raise helpers.EarlyExitError('{key} must be > 0.'.format(key=key), 400)
 
     return value
 

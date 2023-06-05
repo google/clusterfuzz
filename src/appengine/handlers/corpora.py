@@ -70,8 +70,8 @@ class CreateHandler(base_handler.Handler):
     is_local = not request.get('nfs', False)
 
     if not data_handler.create_data_bundle_bucket_and_iams(name, [user_email]):
-      raise helpers.EarlyExitError(
-          'Failed to create bucket %s.' % bucket_name, 400)
+      raise helpers.EarlyExitError('Failed to create bucket %s.' % bucket_name,
+                                   400)
 
     data_bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == name).get()

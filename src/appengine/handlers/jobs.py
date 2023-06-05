@@ -141,8 +141,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
     for template in templates:
       if not data_types.JobTemplate.query(
           data_types.JobTemplate.name == template).get():
-        raise helpers.EarlyExitError('Invalid template name(s) specified.',
-                                         400)
+        raise helpers.EarlyExitError('Invalid template name(s) specified.', 400)
 
     new_platform = request.form.get('platform')
     if not new_platform or new_platform == 'undefined':

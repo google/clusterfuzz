@@ -79,8 +79,7 @@ def get_testcase(testcase_id):
     pass
 
   if not testcase:
-    raise EarlyExitError("Testcase (id=%s) doesn't exist" % testcase_id,
-                             404)
+    raise EarlyExitError("Testcase (id=%s) doesn't exist" % testcase_id, 404)
   return testcase
 
 

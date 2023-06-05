@@ -1242,9 +1242,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
       options)
   fuzz_test_timeout -= additional_processing_time
   if fuzz_test_timeout <= 0:
-    raise FuzzTaskError(
-        f'Invalid engine timeout: '
-        f'{fuzz_test_timeout} - {additional_processing_time}')
+    raise FuzzTaskError(f'Invalid engine timeout: '
+                        f'{fuzz_test_timeout} - {additional_processing_time}')
 
   result = engine_impl.fuzz(target_path, options, testcase_directory,
                             fuzz_test_timeout)
