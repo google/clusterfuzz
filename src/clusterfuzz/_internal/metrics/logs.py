@@ -250,7 +250,7 @@ def uncaught_exception_handler(exception_type, exception_value,
   # quite bad.
   global _is_already_handling_uncaught
   if _is_already_handling_uncaught:
-    raise RuntimError('Loop in uncaught_exception_handler')
+    raise RuntimeError('Loop in uncaught_exception_handler')
   _is_already_handling_uncaught = True
 
   # Use emit since log_error needs sys.exc_info() to return this function's

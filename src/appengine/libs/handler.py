@@ -177,11 +177,12 @@ def get_email_and_access_token(authorization):
 
   response = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
-      params={'access_token': access_token})
+      params={'access_token': access_token},
+      timeout=HTTP_GET_TIMEOUT_SECS)
   if response.status_code != 200:
     raise helpers.UnauthorizedException(
-        'Failed to authorize. The Authorization header (%s) might be invalid.' %
-        authorization)
+        f'Failed to authorize. The Authorization header ({authorization}) '
+        'might be invalid.')
 
   try:
     data = json.loads(response.text)

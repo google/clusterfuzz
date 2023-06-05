@@ -28,6 +28,8 @@ from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 
+HTTP_GET_TIMEOUT_SECS = 30
+
 BUCKET_URL = 'https://oss-fuzz-build-logs.storage.googleapis.com'
 FUZZING_STATUS_URL = BUCKET_URL + '/status.json'
 COVERAGE_STATUS_URL = BUCKET_URL + '/status-coverage.json'
@@ -289,7 +291,7 @@ class Handler(base_handler.Handler):
     """Handles a get request."""
     for build_type, status_url in BUILD_STATUS_MAPPINGS:
       try:
-        response = requests.get(status_url)
+        response = requests.get(status_url, timeout=HTTP_GET_TIMEOUT_SECS)
         response.raise_for_status()
         build_status = json.loads(response.text)
       except (requests.exceptions.RequestException, ValueError) as e:

@@ -23,6 +23,8 @@ from paramiko import ssh_exception
 from local.butler import common as butler_common
 from local.butler import package
 
+# pylint: disable=no-member
+
 
 class Handler(object):
   """Handler for performing linux task."""
