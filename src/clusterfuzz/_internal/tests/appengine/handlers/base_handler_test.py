@@ -142,7 +142,8 @@ class HandlerTest(unittest.TestCase):
     self.mock.get_user_email.return_value = None
 
     flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule('/', view_func=AccessDeniedErrorHandler.as_view('/'))
+    flaskapp.add_url_rule(
+        '/', view_func=AccessDeniedErrorHandler.as_view('/'))
     app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 302)
@@ -152,7 +153,8 @@ class HandlerTest(unittest.TestCase):
   def test_forbidden_logged_in(self):
     """Ensure it renders forbidden response correctly (when logged in)."""
     flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule('/', view_func=AccessDeniedErrorHandler.as_view('/'))
+    flaskapp.add_url_rule(
+        '/', view_func=AccessDeniedErrorHandler.as_view('/'))
     app = webtest.TestApp(flaskapp)
     response = app.get('/', expect_errors=True)
     self.assertEqual(response.status_int, 403)

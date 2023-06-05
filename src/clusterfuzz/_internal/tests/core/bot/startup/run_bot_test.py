@@ -15,7 +15,8 @@
 # pylint: disable=protected-access
 import os
 import unittest
-from unittest import mock
+
+import mock
 
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics

@@ -106,7 +106,7 @@ class FuzzerStatsError(ValueError):
   """Fuzzer stats exception."""
 
 
-class BaseRun:
+class BaseRun(object):
   """Base run."""
 
   VALID_FIELDNAME_PATTERN = re.compile(r'[a-zA-Z][a-zA-Z0-9_]*')
@@ -204,7 +204,7 @@ class JobRun(BaseRun):
   # `crashes` is a new field that will replace `new_crashes` and `old_crashes`.
   def __init__(self, fuzzer, job, build_revision, timestamp,
                number_of_testcases, new_crashes, known_crashes, crashes):
-    super().__init__(fuzzer, job, build_revision, timestamp)
+    super(JobRun, self).__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
         'testcases_executed': number_of_testcases,
@@ -220,7 +220,7 @@ class TestcaseRun(BaseRun):
   SCHEMA = None
 
   def __init__(self, fuzzer, job, build_revision, timestamp):
-    super().__init__(fuzzer, job, build_revision, timestamp)
+    super(TestcaseRun, self).__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'TestcaseRun',
     })
@@ -261,7 +261,7 @@ class TestcaseRun(BaseRun):
       f.write(testcase_run.to_json())
 
 
-class QueryGroupBy:
+class QueryGroupBy(object):
   """GroupBy enum."""
 
   GROUP_BY_NONE = 0
@@ -292,7 +292,7 @@ def group_by_to_field_name(group_by):
   return None
 
 
-class BuiltinFieldData:
+class BuiltinFieldData(object):
   """Represents a cell value for a builtin field."""
 
   def __init__(self, value, sort_key=None, link=None):
@@ -301,7 +301,7 @@ class BuiltinFieldData:
     self.link = link
 
 
-class BuiltinFieldSpecifier:
+class BuiltinFieldSpecifier(object):
   """Represents a builtin field."""
 
   def __init__(self, name, alias=None):
@@ -328,7 +328,7 @@ class BuiltinFieldSpecifier:
     return constructor
 
 
-class BuiltinField:
+class BuiltinField(object):
   """Base Builtin field."""
 
   def __init__(self, ctx=None):
@@ -339,7 +339,7 @@ class BuiltinField:
     return None
 
 
-class BuiltinFieldContext:
+class BuiltinFieldContext(object):
   """Context for builtin fields."""
 
   def __init__(self, fuzzer=None, jobs=None):
@@ -358,7 +358,7 @@ class CoverageFieldContext(BuiltinFieldContext):
   """Coverage field context. Acts as a cache."""
 
   def __init__(self, fuzzer=None, jobs=None):
-    super().__init__(fuzzer=fuzzer, jobs=jobs)
+    super(CoverageFieldContext, self).__init__(fuzzer=fuzzer, jobs=jobs)
 
   @memoize.wrap(memoize.FifoInMemory(256))
   def get_coverage_info(self, fuzzer, date=None):
@@ -376,7 +376,7 @@ class CoverageFieldContext(BuiltinFieldContext):
     return get_coverage_info(fuzzer, date)
 
 
-class BaseCoverageField:
+class BaseCoverageField(object):
   """Base builtin field class for coverage related fields."""
 
   CONTEXT_CLASS = CoverageFieldContext
@@ -413,7 +413,7 @@ class CoverageField(BaseCoverageField):
   VALUE_TYPE = float
 
   def __init__(self, coverage_type, ctx=None):
-    super().__init__(ctx)
+    super(CoverageField, self).__init__(ctx)
     self.coverage_type = coverage_type
 
   def get(self, group_by, group_by_value):
@@ -434,7 +434,7 @@ class CoverageField(BaseCoverageField):
 
     if not total:
       logs.log_error(
-          f'Invalid coverage info: total equals 0 for "{self.ctx.fuzzer}".')
+          'Invalid coverage info: total equals 0 for "%s".' % self.ctx.fuzzer)
       return BuiltinFieldData('No coverage', sort_key=0.0)
 
     percentage = 100.0 * float(covered) / total
@@ -447,7 +447,7 @@ class CorpusBackupField(BaseCoverageField):
   VALUE_TYPE = str
 
   def __init__(self, ctx=None):
-    super().__init__(ctx)
+    super(CorpusBackupField, self).__init__(ctx)
 
   def get(self, group_by, group_by_value):
     """Return data."""
@@ -475,7 +475,7 @@ class CorpusSizeField(BaseCoverageField):
   VALUE_TYPE = int
 
   def __init__(self, corpus_type, ctx=None):
-    super().__init__(ctx)
+    super(CorpusSizeField, self).__init__(ctx)
     self.corpus_type = corpus_type
 
   def get(self, group_by, group_by_value):
@@ -516,7 +516,7 @@ class CoverageReportField(BaseCoverageField):
   VALUE_TYPE = str
 
   def __init__(self, ctx=None):
-    super().__init__(ctx)
+    super(CoverageReportField, self).__init__(ctx)
 
   def get(self, group_by, group_by_value):
     """Return data."""
@@ -538,7 +538,7 @@ class FuzzerRunLogsContext(BuiltinFieldContext):
   MEMCACHE_TTL = 30 * 60
 
   def __init__(self, fuzzer=None, jobs=None):
-    super().__init__(fuzzer=fuzzer, jobs=jobs)
+    super(FuzzerRunLogsContext, self).__init__(fuzzer=fuzzer, jobs=jobs)
 
   @memoize.wrap(memoize.FifoInMemory(1024))
   def _get_logs_bucket_from_job(self, job_type):
@@ -659,7 +659,7 @@ class PerformanceReportField(BuiltinField):
     return BuiltinFieldData('Performance', link=report_path)
 
 
-class QueryField:
+class QueryField(object):
   """Represents a query field."""
 
   def __init__(self,
@@ -681,9 +681,10 @@ class QueryField:
 
   def __str__(self):
     if self.aggregate_function:
-      result = f'{self.aggregate_function}({self.table_alias}.{self.name})'
+      result = '%s(%s.%s)' % (self.aggregate_function, self.table_alias,
+                              self.name)
     else:
-      result = f'{self.table_alias}.{self.name}'
+      result = '%s.%s' % (self.table_alias, self.name)
 
     if self.select_alias:
       result += ' as ' + self.select_alias
@@ -691,7 +692,7 @@ class QueryField:
     return result
 
 
-class Query:
+class Query(object):
   """Represents a stats query."""
 
   def _ensure_valid_name(self, name, regex):
@@ -744,10 +745,10 @@ class Query:
       if field.is_custom():
         continue
       if field.aggregate_function:
-        fields.append(
-            f'{field.aggregate_function}({field.name}) as {field.select_alias}')
+        fields.append('%s(%s) as %s' % (field.aggregate_function, field.name,
+                                        field.select_alias))
       else:
-        fields.append(f'{field.name} as {field.select_alias}')
+        fields.append('%s as %s' % (field.name, field.select_alias))
 
     return ', '.join(fields)
 
@@ -757,7 +758,7 @@ class Query:
 
     dataset = dataset_name(self.fuzzer_or_engine_name)
 
-    return f'`{app_id}`.{dataset}.{self.base_table}'
+    return '`%s`.%s.%s' % (app_id, dataset, self.base_table)
 
   def _where(self):
     """Return the where part of the query."""
@@ -779,7 +780,7 @@ class Query:
           ['job = \'%s\'' % job_type for job_type in self.job_types]))
 
     if self.fuzzer_name != self.fuzzer_or_engine_name:
-      result.append(f'fuzzer = \'{self.fuzzer_name}\'')
+      result.append('fuzzer = \'%s\'' % self.fuzzer_name)
 
     return result
 
@@ -816,7 +817,7 @@ class TestcaseQuery(Query):
 
   def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
                date_end):
-    super().__init__(
+    super(TestcaseQuery, self).__init__(
         fuzzer_name=fuzzer_name,
         job_types=job_types,
         query_fields=query_fields,
@@ -896,7 +897,7 @@ class JobQuery(Query):
   def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
                date_end):
 
-    super().__init__(
+    super(JobQuery, self).__init__(
         fuzzer_name=fuzzer_name,
         job_types=job_types,
         query_fields=query_fields,
@@ -917,7 +918,7 @@ class JobQuery(Query):
     return sql
 
 
-class TableQuery:
+class TableQuery(object):
   """Query for generating results in a table."""
 
   def __init__(self, fuzzer_name, job_types, stats_columns, group_by,
@@ -968,10 +969,11 @@ class TableQuery:
   def _join_subqueries(self):
     """Create an inner join for subqueries."""
     result = [
-        f'({self.job_run_query.build()}) as {self.job_run_query.alias}',
+        '(%s) as %s' % (self.job_run_query.build(), self.job_run_query.alias),
         'INNER JOIN',
-        f'({self.testcase_run_query.build()}) as {self.testcase_run_query.alias}',
-        'ON', '{job_alias}.{group_by} = {testcase_alias}.{group_by}'.format(
+        '(%s) as %s' % (self.testcase_run_query.build(),
+                        self.testcase_run_query.alias), 'ON',
+        '{job_alias}.{group_by} = {testcase_alias}.{group_by}'.format(
             job_alias=self.job_run_query.alias,
             testcase_alias=self.testcase_run_query.alias,
             group_by=group_by_to_field_name(self.group_by))
@@ -981,16 +983,16 @@ class TableQuery:
   def _single_subquery(self):
     """Create a single subquery."""
     query = self.job_run_query or self.testcase_run_query
-    return f'({query.build()}) as {query.alias}'
+    return '(%s) as %s' % (query.build(), query.alias)
 
   def build(self):
     """Build the table query."""
     valid_run_query = self.job_run_query or self.testcase_run_query
     result = [
         # We need to do the below to avoid the duplicate column name error.
-        f'SELECT {valid_run_query.alias}.'
-        f'{group_by_to_field_name(valid_run_query.group_by)}, * '
-        f'EXCEPT({group_by_to_field_name(valid_run_query.group_by)}) FROM'
+        'SELECT {0}.{1}, * EXCEPT({1}) FROM'.format(
+            valid_run_query.alias,
+            group_by_to_field_name(valid_run_query.group_by))
     ]
 
     if self.job_run_query and self.testcase_run_query:
@@ -1026,7 +1028,7 @@ def get_gcs_stats_path(kind, fuzzer, timestamp):
   datetime_value = datetime.datetime.utcfromtimestamp(timestamp)
   dir_name = data_types.coverage_information_date_to_string(datetime_value)
 
-  path = f'/{bucket_name}/{fuzzer}/{kind}/date/{dir_name}/'
+  path = '/%s/%s/%s/date/%s/' % (bucket_name, fuzzer, kind, dir_name)
   return path
 
 
@@ -1053,7 +1055,7 @@ def upload_stats(stats_list, filename=None):
 
   if not filename:
     # Generate a random filename.
-    filename = f'{random.randint(0, (1 << 64) - 1):016x}' + '.json'
+    filename = '%016x' % random.randint(0, (1 << 64) - 1) + '.json'
 
   # Handle runs that bleed into the next day.
   def timestamp_start_of_day(s):

@@ -36,7 +36,7 @@ class EarlyExitError(Exception):
   """Serve as an exception for exiting a handler's method early."""
 
   def __init__(self, message, status, trace_dump=None):
-    super().__init__(message)
+    super(EarlyExitError, self).__init__(message)
     self.status = status
     self.trace_dump = trace_dump
     if self.trace_dump is None:
@@ -60,14 +60,14 @@ class AccessDeniedError(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 403."""
 
   def __init__(self, message=''):
-    super().__init__(message, 403, '')
+    super(AccessDeniedError, self).__init__(message, 403, '')
 
 
 class UnauthorizedException(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 401."""
 
   def __init__(self, message=''):
-    super().__init__(message, 401, '')
+    super(UnauthorizedException, self).__init__(message, 401, '')
 
 
 def get_testcase(testcase_id):
@@ -79,7 +79,8 @@ def get_testcase(testcase_id):
     pass
 
   if not testcase:
-    raise EarlyExitError(f'Testcase (id={testcase_id}) doesn\'t exist', 404)
+    raise EarlyExitError("Testcase (id=%s) doesn't exist" % testcase_id,
+                             404)
   return testcase
 
 
@@ -137,7 +138,8 @@ def get_or_exit(fn,
     pass
   except Exception:
     raise EarlyExitError(
-        f'{error_message} ({sys.exc_info()[0]}: {str(sys.exc_info()[1])})', 500)
+        '%s (%s: %s)' % (error_message, sys.exc_info()[0], str(
+            sys.exc_info()[1])), 500)
 
   if non_empty_fn(result):
     return result

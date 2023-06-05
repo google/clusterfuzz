@@ -87,7 +87,7 @@ class Handler(object):
     if not pids:
       raise RuntimeError('No run_bot.py is running.')
 
-    self._run(f'kill {" ".join(pids)}')
+    self._run(f'kill {\' \'.join(pids)}')
     time.sleep(3)
 
     for _ in range(30):
@@ -131,8 +131,8 @@ class Handler(object):
         platform_name=self.platform)
     self._copy_staging_archive_from_local_to_remote(local_zip_path)
 
-    self._run(f'cd {self.clusterfuzz_parent_path} && '
-              f'unzip -o -d . {self.staging_source_filename}')
+    self._run((f'cd {self.clusterfuzz_parent_path} && '
+               f'unzip -o -d . {self.staging_source_filename}'))
     self._run(f'chown -R {self.username} {self.clusterfuzz_parent_path}')
 
     self.restart()

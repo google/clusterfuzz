@@ -15,11 +15,11 @@
 import json
 import os
 import unittest
-from unittest import mock
 
 import flask
 from flask import request
 from flask import Response
+import mock
 import webtest
 import yaml
 

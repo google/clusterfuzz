@@ -55,10 +55,10 @@ def get(self):
 
   blob_info, _ = get_testcase_blob_info(testcase)
 
-  save_as_filename = 'testcase-{}-{}'.format(
+  save_as_filename = 'testcase-%s-%s' % (
       testcase.key.id(), blob_info.filename[-PREVIEW_BLOB_FILENAME_LENTGH:])
 
-  content_disposition = str(f'attachment; filename={save_as_filename}')
+  content_disposition = str('attachment; filename=%s' % save_as_filename)
   return self.serve_gcs_object(blob_info.bucket, blob_info.object_path,
                                content_disposition)
 

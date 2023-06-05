@@ -20,6 +20,7 @@ import urllib.parse
 
 from flask import request
 from googleapiclient.errors import HttpError
+import six
 import yaml
 
 from clusterfuzz._internal.base import external_users
@@ -45,7 +46,7 @@ MEMCACHE_OLD_TTL_IN_SECONDS = 24 * 60 * 60
 MEMCACHE_TODAY_TTL_IN_SECONDS = 30 * 60
 
 
-class QueryField:
+class QueryField(object):
   """Wrapped fuzzer_stats.QueryField with extra metadata."""
 
   def __init__(self, field, results_index, field_type, bigquery_type):
@@ -55,7 +56,7 @@ class QueryField:
     self.bigquery_type = bigquery_type.lower()
 
 
-class BuiltinField:
+class BuiltinField(object):
   """Wrapped fuzzer_stats.BuiltinField with extra metadata."""
 
   def __init__(self, spec, field):
@@ -113,7 +114,7 @@ def _parse_stats_column_fields(results, stats_columns, group_by, fuzzer, jobs):
 
   for column in columns:
     if isinstance(column, fuzzer_stats.QueryField):
-      key = f'{column.table_alias}_{column.select_alias}'
+      key = '%s_%s' % (column.table_alias, column.select_alias)
 
       for i, field_info in enumerate(results['schema']['fields']):
         # the 'name' field could either be "prefix_fieldname" or simply
@@ -187,7 +188,7 @@ def _parse_stats_column_descriptions(stats_column_descriptions):
 
   try:
     result = yaml.safe_load(stats_column_descriptions)
-    for key, value in result.items():
+    for key, value in six.iteritems(result):
       result[key] = html.escape(value)
 
     return result
@@ -260,7 +261,7 @@ def _build_rows(result, columns, rows, group_by):
             link = (
                 _get_cloud_storage_link(data.link)
                 if data.link.startswith('gs://') else data.link)
-            formatted_value = f'<a href="{link}">{data.value}</a>'
+            formatted_value = '<a href="%s">%s</a>' % (link, data.value)
 
           if data.sort_key is not None:
             cell['v'] = data.sort_key
@@ -395,7 +396,8 @@ class Handler(base_handler.Handler):
           user_email, include_from_jobs=True, include_parents=True)
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedError("You don't have access to any fuzzers.")
+        raise helpers.AccessDeniedError(
+            "You don't have access to any fuzzers.")
 
     return self.render('fuzzer-stats.html', {})
 
@@ -432,7 +434,8 @@ class LoadFiltersHandler(base_handler.Handler):
               user_email, include_from_jobs=True, include_parents=True))
       if not fuzzers_list:
         # User doesn't actually have access to any fuzzers.
-        raise helpers.AccessDeniedError("You don't have access to any fuzzers.")
+        raise helpers.AccessDeniedError(
+            "You don't have access to any fuzzers.")
 
       jobs_list = sorted(external_users.allowed_jobs_for_user(user_email))
       projects_list = sorted(

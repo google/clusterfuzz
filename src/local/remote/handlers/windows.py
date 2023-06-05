@@ -71,8 +71,7 @@ class Handler(object):
     return self.clusterfuzz_parent_path + '\\clusterfuzz\\' + path
 
   def _log_path(self, log_name):
-    return r'{log_dir}\{log_name}.log'.format(
-        log_dir=self._abspath(r'bot\logs'), log_name=log_name)
+    return fr'{self._abspath("bot\\logs")}\{log_name}.log'
 
   def tail(self, log_name, line_count):
     """Print the last `size` lines of ./bot/logs/`log_name`.log."""
@@ -82,7 +81,7 @@ class Handler(object):
   def tailf(self, log_names):
     """Print ./bot/logs/`name`.log in real-time (equivalent to `tail -f`)."""
     if len(log_names) > 1:
-      raise RuntimeError('Sorry, on windows, we cannot tailf multiple logs')
+      raise RuntimeError(o'Sorry, on windows, we cannot tailf multiple logs')
 
     self._powershell(
         fr'Get-Content -Path {self._log_path(log_names[0])} -Wait -Tail 100')

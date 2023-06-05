@@ -57,7 +57,7 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     else:
       filename = blob_info.filename
 
-    content_disposition = str(f'attachment; filename={filename}')
+    content_disposition = str('attachment; filename=%s' % filename)
     response = self.serve_gcs_object(blob_info.bucket, blob_info.object_path,
                                      content_disposition)
     response.headers['Content-disposition'] = content_disposition

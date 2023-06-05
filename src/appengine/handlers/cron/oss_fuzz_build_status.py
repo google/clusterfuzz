@@ -56,8 +56,6 @@ MIN_CONSECUTIVE_BUILD_FAILURES = 3
 # https://github.com/google/oss-fuzz/pull/3585 was landed.
 REMINDER_INTERVAL = 6
 
-HTTP_GET_TIMEOUT_SECONDS = 30
-
 
 class OssFuzzBuildStatusException(Exception):
   """Exceptions for the build status cron."""
@@ -100,7 +98,7 @@ def _get_ndb_key(project_name, build_type):
     return project_name
 
   # Use build type suffix for the auxiliary build (e.g. coverage).
-  return f'{project_name}-{build_type}'
+  return '%s-%s' % (project_name, build_type)
 
 
 def create_build_failure(project_name, failure, build_type):
@@ -131,7 +129,7 @@ def get_build_time(build):
   stripped_timestamp = TIMESTAMP_PATTERN.match(build['finish_time'])
   if not stripped_timestamp:
     logs.log_error(
-        f'Invalid timestamp {build["finish_time"]} for {build["name"]}.')
+        'Invalid timestamp %s for %s.' % (build['finish_time'], build['name']))
     return None
 
   return datetime.datetime.strptime(
@@ -144,7 +142,8 @@ def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
            'build_id=%s).' % (project_name, build_type, build_id))
 
   issue = issue_tracker.new_issue()
-  issue.title = f'{project_name}: {build_type.capitalize()} build failure'
+  issue.title = '{project_name}: {build_type} build failure'.format(
+      project_name=project_name, build_type=build_type.capitalize())
   issue.body = _get_issue_body(project_name, build_id, build_type)
   issue.status = 'New'
   issue.labels.add('Type-Build-Failure')
@@ -159,8 +158,8 @@ def file_bug(issue_tracker, project_name, build_id, ccs, build_type):
 
 def close_bug(issue_tracker, issue_id, project_name):
   """Close a build failure bug."""
-  logs.log(f'Closing build failure bug (project={project_name}, '
-           f'issue_id={issue_id}).')
+  logs.log('Closing build failure bug (project=%s, issue_id=%s).' %
+           (project_name, issue_id))
 
   issue = issue_tracker.get_original_issue(issue_id)
   issue.status = 'Verified'
@@ -257,7 +256,7 @@ class Handler(base_handler.Handler):
           oss_fuzz_project = _get_oss_fuzz_project(project_name)
           if not oss_fuzz_project:
             logs.log(
-                f'Project {project_name} is disabled, skipping bug filing.')
+                'Project %s is disabled, skipping bug filing.' % project_name)
             continue
 
           build_failure.issue_id = file_bug(issue_tracker, project_name,
@@ -290,7 +289,7 @@ class Handler(base_handler.Handler):
     """Handles a get request."""
     for build_type, status_url in BUILD_STATUS_MAPPINGS:
       try:
-        response = requests.get(status_url, timeout=HTTP_GET_TIMEOUT_SECONDS)
+        response = requests.get(status_url)
         response.raise_for_status()
         build_status = json.loads(response.text)
       except (requests.exceptions.RequestException, ValueError) as e:

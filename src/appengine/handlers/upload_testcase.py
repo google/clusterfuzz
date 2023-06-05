@@ -290,7 +290,7 @@ class JsonHandler(base_handler.Handler):
     return self.render_json(result)
 
 
-class UploadHandlerCommon:
+class UploadHandlerCommon(object):
   """Handler that uploads the testcase file."""
 
   def get_upload(self):
@@ -389,12 +389,12 @@ class UploadHandlerCommon:
     crash_data = None
     if job.is_external():
       if not stacktrace:
-        raise helpers.EarlyExitError('Stacktrace required for external jobs.',
-                                     400)
+        raise helpers.EarlyExitError(
+            'Stacktrace required for external jobs.', 400)
 
       if not crash_revision:
         raise helpers.EarlyExitError('Revision required for external jobs.',
-                                     400)
+                                         400)
 
       crash_data = stack_analyzer.get_crash_data(
           stacktrace,
@@ -596,8 +596,8 @@ class UploadHandlerCommon:
                    'Developers can follow the progress at %s.' % report_url)
         issue.save(new_comment=comment)
 
-    helpers.log(f'Uploaded testcase {testcase_id}', helpers.VIEW_OPERATION)
-    return self.render_json({'id': f'{testcase_id}'})
+    helpers.log('Uploaded testcase %s' % testcase_id, helpers.VIEW_OPERATION)
+    return self.render_json({'id': '%s' % testcase_id})
 
 
 class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):

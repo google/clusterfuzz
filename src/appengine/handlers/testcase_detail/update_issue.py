@@ -31,12 +31,12 @@ class Handler(base_handler.Handler):
   def update_issue(testcase, issue_id, needs_summary_update):
     """Associate (or update) an existing issue with the testcase."""
     issue_id = helpers.cast(issue_id, int,
-                            f'Issue ID ({issue_id}) is not a number!')
+                            'Issue ID (%s) is not a number!' % issue_id)
     issue_tracker = helpers.get_issue_tracker_for_testcase(testcase)
 
     issue = helpers.get_or_exit(lambda: issue_tracker.get_issue(issue_id),
                                 'Issue (id=%d) is not found!' % issue_id,
-                                f'Failed to get the issue (id={issue_id}).',
+                                'Failed to get the issue (id=%s).' % issue_id,
                                 Exception)
 
     if not issue.is_open:
@@ -67,7 +67,7 @@ class Handler(base_handler.Handler):
 
     data_handler.update_group_bug(testcase.group_id)
 
-    helpers.log(f'Updated issue {issue_id}d', helpers.MODIFY_OPERATION)
+    helpers.log('Updated issue %sd' % issue_id, helpers.MODIFY_OPERATION)
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token

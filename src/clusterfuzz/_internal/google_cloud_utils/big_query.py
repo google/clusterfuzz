@@ -126,10 +126,10 @@ def write_range(table_id, testcase, range_name, start, end):
               'fuzzer_name': testcase.overridden_fuzzer_name,
               'job_type': testcase.job_type,
               'created_at': int(time.time()),
-              f'{range_name}_range_start': int(start),
-              f'{range_name}_range_end': int(end),
+              ('%s_range_start' % range_name): int(start),
+              ('%s_range_end' % range_name): int(end),
           },
-          insert_id=f'{testcase.key.id()}:{start}:{end}')
+          insert_id='%s:%s:%s' % (testcase.key.id(), start, end))
   ])
 
   for error in result.get('insertErrors', []):
@@ -152,7 +152,7 @@ Insert = collections.namedtuple('Insert', ['row', 'insert_id'])
 QueryResult = collections.namedtuple('QueryResult', ['rows', 'total_count'])
 
 
-class Client:
+class Client(object):
   """BigQuery client."""
 
   def __init__(self, dataset_id=None, table_id=None):

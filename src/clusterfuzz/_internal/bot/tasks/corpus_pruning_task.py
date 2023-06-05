@@ -151,7 +151,7 @@ class CorpusPruningError(Exception):
   """Corpus pruning exception."""
 
 
-class CrossPollinateFuzzer:
+class CrossPollinateFuzzer(object):
   """Cross Pollinate Fuzzer."""
 
   def __init__(self, fuzz_target, backup_bucket_name, corpus_engine_name):
@@ -160,7 +160,7 @@ class CrossPollinateFuzzer:
     self.corpus_engine_name = corpus_engine_name
 
 
-class Context:
+class Context(object):
   """Pruning state."""
 
   def __init__(self, fuzz_target, cross_pollinate_fuzzers):
@@ -171,26 +171,26 @@ class Context:
     self.merge_tmp_dir = None
     self.engine = engine.get(self.fuzz_target.engine)
     if not self.engine:
-      raise CorpusPruningError(f'Engine {engine} not found')
+      raise CorpusPruningError('Engine {} not found'.format(engine))
 
     self._created_directories = []
 
     # Set up temporary directories where corpora will be synced to.
     # Initial synced corpus.
     self.initial_corpus_path = self._create_temp_corpus_directory(
-        f'{self.fuzz_target.project_qualified_name()}_initial_corpus')
+        '%s_initial_corpus' % self.fuzz_target.project_qualified_name())
     # Minimized corpus.
     self.minimized_corpus_path = self._create_temp_corpus_directory(
-        f'{self.fuzz_target.project_qualified_name()}_minimized_corpus')
+        '%s_minimized_corpus' % self.fuzz_target.project_qualified_name())
     # Synced quarantine corpus.
     self.quarantine_corpus_path = self._create_temp_corpus_directory(
-        f'{self.fuzz_target.project_qualified_name()}_quarantine')
+        '%s_quarantine' % self.fuzz_target.project_qualified_name())
     # Synced shared corpus.
     self.shared_corpus_path = self._create_temp_corpus_directory(
-        f'{self.fuzz_target.project_qualified_name()}_shared')
+        '%s_shared' % self.fuzz_target.project_qualified_name())
     # Bad units.
     self.bad_units_path = self._create_temp_corpus_directory(
-        f'{self.fuzz_target.project_qualified_name()}_bad_units')
+        '%s_bad_units' % self.fuzz_target.project_qualified_name())
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
     self.corpus = corpus_manager.FuzzTargetCorpus(
@@ -270,7 +270,7 @@ class Context:
       corpus_backup_url = corpus_manager.gcs_url_for_backup_file(
           backup_bucket_name, corpus_engine_name, project_qualified_name,
           corpus_backup_date)
-      corpus_backup_local_filename = '{}-{}'.format(
+      corpus_backup_local_filename = '%s-%s' % (
           project_qualified_name, os.path.basename(corpus_backup_url))
       corpus_backup_local_path = os.path.join(self.shared_corpus_path,
                                               corpus_backup_local_filename)
@@ -281,7 +281,7 @@ class Context:
         # will result in a 403 instead of 404 since that GCS path belongs to
         # other project). So, just log a warning for debugging purposes only.
         logs.log_warn(
-            f'Corpus backup does not exist, ignoring: {corpus_backup_url}.')
+            'Corpus backup does not exist, ignoring: %s.' % corpus_backup_url)
         continue
 
       if not storage.copy_file_from(corpus_backup_url,
@@ -301,10 +301,10 @@ class Context:
             corpus_backup_url)
       else:
         logs.log_error(
-            f'Failed to unpack corpus backup from url {corpus_backup_url}.')
+            'Failed to unpack corpus backup from url %s.' % corpus_backup_url)
 
 
-class Runner:
+class Runner(object):
   """Runner for libFuzzer."""
 
   def __init__(self, build_directory, context):
@@ -315,7 +315,7 @@ class Runner:
         self.build_directory, self.context.fuzz_target.binary)
     if not self.target_path:
       raise CorpusPruningError(
-          f'Failed to get fuzzer path for {self.context.fuzz_target.binary}.')
+          'Failed to get fuzzer path for %s.' % self.context.fuzz_target.binary)
 
     self.fuzzer_options = options.get_fuzz_target_options(self.target_path)
 
@@ -379,7 +379,7 @@ class Runner:
                                                reproducers_dir, max_time)
 
 
-class CorpusPruner:
+class CorpusPruner(object):
   """Class that handles corpus pruning."""
 
   def __init__(self, runner):
@@ -483,22 +483,22 @@ class CorpusPruner:
       raise CorpusPruningError(
           'Corpus pruning timed out while minimizing corpus\n' + repr(e))
     except engine.Error as e:
-      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                               repr(e))
+      raise CorpusPruningError(
+          'Corpus pruning failed to minimize corpus\n' + repr(e))
 
     symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
 
     # Sanity check that there are files in minimized corpus after merging.
     if not shell.get_directory_file_count(minimized_corpus_path):
-      raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
-                               symbolized_output)
+      raise CorpusPruningError(
+          'Corpus pruning failed to minimize corpus\n' + symbolized_output)
 
     logs.log('Corpus merge finished successfully.', output=symbolized_output)
 
     return result.stats
 
 
-class CrossPollinator:
+class CrossPollinator(object):
   """Cross pollination."""
 
   def __init__(self, runner):
@@ -719,7 +719,7 @@ def _process_corpus_crashes(context, result):
   minimized_arguments = '%TESTCASE% ' + context.fuzz_target.binary
   project_name = data_handler.get_project_name(job_type)
 
-  comment = 'Fuzzer {} generated corpus testcase crashed (r{})'.format(
+  comment = 'Fuzzer %s generated corpus testcase crashed (r%s)' % (
       context.fuzz_target.project_qualified_name(), crash_revision)
 
   # Generate crash reports.
@@ -867,13 +867,13 @@ def _save_coverage_information(context, result):
         retries=data_handler.DEFAULT_FAIL_RETRIES)
   except Exception as e:
     raise CorpusPruningError(
-        f'Failed to save corpus pruning result: {repr(e)}.')
+        'Failed to save corpus pruning result: %s.' % repr(e))
 
 
 def execute_task(full_fuzzer_name, job_type):
   """Execute corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
-  task_name = f'corpus_pruning_{full_fuzzer_name}_{job_type}'
+  task_name = 'corpus_pruning_%s_%s' % (full_fuzzer_name, job_type)
   revision = 0  # Trunk revision
 
   # Get status of last execution.
@@ -891,7 +891,8 @@ def execute_task(full_fuzzer_name, job_type):
 
   # Setup fuzzer and data bundle.
   if not setup.update_fuzzer_and_data_bundles(fuzz_target.engine):
-    raise CorpusPruningError(f'Failed to set up fuzzer {fuzz_target.engine}.')
+    raise CorpusPruningError(
+        'Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(

@@ -76,7 +76,7 @@ def _is_gcs_key(blob_key):
 
 def _get_gcs_blob_path(blob_key):
   """Return the full path to the blob on GCS."""
-  return f'/{storage.blobs_bucket()}/{blob_key}'
+  return '/%s/%s' % (storage.blobs_bucket(), blob_key)
 
 
 def get_gcs_path(blob_key):
@@ -147,7 +147,7 @@ def write_blob(file_handle_or_path):
   blob_name = generate_new_blob_name()
 
   if storage.get(storage.get_cloud_storage_file_path(blobs_bucket, blob_name)):
-    raise BlobsError(f'UUID collision found: {blob_name}')
+    raise BlobsError('UUID collision found: %s' % blob_name)
 
   if isinstance(file_handle_or_path, str):
     filename = os.path.basename(file_handle_or_path)
@@ -158,11 +158,11 @@ def write_blob(file_handle_or_path):
       storage.BLOB_FILENAME_METADATA_KEY: filename,
   }
 
-  gcs_path = f'/{blobs_bucket}/{blob_name}'
+  gcs_path = '/%s/%s' % (blobs_bucket, blob_name)
   if storage.copy_file_to(file_handle_or_path, gcs_path, metadata=metadata):
     return blob_name
 
-  raise BlobsError(f'Failed to write blob {blob_name}.')
+  raise BlobsError('Failed to write blob %s.' % blob_name)
 
 
 @retry.wrap(

@@ -250,7 +250,7 @@ def uncaught_exception_handler(exception_type, exception_value,
   # quite bad.
   global _is_already_handling_uncaught
   if _is_already_handling_uncaught:
-    raise RuntimeError('Loop in uncaught_exception_handler')
+    raise RuntimError('Loop in uncaught_exception_handler')
   _is_already_handling_uncaught = True
 
   # Use emit since log_error needs sys.exc_info() to return this function's
@@ -366,7 +366,8 @@ def _add_appengine_trace(extras):
   project_id = os.getenv('APPLICATION_ID')
   trace_id = trace_header.split('/')[0]
   extras['logging.googleapis.com/trace'] = (
-      f'projects/{project_id}/traces/{trace_id}')
+      'projects/{project_id}/traces/{trace_id}').format(
+          project_id=project_id, trace_id=trace_id)
 
 
 def emit(level, message, exc_info=None, **extras):

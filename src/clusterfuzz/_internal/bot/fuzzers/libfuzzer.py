@@ -79,7 +79,7 @@ class LibFuzzerError(Exception):
   """LibFuzzer error."""
 
 
-class LibFuzzerCommon:
+class LibFuzzerCommon(object):
   """Provides common libFuzzer functionality."""
 
   # Window of time for libFuzzer to exit gracefully before we KILL it.
@@ -162,8 +162,8 @@ class LibFuzzerCommon:
     # Old libFuzzer jobs specify -artifact_prefix through additional_args
     if artifact_prefix:
       additional_args.append(
-          f'{constants.ARTIFACT_PREFIX_FLAG}'
-          f'{self._normalize_artifact_prefix(artifact_prefix)}')
+          '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
+                    self._normalize_artifact_prefix(artifact_prefix)))
 
     additional_args.extend([
         '%s%d' % (constants.MAX_TOTAL_TIME_FLAG, max_total_time),
@@ -213,8 +213,8 @@ class LibFuzzerCommon:
     additional_args.append(constants.MERGE_ARGUMENT)
     if artifact_prefix:
       additional_args.append(
-          f'{constants.ARTIFACT_PREFIX_FLAG}'
-          f'{self._normalize_artifact_prefix(artifact_prefix)}')
+          '%s%s' % (constants.ARTIFACT_PREFIX_FLAG,
+                    self._normalize_artifact_prefix(artifact_prefix)))
 
     if merge_control_file:
       additional_args.append(constants.MERGE_CONTROL_FILE_ARGUMENT +
@@ -935,7 +935,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if environment.is_android_emulator():
       return self._add_trusty_stacktrace_if_needed(output)
 
-    return f'{output}\n\nLogcat:\n{android.logger.log_output()}'
+    return '{output}\n\nLogcat:\n{logcat_output}'.format(
+        output=output, logcat_output=android.logger.log_output())
 
   @contextlib.contextmanager
   def _device_file(self, file_path):
@@ -1249,7 +1250,7 @@ def parse_log_stats(log_lines):
     value = match.group(2)
     if not value.isdigit():
       # We do not expect any non-numeric stats from libFuzzer, skip those.
-      logs.log_error(f'Corrupted stats reported by libFuzzer: "{line}".')
+      logs.log_error('Corrupted stats reported by libFuzzer: "%s".' % line)
       continue
 
     value = int(value)
@@ -1306,7 +1307,7 @@ def use_mutator_plugin(target_name, extra_env):
   if not mutator_plugin_path:
     return False
 
-  logs.log(f'Using mutator plugin: {mutator_plugin_path}')
+  logs.log('Using mutator plugin: %s' % mutator_plugin_path)
   # TODO(metzman): Change the strategy to record which plugin was used, and
   # not simply that a plugin was used.
   extra_env['LD_PRELOAD'] = mutator_plugin_path
@@ -1331,7 +1332,7 @@ def use_radamsa_mutator_plugin(extra_env):
   radamsa_path = os.path.join(environment.get_platform_resources_directory(),
                               'radamsa', 'libradamsa.so')
 
-  logs.log(f'Using Radamsa mutator plugin : {radamsa_path}')
+  logs.log('Using Radamsa mutator plugin : %s' % radamsa_path)
   extra_env['LD_PRELOAD'] = radamsa_path
   return True
 
@@ -1390,10 +1391,9 @@ def is_sha1_hash(possible_hash):
 
 def move_mergeable_units(merge_directory, corpus_directory):
   """Move new units in |merge_directory| into |corpus_directory|."""
-  initial_units = {
+  initial_units = set(
       os.path.basename(filename)
-      for filename in shell.get_files_list(corpus_directory)
-  }
+      for filename in shell.get_files_list(corpus_directory))
 
   for unit_path in shell.get_files_list(merge_directory):
     unit_name = os.path.basename(unit_path)
@@ -1435,8 +1435,9 @@ def pick_strategies(strategy_pool,
         dataflow_build_dir, os.path.relpath(fuzzer_path, build_directory))
     dataflow_trace_dir = dataflow_binary_path + DATAFLOW_TRACE_DIR_SUFFIX
     if os.path.exists(dataflow_trace_dir):
-      arguments.append(f'{constants.DATA_FLOW_TRACE_FLAG}{dataflow_trace_dir}')
-      arguments.append(f'{constants.FOCUS_FUNCTION_FLAG}auto')
+      arguments.append(
+          '%s%s' % (constants.DATA_FLOW_TRACE_FLAG, dataflow_trace_dir))
+      arguments.append('%s%s' % (constants.FOCUS_FUNCTION_FLAG, 'auto'))
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
     else:
       logs.log_warn(
@@ -1496,7 +1497,7 @@ def pick_strategies(strategy_pool,
       strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
       use_peach_mutator(extra_env, grammar)):
     fuzzing_strategies.append(
-        f'{strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name}_{grammar}')
+        '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
 
   if (not has_existing_mutator_strategy(fuzzing_strategies) and
       strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and

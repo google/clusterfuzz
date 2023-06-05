@@ -15,9 +15,9 @@
 import datetime
 import os
 import unittest
-from unittest import mock
 
 from google.cloud import ndb
+import mock
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import commands

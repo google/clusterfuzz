@@ -134,7 +134,7 @@ def check_redirect_url(url):
     raise helpers.EarlyExitError('Invalid redirect.', 403)
 
 
-class _MenuItem:
+class _MenuItem(object):
   """A menu item used for rendering an item in the main navigation."""
 
   def __init__(self, name, href):
@@ -274,7 +274,7 @@ class Handler(MethodView):
     """Dispatch a request and postprocess."""
     self.is_json = False
     try:
-      return super().dispatch_request(*args, **kwargs)
+      return super(Handler, self).dispatch_request(*args, **kwargs)
     except Exception as exception:
       return self.handle_exception(exception)
 

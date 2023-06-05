@@ -15,7 +15,8 @@
 # pylint: disable=protected-access
 
 import unittest
-from unittest import mock
+
+import mock
 
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from libs import crash_access

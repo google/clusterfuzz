@@ -14,9 +14,9 @@
 """testcase_list tests."""
 import datetime
 import unittest
-from unittest import mock
 
 import flask
+import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types

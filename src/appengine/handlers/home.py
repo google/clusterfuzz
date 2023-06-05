@@ -73,7 +73,7 @@ def get_introspector_index():
         storage.read_data(INTROSPECTOR_INDEX_JSON_URL))
   else:
     introspector_index = {}
-  logs.log(f'Loaded introspector status: {len(introspector_index)}')
+  logs.log('Loaded introspector status: %d' % len(introspector_index))
   return introspector_index
 
 

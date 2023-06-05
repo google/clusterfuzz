@@ -34,7 +34,7 @@ from local.butler import constants
 try:
   from shlex import quote
 except ImportError:
-  from shlex import quote
+  from pipes import quote
 
 INVALID_FILENAMES = ['src/third_party/setuptools/script (dev).tmpl']
 
@@ -47,7 +47,7 @@ class GsutilError(Exception):
   """Gsutil error."""
 
 
-class Gcloud:
+class Gcloud(object):
   """Project specific gcloud."""
 
   def __init__(self, project_id):
@@ -59,7 +59,7 @@ class Gcloud:
     return _run_and_handle_exception(arguments, GcloudError)
 
 
-class Gsutil:
+class Gsutil(object):
   """gsutil runner."""
 
   def run(self, *args):
@@ -114,7 +114,7 @@ def process_proc_output(proc, print_output=True):
 
   lines = []
   for line in iter(proc.stdout.readline, b''):
-    _print(f"| {line.rstrip().decode('utf-8')}")
+    _print('| %s' % line.rstrip().decode('utf-8'))
     lines.append(line)
 
   return b''.join(lines)
@@ -150,9 +150,9 @@ def execute(command,
     if print_output:
       print(s)
 
-  print_string = f'Running: {command}'
+  print_string = 'Running: %s' % command
   if cwd:
-    print_string += f" (cwd='{cwd}')"
+    print_string += " (cwd='%s')" % cwd
   _print(print_string)
 
   proc = execute_async(command, extra_environments, cwd=cwd, stderr=stderr)
@@ -173,10 +173,10 @@ def kill_process(name):
   plt = get_platform()
   if plt == 'windows':
     execute(
-        f'wmic process where (commandline like "%{name}%") delete',
+        'wmic process where (commandline like "%%%s%%") delete' % name,
         exit_on_error=False)
   elif plt in ['linux', 'macos']:
-    execute(f'pkill -KILL -f "{name}"', exit_on_error=False)
+    execute('pkill -KILL -f "%s"' % name, exit_on_error=False)
 
 
 def is_git_dirty():
@@ -224,7 +224,7 @@ def _install_chromedriver():
 
   chromedriver_archive.extract(chromedriver_binary, output_directory)
   os.chmod(chromedriver_path, 0o750)
-  print(f'Installed chromedriver at: {chromedriver_path}')
+  print('Installed chromedriver at: %s' % chromedriver_path)
 
 
 def _pip():
@@ -265,8 +265,12 @@ def _install_pip(requirements_path, target_path):
   if os.path.exists(target_path):
     shutil.rmtree(target_path)
 
-  execute(f'{_pip()} install -r {requirements_path} --upgrade --target '
-          f'{target_path}')
+  execute(
+      '{pip} install -r {requirements_path} --upgrade --target {target_path}'.
+      format(
+          pip=_pip(),
+          requirements_path=requirements_path,
+          target_path=target_path))
 
 
 def _install_platform_pip(requirements_path, target_path, platform_name):
@@ -301,13 +305,13 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
       print('Did not find package for platform: ' + pip_platform)
       continue
 
-    execute(f'unzip -o -d {target_path} \'{temp_dir}/*.whl\'')
+    execute('unzip -o -d %s \'%s/*.whl\'' % (target_path, temp_dir))
     shutil.rmtree(temp_dir, ignore_errors=True)
     break
 
   if return_code != 0:
     raise RuntimeError('Failed to find package in supported platforms: %s' +
-                       str(pip_platforms))
+                    str(pip_platforms))
 
 
 def _remove_invalid_files():
@@ -357,14 +361,16 @@ def symlink(src, target):
   remove_symlink(target)
 
   if get_platform() == 'windows':
-    execute(r'cmd /c mklink /j {} {}'.format(target, src))
+    execute(r'cmd /c mklink /j %s %s' % (target, src))
   else:
     os.symlink(src, target)
 
   assert os.path.exists(target), (
-      f'Failed to create {target} symlink for {src}.')
+      'Failed to create {target} symlink for {src}.'.format(
+          target=target, src=src))
 
-  print(f'Created symlink: source: {src}, target {target}.')
+  print('Created symlink: source: {src}, target {target}.'.format(
+      src=src, target=target))
 
 
 def copy_dir(src, target):
@@ -389,7 +395,8 @@ def test_bucket(env_var):
   """Get the integration test bucket."""
   bucket = os.getenv(env_var)
   if not bucket:
-    raise RuntimeError(f'You need to specify {env_var} for integration testing')
+    raise RuntimeError(
+        'You need to specify {var} for integration testing'.format(var=env_var))
 
   return bucket
 
@@ -411,7 +418,7 @@ def get_platform():
   if platform.system() == 'Windows':
     return 'windows'
 
-  raise OSError(f'Unknown platform: {platform.system()}.')
+  raise OSError('Unknown platform: %s.' % platform.system())
 
 
 def update_dir(src_dir, dst_dir):

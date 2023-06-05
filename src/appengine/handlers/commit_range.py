@@ -101,7 +101,7 @@ class IncludeZeroFilter(filters.Filter):
     prefix = params['type']
 
     if not value:
-      query.raw_filter(f'{prefix}_range_start > 0')
+      query.raw_filter('{prefix}_range_start > 0'.format(prefix=prefix))
 
 
 class TypeFilter(filters.Filter):
@@ -127,7 +127,7 @@ FILTERS = [
 def get(params, query, offset, limit):
   """Get the data from BigQuery."""
   sql = SQL.format(
-      table_id=f'{params["type"]}s',
+      table_id='%ss' % params['type'],
       where_clause=query.get_where_clause(),
       prefix=params['type'],
       offset=offset,

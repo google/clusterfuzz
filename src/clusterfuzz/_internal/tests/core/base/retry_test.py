@@ -13,8 +13,9 @@
 # limitations under the License.
 """Retry tests."""
 import unittest
+
 # pylint: disable=protected-access
-from unittest import mock
+import mock
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.metrics import monitor

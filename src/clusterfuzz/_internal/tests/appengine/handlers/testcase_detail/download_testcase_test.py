@@ -53,7 +53,7 @@ class OAuthHandlerTest(unittest.TestCase):
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule('/', view_func=handler_class.as_view('/'))
     app = webtest.TestApp(flaskapp)
-    resp = app.get(f'/?id={testcase.key.id()}')
+    resp = app.get('/?id=%s' % testcase.key.id())
 
     self.assertEqual(302, resp.status_int)
     # pylint: disable=line-too-long

@@ -62,7 +62,8 @@ def extend_request(req, params):
   """Extends a request."""
 
   def _iterparams():
-    yield from params.items()
+    for k, v in params.items():
+      yield k, v
 
   def _get(key, default_value=None):
     """Return the value of the key or the default value."""
@@ -78,7 +79,7 @@ def extend_json_request(req):
     params = json.loads(req.data)
   except ValueError as e:
     raise helpers.EarlyExitError(
-        f'Parsing the JSON request body failed: {req.data}', 400) from e
+        'Parsing the JSON request body failed: %s' % req.data, 400) from e
 
   extend_request(req, params)
 
@@ -168,18 +169,18 @@ def get_email_and_access_token(authorization):
   if not authorization.startswith(BEARER_PREFIX):
     raise helpers.UnauthorizedException(
         'The Authorization header is invalid. It should have been started with'
-        f" '{BEARER_PREFIX}'.")
+        " '%s'." % BEARER_PREFIX)
 
   access_token = authorization.split(' ')[1]
 
   response = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
-      params={'access_token': access_token},
-      timeout=HTTP_GET_TIMEOUT_SECS)
+      params={'access_token': access_token})
   if response.status_code != 200:
     raise helpers.UnauthorizedException(
-        f'Failed to authorize. The Authorization header {autorization} '
-        'might be invalid.')
+        'Failed to authorize. The Authorization header (%s) might be invalid.' %
+        authorization)
+
   try:
     data = json.loads(response.text)
 
@@ -194,17 +195,17 @@ def get_email_and_access_token(authorization):
         'whitelisted_oauth_client_ids', default=[])
     if data.get('aud') not in whitelisted_client_ids:
       raise helpers.UnauthorizedException(
-          'The access token doesn\'t belong to one of the allowed OAuth clients'
-          f': {response.text}.')
+          "The access token doesn't belong to one of the allowed OAuth clients"
+          ': %s.' % response.text)
 
     if not data.get('email_verified'):
-      raise helpers.UnauthorizedException(
-          f'The email ({data.get("email")}) is not verified: {response.text}.')
+      raise helpers.UnauthorizedException('The email (%s) is not verified: %s.'
+                                          % (data.get('email'), response.text))
 
     return data['email'], authorization
   except (KeyError, ValueError) as e:
     raise helpers.EarlyExitError(
-        f'Parsing the JSON response body failed: {response.text}', 500) from e
+        'Parsing the JSON response body failed: %s' % response.text, 500) from e
 
 
 def oauth(func):

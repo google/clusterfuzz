@@ -15,6 +15,7 @@
 
 from flask import request
 from google.cloud import ndb
+import six
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_handler
@@ -40,7 +41,7 @@ FILTERS = [
 def get_queues():
   """Return list of task queues."""
   queues = []
-  for name, display_name in tasks.TASK_QUEUE_DISPLAY_NAMES.items():
+  for name, display_name in six.iteritems(tasks.TASK_QUEUE_DISPLAY_NAMES):
     queue = {
         'name': name,
         'display_name': display_name,
@@ -140,7 +141,8 @@ class UpdateJob(base_handler.GcsUploadHandler):
     for template in templates:
       if not data_types.JobTemplate.query(
           data_types.JobTemplate.name == template).get():
-        raise helpers.EarlyExitError('Invalid template name(s) specified.', 400)
+        raise helpers.EarlyExitError('Invalid template name(s) specified.',
+                                         400)
 
     new_platform = request.form.get('platform')
     if not new_platform or new_platform == 'undefined':
@@ -189,7 +191,7 @@ class UpdateJob(base_handler.GcsUploadHandler):
     # pylint: disable=unexpected-keyword-arg
     _ = data_handler.get_all_job_type_names(__memoize_force__=True)
 
-    helpers.log(f'Job created {name}', helpers.MODIFY_OPERATION)
+    helpers.log('Job created %s' % name, helpers.MODIFY_OPERATION)
     template_values = {
         'title':
             'Success',
@@ -232,7 +234,7 @@ class UpdateJobTemplate(base_handler.Handler):
     template.environment_string = environment_string
     template.put()
 
-    helpers.log(f'Template created {name}', helpers.MODIFY_OPERATION)
+    helpers.log('Template created %s' % name, helpers.MODIFY_OPERATION)
 
     template_values = {
         'title':
@@ -273,7 +275,7 @@ class DeleteJobHandler(base_handler.Handler):
     # Delete job.
     job.key.delete()
 
-    helpers.log(f'Deleted job {job.name}', helpers.MODIFY_OPERATION)
+    helpers.log('Deleted job %s' % job.name, helpers.MODIFY_OPERATION)
     return self.redirect('/jobs')
 
 

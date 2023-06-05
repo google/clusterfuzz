@@ -41,16 +41,16 @@ class TrackedTestResult(unittest.TextTestResult):
   """Result object that tracks slow-running tests."""
 
   def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
+    super(TrackedTestResult, self).__init__(*args, **kwargs)
     self.slow_tests = []
 
   def startTest(self, test):
     self._start_time = time.time()
-    super().startTest(test)
+    super(TrackedTestResult, self).startTest(test)
 
   def addSuccess(self, test):
     elapsed_time = time.time() - self._start_time
-    super().addSuccess(test)
+    super(TrackedTestResult, self).addSuccess(test)
 
     if elapsed_time <= SLOW_TEST_THRESHOLD:
       return
@@ -64,22 +64,22 @@ class TrackedTestRunner(unittest.TextTestRunner):
 
   def __init__(self, *args, **kwargs):
     kwargs['resultclass'] = TrackedTestResult
-    super().__init__(*args, **kwargs)
+    super(TrackedTestRunner, self).__init__(*args, **kwargs)
 
   def run(self, test):
-    result = super().run(test)
+    result = super(TrackedTestRunner, self).run(test)
 
     if not result.slow_tests:
       return result
 
     self.stream.writeln('\nSlow tests:')
     for elapsed_time, test_name in sorted(result.slow_tests, reverse=True):
-      print(f'{elapsed_time:6.2f}s: {test_name:o}s')
+      print('%6.2fs: %os' % (elapsed_time, test_name))
 
     return result
 
 
-class TestResult:
+class TestResult(object):
   """Test results."""
 
   def __init__(self, output, num_errors, num_failures, num_skipped, total_run):
@@ -135,7 +135,7 @@ def run_tests_single_core(args, test_directory, top_level_dir):
   # Verbosity=2 since we want to see real-time test execution with test name
   # and result.
   result = TrackedTestRunner(
-      verbosity=2, buffer=not args.unsuppress_output).run(suites)
+      verbosity=2, buffer=(not args.unsuppress_output)).run(suites)
 
   if result.errors or result.failures:
     sys.exit(1)
@@ -154,7 +154,7 @@ def run_tests_parallel(args, test_directory, top_level_dir):
       # this is how we can get a ModuleImportFailure error.
       if subsuite.__class__.__name__ == 'ModuleImportFailure':
         unittest.TextTestRunner(verbosity=1).run(subsuite)
-        raise RuntimeError('A failure occurred while importing the module.')
+        raise RuntimError('A failure occurred while importing the module.')
 
       for test_class in subsuite._tests:  # pylint: disable=protected-access
         test_classes.append((test_class.__module__,

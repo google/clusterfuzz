@@ -33,7 +33,7 @@ class FuzzerOptionsError(Exception):
   """Exceptions for fuzzer options."""
 
 
-class FuzzerArguments:
+class FuzzerArguments(object):
   """Fuzzer flags."""
 
   def __init__(self, flags):
@@ -71,7 +71,7 @@ class FuzzerArguments:
     return [f'-{key}={value}' for key, value in self.flags.items()]
 
 
-class FuzzerOptions:
+class FuzzerOptions(object):
   """Represents fuzzer and related options."""
 
   OPTIONS_RANDOM_REGEX = re.compile(
@@ -87,7 +87,7 @@ class FuzzerOptions:
       self._cwd = os.path.dirname(options_file_path)
 
     self._config = configparser.ConfigParser()
-    with open(options_file_path) as f:
+    with open(options_file_path, 'r') as f:
       try:
         self._config.read_file(f)
       except configparser.Error:
@@ -175,5 +175,5 @@ def get_fuzz_target_options(fuzz_target_path):
   try:
     return FuzzerOptions(options_file_path, cwd=options_cwd)
   except FuzzerOptionsError:
-    logs.log_error(f'Invalid options file: {options_file_path}.')
+    logs.log_error('Invalid options file: %s.' % options_file_path)
     return None

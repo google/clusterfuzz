@@ -33,7 +33,7 @@ class Handler(base_handler.Handler):
 
     if severity is not None:
       severity = helpers.cast(
-          severity, int, f'Invalid value for security severity ({severity}).')
+          severity, int, 'Invalid value for security severity (%s).' % severity)
 
     additional_ccs = []
     if cc_me:

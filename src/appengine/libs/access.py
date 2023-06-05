@@ -66,13 +66,13 @@ def _is_domain_allowed(email):
   """Check if the email's domain is allowed."""
   domains = local_config.AuthConfig().get('whitelisted_domains', default=[])
   for domain in domains:
-    if utils.normalize_email(email).endswith(f'@{domain.lower()}'):
+    if utils.normalize_email(email).endswith('@%s' % domain.lower()):
       return True
 
   return False
 
 
-class UserAccess:
+class UserAccess(object):
   Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
 
 

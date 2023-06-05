@@ -35,7 +35,7 @@ class Handler(base_handler.Handler):
           testcase_id, 400)
 
     testcase.key.delete()
-    helpers.log(f'Deleted testcase {testcase_id}', helpers.MODIFY_OPERATION)
+    helpers.log('Deleted testcase %s' % testcase_id, helpers.MODIFY_OPERATION)
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token
