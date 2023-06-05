@@ -472,8 +472,7 @@ class GcsCorpus:
   def _walk(self):
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import file_host
-      yield from file_host.list_files(
-          self._corpus_directory, recursive=True)
+      yield from file_host.list_files(self._corpus_directory, recursive=True)
     else:
       for root, _, files in shell.walk(self._corpus_directory):
         for filename in files:

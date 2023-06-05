@@ -1160,7 +1160,8 @@ def _get_targets_list(bucket_path):
   targets = data.decode('utf-8').splitlines()
   listed_targets = {
       os.path.basename(path.rstrip('/'))
-      for path in storage.list_blobs(bucket_dir_path, recursive=False)}
+      for path in storage.list_blobs(bucket_dir_path, recursive=False)
+  }
   return [t for t in targets if _base_fuzz_target_name(t) in listed_targets]
 
 

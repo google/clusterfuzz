@@ -139,9 +139,11 @@ def clone_entity(e, **extra_args):
   """Clones a DataStore entity and returns the clone."""
   ent_class = e.__class__
   # pylint: disable=protected-access,unnecessary-dunder-call
-  props = {v._code_name: v.__get__(e, ent_class)
-               for v in ent_class._properties.values()
-               if not isinstance(v, ndb.ComputedProperty)}
+  props = {
+      v._code_name: v.__get__(e, ent_class)
+      for v in ent_class._properties.values()
+      if not isinstance(v, ndb.ComputedProperty)
+  }
   props.update(extra_args)
   return ent_class(**props)
 
@@ -603,8 +605,7 @@ class Testcase(Model):
     self.bug_indices = search_tokenizer.tokenize_bug_information(self)
     self.has_bug_flag = bool(self.bug_indices)
     self.is_a_duplicate_flag = bool(self.duplicate_of)
-    fuzzer_name_indices = list(
-        {self.fuzzer_name, self.overridden_fuzzer_name})
+    fuzzer_name_indices = list({self.fuzzer_name, self.overridden_fuzzer_name})
     self.fuzzer_name_indices = [f for f in fuzzer_name_indices if f]
 
     # If the impact task hasn't been run (aka is_impact_set_flag=False) OR

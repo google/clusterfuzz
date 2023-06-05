@@ -14,7 +14,6 @@
 """Tests for the Windows initialization script."""
 
 import unittest
-
 from unittest import mock
 
 from clusterfuzz._internal.bot.init_scripts import windows
