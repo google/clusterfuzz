@@ -936,7 +936,10 @@ def last_updated(cloud_storage_file_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.read_data',
-    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError, requests.exceptions.ConnectionError])
+    exception_types=[
+        google.cloud.exceptions.GoogleCloudError, ConnectionError,
+        requests.exceptions.ConnectionError
+    ])
 def read_data(cloud_storage_file_path):
   """Return content of a cloud storage file."""
   return _provider().read_data(cloud_storage_file_path)
