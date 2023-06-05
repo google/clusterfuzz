@@ -25,12 +25,12 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$PYTHON" ]; then
-  if which python3.10 > /dev/null; then
+   if which python3.11 > /dev/null; then
+    PYTHON='python3.11'
+  elif which python3.10 > /dev/null; then
     PYTHON='python3.10'
   elif which python3.9 > /dev/null; then
     PYTHON='python3.9'
-  elif which python3.8 > /dev/null; then
-    PYTHON='python3.8'
   else
     PYTHON='python3'
   fi
@@ -112,7 +112,8 @@ sudo apt-get install -y \
     docker-ce \
     google-cloud-sdk \
     openjdk-11-jdk \
-    liblzma-dev
+    liblzma-dev \
+    pipenv
 
 # Install patchelf - latest version not available on some older distros so we
 # compile from source.
@@ -153,7 +154,6 @@ else
 fi
 
 # Setup pipenv and install python dependencies.
-$PYTHON -m pip install --user pipenv==2022.8.5
 if $PYTHON -m pipenv --venv > /dev/null 2>&1; then
   # Remove existing pipenv virtual environment.
   $PYTHON -m pipenv --rm
