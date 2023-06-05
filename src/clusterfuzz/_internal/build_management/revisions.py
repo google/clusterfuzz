@@ -648,7 +648,7 @@ def needs_update(revision_file, revision):
     file_exists = True
 
     try:
-      with open(revision_file, 'r') as file_handle:
+      with open(revision_file) as file_handle:
         current_revision = file_handle.read()
     except:
       logs.log_error(

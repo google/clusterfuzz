@@ -63,7 +63,7 @@ class UntrustedRunnerIntegrationTest(
 
   def setUp(self):
     """Set up."""
-    super(UntrustedRunnerIntegrationTest, self).setUp()
+    super().setUp()
     data_types.Config().put()
 
     environment_string = ('APP_NAME = app\n'

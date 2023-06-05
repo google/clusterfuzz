@@ -21,7 +21,7 @@ import tempfile
 import types
 import unittest
 
-import mock
+from unittest import mock
 import parameterized
 from pyfakefs import fake_filesystem_unittest
 
@@ -561,7 +561,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    class FileMatchCallbackChecker(object):
+    class FileMatchCallbackChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
       def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
@@ -618,7 +618,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    class FileMatchCallbackChecker(object):
+    class FileMatchCallbackChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
       def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
@@ -1296,7 +1296,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
     self.mock.time.return_value = 1000.0
 
-    class FileMatchCallbackChecker(object):
+    class FileMatchCallbackChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
       def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument

@@ -78,7 +78,7 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 HTTP_TIMEOUT_SECONDS = 15
 
 
-class StorageProvider(object):
+class StorageProvider:
   """Core storage provider interface."""
 
   def create_bucket(self, name, object_lifecycle, cors):
@@ -582,7 +582,7 @@ class FileSystemProvider(StorageProvider):
     return self.write_data(data, signed_url)
 
 
-class GcsBlobInfo(object):
+class GcsBlobInfo:
   """GCS blob info."""
 
   def __init__(self,
@@ -934,8 +934,7 @@ def write_data(data, cloud_storage_file_path, metadata=None):
     exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def get_blobs(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
-    yield blob
+  yield from _provider().list_blobs(cloud_storage_path, recursive=recursive)
 
 
 @retry.wrap(

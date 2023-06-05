@@ -690,7 +690,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
     # TODO(flowerhack): Update this when we teach CF how to download testcases.
     try:
       file_handle = open(testcase_path, 'rb')
-    except IOError:
+    except OSError:
       logs.log_error('Unable to open testcase %s.' % testcase_path)
       return None, None, None, None
   else:
@@ -732,7 +732,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
 
     try:
       file_handle = open(zip_path, 'rb')
-    except IOError:
+    except OSError:
       logs.log_error('Unable to open testcase archive %s.' % zip_path)
       return None, None, None, None
 

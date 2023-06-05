@@ -123,8 +123,8 @@ def _make_space(requested_size, current_build_dir=None):
 
   builds_directory = environment.get_value('BUILDS_DIR')
 
-  error_message = 'Need at least %d GB of free disk space.' % ((
-      (min_free_disk_space + requested_size) // 1024**3))
+  error_message = 'Need at least %d GB of free disk space.' % (
+      (min_free_disk_space + requested_size) // 1024**3)
   for _ in range(MAX_EVICTED_BUILDS):
     free_disk_space = shell.get_free_disk_space(builds_directory)
     if free_disk_space is None:
@@ -275,7 +275,7 @@ def _get_build_directory(bucket_path, job_name):
     file_pattern = utils.remove_sub_strings(file_pattern, BUILD_TYPE_SUBSTRINGS)
 
     file_pattern_hash = utils.string_hash(file_pattern)
-    job_directory = '%s_%s' % (bucket_path, file_pattern_hash)
+    job_directory = f'{bucket_path}_{file_pattern_hash}'
   else:
     job_directory = job_name
 
@@ -340,7 +340,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
   app_directory = None
 
   # Chromium specific folder to ignore.
-  initialexe_folder_path = '%sinitialexe' % os.path.sep
+  initialexe_folder_path = f'{os.path.sep}initialexe'
 
   for search_directory in search_directories:
     for root, _, files in shell.walk(search_directory):
@@ -614,7 +614,7 @@ class Build(BaseBuild):
     """Check if build already exists."""
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     if os.path.exists(revision_file):
-      with open(revision_file, 'r') as file_handle:
+      with open(revision_file) as file_handle:
         try:
           current_revision = int(file_handle.read())
         except ValueError:
@@ -1158,9 +1158,9 @@ def _get_targets_list(bucket_path):
 
   # Filter out targets which are not yet built.
   targets = data.decode('utf-8').splitlines()
-  listed_targets = set(
+  listed_targets = {
       os.path.basename(path.rstrip('/'))
-      for path in storage.list_blobs(bucket_dir_path, recursive=False))
+      for path in storage.list_blobs(bucket_dir_path, recursive=False)}
   return [t for t in targets if _base_fuzz_target_name(t) in listed_targets]
 
 

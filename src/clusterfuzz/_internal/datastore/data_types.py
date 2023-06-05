@@ -139,14 +139,14 @@ def clone_entity(e, **extra_args):
   """Clones a DataStore entity and returns the clone."""
   ent_class = e.__class__
   # pylint: disable=protected-access,unnecessary-dunder-call
-  props = dict((v._code_name, v.__get__(e, ent_class))
+  props = {v._code_name: v.__get__(e, ent_class)
                for v in ent_class._properties.values()
-               if not isinstance(v, ndb.ComputedProperty))
+               if not isinstance(v, ndb.ComputedProperty)}
   props.update(extra_args)
   return ent_class(**props)
 
 
-class SecuritySeverity(object):
+class SecuritySeverity:
   """Enum for Security Severity."""
   CRITICAL = 0
   HIGH = 1
@@ -188,7 +188,7 @@ class SecuritySeverity(object):
 
 
 # Impact values for security issues.
-class SecurityImpact(object):
+class SecurityImpact:
   EXTENDED_STABLE = 0
   STABLE = 1
   BETA = 2
@@ -198,7 +198,7 @@ class SecurityImpact(object):
 
 
 # Archive state enums.
-class ArchiveStatus(object):
+class ArchiveStatus:
   NONE = 0
   FUZZED = 1
   MINIMIZED = 2
@@ -206,7 +206,7 @@ class ArchiveStatus(object):
 
 
 # ExternalUserPermission Auto-CC type.
-class AutoCCType(object):
+class AutoCCType:
   # Don't Auto-CC user.
   NONE = 0
   # Auto-CC user for all issues.
@@ -216,14 +216,14 @@ class AutoCCType(object):
 
 
 # Type of permission. Used by ExternalUserPermision.
-class PermissionEntityKind(object):
+class PermissionEntityKind:
   FUZZER = 0
   JOB = 1
   UPLOADER = 2
 
 
 # Task state string mappings.
-class TaskState(object):
+class TaskState:
   STARTED = 'started'
   WIP = 'in-progress'
   FINISHED = 'finished'
@@ -232,13 +232,13 @@ class TaskState(object):
 
 
 # Build state.
-class BuildState(object):
+class BuildState:
   UNMARKED = 0
   GOOD = 1
   BAD = 2
 
 
-class TestcaseVariantStatus(object):
+class TestcaseVariantStatus:
   PENDING = 0
   REPRODUCIBLE = 1
   FLAKY = 2
@@ -604,7 +604,7 @@ class Testcase(Model):
     self.has_bug_flag = bool(self.bug_indices)
     self.is_a_duplicate_flag = bool(self.duplicate_of)
     fuzzer_name_indices = list(
-        set([self.fuzzer_name, self.overridden_fuzzer_name]))
+        {self.fuzzer_name, self.overridden_fuzzer_name})
     self.fuzzer_name_indices = [f for f in fuzzer_name_indices if f]
 
     # If the impact task hasn't been run (aka is_impact_set_flag=False) OR
