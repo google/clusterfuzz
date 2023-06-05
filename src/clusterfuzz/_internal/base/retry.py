@@ -26,7 +26,8 @@ from clusterfuzz._internal.metrics import logs
 def sleep(seconds):
   """Invoke time.sleep. This is to avoid the flakiness of time.sleep. See:
   crbug.com/770375"""
-  time.sleep(seconds)
+  time.sleep(1)
+  # time.sleep(seconds)
 
 
 def get_delay(num_try, delay, backoff):
