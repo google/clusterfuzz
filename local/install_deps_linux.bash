@@ -26,13 +26,13 @@ done
 
 if [ -z "$PYTHON" ]; then
    if which python3.11 > /dev/null; then
-    PYTHON='python3.11'
+    export PYTHON='python3.11'
   elif which python3.10 > /dev/null; then
-    PYTHON='python3.10'
+    export PYTHON='python3.10'
   elif which python3.9 > /dev/null; then
-    PYTHON='python3.9'
+    export PYTHON='python3.9'
   else
-    PYTHON='python3'
+    export PYTHON='python3'
   fi
 fi
 
@@ -153,50 +153,5 @@ else
       google-cloud-sdk-pubsub-emulator
 fi
 
-# Setup pipenv and install python dependencies.
-if $PYTHON -m pipenv --venv > /dev/null 2>&1; then
-  # Remove existing pipenv virtual environment.
-  $PYTHON -m pipenv --rm
-fi
-
-$PYTHON -m pipenv --python $PYTHON
-$PYTHON -m pipenv sync --dev
-source "$(${PYTHON} -m pipenv --venv)/bin/activate"
-
-if [ $install_android_emulator ]; then
-  ANDROID_SDK_INSTALL_DIR=local/bin/android-sdk
-  ANDROID_SDK_REVISION=4333796
-  ANDROID_VERSION=28
-  ANDROID_TOOLS_BIN=$ANDROID_SDK_INSTALL_DIR/tools/bin/
-
-  # Install the Android emulator and its dependencies. Used in tests and as an
-  # option during Android test case reproduction.
-  rm -rf $ANDROID_SDK_INSTALL_DIR
-  mkdir $ANDROID_SDK_INSTALL_DIR
-  curl https://dl.google.com/android/repository/sdk-tools-linux-$ANDROID_SDK_REVISION.zip \
-      --output $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
-  unzip -d $ANDROID_SDK_INSTALL_DIR $ANDROID_SDK_INSTALL_DIR/sdk-tools-linux.zip
-
-  $ANDROID_TOOLS_BIN/sdkmanager "emulator"
-  $ANDROID_TOOLS_BIN/sdkmanager "platform-tools" "platforms;android-$ANDROID_VERSION"
-  $ANDROID_TOOLS_BIN/sdkmanager "system-images;android-$ANDROID_VERSION;google_apis;x86"
-  $ANDROID_TOOLS_BIN/sdkmanager --licenses
-  $ANDROID_TOOLS_BIN/avdmanager create avd --force -n TestImage -k "system-images;android-$ANDROID_VERSION;google_apis;x86"
-fi
-
-# Install other dependencies (e.g. bower).
-nodeenv -p --prebuilt
-# Unsafe perm flag allows bower and polymer-bundler install for root users as well.
-npm install --unsafe-perm -g bower polymer-bundler
-bower --allow-root install
-
-# Run the full bootstrap script to prepare for ClusterFuzz development.
-python butler.py bootstrap
-
-set +x
-echo "
-
-Installation succeeded!
-Please load environment by running "$PYTHON -m pipenv shell".
-
-"
+dir=$(dirname "$0")
+"$dir"/install_python_deps_linux.bash $*

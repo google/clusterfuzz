@@ -32,8 +32,8 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz.stacktraces import constants
 
-TestPaths = collections.namedtuple(
-    'TestPaths', ['data', 'corpus', 'crashes', 'centipede', 'centipede_old'])
+TestPaths = collections.namedtuple('TestPaths',
+                                   ['data', 'corpus', 'crashes', 'centipede'])
 
 # test_data in the repo.
 _TEST_DATA_SRC = pathlib.Path(__file__).parent / 'test_data'
@@ -47,8 +47,7 @@ def get_test_paths():
     data_dir = temp_dir / 'test_data'
     shutil.copytree(_TEST_DATA_SRC, data_dir)
     test_paths = TestPaths(data_dir, temp_dir / 'corpus', temp_dir / 'crashes',
-                           str(data_dir / 'centipede'),
-                           str(data_dir / 'centipede-old'))
+                           str(data_dir / 'centipede'))
     os.mkdir(test_paths.corpus)
     os.mkdir(test_paths.crashes)
     yield test_paths
@@ -148,16 +147,6 @@ class IntegrationTest(unittest.TestCase):
         testcase_path,
         'clusterfuzz_format_target_sanitized',
         sanitized_target_dir=self.test_paths.data)
-
-    # Check the crash reason was parsed correctly.
-    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
-    self.assertIn('heap-use-after-free', crash_info.group(2))
-
-  def test_reproduce_uaf_old(self):
-    """Tests reproducing an old ASAN heap-use-after-free crash."""
-    testcase_path = setup_testcase('crash', self.test_paths)
-    crash_info = self._test_reproduce(constants.ASAN_REGEX, testcase_path,
-                                      'always_crash_fuzzer')
 
     # Check the crash reason was parsed correctly.
     self.assertEqual(crash_info.group(1), 'AddressSanitizer')
@@ -318,27 +307,6 @@ class IntegrationTest(unittest.TestCase):
       self.assertEqual(content, f.read())
 
     return re.search(crash_regex, crash.stacktrace)
-
-  def test_crash_uaf_old(self):
-    """Tests fuzzing that results in an old ASAN heap-use-after-free crash."""
-    setup_testcase('uaf', self.test_paths)
-    crash_info = self._test_crash_log_regex(
-        constants.ASAN_REGEX,
-        'uaf',
-        centipede_bin=self.test_paths.centipede_old)
-
-    # Check the crash reason was parsed correctly.
-    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
-    self.assertIn('heap-use-after-free', crash_info.group(2))
-
-  def test_crash_oom_old(self):
-    """Tests fuzzing that results in an old out-of-memory crash."""
-    setup_testcase('oom', self.test_paths)
-    self._test_crash_log_regex(
-        constants.OUT_OF_MEMORY_REGEX,
-        'oom',
-        rss_limit=_RSS_LIMIT_TEST,
-        centipede_bin=self.test_paths.centipede_old)
 
   def test_crash_uaf_without_unsanitized(self):
     """Tests fuzzing that results in a ASAN heap-use-after-free crash when no

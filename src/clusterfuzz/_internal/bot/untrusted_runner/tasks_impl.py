@@ -14,7 +14,7 @@
 """Tasks RPC implementations."""
 
 from google.protobuf import wrappers_pb2
-from google.protobuf.any_pb2 import Any
+from google.protobuf.any_pb2 import Any  # pylint: disable=no-name-in-module
 
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import corpus_pruning_task
