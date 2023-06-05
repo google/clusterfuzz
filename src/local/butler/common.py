@@ -41,7 +41,7 @@ class GsutilError(Exception):
   """Gsutil error."""
 
 
-class Gcloud(object):
+class Gcloud:
   """Project specific gcloud."""
 
   def __init__(self, project_id):
@@ -53,7 +53,7 @@ class Gcloud(object):
     return _run_and_handle_exception(arguments, GcloudError)
 
 
-class Gsutil(object):
+class Gsutil:
   """gsutil runner."""
 
   def run(self, *args):
@@ -146,7 +146,7 @@ def execute(command,
 
   print_string = f'Running: {command}'
   if cwd:
-    print_string += f' (cwd=\'{cwd}\')'
+    print_string += f' (cwd="{cwd}")'
   _print(print_string)
 
   proc = execute_async(command, extra_environments, cwd=cwd, stderr=stderr)
@@ -295,7 +295,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
       print(f'Did not find package for platform: {pip_platform}')
       continue
 
-    execute(f'unzip -o -d {target_path} \'{temp_dir}/*.whl\'')
+    execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
     shutil.rmtree(temp_dir, ignore_errors=True)
     break
 
