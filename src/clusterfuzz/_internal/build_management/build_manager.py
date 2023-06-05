@@ -14,9 +14,9 @@
 """Build manager."""
 
 from collections import namedtuple
-from distutils import spawn  # pylint: disable=deprecated-module
 import os
 import re
+import shutil
 import subprocess
 import time
 
@@ -1472,7 +1472,7 @@ def _set_rpaths_chrpath(binary_path, rpaths):
 
 def _set_rpaths_patchelf(binary_path, rpaths):
   """Set rpaths using patchelf."""
-  patchelf = spawn.find_executable('patchelf')
+  patchelf = shutil.which('patchelf')
   if not patchelf:
     raise BuildManagerError('Failed to find patchelf')
 

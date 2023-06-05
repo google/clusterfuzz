@@ -18,12 +18,8 @@ import datetime
 import os
 import re
 import shlex
+from shlex import quote
 import time
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
 
 from google.cloud import ndb
 
