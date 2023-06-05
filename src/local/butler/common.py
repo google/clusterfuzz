@@ -14,15 +14,14 @@
 """common.py contains common methods and variables that are used by multiple
    commands."""
 
-# TODO(ochang): Fix these.
-# pylint: disable=consider-using-f-string
-
 import datetime
 from distutils import dir_util
 import io
 import os
 import platform
+from shlex import quote
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -30,11 +29,6 @@ import urllib.request
 import zipfile
 
 from local.butler import constants
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
 
 INVALID_FILENAMES = ['src/third_party/setuptools/script (dev).tmpl']
 
@@ -47,7 +41,7 @@ class GsutilError(Exception):
   """Gsutil error."""
 
 
-class Gcloud(object):
+class Gcloud:
   """Project specific gcloud."""
 
   def __init__(self, project_id):
@@ -59,7 +53,7 @@ class Gcloud(object):
     return _run_and_handle_exception(arguments, GcloudError)
 
 
-class Gsutil(object):
+class Gsutil:
   """gsutil runner."""
 
   def run(self, *args):
@@ -114,7 +108,7 @@ def process_proc_output(proc, print_output=True):
 
   lines = []
   for line in iter(proc.stdout.readline, b''):
-    _print('| %s' % line.rstrip().decode('utf-8'))
+    _print(f'| {line.rstrip().decode("utf-8")}')
     lines.append(line)
 
   return b''.join(lines)
@@ -150,9 +144,9 @@ def execute(command,
     if print_output:
       print(s)
 
-  print_string = 'Running: %s' % command
+  print_string = f'Running: {command}'
   if cwd:
-    print_string += " (cwd='%s')" % cwd
+    print_string += f' (cwd="{cwd}")'
   _print(print_string)
 
   proc = execute_async(command, extra_environments, cwd=cwd, stderr=stderr)
@@ -160,7 +154,7 @@ def execute(command,
 
   proc.wait()
   if proc.returncode != 0:
-    _print('| Return code is non-zero (%d).' % proc.returncode)
+    _print(f'| Return code is non-zero ({proc.returncode}).')
     if exit_on_error:
       _print('| Exit.')
       sys.exit(proc.returncode)
@@ -176,7 +170,7 @@ def kill_process(name):
         'wmic process where (commandline like "%%%s%%") delete' % name,
         exit_on_error=False)
   elif plt in ['linux', 'macos']:
-    execute('pkill -KILL -f "%s"' % name, exit_on_error=False)
+    execute(f'pkill -KILL -f "{name}"', exit_on_error=False)
 
 
 def is_git_dirty():
@@ -224,7 +218,7 @@ def _install_chromedriver():
 
   chromedriver_archive.extract(chromedriver_binary, output_directory)
   os.chmod(chromedriver_path, 0o750)
-  print('Installed chromedriver at: %s' % chromedriver_path)
+  print(f'Installed chromedriver at: {chromedriver_path}')
 
 
 def _pip():
@@ -254,7 +248,7 @@ def _pipfile_to_requirements(pipfile_dir, requirements_path, dev=False):
         stderr=subprocess.DEVNULL)
 
   if return_code != 0:
-    raise Exception('Failed to generate requirements from Pipfile.')
+    raise RuntimeError('Failed to generate requirements from Pipfile.')
 
   with open(requirements_path, 'wb') as f:
     f.write(output)
@@ -277,7 +271,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
   """Install platform specific pip packages."""
   pip_platform = constants.PLATFORMS.get(platform_name)
   if not pip_platform:
-    raise Exception('Unknown platform: %s.' % platform_name)
+    raise OSError(f'Unknown platform: {platform_name}.')
 
   # Some platforms can specify multiple pip platforms (e.g. macOS has multiple
   # SDK versions).
@@ -292,26 +286,22 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
   for pip_platform in pip_platforms:
     temp_dir = tempfile.mkdtemp()
     return_code, _ = execute(
-        '{pip} download --no-deps --only-binary=:all: --platform={platform} '
-        '--abi={abi} -r {requirements_path} -d {output_dir}'.format(
-            pip=_pip(),
-            platform=pip_platform,
-            abi=pip_abi,
-            requirements_path=requirements_path,
-            output_dir=temp_dir),
+        f'{_pip()} download --no-deps --only-binary=:all: '
+        f'--platform={pip_platform} --abi={pip_abi} -r {requirements_path} -d '
+        f'{temp_dir}',
         exit_on_error=False)
 
     if return_code != 0:
-      print('Did not find package for platform: ' + pip_platform)
+      print(f'Did not find package for platform: {pip_platform}')
       continue
 
-    execute('unzip -o -d %s \'%s/*.whl\'' % (target_path, temp_dir))
+    execute(f'unzip -o -d {target_path} "{temp_dir}/*.whl"')
     shutil.rmtree(temp_dir, ignore_errors=True)
     break
 
   if return_code != 0:
-    raise Exception('Failed to find package in supported platforms: %s' +
-                    str(pip_platforms))
+    raise RuntimeError(
+        f'Failed to find package in supported platforms: {pip_platforms}')
 
 
 def _remove_invalid_files():
@@ -361,16 +351,13 @@ def symlink(src, target):
   remove_symlink(target)
 
   if get_platform() == 'windows':
-    execute(r'cmd /c mklink /j %s %s' % (target, src))
+    execute(rf'cmd /c mklink /j {target} {src}')
   else:
     os.symlink(src, target)
 
-  assert os.path.exists(target), (
-      'Failed to create {target} symlink for {src}.'.format(
-          target=target, src=src))
+  assert os.path.exists(target), f'Failed to create {target} symlink for {src}.'
 
-  print('Created symlink: source: {src}, target {target}.'.format(
-      src=src, target=target))
+  print(f'Created symlink: source: {src}, target {target}.')
 
 
 def copy_dir(src, target):
@@ -395,8 +382,7 @@ def test_bucket(env_var):
   """Get the integration test bucket."""
   bucket = os.getenv(env_var)
   if not bucket:
-    raise RuntimeError(
-        'You need to specify {var} for integration testing'.format(var=env_var))
+    raise RuntimeError(f'You need to specify {env_var} for integration testing')
 
   return bucket
 
@@ -418,10 +404,32 @@ def get_platform():
   if platform.system() == 'Windows':
     return 'windows'
 
-  raise Exception('Unknown platform: %s.' % platform.system())
+  raise OSError(f'Unknown platform: {platform.system()}.')
+
+
+def get_modified_time(filename):
+  return os.stat(filename)[stat.ST_MTIME]
+
+
+def is_newer(src, dst):
+  if not os.path.exists(dst):
+    return True
+
+  src_time = get_modified_time(src)
+  dst_time = get_modified_time(dst)
+  return src_time > dst_time
+
+
+def copy_if_newer(src, dst):
+  if is_newer(src, dst):
+    return shutil.copy2(src, dst)
+  return False
 
 
 def update_dir(src_dir, dst_dir):
   """Recursively copy from src_dir to dst_dir, replacing files but only if
   they're newer or don't exist."""
+  # TODO(metzman): Replace this with
+  # shutil.copytree(src_dir, dst_dir, copy_function=copy_if_newer)
+  # After we migrate to python3.9.
   dir_util.copy_tree(src_dir, dst_dir, update=True)
