@@ -18,8 +18,8 @@ import json
 import os
 import sys
 import unittest
+from unittest import mock
 
-import mock
 from pyfakefs import fake_filesystem_unittest
 import yaml
 

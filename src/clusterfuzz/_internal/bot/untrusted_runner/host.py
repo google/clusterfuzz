@@ -37,7 +37,7 @@ WAIT_TLS_CERT_SECONDS = 60
 RPC_FAIL_WAIT_TIME = 10
 
 
-class ChannelState(object):
+class ChannelState:
   """The host's view of the channel state."""
   # Channel isn't ready for sending RPCs.
   NOT_READY = 0
@@ -51,7 +51,7 @@ class ChannelState(object):
   INCONSISTENT = 2
 
 
-class HostState(object):
+class HostState:
   """The state of the host."""
 
   def __init__(self):
@@ -79,7 +79,7 @@ class UntrustedRunnerStub(untrusted_runner_pb2_grpc.UntrustedRunnerStub):
   error handling/retry logic."""
 
   def __init__(self, channel):
-    super(UntrustedRunnerStub, self).__init__(channel)
+    super().__init__(channel)
 
     # Don't wrap GetStatus() because it's used during connection state changes.
     # Don't wrap UpdateSource() because it can be expected to fail.

@@ -152,7 +152,7 @@ Insert = collections.namedtuple('Insert', ['row', 'insert_id'])
 QueryResult = collections.namedtuple('QueryResult', ['rows', 'total_count'])
 
 
-class Client(object):
+class Client:
   """BigQuery client."""
 
   def __init__(self, dataset_id=None, table_id=None):

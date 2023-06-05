@@ -64,8 +64,7 @@ def extend_request(req, params):
   """Extends a request."""
 
   def _iterparams():
-    for k, v in params.items():
-      yield k, v
+    yield from params.items()
 
   def _get(key, default_value=None):
     """Return the value of the key or the default value."""

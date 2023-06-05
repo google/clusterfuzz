@@ -28,7 +28,7 @@ EXTRACT_ZIP_PS_LOCAL_PATH = 'src/local/remote/extract_zip.ps1'
 EXTRACT_ZIP_PS_REMOTE_PATH = r'c:\extract_clusterfuzz_stage_source_zip.ps1'
 
 
-class Handler(object):
+class Handler:
   """Handler for windows."""
 
   def __init__(self, instance_name, project, zone):

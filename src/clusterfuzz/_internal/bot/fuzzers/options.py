@@ -33,7 +33,7 @@ class FuzzerOptionsError(Exception):
   """Exceptions for fuzzer options."""
 
 
-class FuzzerArguments(object):
+class FuzzerArguments:
   """Fuzzer flags."""
 
   def __init__(self, flags):
@@ -71,7 +71,7 @@ class FuzzerArguments(object):
     return [f'-{key}={value}' for key, value in self.flags.items()]
 
 
-class FuzzerOptions(object):
+class FuzzerOptions:
   """Represents fuzzer and related options."""
 
   OPTIONS_RANDOM_REGEX = re.compile(
@@ -87,7 +87,7 @@ class FuzzerOptions(object):
       self._cwd = os.path.dirname(options_file_path)
 
     self._config = configparser.ConfigParser()
-    with open(options_file_path, 'r') as f:
+    with open(options_file_path) as f:
       try:
         self._config.read_file(f)
       except configparser.Error:

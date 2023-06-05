@@ -22,6 +22,7 @@ from distutils import dir_util
 import io
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -30,11 +31,6 @@ import urllib.request
 import zipfile
 
 from local.butler import constants
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
 
 INVALID_FILENAMES = ['src/third_party/setuptools/script (dev).tmpl']
 
@@ -47,7 +43,7 @@ class GsutilError(Exception):
   """Gsutil error."""
 
 
-class Gcloud(object):
+class Gcloud:
   """Project specific gcloud."""
 
   def __init__(self, project_id):
@@ -59,7 +55,7 @@ class Gcloud(object):
     return _run_and_handle_exception(arguments, GcloudError)
 
 
-class Gsutil(object):
+class Gsutil:
   """gsutil runner."""
 
   def run(self, *args):
@@ -70,7 +66,7 @@ class Gsutil(object):
 
 def _run_and_handle_exception(arguments, exception_class):
   """Run a command and handle its error output."""
-  print('Running:', ' '.join(quote(arg) for arg in arguments))
+  print('Running:', ' '.join(shlex.quote(arg) for arg in arguments))
   try:
     return subprocess.check_output(arguments)
   except subprocess.CalledProcessError as e:

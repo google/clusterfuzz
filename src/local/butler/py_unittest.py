@@ -41,16 +41,16 @@ class TrackedTestResult(unittest.TextTestResult):
   """Result object that tracks slow-running tests."""
 
   def __init__(self, *args, **kwargs):
-    super(TrackedTestResult, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.slow_tests = []
 
   def startTest(self, test):
     self._start_time = time.time()
-    super(TrackedTestResult, self).startTest(test)
+    super().startTest(test)
 
   def addSuccess(self, test):
     elapsed_time = time.time() - self._start_time
-    super(TrackedTestResult, self).addSuccess(test)
+    super().addSuccess(test)
 
     if elapsed_time <= SLOW_TEST_THRESHOLD:
       return
@@ -64,10 +64,10 @@ class TrackedTestRunner(unittest.TextTestRunner):
 
   def __init__(self, *args, **kwargs):
     kwargs['resultclass'] = TrackedTestResult
-    super(TrackedTestRunner, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
   def run(self, test):
-    result = super(TrackedTestRunner, self).run(test)
+    result = super().run(test)
 
     if not result.slow_tests:
       return result
@@ -79,7 +79,7 @@ class TrackedTestRunner(unittest.TextTestRunner):
     return result
 
 
-class TestResult(object):
+class TestResult:
   """Test results."""
 
   def __init__(self, output, num_errors, num_failures, num_skipped, total_run):

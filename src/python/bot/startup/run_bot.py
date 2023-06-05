@@ -42,7 +42,7 @@ from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 
 
-class _Monitor(object):
+class _Monitor:
   """Monitor one task."""
 
   def __init__(self, task, time_module=time):

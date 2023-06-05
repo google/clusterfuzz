@@ -123,8 +123,8 @@ def _make_space(requested_size, current_build_dir=None):
 
   builds_directory = environment.get_value('BUILDS_DIR')
 
-  error_message = 'Need at least %d GB of free disk space.' % ((
-      (min_free_disk_space + requested_size) // 1024**3))
+  error_message = 'Need at least %d GB of free disk space.' % (
+      (min_free_disk_space + requested_size) // 1024**3)
   for _ in range(MAX_EVICTED_BUILDS):
     free_disk_space = shell.get_free_disk_space(builds_directory)
     if free_disk_space is None:
@@ -619,7 +619,7 @@ class Build(BaseBuild):
     """Check if build already exists."""
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     if os.path.exists(revision_file):
-      with open(revision_file, 'r') as file_handle:
+      with open(revision_file) as file_handle:
         try:
           current_revision = int(file_handle.read())
         except ValueError:
@@ -1163,9 +1163,10 @@ def _get_targets_list(bucket_path):
 
   # Filter out targets which are not yet built.
   targets = data.decode('utf-8').splitlines()
-  listed_targets = set(
+  listed_targets = {
       os.path.basename(path.rstrip('/'))
-      for path in storage.list_blobs(bucket_dir_path, recursive=False))
+      for path in storage.list_blobs(bucket_dir_path, recursive=False)
+  }
   return [t for t in targets if _base_fuzz_target_name(t) in listed_targets]
 
 

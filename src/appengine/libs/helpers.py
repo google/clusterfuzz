@@ -36,7 +36,7 @@ class EarlyExitError(Exception):
   """Serve as an exception for exiting a handler's method early."""
 
   def __init__(self, message, status, trace_dump=None):
-    super(EarlyExitError, self).__init__(message)
+    super().__init__(message)
     self.status = status
     self.trace_dump = trace_dump
     if self.trace_dump is None:
@@ -60,14 +60,14 @@ class AccessDeniedError(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 403."""
 
   def __init__(self, message=''):
-    super(AccessDeniedError, self).__init__(message, 403, '')
+    super().__init__(message, 403, '')
 
 
 class UnauthorizedException(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 401."""
 
   def __init__(self, message=''):
-    super(UnauthorizedException, self).__init__(message, 401, '')
+    super().__init__(message, 401, '')
 
 
 def get_testcase(testcase_id):

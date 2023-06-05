@@ -13,9 +13,8 @@
 # limitations under the License.
 """access tests."""
 import unittest
-
 # pylint: disable=protected-access
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers

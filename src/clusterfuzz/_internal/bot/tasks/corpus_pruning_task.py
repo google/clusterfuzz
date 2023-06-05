@@ -151,7 +151,7 @@ class CorpusPruningError(Exception):
   """Corpus pruning exception."""
 
 
-class CrossPollinateFuzzer(object):
+class CrossPollinateFuzzer:
   """Cross Pollinate Fuzzer."""
 
   def __init__(self, fuzz_target, backup_bucket_name, corpus_engine_name):
@@ -160,7 +160,7 @@ class CrossPollinateFuzzer(object):
     self.corpus_engine_name = corpus_engine_name
 
 
-class Context(object):
+class Context:
   """Pruning state."""
 
   def __init__(self, fuzz_target, cross_pollinate_fuzzers):
@@ -304,7 +304,7 @@ class Context(object):
             'Failed to unpack corpus backup from url %s.' % corpus_backup_url)
 
 
-class Runner(object):
+class Runner:
   """Runner for libFuzzer."""
 
   def __init__(self, build_directory, context):
@@ -379,7 +379,7 @@ class Runner(object):
                                                reproducers_dir, max_time)
 
 
-class CorpusPruner(object):
+class CorpusPruner:
   """Class that handles corpus pruning."""
 
   def __init__(self, runner):
@@ -498,7 +498,7 @@ class CorpusPruner(object):
     return result.stats
 
 
-class CrossPollinator(object):
+class CrossPollinator:
   """Cross pollination."""
 
   def __init__(self, runner):

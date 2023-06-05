@@ -60,7 +60,7 @@ class Handler(base_handler.Handler):
       except Exception:
         raise helpers.EarlyExitError('Failed to read content.', 400)
     else:
-      content = u''
+      content = ''
 
     line_count = len(content.splitlines())
     size = len(content)

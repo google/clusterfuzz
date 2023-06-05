@@ -290,7 +290,7 @@ class JsonHandler(base_handler.Handler):
     return self.render_json(result)
 
 
-class UploadHandlerCommon(object):
+class UploadHandlerCommon:
   """Handler that uploads the testcase file."""
 
   def get_upload(self):

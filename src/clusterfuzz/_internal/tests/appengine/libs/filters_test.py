@@ -14,8 +14,7 @@
 """filters tests"""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from libs import filters
 from libs import helpers

@@ -28,7 +28,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 
-class BuiltinFuzzerResult(object):
+class BuiltinFuzzerResult:
   """Result of running a builtin fuzzer."""
 
   def __init__(self, output, corpus_directory=None):
@@ -42,7 +42,7 @@ class BuiltinFuzzerError(Exception):
   during a run."""
 
 
-class BuiltinFuzzer(object):
+class BuiltinFuzzer:
   """Builtin fuzzer."""
 
   def run(self, input_directory, output_directory, no_of_files):

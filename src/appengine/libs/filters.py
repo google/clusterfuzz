@@ -66,7 +66,7 @@ def get_string(value):
   return value.strip()
 
 
-class Filter(object):
+class Filter:
   """Base filter."""
 
   def add(self, query, params):
@@ -145,7 +145,7 @@ class Keyword(SimpleFilter):
 
   def __init__(self, keyword_filters, field, param_key):
     self.keyword_filters = keyword_filters
-    super(Keyword, self).__init__(field, param_key, required=False)
+    super().__init__(field, param_key, required=False)
 
   def add(self, query, params):
     """Add filter."""

@@ -15,7 +15,6 @@
 
 from flask import request
 from google.cloud import ndb
-import six
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_handler
@@ -41,7 +40,7 @@ FILTERS = [
 def get_queues():
   """Return list of task queues."""
   queues = []
-  for name, display_name in six.iteritems(tasks.TASK_QUEUE_DISPLAY_NAMES):
+  for name, display_name in tasks.TASK_QUEUE_DISPLAY_NAMES.items():
     queue = {
         'name': name,
         'display_name': display_name,

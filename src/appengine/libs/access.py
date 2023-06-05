@@ -72,7 +72,7 @@ def _is_domain_allowed(email):
   return False
 
 
-class UserAccess(object):
+class UserAccess:
   Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
 
 

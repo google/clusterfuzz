@@ -212,7 +212,7 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   return highlight_common_stack_frames(filtered_crash_stacktrace)
 
 
-class Line(object):
+class Line:
   """Represent a stacktrace line."""
 
   def __init__(self, line_number, content, important):
@@ -239,7 +239,7 @@ class Line(object):
     }
 
 
-class Gap(object):
+class Gap:
   """Represent a gap in a previewed stacktrace."""
 
   def __init__(self, size):

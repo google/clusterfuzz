@@ -20,7 +20,6 @@ import urllib.parse
 
 from flask import request
 from googleapiclient.errors import HttpError
-import six
 import yaml
 
 from clusterfuzz._internal.base import external_users
@@ -46,7 +45,7 @@ MEMCACHE_OLD_TTL_IN_SECONDS = 24 * 60 * 60
 MEMCACHE_TODAY_TTL_IN_SECONDS = 30 * 60
 
 
-class QueryField(object):
+class QueryField:
   """Wrapped fuzzer_stats.QueryField with extra metadata."""
 
   def __init__(self, field, results_index, field_type, bigquery_type):
@@ -56,7 +55,7 @@ class QueryField(object):
     self.bigquery_type = bigquery_type.lower()
 
 
-class BuiltinField(object):
+class BuiltinField:
   """Wrapped fuzzer_stats.BuiltinField with extra metadata."""
 
   def __init__(self, spec, field):
@@ -188,7 +187,7 @@ def _parse_stats_column_descriptions(stats_column_descriptions):
 
   try:
     result = yaml.safe_load(stats_column_descriptions)
-    for key, value in six.iteritems(result):
+    for key, value in result.items():
       result[key] = html.escape(value)
 
     return result

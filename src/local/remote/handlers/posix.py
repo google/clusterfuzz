@@ -26,7 +26,7 @@ from local.butler import package
 # pylint: disable=no-member
 
 
-class Handler(object):
+class Handler:
   """Handler for performing linux task."""
 
   def __init__(self, instance_name, platform, project, zone):
@@ -133,8 +133,8 @@ class Handler(object):
         platform_name=self.platform)
     self._copy_staging_archive_from_local_to_remote(local_zip_path)
 
-    self._run((f'cd {self.clusterfuzz_parent_path} && '
-               f'unzip -o -d . {self.staging_source_filename}'))
+    self._run(f'cd {self.clusterfuzz_parent_path} && '
+              f'unzip -o -d . {self.staging_source_filename}')
     self._run(f'chown -R {self.username} {self.clusterfuzz_parent_path}')
 
     self.restart()
