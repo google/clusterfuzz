@@ -7,7 +7,7 @@ name = "pypi"
 cryptography = "==3.4.8"
 crcmod = "==1.7"
 future = "==0.17.1"
-protobuf = "==3.15.3"
+protobuf = "==3.20.3"
 psutil = "==5.7.0"
 
 [dev-packages]
@@ -26,4 +26,3 @@ selenium = "==3.141.0"
 twine = "*"
 WebTest = "==2.0.23"
 yapf = "==0.22.0"
-
