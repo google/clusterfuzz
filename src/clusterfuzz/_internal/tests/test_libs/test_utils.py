@@ -253,6 +253,7 @@ def start_cloud_emulator(emulator,
   proc = subprocess.Popen(
       command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
+  print('command', command)
   thread = wait_for_emulator_ready(proc, emulator, ready_indicators[emulator])
 
   # Set env vars.
