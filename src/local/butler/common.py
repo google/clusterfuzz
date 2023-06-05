@@ -271,11 +271,7 @@ def _install_platform_pip(requirements_path, target_path, platform_name):
   """Install platform specific pip packages."""
   pip_platform = constants.PLATFORMS.get(platform_name)
   if not pip_platform:
-<<<<<<< HEAD
-    raise RuntimeError(f'Unknown platform: {platform_name}.')
-=======
     raise OSError(f'Unknown platform: {platform_name}.')
->>>>>>> master
 
   # Some platforms can specify multiple pip platforms (e.g. macOS has multiple
   # SDK versions).
