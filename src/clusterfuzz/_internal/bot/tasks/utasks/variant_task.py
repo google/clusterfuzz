@@ -76,8 +76,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
   metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(
-          testcase_id)).get()
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   return {
       'original_job_type': original_job_type,
       'testcase': testcase,
