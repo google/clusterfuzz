@@ -87,7 +87,8 @@ def utask_preprocess(testcase_id, job_type, _):
 def utask_main(original_job_type, testcase, variant, job_type,
                testcase_download_url, metadata):
   """The main part of the variant task. Downloads the testcase and build checks
-  if the build can reproduce the error."""  if environment.is_engine_fuzzer_job(testcase.job_type):
+  if the build can reproduce the error."""
+  if environment.is_engine_fuzzer_job(testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     # Repeat this because the in-memory executor may allow puts.
     # TODO(metzman): Remove this when we use batch.
