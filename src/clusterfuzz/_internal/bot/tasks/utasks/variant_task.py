@@ -83,14 +83,14 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       'testcase': testcase,
       'uworker_env': uworker_env,
       'variant': variant,
-      'testcase_upload_metadata': testcase_upload_metadata
+      'metadata': testcase_upload_metadata
       'testcase_download_url': testcase_download_url,
   }
 
 
 def utask_main(original_job_type, testcase, variant, job_type,
                testcase_download_url,
-               testcase_upload_metadata):
+               metadata):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
   if environment.is_engine_fuzzer_job(testcase.job_type):
@@ -103,7 +103,7 @@ def utask_main(original_job_type, testcase, variant, job_type,
   _, testcase_file_path, error = setup.setup_testcase(
       testcase,
       job_type,
-      metadata=testcase_upload_metadata,
+      metadata=metadata,
       testcase_download_url=testcase_download_url)
   if error:
     return error
