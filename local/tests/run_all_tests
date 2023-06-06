@@ -2,6 +2,11 @@
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 
 export PYTHONUNBUFFERED=1
+
+if [ "$(cat /proc/sys/kernel/core_pattern)" != "core" ]; then
+  echo 'AFL integration tests require sudo to modify your core_pattern.'
+  sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
+fi
 INTEGRATION=1 $SCRIPT_DIR/run_tests &
 # https://github.com/google/clusterfuzz/issues/2678.
 # $SCRIPT_DIR/run_js_tests
