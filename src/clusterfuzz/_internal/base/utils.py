@@ -241,7 +241,6 @@ def service_account_email():
 
 def get_bot_testcases_file_path(input_directory):
   """Returns path to bot-specific fuzzed testcases."""
-  # !!! do we want this anymore?
   # Using |FUZZ_INPUTS| prevents putting high load on nfs servers for cases
   # when |input_directory| is a cloud storage data bundle. We can't rely
   # on |FUZZ_INPUTS| always since it might not be available during local fuzzer
