@@ -31,8 +31,8 @@ from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks import utasks
-from clusterfuzz._internal.bot.tasks import variant_task
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -134,7 +134,7 @@ COMMAND_MAP = {
     'symbolize': TrustedTask(symbolize_task),
     'unpack': TrustedTask(unpack_task),
     'upload_reports': TrustedTask(upload_reports_task),
-    'variant': TrustedTask(variant_task),
+    'variant': utask_factory(variant_task),
 }
 
 
