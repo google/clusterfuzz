@@ -15,6 +15,7 @@
 # pylint: disable=unused-argument
 
 import os
+from shlex import quote
 import shutil
 import tempfile
 import unittest
@@ -41,11 +42,6 @@ from clusterfuzz._internal.system import shell
 from clusterfuzz._internal.tests.test_libs import android_helpers
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
 TEST_DIR = os.path.join(TEST_PATH, 'libfuzzer_test_data')
@@ -555,40 +551,6 @@ class IntegrationTests(BaseIntegrationTest):
     # The incremental stats are not zero as the two step merge was used.
     self.assertNotEqual(0, results.stats['new_edges'])
     self.assertNotEqual(0, results.stats['new_features'])
-
-  @test_utils.slow
-  def test_fuzz_no_crash_with_old_libfuzzer(self):
-    """Tests fuzzing (no crash) with an old version of libFuzzer."""
-    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        self.strategies + [strategy.VALUE_PROFILE_STRATEGY])
-
-    _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
-    engine_impl = engine.Engine()
-
-    target_path = engine_common.find_fuzzer_path(DATA_DIR, 'test_fuzzer_old')
-    dict_path = target_path + '.dict'
-    options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-
-    results = engine_impl.fuzz(target_path, options, TEMP_DIR, 5)
-    self.assert_has_stats(results.stats)
-    self.compare_arguments(
-        os.path.join(DATA_DIR, 'test_fuzzer_old'), [
-            '-max_len=256', '-timeout=25', '-rss_limit_mb=2560',
-            '-use_value_profile=1', '-dict=' + dict_path,
-            '-artifact_prefix=' + TEMP_DIR + '/', '-max_total_time=5',
-            '-print_final_stats=1'
-        ], [
-            os.path.join(TEMP_DIR, 'temp-1337/new'),
-            os.path.join(TEMP_DIR, 'corpus')
-        ], results.command)
-    self.assertEqual(0, len(results.crashes))
-
-    # New items should've been added to the corpus.
-    self.assertNotEqual(0, len(os.listdir(corpus_path)))
-
-    # The incremental stats are zero as the single step merge was used.
-    self.assertEqual(0, results.stats['new_edges'])
-    self.assertEqual(0, results.stats['new_features'])
 
   def test_fuzz_crash(self):
     """Tests fuzzing (crash)."""

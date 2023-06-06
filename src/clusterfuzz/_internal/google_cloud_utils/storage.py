@@ -29,7 +29,6 @@ import requests.exceptions
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
-from clusterfuzz._internal.datastore import locks
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -49,24 +48,6 @@ except ImportError:
 # values lower to avoid failures and any future changes.
 AUTH_TOKEN_EXPIRY_TIME = 10 * 60
 
-# Wait time to let NFS copy to sync across bricks.
-CACHE_COPY_WAIT_TIME = 10
-
-# Cache directory name.
-CACHE_DIRNAME = 'cache'
-
-# Time to hold the cache lock for.
-CACHE_LOCK_TIMEOUT = 30 * 60
-
-# File extension for tmp cache files.
-CACHE_METADATA_FILE_EXTENSION = '.metadata'
-
-# Maximum size of file to allow in cache.
-CACHE_SIZE_LIMIT = 5 * 1024 * 1024 * 1024  # 5 GB
-
-# Cache get/set timeout.
-CACHE_TIMEOUT = 3 * 60 * 60  # 3 hours.
-
 # The number of retries to perform some GCS operation.
 DEFAULT_FAIL_RETRIES = 8
 
@@ -75,9 +56,6 @@ DEFAULT_FAIL_WAIT = 2
 
 # Prefix for GCS urls.
 GS_PREFIX = 'gs:/'
-
-# Maximum number of cached files per directory.
-MAX_CACHED_FILES_PER_DIRECTORY = 15
 
 # https://cloud.google.com/storage/docs/best-practices states that we can
 # create/delete 1 bucket about every 2 seconds.
@@ -100,7 +78,7 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 HTTP_TIMEOUT_SECONDS = 15
 
 
-class StorageProvider(object):
+class StorageProvider:
   """Core storage provider interface."""
 
   def create_bucket(self, name, object_lifecycle, cors):
@@ -604,7 +582,7 @@ class FileSystemProvider(StorageProvider):
     return self.write_data(data, signed_url)
 
 
-class GcsBlobInfo(object):
+class GcsBlobInfo:
   """GCS blob info."""
 
   def __init__(self,
@@ -844,17 +822,10 @@ def generate_life_cycle_config(action, age=None, num_newer_versions=None):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.copy_file_from',
     exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
-def copy_file_from(cloud_storage_file_path, local_file_path, use_cache=False):
+def copy_file_from(cloud_storage_file_path, local_file_path):
   """Saves a cloud storage file locally."""
-  if use_cache and get_file_from_cache_if_exists(local_file_path):
-    logs.log('Copied file %s from local cache.' % cloud_storage_file_path)
-    return True
-
   if not _provider().copy_file_from(cloud_storage_file_path, local_file_path):
     return False
-
-  if use_cache:
-    store_file_in_cache(local_file_path)
 
   return True
 
@@ -936,7 +907,10 @@ def last_updated(cloud_storage_file_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.read_data',
-    exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
+    exception_types=[
+        google.cloud.exceptions.GoogleCloudError, ConnectionError,
+        requests.exceptions.ConnectionError
+    ])
 def read_data(cloud_storage_file_path):
   """Return content of a cloud storage file."""
   return _provider().read_data(cloud_storage_file_path)
@@ -960,8 +934,7 @@ def write_data(data, cloud_storage_file_path, metadata=None):
     exception_types=[google.cloud.exceptions.GoogleCloudError, ConnectionError])
 def get_blobs(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
-  for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
-    yield blob
+  yield from _provider().list_blobs(cloud_storage_path, recursive=recursive)
 
 
 @retry.wrap(
@@ -973,218 +946,6 @@ def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
     yield blob['name']
-
-
-def get_download_file_size(cloud_storage_file_path,
-                           file_path=None,
-                           use_cache=False):
-  """Get the download file size of the bucket path."""
-  if use_cache and file_path:
-    size_from_cache = get_file_size_from_cache_if_exists(file_path)
-    if size_from_cache is not None:
-      return size_from_cache
-
-  return get_object_size(cloud_storage_file_path)
-
-
-@utils.timeout(CACHE_TIMEOUT)
-def get_file_from_cache_if_exists(file_path,
-                                  update_modification_time_on_access=True):
-  """Get file from nfs cache if available."""
-  cache_file_path = get_cache_file_path(file_path)
-  if not cache_file_path or not file_exists_in_cache(cache_file_path):
-    # If the file does not exist in cache, bail out.
-    return False
-
-  # Fetch cache file size before starting the actual copy.
-  cache_file_size = get_cache_file_size_from_metadata(cache_file_path)
-
-  # Copy file from cache to local.
-  if not shell.copy_file(cache_file_path, file_path):
-    return False
-
-  # Update timestamp to later help with eviction of old files.
-  if update_modification_time_on_access:
-    update_access_and_modification_timestamp(cache_file_path)
-
-  # Return success or failure based on existence of local file and size
-  # comparison.
-  return (os.path.exists(file_path) and
-          os.path.getsize(file_path) == cache_file_size)
-
-
-@utils.timeout(CACHE_TIMEOUT)
-def get_file_size_from_cache_if_exists(file_path):
-  """Get file size from nfs cache if available."""
-  cache_file_path = get_cache_file_path(file_path)
-  if not cache_file_path or not file_exists_in_cache(cache_file_path):
-    # If the file does not exist in cache, bail out.
-    return None
-
-  return get_cache_file_size_from_metadata(cache_file_path)
-
-
-def get_cache_file_path(file_path):
-  """Return cache file path given a local file path."""
-  # TODO(ochang): Completely remove NFS support.
-  if (not environment.get_value('NFS_ROOT') or
-      environment.get_value('DISABLE_NFS')):
-    return None
-
-  return os.path.join(
-      environment.get_value('NFS_ROOT'), CACHE_DIRNAME,
-      utils.get_directory_hash_for_path(file_path), os.path.basename(file_path))
-
-
-def get_cache_file_metadata_path(cache_file_path):
-  """Return metadata file path for a cache file."""
-  return '%s%s' % (cache_file_path, CACHE_METADATA_FILE_EXTENSION)
-
-
-def get_cache_file_size_from_metadata(cache_file_path):
-  """Return cache file size from metadata file."""
-  cache_file_metadata_path = get_cache_file_metadata_path(cache_file_path)
-  metadata_content = utils.read_data_from_file(
-      cache_file_metadata_path, eval_data=True)
-
-  if not metadata_content or 'size' not in metadata_content:
-    return None
-
-  return metadata_content['size']
-
-
-def write_cache_file_metadata(cache_file_path, file_path):
-  """Write cache file metadata."""
-  cache_file_metadata_path = get_cache_file_metadata_path(cache_file_path)
-  utils.write_data_to_file({
-      'size': os.path.getsize(file_path)
-  }, cache_file_metadata_path)
-
-
-def remove_cache_file_and_metadata(cache_file_path):
-  """Removes cache file and its metadata."""
-  logs.log('Removing cache file %s and its metadata.' % cache_file_path)
-  shell.remove_file(get_cache_file_metadata_path(cache_file_path))
-  shell.remove_file(cache_file_path)
-
-
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.'
-    'update_access_and_modification_timestamp')
-def update_access_and_modification_timestamp(file_path):
-  os.utime(file_path, None)
-
-
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.file_exists_in_cache')
-def file_exists_in_cache(cache_file_path):
-  """Returns if the file exists in cache."""
-  cache_file_metadata_path = get_cache_file_metadata_path(cache_file_path)
-  if not os.path.exists(cache_file_metadata_path):
-    return False
-
-  if not os.path.exists(cache_file_path):
-    return False
-
-  actual_cache_file_size = os.path.getsize(cache_file_path)
-  expected_cache_file_size = get_cache_file_size_from_metadata(cache_file_path)
-  return actual_cache_file_size == expected_cache_file_size
-
-
-@utils.timeout(CACHE_TIMEOUT)
-def store_file_in_cache(file_path,
-                        cached_files_per_directory_limit=True,
-                        force_update=False):
-  """Get file from nfs cache if available."""
-  if not os.path.exists(file_path):
-    logs.log_error(
-        'Local file %s does not exist, nothing to store in cache.' % file_path)
-    return
-
-  if os.path.getsize(file_path) > CACHE_SIZE_LIMIT:
-    logs.log('File %s is too large to store in cache, skipping.' % file_path)
-    return
-
-  nfs_root = environment.get_value('NFS_ROOT')
-  # TODO(ochang): Completely remove NFS support.
-  if not nfs_root or environment.get_value('DISABLE_NFS'):
-    # No NFS, nothing to store in cache.
-    return
-
-  # If NFS server is not available due to heavy load, skip storage operation
-  # altogether as we would fail to store file.
-  if not os.path.exists(os.path.join(nfs_root, '.')):  # Use . to iterate mount.
-    logs.log_warn('Cache %s not available.' % nfs_root)
-    return
-
-  cache_file_path = get_cache_file_path(file_path)
-  cache_directory = os.path.dirname(cache_file_path)
-  filename = os.path.basename(file_path)
-
-  if not os.path.exists(cache_directory):
-    if not shell.create_directory(cache_directory, create_intermediates=True):
-      logs.log_error('Failed to create cache directory %s.' % cache_directory)
-      return
-
-  # Check if the file already exists in cache.
-  if file_exists_in_cache(cache_file_path):
-    if not force_update:
-      return
-
-    # If we are forcing update, we need to remove current cached file and its
-    # metadata.
-    remove_cache_file_and_metadata(cache_file_path)
-
-  # Delete old cached files beyond our maximum storage limit.
-  if cached_files_per_directory_limit:
-    # Get a list of cached files.
-    cached_files_list = []
-    for cached_filename in os.listdir(cache_directory):
-      if cached_filename.endswith(CACHE_METADATA_FILE_EXTENSION):
-        continue
-      cached_file_path = os.path.join(cache_directory, cached_filename)
-      cached_files_list.append(cached_file_path)
-
-    def mtime(file_path):
-      return os.stat(file_path).st_mtime
-
-    last_used_cached_files_list = list(
-        sorted(cached_files_list, key=mtime, reverse=True))
-    for cached_file_path in (
-        last_used_cached_files_list[MAX_CACHED_FILES_PER_DIRECTORY - 1:]):
-      remove_cache_file_and_metadata(cached_file_path)
-
-  # Start storing the actual file in cache now.
-  logs.log('Started storing file %s into cache.' % filename)
-
-  # Fetch lock to store this file. Try only once since if any other bot has
-  # started to store it, we don't need to do it ourselves. Just bail out.
-  lock_name = 'store:cache_file:%s' % utils.string_hash(cache_file_path)
-  if not locks.acquire_lock(
-      lock_name, max_hold_seconds=CACHE_LOCK_TIMEOUT, retries=1, by_zone=True):
-    logs.log_warn(
-        'Unable to fetch lock to update cache file %s, skipping.' % filename)
-    return
-
-  # Check if another bot already updated it.
-  if file_exists_in_cache(cache_file_path):
-    locks.release_lock(lock_name, by_zone=True)
-    return
-
-  shell.copy_file(file_path, cache_file_path)
-  write_cache_file_metadata(cache_file_path, file_path)
-  time.sleep(CACHE_COPY_WAIT_TIME)
-  error_occurred = not file_exists_in_cache(cache_file_path)
-  locks.release_lock(lock_name, by_zone=True)
-
-  if error_occurred:
-    logs.log_error('Failed to store file %s into cache.' % filename)
-  else:
-    logs.log('Completed storing file %s into cache.' % filename)
 
 
 @retry.wrap(

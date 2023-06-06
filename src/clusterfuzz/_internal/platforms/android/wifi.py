@@ -14,12 +14,8 @@
 """Wifi related functions."""
 
 import os
+from shlex import quote
 import time
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
 
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.metrics import logs

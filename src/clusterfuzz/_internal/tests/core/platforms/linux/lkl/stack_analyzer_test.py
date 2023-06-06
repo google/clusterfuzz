@@ -96,14 +96,10 @@ class LKLStackAnalyzerTest(unittest.TestCase):
     self._real_read_data_from_file = utils.read_data_from_file
     test_helpers.patch(self, [
         'clusterfuzz._internal.platforms.android.fetch_artifact.get',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_file_from_cache_if_exists',
-        'clusterfuzz._internal.google_cloud_utils.storage.store_file_in_cache',
         'clusterfuzz._internal.base.utils.write_data_to_file',
         'clusterfuzz._internal.base.utils.read_data_from_file'
     ])
     self.mock.get.side_effect = _mock_fetch_artifact_get
-    self.mock.get_file_from_cache_if_exists.return_value = False
-    self.mock.store_file_in_cache.return_value = None
     self.mock.write_data_to_file = None
     self.mock.read_data_from_file.side_effect = self._mock_read_data_from_file
 
