@@ -544,7 +544,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
 
   def test_invalid_authorization_header(self):
     """Test invalid authorization header."""
-    with self.assertRaises(helpers.UnauthorizedException) as cm:
+    with self.assertRaises(helpers.UnauthorizedError) as cm:
       handler.get_email_and_access_token('ReceiverAccessToken')
 
     self.assertEqual(401, cm.exception.status)
@@ -557,7 +557,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     """Test bad status."""
     self.mock.get.return_value = mock.Mock(status_code=403)
 
-    with self.assertRaises(helpers.UnauthorizedException) as cm:
+    with self.assertRaises(helpers.UnauthorizedError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertEqual(

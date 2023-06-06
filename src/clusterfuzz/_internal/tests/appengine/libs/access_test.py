@@ -441,7 +441,7 @@ class CheckAccessAndGetTestcase(unittest.TestCase):
   def test_not_logged_in(self):
     """Test not logged in."""
     self.mock.get_user_email.return_value = ''
-    with self.assertRaises(helpers.UnauthorizedException):
+    with self.assertRaises(helpers.UnauthorizedError):
       access.check_access_and_get_testcase(self.testcase.key.id())
 
   def test_privileged(self):
