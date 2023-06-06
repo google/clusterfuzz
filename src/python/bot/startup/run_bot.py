@@ -40,6 +40,8 @@ from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
+# !!! How do I import this script.
+import run_batch
 
 
 class _Monitor(object):
@@ -150,6 +152,9 @@ def main():
     untrusted_worker.start_server()
     assert False, 'Unreachable code'
 
+    if os.environ.get('BATCH_TASK_INDEX'):
+      return run_batch.main()
+
   while True:
     # task_loop should be an infinite loop,
     # unless we run into an exception.
@@ -188,10 +193,11 @@ def main():
 if __name__ == '__main__':
   multiprocessing.set_start_method('spawn')
 
+
   try:
     with ndb_init.context():
       main()
-    exit_code = 0
+      exit_code = 0
   except Exception:
     traceback.print_exc()
     sys.stdout.flush()
