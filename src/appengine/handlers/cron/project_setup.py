@@ -74,6 +74,8 @@ OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT = 0.2
 
 SetupResult = collections.namedtuple('SetupResult', 'project_names job_names')
 
+HTTP_TIMEOUT_SECONDS = 30
+
 
 class ProjectSetupError(Exception):
   """Exception."""
@@ -208,7 +210,8 @@ def get_github_url(url):
     raise ProjectSetupError('No github credentials.')
 
   client_id, client_secret = github_credentials.strip().split(';')
-  response = requests.get(url, auth=(client_id, client_secret))
+  response = requests.get(
+      url, auth=(client_id, client_secret), timeout=HTTP_TIMEOUT_SECONDS)
   if response.status_code != 200:
     logs.log_error(
         f'Failed to get github url: {url}.', status_code=response.status_code)
