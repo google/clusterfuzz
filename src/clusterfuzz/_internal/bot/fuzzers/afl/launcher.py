@@ -432,6 +432,9 @@ class AflFuzzInputDirectory(object):
     self.original_input_directory = None
 
 
+# pylint: disable=no-member
+
+
 class AflRunnerCommon(object):
   """Afl runner common routines."""
 

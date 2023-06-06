@@ -22,6 +22,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -226,24 +227,18 @@ def find_regression_range(testcase_id, job_type):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Failed to setup testcase')
-    tasks.add_task('regression', testcase_id, job_type)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  if error:
+    uworker_handle_errors.handle(error)
     return
 
   build_bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(
       build_bucket_path, testcase=testcase)
   if not revision_list:
-    data_handler.close_testcase_with_error(testcase_id,
+    data_handler.close_testcase_with_error(testcase,
                                            'Failed to fetch revision list')
     return
-
-  # Don't burden NFS server with caching these random builds.
-  environment.set_value('CACHE_STORE', False)
 
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
@@ -268,7 +263,7 @@ def find_regression_range(testcase_id, job_type):
       testcase, testcase_file_path, job_type, max_revision, should_log=False)
   if not crashes_in_max_revision:
     testcase = data_handler.get_testcase_by_id(testcase_id)
-    error_message = ('Known crash revision %d did not crash' % max_revision)
+    error_message = f'Known crash revision {max_revision} did not crash'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     task_creation.mark_unreproducible_if_flaky(testcase, True)

@@ -14,10 +14,7 @@
 """Impact task.
    Determine whether or not a test case affects production branches."""
 
-from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import build_info
@@ -255,40 +252,6 @@ def get_impact(build_revision,
   return Impact(version, likely=True)
 
 
-def get_impacts_on_prod_builds(testcase, testcase_file_path):
-  """Get testcase impact on production builds, which are extended stable, stable
-  and beta."""
-  impacts = Impacts()
-  try:
-    impacts.stable = get_impact_on_build(
-        'stable', testcase.impact_stable_version, testcase, testcase_file_path)
-  except AppFailedException:
-    return get_impacts_from_url(testcase.regression, testcase.job_type)
-
-  try:
-    impacts.beta = get_impact_on_build('beta', testcase.impact_beta_version,
-                                       testcase, testcase_file_path)
-  except AppFailedException:
-    # If beta fails to get the binary, we ignore. At least, we have stable.
-    pass
-
-  try:
-    impacts.extended_stable = get_impact_on_build(
-        'extended_stable', testcase.impact_extended_stable_version, testcase,
-        testcase_file_path)
-  except AppFailedException:
-    return get_impacts_from_url(testcase.regression, testcase.job_type)
-
-  # Always record the affected head version.
-  start_revision, end_revision = get_start_and_end_revision(
-      testcase.regression, testcase.job_type)
-  build_revision_mappings = build_info.get_build_to_revision_mappings()
-  impacts.head = get_head_impact(build_revision_mappings, start_revision,
-                                 end_revision)
-
-  return impacts
-
-
 def get_head_impact(build_revision_mappings, start_revision, end_revision):
   """Return the impact on 'head', i.e. the latest build we can find."""
   latest_build = build_revision_mappings.get('canary')
@@ -296,42 +259,6 @@ def get_head_impact(build_revision_mappings, start_revision, end_revision):
     latest_build = build_revision_mappings.get('dev')
   return get_impact(
       latest_build, start_revision, end_revision, is_last_possible_build=True)
-
-
-def get_impact_on_build(build_type, current_version, testcase,
-                        testcase_file_path):
-  """Return impact and additional trace on a prod build given build_type."""
-  build = build_manager.setup_production_build(build_type)
-  if not build:
-    raise BuildFailedException(
-        'Build setup failed for %s' % build_type.capitalize())
-
-  if not build_manager.check_app_path():
-    raise AppFailedException()
-
-  version = build.revision
-  if version == current_version:
-    return Impact(current_version, likely=False)
-
-  app_path = environment.get_value('APP_PATH')
-  command = testcase_manager.get_command_line_for_application(
-      testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
-
-  result = testcase_manager.test_for_crash_with_retries(
-      testcase,
-      testcase_file_path,
-      environment.get_value('TEST_TIMEOUT'),
-      http_flag=testcase.http_flag)
-
-  if result.is_crash():
-    symbolized_crash_stacktrace = result.get_stacktrace(symbolized=True)
-    unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
-    stacktrace = utils.get_crash_stacktrace_output(
-        command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace,
-        build_type)
-    return Impact(version, likely=False, extra_trace=stacktrace)
-
-  return Impact()
 
 
 def set_testcase_with_impacts(testcase, impacts):
@@ -350,6 +277,9 @@ def set_testcase_with_impacts(testcase, impacts):
 
 def execute_task(testcase_id, job_type):
   """Attempt to find if the testcase affects release branches on Chromium."""
+  # We don't need job_type but it's supplied to all tasks.
+  del job_type
+
   # This shouldn't ever get scheduled, but check just in case.
   if not utils.is_chromium():
     return
@@ -386,53 +316,22 @@ def execute_task(testcase_id, job_type):
     return
 
   logs.log('Preparing to calculate impact.')
-  # If we don't have a stable or beta build url pattern, we try to use build
-  # information url to make a guess.
-  if not build_manager.has_production_builds():
-    if not is_valid_regression_range(testcase.regression, testcase.job_type):
-      data_handler.update_testcase_comment(
-          testcase, data_types.TaskState.FINISHED,
-          'Cannot run without regression range, will re-run once regression '
-          'task finishes')
-      return
-
-    logs.log('No production builds; calculating impact from URL.')
-    impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    set_testcase_with_impacts(testcase, impacts)
-    data_handler.update_testcase_comment(testcase,
-                                         data_types.TaskState.FINISHED)
+  # Formerly ClusterFuzz had buckets containing builds for stable,
+  # beta and dev builds, and attempted reproduction on them. That had
+  # the advantage that we would test against the exact thing shipped on each
+  # channel, including any backported features. In practice, though, we
+  # never noticed a difference from a bisection-based approach to determining
+  # impacted builds, and those production build buckets disappered, so we have
+  # switched to a purely bisection-based approach.
+  if not is_valid_regression_range(testcase.regression, testcase.job_type):
+    data_handler.update_testcase_comment(
+        testcase, data_types.TaskState.FINISHED,
+        'Cannot run without regression range, will re-run once regression '
+        'task finishes')
     return
 
-  # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
-    return
-
-  # Setup extended stable, stable, beta builds
-  # and get impact and crash stacktrace.
-  logs.log('Have production builds; calculating impact by reproduction.')
-  try:
-    impacts = get_impacts_on_prod_builds(testcase, testcase_file_path)
-  except BuildFailedException as error:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         str(error))
-    tasks.add_task(
-        'impact',
-        testcase_id,
-        job_type,
-        wait_time=environment.get_value('FAIL_WAIT'))
-    return
-
+  logs.log('Calculating impact from URL.')
+  impacts = get_impacts_from_url(testcase.regression, testcase.job_type)
   testcase = data_handler.get_testcase_by_id(testcase_id)
   set_testcase_with_impacts(testcase, impacts)
-
-  # Set stacktrace in case we have a unreproducible crash on trunk,
-  # but it crashes on one of the production builds.
-  if testcase.is_status_unreproducible() and impacts.get_extra_trace():
-    testcase.crash_stacktrace = data_handler.filter_stacktrace(
-        '%s\n\n%s' % (data_handler.get_stacktrace(testcase),
-                      impacts.get_extra_trace()))
-
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)

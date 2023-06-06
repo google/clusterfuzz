@@ -76,8 +76,7 @@ class RevisionsTestcase(unittest.TestCase):
             'REVISION_VARS_URL = https://commondatastorage.googleapis.com/'
             'chrome-test-builds/android/revisions/%s')).put()
     data_types.Job(
-        name=BASIC_JOB_TYPE,
-        environment_string=('HELP_URL = help_url\n')).put()
+        name=BASIC_JOB_TYPE, environment_string='HELP_URL = help_url\n').put()
     data_types.Job(
         name=SRCMAP_JOB_TYPE,
         environment_string=(
@@ -87,7 +86,7 @@ class RevisionsTestcase(unittest.TestCase):
             'blah-%s.srcmap.json')).put()
     data_types.Job(
         name=CUSTOM_BINARY_JOB_TYPE,
-        environment_string=('CUSTOM_BINARY = True\n')).put()
+        environment_string='CUSTOM_BINARY = True\n').put()
 
   # General helper functions.
   @staticmethod
@@ -460,17 +459,17 @@ class GetComponentsListTest(unittest.TestCase):
         environment_string=('PROJECT_NAME = libass\n'
                             'HELP_URL = help_url\n')).put()
     revisions_dict = {
-        u'/src/libass': {
-            u'url': u'https://github.com/libass/libass.git',
-            u'rev': u'35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2',
+        '/src/libass': {
+            'url': 'https://github.com/libass/libass.git',
+            'rev': '35dc4dd0e14e3afb4a2c7e319a3f4110e20c7cf2',
         },
-        u'/src/fribidi': {
-            u'url': u'https://github.com/behdad/fribidi.git',
-            u'rev': u'881b8d891cc61989ab8811b74d0e721f72bf913b',
+        '/src/fribidi': {
+            'url': 'https://github.com/behdad/fribidi.git',
+            'rev': '881b8d891cc61989ab8811b74d0e721f72bf913b',
         }
     }
 
-    expected_components_list = [u'/src/libass', u'/src/fribidi']
+    expected_components_list = ['/src/libass', '/src/fribidi']
     actual_components_list = revisions.get_components_list(
         revisions_dict, 'libfuzzer_asan_libass')
     self.assertEqual(expected_components_list, actual_components_list)

@@ -63,7 +63,7 @@ class UntrustedRunnerIntegrationTest(
 
   def setUp(self):
     """Set up."""
-    super(UntrustedRunnerIntegrationTest, self).setUp()
+    super().setUp()
     data_types.Config().put()
 
     environment_string = ('APP_NAME = app\n'
@@ -81,8 +81,7 @@ class UntrustedRunnerIntegrationTest(
 
     data_types.Fuzzer(name='fuzzer', data_bundle_name='bundle').put()
 
-    data_types.DataBundle(
-        name='bundle', is_local=True, sync_to_worker=True).put()
+    data_types.DataBundle(name='bundle', sync_to_worker=True).put()
 
   def test_run_process(self):
     """Tests remote run_process."""
@@ -426,13 +425,14 @@ class UntrustedRunnerIntegrationTest(
 
     testcase.put()
 
-    file_list, input_directory, testcase_file_path = (
-        setup.setup_testcase(testcase, job_type))
+    file_list, testcase_file_path, error = setup.setup_testcase(
+        testcase, job_type)
+
+    self.assertIsNone(error)
 
     self.assertCountEqual(file_list, [
         testcase.absolute_path,
     ])
-    self.assertEqual(input_directory, fuzz_inputs)
     self.assertEqual(testcase_file_path, testcase.absolute_path)
 
     worker_fuzz_inputs = file_host.rebase_to_worker_root(fuzz_inputs)

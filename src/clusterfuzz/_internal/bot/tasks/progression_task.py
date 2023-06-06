@@ -24,6 +24,7 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.chrome import crash_uploader
@@ -232,8 +233,9 @@ def find_fixed_range(testcase_id, job_type):
     return
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  if error:
+    uworker_handle_errors.handle(error)
     return
 
   # Set a flag to indicate we are running progression task. This shows pending
@@ -250,7 +252,7 @@ def find_fixed_range(testcase_id, job_type):
   revision_list = build_manager.get_revisions_list(
       build_bucket_path, testcase=testcase)
   if not revision_list:
-    data_handler.close_testcase_with_error(testcase_id,
+    data_handler.close_testcase_with_error(testcase,
                                            'Failed to fetch revision list')
     return
 
@@ -331,9 +333,6 @@ def find_fixed_range(testcase_id, job_type):
     testcase.set_metadata('crashes_on_unexpected_state', True)
   else:
     testcase.delete_metadata('crashes_on_unexpected_state')
-
-  # Don't burden NFS server with caching these random builds.
-  environment.set_value('CACHE_STORE', False)
 
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.

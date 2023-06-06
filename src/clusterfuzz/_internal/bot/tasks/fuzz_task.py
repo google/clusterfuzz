@@ -80,7 +80,7 @@ class FuzzTaskException(Exception):
   """Fuzz task exception."""
 
 
-class FuzzErrorCode(object):
+class FuzzErrorCode:
   FUZZER_TIMEOUT = -1
   FUZZER_SETUP_FAILED = -2
   FUZZER_EXECUTION_FAILED = -3
@@ -104,7 +104,7 @@ def get_unsymbolized_crash_stacktrace(stack_file_path):
     return utils.decode_to_unicode(f.read())
 
 
-class Crash(object):
+class Crash:
   """Represents a crash (before creating a testcase)."""
 
   @classmethod
@@ -285,7 +285,7 @@ def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout):
   return None, None
 
 
-class CrashGroup(object):
+class CrashGroup:
   """Represent a group of identical crashes. The key is
       (crash_type, crash_state, security_flag)."""
 
@@ -349,7 +349,7 @@ class CrashGroup(object):
             not self.existing_testcase.one_time_crasher_flag)
 
 
-class _TrackFuzzTime(object):
+class _TrackFuzzTime:
   """Track the actual fuzzing time (e.g. excluding preparing binary)."""
 
   def __init__(self, fuzzer_name, job_type, time_module=time):
@@ -450,7 +450,7 @@ def _last_sync_time(sync_file_path):
   return last_sync_time
 
 
-class GcsCorpus(object):
+class GcsCorpus:
   """Sync state for a corpus."""
 
   def __init__(self, engine_name, project_qualified_target_name,
@@ -472,9 +472,7 @@ class GcsCorpus(object):
   def _walk(self):
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import file_host
-      for file_path in file_host.list_files(
-          self._corpus_directory, recursive=True):
-        yield file_path
+      yield from file_host.list_files(self._corpus_directory, recursive=True)
     else:
       for root, _, files in shell.walk(self._corpus_directory):
         for filename in files:
@@ -574,27 +572,12 @@ def get_fuzzer_metadata_from_output(fuzzer_output):
   return metadata
 
 
-def get_testcase_directories(testcase_directory, data_directory):
-  """Return the list of directories containing fuzz testcases."""
-  testcase_directories = [testcase_directory]
-
-  # Cloud storage data bundle directory is on NFS. It is a slow file system
-  # and browsing through hundreds of files can overload the server if every
-  # bot starts doing that. Since, we don't create testcases there anyway, skip
-  # adding the directory to the browse list.
-  if not setup.is_directory_on_nfs(data_directory):
-    testcase_directories.append(data_directory)
-
-  return testcase_directories
-
-
 def get_testcases(testcase_count, testcase_directory, data_directory):
   """Return fuzzed testcases from the data directories."""
   logs.log('Locating generated test cases.')
 
   # Get the list of testcase files.
-  testcase_directories = get_testcase_directories(testcase_directory,
-                                                  data_directory)
+  testcase_directories = [testcase_directory]
   testcase_file_paths = testcase_manager.get_testcases_from_directories(
       testcase_directories)
 
@@ -901,7 +884,7 @@ def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout,
   """Get testcase timeout multiplier."""
   testcase_timeout_multiplier = timeout_multiplier
   if timeout_multiplier > 1 and (crash.crash_time + thread_wait_timeout) < (
-      (test_timeout / timeout_multiplier)):
+      test_timeout / timeout_multiplier):
     testcase_timeout_multiplier = 1.0
 
   return testcase_timeout_multiplier
@@ -1275,7 +1258,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   return result, fuzzer_metadata, options.strategies
 
 
-class FuzzingSession(object):
+class FuzzingSession:
   """Class for orchestrating fuzzing sessions."""
 
   def __init__(self, fuzzer_name, job_type, test_timeout):
@@ -1375,8 +1358,7 @@ class FuzzingSession(object):
     sync_corpus_directory = None
 
     # Clear existing testcases (only if past task failed).
-    testcase_directories = get_testcase_directories(self.testcase_directory,
-                                                    self.data_directory)
+    testcase_directories = [self.testcase_directory]
     testcase_manager.remove_testcases_from_directories(testcase_directories)
 
     # Set an environment variable for fuzzer name.
@@ -1418,7 +1400,7 @@ class FuzzingSession(object):
     else:
       argument_separator = '='
 
-    command_format = ('%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d')
+    command_format = '%s --input_dir%s%s --output_dir%s%s --no_of_files%s%d'
     fuzzer_command = str(
         command_format % (command, argument_separator, self.data_directory,
                           argument_separator, self.testcase_directory,
@@ -1896,9 +1878,9 @@ class FuzzingSession(object):
                          new_crash_count, known_crash_count,
                          len(testcase_file_paths), processed_groups)
 
-    # Delete the fuzzed testcases. This is explicitly needed since
-    # some testcases might reside on NFS and would otherwise be
-    # left forever.
+    # Delete the fuzzed testcases. This was once explicitly needed since some
+    # testcases resided on NFS and would otherwise be left forever. Now it's
+    # unclear if needed but it is kept because it is not harmful.
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 

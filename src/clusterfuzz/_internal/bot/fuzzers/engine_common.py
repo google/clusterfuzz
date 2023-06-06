@@ -248,7 +248,8 @@ def get_testcase_run(stats, fuzzer_command):
                                           current_timestamp())
 
   testcase_run['command'] = fuzzer_command
-  testcase_run.update(stats)
+  if stats is not None:
+    testcase_run.update(stats)
   return testcase_run
 
 
@@ -278,9 +279,9 @@ def find_fuzzer_path(build_directory, fuzzer_name):
   # TODO(ochang): This is necessary for legacy testcases, which include the
   # project prefix in arguments. Remove this in the near future.
   project_name = environment.get_value('PROJECT_NAME')
-  legacy_name_prefix = u''
+  legacy_name_prefix = ''
   if project_name:
-    legacy_name_prefix = project_name + u'_'
+    legacy_name_prefix = project_name + '_'
 
   fuzzer_filename = environment.get_executable_filename(fuzzer_name)
   for root, _, files in shell.walk(build_directory):

@@ -1129,7 +1129,7 @@ class GetTopCrashesForAllProjectsAndPlatforms(unittest.TestCase):
   def test(self):
     """Test."""
     expected_top_crashes_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': 'state1',
                 'crashType': 'type1',
@@ -1185,7 +1185,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
 
   def test_no_top_crashes(self):
     """Test no label is added if there are no top crashes."""
-    top_crashes_by_project_and_platform_map = {u'project': {'LINUX': []}}
+    top_crashes_by_project_and_platform_map = {'project': {'LINUX': []}}
 
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
@@ -1198,7 +1198,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_no_match(self):
     """Test no label is added if there are no matching top crashes."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': 'state1',
                 'crashType': 'type1',
@@ -1221,7 +1221,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     self.testcase.put()
 
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1241,7 +1241,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_match_single_platform(self):
     """Test label is added if there is a matching top crash."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1273,7 +1273,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     self.mock.is_oss_fuzz.return_value = True
     self.testcase.set_metadata('fuzzer_binary_name', 'fuzz_target1')
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1299,7 +1299,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_match_multiple_platforms(self):
     """Test label is added if there is a matching top crash."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1338,7 +1338,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_match_and_label_removed(self):
     """Test label is not added if it was added before and removed."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,

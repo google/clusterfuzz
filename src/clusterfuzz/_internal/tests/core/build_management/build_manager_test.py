@@ -20,8 +20,8 @@ import shutil
 import tempfile
 import types
 import unittest
+from unittest import mock
 
-import mock
 import parameterized
 from pyfakefs import fake_filesystem_unittest
 
@@ -416,7 +416,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_download_file_size',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
@@ -433,7 +433,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'target2': 1.0,
         'target3': 0.0,
     }
-    self.mock.get_download_file_size.return_value = 1
+    self.mock.get_object_size.return_value = 1
     self.mock.copy_file_from.return_value = True
 
     mock_targets_from_archive = self.mock._get_fuzz_targets_from_archive
@@ -561,7 +561,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    class FileMatchCallbackChecker(object):
+    class FileMatchCallbackChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
       def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
@@ -618,7 +618,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    class FileMatchCallbackChecker(object):
+    class FileMatchCallbackChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
       def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
@@ -980,94 +980,6 @@ class ProductionBuildTest(fake_filesystem_unittest.TestCase):
         os.environ['BUILD_DIR'],
         '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/%s' % build_type)
 
-  def test_setup_stable(self):
-    """Test setting up a stable build."""
-    self.mock.time.return_value = 1000.0
-    build = build_manager.setup_production_build('stable')
-    self.assertIsInstance(build, build_manager.ProductionBuild)
-    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-
-    self.assertEqual(build.revision, '45.0.1824.2')
-    self.assertEqual(os.environ['APP_REVISION'], '45.0.1824.2')
-    self._assert_env_vars('stable')
-
-    self.mock._unpack_build.assert_called_once_with(
-        mock.ANY, '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
-        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/stable',
-        'gs://path/file-stable-45.0.1824.2.zip')
-
-    self.mock.time.return_value = 1005.0
-    self.assertEqual(
-        build_manager.setup_production_build('stable').revision, '45.0.1824.2')
-    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
-    self._assert_env_vars('stable')
-    self.assertEqual(self.mock._unpack_build.call_count, 1)
-
-    self.assertIsNone(build_manager.setup_production_build('wrong'))
-
-  def test_setup_beta(self):
-    """Test setting up a stable build."""
-    self.mock.time.return_value = 1000.0
-    build = build_manager.setup_production_build('beta')
-    self.assertIsInstance(build, build_manager.ProductionBuild)
-    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-    self.assertEqual(os.environ['APP_REVISION'], '45.0.1824.2')
-    self._assert_env_vars('beta')
-
-    self.mock._unpack_build.assert_called_once_with(
-        mock.ANY, '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
-        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/beta',
-        'gs://path/file-beta-45.0.1824.2.zip')
-
-    self.mock.time.return_value = 1005.0
-    self.assertEqual(
-        build_manager.setup_production_build('beta').revision, '45.0.1824.2')
-    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
-    self._assert_env_vars('beta')
-    self.assertEqual(self.mock._unpack_build.call_count, 1)
-
-  def test_setup_extended_stable(self):
-    """Test setting up an extended stable build."""
-    os.environ['EXTENDED_STABLE_BUILD_BUCKET_PATH'] = (
-        'gs://path/file-extended_stable-([0-9.]+).zip')
-
-    self.mock.time.return_value = 1000.0
-    build = build_manager.setup_production_build('extended_stable')
-    self.assertIsInstance(build, build_manager.ProductionBuild)
-    self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)
-
-    self.assertEqual(build.revision, '45.0.1824.2')
-    self.assertEqual(os.environ['APP_REVISION'], '45.0.1824.2')
-    self._assert_env_vars('extended_stable')
-
-    self.mock._unpack_build.assert_called_once_with(
-        mock.ANY, '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b',
-        '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/extended_stable',
-        'gs://path/file-extended_stable-45.0.1824.2.zip')
-
-    self.mock.time.return_value = 1005.0
-    self.assertEqual(
-        build_manager.setup_production_build('extended_stable').revision,
-        '45.0.1824.2')
-    self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
-    self._assert_env_vars('extended_stable')
-    self.assertEqual(self.mock._unpack_build.call_count, 1)
-
-    self.assertIsNone(build_manager.setup_production_build('wrong'))
-
-  def test_delete(self):
-    """Test deleting this build."""
-    build = build_manager.setup_production_build('stable')
-    self.assertTrue(
-        os.path.isdir(
-            '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/stable'))
-    build.delete()
-    self.assertFalse(
-        os.path.isdir(
-            '/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b/stable'))
-    self.assertTrue(
-        os.path.isdir('/builds/path_8102046d3cea496c945743eb5f79284e7b10b51b'))
-
 
 @test_utils.with_cloud_emulators('datastore')
 class CustomBuildTest(fake_filesystem_unittest.TestCase):
@@ -1324,7 +1236,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_download_file_size',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
@@ -1341,7 +1253,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'target2': 1.0,
         'target3': 0.0,
     }
-    self.mock.get_download_file_size.return_value = 1
+    self.mock.get_object_size.return_value = 1
     self.mock.copy_file_from.return_value = True
 
     mock_targets_from_archive = self.mock._get_fuzz_targets_from_archive
@@ -1384,7 +1296,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
     self.mock.time.return_value = 1000.0
 
-    class FileMatchCallbackChecker(object):
+    class FileMatchCallbackChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
       def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
@@ -2009,7 +1921,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_download_file_size',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.read_data',
         'clusterfuzz._internal.system.archive.unpack',
@@ -2040,7 +1952,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'target2': 1.0,
         'target3': 0.0,
     }
-    self.mock.get_download_file_size.return_value = 1
+    self.mock.get_object_size.return_value = 1
     self.mock.copy_file_from.return_value = True
 
     self.mock._make_space.return_value = True
