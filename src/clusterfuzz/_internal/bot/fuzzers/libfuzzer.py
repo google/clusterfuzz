@@ -25,7 +25,6 @@ import sys
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
-from clusterfuzz._internal.bot.fuzzers import mutator_plugin
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer.peach import pits
@@ -68,8 +67,6 @@ DATAFLOW_TRACE_DIR_SUFFIX = '_dft'
 # List of all strategies that affect LD_PRELOAD.
 MUTATOR_STRATEGIES = [
     strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name,
-    strategy.MUTATOR_PLUGIN_STRATEGY.name,
-    strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name
 ]
 
 # pylint: disable=no-member
@@ -1292,49 +1289,10 @@ def get_fuzz_timeout(is_mutations_run, total_timeout=None):
   return fuzz_timeout
 
 
-def use_mutator_plugin(target_name, extra_env):
-  """Decide whether to use a mutator plugin. If yes and there is a usable plugin
-  available for |target_name|, then add it to LD_PRELOAD in |extra_env|, and
-  return True."""
-  if not environment.get_value('MUTATOR_PLUGINS_DIR'):
-    return False
-
-  # TODO(metzman): Support Windows.
-  if environment.platform() == 'WINDOWS':
-    return False
-
-  mutator_plugin_path = mutator_plugin.get_mutator_plugin(target_name)
-  if not mutator_plugin_path:
-    return False
-
-  logs.log('Using mutator plugin: %s' % mutator_plugin_path)
-  # TODO(metzman): Change the strategy to record which plugin was used, and
-  # not simply that a plugin was used.
-  extra_env['LD_PRELOAD'] = mutator_plugin_path
-  return True
-
-
 def is_linux_asan():
   """Helper functions. Returns whether or not the current env is linux asan."""
   return (environment.platform() != 'LINUX' or
           environment.get_value('MEMORY_TOOL') != 'ASAN')
-
-
-def use_radamsa_mutator_plugin(extra_env):
-  """Decide whether to use Radamsa in process. If yes, add the path to the
-  radamsa shared object to LD_PRELOAD in |extra_env| and return True."""
-  # Radamsa will only work on LINUX ASAN jobs.
-  # TODO(mpherman): Include architecture info in job definition and exclude
-  # i386.
-  if environment.is_lib() or not is_linux_asan() or environment.is_android():
-    return False
-
-  radamsa_path = os.path.join(environment.get_platform_resources_directory(),
-                              'radamsa', 'libradamsa.so')
-
-  logs.log('Using Radamsa mutator plugin : %s' % radamsa_path)
-  extra_env['LD_PRELOAD'] = radamsa_path
-  return True
 
 
 def use_peach_mutator(extra_env, grammar):
@@ -1489,20 +1447,11 @@ def pick_strategies(strategy_pool,
         '%s_%d' % (strategy.FORK_STRATEGY.name, num_fuzz_processes))
 
   extra_env = {}
-  if (strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_STRATEGY) and
-      use_mutator_plugin(target_name, extra_env)):
-    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_STRATEGY.name)
-
   if (not has_existing_mutator_strategy(fuzzing_strategies) and
       strategy_pool.do_strategy(strategy.PEACH_GRAMMAR_MUTATION_STRATEGY) and
       use_peach_mutator(extra_env, grammar)):
     fuzzing_strategies.append(
         '%s_%s' % (strategy.PEACH_GRAMMAR_MUTATION_STRATEGY.name, grammar))
-
-  if (not has_existing_mutator_strategy(fuzzing_strategies) and
-      strategy_pool.do_strategy(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY) and
-      use_radamsa_mutator_plugin(extra_env)):
-    fuzzing_strategies.append(strategy.MUTATOR_PLUGIN_RADAMSA_STRATEGY.name)
 
   if (environment.platform() == 'LINUX' and utils.is_oss_fuzz() and
       strategy_pool.do_strategy(strategy.USE_EXTRA_SANITIZERS_STRATEGY)):

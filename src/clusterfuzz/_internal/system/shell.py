@@ -105,11 +105,6 @@ def clear_data_bundles_directory():
   remove_directory(environment.get_value('DATA_BUNDLES_DIR'), recreate=True)
 
 
-def clear_mutator_plugins_directory():
-  """Clears the mutator plugins directory."""
-  remove_directory(environment.get_value('MUTATOR_PLUGINS_DIR'), recreate=True)
-
-
 def clear_data_directories():
   """Clear all data directories."""
   clear_build_directory()
@@ -120,7 +115,6 @@ def clear_data_directories():
   clear_fuzzers_directories()
   clear_temp_directory()
   clear_testcase_directories()
-  clear_mutator_plugins_directory()
 
   persistent_cache.clear_values(clear_all=True)
 

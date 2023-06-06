@@ -329,14 +329,6 @@ _LIBFUZZER_SCHEMA = [{
     'type': 'INTEGER'
 }, {
     'mode': 'NULLABLE',
-    'name': 'strategy_mutator_plugin',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
-    'name': 'strategy_mutator_plugin_radamsa',
-    'type': 'INTEGER'
-}, {
-    'mode': 'NULLABLE',
     'name': 'strategy_peach_grammar_mutation',
     'type': 'STRING'
 }, {

@@ -640,10 +640,6 @@ class ProjectSetup(object):
     """Shared corpus bucket name."""
     return environment.get_value('SHARED_CORPUS_BUCKET')
 
-  def _mutator_plugins_bucket_name(self):
-    """Mutator plugins bucket name."""
-    return environment.get_value('MUTATOR_PLUGINS_BUCKET')
-
   def _backup_bucket_name(self, project_name):
     """Return the backup_bucket_name."""
     return project_name + '-backup.' + data_handler.bucket_domain_suffix()
@@ -696,9 +692,6 @@ class ProjectSetup(object):
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
     add_service_account_to_bucket(client, self._shared_corpus_bucket_name(),
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
-    add_service_account_to_bucket(client, self._mutator_plugins_bucket_name(),
-                                  service_account, OBJECT_VIEWER_IAM_ROLE)
-
     data_bundles = {
         fuzzer_entity.get().data_bundle_name
         for fuzzer_entity in six.itervalues(self._fuzzer_entities)
