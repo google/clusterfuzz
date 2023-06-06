@@ -28,7 +28,6 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.datastore import locks
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -44,7 +43,6 @@ from clusterfuzz._internal.system import shell
 _BOT_DIR = 'bot'
 _DATA_BUNDLE_CACHE_COUNT = 10
 _DATA_BUNDLE_SYNC_INTERVAL_IN_SECONDS = 6 * 60 * 60
-_DATA_BUNDLE_LOCK_INTERVAL_IN_SECONDS = 3 * 60 * 60
 _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
@@ -294,12 +292,6 @@ def _get_testcase_file_and_path(testcase):
     testcase_path = os.path.join(input_directory, testcase_absolute_path)
     return input_directory, testcase_path
 
-  # Check if the testcase is on a nfs data bundle. If yes, then just
-  # return it without doing root directory path fix.
-  nfs_root = environment.get_value('NFS_ROOT')
-  if nfs_root and testcase_absolute_path.startswith(nfs_root):
-    return input_directory, testcase_absolute_path
-
   # Root directory can be different on bots. Fix the path to account for this.
   root_directory = environment.get_value('ROOT_DIR')
   search_string = '%s%s%s' % (os.sep, _BOT_DIR, os.sep)
@@ -392,19 +384,6 @@ def _get_data_bundle_sync_file_path(data_bundle_directory):
   return os.path.join(data_bundle_directory, _SYNC_FILENAME)
 
 
-def _fetch_lock_for_data_bundle_update(data_bundle):
-  """Fetch exclusive lock for a data bundle update."""
-  # Data bundle on local disk can be modified without race conditions.
-  if data_bundle.is_local:
-    return True
-
-  data_bundle_lock_name = _get_data_bundle_update_lock_name(data_bundle.name)
-  return locks.acquire_lock(
-      data_bundle_lock_name,
-      max_hold_seconds=_DATA_BUNDLE_LOCK_INTERVAL_IN_SECONDS,
-      by_zone=True)
-
-
 def _clear_old_data_bundles_if_needed():
   """Clear old data bundles so as to keep the disk cache restricted to
   |_DATA_BUNDLE_CACHE_COUNT| data bundles and prevent potential out-of-disk
@@ -432,13 +411,6 @@ def update_data_bundle(fuzzer, data_bundle):
   # with multiprocessing and psutil imports.
   from clusterfuzz._internal.google_cloud_utils import gsutil
 
-  # If we are using a data bundle on NFS, it is expected that our testcases
-  # will usually be large enough that we would fill up our tmpfs directory
-  # pretty quickly. So, change it to use an on-disk directory.
-  if not data_bundle.is_local:
-    testcase_disk_directory = environment.get_value('FUZZ_INPUTS_DISK')
-    environment.set_value('FUZZ_INPUTS', testcase_disk_directory)
-
   data_bundle_directory = get_data_bundle_directory(fuzzer.name)
   if not data_bundle_directory:
     logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
@@ -455,15 +427,9 @@ def update_data_bundle(fuzzer, data_bundle):
     logs.log('Data bundle was recently synced, skip.')
     return True
 
-  # Fetch lock for this data bundle.
-  if not _fetch_lock_for_data_bundle_update(data_bundle):
-    logs.log_error('Failed to lock data bundle %s.' % data_bundle.name)
-    return False
-
   # Re-check if another bot did the sync already. If yes, skip.
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.log('Another bot finished the sync, skip.')
-    _release_lock_for_data_bundle_update(data_bundle)
     return True
 
   time_before_sync_start = time.time()
@@ -490,7 +456,6 @@ def update_data_bundle(fuzzer, data_bundle):
     if result.return_code != 0:
       logs.log_error('Failed to sync data bundle %s: %s.' % (data_bundle.name,
                                                              result.output))
-      _release_lock_for_data_bundle_update(data_bundle)
       return False
 
   # Update the testcase list file.
@@ -503,9 +468,6 @@ def update_data_bundle(fuzzer, data_bundle):
     from clusterfuzz._internal.bot.untrusted_runner import file_host
     worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
     file_host.copy_file_to_worker(sync_file_path, worker_sync_file_path)
-
-  # Release acquired lock.
-  _release_lock_for_data_bundle_update(data_bundle)
 
   return True
 
@@ -663,29 +625,6 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
   return False
 
 
-def _get_nfs_data_bundle_path(data_bundle_name):
-  """Get  path for a data bundle on NFS."""
-  nfs_root = environment.get_value('NFS_ROOT')
-
-  # Special naming and path for search index based bundles.
-  if _is_search_index_data_bundle(data_bundle_name):
-    return os.path.join(
-        nfs_root, testcase_manager.SEARCH_INDEX_TESTCASES_DIRNAME,
-        data_bundle_name[len(testcase_manager.SEARCH_INDEX_BUNDLE_PREFIX):])
-
-  return os.path.join(nfs_root, data_bundle_name)
-
-
-def _release_lock_for_data_bundle_update(data_bundle):
-  """Release the lock held for the data bundle update."""
-  # Data bundle on local disk is never locked in first place.
-  if data_bundle.is_local:
-    return
-
-  data_bundle_lock_name = _get_data_bundle_update_lock_name(data_bundle.name)
-  locks.release_lock(data_bundle_lock_name, by_zone=True)
-
-
 def get_data_bundle_directory(fuzzer_name):
   """Return data bundle data directory."""
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
@@ -712,17 +651,7 @@ def get_data_bundle_directory(fuzzer_name):
   local_data_bundle_directory = os.path.join(local_data_bundles_directory,
                                              data_bundle.name)
 
-  if data_bundle.is_local:
-    # Data bundle is on local disk, return path.
-    return local_data_bundle_directory
-
-  # This data bundle is on NFS, calculate path.
-  # Make sure that NFS_ROOT pointing to nfs server is set. If not, use local.
-  if not environment.get_value('NFS_ROOT'):
-    logs.log_warn('NFS_ROOT is not set, using local corpora directory.')
-    return local_data_bundle_directory
-
-  return _get_nfs_data_bundle_path(data_bundle.name)
+  return local_data_bundle_directory
 
 
 def get_fuzzer_directory(fuzzer_name):
@@ -730,17 +659,6 @@ def get_fuzzer_directory(fuzzer_name):
   fuzzer_directory = environment.get_value('FUZZERS_DIR')
   fuzzer_directory = os.path.join(fuzzer_directory, fuzzer_name)
   return fuzzer_directory
-
-
-def is_directory_on_nfs(data_bundle_directory):
-  """Return whether this directory is on NFS."""
-  nfs_root = environment.get_value('NFS_ROOT')
-  if not nfs_root:
-    return False
-
-  data_bundle_directory_real_path = os.path.realpath(data_bundle_directory)
-  nfs_root_real_path = os.path.realpath(nfs_root)
-  return data_bundle_directory_real_path.startswith(nfs_root_real_path + os.sep)
 
 
 def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
@@ -772,7 +690,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
     # TODO(flowerhack): Update this when we teach CF how to download testcases.
     try:
       file_handle = open(testcase_path, 'rb')
-    except IOError:
+    except OSError:
       logs.log_error('Unable to open testcase %s.' % testcase_path)
       return None, None, None, None
   else:
@@ -814,7 +732,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
 
     try:
       file_handle = open(zip_path, 'rb')
-    except IOError:
+    except OSError:
       logs.log_error('Unable to open testcase archive %s.' % zip_path)
       return None, None, None, None
 

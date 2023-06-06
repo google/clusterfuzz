@@ -334,9 +334,6 @@ def find_fixed_range(testcase_id, job_type):
   else:
     testcase.delete_metadata('crashes_on_unexpected_state')
 
-  # Don't burden NFS server with caching these random builds.
-  environment.set_value('CACHE_STORE', False)
-
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.
   result = _testcase_reproduces_in_revision(testcase, testcase_file_path,

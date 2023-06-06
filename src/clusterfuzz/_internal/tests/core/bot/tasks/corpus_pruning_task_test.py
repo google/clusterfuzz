@@ -405,8 +405,7 @@ class CorpusPruningTestUntrusted(
         os.path.join(TEST_DIR, 'quarantine'), delete=True)
 
     self.mock.get_data_bundle_bucket_name.return_value = TEST_GLOBAL_BUCKET
-    data_types.DataBundle(
-        name='bundle', is_local=True, sync_to_worker=True).put()
+    data_types.DataBundle(name='bundle', sync_to_worker=True).put()
 
     data_types.Fuzzer(
         revision=1,

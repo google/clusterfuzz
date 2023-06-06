@@ -25,29 +25,6 @@ from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-class IsDirectoryOnNfsTest(unittest.TestCase):
-  """Tests for the is_directory_on_nfs function."""
-
-  def setUp(self):
-    environment.set_value('NFS_ROOT', '/nfs')
-
-  def tearDown(self):
-    environment.remove_key('NFS_ROOT')
-
-  def test_is_directory_on_nfs_without_nfs(self):
-    """Test is_directory_on_nfs without nfs."""
-    environment.remove_key('NFS_ROOT')
-    self.assertFalse(setup.is_directory_on_nfs('/nfs/dir1'))
-
-  def test_is_directory_on_nfs_with_nfs_and_data_bundle_on_nfs(self):
-    """Test is_directory_on_nfs with nfs and data bundle on nfs."""
-    self.assertTrue(setup.is_directory_on_nfs('/nfs/dir1'))
-
-  def test_is_directory_on_nfs_with_nfs_and_data_bundle_on_local(self):
-    """Test is_directory_on_nfs with nfs and data bundle on local."""
-    self.assertFalse(setup.is_directory_on_nfs('/tmp/dir1'))
-
-
 # pylint: disable=protected-access
 @test_utils.with_cloud_emulators('datastore')
 class GetApplicationArgumentsTest(unittest.TestCase):
