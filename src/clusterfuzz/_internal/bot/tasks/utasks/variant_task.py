@@ -29,8 +29,8 @@ from clusterfuzz._internal.system import environment
 
 
 def _get_variant_testcase_for_job(testcase, job_type):
-  """Return a testcase entity for variant task use. This changes the fuzz
-  target params for a particular fuzzing engine."""
+  """Return a testcase entity for variant task use. This changes the fuzz target
+  params for a particular fuzzing engine."""
   if testcase.job_type == job_type:
     # Update stack operation on same testcase.
     return testcase
@@ -63,6 +63,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   if not testcase:
     return None
 
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
     # We should never reach here. But in case we do, we should bail out as
@@ -78,15 +81,16 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   return {
       'original_job_type': original_job_type,
       'testcase': testcase,
-      'metadata': testcase.get_metadata(),
       'uworker_env': uworker_env,
       'variant': variant,
+      'testcase_upload_metadata': testcase_upload_metadata
       'testcase_download_url': testcase_download_url,
   }
 
 
 def utask_main(original_job_type, testcase, variant, job_type,
-               testcase_download_url, metadata):
+               testcase_download_url,
+               testcase_upload_metadata):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
   if environment.is_engine_fuzzer_job(testcase.job_type):
@@ -99,7 +103,7 @@ def utask_main(original_job_type, testcase, variant, job_type,
   _, testcase_file_path, error = setup.setup_testcase(
       testcase,
       job_type,
-      metadata=metadata,
+      metadata=testcase_upload_metadata,
       testcase_download_url=testcase_download_url)
   if error:
     return error

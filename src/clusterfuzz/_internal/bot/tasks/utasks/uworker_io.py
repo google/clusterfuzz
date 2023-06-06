@@ -102,12 +102,16 @@ def serialize_uworker_input(uworker_input_dict):
   """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
   uworker_input_dict = uworker_input_dict.copy()
   for key, value in uworker_input_dict.items():
+    print(key, value)
     if isinstance(value, ndb.Model):
+      print('j')
       uworker_input_dict[key] = model._entity_to_protobuf(value)  # pylint: disable=protected-access
     elif isinstance(value, dict):
+      print('i')
       serialized = json.dumps(value)
       uworker_input_dict[key] = uworker_msg_pb2.Json(serialized=serialized)
 
+  print('uworker_input')
   uworker_input = uworker_msg_pb2.Input(**uworker_input_dict)
   return uworker_input.SerializeToString()
 
