@@ -275,7 +275,7 @@ def _get_build_directory(bucket_path, job_name):
     file_pattern = utils.remove_sub_strings(file_pattern, BUILD_TYPE_SUBSTRINGS)
 
     file_pattern_hash = utils.string_hash(file_pattern)
-    job_directory = '%s_%s' % (bucket_path, file_pattern_hash)
+    job_directory = f'{bucket_path}_{file_pattern_hash}'
   else:
     job_directory = job_name
 
@@ -340,7 +340,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
   app_directory = None
 
   # Chromium specific folder to ignore.
-  initialexe_folder_path = '%sinitialexe' % os.path.sep
+  initialexe_folder_path = f'{os.path.sep}initialexe'
 
   for search_directory in search_directories:
     for root, _, files in shell.walk(search_directory):
@@ -494,15 +494,11 @@ class Build(BaseBuild):
       _handle_unrecoverable_error_on_windows()
       return False
 
-    # Decide whether to use cache build archives or not.
-    use_cache = environment.get_value('CACHE_STORE', False)
-
     # Download build archive locally.
     build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
 
     # Make the disk space necessary for the archive available.
-    archive_size = storage.get_download_file_size(
-        build_url, build_local_archive, use_cache=True)
+    archive_size = storage.get_object_size(build_url)
     if archive_size is not None and not _make_space(archive_size,
                                                     base_build_dir):
       shell.clear_data_directories()
@@ -512,8 +508,7 @@ class Build(BaseBuild):
 
     logs.log('Downloading build from url %s.' % build_url)
     try:
-      storage.copy_file_from(
-          build_url, build_local_archive, use_cache=use_cache)
+      storage.copy_file_from(build_url, build_local_archive)
     except:
       logs.log_error('Unable to download build url %s.' % build_url)
       return False

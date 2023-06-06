@@ -316,7 +316,7 @@ def get_file_contents_with_fatal_error_on_failure(path):
     with open(path, 'rb') as file_handle:
       data = file_handle.read()
     return data
-  except IOError:
+  except OSError:
     logs.log_error('Unable to read file `%s\'' % path)
 
   raise errors.BadStateError
@@ -743,9 +743,8 @@ def timeout(duration):
         # If we don't exit here, we will cause threads to pile up and leading to
         # out-of-memory. Safe to just exit here.
         logs.log_fatal_and_exit(
-            ('Exception occurred in function {0}: args: {1}, kwargs: {2}'
-             ' exception: {3}').format(func, args, kwargs,
-                                       sys.exc_info()[1]))
+            f'Exception occurred in function {func}: args: {args}, kwargs: '
+            f'{kwargs} exception: {sys.exc_info()[1]}')
 
     return _wrapper
 
@@ -798,7 +797,7 @@ def write_data_to_file(content, file_path, append=False):
       # If we saw a TypeError, content was not bytes-like. Convert it.
       content = str(content).encode('utf-8')
       continue
-    except EnvironmentError:
+    except OSError:
       # An EnvironmentError signals a problem writing the file. Retry in case
       # it was a spurious error.
       logs.log_warn('Error occurred while writing %s, retrying.' % file_path)

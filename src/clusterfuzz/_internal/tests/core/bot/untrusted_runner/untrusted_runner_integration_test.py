@@ -63,7 +63,7 @@ class UntrustedRunnerIntegrationTest(
 
   def setUp(self):
     """Set up."""
-    super(UntrustedRunnerIntegrationTest, self).setUp()
+    super().setUp()
     data_types.Config().put()
 
     environment_string = ('APP_NAME = app\n'
@@ -81,8 +81,7 @@ class UntrustedRunnerIntegrationTest(
 
     data_types.Fuzzer(name='fuzzer', data_bundle_name='bundle').put()
 
-    data_types.DataBundle(
-        name='bundle', is_local=True, sync_to_worker=True).put()
+    data_types.DataBundle(name='bundle', sync_to_worker=True).put()
 
   def test_run_process(self):
     """Tests remote run_process."""
