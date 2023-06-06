@@ -6,15 +6,14 @@ if [ "$(cat /proc/sys/kernel/core_pattern)" != "core" ]; then
   echo 'AFL integration tests require sudo to modify your core_pattern.'
   sudo sh -c 'echo core > /proc/sys/kernel/core_pattern'
 fi
-INTEGRATION=1 $SCRIPT_DIR/run_tests &
+INTEGRATION=1 $SCRIPT_DIR/run_tests
 # https://github.com/google/clusterfuzz/issues/2678.
 # $SCRIPT_DIR/run_js_tests
-$SCRIPT_DIR/run_untrusted_test untrusted_runner_integration &
-$SCRIPT_DIR/run_untrusted_test corpus_pruning &
-$SCRIPT_DIR/run_untrusted_test testcase_manager &
-$SCRIPT_DIR/run_untrusted_test fuzz_task &
-$SCRIPT_DIR/run_untrusted_test minimize_task &
-wait
+$SCRIPT_DIR/run_untrusted_test untrusted_runner_integration
+$SCRIPT_DIR/run_untrusted_test corpus_pruning
+$SCRIPT_DIR/run_untrusted_test testcase_manager
+$SCRIPT_DIR/run_untrusted_test fuzz_task
+$SCRIPT_DIR/run_untrusted_test minimize_task
 
 echo 'Running end-to-end integration tests...'
 python butler.py integration_tests
