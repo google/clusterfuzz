@@ -75,8 +75,10 @@ def utask_factory(task_module, use_gcs_for_io=False):
     return UTask(task_module)
 
   if use_gcs_for_io:
+    logs.log('Using GCS for utasks.')
     return UTaskLocalExecutor(task_module)
 
+  logs.log('Using memory for utasks.')
   return UTaskLocalInMemoryExecutor(task_module)
 
 

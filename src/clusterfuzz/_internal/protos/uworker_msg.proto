@@ -36,6 +36,8 @@ message Input {
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
+  optional google.datastore.v1.Entity variant = 8;
+  optional string original_job_type = 9;
 }
 
 enum ErrorType {
