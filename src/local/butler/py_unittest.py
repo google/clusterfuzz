@@ -74,7 +74,7 @@ class TrackedTestRunner(unittest.TextTestRunner):
 
     self.stream.writeln('\nSlow tests:')
     for elapsed_time, test_name in sorted(result.slow_tests, reverse=True):
-      print('%6.2fs: %os' % (elapsed_time, test_name))
+      print('%6.2fs: %s' % (elapsed_time, test_name))
 
     return result
 
