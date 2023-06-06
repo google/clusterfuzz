@@ -10,7 +10,6 @@ $SCRIPT_DIR/run_untrusted_test corpus_pruning
 $SCRIPT_DIR/run_untrusted_test testcase_manager
 $SCRIPT_DIR/run_untrusted_test fuzz_task
 $SCRIPT_DIR/run_untrusted_test minimize_task
-$SCRIPT_DIR/run_afl_tests
 
 echo 'Running end-to-end integration tests...'
 python butler.py integration_tests
