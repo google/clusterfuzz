@@ -87,8 +87,13 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   }
 
 
-def utask_main(original_job_type, testcase, variant, job_type,
-               testcase_download_url, metadata):
+def utask_main(
+    original_job_type,  # pylint: disable=unused-argument
+    testcase,
+    variant,
+    job_type,
+    testcase_download_url,
+    metadata=None):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
   if environment.is_engine_fuzzer_job(testcase.job_type):
@@ -183,8 +188,6 @@ def utask_main(original_job_type, testcase, variant, job_type,
   return uworker_io.UworkerOutput(
       testcase=testcase,
       variant=variant,
-      job_type=job_type,
-      original_job_type=original_job_type,
       revision=revision,
       crash_stacktrace_output=crash_stacktrace_output)
 
@@ -207,7 +210,8 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output)
     return
 
-  if output.original_job_type == output.job_type:
+  if (output.uworker_input['original_job_type'] == output.uworker_input[
+      'job_type']):
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
     output.testcase.last_tested_crash_stacktrace = (

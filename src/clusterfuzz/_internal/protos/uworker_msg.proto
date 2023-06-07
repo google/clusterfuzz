@@ -52,8 +52,11 @@ enum ErrorType {
 message Output {
   optional UworkerEntityWrapper testcase = 1;
   optional UworkerEntityWrapper metadata = 2;
-  optional ErrorType error = 3;
-  optional Json uworker_env = 4;
-  optional float test_timeout = 5;
-  optional float crash_time = 6;
+  optional UworkerEntityWrapper variant = 3;
+  optional ErrorType error = 4;
+  optional Json uworker_env = 5;
+  optional float test_timeout = 6;
+  optional float crash_time = 7;
+  optional int64 revision = 8;
+  optional string crash_stacktrace_output = 9;
 }
