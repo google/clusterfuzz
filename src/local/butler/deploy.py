@@ -424,19 +424,6 @@ def _prod_deployment_helper(config_dir,
 
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
-  import cProfile
-  pr = cProfile.Profile()
-  pr.enable()
-  exec2(args)
-  pr.disable()
-  s = io.StringIO()
-  sortby = SortKey.CUMULATIVE
-  ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-  ps.print_stats()
-  print(s.getvalue())
-
-
-def exec2(args):
   if sys.version_info.major != 3 or sys.version_info.minor != 7:
     print('You can only deploy from Python 3.7. Install Python 3.7 and '
           'run: `PYTHON=python3.7 local/install_deps.bash`')
