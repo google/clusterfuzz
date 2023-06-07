@@ -25,6 +25,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.system import environment
 
 
 def generate_new_input_file_name():
@@ -60,8 +61,8 @@ def get_uworker_input_urls():
 
 def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
-
-  with tempfile.NamedTemporaryFile() as uworker_input_file:
+  tmp_dir = environment.get_value('BOT_TMPDIR')
+  with tempfile.NamedTemporaryFile(dir=tmp_dir) as uworker_input_file:
     with open(uworker_input_file.name, 'wb') as fp:
       fp.write(uworker_input)
     if not storage.copy_file_to(uworker_input_file.name, gcs_path):
@@ -177,7 +178,8 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 
 
 def _download_uworker_io_from_gcs(gcs_url):
-  with tempfile.NamedTemporaryFile() as local_path:
+  tmp_dir = environment.get_value('BOT_TMPDIR')
+  with tempfile.NamedTemporaryFile(dir=tmp_dir) as local_path:
     if not storage.copy_file_from(gcs_url, local_path.name):
       logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
       return None
