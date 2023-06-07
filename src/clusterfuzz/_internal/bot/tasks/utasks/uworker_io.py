@@ -61,7 +61,7 @@ def get_uworker_input_urls():
 
 def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
-  tmp_dir = environment.get_value('BOT_TMPDIR', '/tmp')
+  tmp_dir = environment.get_value('BOT_TMPDIR')
   with tempfile.NamedTemporaryFile(dir=tmp_dir) as uworker_input_file:
     with open(uworker_input_file.name, 'wb') as fp:
       fp.write(uworker_input)
@@ -178,7 +178,7 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 
 
 def _download_uworker_io_from_gcs(gcs_url):
-  tmp_dir = environment.get_value('BOT_TMPDIR', '/tmp')
+  tmp_dir = environment.get_value('BOT_TMPDIR')
   with tempfile.NamedTemporaryFile(dir=tmp_dir) as local_path:
     if not storage.copy_file_from(gcs_url, local_path.name):
       logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
