@@ -212,6 +212,8 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
   changes = json.loads(wrapped_entity_proto.changed.serialized)
   original_entity = changed_entity.key.get()
+  if original_entity is None:  # Object is new.
+    return changed_entity
   for changed_attr_name in changes:
     changed_attr_value = getattr(changed_entity, changed_attr_name)
     setattr(original_entity, changed_attr_name, changed_attr_value)
