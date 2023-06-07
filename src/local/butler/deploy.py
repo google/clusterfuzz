@@ -15,12 +15,9 @@
 
 from collections import namedtuple
 import contextlib
-import cProfile
 import datetime
-import io
 import json
 import os
-import pstats
 import re
 import sys
 import tempfile
@@ -426,19 +423,6 @@ def _prod_deployment_helper(config_dir,
 
 
 def execute(args):
-  """Deploy Clusterfuzz to Appengine."""
-  pr = cProfile.Profile()
-  pr.enable()
-  exec2(args)
-  pr.disable()
-  s = io.StringIO()
-  sortby = pstats.SortKey.CUMULATIVE
-  ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-  ps.print_stats()
-  print(s.getvalue())
-
-
-def exec2(args):
   """Deploy Clusterfuzz to Appengine."""
   if sys.version_info.major != 3 or sys.version_info.minor != 7:
     print('You can only deploy from Python 3.7. Install Python 3.7 and '
