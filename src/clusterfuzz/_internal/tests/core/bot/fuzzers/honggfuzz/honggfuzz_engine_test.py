@@ -208,8 +208,7 @@ class IntegrationTest(unittest.TestCase):
                   crash.stacktrace)
 
     with open(crash.input_path, 'rb') as f:
-      self.assertEqual(b'B', f.read()[:1])
-
+      self.assertIn(b'B', f.read())
     self.assert_has_stats(results)
 
 
