@@ -220,7 +220,7 @@ def deserialize_uworker_output(uworker_output_str):
 
   # Convert the proto to a Python object that can contain real ndb models and
   # other python objects, instead of only the python serialized versions.
-  uworker_output = UworkerOutput()
+  uworker_output = DeserializedUworkerOutput()
   for field_descriptor, field in uworker_output_proto.ListFields():
     if isinstance(field, uworker_msg_pb2.UworkerEntityWrapper):
       field = deserialize_wrapped_entity(field)
@@ -267,22 +267,25 @@ class UworkerOutput:
   """Convenience class for results from uworker_main. This is useful for
   ensuring we are returning values for fields expected by utask_postprocess."""
 
-  def __init__(self, **kwargs):
+  def __init__(self, serializable=True, **kwargs):
+    self.serializable = serializable
     self.proto = uworker_msg_pb2.Output()
     for key, value in kwargs.items():
       setattr(self, key, value)
 
   def __getattr__(self, attribute):
-    if attribute in ['proto']:
+    if attribute in ['proto', 'serializable'] or not self.serializable:
       # Allow setting and changing proto. Stack overflow in __init__ otherwise.
       return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self.proto, attribute)
 
   def __setattr__(self, attribute, value):
-    if attribute in ['proto']:
+    super().__setattr__(attribute, value)
+    if attribute in ['proto', 'serializable']:
       # Allow setting and changing proto. Stack overflow in __init__
       # otherwise.
-      super().__setattr__(attribute, value)
+      return
+    if not self.serializable:
       return
 
     if not isinstance(value, UworkerEntityWrapper):
@@ -296,3 +299,10 @@ class UworkerOutput:
     wrapped_entity_proto = serialize_wrapped_entity(value)
     field = getattr(self.proto, attribute)
     field.CopyFrom(wrapped_entity_proto)
+
+
+class DeserializedUworkerOutput:
+
+  def __init__(self, **kwargs):
+    for key, value in kwargs.items():
+      setattr(self, key, value)

@@ -151,17 +151,10 @@ class UworkerOutputTest(unittest.TestCase):
     # Test that these can be accessed without an attribute error.
     self.output.testcase  # pylint: disable=pointless-statement
     self.output.error  # pylint: disable=pointless-statement
-    self.assertEqual(self.output.to_dict(), {})
-    value = 'ERROR'
-    self.output.error = value
-    self.assertEqual(self.output.error, value)
-    self.assertEqual(self.output.to_dict(), {'error': value})
-
-  def to_dict(self):
-    """Tests that to_dict functions as intended."""
-    self.assertEqual(self.output.to_dict(), {})
-    self.output.j = 1
-    self.assertEqual(self.output.to_dict(), {'j': 1})
+    error_value = 1
+    self.output.error = error_value
+    self.assertEqual(self.output.error, error_value)
+    self.assertEqual(self.output.proto.error, error_value)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -312,25 +305,19 @@ class RoundTripTest(unittest.TestCase):
         downloaded_output = uworker_io.download_and_deserialize_uworker_output(
             self.FAKE_URL)
 
-    # Test that the entity (de)serialization and change tracking working.
-    downloaded_output = downloaded_output.to_dict()
-    downloaded_testcase = downloaded_output.pop('testcase')
-    self.assertEqual(downloaded_testcase.regression, testcase.regression)
-    self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
-    self.assertEqual(downloaded_testcase.timestamp, testcase.timestamp)
+    self.assertEqual(downloaded_output.testcase.regression, testcase.regression)
+    self.assertEqual(downloaded_output.testcase.crash_type, testcase.crash_type)
+    self.assertEqual(downloaded_output.testcase.timestamp, testcase.timestamp)
 
     # Test that the rest of the output was (de)serialized correctly.
-    self.assertEqual(downloaded_testcase.key.serialized(),
+    self.assertEqual(downloaded_output.testcase.key.serialized(),
                      self.testcase.key.serialized())
-    self.assertDictEqual(
-        downloaded_output, {
-            'crash_time': 1,
-            'error': uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
-            'uworker_input': uworker_input,
-            'uworker_env': {
-                'PATH': '/blah'
-            }
-        })
+    self.assertEqual(downloaded_output.crash_time, 1)
+    self.assertEqual(downloaded_output.error,
+                     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+    self.assertDictEqual(downloaded_output.uworker_input, uworker_input)
+
+    self.assertDictEqual(downloaded_output.uworker_env, {'PATH': '/blah'})
 
   def test_output_error_serialization(self):
     """Tests that errors can be returned by the tasks."""
