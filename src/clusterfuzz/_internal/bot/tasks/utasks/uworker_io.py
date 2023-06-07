@@ -207,6 +207,7 @@ def download_and_deserialize_uworker_output(output_url: str):
 
 
 def deserialize_wrapped_entity(wrapped_entity_proto):
+  """Deserializes a proto representing a db entity."""
   # TODO(metzman): Add verification to ensure only the correct object is
   # retreived.
   changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
