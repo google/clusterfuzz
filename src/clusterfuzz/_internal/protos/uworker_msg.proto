@@ -57,6 +57,6 @@ message Output {
   optional Json uworker_env = 5;
   optional float test_timeout = 6;
   optional float crash_time = 7;
-  optional string revision = 8;
+  optional int64 revision = 8;
   optional string crash_stacktrace_output = 9;
 }
