@@ -145,21 +145,7 @@ def download_and_deserialize_uworker_input(uworker_input_download_url):
 def serialize_uworker_output(uworker_output_obj):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
-  uworker_output = uworker_output_obj.to_dict()
-  proto_output = uworker_msg_pb2.Output()
-  for name, value in uworker_output.items():
-    if not isinstance(value, UworkerEntityWrapper):
-      field_descriptor = proto_output.DESCRIPTOR.fields_by_name[name]
-      if field_descriptor.message_type is not None:
-        logs.log_error(f'field: {name} value: {value} type: {type(value)} is '
-                       f'{field_descriptor.message_type}')
-      setattr(proto_output, name, value)
-      continue
-
-    wrapped_entity_proto = serialize_wrapped_entity(value)
-    field = getattr(proto_output, name)
-    field.CopyFrom(wrapped_entity_proto)
-  return proto_output.SerializeToString()
+  return uworker_output_obj.proto.SerializeToString()
 
 
 def serialize_wrapped_entity(wrapped_entity):
@@ -282,30 +268,31 @@ class UworkerOutput:
   ensuring we are returning values for fields expected by utask_postprocess."""
 
   def __init__(self, **kwargs):
-    self._set_attrs = set()
-    # Reset _set_attrs so we don't consider these set by the user unless they
-    # explictly set them.
-    self.testcase = None
-    self.error = None
-    self._set_attrs = set()
-
+    self.proto = uworker_msg_pb2.Output()
     for key, value in kwargs.items():
       setattr(self, key, value)
 
-  def to_dict(self):
-    # Make a copy so calls to pop don't modify the object.
-    dictionary = self.__dict__.copy()
-    return {
-        key: value
-        for key, value in dictionary.items()
-        if key in self._set_attrs
-    }
+  def __getattr__(self, attribute):
+    if attribute in ['proto']:
+      # Allow setting and changing proto. Stack overflow in __init__ otherwise.
+      return super().__getattr__(attribute)  # pylint: disable=no-member
+    return getattr(self.proto, attribute)
 
   def __setattr__(self, attribute, value):
-    super().__setattr__(attribute, value)
-    if attribute in ['_set_attrs']:
-      # Allow setting and changing _entity. Stack overflow in __init__
+    if attribute in ['proto']:
+      # Allow setting and changing proto. Stack overflow in __init__
       # otherwise.
+      super().__setattr__(attribute, value)
       return
-    # Record the attribute change.
-    self._set_attrs.add(attribute)
+
+    if not isinstance(value, UworkerEntityWrapper):
+      field_descriptor = self.proto.DESCRIPTOR.fields_by_name[attribute]
+      if field_descriptor.message_type is not None:
+        logs.log_error(f'field: {attribute} value: {value} type: {type(value)} '
+                       f' is {field_descriptor.message_type}')
+      setattr(self.proto, attribute, value)
+      return
+
+    wrapped_entity_proto = serialize_wrapped_entity(value)
+    field = getattr(self.proto, attribute)
+    field.CopyFrom(wrapped_entity_proto)
