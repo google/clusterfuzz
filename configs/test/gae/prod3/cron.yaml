@@ -86,11 +86,6 @@ cron:
     timezone: US/Pacific
     target: cron-service
 
-  - description: Train ML model.
-    url: /schedule-ml-train-tasks
-    schedule: every tuesday 09:00
-    target: cron-service
-
   - description: Schedule progression tasks.
     url: /schedule-progression-tasks
     schedule: every day 07:00
