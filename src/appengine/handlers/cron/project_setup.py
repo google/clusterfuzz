@@ -207,7 +207,7 @@ def get_github_url(url):
     raise ProjectSetupError('No github credentials.')
 
   client_id, client_secret = github_credentials.strip().split(';')
-  response = requests.get(url, auth=(client_id, client_secret, timeout=30))
+  response = requests.get(url, auth=(client_id, client_secret), timeout=30)
   if response.status_code != 200:
     logs.log_error(
         f'Failed to get github url: {url}.', status_code=response.status_code)
