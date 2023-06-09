@@ -14,8 +14,8 @@
 """Tests for analyze task."""
 
 import os
-import unittest
 import tempfile
+import unittest
 
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.datastore import data_types
