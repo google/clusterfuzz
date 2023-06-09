@@ -119,6 +119,7 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
                      testcase.get_metadata('issue_labels'))
     self.assertEqual(0, self.mock.log.call_count)
 
+
 @test_utils.with_cloud_emulators('datastore')
 class SetupTestcaseAndBuildTest(unittest.TestCase):
   """Tests for setup_testcase_and_build."""
