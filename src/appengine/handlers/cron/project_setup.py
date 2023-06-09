@@ -21,7 +21,6 @@ import re
 
 from google.cloud import ndb
 import requests
-import six
 import yaml
 
 from clusterfuzz._internal.base import tasks
@@ -79,7 +78,7 @@ class ProjectSetupError(Exception):
   """Exception."""
 
 
-class JobInfo(object):
+class JobInfo:
   """Job information."""
 
   def __init__(self,
@@ -208,7 +207,7 @@ def get_github_url(url):
     raise ProjectSetupError('No github credentials.')
 
   client_id, client_secret = github_credentials.strip().split(';')
-  response = requests.get(url, auth=(client_id, client_secret))
+  response = requests.get(url, auth=(client_id, client_secret, timeout=30))
   if response.status_code != 200:
     logs.log_error(
         f'Failed to get github url: {url}.', status_code=response.status_code)
@@ -284,7 +283,7 @@ def _process_sanitizers_field(sanitizers):
     if isinstance(sanitizer, str):
       processed_sanitizers[sanitizer] = {}
     elif isinstance(sanitizer, dict):
-      for key, value in six.iteritems(sanitizer):
+      for key, value in sanitizer.items():
         processed_sanitizers[key] = value
     else:
       return None
@@ -312,7 +311,7 @@ def get_jobs_for_project(project, info):
       if architecture not in JOB_MAP[engine]:
         continue
 
-      for sanitizer, options in six.iteritems(sanitizers):
+      for sanitizer, options in sanitizers.items():
         experimental = (
             options.get('experimental', False) or
             info.get('experimental', False))
@@ -592,7 +591,7 @@ def cleanup_pubsub_topics(project_names):
     client.delete_topic(topic)
 
 
-class ProjectSetup(object):
+class ProjectSetup:
   """Project setup."""
 
   def __init__(self,
@@ -701,7 +700,7 @@ class ProjectSetup(object):
 
     data_bundles = {
         fuzzer_entity.get().data_bundle_name
-        for fuzzer_entity in six.itervalues(self._fuzzer_entities)
+        for fuzzer_entity in self._fuzzer_entities.values()
     }
     for data_bundle in data_bundles:
       if not data_bundle:
@@ -893,7 +892,7 @@ class ProjectSetup(object):
         engine_sanitizer_vars = engine_vars.get(template.memory_tool, {})
         additional_vars.update(engine_sanitizer_vars)
 
-        for key, value in sorted(six.iteritems(additional_vars)):
+        for key, value in sorted(additional_vars.items()):
           job.environment_string += (
               f'{key} = {str(value).encode("unicode-escape").decode("utf-8")}\n'
           )
