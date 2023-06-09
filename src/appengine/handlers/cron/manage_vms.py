@@ -158,7 +158,7 @@ def _template_needs_update(current_template, new_template, resource_name):
   return False
 
 
-class ClustersManager(object):
+class ClustersManager:
   """Manager for clusters in a project."""
 
   def __init__(self, project_id):

@@ -82,8 +82,8 @@ class EngineTest(unittest.TestCase):
     result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
                               FUZZ_TIMEOUT)
 
-    self.assertEqual('{0}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
-    self.assertIn('-i{0}'.format(DEFAULT_CORPUS_DIRECTORY), result.command)
+    self.assertEqual('{}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
+    self.assertEqual('-i{}'.format(DEFAULT_CORPUS_DIRECTORY), result.command[0])
 
     # Ensure that we've added something other than the dummy file to the corpus.
     self.assertTrue(os.listdir(DEFAULT_CORPUS_DIRECTORY))

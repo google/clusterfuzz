@@ -19,7 +19,7 @@ import os
 import re
 import unittest
 
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import fuzz_task
 from clusterfuzz._internal.datastore import data_types

@@ -22,7 +22,7 @@ import shutil
 import tempfile
 import unittest
 
-from mock import patch
+from unittest.mock import patch
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
@@ -303,7 +303,7 @@ class IntegrationTest(unittest.TestCase):
     self.assertNotRegex(results.logs, 'CRASH LOG:.*')
 
     # Check the correct input was saved.
-    with open(crash.input_path, 'r') as f:
+    with open(crash.input_path) as f:
       self.assertEqual(content, f.read())
 
     return re.search(crash_regex, crash.stacktrace)
