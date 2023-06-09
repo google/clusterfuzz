@@ -13,9 +13,12 @@
 # limitations under the License.
 """Tests for analyze task."""
 
+import os
 import unittest
+import tempfile
 
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -114,3 +117,43 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     self.assertEqual('label1,label2,label3',
                      testcase.get_metadata('issue_labels'))
     self.assertEqual(0, self.mock.log.call_count)
+
+
+class SetupTestcaseAndBuildTest(unittest.TestCase):
+  """Tests for setup_testcase_and_build."""
+
+  def setUp(self):
+    """Do setup for tests."""
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.setup.setup_testcase',
+        'clusterfuzz._internal.bot.tasks.utasks.analyze_task.setup_build',
+    ])
+    helpers.patch_environ(self)
+    self.testcase_path = '/fake-testcase-path'
+    self.build_url = 'https://build.zip'
+    self.mock.setup_testcase.return_value = (None, self.testcase_path, None)
+    self.gn_args = 'is_asan = true'
+
+    def setup_build(*args, **kwargs):  # pylint: disable=useless-return
+      del args
+      del kwargs
+      os.environ['BUILD_URL'] = self.build_url
+      return None
+
+    self.mock.setup_build.side_effect = setup_build
+
+  def test_field_setting(self):
+    """Tests that the correct fields are set after setting up the build.
+    Especially testcase.metadata."""
+    testcase = data_types.Testcase()
+    with tempfile.NamedTemporaryFile() as gn_args_path:
+      os.environ['GN_ARGS_PATH'] = gn_args_path.name
+      gn_args_path.write(bytes(self.gn_args, 'utf-8'))
+      gn_args_path.seek(0)
+      result = analyze_task.setup_testcase_and_build(testcase, None, 'job',
+                                                     'https://fake-url')
+      self.assertEqual(testcase.get_metadata('gn_args'), self.gn_args)
+    self.assertEqual(result, (self.testcase_path, None))
+    self.assertEqual(testcase.absolute_path, self.testcase_path)
+    self.assertEqual(testcase.get_metadata('build_url'), self.build_url)
+    self.assertEqual(testcase.platform, 'linux')
