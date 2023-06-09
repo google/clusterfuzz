@@ -790,7 +790,7 @@ def set_initial_testcase_metadata(testcase):
   # !!! TMP
   if gn_args_path:
     gn_args = utils.read_data_from_file(
-        gn_args_path, eval_data=False, default='').decode('utf-8')
+        gn_args_path, eval_data=False, default='is_msan = true').decode('utf-8')
 
     # Remove goma_dir from gn args since it is only relevant to the machine that
     # did the build.
