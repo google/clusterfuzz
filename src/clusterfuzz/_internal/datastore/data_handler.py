@@ -786,8 +786,10 @@ def set_initial_testcase_metadata(testcase):
   if build_url:
     testcase.set_metadata('build_url', build_url, update_testcase=False)
 
+  from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
-  if gn_args_path and os.path.exists(gn_args_path):
+  # !!! TMP
+  if gn_args_path:
     gn_args = utils.read_data_from_file(
         gn_args_path, eval_data=False, default='').decode('utf-8')
 
