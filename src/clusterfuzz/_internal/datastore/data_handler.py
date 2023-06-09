@@ -791,7 +791,7 @@ def set_initial_testcase_metadata(testcase):
   sys.stderr.write(f'AAAAA gn_args_path {gn_args_path}')
   # !!! TMP
   if gn_args_path:
-    sys.stderr.write(f'AAAAA doit gn_args {gn_args}')
+    sys.stderr.write(f'AAAAA doit gn_args')
     gn_args = utils.read_data_from_file(
         gn_args_path, eval_data=False, default='is_msan = true').decode('utf-8')
     sys.stderr.write(f'AAAAA gn_args {gn_args}')
