@@ -267,35 +267,33 @@ class UworkerOutput:
   """Convenience class for results from uworker_main. This is useful for
   ensuring we are returning values for fields expected by utask_postprocess."""
 
-  def __init__(self, serializable=True, **kwargs):
-    self.serializable = serializable
+  def __init__(self, **kwargs):
     self.proto = uworker_msg_pb2.Output()
     for key, value in kwargs.items():
       setattr(self, key, value)
 
   def __getattr__(self, attribute):
-    if attribute in ['proto', 'serializable'] or not self.serializable:
+    if attribute in ['proto']:
       # Allow setting and changing proto. Stack overflow in __init__ otherwise.
       return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self.proto, attribute)
 
   def __setattr__(self, attribute, value):
     super().__setattr__(attribute, value)
-    if attribute in ['proto', 'serializable']:
+    if attribute in ['proto']:
       # Allow setting and changing proto. Stack overflow in __init__
       # otherwise.
       return
-    if not self.serializable:
-      return
 
-    if not isinstance(value, UworkerEntityWrapper):
-      field_descriptor = self.proto.DESCRIPTOR.fields_by_name[attribute]
-      if field_descriptor.message_type is not None:
-        logs.log_error(f'field: {attribute} value: {value} type: {type(value)} '
-                       f' is {field_descriptor.message_type}')
+    field_descriptor = self.proto.DESCRIPTOR.fields_by_name[attribute]
+    if field_descriptor.message_type is None:
       setattr(self.proto, attribute, value)
       return
 
+    if value is None:
+      return
+    if not isinstance(value, UworkerEntityWrapper):
+      raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
     wrapped_entity_proto = serialize_wrapped_entity(value)
     field = getattr(self.proto, attribute)
     field.CopyFrom(wrapped_entity_proto)
