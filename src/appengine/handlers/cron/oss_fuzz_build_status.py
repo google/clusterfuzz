@@ -59,7 +59,7 @@ MIN_CONSECUTIVE_BUILD_FAILURES = 3
 REMINDER_INTERVAL = 6
 
 
-class OssFuzzBuildStatusException(Exception):
+class OssFuzzBuildStatusError(Exception):
   """Exceptions for the build status cron."""
 
 
@@ -189,7 +189,7 @@ class Handler(base_handler.Handler):
     """Close bugs for fixed builds."""
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
-      raise OssFuzzBuildStatusException('Failed to get issue tracker.')
+      raise OssFuzzBuildStatusError('Failed to get issue tracker.')
 
     for project in projects:
       project_name = project['name']
@@ -220,7 +220,7 @@ class Handler(base_handler.Handler):
     """Process failures."""
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
-      raise OssFuzzBuildStatusException('Failed to get issue tracker.')
+      raise OssFuzzBuildStatusError('Failed to get issue tracker.')
 
     for project in projects:
       project_name = project['name']

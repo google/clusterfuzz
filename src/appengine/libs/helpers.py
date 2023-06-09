@@ -63,7 +63,7 @@ class AccessDeniedError(EarlyExitError):
     super().__init__(message, 403, '')
 
 
-class UnauthorizedException(EarlyExitError):
+class UnauthorizedError(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 401."""
 
   def __init__(self, message=''):

@@ -167,7 +167,7 @@ def can_user_access_testcase(testcase):
 def check_access_and_get_testcase(testcase_id):
   """Check the failed attempt count and get the testcase."""
   if not helpers.get_user_email():
-    raise helpers.UnauthorizedException()
+    raise helpers.UnauthorizedError()
 
   if not testcase_id:
     raise helpers.EarlyExitError('No test case specified!', 404)

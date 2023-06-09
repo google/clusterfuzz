@@ -33,15 +33,15 @@ _SCOPES = [
 ]
 
 
-class BotManagerException(Exception):
+class BotManagerError(Exception):
   """Base exception class."""
 
 
-class OperationError(BotManagerException):
+class OperationError(BotManagerError):
   """Errors during an operation."""
 
 
-class RequestError(BotManagerException):
+class RequestError(BotManagerError):
   """Errors during a request."""
 
 

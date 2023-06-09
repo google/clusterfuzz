@@ -168,7 +168,7 @@ def get_email_and_access_token(authorization):
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
   """
   if not authorization.startswith(BEARER_PREFIX):
-    raise helpers.UnauthorizedException(
+    raise helpers.UnauthorizedError(
         'The Authorization header is invalid. It should have been started with'
         " '%s'." % BEARER_PREFIX)
 
@@ -179,7 +179,7 @@ def get_email_and_access_token(authorization):
       params={'access_token': access_token},
       timeout=HTTP_GET_TIMEOUT_SECS)
   if response.status_code != 200:
-    raise helpers.UnauthorizedException(
+    raise helpers.UnauthorizedError(
         f'Failed to authorize. The Authorization header ({authorization}) '
         'might be invalid.')
 
@@ -196,12 +196,12 @@ def get_email_and_access_token(authorization):
     whitelisted_client_ids = _auth_config().get(
         'whitelisted_oauth_client_ids', default=[])
     if data.get('aud') not in whitelisted_client_ids:
-      raise helpers.UnauthorizedException(
+      raise helpers.UnauthorizedError(
           "The access token doesn't belong to one of the allowed OAuth clients"
           ': %s.' % response.text)
 
     if not data.get('email_verified'):
-      raise helpers.UnauthorizedException('The email (%s) is not verified: %s.'
+      raise helpers.UnauthorizedError('The email (%s) is not verified: %s.'
                                           % (data.get('email'), response.text))
 
     return data['email'], authorization
@@ -243,16 +243,16 @@ def pubsub_push(func):
     try:
       bearer_token = request.headers.get('Authorization', '')
       if not bearer_token.startswith(BEARER_PREFIX):
-        raise helpers.UnauthorizedException('Missing or invalid bearer token.')
+        raise helpers.UnauthorizedError('Missing or invalid bearer token.')
 
       token = bearer_token.split(' ')[1]
       claim = id_token.verify_oauth2_token(token, google_requests.Request())
     except google.auth.exceptions.GoogleAuthError as e:
-      raise helpers.UnauthorizedException('Invalid ID token.') from e
+      raise helpers.UnauthorizedError('Invalid ID token.') from e
 
     if (not claim.get('email_verified') or
         claim.get('email') != utils.service_account_email()):
-      raise helpers.UnauthorizedException('Invalid ID token.')
+      raise helpers.UnauthorizedError('Invalid ID token.')
 
     message = pubsub.raw_message_to_message(json.loads(request.data.decode()))
     return func(self, message)
