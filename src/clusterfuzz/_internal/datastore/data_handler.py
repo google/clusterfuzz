@@ -802,7 +802,7 @@ def set_initial_testcase_metadata(testcase):
         line for line in gn_args.splitlines()
         if not GOMA_DIR_LINE_REGEX.match(line)
     ]
-    sys.stderr.write(f'AAAAA filtered_gn_arg_lines {filtered_gn_arg_lines}')
+    sys.stderr.write(f'AAAAA filtered_gn_args_lines {filtered_gn_args_lines}')
     filtered_gn_args = '\n'.join(filtered_gn_args_lines)
     sys.stderr.write(f'AAAAA filtered_gn_args {filtered_gn_args}')
     testcase.set_metadata('gn_args', filtered_gn_args, update_testcase=False)
