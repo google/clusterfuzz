@@ -116,6 +116,7 @@ class IntegrationTest(unittest.TestCase):
     self.mock.getpid.return_value = 1337
     test_helpers.patch_environ(self)
     os.environ['BUILD_DIR'] = str(self.test_paths.data)
+    os.environ['JOB_NAME'] = 'centipede_asan_job'
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""

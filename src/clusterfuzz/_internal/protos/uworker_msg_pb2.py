@@ -35,7 +35,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\x8c\x03\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x32\n\x08metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_url\"\xad\x02\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12,\n\x08metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x03 \x01(\x0e\x32\n.ErrorTypeH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x05 \x01(\x02H\x04\x88\x01\x01\x12\x17\n\ncrash_time\x18\x06 \x01(\x02H\x05\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x08\n\x06_errorB\x0e\n\x0c_uworker_envB\x0f\n\r_test_timeoutB\r\n\x0b_crash_time*\x84\x01\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x12\n\x0eTESTCASE_SETUP\x10\x03\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\x81\x04\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x32\n\x08metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x07\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x08\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_type\"\xcc\x03\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12,\n\x08metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x05 \x01(\x0b\x32\x05.JsonH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12\x15\n\x08revision\x18\x08 \x01(\x03H\x07\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\t \x01(\tH\x08\x88\x01\x01\x42\x0b\n\t_testcaseB\x0b\n\t_metadataB\n\n\x08_variantB\x08\n\x06_errorB\x0e\n\x0c_uworker_envB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x0b\n\t_revisionB\x1a\n\x18_crash_stacktrace_output*\x84\x01\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x12\n\x0eTESTCASE_SETUP\x10\x03\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,])
 
@@ -79,8 +79,8 @@ _ERRORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=921,
-  serialized_end=1053,
+  serialized_start=1197,
+  serialized_end=1329,
 )
 _sym_db.RegisterEnumDescriptor(_ERRORTYPE)
 
@@ -222,6 +222,20 @@ _INPUT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='variant', full_name='Input.variant', index=7,
+      number=8, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='original_job_type', full_name='Input.original_job_type', index=8,
+      number=9, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -268,9 +282,19 @@ _INPUT = _descriptor.Descriptor(
       index=6, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_variant', full_name='Input._variant',
+      index=7, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_original_job_type', full_name='Input._original_job_type',
+      index=8, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
   serialized_start=218,
-  serialized_end=614,
+  serialized_end=731,
 )
 
 
@@ -297,30 +321,51 @@ _OUTPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='error', full_name='Output.error', index=2,
-      number=3, type=14, cpp_type=8, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='uworker_env', full_name='Output.uworker_env', index=3,
-      number=4, type=11, cpp_type=10, label=1,
+      name='variant', full_name='Output.variant', index=2,
+      number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='test_timeout', full_name='Output.test_timeout', index=4,
-      number=5, type=2, cpp_type=6, label=1,
+      name='error', full_name='Output.error', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='uworker_env', full_name='Output.uworker_env', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='test_timeout', full_name='Output.test_timeout', index=5,
+      number=6, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='crash_time', full_name='Output.crash_time', index=5,
-      number=6, type=2, cpp_type=6, label=1,
+      name='crash_time', full_name='Output.crash_time', index=6,
+      number=7, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='revision', full_name='Output.revision', index=7,
+      number=8, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='crash_stacktrace_output', full_name='Output.crash_stacktrace_output', index=8,
+      number=9, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
@@ -346,28 +391,43 @@ _OUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_error', full_name='Output._error',
+      name='_variant', full_name='Output._variant',
       index=2, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_uworker_env', full_name='Output._uworker_env',
+      name='_error', full_name='Output._error',
       index=3, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_test_timeout', full_name='Output._test_timeout',
+      name='_uworker_env', full_name='Output._uworker_env',
       index=4, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_crash_time', full_name='Output._crash_time',
+      name='_test_timeout', full_name='Output._test_timeout',
       index=5, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_crash_time', full_name='Output._crash_time',
+      index=6, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_revision', full_name='Output._revision',
+      index=7, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_crash_stacktrace_output', full_name='Output._crash_stacktrace_output',
+      index=8, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
-  serialized_start=617,
-  serialized_end=918,
+  serialized_start=734,
+  serialized_end=1194,
 )
 
 _UWORKERENTITYWRAPPER.fields_by_name['entity'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
@@ -375,6 +435,7 @@ _UWORKERENTITYWRAPPER.fields_by_name['changed'].message_type = _JSON
 _INPUT.fields_by_name['testcase'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['metadata'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['uworker_env'].message_type = _JSON
+_INPUT.fields_by_name['variant'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.oneofs_by_name['_testcase'].fields.append(
   _INPUT.fields_by_name['testcase'])
 _INPUT.fields_by_name['testcase'].containing_oneof = _INPUT.oneofs_by_name['_testcase']
@@ -396,8 +457,15 @@ _INPUT.fields_by_name['job_type'].containing_oneof = _INPUT.oneofs_by_name['_job
 _INPUT.oneofs_by_name['_uworker_output_upload_url'].fields.append(
   _INPUT.fields_by_name['uworker_output_upload_url'])
 _INPUT.fields_by_name['uworker_output_upload_url'].containing_oneof = _INPUT.oneofs_by_name['_uworker_output_upload_url']
+_INPUT.oneofs_by_name['_variant'].fields.append(
+  _INPUT.fields_by_name['variant'])
+_INPUT.fields_by_name['variant'].containing_oneof = _INPUT.oneofs_by_name['_variant']
+_INPUT.oneofs_by_name['_original_job_type'].fields.append(
+  _INPUT.fields_by_name['original_job_type'])
+_INPUT.fields_by_name['original_job_type'].containing_oneof = _INPUT.oneofs_by_name['_original_job_type']
 _OUTPUT.fields_by_name['testcase'].message_type = _UWORKERENTITYWRAPPER
 _OUTPUT.fields_by_name['metadata'].message_type = _UWORKERENTITYWRAPPER
+_OUTPUT.fields_by_name['variant'].message_type = _UWORKERENTITYWRAPPER
 _OUTPUT.fields_by_name['error'].enum_type = _ERRORTYPE
 _OUTPUT.fields_by_name['uworker_env'].message_type = _JSON
 _OUTPUT.oneofs_by_name['_testcase'].fields.append(
@@ -406,6 +474,9 @@ _OUTPUT.fields_by_name['testcase'].containing_oneof = _OUTPUT.oneofs_by_name['_t
 _OUTPUT.oneofs_by_name['_metadata'].fields.append(
   _OUTPUT.fields_by_name['metadata'])
 _OUTPUT.fields_by_name['metadata'].containing_oneof = _OUTPUT.oneofs_by_name['_metadata']
+_OUTPUT.oneofs_by_name['_variant'].fields.append(
+  _OUTPUT.fields_by_name['variant'])
+_OUTPUT.fields_by_name['variant'].containing_oneof = _OUTPUT.oneofs_by_name['_variant']
 _OUTPUT.oneofs_by_name['_error'].fields.append(
   _OUTPUT.fields_by_name['error'])
 _OUTPUT.fields_by_name['error'].containing_oneof = _OUTPUT.oneofs_by_name['_error']
@@ -418,6 +489,12 @@ _OUTPUT.fields_by_name['test_timeout'].containing_oneof = _OUTPUT.oneofs_by_name
 _OUTPUT.oneofs_by_name['_crash_time'].fields.append(
   _OUTPUT.fields_by_name['crash_time'])
 _OUTPUT.fields_by_name['crash_time'].containing_oneof = _OUTPUT.oneofs_by_name['_crash_time']
+_OUTPUT.oneofs_by_name['_revision'].fields.append(
+  _OUTPUT.fields_by_name['revision'])
+_OUTPUT.fields_by_name['revision'].containing_oneof = _OUTPUT.oneofs_by_name['_revision']
+_OUTPUT.oneofs_by_name['_crash_stacktrace_output'].fields.append(
+  _OUTPUT.fields_by_name['crash_stacktrace_output'])
+_OUTPUT.fields_by_name['crash_stacktrace_output'].containing_oneof = _OUTPUT.oneofs_by_name['_crash_stacktrace_output']
 DESCRIPTOR.message_types_by_name['Json'] = _JSON
 DESCRIPTOR.message_types_by_name['UworkerEntityWrapper'] = _UWORKERENTITYWRAPPER
 DESCRIPTOR.message_types_by_name['Input'] = _INPUT

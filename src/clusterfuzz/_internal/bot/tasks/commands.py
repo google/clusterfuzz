@@ -31,8 +31,8 @@ from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks import utasks
-from clusterfuzz._internal.bot.tasks import variant_task
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -75,8 +75,10 @@ def utask_factory(task_module, use_gcs_for_io=False):
     return UTask(task_module)
 
   if use_gcs_for_io:
+    logs.log('Using GCS for utasks.')
     return UTaskLocalExecutor(task_module)
 
+  logs.log('Using memory for utasks.')
   return UTaskLocalInMemoryExecutor(task_module)
 
 
@@ -134,7 +136,7 @@ COMMAND_MAP = {
     'symbolize': TrustedTask(symbolize_task),
     'unpack': TrustedTask(unpack_task),
     'upload_reports': TrustedTask(upload_reports_task),
-    'variant': TrustedTask(variant_task),
+    'variant': utask_factory(variant_task),
 }
 
 

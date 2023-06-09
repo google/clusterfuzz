@@ -14,7 +14,7 @@
 """Tests for AFL's engine implementation."""
 
 import os
-import shutil
+import tempfile
 import unittest
 
 from clusterfuzz._internal.bot.fuzzers.afl import engine
@@ -23,15 +23,13 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.core.bot.fuzzers.afl import \
     afl_launcher_integration_test
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 # TODO(mbarbella): Break dependency on afl_launcher_integration_test once
 # everything has been fully converted to the new pipeline.
 
 TEST_PATH = os.path.abspath(os.path.dirname(__file__))
-TEMP_DIRECTORY = os.path.join(TEST_PATH, 'temp')
 DATA_DIRECTORY = os.path.join(TEST_PATH, 'data')
-DEFAULT_CORPUS_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'corpus')
-OUTPUT_DIRECTORY = os.path.join(TEMP_DIRECTORY, 'output')
 
 BASE_FUZZ_TIMEOUT = (
     launcher.AflRunnerCommon.SIGTERM_WAIT_TIME +
@@ -40,60 +38,48 @@ FUZZ_TIMEOUT = 5 + BASE_FUZZ_TIMEOUT
 LONG_FUZZ_TIMEOUT = 90 + BASE_FUZZ_TIMEOUT
 
 
-def clear_temp_dir():
-  """Clear temp directories."""
-  if os.path.exists(TEMP_DIRECTORY):
-    shutil.rmtree(TEMP_DIRECTORY)
-
-
-def create_temp_dir():
-  """Create temp directories."""
-  # Corpus directory will be created when preparing for fuzzing.
-  os.mkdir(TEMP_DIRECTORY)
-  os.mkdir(OUTPUT_DIRECTORY)
-
-
-@unittest.skipIf(not environment.get_value('AFL_INTEGRATION_TESTS'),
-                 'AFL_INTEGRATION_TESTS=1 must be set')
+@test_utils.integration
 class EngineTest(unittest.TestCase):
   """Tests for Engine."""
 
-  def setUp(self):
-    clear_temp_dir()
-    create_temp_dir()
+  def run(self, *args, **kwargs):
+    with tempfile.TemporaryDirectory() as temp_dir:
+      self.temp_dir = temp_dir
+      self.default_corpus_directory = os.path.join(self.temp_dir, 'corpus')
+      self.output_directory = os.path.join(self.temp_dir, 'output')
+      os.mkdir(self.output_directory)
+      super().run(*args, **kwargs)
 
+  def setUp(self):
     test_helpers.patch_environ(self)
     afl_launcher_integration_test.dont_use_strategies(self)
     environment.set_value('BUILD_DIR', DATA_DIRECTORY)
-
-  def tearDown(self):
-    clear_temp_dir()
 
   def test_fuzz(self):
     """Test for fuzz."""
     engine_impl = engine.Engine()
 
     afl_launcher_integration_test.setup_testcase_and_corpus(
-        'empty', 'corpus', fuzz=True)
+        self, 'empty', 'corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
-    options = engine_impl.prepare(DEFAULT_CORPUS_DIRECTORY, fuzzer_path,
+    options = engine_impl.prepare(self.default_corpus_directory, fuzzer_path,
                                   DATA_DIRECTORY)
 
-    result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
+    result = engine_impl.fuzz(fuzzer_path, options, self.output_directory,
                               FUZZ_TIMEOUT)
 
     self.assertEqual('{}/afl-fuzz'.format(DATA_DIRECTORY), result.command[0])
-    self.assertEqual('-i{}'.format(DEFAULT_CORPUS_DIRECTORY), result.command[0])
+    self.assertIn('-i{}'.format(self.default_corpus_directory), result.command)
 
     # Ensure that we've added something other than the dummy file to the corpus.
-    self.assertTrue(os.listdir(DEFAULT_CORPUS_DIRECTORY))
+    self.assertTrue(os.listdir(self.default_corpus_directory))
 
   def test_reproduce(self):
     """Test for reproduce."""
     engine_impl = engine.Engine()
     target_path = os.path.join(DATA_DIRECTORY, 'test_fuzzer')
     testcase_path = afl_launcher_integration_test.setup_testcase_and_corpus(
-        'crash', 'empty_corpus')
+        self, 'crash', 'empty_corpus')
     timeout = 5
     result = engine_impl.reproduce(target_path, testcase_path, [], timeout)
 
@@ -106,13 +92,13 @@ class EngineTest(unittest.TestCase):
     engine_impl = engine.Engine()
 
     afl_launcher_integration_test.setup_testcase_and_corpus(
-        'empty', 'easy_crash_corpus', fuzz=True)
+        self, 'empty', 'easy_crash_corpus', fuzz=True)
     fuzzer_path = os.path.join(DATA_DIRECTORY, 'easy_crash_fuzzer')
     options = engine_impl.prepare(
-        os.path.join(TEMP_DIRECTORY, 'easy_crash_corpus'), fuzzer_path,
+        os.path.join(self.temp_dir, 'easy_crash_corpus'), fuzzer_path,
         DATA_DIRECTORY)
 
-    result = engine_impl.fuzz(fuzzer_path, options, OUTPUT_DIRECTORY,
+    result = engine_impl.fuzz(fuzzer_path, options, self.output_directory,
                               LONG_FUZZ_TIMEOUT)
 
     self.assertGreater(len(result.crashes), 0)
