@@ -840,9 +840,8 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.assertSetEqual({r2_stacktrace, 'r4', 'u1', 'u2', 'u4'},
                         {t.crash_stacktrace for t in testcases})
 
-    self.assertSetEqual(
-        {'{"fuzzing_strategies": ["value_profile"]}', None},
-        {t.additional_metadata for t in testcases})
+    self.assertSetEqual({'{"fuzzing_strategies": ["value_profile"]}', None},
+                        {t.additional_metadata for t in testcases})
 
     # r2 is a reproducible crash, so r3 doesn't
     # invoke archive_testcase_in_blobstore. Therefore, the
