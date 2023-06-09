@@ -779,6 +779,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
 def set_initial_testcase_metadata(testcase):
   """Set various testcase metadata fields during testcase initialization."""
+  1/0
   build_key = environment.get_value('BUILD_KEY')
   if build_key:
     testcase.set_metadata('build_key', build_key, update_testcase=False)
