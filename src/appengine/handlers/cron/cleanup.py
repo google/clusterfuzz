@@ -1162,17 +1162,17 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
                                                      issue,
                                                      only_allow_ccs=False):
   """Assign the issue to an appropriate owner if possible."""
-  logs.log(f'{update_issue_owner_and_ccs_from_predator_results} {testcase.id}')
+  logs.log(f'{update_issue_owner_and_ccs_from_predator_results}')
   if not issue or not issue.is_open:
     return
 
-  logs.log(f'is_open {testcase.id}')
+  logs.log('is_open')
 
   # If the issue already has an owner, we don't need to update the bug.
   if issue.assignee:
     return
 
-  logs.log(f'noassignee {testcase.id}')
+  logs.log('noassignee')
 
   # If there are more than 3 suspected CLs, we can't be confident in the
   # results. Just skip any sort of notification to CL authors in this case.
