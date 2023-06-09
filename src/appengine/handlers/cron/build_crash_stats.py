@@ -151,10 +151,10 @@ def build(end_hour):
 
     if result['status']['state'] == 'DONE':
       if result['status'].get('errors'):
-        raise Exception(json.dumps(result))
+        raise Exception(json.dumps(result))  # pylint: disable=broad-exception-raised
       return
 
-  raise Exception('Building crash stats exceeded %d seconds.' % TIMEOUT)
+  raise Exception('Building crash stats exceeded %d seconds.' % TIMEOUT)  # pylint: disable=broad-exception-raised
 
 
 def build_if_needed():
