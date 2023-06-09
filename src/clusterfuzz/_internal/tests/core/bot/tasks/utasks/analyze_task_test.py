@@ -133,9 +133,9 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
     self.build_url = 'https://build.zip'
     self.mock.setup_testcase.return_value = (None, self.testcase_path, None)
     self.gn_args = ('is_asan = true\n'
-                  'goma_dir = /home/user/goma\n'
-                  'use_goma = true\n'
-                  'v8_enable_verify_heap = true')
+                    'goma_dir = /home/user/goma\n'
+                    'use_goma = true\n'
+                    'v8_enable_verify_heap = true')
 
     def setup_build(*args, **kwargs):  # pylint: disable=useless-return
       del args

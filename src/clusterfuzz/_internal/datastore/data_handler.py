@@ -19,6 +19,7 @@ import os
 import re
 import shlex
 from shlex import quote
+import sys
 import time
 
 from google.cloud import ndb
@@ -787,10 +788,13 @@ def set_initial_testcase_metadata(testcase):
     testcase.set_metadata('build_url', build_url, update_testcase=False)
 
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
+  sys.stderr.write(f'AAAAA gn_args_path {gn_args_path}')
   # !!! TMP
   if gn_args_path:
+    sys.stderr.write(f'AAAAA doit gn_args {gn_args}')
     gn_args = utils.read_data_from_file(
         gn_args_path, eval_data=False, default='is_msan = true').decode('utf-8')
+    sys.stderr.write(f'AAAAA gn_args {gn_args}')
 
     # Remove goma_dir from gn args since it is only relevant to the machine that
     # did the build.
@@ -798,7 +802,9 @@ def set_initial_testcase_metadata(testcase):
         line for line in gn_args.splitlines()
         if not GOMA_DIR_LINE_REGEX.match(line)
     ]
+    sys.stderr.write(f'AAAAA filtered_gn_arg_lines {filtered_gn_arg_lines}')
     filtered_gn_args = '\n'.join(filtered_gn_args_lines)
+    sys.stderr.write(f'AAAAA filtered_gn_args {filtered_gn_args}')
     testcase.set_metadata('gn_args', filtered_gn_args, update_testcase=False)
 
   testcase.platform = environment.platform().lower()
