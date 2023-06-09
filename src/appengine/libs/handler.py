@@ -201,8 +201,8 @@ def get_email_and_access_token(authorization):
           ': %s.' % response.text)
 
     if not data.get('email_verified'):
-      raise helpers.UnauthorizedError('The email (%s) is not verified: %s.'
-                                          % (data.get('email'), response.text))
+      raise helpers.UnauthorizedError('The email (%s) is not verified: %s.' %
+                                      (data.get('email'), response.text))
 
     return data['email'], authorization
   except (KeyError, ValueError) as e:
