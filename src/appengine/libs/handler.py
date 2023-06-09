@@ -68,7 +68,7 @@ def extend_request(req, params):
 
   def _get(key, default_value=None):
     """Return the value of the key or the default value."""
-    return params.get(key, default_value, timeout=HTTP_GET_TIMEOUT_SECS)
+    return params.get(key, default_value)
 
   req.get = _get
   req.iterparams = _iterparams
