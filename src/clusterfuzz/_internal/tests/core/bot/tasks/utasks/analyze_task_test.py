@@ -13,7 +13,7 @@
 # limitations under the License.
 """Tests for analyze task."""
 
-# import json
+import json
 import os
 import tempfile
 import unittest
