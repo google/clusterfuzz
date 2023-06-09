@@ -13,7 +13,7 @@
 # limitations under the License.
 """Tests for analyze task."""
 
-# import json
+import json
 import os
 import tempfile
 import unittest
@@ -119,7 +119,7 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
                      testcase.get_metadata('issue_labels'))
     self.assertEqual(0, self.mock.log.call_count)
 
-
+@test_utils.with_cloud_emulators('datastore')
 class SetupTestcaseAndBuildTest(unittest.TestCase):
   """Tests for setup_testcase_and_build."""
 
@@ -155,9 +155,9 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
       gn_args_path.seek(0)
       result = analyze_task.setup_testcase_and_build(testcase, None, 'job',
                                                      'https://fake-url')
-      # metadata = json.loads(testcase.additional_metadata)
-      # self.assertEqual(metadata['gn_args'], self.gn_args)
+      metadata = json.loads(testcase.additional_metadata)
+      self.assertEqual(metadata['gn_args'], self.gn_args)
     self.assertEqual(result, (self.testcase_path, None))
     self.assertEqual(testcase.absolute_path, self.testcase_path)
-    # self.assertEqual(metadata['build_url'], self.build_url)
+    self.assertEqual(metadata['build_url'], self.build_url)
     self.assertEqual(testcase.platform, 'linux')

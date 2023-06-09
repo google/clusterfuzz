@@ -791,7 +791,6 @@ def set_initial_testcase_metadata(testcase):
   sys.stderr.write(f'AAAAA gn_args_path {gn_args_path}\n')
   sys.stdout.write(f'AAAAA gn_args_path {gn_args_path}\n')
   # !!! TMP
-  wastaken = False
   if gn_args_path:
     sys.stderr.write('AAAAA doit gn_args\n')
     sys.stdout.write('AAAAA doit gn_args\n')
@@ -812,13 +811,7 @@ def set_initial_testcase_metadata(testcase):
     sys.stderr.write(f'AAAAA filtered_gn_args {filtered_gn_args}\n')
     sys.stdout.write(f'AAAAA filtered_gn_args {filtered_gn_args}\n')
     testcase.set_metadata('gn_args', filtered_gn_args, update_testcase=False)
-    wastaken = True
 
-  # pylint: disable=pointless-statement
-  if wastaken:
-    1 / 0
-  else:
-    2 / 0
   testcase.platform = environment.platform().lower()
   testcase.platform_id = environment.get_platform_id()
 
