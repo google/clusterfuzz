@@ -292,10 +292,15 @@ class UworkerOutput:
 
     if value is None:
       return
+
+    field = getattr(self.proto, attribute)
+    if isinstance(value, dict):
+      serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
+      field.CopyFrom(serialized_json)
+      return
     if not isinstance(value, UworkerEntityWrapper):
       raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
     wrapped_entity_proto = serialize_wrapped_entity(value)
-    field = getattr(self.proto, attribute)
     field.CopyFrom(wrapped_entity_proto)
 
 
