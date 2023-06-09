@@ -150,6 +150,7 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
     """Tests that the correct fields are set after setting up the build.
     Especially testcase.metadata."""
     testcase = data_types.Testcase()
+    testcase.put()
     with tempfile.NamedTemporaryFile() as gn_args_path:
       os.environ['GN_ARGS_PATH'] = gn_args_path.name
       gn_args_path.write(bytes(self.gn_args, 'utf-8'))

@@ -811,6 +811,7 @@ def set_initial_testcase_metadata(testcase):
     sys.stderr.write(f'AAAAA filtered_gn_args {filtered_gn_args}\n')
     sys.stdout.write(f'AAAAA filtered_gn_args {filtered_gn_args}\n')
     testcase.set_metadata('gn_args', filtered_gn_args, update_testcase=False)
+    sys.stdout.write(f'AAAAA gn_args {testcase.additional_metadata}\n')
 
   testcase.platform = environment.platform().lower()
   testcase.platform_id = environment.get_platform_id()
