@@ -27,6 +27,8 @@ import httplib2
 from local.butler import appengine
 from local.butler import common
 
+# pylint: disable=no-member
+
 _REQUIRED_SERVICES = (
     'appengineflex.googleapis.com',
     'bigquery-json.googleapis.com',
