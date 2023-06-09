@@ -157,7 +157,7 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
       gn_args_path.seek(0)
       result = analyze_task.setup_testcase_and_build(testcase, None, 'job',
                                                      'https://fake-url')
-      self.assertTrue(False)
+      self.assertTrue(False)  # pylint: disable=redundant-unittest-assert
       # metadata = json.loads(testcase.additional_metadata)
       # self.assertEqual(metadata['gn_args'], self.gn_args)
     self.assertEqual(result, (self.testcase_path, None))
