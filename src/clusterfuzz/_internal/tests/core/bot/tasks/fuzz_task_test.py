@@ -841,7 +841,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
                         {t.crash_stacktrace for t in testcases})
 
     self.assertSetEqual(
-        {'{"fuzzing_strategies": ["value_profile"]}', None, None, None, None},
+        {'{"fuzzing_strategies": ["value_profile"]}', None},
         {t.additional_metadata for t in testcases})
 
     # r2 is a reproducible crash, so r3 doesn't
