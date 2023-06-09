@@ -21,7 +21,6 @@ import re
 import shutil
 import tempfile
 import unittest
-
 from unittest.mock import patch
 
 from clusterfuzz._internal.bot.fuzzers import engine_common

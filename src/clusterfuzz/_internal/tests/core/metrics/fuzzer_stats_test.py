@@ -18,7 +18,6 @@ import json
 import os
 import re
 import unittest
-
 from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import fuzz_task

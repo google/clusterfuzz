@@ -505,7 +505,8 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock.get.assert_has_calls([
         mock.call(
             'https://www.googleapis.com/oauth2/v3/tokeninfo',
-            params={'access_token': 'AccessToken'})
+            params={'access_token': 'AccessToken'},
+            timeout=30)
     ])
     self.mock.get.reset_mock()
 
