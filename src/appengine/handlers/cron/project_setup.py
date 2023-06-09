@@ -21,7 +21,6 @@ import re
 
 from google.cloud import ndb
 import requests
-import six
 import yaml
 
 from clusterfuzz._internal.base import tasks
