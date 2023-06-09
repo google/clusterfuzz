@@ -72,6 +72,15 @@ def _get_reproducer_path(log, reproducers_dir):
   return crash_path
 
 
+def _set_sanitizer_options(fuzzer_path):
+  """Sets sanitizer options based on .options file overrides."""
+  engine_common.process_sanitizer_options_overrides(fuzzer_path)
+  sanitizer_options_var = environment.get_current_memory_tool_var()
+  sanitizer_options = environment.get_memory_tool_options(
+      sanitizer_options_var, {})
+  environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
+
+
 class Engine(engine.Engine):
   """Centipede engine implementation."""
 
@@ -188,6 +197,7 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner(target_path)
+    _set_sanitizer_options(target_path)
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=options.arguments, timeout=timeout)
@@ -232,6 +242,7 @@ class Engine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
+    _set_sanitizer_options(target_path)
     target_binaries = self._get_binary_paths(target_path)
     sanitized_target = str(target_binaries.sanitized)
 
