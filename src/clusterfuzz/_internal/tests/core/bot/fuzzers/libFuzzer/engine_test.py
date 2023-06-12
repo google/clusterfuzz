@@ -15,7 +15,7 @@
 # pylint: disable=unused-argument
 
 import os
-from shlex import quote
+import shlex
 import shutil
 import tempfile
 import unittest
@@ -1070,7 +1070,7 @@ class IntegrationTestsAndroid(BaseIntegrationTest, android_helpers.AndroidTest):
 
     self.crash_dir = TEMP_DIR
     self.adb_path = android.adb.get_adb_path()
-    hwasan_options = quote(environment.get_value('HWASAN_OPTIONS'))
+    hwasan_options = shlex.quote(environment.get_value('HWASAN_OPTIONS'))
     self.hwasan_options = f'HWASAN_OPTIONS="{hwasan_options}"'
 
   def device_path(self, local_path):

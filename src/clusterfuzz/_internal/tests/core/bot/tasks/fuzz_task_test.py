@@ -22,8 +22,8 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
-import mock
 import parameterized
 from pyfakefs import fake_filesystem_unittest
 
@@ -837,14 +837,11 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     testcases = list(data_types.Testcase.query())
     self.assertEqual(5, len(testcases))
-    self.assertSetEqual(
-        set([r2_stacktrace, 'r4', 'u1', 'u2', 'u4']),
-        set(t.crash_stacktrace for t in testcases))
+    self.assertSetEqual({r2_stacktrace, 'r4', 'u1', 'u2', 'u4'},
+                        {t.crash_stacktrace for t in testcases})
 
-    self.assertSetEqual(
-        set([
-            '{"fuzzing_strategies": ["value_profile"]}', None, None, None, None
-        ]), set(t.additional_metadata for t in testcases))
+    self.assertSetEqual({'{"fuzzing_strategies": ["value_profile"]}', None},
+                        {t.additional_metadata for t in testcases})
 
     # r2 is a reproducible crash, so r3 doesn't
     # invoke archive_testcase_in_blobstore. Therefore, the
@@ -1133,7 +1130,7 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.assertEqual(3, failure_count)
 
 
-class ConvertGroupsToCrashesTest(object):
+class ConvertGroupsToCrashesTest(unittest.TestCase):
   """Test convert_groups_to_crashes."""
 
   def test_convert(self):
@@ -1331,9 +1328,9 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual({'fuzzer_binary_name': 'fantasy_fuzz'}, fuzzer_metadata)
     self.assertEqual(expected_testcase_file_paths, testcase_file_paths)
     self.assertEqual(
-        dict((t, {
+        {t: {
             'gestures': []
-        }) for t in expected_testcase_file_paths), testcases_metadata)
+        } for t in expected_testcase_file_paths}, testcases_metadata)
 
     self.assertEqual(3, len(self.mock.is_crash.call_args_list))
 

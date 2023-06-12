@@ -562,9 +562,9 @@ def read_data_from_file(file_path, eval_data=True, default=None):
   if not os.path.exists(file_path):
     return default
 
-  failure_wait_interval = environment.get_value('FAIL_WAIT')
+  failure_wait_interval = environment.get_value('FAIL_WAIT', 0)
   file_content = None
-  retry_limit = environment.get_value('FAIL_RETRIES')
+  retry_limit = environment.get_value('FAIL_RETRIES', 1)
   for _ in range(retry_limit):
     try:
       with open(file_path, 'rb') as file_handle:
