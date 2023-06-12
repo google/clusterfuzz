@@ -52,6 +52,9 @@ def get_job_name():
 def doit():
   create_job()
 
+
+# !!! UNTRUSTED_WORKER
+
 def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_type='e2-standard-2'):
   """This is not a job in ClusterFuzz's meaning of the word."""
   # Define what will be done as part of the job.
