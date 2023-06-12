@@ -95,7 +95,7 @@ class UworkerMainTest(unittest.TestCase):
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
     module = mock.MagicMock()
-    uworker_output = {'revision': 1, 'testcase': None}
+    uworker_output = {'testcase': None, crash_time=70.1}
     module.utask_main.return_value = uworker_io.UworkerOutput(**uworker_output)
     input_download_url = 'http://input'
     utasks.uworker_main(module, input_download_url)
