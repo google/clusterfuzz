@@ -104,7 +104,7 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_ty
   job_name = get_job_name()
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
-  project_id = 'clusterfuzz-external'
+  project_id = 'google.com:clusterfuzz'
   region = 'us-central1'
   create_request.parent = f'projects/{project_id}/locations/{region}'
 
