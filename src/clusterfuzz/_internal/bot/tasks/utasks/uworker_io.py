@@ -14,7 +14,7 @@
 """Module for dealing with input and output (I/O) to a uworker."""
 
 import json
-import tempfile
+import os
 import uuid
 
 from google.cloud import ndb
@@ -61,12 +61,11 @@ def get_uworker_input_urls():
 
 def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
-  tmp_dir = environment.get_value('BOT_TMPDIR')
-  with tempfile.NamedTemporaryFile(dir=tmp_dir) as uworker_input_file:
-    with open(uworker_input_file.name, 'wb') as fp:
-      fp.write(uworker_input)
-    if not storage.copy_file_to(uworker_input_file.name, gcs_path):
-      raise RuntimeError('Failed to upload uworker_input.')
+  uworker_input_filename = _get_tmp_file_for_io()
+  with open(uworker_input_filename, 'wb') as uworker_input_file:
+    uworker_input_file.write(uworker_input)
+  if not storage.copy_file_to(uworker_input_filename, gcs_path):
+    raise RuntimeError('Failed to upload uworker_input.')
 
 
 def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
@@ -163,14 +162,21 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
-def _download_uworker_io_from_gcs(gcs_url):
+def _get_tmp_file_for_io():
   tmp_dir = environment.get_value('BOT_TMPDIR')
-  with tempfile.NamedTemporaryFile(dir=tmp_dir) as local_path:
-    if not storage.copy_file_from(gcs_url, local_path.name):
-      logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
-      return None
-    with open(local_path.name, 'rb') as file_handle:
-      return file_handle.read()
+  # Don't use tempfile because of permissions issues on Windows. See
+  # https://github.com/google/clusterfuzz/issues/3158.
+  tmp_file_for_storage = os.path.join(tmp_dir, 'uworker-io-storage')
+  return tmp_file_for_storage
+
+
+def _download_uworker_io_from_gcs(gcs_url):
+  tmp_file_for_storage = _get_tmp_file_for_io()
+  if not storage.copy_file_from(gcs_url, tmp_file_for_storage):
+    logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
+    return None
+  with open(tmp_file_for_storage, 'rb') as file_handle:
+    return file_handle.read()
 
 
 def _download_uworker_input_from_gcs(gcs_url):

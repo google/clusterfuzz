@@ -226,13 +226,15 @@ class RoundTripTest(unittest.TestCase):
         with open(temp_file.name, 'rb') as fp:
           return fp.read()
 
-      uworker_io.serialize_and_upload_uworker_input(uworker_input,
-                                                    self.job_type)
-      with mock.patch(
-          'clusterfuzz._internal.google_cloud_utils.storage.download_signed_url',
-          download_signed_url) as _:
-        downloaded_input = uworker_io.download_and_deserialize_uworker_input(
-            self.FAKE_URL)
+      with tempfile.TemporaryDirectory() as tmp_dir:
+        os.environ['BOT_TMPDIR'] = tmp_dir
+        uworker_io.serialize_and_upload_uworker_input(uworker_input,
+                                                      self.job_type)
+        with mock.patch(
+            'clusterfuzz._internal.google_cloud_utils.storage.'
+            'download_signed_url', download_signed_url) as _:
+          downloaded_input = uworker_io.download_and_deserialize_uworker_input(
+              self.FAKE_URL)
 
     # Test that testcase (de)serialization worked.
     downloaded_testcase = downloaded_input.pop('testcase')
@@ -272,7 +274,7 @@ class RoundTripTest(unittest.TestCase):
 
     def upload_signed_url(data, src):
       del src
-      with open(upload_signed_url_tempfile.name, 'wb') as fp:
+      with open(upload_signed_url_tempfile, 'wb') as fp:
         fp.write(data)
       return True
 
@@ -281,8 +283,11 @@ class RoundTripTest(unittest.TestCase):
     copy_file_from_name = (
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from')
 
-    with tempfile.NamedTemporaryFile() as output_temp_file, mock.patch(
+    with tempfile.TemporaryDirectory() as tmp_dir, mock.patch(
         upload_signed_url_name, upload_signed_url) as _:
+
+      os.environ['BOT_TMPDIR'] = tmp_dir
+      output_temp_file = os.path.join(tmp_dir, 'output-temp-file')
       upload_signed_url_tempfile = output_temp_file
       uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
 
@@ -290,7 +295,7 @@ class RoundTripTest(unittest.TestCase):
       # the file upload_signed_url wrote it to.
       def copy_file_from(gcs_url, local_path):
         del gcs_url
-        shutil.copyfile(output_temp_file.name, local_path)
+        shutil.copyfile(output_temp_file, local_path)
         return True
 
       download_uworker_input_name = (
@@ -302,12 +307,15 @@ class RoundTripTest(unittest.TestCase):
           uworker_input)
       with mock.patch(copy_file_from_name, copy_file_from) as _, mock.patch(
           download_uworker_input_name, return_value=serialized_uworker_input):
-        downloaded_output = uworker_io.download_and_deserialize_uworker_output(
-            self.FAKE_URL)
+        downloaded_output = (
+            uworker_io.download_and_deserialize_uworker_output(self.FAKE_URL))
 
-    self.assertEqual(downloaded_output.testcase.regression, testcase.regression)
-    self.assertEqual(downloaded_output.testcase.crash_type, testcase.crash_type)
-    self.assertEqual(downloaded_output.testcase.timestamp, testcase.timestamp)
+        self.assertEqual(downloaded_output.testcase.regression,
+                         testcase.regression)
+        self.assertEqual(downloaded_output.testcase.crash_type,
+                         testcase.crash_type)
+        self.assertEqual(downloaded_output.testcase.timestamp,
+                         testcase.timestamp)
 
     # Test that the rest of the output was (de)serialized correctly.
     self.assertEqual(downloaded_output.testcase.key.serialized(),
