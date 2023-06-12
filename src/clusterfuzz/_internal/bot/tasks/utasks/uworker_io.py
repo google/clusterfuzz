@@ -64,8 +64,8 @@ def upload_uworker_input(uworker_input, gcs_path):
   uworker_input_filename = _get_tmp_file_for_io()
   with open(uworker_input_filename, 'wb') as uworker_input_file:
     uworker_input_file.write(uworker_input)
-    if not storage.copy_file_to(uworker_input_filename, gcs_path):
-      raise RuntimeError('Failed to upload uworker_input.')
+  if not storage.copy_file_to(uworker_input_filename, gcs_path):
+    raise RuntimeError('Failed to upload uworker_input.')
 
 
 def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
