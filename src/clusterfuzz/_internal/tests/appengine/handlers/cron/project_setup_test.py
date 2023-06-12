@@ -35,7 +35,7 @@ from handlers.cron import project_setup
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'project_setup_data')
 
-EXISTING_BUCKETS = set(['lib1-logs.clusterfuzz-external.appspot.com'])
+EXISTING_BUCKETS = {'lib1-logs.clusterfuzz-external.appspot.com'}
 
 
 def _read_data_file(data_file):
@@ -45,7 +45,7 @@ def _read_data_file(data_file):
     return handle.read()
 
 
-class MockRequest(object):
+class MockRequest:
   """Mock API request."""
 
   def __init__(self, raise_exception=False, return_value=None):
@@ -1719,10 +1719,10 @@ def mock_get_url(url):
   return URL_RESULTS[url]
 
 
-class MockRequestsGet(object):
+class MockRequestsGet:
   """Mock requests.get."""
 
-  def __init__(self, url, params=None, auth=None):  # pylint: disable=unused-argument
+  def __init__(self, url, params=None, auth=None, timeout=None):  # pylint: disable=unused-argument
     if url in URL_RESULTS:
       self.text = URL_RESULTS[url]
       self.status_code = 200
