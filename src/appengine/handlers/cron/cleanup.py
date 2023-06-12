@@ -278,7 +278,7 @@ def get_top_crashes_for_all_projects_and_platforms(limit=TOP_CRASHES_LIMIT):
     # No crash stats available, skip.
     return {}
 
-  projects_to_jobs_and_platforms = (get_jobs_and_platforms_for_project())
+  projects_to_jobs_and_platforms = get_jobs_and_platforms_for_project()
   top_crashes_by_project_and_platform_map = {}
 
   for project_name, project_map in projects_to_jobs_and_platforms.items():
