@@ -37,16 +37,16 @@ fi
 mount /mnt/scratch0 -o remount,exec,suid,dev
 
 # Prevent /dev/random hangs.
-if [[ -z "$DISABLE_DEV_RANDOM_RENAME" ]] 
+if [[ -z "$DISABLE_DEV_RANDOM_RENAME" ]]
 then
   rm /dev/random
   ln -s /dev/urandom /dev/random
 fi
 
-# Running without credentials will cause this to fail.
-if [[ -z "$LOCAL_SRC" ]]; then
-  /etc/init.d/google-fluentd restart
-fi
+# # Running without credentials will cause this to fail.
+# if [[ -z "$LOCAL_SRC" ]]; then
+#   /etc/init.d/google-fluentd restart
+# fi
 
 # Prevent anything from being written to downloads directory.
 mkdir -p /home/$USER/Downloads
