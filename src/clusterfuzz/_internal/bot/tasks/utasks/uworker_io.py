@@ -306,6 +306,8 @@ class UworkerOutput:
 
 class DeserializedUworkerOutput:
 
-  def __init__(self, **kwargs):
+  def __init__(self, testcase=None, error=None, **kwargs):
+    self.testcase = testcase
+    self.error = error
     for key, value in kwargs.items():
       setattr(self, key, value)
