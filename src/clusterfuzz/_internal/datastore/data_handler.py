@@ -20,11 +20,6 @@ import re
 import shlex
 import time
 
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
-
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import dates
@@ -349,7 +344,7 @@ def _get_memory_tool_options(testcase):
 
     options_string = environment.join_memory_tool_options(options_value)
     result.append('{options_name}="{options_string}"'.format(
-        options_name=options_name, options_string=quote(options_string)))
+        options_name=options_name, options_string=shlex.quote(options_string)))
 
   return result
 
@@ -358,10 +353,10 @@ def _get_bazel_test_args(arguments, sanitizer_options):
   """Return arguments to pass to a bazel test."""
   result = []
   for sanitizer_option in sanitizer_options:
-    result.append('--test_env=%s' % sanitizer_option)
+    result.append(f'--test_env={sanitizer_option}')
 
   for argument in shlex.split(arguments):
-    result.append('--test_arg=%s' % quote(argument))
+    result.append(f'--test_arg={shlex.quote(argument)}')
 
   return ' '.join(result)
 
@@ -791,9 +786,9 @@ def set_initial_testcase_metadata(testcase):
     testcase.set_metadata('build_url', build_url, update_testcase=False)
 
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
-  if gn_args_path and os.path.exists(gn_args_path):
+  if gn_args_path:
     gn_args = utils.read_data_from_file(
-        gn_args_path, eval_data=False, default='').decode('utf-8')
+        gn_args_path, eval_data=False, default='is_msan = true').decode('utf-8')
 
     # Remove goma_dir from gn args since it is only relevant to the machine that
     # did the build.

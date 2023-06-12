@@ -67,7 +67,6 @@ class CreateHandler(base_handler.Handler):
     user_email = helpers.get_user_email()
     bucket_name = data_handler.get_data_bundle_bucket_name(name)
     bucket_url = data_handler.get_data_bundle_bucket_url(name)
-    is_local = not request.get('nfs', False)
 
     if not data_handler.create_data_bundle_bucket_and_iams(name, [user_email]):
       raise helpers.EarlyExitException(
@@ -80,7 +79,6 @@ class CreateHandler(base_handler.Handler):
       data_bundle = data_types.DataBundle()
     data_bundle.name = name
     data_bundle.bucket_name = bucket_name
-    data_bundle.is_local = is_local
     data_bundle.put()
 
     template_values = {

@@ -14,6 +14,7 @@
 """Module for handling errors in utasks."""
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
 
@@ -35,6 +36,8 @@ def get_mapping():
           analyze_task.handle_build_setup_error,
       uworker_msg_pb2.ErrorType.TESTCASE_SETUP:
           setup.handle_setup_testcase_error,
+      uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP:
+          variant_task.handle_build_setup_error,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }

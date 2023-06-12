@@ -100,8 +100,6 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
         'clusterfuzz._internal.platforms.android.kernel_utils.get_kernel_hash_and_build_id',
         'clusterfuzz._internal.platforms.android.kernel_utils.get_kernel_name',
         'clusterfuzz._internal.platforms.android.settings.get_product_brand',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_file_from_cache_if_exists',
-        'clusterfuzz._internal.google_cloud_utils.storage.store_file_in_cache',
         'clusterfuzz._internal.base.utils.write_data_to_file',
         'clusterfuzz._internal.base.utils.read_data_from_file'
     ])
@@ -109,8 +107,6 @@ class AndroidStackAnalyzerTest(unittest.TestCase):
     self.mock.get_kernel_hash_and_build_id.return_value = '40e9b2ff3a2', '12345'
     self.mock.get_kernel_name.return_value = 'device_kernel'
     self.mock.get_product_brand.return_value = 'google'
-    self.mock.get_file_from_cache_if_exists.return_value = False
-    self.mock.store_file_in_cache.return_value = None
     self.mock.write_data_to_file = None
     self.mock.read_data_from_file.side_effect = self._mock_read_data_from_file
 
