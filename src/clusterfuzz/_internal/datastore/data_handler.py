@@ -18,7 +18,6 @@ import datetime
 import os
 import re
 import shlex
-from shlex import quote
 import sys
 import time
 
@@ -346,7 +345,7 @@ def _get_memory_tool_options(testcase):
 
     options_string = environment.join_memory_tool_options(options_value)
     result.append('{options_name}="{options_string}"'.format(
-        options_name=options_name, options_string=quote(options_string)))
+        options_name=options_name, options_string=shlex.quote(options_string)))
 
   return result
 
@@ -355,10 +354,10 @@ def _get_bazel_test_args(arguments, sanitizer_options):
   """Return arguments to pass to a bazel test."""
   result = []
   for sanitizer_option in sanitizer_options:
-    result.append('--test_env=%s' % sanitizer_option)
+    result.append(f'--test_env={sanitizer_option}')
 
   for argument in shlex.split(arguments):
-    result.append('--test_arg=%s' % quote(argument))
+    result.append(f'--test_arg={shlex.quote(argument)}')
 
   return ' '.join(result)
 
