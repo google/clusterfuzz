@@ -169,8 +169,10 @@ def _get_tmp_file_for_io():
   tmp_file_for_storage = os.path.join(tmp_dir, 'uworker-io-storage')
   return tmp_file_for_storage
 
+
 def _download_uworker_io_from_gcs(gcs_url):
-  if not storage.copy_file_from(gcs_url, _get_tmp_file_for_io()):
+  tmp_file_for_storage = _get_tmp_file_for_io()
+  if not storage.copy_file_from(gcs_url, tmp_file_for_storage):
     logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
     return None
   with open(tmp_file_for_storage, 'rb') as file_handle:
