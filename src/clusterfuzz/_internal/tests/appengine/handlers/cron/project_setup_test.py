@@ -18,11 +18,11 @@ import json
 import os
 import posixpath
 import unittest
+from unittest import mock
 
 import flask
 from google.cloud import ndb
 import googleapiclient
-import mock
 import webtest
 
 from clusterfuzz._internal.base import utils
