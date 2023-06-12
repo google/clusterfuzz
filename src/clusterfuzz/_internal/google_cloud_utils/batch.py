@@ -79,6 +79,10 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_ty
   group.task_spec = task
 
   policy = batch.AllocationPolicy.InstancePolicy()
+  disk = batch.AllocationPolicy.Disk()
+  disk.image = 'batch-cos'
+  disk.size_gb = '100'
+  policy.boot_disk = disk
   policy.machine_type = machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = policy
