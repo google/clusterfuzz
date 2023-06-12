@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9904193bf092bdb0cb8828ff4149dee526008ad335b04ab995f7412767872c5d"
+            "sha256": "1513bd909141ccd728f3226fe26d7a1d3ca15581d4119cd463b56a39985f155e"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -83,9 +83,7 @@
             "version": "==0.18.0"
         },
         "google-api-core": {
-            "extras": [
-                "grpc"
-            ],
+            "extras": [],
             "hashes": [
                 "sha256:6fb380f49d19ee1d09a9722d0379042b7edb06c0112e4796c7a395078a043e71",
                 "sha256:7421474c39d396a74dfa317dddbc69188f2336835f526087c7648f91105e32ff"
@@ -126,11 +124,11 @@
         },
         "google-cloud-batch": {
             "hashes": [
-                "sha256:954110f4cb7a9a4dc7b74e6b4e53fe6a3498281dcc2b84f7e162ad5ae91f5fd2",
-                "sha256:bb1c762fc6f383a70d1cd2bd6e0fa743433a31d740354d418280d1d18991aeda"
+                "sha256:d2daf19987e72369e9d33f1b634f0963ec90eb08f9d3c5d0a1ab940c0bd74d51",
+                "sha256:f102a7230dd201236e1e2804d4ca025995bd2141887df8a95a64cc419b33b476"
             ],
             "index": "pypi",
-            "version": "==0.2.0"
+            "version": "==0.11.0"
         },
         "google-cloud-core": {
             "hashes": [
@@ -196,23 +194,13 @@
             "version": "==0.5.1"
         },
         "googleapis-common-protos": {
-            "extras": [
-                "grpc"
-            ],
+            "extras": [],
             "hashes": [
-                "sha256:8eb2cbc91b69feaf23e32452a7ae60e791e09967d81d4fcc7fc388182d1bd394",
-                "sha256:c25873c47279387cfdcbdafa36149887901d36202cb645a0e4f29686bf6e4417"
+                "sha256:4168fcb568a826a52f23510412da405abd93f4d23ba544bb68d943b14ba3cb44",
+                "sha256:b287dc48449d1d41af0c69f4ea26242b5ae4c3d7249a38b0984c86a4caffff1f"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==1.56.4"
-        },
-        "grpc-google-iam-v1": {
-            "hashes": [
-                "sha256:312801ae848aeb8408c099ea372b96d253077e7851aae1a9e745df984f81f20c",
-                "sha256:3f0ac2c940b9a855d7ce7e31fde28bddb0d9ac362d32d07c67148306931a0e30"
-            ],
-            "markers": "python_version >= '3.6'",
-            "version": "==0.12.4"
+            "version": "==1.59.0"
         },
         "grpcio": {
             "hashes": [
@@ -551,7 +539,7 @@
                 "sha256:90260d9058e514786967344d0ef75fa8727eed8a7d2e43ce9f4bcf1b536174f7",
                 "sha256:e38464a49c6c85d7f1351b0126661487a7e0a14a50f1675ec50eb34d4f20ef21"
             ],
-            "markers": "python_version >= '3.6'",
+            "markers": "python_version >= '3.6' and python_version < '4'",
             "version": "==4.9"
         },
         "setuptools": {
@@ -678,11 +666,11 @@
     "develop": {
         "cachecontrol": {
             "hashes": [
-                "sha256:4544a012a25cf0a73c53cd986f68b4f9c9f6b1df01d741c2923c3d56c66c7bda",
-                "sha256:fd3fd2cb0ca66b9a6c1d56cc9709e7e49c63dbd19b1b1bcbd8d3f94cedfe8ce5"
+                "sha256:95dedbec849f46dda3137866dc28b9d133fc9af55f5b805ab1291833e4457aa4",
+                "sha256:f012366b79d2243a6118309ce73151bf52a38d4a5dac8ea57f09bd29087e506b"
             ],
-            "markers": "python_version >= '3.6'",
-            "version": "==0.13.0"
+            "markers": "python_version >= '3.7'",
+            "version": "==0.13.1"
         },
         "cachetools": {
             "hashes": [
@@ -916,9 +904,7 @@
             "version": "==1.1.2"
         },
         "google-api-core": {
-            "extras": [
-                "grpc"
-            ],
+            "extras": [],
             "hashes": [
                 "sha256:6fb380f49d19ee1d09a9722d0379042b7edb06c0112e4796c7a395078a043e71",
                 "sha256:7421474c39d396a74dfa317dddbc69188f2336835f526087c7648f91105e32ff"
@@ -1041,15 +1027,13 @@
             "version": "==0.5.1"
         },
         "googleapis-common-protos": {
-            "extras": [
-                "grpc"
-            ],
+            "extras": [],
             "hashes": [
-                "sha256:8eb2cbc91b69feaf23e32452a7ae60e791e09967d81d4fcc7fc388182d1bd394",
-                "sha256:c25873c47279387cfdcbdafa36149887901d36202cb645a0e4f29686bf6e4417"
+                "sha256:4168fcb568a826a52f23510412da405abd93f4d23ba544bb68d943b14ba3cb44",
+                "sha256:b287dc48449d1d41af0c69f4ea26242b5ae4c3d7249a38b0984c86a4caffff1f"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==1.56.4"
+            "version": "==1.59.0"
         },
         "grpcio": {
             "hashes": [
@@ -1458,7 +1442,7 @@
                 "sha256:90260d9058e514786967344d0ef75fa8727eed8a7d2e43ce9f4bcf1b536174f7",
                 "sha256:e38464a49c6c85d7f1351b0126661487a7e0a14a50f1675ec50eb34d4f20ef21"
             ],
-            "markers": "python_version >= '3.6'",
+            "markers": "python_version >= '3.6' and python_version < '4'",
             "version": "==4.9"
         },
         "sendgrid": {
