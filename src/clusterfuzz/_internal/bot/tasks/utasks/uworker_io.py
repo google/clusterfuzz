@@ -15,7 +15,6 @@
 
 import json
 import os
-import tempfile
 import uuid
 
 from google.cloud import ndb
@@ -62,10 +61,10 @@ def get_uworker_input_urls():
 
 def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
-  tmp_dir = environment.get_value('BOT_TMPDIR')
-  with tempfile.NamedTemporaryFile(dir=tmp_dir) as uworker_input_file:
+  uworker_input_filename = _get_tmp_file_for_io()
+  with open(uworker_input_filename, 'wb') as uworker_input_file:
     uworker_input_file.write(uworker_input)
-    if not storage.copy_file_to(uworker_input_file.name, gcs_path):
+    if not storage.copy_file_to(uworker_input_filename, gcs_path):
       raise RuntimeError('Failed to upload uworker_input.')
 
 
@@ -163,15 +162,18 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
+def _get_tmp_file_for_io():
+  tmp_dir = environment.get_value('BOT_TMPDIR')
+  # Don't use tempfile because of permissions issues on Windows. See
+  # https://github.com/google/clusterfuzz/issues/3158.
+  tmp_file_for_storage = os.path.join(tmp_dir, 'uworker-io-storage')
+  return tmp_file_for_storage
+
 def _download_uworker_io_from_gcs(gcs_url):
-  temp_dir = environment.get_value('BOT_TMPDIR')
-  # Don't use tempfile because of silly permissions issues on Windows.
-  # See https://github.com/google/clusterfuzz/issues/3158.
-  temp_file_for_storage = os.path.join(temp_dir, 'uworker-io-storage')
-  if not storage.copy_file_from(gcs_url, temp_file_for_storage):
+  if not storage.copy_file_from(gcs_url, _get_tmp_file_for_io()):
     logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
     return None
-  with open(temp_file_for_storage, 'rb') as file_handle:
+  with open(tmp_file_for_storage, 'rb') as file_handle:
     return file_handle.read()
 
 
