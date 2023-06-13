@@ -16,10 +16,10 @@
 import threading
 import uuid
 
-from google.cloud import batch_v1 as batch
-
 # !!! Change to from . import storage
 import credentials
+from google.cloud import batch_v1 as batch
+
 # from clusterfuzz._internal.google_cloud_utils import credentials
 
 _local = threading.local()
@@ -27,6 +27,7 @@ _local = threading.local()
 MAX_DURATION = '3600s'
 RETRY_COUNT = 2
 TASK_COUNT = 1
+
 
 def _create_batch_client_new():
   """Creates a batch client."""
@@ -49,13 +50,18 @@ def _batch_client():
 def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
+
 def doit():
   create_job()
 
 
 # !!!
 EMAIL = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
-def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_type='e2-standard-2', email=EMAIL):
+
+
+def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
+               machine_type='e2-standard-2',
+               email=EMAIL):
   """This is not a job in ClusterFuzz's meaning of the word."""
   # Define what will be done as part of the job.
   runnable = batch.Runnable()
@@ -111,5 +117,6 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_ty
   create_request.parent = f'projects/{project_id}/locations/{region}'
 
   return _batch_client().create_job(create_request)
+
 
 doit()

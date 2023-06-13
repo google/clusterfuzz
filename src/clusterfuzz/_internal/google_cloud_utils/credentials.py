@@ -35,7 +35,7 @@ def _use_anonymous_credentials():
   """Returns whether or not to use anonymous credentials."""
   # if (environment.get_value('INTEGRATION') or
   #     environment.get_value('UNTRUSTED_RUNNER_TESTS')):
-    # Integration tests need real credentials.
+  # Integration tests need real credentials.
   return False
 
   # return (environment.get_value('LOCAL_DEVELOPMENT') or

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Batch uworker script."""
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.metrics import logs
 
 
 def main():
