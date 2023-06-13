@@ -53,9 +53,9 @@ def doit():
   create_job()
 
 
-# !!! UNTRUSTED_WORKER
-
-def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_type='e2-standard-2'):
+# !!!
+EMAIL = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
+def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_type='e2-standard-2', email=EMAIL):
   """This is not a job in ClusterFuzz's meaning of the word."""
   # Define what will be done as part of the job.
   runnable = batch.Runnable()
@@ -64,7 +64,7 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_ty
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
       '-P --privileged --cap-add=all '
-      '--name=clusterfuzz')
+      '--name=clusterfuzz -e UNTRUSTED_WORKER=False')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   # runnable.container.entrypoint = '/bin/sh'
   # runnable.container.commands = ['-c', 'echo Hello world! This is task ${BATCH_TASK_INDEX}. This job has a total of ${BATCH_TASK_COUNT} tasks.']
@@ -91,6 +91,8 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_ty
   instances.policy = policy
   allocation_policy = batch.AllocationPolicy()
   allocation_policy.instances = [instances]
+  service_account = batch.ServiceAccount(email=email)
+  allocation_policy.service_account = service_account
 
   job = batch.Job()
   job.task_groups = [group]
@@ -104,7 +106,7 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker', machine_ty
   job_name = get_job_name()
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
-  project_id = 'google.com:clusterfuzz'
+  project_id = 'clusterfuzz-external'
   region = 'us-central1'
   create_request.parent = f'projects/{project_id}/locations/{region}'
 
