@@ -88,6 +88,10 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
+      # !!! Make this uworker specific, not batch specific.
+      if os.environ.get('BATCH_TASK_INDEX'):
+        # Batch tasks only run one at a time.
+        sys.exit(run_batch.main())
       task = tasks.get_task()
       if not task:
         continue
@@ -152,9 +156,6 @@ def main():
         untrusted as untrusted_worker
     untrusted_worker.start_server()
     assert False, 'Unreachable code'
-
-    if os.environ.get('BATCH_TASK_INDEX'):
-      return run_batch.main()
 
   while True:
     # task_loop should be an infinite loop,
