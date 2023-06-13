@@ -16,8 +16,6 @@
 
 import itertools
 
-import six
-
 from clusterfuzz._internal.system import environment
 
 
@@ -61,7 +59,7 @@ def choose(testcase_map):
   def _get_score(testcase_id):
     return scores[testcase_id]
 
-  testcases = sorted([v for _, v in six.iteritems(testcase_map)], key=_key_func)
+  testcases = sorted([v for _, v in testcase_map.items()], key=_key_func)
   for group_id, items in itertools.groupby(testcases, _key_func):
     if group_id == 0:  # group_id=0 means there's no group.
       continue
