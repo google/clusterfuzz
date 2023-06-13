@@ -195,9 +195,10 @@ def run_loop(bot_command, heartbeat_command):
 
   while True:
     update_source_code_if_needed()
-    if environment.is_android():
-      start_android_heartbeat()
-    start_heartbeat(heartbeat_command)
+    if not os.environ.get('BATCH_TASK_INDEX'):
+      if environment.is_android():
+        start_android_heartbeat()
+      start_heartbeat(heartbeat_command)
     start_bot(bot_command)
 
     # See if our run timed out, if yes bail out.
