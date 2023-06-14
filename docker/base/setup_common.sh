@@ -43,10 +43,10 @@ then
   ln -s /dev/urandom /dev/random
 fi
 
-# # Running without credentials will cause this to fail.
-# if [[ -z "$LOCAL_SRC" ]]; then
-#   /etc/init.d/google-fluentd restart
-# fi
+# Running without credentials will cause this to fail.
+if [[ -z "$LOCAL_SRC" ]]; then
+  /etc/init.d/google-fluentd restart
+fi
 
 # Prevent anything from being written to downloads directory.
 mkdir -p /home/$USER/Downloads

@@ -14,7 +14,7 @@
 
 blobs:
   # Bucket to store blobs, e.g. testcases, fuzzer archives, etc.
-  bucket: metzman-test-blobs
+  bucket: test-blobs-bucket
 
 deployment:
   # Bucket to store deployment artifacts, e.g. source archives, etc.
@@ -36,7 +36,7 @@ coverage:
 logs:
   fuzzer:
     # Bucket to store logs for fuzzer runs.
-    bucket: metzman-test-logs
+    bucket: test-fuzzer-logs-bucket
 
 monitoring:
   # Flag to indicate if Stackdriver monitoring is enabled or not (disabled by default).

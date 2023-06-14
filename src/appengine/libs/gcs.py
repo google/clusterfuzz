@@ -89,7 +89,7 @@ def get_signed_url(bucket_name,
   timestamp = _get_expiration_time(expiry)
   blob = '%s\n\n\n%d\n/%s/%s' % (method, timestamp, bucket_name, path)
 
-  local_server = False  # environment.get_value('LOCAL_GCS_SERVER_HOST')
+  local_server = environment.get_value('LOCAL_GCS_SERVER_HOST')
   if local_server:
     url = local_server + '/' + bucket_name
     signed_blob = b'SIGNATURE'
