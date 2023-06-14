@@ -16,10 +16,12 @@
 import threading
 import uuid
 
-# TODO(metzman): Change to from . import credentials when we are done
-# developing.
 import credentials
 from google.cloud import batch_v1 as batch
+
+# TODO(metzman): Change to from . import credentials when we are done
+# developing.
+from clusterfuzz._internal.base import utils
 
 _local = threading.local()
 
