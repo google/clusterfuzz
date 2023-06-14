@@ -26,7 +26,7 @@ import sys
 import time
 import traceback
 
-# !!! How do I import this script.
+# TODO(metzman): Do this without a relative import.
 import run_batch
 
 from clusterfuzz._internal.base import dates
@@ -88,8 +88,7 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
-      # !!! Make this uworker specific, not batch specific.
-      if os.environ.get('BATCH_TASK_INDEX'):
+      if environment.is_uworker():
         # Batch tasks only run one at a time.
         sys.exit(run_batch.main())
       task = tasks.get_task()
@@ -198,7 +197,7 @@ if __name__ == '__main__':
   try:
     with ndb_init.context():
       main()
-      exit_code = 0
+    exit_code = 0
   except Exception:
     traceback.print_exc()
     sys.stdout.flush()

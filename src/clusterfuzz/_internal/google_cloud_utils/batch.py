@@ -16,11 +16,10 @@
 import threading
 import uuid
 
-# !!! Change to from . import storage
+# TODO(metzman): Change to from . import credentials when we are done
+# developing.
 import credentials
 from google.cloud import batch_v1 as batch
-
-# from clusterfuzz._internal.google_cloud_utils import credentials
 
 _local = threading.local()
 
@@ -51,18 +50,9 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def doit():
-  create_job()
-
-
-# !!!
-EMAIL = 'untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
-# EMAIL = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
-
-
-def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
-               machine_type='e2-standard-2',
-               email=EMAIL):
+def create_job(email,
+               image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
+               machine_type='e2-standard-2'):
   """This is not a job in ClusterFuzz's meaning of the word."""
   # Define what will be done as part of the job.
   runnable = batch.Runnable()
@@ -71,16 +61,13 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
       '-P --privileged --cap-add=all '
-      '--name=clusterfuzz -e UNTRUSTED_WORKER=False')
+      '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e IS_UWORKER=True')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
-  # runnable.container.entrypoint = '/bin/sh'
-  # runnable.container.commands = ['-c', 'echo Hello world! This is task ${BATCH_TASK_INDEX}. This job has a total of ${BATCH_TASK_COUNT} tasks.']
-
   # Jobs can be divided into tasks. In this case, we have only one task.
   task = batch.TaskSpec()
   task.runnables = [runnable]
   task.max_retry_count = RETRY_COUNT
-  # TODO(metzman): Change.
+  # TODO(metzman): Change this for production.
   task.max_run_duration = MAX_DURATION
 
   # Only one of these is currently possible.
@@ -120,4 +107,8 @@ def create_job(image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
   return _batch_client().create_job(create_request)
 
 
-doit()
+def main():
+  """Main function only used in development."""
+  email = 'untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
+  # email = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
+  create_job(email=email)

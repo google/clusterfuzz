@@ -236,7 +236,7 @@ def service_account_email():
     domain, application_id = email_id.split(':')
     email_id = application_id + '.' + domain
 
-  return 'email_id + '@appspot.gserviceaccount.com'
+  return email_id + '@appspot.gserviceaccount.com'
 
 
 def get_bot_testcases_file_path(input_directory):
