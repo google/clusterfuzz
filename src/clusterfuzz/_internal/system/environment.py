@@ -707,6 +707,12 @@ def is_untrusted_worker():
   return get_value('UNTRUSTED_WORKER')
 
 
+def is_uworker():
+  """Return whether or not the current bot is a uworker. This is not the same as
+  OSS-Fuzz's untrusted worker."""
+  return get_value('UWORKER')
+
+
 def is_running_on_app_engine():
   """Return True if we are running on appengine (local or production)."""
   return (os.getenv('GAE_ENV') or is_running_on_app_engine_development() or

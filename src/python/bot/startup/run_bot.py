@@ -33,6 +33,7 @@ from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
@@ -85,6 +86,9 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
+      if environment.is_uworker():
+        # Batch tasks only run one at a time.
+        sys.exit(utasks.uworker_bot_main())
       task = tasks.get_task()
       if not task:
         continue
