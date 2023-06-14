@@ -195,7 +195,7 @@ def run_loop(bot_command, heartbeat_command):
 
   while True:
     update_source_code_if_needed()
-    if not os.environ.get('BATCH_TASK_INDEX'):
+    if not environment.is_uworker():
       if environment.is_android():
         start_android_heartbeat()
       start_heartbeat(heartbeat_command)
