@@ -21,6 +21,7 @@ import unittest
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import utask_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
@@ -164,3 +165,21 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
     self.assertEqual(testcase.absolute_path, self.testcase_path)
     self.assertEqual(metadata['build_url'], self.build_url)
     self.assertEqual(testcase.platform, 'linux')
+
+
+@test_utils.with_cloud_emulators('datastore')
+class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
+  # def setUp(self):
+  #   super().setUp()
+  #   helpers.patch([
+  #     'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_download_url'
+  #   ])
+
+  def test_analyze_reproducible(self):
+    testcase = data_types.Testcase(job_type=self.job_type)
+    testcase.put()
+    metadata = data_types.TestcaseUploadMetadata(testcase_id=testcase.key.id())
+    metadata.put()
+    from clusterfuzz._internal.google_cloud_utils import blobs
+    blobs.write_blob('/tmp/jr')
+    self.execute(analyze_task, testcase.key.id(), self.job_type, self.uworker_env)

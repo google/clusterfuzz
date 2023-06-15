@@ -106,6 +106,7 @@ class UTaskLocalInMemoryExecutor(BaseTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally in-memory."""
+    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:

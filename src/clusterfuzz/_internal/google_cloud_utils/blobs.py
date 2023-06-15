@@ -136,12 +136,13 @@ def delete_blob(blob_key):
   return storage.delete(blob_info.gcs_path)
 
 
-@retry.wrap(
-    retries=FAIL_NUM_RETRIES,
-    delay=FAIL_WAIT,
-    function='google_cloud_utils.blobs.write_blob',
-    retry_on_false=True)
+# @retry.wrap(
+#     retries=FAIL_NUM_RETRIES,
+#     delay=FAIL_WAIT,
+#     function='google_cloud_utils.blobs.write_blob',
+#     retry_on_false=True)
 def write_blob(file_handle_or_path):
+  from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
   """Write a single file testcase to GCS."""
   blobs_bucket = storage.blobs_bucket()
   blob_name = generate_new_blob_name()
