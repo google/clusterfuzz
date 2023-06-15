@@ -106,7 +106,6 @@ class UTaskLocalInMemoryExecutor(BaseTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally in-memory."""
-    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
@@ -214,6 +213,7 @@ def update_environment_for_job(environment_string):
     environment.set_value('MAX_TESTCASES', max_testcases_override)
     uworker_env['MAX_TESTCASES'] = max_testcases_override
 
+  uworker_env['JOB_NAME'] = environment.get_value('JOB_NAME')
   if environment.is_trusted_host():
     env['JOB_NAME'] = environment.get_value('JOB_NAME')
     from clusterfuzz._internal.bot.untrusted_runner import \
