@@ -95,22 +95,8 @@ class UworkerMainTest(unittest.TestCase):
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
     module = mock.MagicMock()
-    uworker_output = {'uworker-output': 'uworker-output', 'testcase': None}
+    uworker_output = {'testcase': None, 'crash_time': 70.1}
     module.utask_main.return_value = uworker_io.UworkerOutput(**uworker_output)
     input_download_url = 'http://input'
     utasks.uworker_main(module, input_download_url)
     module.utask_main.assert_called_with(inputarg='input-val')
-
-
-class TworkerPostproceessTest(unittest.TestCase):
-  """Tests that tworker_postprocess works as intended."""
-  OUTPUT_DOWNLOAD_GCS_URL = '/output-download-gcs'
-  OUTPUT = uworker_io.UworkerOutput(
-      output1='something', output2='something else')
-
-  def setUp(self):
-    helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
-    ])
-    self.mock.download_and_deserialize_uworker_output.return_value = self.OUTPUT

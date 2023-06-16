@@ -54,9 +54,10 @@ message Output {
   optional UworkerEntityWrapper metadata = 2;
   optional UworkerEntityWrapper variant = 3;
   optional ErrorType error = 4;
-  optional Json uworker_env = 5;
+  // This is only to be used by code that needs to be called by utasks and
+  // nonutasks.
+  optional Json uworker_input = 5;
   optional float test_timeout = 6;
   optional float crash_time = 7;
-  optional int64 revision = 8;
-  optional string crash_stacktrace_output = 9;
+  optional string crash_stacktrace_output = 8;
 }

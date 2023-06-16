@@ -83,6 +83,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       'metadata': metadata,
       'uworker_env': uworker_env,
       'variant': variant,
+      'testcase_id': testcase_id,
       'testcase_download_url': testcase_download_url,
   }
 
@@ -123,9 +124,7 @@ def utask_main(
   # correctly.
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
-        testcase=testcase,
-        job_type=job_type)
+        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP, testcase=testcase)
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
@@ -188,7 +187,6 @@ def utask_main(
   return uworker_io.UworkerOutput(
       testcase=testcase,
       variant=variant,
-      revision=revision,
       crash_stacktrace_output=crash_stacktrace_output)
 
 
@@ -217,7 +215,9 @@ def utask_postprocess(output):
     output.testcase.last_tested_crash_stacktrace = (
         data_handler.filter_stacktrace(output.crash_stacktrace_output))
     output.testcase.set_metadata(
-        'last_tested_crash_revision', output.revision, update_testcase=True)
+        'last_tested_crash_revision',
+        output.variant.revision,
+        update_testcase=True)
   else:
     # Explicitly skipping crash stacktrace for now as it make entities larger
     # and we plan to use only crash paramaters in UI.

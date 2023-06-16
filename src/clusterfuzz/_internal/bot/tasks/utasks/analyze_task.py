@@ -131,9 +131,9 @@ def setup_testcase_and_build(
     return None, error
 
   # Set up build.
-  error_output = setup_build(testcase)
-  if error_output:
-    return None, error_output
+  error = setup_build(testcase)
+  if error:
+    return None, error
 
   # Check if we have an application path. If not, our build failed
   # to setup correctly.
@@ -144,17 +144,17 @@ def setup_testcase_and_build(
         metadata=metadata,
         error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
+  update_testcase_after_build_setup(testcase)
   testcase.absolute_path = testcase_file_path
   return testcase_file_path, None
 
 
-def initialize_testcase_for_main(testcase, job_type):
-  """Initializes a testcase for the crash testing phase."""
-  # Update initial testcase information.
-  testcase.job_type = job_type
-  testcase.queue = tasks.default_queue()
-  testcase.crash_state = ''
-
+def update_testcase_after_build_setup(testcase):
+  """Updates the testcase entity with values from global state that was set
+  during build setup."""
+  # NOTE: This must be done after setting up the build, which also sets
+  # environment variables consumed by set_initial_testcase_metadata. See
+  # https://crbug.com/1453576.
   # Set initial testcase metadata fields (e.g. build url, etc).
   data_handler.set_initial_testcase_metadata(testcase)
 
@@ -168,6 +168,13 @@ def initialize_testcase_for_main(testcase, job_type):
     environment.set_value('APP_ARGS', minimized_arguments)
     testcase.minimized_arguments = minimized_arguments
 
+
+def initialize_testcase_for_main(testcase, job_type):
+  """Initializes a testcase for the crash testing phase."""
+  # Update initial testcase information.
+  testcase.job_type = job_type
+  testcase.queue = tasks.default_queue()
+  testcase.crash_state = ''
   testcase.put()
 
 

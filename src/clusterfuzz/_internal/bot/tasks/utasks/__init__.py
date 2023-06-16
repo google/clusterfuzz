@@ -13,6 +13,8 @@
 # limitations under the License.
 """Module for executing the different parts of a utask."""
 
+import importlib
+
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -102,6 +104,15 @@ def uworker_main(utask_module, input_download_url) -> None:
   uworker_output = utask_module.utask_main(**uworker_input)
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
+
+
+def uworker_bot_main():
+  module_name = environment.get_value('UWORKER_MODULE_NAME')
+  full_module_name = f'clusterfuzz._internal.bot.tasks.utasks.{module_name}'
+  module = importlib.import_module(full_module_name)
+  input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
+  uworker_main(module, input_download_url)
+  return True
 
 
 def tworker_postprocess(utask_module, output_download_url,

@@ -14,7 +14,7 @@
 """Module for dealing with input and output (I/O) to a uworker."""
 
 import json
-import tempfile
+import os
 import uuid
 
 from google.cloud import ndb
@@ -61,12 +61,11 @@ def get_uworker_input_urls():
 
 def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
-  tmp_dir = environment.get_value('BOT_TMPDIR')
-  with tempfile.NamedTemporaryFile(dir=tmp_dir) as uworker_input_file:
-    with open(uworker_input_file.name, 'wb') as fp:
-      fp.write(uworker_input)
-    if not storage.copy_file_to(uworker_input_file.name, gcs_path):
-      raise RuntimeError('Failed to upload uworker_input.')
+  uworker_input_filename = _get_tmp_file_for_io()
+  with open(uworker_input_filename, 'wb') as uworker_input_file:
+    uworker_input_file.write(uworker_input)
+  if not storage.copy_file_to(uworker_input_filename, gcs_path):
+    raise RuntimeError('Failed to upload uworker_input.')
 
 
 def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
@@ -145,21 +144,7 @@ def download_and_deserialize_uworker_input(uworker_input_download_url):
 def serialize_uworker_output(uworker_output_obj):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
-  uworker_output = uworker_output_obj.to_dict()
-  proto_output = uworker_msg_pb2.Output()
-  for name, value in uworker_output.items():
-    if not isinstance(value, UworkerEntityWrapper):
-      field_descriptor = proto_output.DESCRIPTOR.fields_by_name[name]
-      if field_descriptor.message_type is not None:
-        logs.log_error(f'field: {name} value: {value} type: {type(value)} is '
-                       f'{field_descriptor.message_type}')
-      setattr(proto_output, name, value)
-      continue
-
-    wrapped_entity_proto = serialize_wrapped_entity(value)
-    field = getattr(proto_output, name)
-    field.CopyFrom(wrapped_entity_proto)
-  return proto_output.SerializeToString()
+  return uworker_output_obj.proto.SerializeToString()
 
 
 def serialize_wrapped_entity(wrapped_entity):
@@ -177,14 +162,21 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
-def _download_uworker_io_from_gcs(gcs_url):
+def _get_tmp_file_for_io():
   tmp_dir = environment.get_value('BOT_TMPDIR')
-  with tempfile.NamedTemporaryFile(dir=tmp_dir) as local_path:
-    if not storage.copy_file_from(gcs_url, local_path.name):
-      logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
-      return None
-    with open(local_path.name, 'rb') as file_handle:
-      return file_handle.read()
+  # Don't use tempfile because of permissions issues on Windows. See
+  # https://github.com/google/clusterfuzz/issues/3158.
+  tmp_file_for_storage = os.path.join(tmp_dir, 'uworker-io-storage')
+  return tmp_file_for_storage
+
+
+def _download_uworker_io_from_gcs(gcs_url):
+  tmp_file_for_storage = _get_tmp_file_for_io()
+  if not storage.copy_file_from(gcs_url, tmp_file_for_storage):
+    logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
+    return None
+  with open(tmp_file_for_storage, 'rb') as file_handle:
+    return file_handle.read()
 
 
 def _download_uworker_input_from_gcs(gcs_url):
@@ -234,7 +226,7 @@ def deserialize_uworker_output(uworker_output_str):
 
   # Convert the proto to a Python object that can contain real ndb models and
   # other python objects, instead of only the python serialized versions.
-  uworker_output = UworkerOutput()
+  uworker_output = DeserializedUworkerOutput()
   for field_descriptor, field in uworker_output_proto.ListFields():
     if isinstance(field, uworker_msg_pb2.UworkerEntityWrapper):
       field = deserialize_wrapped_entity(field)
@@ -282,30 +274,46 @@ class UworkerOutput:
   ensuring we are returning values for fields expected by utask_postprocess."""
 
   def __init__(self, **kwargs):
-    self._set_attrs = set()
-    # Reset _set_attrs so we don't consider these set by the user unless they
-    # explictly set them.
-    self.testcase = None
-    self.error = None
-    self._set_attrs = set()
-
+    self.proto = uworker_msg_pb2.Output()
     for key, value in kwargs.items():
       setattr(self, key, value)
 
-  def to_dict(self):
-    # Make a copy so calls to pop don't modify the object.
-    dictionary = self.__dict__.copy()
-    return {
-        key: value
-        for key, value in dictionary.items()
-        if key in self._set_attrs
-    }
+  def __getattr__(self, attribute):
+    if attribute in ['proto']:
+      # Allow setting and changing proto. Stack overflow in __init__ otherwise.
+      return super().__getattr__(attribute)  # pylint: disable=no-member
+    return getattr(self.proto, attribute)
 
   def __setattr__(self, attribute, value):
     super().__setattr__(attribute, value)
-    if attribute in ['_set_attrs']:
-      # Allow setting and changing _entity. Stack overflow in __init__
+    if attribute in ['proto']:
+      # Allow setting and changing proto. Stack overflow in __init__
       # otherwise.
       return
-    # Record the attribute change.
-    self._set_attrs.add(attribute)
+
+    field_descriptor = self.proto.DESCRIPTOR.fields_by_name[attribute]
+    if field_descriptor.message_type is None:
+      setattr(self.proto, attribute, value)
+      return
+
+    if value is None:
+      return
+
+    field = getattr(self.proto, attribute)
+    if isinstance(value, dict):
+      serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
+      field.CopyFrom(serialized_json)
+      return
+    if not isinstance(value, UworkerEntityWrapper):
+      raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+    wrapped_entity_proto = serialize_wrapped_entity(value)
+    field.CopyFrom(wrapped_entity_proto)
+
+
+class DeserializedUworkerOutput:
+
+  def __init__(self, testcase=None, error=None, **kwargs):
+    self.testcase = testcase
+    self.error = error
+    for key, value in kwargs.items():
+      setattr(self, key, value)
