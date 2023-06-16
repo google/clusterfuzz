@@ -169,8 +169,10 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
+  """Integration tests for analyze_task."""
 
   def test_analyze_reproducible(self):
+    """Tests that analyze_task handles reproducible testcases properly."""
     path = [__file__] + 9 * ['..'] + ['configs', 'test']
     os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(os.path.join(*path))
     self.execute(analyze_task, str(self.testcase.key.id()), self.job_type,
