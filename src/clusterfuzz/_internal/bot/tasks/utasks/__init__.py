@@ -98,7 +98,7 @@ def uworker_main(utask_module, input_download_url) -> None:
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
   uworker_output_upload_url = uworker_input.uworker_output_upload_url  # pylint: disable=no-member
-  delattr(uworker_input, 'output_upload_url')
+  delattr(uworker_input, 'uworker_output_upload_url')
 
   # Deal with the environment.
   uworker_env = uworker_input.uworker_env  # pylint: disable=no-member

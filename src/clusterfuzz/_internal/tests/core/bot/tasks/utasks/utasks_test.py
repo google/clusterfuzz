@@ -84,13 +84,13 @@ class UworkerMainTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
     ])
-    uworker_input = uworker_io.UworkerInput(
+    self.uworker_input = uworker_io.UworkerInput(
         original_job_type='original_job_type-value',
         uworker_env=self.UWORKER_ENV,
         uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
     )
     self.mock.download_and_deserialize_uworker_input.return_value = (
-        uworker_input)
+        self.uworker_input)
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
@@ -102,5 +102,4 @@ class UworkerMainTest(unittest.TestCase):
     module.utask_main.return_value = uworker_io.UworkerOutput(**uworker_output)
     input_download_url = 'http://input'
     utasks.uworker_main(module, input_download_url)
-    module.utask_main.assert_called_with(
-        original_job_type='original_job_type-value')
+    module.utask_main.assert_called_with(self.uworker_input)
