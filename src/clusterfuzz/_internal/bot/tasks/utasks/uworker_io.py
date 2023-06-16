@@ -107,7 +107,7 @@ def serialize_and_upload_uworker_input(uworker_input, job_type) -> str:
   """Serializes input for the untrusted portion of a task."""
   # Add remaining fields to the input.
 
-  assert getattr(uworker_input, 'job_type', None) is None
+  assert not getattr(uworker_input, 'job_type', None)
   uworker_input.job_type = job_type
 
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
@@ -117,7 +117,7 @@ def serialize_and_upload_uworker_input(uworker_input, job_type) -> str:
   signed_output_upload_url, output_gcs_url = get_uworker_output_urls(
       input_gcs_url)
 
-  assert getattr(uworker_input, 'uworker_output_upload_url', None) is None
+  assert not getattr(uworker_input, 'uworker_output_upload_url', None)
   uworker_input.uworker_output_upload_url = signed_output_upload_url
 
   uworker_input = serialize_uworker_input(uworker_input)

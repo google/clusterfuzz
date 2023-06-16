@@ -239,7 +239,7 @@ def handle_noncrash(output):
     output.testcase.put()
 
     tasks.add_task('analyze', output.uworker_input['testcase_id'],
-                   output.uworker_input['job_type'])
+                   output.uworker_input.job_type)
     return
 
   data_handler.close_invalid_uploaded_testcase(output.testcase, output.metadata,
