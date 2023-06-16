@@ -27,7 +27,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
-from clusterfuzz._internal.bot.tasks import corpus_pruning_task
+from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
@@ -341,7 +341,7 @@ class CorpusPruningTestUntrusted(
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.setup.get_fuzzer_directory',
         'clusterfuzz._internal.base.tasks.add_task',
-        'clusterfuzz._internal.bot.tasks.corpus_pruning_task.'
+        'clusterfuzz._internal.bot.tasks.utask.corpus_pruning_task.'
         '_record_cross_pollination_stats',
         'clusterfuzz.fuzz.engine.get',
     ])

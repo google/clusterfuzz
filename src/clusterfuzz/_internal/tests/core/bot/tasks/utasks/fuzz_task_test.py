@@ -32,7 +32,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libfuzzer_engine
-from clusterfuzz._internal.bot.tasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.chrome import crash_uploader
@@ -447,7 +447,7 @@ class CrashGroupTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.fuzz_task.find_main_crash',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.find_main_crash',
         'clusterfuzz._internal.datastore.data_handler.find_testcase',
         'clusterfuzz._internal.datastore.data_handler.get_project_name',
     ])
@@ -656,7 +656,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     """Setup for process crashes test."""
     helpers.patch(self, [
         'clusterfuzz._internal.chrome.crash_uploader.get_symbolized_stack_bytes',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.get_unsymbolized_crash_stacktrace',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.get_unsymbolized_crash_stacktrace',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
@@ -1239,7 +1239,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.base.utils.random_element_from_list',
         'clusterfuzz._internal.base.utils.random_number',
         'clusterfuzz._internal.bot.fuzzers.engine_common.current_timestamp',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.pick_gestures',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.pick_gestures',
         'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
         'clusterfuzz._internal.build_management.revisions.get_component_list',
@@ -1358,8 +1358,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.current_timestamp',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.GcsCorpus.sync_from_gcs',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.GcsCorpus.upload_files',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.sync_from_gcs',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.upload_files',
         'clusterfuzz._internal.build_management.revisions.get_component_list',
         'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
