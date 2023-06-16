@@ -77,38 +77,32 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
   metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-  return {
-      'original_job_type': original_job_type,
-      'testcase': testcase,
-      'metadata': metadata,
-      'uworker_env': uworker_env,
-      'variant': variant,
-      'testcase_id': testcase_id,
-      'testcase_download_url': testcase_download_url,
-  }
+  return uworker_io.UworkerInput(
+      original_job_type=original_job_type,
+      testcase=testcase,
+      metadata=metadata,
+      uworker_env=uworker_env,
+      variant=variant,
+      testcase_id=testcase_id,
+      testcase_download_url=testcase_download_url,
+  )
 
 
-def utask_main(
-    original_job_type,  # pylint: disable=unused-argument
-    testcase,
-    variant,
-    job_type,
-    testcase_download_url,
-    metadata=None):
+def utask_main(uworker_input):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
-  if environment.is_engine_fuzzer_job(testcase.job_type):
+  if environment.is_engine_fuzzer_job(uworker_input.testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     # Repeat this because the in-memory executor may allow puts.
     # TODO(metzman): Remove this when we use batch.
-    testcase.put = lambda: None
+    uworker_input.testcase.put = lambda: None
 
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(
-      testcase,
-      job_type,
-      metadata=metadata,
-      testcase_download_url=testcase_download_url)
+      uworker_input.testcase,
+      uworker_input.job_type,
+      metadata=uworker_input.metadata,
+      testcase_download_url=uworker_input.testcase_download_url)
   if error:
     return error
 
@@ -124,23 +118,27 @@ def utask_main(
   # correctly.
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP, testcase=testcase)
+        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
+        testcase=uworker_input.testcase)
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
-  use_gestures = testcase.platform == environment.platform().lower()
+  use_gestures = (
+      uworker_input.testcase.platform == environment.platform().lower())
 
   # Reproduce the crash.
   app_path = environment.get_value('APP_PATH')
   command = testcase_manager.get_command_line_for_application(
-      testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
+      testcase_file_path,
+      app_path=app_path,
+      needs_http=uworker_input.testcase.http_flag)
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   revision = environment.get_value('APP_REVISION')
   result = testcase_manager.test_for_crash_with_retries(
-      testcase,
+      uworker_input.testcase,
       testcase_file_path,
       test_timeout,
-      http_flag=testcase.http_flag,
+      http_flag=uworker_input.testcase.http_flag,
       use_gestures=use_gestures,
       compare_crash=False)
 
@@ -149,19 +147,22 @@ def utask_main(
     crash_type = result.get_type()
     security_flag = result.is_security_issue()
 
-    gestures = testcase.gestures if use_gestures else None
+    gestures = uworker_input.testcase.gestures if use_gestures else None
     one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-        testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
+        uworker_input.testcase.fuzzer_name,
+        uworker_input.testcase.actual_fuzzer_name(), testcase_file_path,
         crash_type, crash_state, security_flag, test_timeout,
-        testcase.http_flag, gestures)
+        uworker_input.testcase.http_flag, gestures)
     if one_time_crasher_flag:
       status = data_types.TestcaseVariantStatus.FLAKY
     else:
       status = data_types.TestcaseVariantStatus.REPRODUCIBLE
 
-    crash_comparer = CrashComparer(crash_state, testcase.crash_state)
+    crash_comparer = CrashComparer(crash_state,
+                                   uworker_input.testcase.crash_state)
     is_similar = (
-        crash_comparer.is_similar() and security_flag == testcase.security_flag)
+        crash_comparer.is_similar() and
+        security_flag == uworker_input.testcase.security_flag)
 
     unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
     symbolized_crash_stacktrace = result.get_stacktrace(symbolized=True)
@@ -176,17 +177,17 @@ def utask_main(
     crash_stacktrace_output = 'No crash occurred.'
 
   # Regular case of variant analysis.
-  variant.status = status
-  variant.revision = revision
-  variant.crash_type = crash_type
-  variant.crash_state = crash_state
-  variant.security_flag = security_flag
-  variant.is_similar = is_similar
-  variant.platform = environment.platform().lower()
+  uworker_input.variant.status = status
+  uworker_input.variant.revision = revision
+  uworker_input.variant.crash_type = crash_type
+  uworker_input.variant.crash_state = crash_state
+  uworker_input.variant.security_flag = security_flag
+  uworker_input.variant.is_similar = is_similar
+  uworker_input.variant.platform = environment.platform().lower()
 
   return uworker_io.UworkerOutput(
-      testcase=testcase,
-      variant=variant,
+      testcase=uworker_input.testcase,
+      variant=uworker_input.variant,
       crash_stacktrace_output=crash_stacktrace_output)
 
 

@@ -86,37 +86,29 @@ def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
   uworker_input_proto.ParseFromString(serialized_uworker_input)
-  input_dict = {}
+  uworker_input = DeserializedUworkerMsg()
   for descriptor, field in uworker_input_proto.ListFields():
     if isinstance(field, entity_pb2.Entity):
-      input_dict[descriptor.name] = UworkerEntityWrapper(
-          model._entity_from_protobuf(field))  # pylint: disable=protected-access
+      entity_wrapper = UworkerEntityWrapper(model._entity_from_protobuf(field))  # pylint: disable=protected-access
+      setattr(uworker_input, descriptor.name, entity_wrapper)
     elif isinstance(field, uworker_msg_pb2.Json):
-      input_dict[descriptor.name] = json.loads(field.serialized)
+      setattr(uworker_input, descriptor.name, json.loads(field.serialized))
     else:
-      input_dict[descriptor.name] = field
-  return input_dict
+      setattr(uworker_input, descriptor.name, field)
+  return uworker_input
 
 
-def serialize_uworker_input(uworker_input_dict):
+def serialize_uworker_input(uworker_input):
   """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
-  uworker_input_dict = uworker_input_dict.copy()
-  for key, value in uworker_input_dict.items():
-    if isinstance(value, ndb.Model):
-      uworker_input_dict[key] = model._entity_to_protobuf(value)  # pylint: disable=protected-access
-    elif isinstance(value, dict):
-      serialized = json.dumps(value)
-      uworker_input_dict[key] = uworker_msg_pb2.Json(serialized=serialized)
-
-  uworker_input = uworker_msg_pb2.Input(**uworker_input_dict)
-  return uworker_input.SerializeToString()
+  return uworker_input.serialize()
 
 
 def serialize_and_upload_uworker_input(uworker_input, job_type) -> str:
   """Serializes input for the untrusted portion of a task."""
   # Add remaining fields to the input.
-  assert 'job_type' not in uworker_input
-  uworker_input['job_type'] = job_type
+
+  assert getattr(uworker_input, 'job_type', None) is None
+  uworker_input.job_type = job_type
 
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
@@ -125,8 +117,8 @@ def serialize_and_upload_uworker_input(uworker_input, job_type) -> str:
   signed_output_upload_url, output_gcs_url = get_uworker_output_urls(
       input_gcs_url)
 
-  assert 'uworker_output_upload_url' not in uworker_input
-  uworker_input['uworker_output_upload_url'] = signed_output_upload_url
+  assert getattr(uworker_input, 'uworker_output_upload_url', None) is None
+  uworker_input.uworker_output_upload_url = signed_output_upload_url
 
   uworker_input = serialize_uworker_input(uworker_input)
   upload_uworker_input(uworker_input, input_gcs_url)
@@ -144,7 +136,7 @@ def download_and_deserialize_uworker_input(uworker_input_download_url):
 def serialize_uworker_output(uworker_output_obj):
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
-  return uworker_output_obj.proto.SerializeToString()
+  return uworker_output_obj.serialize()
 
 
 def serialize_wrapped_entity(wrapped_entity):
@@ -195,7 +187,7 @@ def download_and_deserialize_uworker_output(output_url: str):
   input_url = output_url.split('.output')[0]
   serialized_uworker_input = _download_uworker_input_from_gcs(input_url)
   uworker_input = deserialize_uworker_input(serialized_uworker_input)
-  uworker_output.uworker_env = uworker_input['uworker_env']
+  uworker_output.uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
   uworker_output.uworker_input = uworker_input
   return uworker_output
 
@@ -226,7 +218,7 @@ def deserialize_uworker_output(uworker_output_str):
 
   # Convert the proto to a Python object that can contain real ndb models and
   # other python objects, instead of only the python serialized versions.
-  uworker_output = DeserializedUworkerOutput()
+  uworker_output = DeserializedUworkerMsg()
   for field_descriptor, field in uworker_output_proto.ListFields():
     if isinstance(field, uworker_msg_pb2.UworkerEntityWrapper):
       field = deserialize_wrapped_entity(field)
@@ -269,12 +261,15 @@ class UworkerEntityWrapper:
     setattr(self._entity, attribute, value)
 
 
-class UworkerOutput:
-  """Convenience class for results from uworker_main. This is useful for
-  ensuring we are returning values for fields expected by utask_postprocess."""
+class UworkerMsg:
+  """Convenience class for results utask_function. This is useful for ensuring
+  we are returning values for fields expected by main or postprocess."""
+
+  # Child must implement.
+  PROTO_CLS = None
 
   def __init__(self, **kwargs):
-    self.proto = uworker_msg_pb2.Output()
+    self.proto = self.PROTO_CLS()  # pylint: disable=not-callable
     for key, value in kwargs.items():
       setattr(self, key, value)
 
@@ -299,18 +294,57 @@ class UworkerOutput:
     if value is None:
       return
 
+    self.save_rich_type(attribute, value)
+
+  def save_rich_type(self, attribute, value):
+    raise NotImplementedError('Child must implement.')
+
+  def serialize(self):
+    return self.proto.SerializeToString()
+
+
+def save_json_field(field, value):
+  serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
+  field.CopyFrom(serialized_json)
+
+
+class UworkerOutput(UworkerMsg):
+  """Class representing an unserialized UworkerOutput message from
+  utask_main."""
+  PROTO_CLS = uworker_msg_pb2.Output
+
+  def save_rich_type(self, attribute, value):
     field = getattr(self.proto, attribute)
     if isinstance(value, dict):
-      serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
-      field.CopyFrom(serialized_json)
+      save_json_field(field, value)
       return
+
     if not isinstance(value, UworkerEntityWrapper):
       raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
     wrapped_entity_proto = serialize_wrapped_entity(value)
     field.CopyFrom(wrapped_entity_proto)
 
 
-class DeserializedUworkerOutput:
+class UworkerInput(UworkerMsg):
+  """Class representing an unserialized UworkerInput message from
+  utask_preprocess."""
+  PROTO_CLS = uworker_msg_pb2.Input
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, dict):
+      save_json_field(field, value)
+      return
+
+    if not isinstance(value, ndb.Model):
+      raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+    entity_proto = model._entity_to_protobuf(value)  # pylint: disable=protected-access
+    field.CopyFrom(entity_proto)
+
+
+class DeserializedUworkerMsg:
 
   def __init__(self, testcase=None, error=None, **kwargs):
     self.testcase = testcase
