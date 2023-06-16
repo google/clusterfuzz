@@ -27,6 +27,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -870,10 +871,10 @@ def _save_coverage_information(context, result):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
-def utask_main(full_fuzzer_name, job_type):
+def utask_main(fuzzer_name, job_type):
   """Execute corpus pruning task."""
-  fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
-  task_name = 'corpus_pruning_%s_%s' % (full_fuzzer_name, job_type)
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+  task_name = f'corpus_pruning_{fuzzer_name}_{job_type}'
   revision = 0  # Trunk revision
 
   # Get status of last execution.
@@ -896,7 +897,7 @@ def utask_main(full_fuzzer_name, job_type):
 
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
-      fuzz_target.engine, full_fuzzer_name)
+      fuzz_target.engine, fuzzer_name)
 
   context = Context(fuzz_target, cross_pollinate_fuzzers)
 
@@ -922,9 +923,13 @@ def utask_main(full_fuzzer_name, job_type):
   return uworker_io.UworkerOutput()
 
 
-def utask_preprocess(full_fuzzer_name, job_type, uworker_env):
+def utask_preprocess(fuzzer_name, job_type, uworker_env):
   return {
-      'full_fuzzer_name': full_fuzzer_name,
+      'fuzzer_name': fuzzer_name,
       'job_type': job_type,
       'uworker_env': uworker_env,
   }
+
+
+def utask_postprocess(output):
+  del output

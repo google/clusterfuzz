@@ -19,7 +19,7 @@ import os
 import unittest
 
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.bot.tasks import regression_task
+from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers

@@ -329,7 +329,19 @@ def find_regression_range(testcase_id, job_type):
   tasks.add_task('regression', testcase_id, job_type)
 
 
-def execute_task(testcase_id, job_type):
+def utask_preprocess(testcase_id, job_type, uworker_env):
+  return {
+      'testcase_id': testcase_id,
+      'job_type': job_type,
+      'uworker_env': uworker_env,
+  }
+
+
+def utask_postprocess(output):
+  del output
+
+
+def utask_main(testcase_id, job_type):
   """Run regression task and handle potential errors."""
   try:
     find_regression_range(testcase_id, job_type)

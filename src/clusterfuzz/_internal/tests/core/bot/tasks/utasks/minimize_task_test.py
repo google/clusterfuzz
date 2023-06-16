@@ -186,7 +186,7 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
-    minimize_task.execute_task(testcase.key.id(), 'libfuzzer_asan_job')
+    minimize_task.uworker_main(testcase.key.id(), 'libfuzzer_asan_job')
 
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertNotEqual('', testcase.minimized_keys)
