@@ -98,7 +98,6 @@ class UworkerMainTest(unittest.TestCase):
     uworker_output = {
         'testcase': None,
         'crash_time': 70.1,
-        'output_upload_url': 'https://fake'
     }
     module.utask_main.return_value = uworker_io.UworkerOutput(**uworker_output)
     input_download_url = 'http://input'
