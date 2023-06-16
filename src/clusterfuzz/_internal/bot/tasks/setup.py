@@ -201,7 +201,7 @@ def setup_testcase(testcase,
   # and thus, uworker_io is not adding the input to.
   # TODO(metzman): Remove this when the consolidation is complete.
   uworker_error_input = uworker_io.UworkerInput(
-      testcase_id=testcase_id, job_type=job_type)
+      testcase_id=str(testcase_id), job_type=job_type)
   uworker_error_output = uworker_io.UworkerOutput(
       uworker_input=uworker_error_input,
       error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
