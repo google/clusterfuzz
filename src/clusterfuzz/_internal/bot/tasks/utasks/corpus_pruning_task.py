@@ -921,9 +921,10 @@ def utask_main(full_fuzzer_name, job_type):
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
   return uworker_io.UworkerOutput()
 
+
 def utask_preprocess(full_fuzzer_name, job_type, uworker_env):
   return {
-    'full_fuzzer_name': full_fuzzer_name,
-    'job_type': job_type,
-    'uworker_env': uworker_env,
+      'full_fuzzer_name': full_fuzzer_name,
+      'job_type': job_type,
+      'uworker_env': uworker_env,
   }
