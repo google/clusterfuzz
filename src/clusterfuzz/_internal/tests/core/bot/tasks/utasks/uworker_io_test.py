@@ -196,11 +196,11 @@ class RoundTripTest(unittest.TestCase):
     """Tests that uploading and downloading input works. This means that input
     serialization and deserialization works."""
     # Create input for the uworker.
-    uworker_input = {
-        'testcase': self.testcase,
-        'uworker_env': self.env,
-        'testcase_download_url': self.FAKE_URL,
-    }
+    uworker_input = uworker_io.UworkerInput(
+        testcase=self.testcase,
+        uworker_env=self.env,
+        testcase_download_url=self.FAKE_URL,
+    )
 
     # Create a mocked version of copy_file_to so that when we upload the uworker
     # input, it goes to a known file we can read from.
