@@ -173,8 +173,6 @@ class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
 
   def test_analyze_reproducible(self):
     """Tests that analyze_task handles reproducible testcases properly."""
-    path = [__file__] + 9 * ['..'] + ['configs', 'test']
-    os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(os.path.join(*path))
     self.execute(analyze_task, str(self.testcase.key.id()), self.job_type,
                  self.uworker_env)
     testcase = self.testcase.key.get(use_cache=False, use_memcache=False)

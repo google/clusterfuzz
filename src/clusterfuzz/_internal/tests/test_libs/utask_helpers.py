@@ -13,6 +13,8 @@
 # limitations under the License.
 """Test helpers for utasks."""
 import os
+import shutil
+import tempfile
 import unittest
 
 from clusterfuzz._internal.bot.tasks import commands
@@ -25,6 +27,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 TEST_LIBS_DIR = os.path.dirname(os.path.realpath(__file__))
 TEST_LIBS_DATA_DIR = os.path.join(TEST_LIBS_DIR, 'data')
+ROOT_DIR = os.path.abspath(os.path.join(*([__file__] + 6 * ['..'])))
 
 
 @test_utils.integration
@@ -32,11 +35,21 @@ TEST_LIBS_DATA_DIR = os.path.join(TEST_LIBS_DIR, 'data')
 class UtaskIntegrationTest(unittest.TestCase):
   """Base class for doing integration testing of untrusted_runner."""
 
+  def run(self, *args, **kwargs):
+    with tempfile.TemporaryDirectory() as temp_dir:
+      self.temp_dir = temp_dir
+      shutil.copytree(
+          os.path.join(ROOT_DIR, 'bot'), os.path.join(temp_dir, 'bot'))
+      shutil.copytree(
+          os.path.join(ROOT_DIR, 'configs'), os.path.join(temp_dir, 'configs'))
+      super().run(*args, **kwargs)
+
   def setUp(self):
     test_helpers.patch_environ(self)
     test_helpers.patch(
         self, ['clusterfuzz._internal.bot.tasks.task_creation.create_tasks'])
     self.job_type = 'libfuzzer_asan_job'
+    os.environ['ROOT_DIR'] = self.temp_dir
     os.environ['JOB_NAME'] = self.job_type
     environment_string = ('APP_NAME = test_fuzzer\n'
                           'RELEASE_BUILD_BUCKET_PATH = '
@@ -65,6 +78,8 @@ class UtaskIntegrationTest(unittest.TestCase):
     environment.set_bot_environment()
     fuzz_inputs = os.environ['FUZZ_INPUTS']
     shell.remove_directory(fuzz_inputs, recreate=True)
+    os.environ['CONFIG_DIR_OVERRIDE'] = os.path.abspath(
+        os.path.join(ROOT_DIR, 'configs', 'test'))
 
   def execute(self, utask_module, task_argument, job_type, uworker_env):
     executor = commands.UTaskLocalInMemoryExecutor(utask_module)
