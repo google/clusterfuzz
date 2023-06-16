@@ -302,7 +302,7 @@ class RoundTripTest(unittest.TestCase):
           'clusterfuzz._internal.bot.tasks.utasks.uworker_io._download_uworker_input_from_gcs'
       )
       uworker_env = {'PATH': '/blah'}
-      uworker_input = {'uworker_env': uworker_env, 'testcase_id': 'one-two'}
+      uworker_input = uworker_io.UworkerInput(uworker_env=uworker_env, testcase_id='one-two')
       serialized_uworker_input = uworker_io.serialize_uworker_input(
           uworker_input)
       with mock.patch(copy_file_from_name, copy_file_from) as _, mock.patch(
