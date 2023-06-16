@@ -870,7 +870,7 @@ def _save_coverage_information(context, result):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
-def execute_task(full_fuzzer_name, job_type):
+def utask_main(full_fuzzer_name, job_type):
   """Execute corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
   task_name = 'corpus_pruning_%s_%s' % (full_fuzzer_name, job_type)
@@ -887,7 +887,7 @@ def execute_task(full_fuzzer_name, job_type):
   if not data_handler.update_task_status(task_name,
                                          data_types.TaskState.STARTED):
     logs.log('A previous corpus pruning task is still running, exiting.')
-    return
+    return uworker_io.UworkerOutput()
 
   # Setup fuzzer and data bundle.
   if not setup.update_fuzzer_and_data_bundles(fuzz_target.engine):
@@ -914,8 +914,16 @@ def execute_task(full_fuzzer_name, job_type):
   except Exception:
     logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
-    return
+    return uworker_io.UworkerOutput()
   finally:
     context.cleanup()
 
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
+  return uworker_io.UworkerOutput()
+
+def utask_preprocess(full_fuzzer_name, job_type, uworker_env):
+  return {
+    'full_fuzzer_name': full_fuzzer_name,
+    'job_type': job_type,
+    'uworker_env': uworker_env,
+  }

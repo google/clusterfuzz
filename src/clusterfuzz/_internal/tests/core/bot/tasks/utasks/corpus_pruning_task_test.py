@@ -341,7 +341,7 @@ class CorpusPruningTestUntrusted(
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.setup.get_fuzzer_directory',
         'clusterfuzz._internal.base.tasks.add_task',
-        'clusterfuzz._internal.bot.tasks.utask.corpus_pruning_task.'
+        'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.'
         '_record_cross_pollination_stats',
         'clusterfuzz.fuzz.engine.get',
     ])
