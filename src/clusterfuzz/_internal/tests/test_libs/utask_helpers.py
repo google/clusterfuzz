@@ -30,7 +30,7 @@ TEST_LIBS_DATA_DIR = os.path.join(TEST_LIBS_DIR, 'data')
 ROOT_DIR = os.path.abspath(os.path.join(*([__file__] + 6 * ['..'])))
 
 
-@test_utils.integration
+@unittest.skipIf(not os.getenv('UTASK_TESTS'), 'Skipping utask tests.')
 @test_utils.with_cloud_emulators('datastore')
 class UtaskIntegrationTest(unittest.TestCase):
   """Base class for doing integration testing of untrusted_runner."""
