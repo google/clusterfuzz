@@ -438,7 +438,7 @@ def utask_postprocess(output):
   del output
 
 
-def execute_task(testcase_id, job_type):
+def utask_main(testcase_id, job_type):
   """Execute progression task."""
   try:
     find_fixed_range(testcase_id, job_type)
