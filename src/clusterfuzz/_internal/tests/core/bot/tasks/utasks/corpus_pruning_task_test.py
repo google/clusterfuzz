@@ -165,7 +165,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_prune(self):
     """Basic pruning test."""
     corpus_pruning_task.utask_main('libFuzzer_test_fuzzer',
-                                     'libfuzzer_asan_job')
+                                   'libfuzzer_asan_job')
 
     quarantined = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantined))
