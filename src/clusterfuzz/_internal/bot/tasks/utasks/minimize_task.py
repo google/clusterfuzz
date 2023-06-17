@@ -354,7 +354,6 @@ class TestRunner(object):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   return {
       'testcase_id': testcase_id,
-      'job_type': job_type,
       'uworker_env': uworker_env,
   }
 
