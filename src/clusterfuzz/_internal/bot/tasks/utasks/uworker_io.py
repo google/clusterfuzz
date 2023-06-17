@@ -319,6 +319,11 @@ class UworkerOutput(UworkerMsg):
       save_json_field(field, value)
       return
 
+    # TODO(metzman): Remove this once everything is migrated.
+    if isinstance(value, uworker_msg_pb2.Input):
+      field.CopyFrom(value)
+      return
+
     if not isinstance(value, UworkerEntityWrapper):
       raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
