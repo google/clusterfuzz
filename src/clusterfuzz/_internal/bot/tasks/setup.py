@@ -203,6 +203,7 @@ def setup_testcase(testcase,
   uworker_error_input = uworker_msg_pb2.Input(
       testcase_id=str(testcase_id), job_type=job_type)
   uworker_error_output = uworker_io.UworkerOutput(
+      uworker_input=uworker_error_input,
       error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
   testcase_setup_error_result = (None, None, uworker_error_output)
