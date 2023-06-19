@@ -631,11 +631,8 @@ def needs_update(revision_file, revision):
   """Check a revision file against the provided revision to see if an update is
   required."""
   if not os.path.exists(revision_file):
-    # An error has occurred and we have failed to read revision file despite
-    # several retries. So, don't bother updating the data bundle as it will
-    # probably fail as well.
     logs.log_error('Failed to read revision file, exiting.')
-    return False
+    return True
 
   try:
     with open(revision_file) as file_handle:
