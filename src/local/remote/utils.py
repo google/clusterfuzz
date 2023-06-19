@@ -26,8 +26,8 @@ def get_file_content(file_path):
 def get_host_user_and_ssh_key_path(instance_name, project, zone):
   """Return a tuple of (hostname, username and ssh_key_path)."""
   output = api.local(
-      'gcloud compute ssh --project "%s" --zone "%s" %s --dry-run' %
-      (project, zone, instance_name),
+      f'gcloud compute ssh --project "{project}" --zone "{zone}" '
+      f'{instance_name} --dry-run',
       capture=True)
   print(output)
 
@@ -40,6 +40,6 @@ def get_password():
   """Return password from |PASSWORD_FILE_PATH| environment variable."""
   password_file_path = os.getenv('PASSWORD_FILE_PATH')
   if not password_file_path:
-    raise Exception('Please set PASSWORD_FILE_PATH in environment.')
+    raise RuntimeError('Please set PASSWORD_FILE_PATH in environment.')
 
   return get_file_content(password_file_path)

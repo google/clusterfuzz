@@ -96,13 +96,13 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     testcase = None
     testcase_id = request.args.get('testcase_id')
     if not testcase_id and not resource:
-      raise helpers.EarlyExitException('No file requested.', 400)
+      raise helpers.EarlyExitError('No file requested.', 400)
 
     if testcase_id:
       try:
         testcase = data_handler.get_testcase_by_id(testcase_id)
       except errors.InvalidTestcaseError:
-        raise helpers.EarlyExitException('Invalid testcase.', 400)
+        raise helpers.EarlyExitError('Invalid testcase.', 400)
 
       if not resource:
         if testcase.minimized_keys and testcase.minimized_keys != 'NA':
@@ -117,11 +117,11 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     resource = str(urllib.parse.unquote(resource))
     blob_info = blobs.get_blob_info(resource)
     if not blob_info:
-      raise helpers.EarlyExitException('File does not exist.', 400)
+      raise helpers.EarlyExitError('File does not exist.', 400)
 
     if (testcase and testcase.fuzzed_keys != blob_info.key() and
         testcase.minimized_keys != blob_info.key()):
-      raise helpers.EarlyExitException('Invalid testcase.', 400)
+      raise helpers.EarlyExitError('Invalid testcase.', 400)
 
     if (utils.is_oss_fuzz() and testcase and
         self.check_public_testcase(blob_info, testcase)):
@@ -141,10 +141,10 @@ class Handler(base_handler.Handler, gcs.SignedGcsHandler):
     # If this blobstore file is for a testcase, check if the user has access to
     # the testcase.
     if not testcase:
-      raise helpers.AccessDeniedException()
+      raise helpers.AccessDeniedError()
 
     if access.can_user_access_testcase(testcase):
       return self._send_blob(blob_info, testcase_id, is_minimized,
                              fuzzer_binary_name)
 
-    raise helpers.AccessDeniedException()
+    raise helpers.AccessDeniedError()

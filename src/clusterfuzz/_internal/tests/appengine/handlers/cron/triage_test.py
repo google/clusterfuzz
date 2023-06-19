@@ -379,7 +379,7 @@ class FileIssueTest(unittest.TestCase):
 
   def test_recovered_exception(self):
     """Test recovered exception."""
-    self.mock.file_issue.return_value = 'ID', Exception('recovered')
+    self.mock.file_issue.return_value = 'ID', RuntimeError('recovered')
     self.assertTrue(
         triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
@@ -388,7 +388,7 @@ class FileIssueTest(unittest.TestCase):
 
   def test_unrecovered_exception(self):
     """Test recovered exception."""
-    self.mock.file_issue.side_effect = Exception('unrecovered')
+    self.mock.file_issue.side_effect = RuntimeError('unrecovered')
     self.assertFalse(
         triage._file_issue(self.testcase, self.issue_tracker, self.throttler))
     testcase = data_handler.get_testcase_by_id(self.testcase.key.id())

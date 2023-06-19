@@ -29,7 +29,7 @@ class Handler(base_handler.Handler):
     """Handle a get request."""
     gcs_path = request.args.get('path', '')
     if not gcs_path:
-      raise helpers.EarlyExitException('No path provided.', 400)
+      raise helpers.EarlyExitError('No path provided.', 400)
 
     if storage.get(gcs_path):
       host_url = storage.OBJECT_URL

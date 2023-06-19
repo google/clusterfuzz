@@ -1120,7 +1120,7 @@ class SystemBuildTest(fake_filesystem_unittest.TestCase):
   def test_delete(self):
     """Test deleting this build."""
     build = build_manager.setup_system_binary()
-    with self.assertRaises(build_manager.BuildManagerException):
+    with self.assertRaises(build_manager.BuildManagerError):
       build.delete()
 
 
@@ -2100,10 +2100,10 @@ class GetPrimaryBucketPathTest(unittest.TestCase):
     target defined."""
     os.environ[
         'FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'gs://fuzz_target/%TARGET%/path'
-    with self.assertRaises(build_manager.BuildManagerException):
+    with self.assertRaises(build_manager.BuildManagerError):
       build_manager.get_primary_bucket_path()
 
   def test_no_path_defined(self):
     """Test no bucket paths defined."""
-    with self.assertRaises(build_manager.BuildManagerException):
+    with self.assertRaises(build_manager.BuildManagerError):
       build_manager.get_primary_bucket_path()

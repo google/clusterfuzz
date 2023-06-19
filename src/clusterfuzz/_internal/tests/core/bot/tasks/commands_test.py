@@ -15,9 +15,9 @@
 import datetime
 import os
 import unittest
+from unittest import mock
 
 from google.cloud import ndb
-import mock
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import commands
@@ -36,7 +36,7 @@ def dummy(_):
 @commands.set_task_payload
 def dummy_exception(_):
   """A dummy function."""
-  raise Exception(os.environ['TASK_PAYLOAD'])  # pylint: disable=broad-exception-raised
+  raise RuntimeError(os.environ['TASK_PAYLOAD'])
 
 
 class SetTaskPayloadTest(unittest.TestCase):
