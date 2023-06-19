@@ -30,7 +30,7 @@ class ReportCspFailureHandler(base_handler.Handler):
     """Handle a POST request."""
     report = request.get('csp-report')
     if not report:
-      raise helpers.EarlyExitException('No CSP report.', 400)
+      raise helpers.EarlyExitError('No CSP report.', 400)
 
     logs.log_error('CSP violation: {}'.format(report))
     return 'OK'

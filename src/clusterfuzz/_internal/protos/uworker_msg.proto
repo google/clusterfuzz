@@ -38,6 +38,7 @@ message Input {
   optional string uworker_output_upload_url = 7;
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
+  optional string fuzzer_name = 10;
 }
 
 enum ErrorType {
@@ -56,7 +57,7 @@ message Output {
   optional ErrorType error = 4;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
-  optional Json uworker_input = 5;
+  optional Input uworker_input = 5;
   optional float test_timeout = 6;
   optional float crash_time = 7;
   optional string crash_stacktrace_output = 8;

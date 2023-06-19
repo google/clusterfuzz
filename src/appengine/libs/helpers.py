@@ -32,11 +32,11 @@ class _DoNotCatchException(Exception):
   """Serve as a dummy exception to avoid catching any exception."""
 
 
-class EarlyExitException(Exception):
+class EarlyExitError(Exception):
   """Serve as an exception for exiting a handler's method early."""
 
   def __init__(self, message, status, trace_dump=None):
-    super(EarlyExitException, self).__init__(message)
+    super().__init__(message)
     self.status = status
     self.trace_dump = trace_dump
     if self.trace_dump is None:
@@ -56,22 +56,22 @@ class EarlyExitException(Exception):
     }
 
 
-class AccessDeniedException(EarlyExitException):
+class AccessDeniedError(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 403."""
 
   def __init__(self, message=''):
-    super(AccessDeniedException, self).__init__(message, 403, '')
+    super().__init__(message, 403, '')
 
 
-class UnauthorizedException(EarlyExitException):
+class UnauthorizedError(EarlyExitError):
   """Serve as an exception for exiting a handler's method with 401."""
 
   def __init__(self, message=''):
-    super(UnauthorizedException, self).__init__(message, 401, '')
+    super().__init__(message, 401, '')
 
 
 def get_testcase(testcase_id):
-  """Get a valid testcase or raise EarlyExitException."""
+  """Get a valid testcase or raise EarlyExitError."""
   testcase = None
   try:
     testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -79,26 +79,25 @@ def get_testcase(testcase_id):
     pass
 
   if not testcase:
-    raise EarlyExitException("Testcase (id=%s) doesn't exist" % testcase_id,
-                             404)
+    raise EarlyExitError("Testcase (id=%s) doesn't exist" % testcase_id, 404)
   return testcase
 
 
 def get_issue_tracker_for_testcase(testcase):
-  """Get an IssueTracker or raise EarlyExitException."""
+  """Get an IssueTracker or raise EarlyExitError."""
   issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
   if not issue_tracker:
-    raise EarlyExitException(
+    raise EarlyExitError(
         "The testcase doesn't have a corresponding issue tracker", 404)
   return issue_tracker
 
 
 def cast(value, fn, error_message):
-  """Return `fn(value)` or raise an EarlyExitException with 400."""
+  """Return `fn(value)` or raise an EarlyExitError with 400."""
   try:
     return fn(value)
   except (ValueError, TypeError):
-    raise EarlyExitException(error_message, 400)
+    raise EarlyExitError(error_message, 400)
 
 
 def should_render_json(accepts, content_type):
@@ -137,13 +136,13 @@ def get_or_exit(fn,
   except not_found_exception:
     pass
   except Exception:
-    raise EarlyExitException(
+    raise EarlyExitError(
         '%s (%s: %s)' % (error_message, sys.exc_info()[0], str(
             sys.exc_info()[1])), 500)
 
   if non_empty_fn(result):
     return result
-  raise EarlyExitException(not_found_message, 404)
+  raise EarlyExitError(not_found_message, 404)
 
 
 def get_user_email():
@@ -160,7 +159,7 @@ def get_integer_key(request):
   try:
     return int(key)
   except (ValueError, KeyError):
-    raise EarlyExitException('Invalid key format.', 400)
+    raise EarlyExitError('Invalid key format.', 400)
 
 
 def log(message, operation_type):

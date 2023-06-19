@@ -28,7 +28,7 @@ EXTRACT_ZIP_PS_LOCAL_PATH = 'src/local/remote/extract_zip.ps1'
 EXTRACT_ZIP_PS_REMOTE_PATH = r'c:\extract_clusterfuzz_stage_source_zip.ps1'
 
 
-class Handler(object):
+class Handler:
   """Handler for windows."""
 
   def __init__(self, instance_name, project, zone):
@@ -48,8 +48,7 @@ class Handler(object):
     api.env.password = utils.get_password()
     api.env.user = self.username
     api.env.hosts = [hostname]
-    api.env.host_string = '{username}@{hostname}'.format(
-        username=self.username, hostname=hostname)
+    api.env.host_string = f'{self.username}@{hostname}'
     api.env.key_filename = None
     api.env.gss_auth = None
     api.env.gss_deleg_creds = None
@@ -65,29 +64,27 @@ class Handler(object):
     # See @tanin47's comment on:
     # https://github.com/PowerShell/PowerShell/issues/1746
     api.run(r'cmd /c set TMP=%USERPROFILE%\appdata\local\temp'
-            ' && powershell -{powershell_option} {command}'.format(
-                powershell_option=powershell_option, command=command))
+            f' && powershell -{powershell_option} {command}')
 
   def _abspath(self, path):
     """Get absolute path on host given a path inside the clusterfuzz folder."""
     return self.clusterfuzz_parent_path + '\\clusterfuzz\\' + path
 
   def _log_path(self, log_name):
-    return r'{log_dir}\{log_name}.log'.format(
-        log_dir=self._abspath(r'bot\logs'), log_name=log_name)
+    return r'{}\{}.log'.format(self._abspath("bot\\logs"), log_name)
 
   def tail(self, log_name, line_count):
     """Print the last `size` lines of ./bot/logs/`log_name`.log."""
-    self._powershell(r'Get-Content -Path {log_path} -Tail {line_count}'.format(
-        log_path=self._log_path(log_name), line_count=line_count))
+    self._powershell(
+        fr'Get-Content -Path {self._log_path(log_name)} -Tail {line_count}')
 
   def tailf(self, log_names):
     """Print ./bot/logs/`name`.log in real-time (equivalent to `tail -f`)."""
     if len(log_names) > 1:
-      raise Exception('Sorry, on windows, we cannot tailf multiple logs')
+      raise RuntimeError('Sorry, on windows, we cannot tailf multiple logs')
 
-    self._powershell(r'Get-Content -Path {log_path} -Wait -Tail 100'.format(
-        log_path=self._log_path(log_names[0])))
+    self._powershell(
+        fr'Get-Content -Path {self._log_path(log_names[0])} -Wait -Tail 100')
 
   def reboot(self):
     """Reboot the machine and verify if succeeded."""
@@ -97,7 +94,7 @@ class Handler(object):
 
     try:
       api.run('cmd /c echo "Test rebooting"')
-      raise Exception(
+      raise RuntimeError(
           'Failed to reboot because we can still connect to the machine.')
     except exceptions.NetworkError:
       print('Cannot connect to the machine. The machine has been rebooted '
@@ -124,9 +121,7 @@ class Handler(object):
         revision=butler_common.compute_staging_revision(),
         platform_name='windows')
     remote_zip_path = (
-        '{clusterfuzz_parent_path}\\{staging_source_filename}'.format(
-            clusterfuzz_parent_path=self.clusterfuzz_parent_path,
-            staging_source_filename=self.staging_source_filename))
+        f'{self.clusterfuzz_parent_path}\\{self.staging_source_filename}')
     api.put(zip_path, remote_zip_path)
 
     api.put(EXTRACT_ZIP_PS_LOCAL_PATH, EXTRACT_ZIP_PS_REMOTE_PATH)

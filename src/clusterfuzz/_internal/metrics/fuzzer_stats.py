@@ -102,11 +102,11 @@ JOB_RUN_SCHEMA = {
 }
 
 
-class FuzzerStatsException(Exception):
+class FuzzerStatsError(ValueError):
   """Fuzzer stats exception."""
 
 
-class BaseRun(object):
+class BaseRun:
   """Base run."""
 
   VALID_FIELDNAME_PATTERN = re.compile(r'[a-zA-Z][a-zA-Z0-9_]*')
@@ -204,7 +204,7 @@ class JobRun(BaseRun):
   # `crashes` is a new field that will replace `new_crashes` and `old_crashes`.
   def __init__(self, fuzzer, job, build_revision, timestamp,
                number_of_testcases, new_crashes, known_crashes, crashes):
-    super(JobRun, self).__init__(fuzzer, job, build_revision, timestamp)
+    super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'JobRun',
         'testcases_executed': number_of_testcases,
@@ -220,7 +220,7 @@ class TestcaseRun(BaseRun):
   SCHEMA = None
 
   def __init__(self, fuzzer, job, build_revision, timestamp):
-    super(TestcaseRun, self).__init__(fuzzer, job, build_revision, timestamp)
+    super().__init__(fuzzer, job, build_revision, timestamp)
     self._stats_data.update({
         'kind': 'TestcaseRun',
     })
@@ -261,7 +261,7 @@ class TestcaseRun(BaseRun):
       f.write(testcase_run.to_json())
 
 
-class QueryGroupBy(object):
+class QueryGroupBy:
   """GroupBy enum."""
 
   GROUP_BY_NONE = 0
@@ -292,7 +292,7 @@ def group_by_to_field_name(group_by):
   return None
 
 
-class BuiltinFieldData(object):
+class BuiltinFieldData:
   """Represents a cell value for a builtin field."""
 
   def __init__(self, value, sort_key=None, link=None):
@@ -301,7 +301,7 @@ class BuiltinFieldData(object):
     self.link = link
 
 
-class BuiltinFieldSpecifier(object):
+class BuiltinFieldSpecifier:
   """Represents a builtin field."""
 
   def __init__(self, name, alias=None):
@@ -328,7 +328,7 @@ class BuiltinFieldSpecifier(object):
     return constructor
 
 
-class BuiltinField(object):
+class BuiltinField:
   """Base Builtin field."""
 
   def __init__(self, ctx=None):
@@ -339,7 +339,7 @@ class BuiltinField(object):
     return None
 
 
-class BuiltinFieldContext(object):
+class BuiltinFieldContext:
   """Context for builtin fields."""
 
   def __init__(self, fuzzer=None, jobs=None):
@@ -358,7 +358,7 @@ class CoverageFieldContext(BuiltinFieldContext):
   """Coverage field context. Acts as a cache."""
 
   def __init__(self, fuzzer=None, jobs=None):
-    super(CoverageFieldContext, self).__init__(fuzzer=fuzzer, jobs=jobs)
+    super().__init__(fuzzer=fuzzer, jobs=jobs)
 
   @memoize.wrap(memoize.FifoInMemory(256))
   def get_coverage_info(self, fuzzer, date=None):
@@ -376,7 +376,7 @@ class CoverageFieldContext(BuiltinFieldContext):
     return get_coverage_info(fuzzer, date)
 
 
-class BaseCoverageField(object):
+class BaseCoverageField:
   """Base builtin field class for coverage related fields."""
 
   CONTEXT_CLASS = CoverageFieldContext
@@ -413,7 +413,7 @@ class CoverageField(BaseCoverageField):
   VALUE_TYPE = float
 
   def __init__(self, coverage_type, ctx=None):
-    super(CoverageField, self).__init__(ctx)
+    super().__init__(ctx)
     self.coverage_type = coverage_type
 
   def get(self, group_by, group_by_value):
@@ -447,7 +447,7 @@ class CorpusBackupField(BaseCoverageField):
   VALUE_TYPE = str
 
   def __init__(self, ctx=None):
-    super(CorpusBackupField, self).__init__(ctx)
+    super().__init__(ctx)
 
   def get(self, group_by, group_by_value):
     """Return data."""
@@ -475,7 +475,7 @@ class CorpusSizeField(BaseCoverageField):
   VALUE_TYPE = int
 
   def __init__(self, corpus_type, ctx=None):
-    super(CorpusSizeField, self).__init__(ctx)
+    super().__init__(ctx)
     self.corpus_type = corpus_type
 
   def get(self, group_by, group_by_value):
@@ -516,7 +516,7 @@ class CoverageReportField(BaseCoverageField):
   VALUE_TYPE = str
 
   def __init__(self, ctx=None):
-    super(CoverageReportField, self).__init__(ctx)
+    super().__init__(ctx)
 
   def get(self, group_by, group_by_value):
     """Return data."""
@@ -538,7 +538,7 @@ class FuzzerRunLogsContext(BuiltinFieldContext):
   MEMCACHE_TTL = 30 * 60
 
   def __init__(self, fuzzer=None, jobs=None):
-    super(FuzzerRunLogsContext, self).__init__(fuzzer=fuzzer, jobs=jobs)
+    super().__init__(fuzzer=fuzzer, jobs=jobs)
 
   @memoize.wrap(memoize.FifoInMemory(1024))
   def _get_logs_bucket_from_job(self, job_type):
@@ -659,7 +659,7 @@ class PerformanceReportField(BuiltinField):
     return BuiltinFieldData('Performance', link=report_path)
 
 
-class QueryField(object):
+class QueryField:
   """Represents a query field."""
 
   def __init__(self,
@@ -692,13 +692,13 @@ class QueryField(object):
     return result
 
 
-class Query(object):
+class Query:
   """Represents a stats query."""
 
   def _ensure_valid_name(self, name, regex):
     """Ensure that the given name is valid for fuzzer/jobs."""
     if name and not regex.match(name):
-      raise FuzzerStatsException('Invalid fuzzer or job name.')
+      raise FuzzerStatsError('Invalid fuzzer or job name.')
 
   def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
                date_end, base_table, alias):
@@ -817,7 +817,7 @@ class TestcaseQuery(Query):
 
   def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
                date_end):
-    super(TestcaseQuery, self).__init__(
+    super().__init__(
         fuzzer_name=fuzzer_name,
         job_types=job_types,
         query_fields=query_fields,
@@ -897,7 +897,7 @@ class JobQuery(Query):
   def __init__(self, fuzzer_name, job_types, query_fields, group_by, date_start,
                date_end):
 
-    super(JobQuery, self).__init__(
+    super().__init__(
         fuzzer_name=fuzzer_name,
         job_types=job_types,
         query_fields=query_fields,
@@ -918,7 +918,7 @@ class JobQuery(Query):
     return sql
 
 
-class TableQuery(object):
+class TableQuery:
   """Query for generating results in a table."""
 
   def __init__(self, fuzzer_name, job_types, stats_columns, group_by,
