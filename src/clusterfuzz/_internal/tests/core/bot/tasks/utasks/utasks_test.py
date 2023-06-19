@@ -52,7 +52,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
     self.mock.serialize_and_upload_uworker_input.assert_called_with(
-        self.uworker_input, self.JOB_TYPE)
+        self.uworker_input)
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
