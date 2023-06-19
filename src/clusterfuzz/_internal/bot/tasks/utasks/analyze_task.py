@@ -238,7 +238,7 @@ def handle_noncrash(output):
     output.testcase.status = 'Unreproducible, retrying'
     output.testcase.put()
 
-    tasks.add_task('analyze', output.uworker_input['testcase_id'],
+    tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
 

@@ -193,8 +193,7 @@ def utask_main(uworker_input):
 
 
 def handle_build_setup_error(output):
-  testcase = data_handler.get_testcase_by_id(
-      output.uworker_input['testcase_id'])
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(
       testcase, data_types.TaskState.ERROR,
       f'Build setup failed with job: {output.uworker_input["testcase_id"]}')
