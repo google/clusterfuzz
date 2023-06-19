@@ -354,10 +354,10 @@ class TestRunner(object):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   del job_type
-  return {
-      'testcase_id': str(testcase_id),
-      'uworker_env': uworker_env,
-  }
+    return uworker_io.UworkerInput(
+      testcase_id=str(testcase_id),
+      uworker_env=uworker_env,
+  )
 
 
 def utask_postprocess(output):
