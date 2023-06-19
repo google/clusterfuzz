@@ -18,7 +18,6 @@ import base64
 import bisect
 import os
 import re
-import time
 import urllib.parse
 
 from clusterfuzz._internal.base import memoize
@@ -629,48 +628,30 @@ def get_real_revision(revision, job_type, display=False, platform_id=None):
 
 
 def needs_update(revision_file, revision):
-  """Check a revision file against the provided revision
-  to see if an update is required."""
-  failure_wait_interval = environment.get_value('FAIL_WAIT')
-  file_exists = False
-  retry_limit = environment.get_value('FAIL_RETRIES')
+  """Check a revision file against the provided revision to see if an update is
+  required."""
+  if not os.path.exists(revision_file):
+    # An error has occurred and we have failed to read revision file despite
+    # several retries. So, don't bother updating the data bundle as it will
+    # probably fail as well.
+    logs.log_error('Failed to read revision file, exiting.')
+    return False
 
-  # TODO(metzman): Delete this.
-  for _ in range(retry_limit):
-    # NFS can sometimes return a wrong result on file existence, so redo
-    # this check a couple of times to be sure.
-    if not os.path.exists(revision_file):
-      file_exists = False
-      time.sleep(15)
-      continue
+  try:
+    with open(revision_file) as file_handle:
+      current_revision = file_handle.read()
+  except:
+    # An error has occurred and we have failed to read revision file despite
+    # several retries. So, don't bother updating the data bundle as it will
+    # probably fail as well.
+    logs.log_error(
+        'Error occurred while reading revision file %s.' % revision_file)
+    return False
 
-    # Found the file, now try to read its contents.
-    file_exists = True
+  if current_revision.isdigit():
+    return int(revision) > int(current_revision)
 
-    try:
-      with open(revision_file) as file_handle:
-        current_revision = file_handle.read()
-    except:
-      logs.log_error(
-          'Error occurred while reading revision file %s.' % revision_file)
-      time.sleep(utils.random_number(1, failure_wait_interval))
-      continue
-
-    if current_revision.isdigit():
-      return int(revision) > int(current_revision)
-
-    return str(revision) != str(current_revision)
-
-  # If there is no revision file or if we have lost track of its revision,
-  # then we do need to update the data bundle.
-  if not file_exists:
-    return True
-
-  # An error has occurred and we have failed to read revision file
-  # despite several retries. So, don't bother updating the data
-  # bundle as it will probably fail as well.
-  logs.log_error('Failed to read revision file, exiting.')
-  return False
+  return str(revision) != str(current_revision)
 
 
 def write_revision_to_revision_file(revision_file, revision):
