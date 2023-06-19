@@ -346,7 +346,9 @@ class GcsProvider(StorageProvider):
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
-    return self.read_data(signed_url)
+    if environment.get_value('UTASK_TESTS'):
+      self.read_data(signed_url)
+    return _download_url(signed_url)
 
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
@@ -359,6 +361,8 @@ class GcsProvider(StorageProvider):
     function='google_cloud_utils.storage._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
+  if environment.get_value('UTASK_TESTS'):
+    return remote_path
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
   signing_creds = _signing_creds()
