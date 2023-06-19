@@ -35,6 +35,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -1889,19 +1890,20 @@ class FuzzingSession:
     utils.python_gc()
 
 
-def utask_main(fuzzer_name, job_type):
+def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  session = FuzzingSession(fuzzer_name, job_type, test_timeout)
+  session = FuzzingSession(uworker_input.fuzzer_name, uworker_input.job_type,
+                           test_timeout)
   session.run()
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  del job_type
-  return {
-      'fuzzer_name': fuzzer_name,
-      'uworker_env': uworker_env,
-  }
+  return uworker_io.UworkerInput(
+      job_type=job_type,
+      fuzzer_name=fuzzer_name,
+      uworker_env=uworker_env,
+  )
 
 
 def utask_postprocess(output):

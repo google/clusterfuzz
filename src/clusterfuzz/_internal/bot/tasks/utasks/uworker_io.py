@@ -103,13 +103,8 @@ def serialize_uworker_input(uworker_input):
   return uworker_input.serialize()
 
 
-def serialize_and_upload_uworker_input(uworker_input, job_type) -> str:
+def serialize_and_upload_uworker_input(uworker_input) -> str:
   """Serializes input for the untrusted portion of a task."""
-  # Add remaining fields to the input.
-
-  assert not getattr(uworker_input, 'job_type', None)
-  uworker_input.job_type = job_type
-
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
   # write its output. Also get a download URL in case the caller wants to read

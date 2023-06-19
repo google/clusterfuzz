@@ -23,6 +23,7 @@ import mock
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -186,7 +187,9 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
-    minimize_task.utask_main(testcase.key.id(), 'libfuzzer_asan_job')
+    uworker_input = uworker_io.DeserializedUworkerMsg(
+        job_type='libfuzzer_asan_job', testcase_id=str(testcase.key.id()))
+    minimize_task.utask_main(uworker_input)
 
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertNotEqual('', testcase.minimized_keys)

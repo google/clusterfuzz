@@ -293,6 +293,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase=testcase,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
+      job_type=job_type,
       testcase_download_url=testcase_download_url)
 
 

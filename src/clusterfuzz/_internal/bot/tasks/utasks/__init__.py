@@ -27,8 +27,6 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
     return None
-  assert getattr(uworker_input, 'job_type', None) is None
-  uworker_input.job_type = job_type
   return uworker_io.serialize_uworker_input(uworker_input)
 
 
@@ -76,7 +74,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   # Write the uworker's input to GCS and get the URL to download the input in
   # case the caller needs it.
   uworker_input_signed_download_url, uworker_output_download_gcs_url = (
-      uworker_io.serialize_and_upload_uworker_input(uworker_input, job_type))
+      uworker_io.serialize_and_upload_uworker_input(uworker_input))
 
   # Return the uworker_input_signed_download_url for the remote executor to pass
   # to the batch job and for the local executor to download locally. Return

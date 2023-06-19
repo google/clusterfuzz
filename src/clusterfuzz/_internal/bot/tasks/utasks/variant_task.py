@@ -78,6 +78,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   return uworker_io.UworkerInput(
+      job_type=job_type,
       original_job_type=original_job_type,
       testcase=testcase,
       metadata=metadata,
