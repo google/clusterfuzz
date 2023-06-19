@@ -23,6 +23,7 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -331,10 +332,10 @@ def find_regression_range(testcase_id, job_type):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   del job_type
-  return {
-      'testcase_id': testcase_id,
-      'uworker_env': uworker_env,
-  }
+  return uworker_io.UworkerInput(
+      testcase_id=str(testcase_id),
+      uworker_env=uworker_env,
+  )
 
 
 def utask_postprocess(output):

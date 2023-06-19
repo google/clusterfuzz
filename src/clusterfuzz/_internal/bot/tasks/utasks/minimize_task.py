@@ -36,6 +36,7 @@ from clusterfuzz._internal.bot.minimizer import minimizer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
@@ -354,7 +355,7 @@ class TestRunner(object):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   del job_type
   return {
-      'testcase_id': testcase_id,
+      'testcase_id': str(testcase_id),
       'uworker_env': uworker_env,
   }
 
