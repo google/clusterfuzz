@@ -72,7 +72,7 @@ class UtaskIntegrationTest(unittest.TestCase):
     metadata = data_types.TestcaseUploadMetadata(
         testcase_id=self.testcase.key.id())
     metadata.put()
-    os.environ['DONT_SIGN_URL'] = 'True'
+    os.environ['UTASK_TESTS'] = 'True'
     os.environ['FUZZ_TARGET'] = self.fuzz_target
 
     environment.set_bot_environment()
