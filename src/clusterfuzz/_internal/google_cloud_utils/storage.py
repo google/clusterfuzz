@@ -346,8 +346,6 @@ class GcsProvider(StorageProvider):
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
-    if not environment.get_value('DONT_SIGN_URL'):
-      return _download_url(signed_url)
     return self.read_data(signed_url)
 
   def upload_signed_url(self, data, signed_url):
@@ -362,8 +360,6 @@ class GcsProvider(StorageProvider):
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   minutes = datetime.timedelta(minutes=minutes)
-  if environment.get_value('DONT_SIGN_URL'):
-    return remote_path
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
   signing_creds = _signing_creds()
   client = _storage_client()

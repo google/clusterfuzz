@@ -71,9 +71,9 @@ class RunCommandTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         ('fuzz_execute_task',
-         'clusterfuzz._internal.bot.tasks.fuzz_task.utask_main'),
+         'clusterfuzz._internal.bot.tasks.fuzz_task.execute_task'),
         ('progression_execute_task',
-         'clusterfuzz._internal.bot.tasks.progression_task.utask_main'),
+         'clusterfuzz._internal.bot.tasks.progression_task.execute_task'),
         'clusterfuzz._internal.base.utils.utcnow',
     ])
 
