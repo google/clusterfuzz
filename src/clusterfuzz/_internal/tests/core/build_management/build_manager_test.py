@@ -27,7 +27,7 @@ from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment

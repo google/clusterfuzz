@@ -1889,8 +1889,20 @@ class FuzzingSession:
     utils.python_gc()
 
 
-def execute_task(fuzzer_name, job_type):
+def utask_main(fuzzer_name, job_type):
   """Runs the given fuzzer for one round."""
   test_timeout = environment.get_value('TEST_TIMEOUT')
   session = FuzzingSession(fuzzer_name, job_type, test_timeout)
   session.run()
+
+
+def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  del job_type
+  return {
+      'fuzzer_name': fuzzer_name,
+      'uworker_env': uworker_env,
+  }
+
+
+def utask_postprocess(output):
+  del output

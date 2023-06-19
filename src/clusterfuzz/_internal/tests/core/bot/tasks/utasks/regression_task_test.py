@@ -19,7 +19,7 @@ import os
 import unittest
 
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.bot.tasks import regression_task
+from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -79,8 +79,8 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.regression_task.save_regression_range',
-        'clusterfuzz._internal.bot.tasks.regression_task._testcase_reproduces_in_revision',
+        'clusterfuzz._internal.bot.tasks.utasks.regression_task.save_regression_range',
+        'clusterfuzz._internal.bot.tasks.utasks.regression_task._testcase_reproduces_in_revision',
     ])
 
     # Keep a dummy test case. Values are not important, but we need an id.
@@ -143,7 +143,7 @@ class ValidateRegressionRangeTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.regression_task._testcase_reproduces_in_revision',
+        'clusterfuzz._internal.bot.tasks.utasks.regression_task._testcase_reproduces_in_revision',
         'random.sample',
     ])
 

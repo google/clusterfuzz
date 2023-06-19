@@ -70,10 +70,11 @@ class RunCommandTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        ('fuzz_execute_task',
-         'clusterfuzz._internal.bot.tasks.fuzz_task.execute_task'),
-        ('progression_execute_task',
-         'clusterfuzz._internal.bot.tasks.progression_task.execute_task'),
+        ('fuzz_utask_main',
+         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.utask_main'),
+        ('progression_utask_main',
+         'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
+        'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
     ])
 
@@ -86,8 +87,8 @@ class RunCommandTest(unittest.TestCase):
     """Test run_command with a normal command."""
     commands.run_command('fuzz', 'fuzzer', 'job', {})
 
-    self.assertEqual(1, self.mock.fuzz_execute_task.call_count)
-    self.mock.fuzz_execute_task.assert_called_with('fuzzer', 'job')
+    self.assertEqual(1, self.mock.fuzz_utask_main.call_count)
+    self.mock.fuzz_utask_main.assert_called_with('fuzzer', 'job')
 
     # Fuzz task should not create any TaskStatus entities.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -97,8 +98,8 @@ class RunCommandTest(unittest.TestCase):
     """Test run_command with a progression task."""
     commands.run_command('progression', '123', 'job', {})
 
-    self.assertEqual(1, self.mock.progression_execute_task.call_count)
-    self.mock.progression_execute_task.assert_called_with('123', 'job')
+    self.assertEqual(1, self.mock.progression_utask_main.call_count)
+    self.mock.progression_utask_main.assert_called_with('123', 'job')
 
     # TaskStatus should indicate success.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -116,7 +117,7 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_exception(self):
     """Test run_command with an exception."""
-    self.mock.progression_execute_task.side_effect = Exception
+    self.mock.progression_utask_main.side_effect = Exception
 
     with self.assertRaises(Exception):
       commands.run_command('progression', '123', 'job', {})
@@ -134,7 +135,7 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_invalid_testcase(self):
     """Test run_command with an invalid testcase exception."""
-    self.mock.progression_execute_task.side_effect = errors.InvalidTestcaseError
+    self.mock.progression_utask_main.side_effect = errors.InvalidTestcaseError
     commands.run_command('progression', '123', 'job', {})
 
     task_status_entities = list(data_types.TaskStatus.query())
@@ -159,7 +160,7 @@ class RunCommandTest(unittest.TestCase):
     with self.assertRaises(commands.AlreadyRunningError):
       commands.run_command('progression', '123', 'job', {})
 
-    self.assertEqual(0, self.mock.progression_execute_task.call_count)
+    self.assertEqual(0, self.mock.progression_utask_main.call_count)
 
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))
@@ -181,7 +182,7 @@ class RunCommandTest(unittest.TestCase):
         status='started').put()
 
     commands.run_command('progression', '123', 'job', {})
-    self.assertEqual(1, self.mock.progression_execute_task.call_count)
+    self.assertEqual(1, self.mock.progression_utask_main.call_count)
 
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))

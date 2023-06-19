@@ -22,7 +22,7 @@ import mock
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
-from clusterfuzz._internal.bot.tasks import minimize_task
+from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -42,8 +42,8 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.minimize_task._run_libfuzzer_testcase',
-        'clusterfuzz._internal.bot.tasks.minimize_task._run_libfuzzer_tool',
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task._run_libfuzzer_testcase',
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task._run_libfuzzer_tool',
     ])
 
     test_utils.setup_pubsub(utils.get_application_id())
@@ -186,7 +186,7 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
-    minimize_task.execute_task(testcase.key.id(), 'libfuzzer_asan_job')
+    minimize_task.utask_main(testcase.key.id(), 'libfuzzer_asan_job')
 
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertNotEqual('', testcase.minimized_keys)

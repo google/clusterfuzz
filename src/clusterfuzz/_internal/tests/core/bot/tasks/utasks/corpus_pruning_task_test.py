@@ -27,7 +27,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
-from clusterfuzz._internal.bot.tasks import corpus_pruning_task
+from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
@@ -164,8 +164,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
-    corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
-                                     'libfuzzer_asan_job')
+    corpus_pruning_task.utask_main('libFuzzer_test_fuzzer',
+                                   'libfuzzer_asan_job')
 
     quarantined = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantined))
@@ -314,7 +314,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
   def test_prune(self):
     """Basic pruning test."""
     self.corpus_dir = self.fuchsia_corpus_dir
-    corpus_pruning_task.execute_task(
+    corpus_pruning_task.utask_main(
         'libFuzzer_fuchsia_example-fuzzers-crash_fuzzer',
         'libfuzzer_asan_fuchsia')
     corpus = os.listdir(self.corpus_dir)
@@ -341,7 +341,7 @@ class CorpusPruningTestUntrusted(
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.setup.get_fuzzer_directory',
         'clusterfuzz._internal.base.tasks.add_task',
-        'clusterfuzz._internal.bot.tasks.corpus_pruning_task.'
+        'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.'
         '_record_cross_pollination_stats',
         'clusterfuzz.fuzz.engine.get',
     ])
@@ -447,8 +447,8 @@ class CorpusPruningTestUntrusted(
             initial_feature_coverage=0,
             feature_coverage=0))
 
-    corpus_pruning_task.execute_task('libFuzzer_test_fuzzer',
-                                     'libfuzzer_asan_job')
+    corpus_pruning_task.utask_main('libFuzzer_test_fuzzer',
+                                   'libfuzzer_asan_job')
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')
     os.mkdir(corpus_dir)

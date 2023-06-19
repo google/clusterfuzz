@@ -20,7 +20,7 @@ import re
 import unittest
 from unittest import mock
 
-from clusterfuzz._internal.bot.tasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.tests.test_libs import helpers
