@@ -87,8 +87,10 @@ class RunCommandTest(unittest.TestCase):
     """Test run_command with a normal command."""
     commands.run_command('fuzz', 'fuzzer', 'job', {})
 
+    uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
     self.assertEqual(1, self.mock.fuzz_utask_main.call_count)
-    self.mock.fuzz_utask_main.assert_called_with('fuzzer', 'job')
+    self.assertEqual(uworker_input.fuzzer_name, 'fuzzer')
+    self.assertEqual(uworker_input.job_type, 'job')
 
     # Fuzz task should not create any TaskStatus entities.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -99,7 +101,9 @@ class RunCommandTest(unittest.TestCase):
     commands.run_command('progression', '123', 'job', {})
 
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
-    self.mock.progression_utask_main.assert_called_with('123', 'job')
+    uworker_input = self.mock.progression_utask_main.call_args_list[0][0][0]
+    self.assertEqual(uworker_input.testcase_id, '123')
+    self.assertEqual(uworker_input.job_type, 'job')
 
     # TaskStatus should indicate success.
     task_status_entities = list(data_types.TaskStatus.query())
