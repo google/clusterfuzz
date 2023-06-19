@@ -13,9 +13,8 @@
 # limitations under the License.
 """access tests."""
 import unittest
-
 # pylint: disable=protected-access
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
@@ -442,7 +441,7 @@ class CheckAccessAndGetTestcase(unittest.TestCase):
   def test_not_logged_in(self):
     """Test not logged in."""
     self.mock.get_user_email.return_value = ''
-    with self.assertRaises(helpers.UnauthorizedException):
+    with self.assertRaises(helpers.UnauthorizedError):
       access.check_access_and_get_testcase(self.testcase.key.id())
 
   def test_privileged(self):
@@ -450,6 +449,6 @@ class CheckAccessAndGetTestcase(unittest.TestCase):
     self.mock.has_access.return_value = True
     access.check_access_and_get_testcase(self.testcase.key.id())
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       access.check_access_and_get_testcase(self.testcase.key.id() + 1)
     self.assertEqual(404, cm.exception.status)

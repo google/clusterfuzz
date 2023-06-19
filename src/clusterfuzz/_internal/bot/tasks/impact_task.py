@@ -24,15 +24,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-class BuildFailedException(Exception):
-  """Represents the build failure."""
-
-
-class AppFailedException(Exception):
-  """Represents the app failure."""
-
-
-class Impact(object):
+class Impact:
   """Represents impact on a build type."""
 
   def __init__(self, version='', likely=False, extra_trace=''):
@@ -53,7 +45,7 @@ class Impact(object):
             self.extra_trace == other.extra_trace)
 
 
-class Impacts(object):
+class Impacts:
   """Represents impacts on different release channels."""
 
   def __init__(self, stable=None, beta=None, extended_stable=None, head=None):

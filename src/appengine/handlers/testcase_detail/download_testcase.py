@@ -39,7 +39,7 @@ def get_testcase_blob_info(testcase):
     using_minimized_keys = False
 
   if not blob_key:
-    raise helpers.EarlyExitException(
+    raise helpers.EarlyExitError(
         "The testcase (%d) doesn't have fuzzed keys." % testcase.key.id(), 400)
 
   blob_key = str(urllib.parse.unquote(blob_key))

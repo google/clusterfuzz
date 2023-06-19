@@ -47,7 +47,7 @@ class Handler(base_handler.Handler):
         additional_ccs=additional_ccs)
 
     if not issue_id:
-      raise helpers.EarlyExitException('Unable to create new issue.', 500)
+      raise helpers.EarlyExitError('Unable to create new issue.', 500)
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token

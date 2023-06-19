@@ -15,11 +15,11 @@
 import json
 import os
 import unittest
+from unittest import mock
 
 import flask
 from flask import request
 from flask import Response
-import mock
 import webtest
 import yaml
 
@@ -315,7 +315,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
   def test_no_testcase_id(self):
     """Test no testcase id."""
     self.mock.check_access_and_get_testcase.side_effect = (
-        helpers.AccessDeniedException())
+        helpers.AccessDeniedError())
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
@@ -329,7 +329,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
   def test_invalid_testcase_id(self):
     """Test invalid testcase id."""
     self.mock.check_access_and_get_testcase.side_effect = (
-        helpers.AccessDeniedException())
+        helpers.AccessDeniedError())
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
@@ -342,7 +342,7 @@ class CheckTestcaseAccessTest(unittest.TestCase):
   def test_forbidden(self):
     """Test forbidden."""
     self.mock.check_access_and_get_testcase.side_effect = (
-        helpers.AccessDeniedException())
+        helpers.AccessDeniedError())
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/', view_func=CheckTestcaseAccessHandler.as_view('/'))
@@ -505,7 +505,8 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     self.mock.get.assert_has_calls([
         mock.call(
             'https://www.googleapis.com/oauth2/v3/tokeninfo',
-            params={'access_token': 'AccessToken'})
+            params={'access_token': 'AccessToken'},
+            timeout=30)
     ])
     self.mock.get.reset_mock()
 
@@ -544,7 +545,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
 
   def test_invalid_authorization_header(self):
     """Test invalid authorization header."""
-    with self.assertRaises(helpers.UnauthorizedException) as cm:
+    with self.assertRaises(helpers.UnauthorizedError) as cm:
       handler.get_email_and_access_token('ReceiverAccessToken')
 
     self.assertEqual(401, cm.exception.status)
@@ -557,7 +558,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     """Test bad status."""
     self.mock.get.return_value = mock.Mock(status_code=403)
 
-    with self.assertRaises(helpers.UnauthorizedException) as cm:
+    with self.assertRaises(helpers.UnauthorizedError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertEqual(
@@ -569,7 +570,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
     """Test invalid json."""
     self.mock.get.return_value = mock.Mock(status_code=200, text='test')
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(500, cm.exception.status)
     self.assertEqual('Parsing the JSON response body failed: test',
@@ -586,7 +587,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
             'email_verified': False
         }))
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertIn(
@@ -604,7 +605,7 @@ class TestGetEmailAndAccessToken(unittest.TestCase):
             'email_verified': False
         }))
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       handler.get_email_and_access_token('Bearer AccessToken')
     self.assertEqual(401, cm.exception.status)
     self.assertIn('The email (test@test.com) is not verified',

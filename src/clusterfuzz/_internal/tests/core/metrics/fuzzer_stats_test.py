@@ -18,8 +18,7 @@ import json
 import os
 import re
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import fuzz_task
 from clusterfuzz._internal.datastore import data_types
@@ -1095,7 +1094,7 @@ class BigQueryStatsTests(unittest.TestCase):
                      'sum(j.known_crashes) as known_crashes, '
                      'avg(t.average_exec_per_sec) as average_exec_per_sec ')
 
-    with self.assertRaises(fuzzer_stats.FuzzerStatsException):
+    with self.assertRaises(fuzzer_stats.FuzzerStatsError):
       fuzzer_stats.TableQuery('fuzzer_n\'ame$', ['job_type'], stats_columns,
                               fuzzer_stats.QueryGroupBy.GROUP_BY_DAY,
                               datetime.date(2016, 10, 1),

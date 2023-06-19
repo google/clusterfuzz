@@ -75,11 +75,11 @@ MUTATOR_STRATEGIES = [
 # pylint: disable=no-member
 
 
-class LibFuzzerException(Exception):
-  """LibFuzzer exception."""
+class LibFuzzerError(Exception):
+  """LibFuzzer error."""
 
 
-class LibFuzzerCommon(object):
+class LibFuzzerCommon:
   """Provides common libFuzzer functionality."""
 
   # Window of time for libFuzzer to exit gracefully before we KILL it.
@@ -612,7 +612,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
         return os.path.join(binding.src_path,
                             os.path.relpath(path, binding.dest_path))
 
-    raise LibFuzzerException('Invalid testcase path ' + path)
+    raise LibFuzzerError('Invalid testcase path ' + path)
 
   def _get_chroot_corpus_paths(self, corpus_directories):
     """Return chroot relative paths for the given corpus directories.
@@ -636,8 +636,8 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
     """
     binding = self.chroot.get_binding(directory_path)
     if not binding:
-      raise LibFuzzerException(
-          'Failed to get chroot binding for "%s".' % directory_path)
+      raise LibFuzzerError(
+          f'Failed to get chroot binding for "{directory_path}".')
     return binding.dest_path
 
   def _bind_corpus_dirs(self, corpus_directories):
@@ -1391,9 +1391,10 @@ def is_sha1_hash(possible_hash):
 
 def move_mergeable_units(merge_directory, corpus_directory):
   """Move new units in |merge_directory| into |corpus_directory|."""
-  initial_units = set(
+  initial_units = {
       os.path.basename(filename)
-      for filename in shell.get_files_list(corpus_directory))
+      for filename in shell.get_files_list(corpus_directory)
+  }
 
   for unit_path in shell.get_files_list(merge_directory):
     unit_name = os.path.basename(unit_path)

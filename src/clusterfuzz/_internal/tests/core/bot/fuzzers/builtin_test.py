@@ -101,14 +101,14 @@ class EngineFuzzerTest(BaseEngineFuzzerTest):
     """Test running without a build dir."""
     environment.set_value('BUILD_DIR', '')
     fuzzer = TestEngineFuzzer()
-    with self.assertRaisesRegex(builtin.BuiltinFuzzerException, 'BUILD_DIR'):
+    with self.assertRaisesRegex(builtin.BuiltinFuzzerError, 'BUILD_DIR'):
       fuzzer.run('/input', '/output', 1)
 
   def test_run_no_fuzzers(self):
     """Test running without fuzzers."""
     self.mock.get_fuzz_targets.return_value = []
     fuzzer = TestEngineFuzzer()
-    with self.assertRaises(builtin.BuiltinFuzzerException):
+    with self.assertRaises(builtin.BuiltinFuzzerError):
       fuzzer.run('/input', '/output', 1)
 
   def _generate_targets_list(self, count):
