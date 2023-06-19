@@ -141,7 +141,7 @@ def get_results():
 
   is_external_user = not is_user and external_jobs
   if not is_user and not is_external_user:
-    raise helpers.AccessDeniedException()
+    raise helpers.AccessDeniedError()
 
   if is_user:
     projects = _get_all_project_results()

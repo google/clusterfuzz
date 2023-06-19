@@ -73,7 +73,7 @@ GROUP BY
 """
 
 
-class TooEarlyException(Exception):
+class TooEarlyError(Exception):
   """The end hour is too early according to BIGQUERY_INSERTION_DELAY."""
 
 
@@ -108,13 +108,13 @@ def get_next_end_hour():
   last_successful_hour = get_last_successful_hour_or_start_hour()
   if not last_successful_hour:
     # No crashes seen, too early to start building stats.
-    raise TooEarlyException()
+    raise TooEarlyError()
 
   next_end_hour = last_successful_hour + 1
 
   next_datetime = crash_stats.get_datetime(next_end_hour)
   if (utils.utcnow() - next_datetime) <= BIGQUERY_INSERTION_DELAY:
-    raise TooEarlyException()
+    raise TooEarlyError()
 
   return next_end_hour
 
@@ -151,10 +151,10 @@ def build(end_hour):
 
     if result['status']['state'] == 'DONE':
       if result['status'].get('errors'):
-        raise Exception(json.dumps(result))
+        raise Exception(json.dumps(result))  # pylint: disable=broad-exception-raised
       return
 
-  raise Exception('Building crash stats exceeded %d seconds.' % TIMEOUT)
+  raise Exception('Building crash stats exceeded %d seconds.' % TIMEOUT)  # pylint: disable=broad-exception-raised
 
 
 def build_if_needed():
@@ -170,7 +170,7 @@ def build_if_needed():
     logging.info('CrashStatistics for end_hour=%s is built successfully',
                  crash_stats.get_datetime(end_hour))
     return end_hour
-  except TooEarlyException:
+  except TooEarlyError:
     logging.info("Skip building crash stats because it's too early.")
 
   return None

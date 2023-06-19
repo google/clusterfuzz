@@ -903,7 +903,7 @@ class JavaScriptLexer(JavaScriptBaseLexer):
     if action is not None:
       action(localctx, actionIndex)
     else:
-      raise Exception("No registered action for:" + str(ruleIndex))
+      raise ValueError("No registered action for:" + str(ruleIndex))
 
   def OpenBrace_action(self, localctx, actionIndex):
     if actionIndex == 0:
@@ -937,7 +937,7 @@ class JavaScriptLexer(JavaScriptBaseLexer):
     if pred is not None:
       return pred(localctx, predIndex)
     else:
-      raise Exception("No registered predicate for:" + str(ruleIndex))
+      raise ValueError("No registered predicate for:" + str(ruleIndex))
 
   def HashBangLine_sempred(self, localctx, predIndex):
     if predIndex == 0:

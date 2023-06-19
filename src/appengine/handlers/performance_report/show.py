@@ -98,10 +98,10 @@ def _get_performance_features(fuzzer_name, job_type, datetime_start,
     result = client.query(query=query.build())
   except Exception as e:
     logging.error('Exception during BigQuery request: %s\n', str(e))
-    raise helpers.EarlyExitException('Internal error.', 500)
+    raise helpers.EarlyExitError('Internal error.', 500)
 
   if not result.rows:
-    raise helpers.EarlyExitException('No stats.', 404)
+    raise helpers.EarlyExitError('No stats.', 404)
 
   return result
 
@@ -145,7 +145,7 @@ def _get_performance_report_data(fuzzer_name, job_type, logs_date):
     except ValueError:
       logging.warning('Wrong date format passed to performance report: %s\n',
                       logs_date)
-      raise helpers.EarlyExitException('Wrong date format.', 400)
+      raise helpers.EarlyExitError('Wrong date format.', 400)
 
   datetime_start = datetime.datetime.combine(date_start, datetime.time.min)
   datetime_end = datetime_start + datetime.timedelta(days=1)
@@ -163,16 +163,16 @@ class Handler(base_handler.Handler):
   def get(self, fuzzer_name=None, job_type=None, logs_date=None):
     """Handle a GET request."""
     if not fuzzer_name:
-      raise helpers.EarlyExitException('Fuzzer name cannot be empty.', 400)
+      raise helpers.EarlyExitError('Fuzzer name cannot be empty.', 400)
 
     if not job_type:
-      raise helpers.EarlyExitException('Job type cannot be empty.', 400)
+      raise helpers.EarlyExitError('Job type cannot be empty.', 400)
 
     if not logs_date:
-      raise helpers.EarlyExitException('Logs Date cannot be empty.', 400)
+      raise helpers.EarlyExitError('Logs Date cannot be empty.', 400)
 
     if not access.has_access(fuzzer_name=fuzzer_name, job_type=job_type):
-      raise helpers.AccessDeniedException()
+      raise helpers.AccessDeniedError()
 
     performance_features, date = _get_performance_report_data(
         fuzzer_name, job_type, logs_date)
@@ -188,7 +188,7 @@ class Handler(base_handler.Handler):
           analyzer.analyze_stats(performance_data))
     except (KeyError, TypeError, ValueError) as e:
       logging.error('Exception during performance analysis: %s\n', str(e))
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Cannot analyze performance for the requested time period.', 404)
 
     # Build performance analysis result.

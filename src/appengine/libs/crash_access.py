@@ -106,6 +106,6 @@ def add_scope(query, params, security_field, job_type_field, fuzzer_name_field):
     subqueries.append(fuzzer_query)
 
   if not subqueries:  # The user CANNOT access anything.
-    raise helpers.AccessDeniedException()
+    raise helpers.AccessDeniedError()
 
   query.union(*subqueries)

@@ -426,7 +426,19 @@ def find_fixed_range(testcase_id, job_type):
   tasks.add_task('progression', testcase_id, job_type)
 
 
-def execute_task(testcase_id, job_type):
+def utask_preprocess(testcase_id, job_type, uworker_env):
+  del job_type
+  return {
+      'testcase_id': testcase_id,
+      'uworker_env': uworker_env,
+  }
+
+
+def utask_postprocess(output):
+  del output
+
+
+def utask_main(testcase_id, job_type):
   """Execute progression task."""
   try:
     find_fixed_range(testcase_id, job_type)

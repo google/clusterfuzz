@@ -140,17 +140,17 @@ class Handler(base_handler.Handler):
     """Handle a post request."""
     testcase_id = message.attributes.get('testcaseId')
     if not testcase_id:
-      raise helpers.EarlyExitException('Missing testcaseId.', 400)
+      raise helpers.EarlyExitError('Missing testcaseId.', 400)
 
     revision = message.attributes.get('revision')
     if not revision or not revision.isdigit():
-      raise helpers.EarlyExitException('Missing revision.', 400)
+      raise helpers.EarlyExitError('Missing revision.', 400)
 
     revision = int(revision)
     testcase = data_handler.get_testcase_by_id(testcase_id)
     job = data_types.Job.query(data_types.Job.name == testcase.job_type).get()
     if not job or not job.is_external():
-      raise helpers.EarlyExitException('Invalid job.', 400)
+      raise helpers.EarlyExitError('Invalid job.', 400)
 
     if message.data:
       stacktrace = message.data.decode()

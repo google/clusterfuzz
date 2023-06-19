@@ -19,7 +19,7 @@ from google.protobuf import wrappers_pb2
 import grpc
 
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks import corpus_pruning_task
+from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import untrusted_runner_pb2
