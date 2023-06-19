@@ -74,6 +74,7 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.utask_main'),
         ('progression_utask_main',
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
+        'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
     ])
 
