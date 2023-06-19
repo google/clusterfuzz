@@ -439,31 +439,34 @@ def utask_postprocess(output):
   del output
 
 
-def utask_main(testcase_id, job_type):
+def utask_main(uworker_input):
   """Execute progression task."""
   try:
-    find_fixed_range(testcase_id, job_type)
+    find_fixed_range(uworker_input.testcase_id, uworker_input.job_type)
   except errors.BuildSetupError as error:
     # If we failed to setup a build, it is likely a bot error. We can retry
     # the task in this case.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     error_message = 'Build setup failed r%d' % error.revision
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     build_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
-        'progression', testcase_id, job_type, wait_time=build_fail_wait)
+        'progression',
+        uworker_input.testcase_id,
+        uworker_input.job_type,
+        wait_time=build_fail_wait)
   except errors.BadBuildError:
     # Though bad builds when narrowing the range are recoverable, certain builds
     # being marked as bad may be unrecoverable. Recoverable ones should not
     # reach this point.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     error_message = 'Unable to recover from bad build'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
   except errors.BuildNotFoundError as e:
     # If an expected build no longer exists, we can't continue.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     testcase.fixed = 'NA'
     testcase.open = False
     error_message = f'Build {e.revision} not longer exists'
@@ -475,5 +478,5 @@ def utask_main(testcase_id, job_type):
   # regression and fixed ranges are requested once. Regression is also requested
   # here as the bisection service may require details that are not yet available
   # (e.g. issue ID) at the time regress_task completes.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
   bisection.request_bisection(testcase)

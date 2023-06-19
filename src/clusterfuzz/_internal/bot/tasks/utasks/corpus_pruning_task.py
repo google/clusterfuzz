@@ -871,10 +871,11 @@ def _save_coverage_information(context, result):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
-def utask_main(fuzzer_name, job_type):
+def utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
-  task_name = f'corpus_pruning_{fuzzer_name}_{job_type}'
+  fuzz_target = data_handler.get_fuzz_target(uworker_input.fuzzer_name)
+  task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
+               f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
 
   # Get status of last execution.
@@ -896,7 +897,7 @@ def utask_main(fuzzer_name, job_type):
 
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
-      fuzz_target.engine, fuzzer_name)
+      fuzz_target.engine, uworker_input.fuzzer_name)
 
   context = Context(fuzz_target, cross_pollinate_fuzzers)
 

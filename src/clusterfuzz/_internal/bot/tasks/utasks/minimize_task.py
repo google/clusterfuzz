@@ -364,13 +364,13 @@ def utask_postprocess(output):
   del output
 
 
-def utask_main(testcase_id, job_type):
+def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
   # Get deadline to finish this task.
   deadline = tasks.get_task_completion_deadline()
 
   # Locate the testcase associated with the id.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
   if not testcase:
     return
 
@@ -381,7 +381,9 @@ def utask_main(testcase_id, job_type):
   # fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
   file_list, testcase_file_path, error = setup.setup_testcase(
-      testcase, job_type, fuzzer_override=minimize_fuzzer_override)
+      testcase,
+      uworker_input.job_type,
+      fuzzer_override=minimize_fuzzer_override)
   if error:
     uworker_handle_errors.handle(error)
     return
@@ -410,7 +412,10 @@ def utask_main(testcase_id, job_type):
       # revision exists for the original job, but doesn't exist for the
       # overriden job.
       tasks.add_task(
-          'minimize', testcase_id, job_type, wait_time=build_fail_wait)
+          'minimize',
+          uworker_input.testcase_id,
+          uworker_input.job_type,
+          wait_time=build_fail_wait)
 
     return
 
@@ -472,14 +477,14 @@ def utask_main(testcase_id, job_type):
     # We didn't crash at all. This might be a legitimately unreproducible
     # test case, so it will get marked as such after being retried on other
     # bots.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          'Unable to reproduce crash')
     task_creation.mark_unreproducible_if_flaky(testcase, True)
     return
 
   if flaky_stack:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     testcase.flaky_stack = flaky_stack
     testcase.put()
 
@@ -487,7 +492,7 @@ def utask_main(testcase_id, job_type):
   if not is_redo and len(crash_times) < reproducible_crash_count:
     # We reproduced this crash at least once. It's too flaky to minimize, but
     # maybe we'll have more luck in the other jobs.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     testcase.minimized_keys = 'NA'
     error_message = (
         'Crash occurs, but not too consistently. Skipping minimization '
@@ -517,14 +522,14 @@ def utask_main(testcase_id, job_type):
     if testcase.security_flag and len(testcase.gestures) != len(gestures):
       # Re-run security severity analysis since gestures affect the severity.
       testcase.security_severity = severity_analyzer.get_security_severity(
-          testcase.crash_type, data_handler.get_stacktrace(testcase), job_type,
-          bool(gestures))
+          testcase.crash_type, data_handler.get_stacktrace(testcase),
+          uworker_input.job_type, bool(gestures))
 
     testcase.gestures = gestures
     testcase.set_metadata('minimization_phase', MinimizationPhase.MAIN_FILE)
 
     if time.time() > test_runner.deadline:
-      tasks.add_task('minimize', testcase.key.id(), job_type)
+      tasks.add_task('minimize', testcase.key.id(), uworker_input.job_type)
       return
 
   # Minimize the main file.
@@ -533,8 +538,8 @@ def utask_main(testcase_id, job_type):
     data = minimize_main_file(test_runner, testcase_file_path, data)
 
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
-        deadline, testcase_id, job_type, input_directory, file_list, data,
-        testcase_file_path):
+        deadline, uworker_input.testcase_id, uworker_input.job_type,
+        input_directory, file_list, data, testcase_file_path):
       return
 
     testcase.set_metadata('minimization_phase', MinimizationPhase.FILE_LIST)
@@ -546,8 +551,8 @@ def utask_main(testcase_id, job_type):
                                      testcase_file_path)
 
       if check_deadline_exceeded_and_store_partial_minimized_testcase(
-          deadline, testcase_id, job_type, input_directory, file_list, data,
-          testcase_file_path):
+          deadline, uworker_input.testcase_id, uworker_input.job_type,
+          input_directory, file_list, data, testcase_file_path):
         return
     else:
       logs.log('Skipping minimization of file list.')
@@ -562,8 +567,8 @@ def utask_main(testcase_id, job_type):
                           testcase_file_path)
 
         if check_deadline_exceeded_and_store_partial_minimized_testcase(
-            deadline, testcase_id, job_type, input_directory, file_list, data,
-            testcase_file_path):
+            deadline, uworker_input.testcase_id, uworker_input.job_type,
+            input_directory, file_list, data, testcase_file_path):
           return
     else:
       logs.log('Skipping minimization of resources.')
@@ -578,8 +583,8 @@ def utask_main(testcase_id, job_type):
     testcase.put()
 
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
-        deadline, testcase_id, job_type, input_directory, file_list, data,
-        testcase_file_path):
+        deadline, uworker_input.testcase_id, uworker_input.job_type,
+        input_directory, file_list, data, testcase_file_path):
       return
 
   command = testcase_manager.get_command_line_for_application(
@@ -589,7 +594,10 @@ def utask_main(testcase_id, job_type):
   store_minimized_testcase(testcase, input_directory, file_list, data,
                            testcase_file_path)
   finalize_testcase(
-      testcase_id, command, last_crash_result, flaky_stack=flaky_stack)
+      uworker_input.testcase_id,
+      command,
+      last_crash_result,
+      flaky_stack=flaky_stack)
 
 
 def finalize_testcase(testcase_id,
