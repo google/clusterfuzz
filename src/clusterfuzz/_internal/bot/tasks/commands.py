@@ -131,7 +131,7 @@ COMMAND_MAP = {
     'fuzz': utask_factory(fuzz_task),
     'impact': TrustedTask(impact_task),
     'minimize': utask_factory(minimize_task),
-    'progression': TrustedTask(progression_task),
+    'progression': utask_factory(progression_task),
     'regression': utask_factory(regression_task),
     'symbolize': TrustedTask(symbolize_task),
     'unpack': TrustedTask(unpack_task),
