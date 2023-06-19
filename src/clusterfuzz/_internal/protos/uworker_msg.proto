@@ -57,7 +57,7 @@ message Output {
   optional ErrorType error = 4;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
-  optional Json uworker_input = 5;
+  optional Input uworker_input = 5;
   optional float test_timeout = 6;
   optional float crash_time = 7;
   optional string crash_stacktrace_output = 8;
