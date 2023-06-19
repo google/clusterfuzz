@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-cryptography = "==3.4.8"
+cryptography = "==41.0.0"
 crcmod = "==1.7"
 future = "==0.17.1"
 protobuf = "==3.20.3"
