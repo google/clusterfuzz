@@ -428,8 +428,8 @@ def find_fixed_range(testcase_id, job_type):
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
-  del job_type
   return uworker_io.UworkerInput(
+      job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
   )
