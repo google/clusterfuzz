@@ -924,6 +924,7 @@ def utask_main(fuzzer_name, job_type):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  del job_type
   return {
       'fuzzer_name': fuzzer_name,
       'uworker_env': uworker_env,
