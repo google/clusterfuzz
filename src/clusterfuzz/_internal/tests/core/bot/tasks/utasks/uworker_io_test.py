@@ -228,8 +228,7 @@ class RoundTripTest(unittest.TestCase):
 
       with tempfile.TemporaryDirectory() as tmp_dir:
         os.environ['BOT_TMPDIR'] = tmp_dir
-        uworker_io.serialize_and_upload_uworker_input(uworker_input,
-                                                      self.job_type)
+        uworker_io.serialize_and_upload_uworker_input(uworker_input)
         with mock.patch(
             'clusterfuzz._internal.google_cloud_utils.storage.'
             'download_signed_url', download_signed_url) as _:

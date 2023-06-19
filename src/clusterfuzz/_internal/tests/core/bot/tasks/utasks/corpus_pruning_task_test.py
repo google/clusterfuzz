@@ -28,6 +28,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
@@ -164,8 +165,9 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
-    corpus_pruning_task.utask_main('libFuzzer_test_fuzzer',
-                                   'libfuzzer_asan_job')
+    uworker_input = uworker_io.DeserializedUworkerMsg(
+        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+    corpus_pruning_task.utask_main(uworker_input)
 
     quarantined = os.listdir(self.quarantine_dir)
     self.assertEqual(1, len(quarantined))
@@ -314,9 +316,10 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
   def test_prune(self):
     """Basic pruning test."""
     self.corpus_dir = self.fuchsia_corpus_dir
-    corpus_pruning_task.utask_main(
-        'libFuzzer_fuchsia_example-fuzzers-crash_fuzzer',
-        'libfuzzer_asan_fuchsia')
+    uworker_input = uworker_io.DeserializedUworkerMsg(
+        job_type='libfuzzer_asan_fuchsia',
+        fuzzer_name='libFuzzer_fuchsia_example-fuzzers-crash_fuzzer')
+    corpus_pruning_task.utask_main(uworker_input)
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
     self.assertCountEqual([
@@ -447,8 +450,9 @@ class CorpusPruningTestUntrusted(
             initial_feature_coverage=0,
             feature_coverage=0))
 
-    corpus_pruning_task.utask_main('libFuzzer_test_fuzzer',
-                                   'libfuzzer_asan_job')
+    uworker_input = uworker_io.DeserializedUworkerMsg(
+        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+    corpus_pruning_task.utask_main(uworker_input)
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')
     os.mkdir(corpus_dir)
