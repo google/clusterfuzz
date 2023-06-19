@@ -200,7 +200,7 @@ def get_result():
         offset=(page - 1) * PAGE_SIZE,
         limit=PAGE_SIZE)
   except ValueError:
-    raise helpers.EarlyExitException('Invalid filters', 400)
+    raise helpers.EarlyExitError('Invalid filters', 400)
 
   attach_testcases(rows)
 

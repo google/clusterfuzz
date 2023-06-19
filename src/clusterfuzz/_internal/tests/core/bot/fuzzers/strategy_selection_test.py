@@ -18,7 +18,7 @@ import unittest
 from google.cloud import ndb
 
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
-from clusterfuzz._internal.bot.tasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.system import environment

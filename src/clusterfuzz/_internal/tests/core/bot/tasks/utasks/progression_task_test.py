@@ -20,7 +20,7 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.bot.tasks import progression_task
+from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils

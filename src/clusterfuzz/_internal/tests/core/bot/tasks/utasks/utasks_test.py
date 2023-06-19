@@ -30,7 +30,6 @@ class TworkerPreprocessTest(unittest.TestCase):
   UWORKER_ENV = {'ENVVAR': 'VALUE'}
   TASK_ARGUMENT = 'testcase-id'
   JOB_TYPE = 'libfuzzer_asan'
-  INPUT = {'input': 'something'}
 
   def setUp(self):
     helpers.patch(self, [
@@ -41,18 +40,19 @@ class TworkerPreprocessTest(unittest.TestCase):
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
+    self.uworker_input = uworker_io.UworkerInput(job_type='something')
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
     module = mock.MagicMock()
-    module.utask_preprocess.return_value = self.INPUT
+    module.utask_preprocess.return_value = self.uworker_input
     result = utasks.tworker_preprocess(module, self.TASK_ARGUMENT,
                                        self.JOB_TYPE, self.UWORKER_ENV)
 
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
     self.mock.serialize_and_upload_uworker_input.assert_called_with(
-        self.INPUT, self.JOB_TYPE)
+        self.uworker_input)
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
@@ -84,33 +84,22 @@ class UworkerMainTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
     ])
-    uworker_input = {
-        'inputarg': 'input-val',
-        'uworker_env': self.UWORKER_ENV,
-        'uworker_output_upload_url': self.UWORKER_OUTPUT_UPLOAD_URL
-    }
+    self.uworker_input = uworker_io.UworkerInput(
+        original_job_type='original_job_type-value',
+        uworker_env=self.UWORKER_ENV,
+        uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
+    )
     self.mock.download_and_deserialize_uworker_input.return_value = (
-        uworker_input)
+        self.uworker_input)
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
     module = mock.MagicMock()
-    uworker_output = {'uworker-output': 'uworker-output', 'testcase': None}
+    uworker_output = {
+        'testcase': None,
+        'crash_time': 70.1,
+    }
     module.utask_main.return_value = uworker_io.UworkerOutput(**uworker_output)
     input_download_url = 'http://input'
     utasks.uworker_main(module, input_download_url)
-    module.utask_main.assert_called_with(inputarg='input-val')
-
-
-class TworkerPostproceessTest(unittest.TestCase):
-  """Tests that tworker_postprocess works as intended."""
-  OUTPUT_DOWNLOAD_GCS_URL = '/output-download-gcs'
-  OUTPUT = uworker_io.UworkerOutput(
-      output1='something', output2='something else')
-
-  def setUp(self):
-    helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_input',
-    ])
-    self.mock.download_and_deserialize_uworker_output.return_value = self.OUTPUT
+    module.utask_main.assert_called_with(self.uworker_input)

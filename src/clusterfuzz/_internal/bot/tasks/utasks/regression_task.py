@@ -23,6 +23,7 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -329,32 +330,47 @@ def find_regression_range(testcase_id, job_type):
   tasks.add_task('regression', testcase_id, job_type)
 
 
-def execute_task(testcase_id, job_type):
+def utask_preprocess(testcase_id, job_type, uworker_env):
+  return uworker_io.UworkerInput(
+      job_type=job_type,
+      testcase_id=str(testcase_id),
+      uworker_env=uworker_env,
+  )
+
+
+def utask_postprocess(output):
+  del output
+
+
+def utask_main(uworker_input):
   """Run regression task and handle potential errors."""
   try:
-    find_regression_range(testcase_id, job_type)
+    find_regression_range(uworker_input.testcase_id, uworker_input.job_type)
   except errors.BuildSetupError as error:
     # If we failed to setup a build, it is likely a bot error. We can retry
     # the task in this case.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     error_message = 'Build setup failed r%d' % error.revision
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     build_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
-        'regression', testcase_id, job_type, wait_time=build_fail_wait)
+        'regression',
+        uworker_input.testcase_id,
+        uworker_input.job_type,
+        wait_time=build_fail_wait)
   except errors.BadBuildError:
     # Though bad builds when narrowing the range are recoverable, certain builds
     # being marked as bad may be unrecoverable. Recoverable ones should not
     # reach this point.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     testcase.regression = 'NA'
     error_message = 'Unable to recover from bad build'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
   except errors.BuildNotFoundError as e:
     # If an expected build no longer exists, we can't continue.
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     testcase.regression = 'NA'
     error_message = f'Build {e.revision} not longer exists'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,

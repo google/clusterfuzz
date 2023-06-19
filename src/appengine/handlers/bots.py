@@ -135,7 +135,7 @@ class DeadBotsHandler(base_handler.Handler):
     if utils.is_chromium():
       heartbeats = ndb_utils.get_all_from_model(data_types.Heartbeat)
     else:
-      raise helpers.EarlyExitException('Dead bots list unavailable.', 400)
+      raise helpers.EarlyExitError('Dead bots list unavailable.', 400)
 
     result = {}
     alive_cutoff = _get_alive_cutoff()

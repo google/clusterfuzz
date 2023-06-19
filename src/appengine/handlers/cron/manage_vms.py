@@ -41,7 +41,7 @@ NUM_THREADS = 8
 WorkerInstance = namedtuple('WorkerInstance', ['name', 'project'])
 
 
-class ManageVmsException(Exception):
+class ManageVmsError(Exception):
   """Base exception class."""
 
 
@@ -158,7 +158,7 @@ def _template_needs_update(current_template, new_template, resource_name):
   return False
 
 
-class ClustersManager(object):
+class ClustersManager:
   """Manager for clusters in a project."""
 
   def __init__(self, project_id):
@@ -693,7 +693,7 @@ class OssFuzzClustersManager(ClustersManager):
             'Number of instances in instance group %s does not match.'
             'Expected %d, got %d.', worker_group_name, cluster_info.cpu_count,
             len(instances))
-        raise ManageVmsException('Inconsistent instance count in group.')
+        raise ManageVmsError('Inconsistent instance count in group.')
 
       for instance in instances:
         workers.append(

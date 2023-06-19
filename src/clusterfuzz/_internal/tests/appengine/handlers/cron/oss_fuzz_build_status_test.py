@@ -123,8 +123,9 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
   def test_build_failures(self):
     """Test run with multiple build failures of different type."""
 
-    def _mock_requests_get(url):
+    def _mock_requests_get(url, timeout=None):
       """Mock requests.get."""
+      del timeout
       if url == oss_fuzz_build_status.FUZZING_STATUS_URL:
         return MockResponse(
             json.dumps({
@@ -463,8 +464,9 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
   def test_missing_builds(self):
     """Test missing builds."""
 
-    def _mock_requests_get(url):
+    def _mock_requests_get(url, timeout=None):
       """Mock fetch."""
+      del timeout
       if url == oss_fuzz_build_status.FUZZING_STATUS_URL:
         return MockResponse(
             json.dumps({

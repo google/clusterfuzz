@@ -32,7 +32,7 @@ class Handler(base_handler.Handler):
   def post(self):
     """Handle a post request."""
     if not auth.get_current_user():
-      raise helpers.AccessDeniedException()
+      raise helpers.AccessDeniedError()
 
     project = request.get('project')
     fuzz_target = request.get('fuzz_target')

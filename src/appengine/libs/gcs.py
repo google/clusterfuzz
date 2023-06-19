@@ -46,7 +46,7 @@ def sign_data(data):
   service_account = 'projects/-/serviceAccounts/' + utils.service_account_email(
   )
 
-  response = iam.projects().serviceAccounts().signBlob(
+  response = iam.projects().serviceAccounts().signBlob(  # pylint: disable=no-member
       name=service_account,
       body={
           'delegates': [],
@@ -73,7 +73,7 @@ class SignedGcsHandler(object):
 
       url += '&' + urllib.parse.urlencode(content_disposition_params)
 
-    return self.redirect(url)
+    return self.redirect(url)  # pylint: disable=no-member
 
 
 def _get_expiration_time(expiry_seconds):

@@ -62,7 +62,7 @@ class Handler(base_handler.Handler):
         fuzzer_name=testcase.actual_fuzzer_name(),
         job_type=testcase.job_type,
         need_privileged_access=True):
-      raise helpers.AccessDeniedException()
+      raise helpers.AccessDeniedError()
 
     mark(testcase, security, severity)
     return self.render_json(show.get_testcase_detail(testcase))

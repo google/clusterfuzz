@@ -22,8 +22,8 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 
-import mock
 import parameterized
 from pyfakefs import fake_filesystem_unittest
 
@@ -32,7 +32,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libfuzzer_engine
-from clusterfuzz._internal.bot.tasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.chrome import crash_uploader
@@ -447,7 +447,7 @@ class CrashGroupTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.fuzz_task.find_main_crash',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.find_main_crash',
         'clusterfuzz._internal.datastore.data_handler.find_testcase',
         'clusterfuzz._internal.datastore.data_handler.get_project_name',
     ])
@@ -656,7 +656,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     """Setup for process crashes test."""
     helpers.patch(self, [
         'clusterfuzz._internal.chrome.crash_uploader.get_symbolized_stack_bytes',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.get_unsymbolized_crash_stacktrace',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.get_unsymbolized_crash_stacktrace',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
@@ -837,14 +837,11 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     testcases = list(data_types.Testcase.query())
     self.assertEqual(5, len(testcases))
-    self.assertSetEqual(
-        set([r2_stacktrace, 'r4', 'u1', 'u2', 'u4']),
-        set(t.crash_stacktrace for t in testcases))
+    self.assertSetEqual({r2_stacktrace, 'r4', 'u1', 'u2', 'u4'},
+                        {t.crash_stacktrace for t in testcases})
 
-    self.assertSetEqual(
-        set([
-            '{"fuzzing_strategies": ["value_profile"]}', None, None, None, None
-        ]), set(t.additional_metadata for t in testcases))
+    self.assertSetEqual({'{"fuzzing_strategies": ["value_profile"]}', None},
+                        {t.additional_metadata for t in testcases})
 
     # r2 is a reproducible crash, so r3 doesn't
     # invoke archive_testcase_in_blobstore. Therefore, the
@@ -1133,7 +1130,7 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.assertEqual(3, failure_count)
 
 
-class ConvertGroupsToCrashesTest(object):
+class ConvertGroupsToCrashesTest(unittest.TestCase):
   """Test convert_groups_to_crashes."""
 
   def test_convert(self):
@@ -1242,7 +1239,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.base.utils.random_element_from_list',
         'clusterfuzz._internal.base.utils.random_number',
         'clusterfuzz._internal.bot.fuzzers.engine_common.current_timestamp',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.pick_gestures',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.pick_gestures',
         'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
         'clusterfuzz._internal.build_management.revisions.get_component_list',
@@ -1331,9 +1328,9 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual({'fuzzer_binary_name': 'fantasy_fuzz'}, fuzzer_metadata)
     self.assertEqual(expected_testcase_file_paths, testcase_file_paths)
     self.assertEqual(
-        dict((t, {
+        {t: {
             'gestures': []
-        }) for t in expected_testcase_file_paths), testcases_metadata)
+        } for t in expected_testcase_file_paths}, testcases_metadata)
 
     self.assertEqual(3, len(self.mock.is_crash.call_args_list))
 
@@ -1361,8 +1358,8 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.current_timestamp',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.GcsCorpus.sync_from_gcs',
-        'clusterfuzz._internal.bot.tasks.fuzz_task.GcsCorpus.upload_files',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.sync_from_gcs',
+        'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.GcsCorpus.upload_files',
         'clusterfuzz._internal.build_management.revisions.get_component_list',
         'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',

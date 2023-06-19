@@ -114,7 +114,7 @@ class GetTestcaseBlobInfoTest(unittest.TestCase):
     self.testcase.fuzzed_keys = ''
     self.testcase.put()
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       download_testcase.get_testcase_blob_info(self.testcase)
 
     self.assertEqual(400, cm.exception.status)
