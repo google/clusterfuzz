@@ -199,7 +199,7 @@ def handle_build_setup_error(output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(
       testcase, data_types.TaskState.ERROR,
-      f'Build setup failed with job: {output.uworker_input["testcase_id"]}')
+      f'Build setup failed with job: {output.uworker_input.testcase_id}')
 
 
 def utask_postprocess(output):
@@ -212,8 +212,7 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output)
     return
 
-  if (output.uworker_input['original_job_type'] == output.uworker_input[
-      'job_type']):
+  if output.uworker_input.original_job_type == output.uworker_input.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
     output.testcase.last_tested_crash_stacktrace = (
