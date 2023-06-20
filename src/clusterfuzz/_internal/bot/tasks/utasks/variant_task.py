@@ -29,8 +29,8 @@ from clusterfuzz._internal.system import environment
 
 
 def _get_variant_testcase_for_job(testcase, job_type):
-  """Return a testcase entity for variant task use. This changes the fuzz
-  target params for a particular fuzzing engine."""
+  """Return a testcase entity for variant task use. This changes the fuzz target
+  params for a particular fuzzing engine."""
   if testcase.job_type == job_type:
     # Update stack operation on same testcase.
     return testcase
@@ -63,6 +63,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   if not testcase:
     return None
 
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
     # We should never reach here. But in case we do, we should bail out as
@@ -75,13 +78,13 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
-  metadata = data_types.TestcaseUploadMetadata.query(
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   return uworker_io.UworkerInput(
       job_type=job_type,
       original_job_type=original_job_type,
       testcase=testcase,
-      metadata=metadata,
+      testcase_upload_metadata=testcase_upload_metadata,
       uworker_env=uworker_env,
       variant=variant,
       testcase_id=testcase_id,

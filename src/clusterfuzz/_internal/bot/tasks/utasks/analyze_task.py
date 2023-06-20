@@ -99,7 +99,7 @@ def setup_build(
   return None
 
 
-def prepare_env_for_main(metadata):
+def prepare_env_for_main(testcase_upload_metadata):
   """Prepares the environment for execute_task."""
   # Reset redzones.
   environment.reset_current_memory_tool_options(redzone_size=128)
@@ -108,16 +108,16 @@ def prepare_env_for_main(metadata):
   environment.set_value('WINDOW_ARG', '')
 
   # Adjust the test timeout, if user has provided one.
-  if metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+  if testcase_upload_metadata.timeout:
+    environment.set_value('TEST_TIMEOUT', testcase_upload_metadata.timeout)
 
   # Adjust the number of retries, if user has provided one.
-  if metadata.retries is not None:
-    environment.set_value('CRASH_RETRIES', metadata.retries)
+  if testcase_upload_metadata.retries is not None:
+    environment.set_value('CRASH_RETRIES', testcase_upload_metadata.retries)
 
 
 def setup_testcase_and_build(
-    testcase, metadata, job_type, testcase_download_url
+    testcase, testcase_upload_metadata, job_type, testcase_download_url
 ) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
@@ -126,7 +126,7 @@ def setup_testcase_and_build(
       testcase,
       job_type,
       testcase_download_url=testcase_download_url,
-      metadata=metadata)
+      metadata=testcase_upload_metadata)
   if error:
     return None, error
 
@@ -141,7 +141,7 @@ def setup_testcase_and_build(
     # Let postprocess handle ANALYZE_BUILD_SETUP and restart tasks if needed.
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
-        metadata=metadata,
+        testcase_upload_metadata=testcase_upload_metadata,
         error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
   update_testcase_after_build_setup(testcase)
@@ -242,8 +242,8 @@ def handle_noncrash(output):
                    output.uworker_input.job_type)
     return
 
-  data_handler.close_invalid_uploaded_testcase(output.testcase, output.metadata,
-                                               'Unreproducible')
+  data_handler.close_invalid_uploaded_testcase(
+      output.testcase, output.testcase_upload_metadata, 'Unreproducible')
 
 
 def update_testcase_after_crash(testcase, state, job_type, http_flag):
@@ -272,24 +272,24 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  metadata = data_types.TestcaseUploadMetadata.query(
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-  if not metadata:
+  if not testcase_upload_metadata:
     logs.log_error(
         'Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
     return None
 
   # Store the bot name and timestamp in upload metadata.
-  metadata.bot_name = environment.get_value('BOT_NAME')
-  metadata.timestamp = datetime.datetime.utcnow()
-  metadata.put()
+  testcase_upload_metadata.bot_name = environment.get_value('BOT_NAME')
+  testcase_upload_metadata.timestamp = datetime.datetime.utcnow()
+  testcase_upload_metadata.put()
 
   initialize_testcase_for_main(testcase, job_type)
 
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
   return uworker_io.UworkerInput(
-      metadata=metadata,
+      testcase_upload_metadata=testcase_upload_metadata,
       testcase=testcase,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
@@ -307,8 +307,8 @@ def utask_main(uworker_input):
     leak_blacklist.create_empty_local_blacklist()
 
   testcase_file_path, output = setup_testcase_and_build(
-      uworker_input.testcase, uworker_input.metadata, uworker_input.job_type,
-      uworker_input.testcase_download_url)
+      uworker_input.testcase, uworker_input.testcase_upload_metadata,
+      uworker_input.job_type, uworker_input.testcase_download_url)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
@@ -346,7 +346,7 @@ def utask_main(uworker_input):
   if not crashed:
     return uworker_io.UworkerOutput(
         testcase=uworker_input.testcase,
-        metadata=uworker_input.metadata,
+        testcase_upload_metadata=uworker_input.testcase_upload_metadata,
         error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
         test_timeout=test_timeout)
   # Update testcase crash parameters.
@@ -356,17 +356,18 @@ def utask_main(uworker_input):
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
     data_handler.close_invalid_uploaded_testcase(
-        uworker_input.testcase, uworker_input.metadata, 'Irrelevant')
+        uworker_input.testcase, uworker_input.testcase_upload_metadata,
+        'Irrelevant')
     return uworker_io.UworkerOutput(
         testcase=uworker_input.testcase,
-        metadata=uworker_input.metadata,
+        testcase_upload_metadata=uworker_input.testcase_upload_metadata,
         error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   test_for_reproducibility(uworker_input.testcase, testcase_file_path, state,
                            test_timeout)
   return uworker_io.UworkerOutput(
       testcase=uworker_input.testcase,
-      metadata=uworker_input.metadata,
+      testcase_upload_metadata=uworker_input.testcase_upload_metadata,
       test_timeout=test_timeout,
       crash_time=crash_time)
 
@@ -394,7 +395,7 @@ def handle_build_setup_error(output):
         wait_time=testcase_fail_wait)
   else:
     data_handler.close_invalid_uploaded_testcase(
-        output.testcase, output.metadata, 'Build setup failed')
+        output.testcase, output.testcase_upload_metadata, 'Build setup failed')
 
 
 def utask_postprocess(output):
@@ -404,7 +405,7 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output)
     return
   testcase = output.testcase
-  metadata = output.metadata
+  testcase_upload_metadata = output.testcase_upload_metadata
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
@@ -412,20 +413,21 @@ def utask_postprocess(output):
                                        log_message)
 
   # Check to see if this is a duplicate.
-  data_handler.check_uploaded_testcase_duplicate(testcase, metadata)
+  data_handler.check_uploaded_testcase_duplicate(testcase,
+                                                 testcase_upload_metadata)
 
   # Set testcase and metadata status if not set already.
   if testcase.status == 'Duplicate':
     # For testcase uploaded by bots (with quiet flag), don't create additional
     # tasks.
-    if metadata.quiet_flag:
-      data_handler.close_invalid_uploaded_testcase(testcase, metadata,
-                                                   'Duplicate')
+    if testcase_upload_metadata.quiet_flag:
+      data_handler.close_invalid_uploaded_testcase(
+          testcase, testcase_upload_metadata, 'Duplicate')
       return
   else:
     # New testcase.
     testcase.status = 'Processed'
-    metadata.status = 'Confirmed'
+    testcase_upload_metadata.status = 'Confirmed'
 
     # Reset the timestamp as well, to respect
     # data_types.MIN_ELAPSED_TIME_SINCE_REPORT. Otherwise it may get filed by
@@ -443,8 +445,8 @@ def utask_postprocess(output):
   testcase.put()
 
   # Update the upload metadata.
-  metadata.security_flag = testcase.security_flag
-  metadata.put()
+  testcase_upload_metadata.security_flag = testcase.security_flag
+  testcase_upload_metadata.put()
 
   _add_default_issue_metadata(testcase)
 

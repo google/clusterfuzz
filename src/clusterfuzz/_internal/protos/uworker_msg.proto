@@ -29,7 +29,7 @@ message UworkerEntityWrapper {
 // field was unset or set to None.
 message Input {
   optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity metadata = 2;
+  optional google.datastore.v1.Entity testase_upload_metadata = 2;
   optional string testcase_id = 3;
   optional Json uworker_env = 4;
   optional string testcase_download_url = 5;
