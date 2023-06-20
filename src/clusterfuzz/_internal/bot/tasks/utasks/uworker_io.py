@@ -88,7 +88,7 @@ def get_proto_fields(proto):
   a little different than the behavior of protobuf which sets the value to a
   Falsey version of the same type e.g. string fields are empty strings, int
   fields are 0."""
-  for descriptor in uworker_input_proto.DESCRIPTOR.fields:
+  for descriptor in proto.DESCRIPTOR.fields:
     field_name = descriptor.name
     try:
       has_field = proto.HasField(field_name)
@@ -102,6 +102,7 @@ def get_proto_fields(proto):
       field_value = None
     yield field_name, field_value
 
+
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
@@ -114,9 +115,9 @@ def deserialize_uworker_input(serialized_uworker_input):
     if isinstance(field_value, entity_pb2.Entity):
       field_value = UworkerEntityWrapper(
           model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
-      setattr(uworker_input, field_name, entity_wrapper)
     elif isinstance(field_value, uworker_msg_pb2.Json):
       field_value = json.loads(field_value.serialized)
+
     setattr(uworker_input, field_name, field_value)
   return uworker_input
 
