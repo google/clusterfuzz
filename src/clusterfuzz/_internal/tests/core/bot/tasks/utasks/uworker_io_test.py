@@ -246,7 +246,8 @@ class RoundTripTest(unittest.TestCase):
     # Things will break horribly if we pass an unwrapped entity.
     self.assertIsInstance(downloaded_testcase, uworker_io.UworkerEntityWrapper)
 
-    self.assertDictEqual(uworker_input.uworker_env, downloaded_input.uworker_env)
+    self.assertDictEqual(uworker_input.uworker_env,
+                         downloaded_input.uworker_env)
     self.assertEqual(uworker_input.uworker_output_upload_url,
                      downloaded_input.uworker_output_upload_url)
     self.assertEqual(uworker_input.testcase_download_url,
