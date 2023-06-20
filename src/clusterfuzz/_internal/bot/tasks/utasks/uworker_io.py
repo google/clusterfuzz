@@ -29,7 +29,7 @@ from clusterfuzz._internal.system import environment
 
 
 def generate_new_input_file_name():
-  """Generates a new I/O file name."""
+  """Generates a new input file name."""
   return str(uuid.uuid4()).lower()
 
 
@@ -177,7 +177,8 @@ def _get_tmp_file_for_io():
   tmp_dir = environment.get_value('BOT_TMPDIR')
   # Don't use tempfile because of permissions issues on Windows. See
   # https://github.com/google/clusterfuzz/issues/3158.
-  tmp_file_for_storage = os.path.join(tmp_dir, 'uworker-io-storage')
+  tmp_file_for_storage = os.path.join(
+    tmp_dir, f'uworker-io-storage-{generate_new_input_file_name()}')
   return tmp_file_for_storage
 
 
@@ -186,8 +187,11 @@ def _download_uworker_io_from_gcs(gcs_url):
   if not storage.copy_file_from(gcs_url, tmp_file_for_storage):
     logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
     return None
-  with open(tmp_file_for_storage, 'rb') as file_handle:
-    return file_handle.read()
+  try:
+    with open(tmp_file_for_storage, 'rb') as file_handle:
+      return file_handle.read()
+  finally:
+    os.remove(tmp_file_for_storage)
 
 
 def _download_uworker_input_from_gcs(gcs_url):
