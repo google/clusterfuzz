@@ -52,7 +52,7 @@ enum ErrorType {
 
 message Output {
   optional UworkerEntityWrapper testcase = 1;
-  optional UworkerEntityWrapper metadata = 2;
+  optional UworkerEntityWrapper testase_upload_metadata = 2;
   optional UworkerEntityWrapper variant = 3;
   optional ErrorType error = 4;
   // This is only to be used by code that needs to be called by utasks and

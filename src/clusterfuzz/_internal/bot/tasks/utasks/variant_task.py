@@ -63,9 +63,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   if not testcase:
     return None
 
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
     # We should never reach here. But in case we do, we should bail out as
@@ -105,7 +102,7 @@ def utask_main(uworker_input):
   _, testcase_file_path, error = setup.setup_testcase(
       uworker_input.testcase,
       uworker_input.job_type,
-      metadata=uworker_input.metadata,
+      metadata=uworker_input.testcase_upload_metadata,
       testcase_download_url=uworker_input.testcase_download_url)
   if error:
     return error
