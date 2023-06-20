@@ -246,14 +246,11 @@ class RoundTripTest(unittest.TestCase):
     # Things will break horribly if we pass an unwrapped entity.
     self.assertIsInstance(downloaded_testcase, uworker_io.UworkerEntityWrapper)
 
-    # Now test that the rest of the input was (de)serialized properly.
-    input_dict = uworker_input.__dict__
-    del input_dict['testcase']  # Can't compare object to wrapped object.
-    del input_dict['proto']  # This is just the holder.
-    downloaded_dict = downloaded_input.__dict__
-    del downloaded_dict['testcase']
-    del downloaded_dict['error']  # This is just set by default.
-    self.assertEqual(input_dict, downloaded_dict)
+    self.assertDictEqual(uworker_input.uworker_env, downloaded_input.uworker_env)
+    self.assertEqual(uworker_input.uworker_output_upload_url,
+                     downloaded_input.uworker_output_upload_url)
+    self.assertEqual(uworker_input.testcase_download_url,
+                     downloaded_input.testcase_download_url)
 
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading uworker output works. This means
