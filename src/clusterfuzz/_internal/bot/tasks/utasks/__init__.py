@@ -41,6 +41,8 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   delattr(uworker_input, 'uworker_env')
 
   uworker_output = utask_module.utask_main(uworker_input)
+  if uworker_output is None:
+    return None
   return uworker_io.serialize_uworker_output(uworker_output)
 
 
@@ -106,6 +108,7 @@ def uworker_main(utask_module, input_download_url) -> None:
   uworker_output = utask_module.utask_main(uworker_input)
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
+  return True
 
 
 def uworker_bot_main():
