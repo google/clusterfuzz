@@ -82,19 +82,42 @@ def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
   return entity
 
 
+def get_proto_fields(proto):
+  """Returns a generator containing tuples of (field_name, field_value) for each
+  field in the proto messsage. None is used for fields that are not set. This is
+  a little different than the behavior of protobuf which sets the value to a
+  Falsey version of the same type e.g. string fields are empty strings, int
+  fields are 0."""
+  for descriptor in uworker_input_proto.DESCRIPTOR.fields:
+    field_name = descriptor.name
+    try:
+      has_field = proto.HasField(field_name)
+    except AttributeError as error:
+      # This probably occurs after a deploy.
+      logs.log_error(f'Error getting proto fields {error}.')
+      has_field = False
+    if has_field:
+      field_value = getattr(proto, field_name)
+    else:
+      field_value = None
+    yield field_name, field_value
+
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
   uworker_input_proto.ParseFromString(serialized_uworker_input)
   uworker_input = DeserializedUworkerMsg()
-  for descriptor, field in uworker_input_proto.ListFields():
-    if isinstance(field, entity_pb2.Entity):
-      entity_wrapper = UworkerEntityWrapper(model._entity_from_protobuf(field))  # pylint: disable=protected-access
-      setattr(uworker_input, descriptor.name, entity_wrapper)
-    elif isinstance(field, uworker_msg_pb2.Json):
-      setattr(uworker_input, descriptor.name, json.loads(field.serialized))
-    else:
-      setattr(uworker_input, descriptor.name, field)
+  # Use get_proto_fields, so we can be sure we never get an attribute error,
+  # trying to access a field in uworker_input, that would not give us an error
+  # if we accessed it in uworker_proto_input.
+  for field_name, field_value in get_proto_fields(uworker_input_proto):
+    if isinstance(field_value, entity_pb2.Entity):
+      field_value = UworkerEntityWrapper(
+          model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
+      setattr(uworker_input, field_name, entity_wrapper)
+    elif isinstance(field_value, uworker_msg_pb2.Json):
+      field_value = json.loads(field_value.serialized)
+    setattr(uworker_input, field_name, field_value)
   return uworker_input
 
 
@@ -214,10 +237,10 @@ def deserialize_uworker_output(uworker_output_str):
   # Convert the proto to a Python object that can contain real ndb models and
   # other python objects, instead of only the python serialized versions.
   uworker_output = DeserializedUworkerMsg()
-  for field_descriptor, field in uworker_output_proto.ListFields():
-    if isinstance(field, uworker_msg_pb2.UworkerEntityWrapper):
-      field = deserialize_wrapped_entity(field)
-    setattr(uworker_output, field_descriptor.name, field)
+  for field_name, field_value in get_proto_fields(uworker_output_proto):
+    if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
+      field_value = deserialize_wrapped_entity(field_value)
+    setattr(uworker_output, field_name, field_value)
   return uworker_output
 
 
