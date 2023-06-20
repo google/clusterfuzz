@@ -178,7 +178,7 @@ def _get_tmp_file_for_io():
   # Don't use tempfile because of permissions issues on Windows. See
   # https://github.com/google/clusterfuzz/issues/3158.
   tmp_file_for_storage = os.path.join(
-    tmp_dir, f'uworker-io-storage-{generate_new_input_file_name()}')
+      tmp_dir, f'uworker-io-storage-{generate_new_input_file_name()}')
   return tmp_file_for_storage
 
 
