@@ -385,23 +385,23 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     self.handle = instance_handle
 
   def _corpus_directories_libfuzzer(self, corpus_directories):
-    """ Returns the corpus directory paths expected by libfuzzer itself. """
+    """Returns the corpus directory paths expected by libfuzzer itself."""
     return [
         self._target_corpus_path(os.path.basename(corpus_dir))
         for corpus_dir in corpus_directories
     ]
 
   def _new_corpus_dir_host(self, corpus_directories):
-    """ Returns the path of the 'new' corpus directory on the host. """
+    """Returns the path of the 'new' corpus directory on the host."""
     return corpus_directories[0]
 
   def _new_corpus_dir_target(self, corpus_directories):
-    """ Returns the path of the 'new' corpus directory on the target. """
+    """Returns the path of the 'new' corpus directory on the target."""
     return self._target_corpus_path(
         os.path.basename(self._new_corpus_dir_host(corpus_directories)))
 
   def _target_corpus_path(self, corpus_name):
-    """ Returns the path of a given corpus directory on the target. """
+    """Returns the path of a given corpus directory on the target."""
     return 'data/corpus/' + corpus_name
 
   def _push_corpora_from_host_to_target(self, corpus_directories):
@@ -413,7 +413,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                          'data/corpus')
 
   def _pull_new_corpus_from_target_to_host(self, corpus_directories):
-    """ Pull corpus directories from device to host. """
+    """Pull corpus directories from device to host."""
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
     logs.log('Fuzzer ran; pulling down corpus')
@@ -424,18 +424,18 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                        self._new_corpus_dir_host(corpus_directories))
 
   def _clear_all_target_corpora(self):
-    """ Clears out all the corpora on the target. """
+    """Clears out all the corpora on the target."""
     logs.log('Clearing corpora on target')
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
 
   def _ensure_target_exists(self):
-    """ Check that the target fuzzer exists, raising an error if it does not.
+    """Check that the target fuzzer exists, raising an error if it does not.
 
     We do this check by looking at the list of fuzzers, instead of relying on
     an error from undercoat, because in some cases (e.g. regression tasks) it
     is an expected error that we wish to recover from. Additionally, we can't
-    do this check earlier because we need an online target system to query. """
+    do this check earlier because we need an online target system to query."""
     targets = undercoat.list_fuzzers(self.handle)
 
     # These fuzzers are used for integration tests but not returned by
