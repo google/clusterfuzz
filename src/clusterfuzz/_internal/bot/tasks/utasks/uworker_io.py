@@ -14,7 +14,6 @@
 """Module for dealing with input and output (I/O) to a uworker."""
 
 import json
-import os
 import uuid
 
 from google.cloud import ndb
@@ -25,7 +24,6 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
-from clusterfuzz._internal.system import environment
 
 
 def generate_new_input_file_name():
@@ -61,11 +59,7 @@ def get_uworker_input_urls():
 
 def upload_uworker_input(uworker_input, gcs_path):
   """Uploads input for the untrusted portion of a task."""
-  uworker_input_filename = _get_tmp_file_for_io()
-  with open(uworker_input_filename, 'wb') as uworker_input_file:
-    uworker_input_file.write(uworker_input)
-  if not storage.copy_file_to(uworker_input_filename, gcs_path):
-    raise RuntimeError('Failed to upload uworker_input.')
+  storage.write_data(uworker_input, gcs_path)
 
 
 def get_entity_with_properties(ndb_key: ndb.Key, properties) -> ndb.Model:
@@ -173,34 +167,9 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
-def _get_tmp_file_for_io():
-  tmp_dir = environment.get_value('BOT_TMPDIR')
-  # Don't use tempfile because of permissions issues on Windows. See
-  # https://github.com/google/clusterfuzz/issues/3158.
-  tmp_file_for_storage = os.path.join(
-      tmp_dir, f'uworker-io-storage-{generate_new_input_file_name()}')
-  return tmp_file_for_storage
-
-
-def _download_uworker_io_from_gcs(gcs_url):
-  tmp_file_for_storage = _get_tmp_file_for_io()
-  if not storage.copy_file_from(gcs_url, tmp_file_for_storage):
-    logs.log_error('Could not download uworker I/O file from %s' % gcs_url)
-    return None
-  try:
-    with open(tmp_file_for_storage, 'rb') as file_handle:
-      return file_handle.read()
-  finally:
-    os.remove(tmp_file_for_storage)
-
-
-def _download_uworker_input_from_gcs(gcs_url):
-  return _download_uworker_io_from_gcs(gcs_url)
-
-
 def download_and_deserialize_uworker_output(output_url: str):
   """Downloads and deserializes uworker output."""
-  serialized_uworker_output = _download_uworker_io_from_gcs(output_url)
+  serialized_uworker_output = storage.read_data(output_url)
 
   uworker_output = deserialize_uworker_output(serialized_uworker_output)
 
@@ -208,7 +177,7 @@ def download_and_deserialize_uworker_output(output_url: str):
   # tamper with it.
   # Get the portion that does not contain ".output".
   input_url = output_url.split('.output')[0]
-  serialized_uworker_input = _download_uworker_input_from_gcs(input_url)
+  serialized_uworker_input = storage.read_data(input_url)
   uworker_input = deserialize_uworker_input(serialized_uworker_input)
   uworker_output.uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
   uworker_output.uworker_input = uworker_input
