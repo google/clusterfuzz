@@ -30,6 +30,7 @@ from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import engine
+from clusterfuzz._internal.bot.testcase_manager import TargetNotFoundError
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
@@ -992,6 +993,23 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     self.assertIn('ERROR: AddressSanitizer: heap-buffer-overflow on address',
                   result.output)
     self.assertIn('Running: data/fuchsia_crash', result.output)
+
+  @unittest.skipIf(
+      not environment.get_value('FUCHSIA_TESTS'),
+      'Temporarily disabling the Fuchsia tests until build size reduced.')
+  def test_nonexistent_fuzzer_raises_error(self):
+    """Tests that attempting reproduction against a non-existent fuzzer raises
+    a meaningful error."""
+    environment.set_value('FUZZ_TARGET', 'example-fuzzers/missing_fuzzer')
+    environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
+    build_manager.setup_build()
+    testcase_path, _ = setup_testcase_and_corpus('fuchsia_crash',
+                                                 'empty_corpus')
+    engine_impl = engine.Engine()
+
+    with self.assertRaises(TargetNotFoundError):
+      engine_impl.reproduce('example-fuzzers/missing_fuzzer', testcase_path,
+                            ['-timeout=25', '-rss_limit_mb=2560'], 30)
 
   @unittest.skipIf(
       not environment.get_value('FUCHSIA_TESTS'),

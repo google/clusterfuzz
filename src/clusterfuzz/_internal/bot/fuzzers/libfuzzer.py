@@ -29,6 +29,7 @@ from clusterfuzz._internal.bot.fuzzers import mutator_plugin
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer.peach import pits
+from clusterfuzz._internal.bot.testcase_manager import TargetNotFoundError
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
@@ -428,6 +429,24 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
 
+  def _ensure_target_exists(self):
+    """ Check that the target fuzzer exists, raising an error if it does not.
+
+    We do this check by looking at the list of fuzzers, instead of relying on
+    an error from undercoat, because in some cases (e.g. regression tasks) it
+    is an expected error that we wish to recover from. Additionally, we can't
+    do this check earlier because we need an online target system to query. """
+    targets = undercoat.list_fuzzers(self.handle)
+
+    # These fuzzers are used for integration tests but not returned by
+    # list_fuzzers because we don't want them to be run in production.
+    targets += [
+        'example-fuzzers/crash_fuzzer', 'example-fuzzers/overflow_fuzzer'
+    ]
+
+    if self.executable_path not in targets:
+      raise TargetNotFoundError('Failed to find target ' + self.executable_path)
+
   def get_total_timeout(self, timeout):
     """LibFuzzerCommon.fuzz override."""
     return super().get_total_timeout(timeout) + self.TIMEOUT_PADDING
@@ -523,6 +542,8 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     additional_args = copy.copy(additional_args)
     if additional_args is None:
       additional_args = []
+
+    self._ensure_target_exists()
 
     # We need to push the testcase to the device and pass in the name.
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
