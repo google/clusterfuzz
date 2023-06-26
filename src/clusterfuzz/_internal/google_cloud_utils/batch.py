@@ -114,3 +114,6 @@ def main():
   email = 'untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
   # email = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
   create_job(email=email)
+
+if __name__ == '__main__':
+  main()
