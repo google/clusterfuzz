@@ -35,8 +35,6 @@ from clusterfuzz._internal.system import shell
 
 STATS_FILE_EXTENSION = '.stats2'
 
-PERFORMANCE_REPORT_VIEWER_PATH = '/performance-report/{fuzzer}/{job}/{date}'
-
 JOB_RUN_SCHEMA = {
     'fields': [{
         'name': 'testcases_executed',
@@ -623,42 +621,6 @@ class FuzzerRunLogsField(BuiltinField):
     return BuiltinFieldData('Logs', link=logs_path)
 
 
-class PerformanceReportField(BuiltinField):
-  """Performance report field."""
-
-  CONTEXT_CLASS = FuzzerRunLogsContext
-  VALUE_TYPE = str
-
-  def _get_performance_report_path(self, group_by, group_by_value):
-    """Return performance analysis report path."""
-    fuzzer = self.ctx.fuzzer
-    job = self.ctx.single_job_or_none()
-    date = 'latest'
-
-    if group_by == QueryGroupBy.GROUP_BY_FUZZER:
-      fuzzer = group_by_value
-    elif group_by == QueryGroupBy.GROUP_BY_JOB:
-      job = group_by_value
-    elif group_by == QueryGroupBy.GROUP_BY_DAY:
-      date = group_by_value
-    else:
-      return None
-
-    if not fuzzer or not job:
-      return None
-
-    return PERFORMANCE_REPORT_VIEWER_PATH.format(
-        fuzzer=fuzzer, job=job, date=date)
-
-  def get(self, group_by, group_by_value):
-    """Return data."""
-    report_path = self._get_performance_report_path(group_by, group_by_value)
-    if not report_path:
-      return None
-
-    return BuiltinFieldData('Performance', link=report_path)
-
-
 class QueryField:
   """Represents a query field."""
 
@@ -1139,6 +1101,4 @@ BUILTIN_FIELD_CONSTRUCTORS = {
         CoverageReportField,
     '_FUZZER_RUN_LOGS':
         FuzzerRunLogsField,
-    '_PERFORMANCE_REPORT':
-        PerformanceReportField,
 }

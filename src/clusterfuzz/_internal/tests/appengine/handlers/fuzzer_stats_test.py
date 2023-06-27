@@ -63,8 +63,7 @@ class TestBuildResults(unittest.TestCase):
                        '_CORPUS_BACKUP as corpus_backup, '
                        '_QUARANTINE_SIZE as quarantine_size, '
                        '_COV_REPORT as coverage_report, '
-                       '_FUZZER_RUN_LOGS as fuzzer_logs,'
-                       '_PERFORMANCE_REPORT as performance_report'),
+                       '_FUZZER_RUN_LOGS as fuzzer_logs'),
         stats_column_descriptions=(
             'blah: "blah description"\n'
             'func_coverage: "func coverage description"\n')).put()
@@ -78,8 +77,7 @@ class TestBuildResults(unittest.TestCase):
                        '_CORPUS_BACKUP as corpus_backup, '
                        '_QUARANTINE_SIZE as quarantine_size, '
                        '_COV_REPORT as coverage_report, '
-                       '_FUZZER_RUN_LOGS as fuzzer_logs,'
-                       '_PERFORMANCE_REPORT as performance_report'),
+                       '_FUZZER_RUN_LOGS as fuzzer_logs'),
         stats_column_descriptions=(
             'blah: "blah description"\n'
             'func_coverage: "func coverage description"\n')).put()

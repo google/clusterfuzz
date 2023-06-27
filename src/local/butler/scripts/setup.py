@@ -188,7 +188,6 @@ class LibFuzzerDefaults(BaseBuiltinFuzzerDefaults):
     # Use single quotes since the string ends in a double quote.
     # pylint: disable=line-too-long
     self.stats_column_descriptions = '''fuzzer: "Fuzz target"
-perf_report: "Link to performance analysis report"
 tests_executed: "Number of testcases executed during this time period"
 new_crashes: "Number of new unique crashes observed during this time period"
 edge_coverage: "Coverage for this fuzz target (number of edges/total)"
@@ -208,8 +207,7 @@ total_fuzzing_time_hrs: "Total time in hours for which the fuzzer(s) ran. Will b
 logs: "Link to fuzzing logs"
 corpus_backup: "Backup copy of the minimized corpus generated based on code coverage"'''
 
-    self.stats_columns = """_PERFORMANCE_REPORT as perf_report,
-sum(t.number_of_executed_units) as tests_executed,
+    self.stats_columns = """sum(t.number_of_executed_units) as tests_executed,
 custom(j.new_crashes) as new_crashes,
 _EDGE_COV as edge_coverage,
 _COV_REPORT as cov_report,
