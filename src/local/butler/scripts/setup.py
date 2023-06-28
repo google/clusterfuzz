@@ -376,7 +376,7 @@ def setup_metrics(non_dry_run):
     if not isinstance(metric, monitor.Metric):
       continue
 
-    descriptor = monitoring_v3.types.MetricDescriptor()
+    descriptor = monitoring_v3.types.MetricDescriptor()  # pylint: disable=no-member
     metric.monitoring_v3_metric_descriptor(descriptor)
 
     if non_dry_run:
