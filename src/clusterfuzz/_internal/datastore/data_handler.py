@@ -1394,8 +1394,11 @@ def check_uploaded_testcase_duplicate(testcase, metadata):
 
   return duplicate_testcase.key.id() == testcase.key.id()
 
-
 def close_invalid_uploaded_testcase(testcase, metadata, status):
+  testcase.open = False
+  mark_invalid_uploaded_testcase(testcase, metadata, status)
+
+def mark_invalid_uploaded_testcase(testcase, metadata, status):
   """Closes an invalid testcase and updates metadata."""
   testcase.status = status
   testcase.open = False
