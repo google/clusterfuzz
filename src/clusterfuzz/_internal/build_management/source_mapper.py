@@ -16,6 +16,7 @@
 import re
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 
 DRIVE_LETTER_REGEX = re.compile(r'^[a-zA-Z]:\\')
 RANGE_LIMIT = 10000
@@ -186,15 +187,24 @@ def get_vcs_viewer_for_url(url):
   return None
 
 
+def should_linkify_java_stack_frames():
+  return local_config.Config(local_config.PROJECT_PATH).get('linkify_java')
+
+
 def convert_java_stack_frame(stack_frame):
+  """Converts a Java |stack_frame| to a more C-like one so the rest of our magic
+  works on it. Returns |stack_frame| if not Java."""
+  if not should_linkify_java_stack_frames():
+    return stack_frame
   match = JAVA_STACK_FRAME_REGEX.search(stack_frame)
   if not match:
     return stack_frame
-  group_dict = stack_frame.groupdict()
+  group_dict = match.groupdict()
   path = group_dict['path']
   line = group_dict['line']
+  method = group_dict['method']
   path = path.replace('.', '/')
-  return f' in {path}.java:{line}'
+  return f' in {method} {path}.java:{line}'
 
 
 def linkify_stack_frame(stack_frame, revisions_dict):

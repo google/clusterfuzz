@@ -15,6 +15,44 @@
 import unittest
 
 from clusterfuzz._internal.build_management import source_mapper
+from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
+
+
+class LinkifyStackFrameTest(unittest.TestCase):
+  """Tests that LinkifyStackFrame works as intended."""
+
+  def setUp(self):
+    self.revisions_dict = {
+        'quickjs': {
+            'url': 'https://github.com/bellard/quickjs',
+            'rev': '2788d71e823b522b178db3b3660ce93689534e6d',
+        },
+        'org': {
+            'url': 'https://github.com/apache/lucene',
+            'rev': 'f44cc45cf8bfc2d6ef53e4767aec4654c1377fdf',
+        }
+    }
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.build_management.source_mapper.should_linkify_java_stack_frames',
+    ])
+    self.mock.should_linkify_java_stack_frames.return_value = True
+    self.maxDiff = None
+
+  def test_java_stack_frame(self):
+    frame = 'at org.apache.lucene.util.ArrayUtil.growExact(ArrayUtil.java:400)'
+    result = source_mapper.linkify_stack_frame(frame, self.revisions_dict)
+    self.assertEqual(
+        result,
+        'in growExact <a href="https://github.com/apache/lucene/blob/f44cc45cf8bfc2d6ef53e4767aec4654c1377fdf/apache/lucene/util/ArrayUtil.java#L400">org/apache/lucene/util/ArrayUtil.java:400</a>'
+    )
+
+  def test_c_stack_frame(self):
+    frame = 'in build_for_in_iterator quickjs/quickjs.c:15131:12'
+    result = source_mapper.linkify_stack_frame(frame, self.revisions_dict)
+    self.assertEqual(
+        result,
+        'in build_for_in_iterator <a href="https://github.com/bellard/quickjs/blob/2788d71e823b522b178db3b3660ce93689534e6d/quickjs.c#L15131">quickjs/quickjs.c:15131</a>:12'
+    )
 
 
 class GetComponentSourceAndRelativePathTest(unittest.TestCase):
