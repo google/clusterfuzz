@@ -23,6 +23,9 @@ SOURCE_START_ID = 'src/'
 SOURCE_STRIP_REGEX = re.compile(r'^[/]?src[/]?')
 STACK_FRAME_PATH_LINE_REGEX = re.compile(
     r'(?<=\[|\(|\s)([a-zA-Z/.][^\s]*?)\s*(:|@)\s*(\d+)(?=\]$|\)$|:\d+$|$)')
+JAVA_STACK_FRAME_REGEX = re.compile(
+    r'at (?P<path>[a-zA-z0-9\.\/]+)\.(?P<method>[a-zA-z0-9\.\/]+)\([a-zA-z0-9]+'
+    r'\.java\:(?P<line>\d+)\)')
 
 
 class ComponentPath(object):
@@ -183,8 +186,20 @@ def get_vcs_viewer_for_url(url):
   return None
 
 
+def convert_java_stack_frame(stack_frame):
+  match = JAVA_STACK_FRAME_REGEX.search(stack_frame)
+  if not match:
+    return stack_frame
+  group_dict = stack_frame.groupdict()
+  path = group_dict['path']
+  line = group_dict['line']
+  path = path.replace('.', '/')
+  return f' in {path}.java:{line}'
+
+
 def linkify_stack_frame(stack_frame, revisions_dict):
   """Linkify a stack frame with source links to its repo."""
+  stack_frame = convert_java_stack_frame(stack_frame)
   match = STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
   if not match:
     # If this stack frame does not contain a path and line, bail out.
