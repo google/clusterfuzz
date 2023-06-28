@@ -25,7 +25,7 @@ SOURCE_STRIP_REGEX = re.compile(r'^[/]?src[/]?')
 STACK_FRAME_PATH_LINE_REGEX = re.compile(
     r'(?<=\[|\(|\s)([a-zA-Z/.][^\s]*?)\s*(:|@)\s*(\d+)(?=\]$|\)$|:\d+$|$)')
 JAVA_STACK_FRAME_REGEX = re.compile(
-    r'at (?P<path>[a-zA-z0-9\.\/]+)\.(?P<method>[a-zA-z0-9\.\/]+)\([a-zA-z0-9]+'
+    r'at (?P<path>[a-zA-Z0-9\.\/]+)\.(?P<method>[a-zA-Z0-9\.\/]+)\([a-zA-Z0-9]+'
     r'\.java\:(?P<line>\d+)\)')
 
 
