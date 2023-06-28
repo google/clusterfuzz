@@ -59,7 +59,7 @@ class IntegrationTest(unittest.TestCase):
   """Integration tests."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     test_helpers.patch_environ(self)
 
     os.environ['BUILD_DIR'] = DATA_DIR

@@ -75,7 +75,7 @@ class HomeTests(unittest.TestCase):
         job='libfuzzer_ubsan_lib2',
         last_run=datetime.datetime.utcnow()).put()
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_no_permissions(self):
     """Test user with no permissions."""

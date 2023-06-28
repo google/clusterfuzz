@@ -52,7 +52,7 @@ class TestBuildResults(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
     data_types.Fuzzer(
         name='testFuzzer',

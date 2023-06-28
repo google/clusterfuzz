@@ -81,7 +81,7 @@ class UploadOAuthTest(unittest.TestCase):
   """OAuth upload tests."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
