@@ -25,6 +25,8 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
   logs.log('Starting utask_preprocess: %s.' % utask_module)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
+  assert not uworker_input.module_name
+  uworker_input.module_name = utask_module.__name__
   if not uworker_input:
     return None
   return uworker_io.serialize_uworker_input(uworker_input)
