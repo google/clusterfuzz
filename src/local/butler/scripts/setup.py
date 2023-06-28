@@ -145,7 +145,7 @@ TEMPLATES = {
 }
 
 
-class BaseBuiltinFuzzerDefaults(object):
+class BaseBuiltinFuzzerDefaults:
   """Default values for a builtin Fuzzer data_type. Note this class should be
   inherited and should not be used directly."""
 

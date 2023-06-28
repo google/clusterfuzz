@@ -20,7 +20,7 @@ import shutil
 import tempfile
 import unittest
 
-import mock
+from unittest import mock
 import parameterized
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
