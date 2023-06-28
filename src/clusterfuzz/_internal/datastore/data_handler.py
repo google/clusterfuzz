@@ -120,20 +120,48 @@ def get_testcase_by_id(testcase_id):
   return testcase
 
 
+@memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
+def _get_builtin_fuzzers():
+  return data_types.Fuzzer.query(ndb_utils.is_true(data_types.Fuzzer.builtin))
+
+
 def find_testcase(project_name,
                   crash_type,
                   crash_state,
                   security_flag,
-                  testcase_to_exclude=None):
+                  testcase_to_exclude=None,
+                  fuzz_target=None):
   """Find an open test case matching certain parameters."""
   # Prepare the query.
-  query = data_types.Testcase.query(
+  query_args = [
       data_types.Testcase.project_name == project_name,
       data_types.Testcase.crash_type == crash_type,
       data_types.Testcase.crash_state == crash_state,
       data_types.Testcase.security_flag == security_flag,
       data_types.Testcase.status == 'Processed',
-      ndb_utils.is_true(data_types.Testcase.open))
+      ndb_utils.is_true(data_types.Testcase.open)
+  ]
+  if fuzz_target and environment.get_value('DEDUP_ONLY_SAME_TARGET'):
+    builtin_fuzzers = _get_builtin_fuzzers()
+    culprit_builtin = None
+    target_without_builtin = None
+    for builtin_fuzzer in builtin_fuzzers:
+      if fuzz_target.startswith(f'{builtin_fuzzer.name}_'):
+        culprit_builtin = builtin_fuzzer
+        target_without_builtin = fuzz_target[len(culprit_builtin) + 1:]
+        break
+      target_with_different_engines = []
+      assert culprit_builtin
+
+    target_with_different_engines = [
+        f'{builtin_fuzzer.engine}_{target_without_builtin}'
+        for builtin_fuzzer in builtin_fuzzers
+    ]
+    query_args.append(
+        data_types.Testcase.overridden_fuzzer_name.IN(
+            target_with_different_engines))
+
+  query = data_types.Testcase.query(*query_args)
 
   # Return any open (not fixed) test cases if they exist.
   testcases = ndb_utils.get_all_from_query(query)
@@ -607,7 +635,8 @@ def handle_duplicate_entry(testcase):
       testcase.crash_type,
       testcase.crash_state,
       testcase.security_flag,
-      testcase_to_exclude=testcase)
+      testcase_to_exclude=testcase,
+      fuzz_target=testcase.fuzzer_name)
   if not existing_testcase:
     return
 

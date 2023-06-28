@@ -317,7 +317,7 @@ class CrashGroup:
     # prevent other machines from creating identical testcases.
     self.existing_testcase = data_handler.find_testcase(
         context.project_name, crashes[0].crash_type, crashes[0].crash_state,
-        crashes[0].security_flag)
+        crashes[0].security_flag, fully_qualified_fuzzer_name)
 
   def is_new(self):
     """Return true if there's no existing testcase."""
