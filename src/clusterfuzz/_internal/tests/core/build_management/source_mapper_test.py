@@ -43,7 +43,7 @@ class LinkifyStackFrameTest(unittest.TestCase):
     result = source_mapper.linkify_stack_frame(frame, self.revisions_dict)
     self.assertEqual(
         result,
-        'in growExact <a href="https://github.com/apache/lucene/blob/f44cc45cf8bfc2d6ef53e4767aec4654c1377fdf/apache/lucene/util/ArrayUtil.java#L400">org/apache/lucene/util/ArrayUtil.java:400</a>'
+        ' in growExact <a href="https://github.com/apache/lucene/blob/f44cc45cf8bfc2d6ef53e4767aec4654c1377fdf/apache/lucene/util/ArrayUtil.java#L400">org/apache/lucene/util/ArrayUtil.java:400</a>'
     )
 
   def test_c_stack_frame(self):
