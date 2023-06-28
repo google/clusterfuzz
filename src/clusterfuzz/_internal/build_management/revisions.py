@@ -631,7 +631,6 @@ def needs_update(revision_file, revision):
   """Check a revision file against the provided revision to see if an update is
   required."""
   if not os.path.exists(revision_file):
-    logs.log_error('Failed to read revision file, exiting.')
     return True
 
   try:
