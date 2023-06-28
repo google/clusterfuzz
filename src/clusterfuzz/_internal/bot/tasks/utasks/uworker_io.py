@@ -167,6 +167,13 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
   storage.upload_signed_url(uworker_output, upload_url)
 
 
+def download_input_based_on_output_url(output_url):
+  # Get the portion that does not contain ".output".
+  input_url = output_url.split('.output')[0]
+  serialized_uworker_input = storage.read_data(input_url)
+  return deserialize_uworker_input(serialized_uworker_input)
+
+
 def download_and_deserialize_uworker_output(output_url: str):
   """Downloads and deserializes uworker output."""
   serialized_uworker_output = storage.read_data(output_url)
@@ -175,10 +182,8 @@ def download_and_deserialize_uworker_output(output_url: str):
 
   # Now download the input, which is stored securely so that the uworker cannot
   # tamper with it.
-  # Get the portion that does not contain ".output".
-  input_url = output_url.split('.output')[0]
-  serialized_uworker_input = storage.read_data(input_url)
-  uworker_input = deserialize_uworker_input(serialized_uworker_input)
+  uworker_input = download_input_based_on_output_url(output_url)
+
   uworker_output.uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
   uworker_output.uworker_input = uworker_input
   return uworker_output
