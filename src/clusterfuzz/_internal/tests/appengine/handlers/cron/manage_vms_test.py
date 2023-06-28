@@ -600,7 +600,7 @@ class CronTest(unittest.TestCase):
 
   def test_update_cpus(self):
     """Tests CPU distribution cron."""
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     manager = manage_vms.OssFuzzClustersManager('clusterfuzz-external')
     manager.update_clusters()
 

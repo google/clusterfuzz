@@ -87,7 +87,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.itm = IssueTrackerManager('oss-fuzz')
     self.mock.get_issue_tracker.return_value = monorail.IssueTracker(self.itm)
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_no_build_failures(self):
     """Test run with no build failures."""

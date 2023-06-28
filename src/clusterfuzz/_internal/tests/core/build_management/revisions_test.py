@@ -564,7 +564,7 @@ class DepsToRevisionsDictTest(unittest.TestCase):
 
   def test(self):
     """Test that deps is correctly parsed without exceptions."""
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     deps_content = self._read_data_file('chromium_deps.txt')
     actual_revisions_dict = revisions.deps_to_revisions_dict(deps_content)
     expected_revisions_dict = ast.literal_eval(
@@ -573,7 +573,7 @@ class DepsToRevisionsDictTest(unittest.TestCase):
 
   def test_bad_deps(self):
     """Test that bad deps is correctly parsed without exceptions."""
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     deps_content = 'vars = {}'
     actual_revisions_dict = revisions.deps_to_revisions_dict(deps_content)
     self.assertEqual(None, actual_revisions_dict)

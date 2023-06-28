@@ -190,7 +190,7 @@ class RoundTripTest(unittest.TestCase):
     self.env = {'ENVVAR': '1'}
     self.download_url = 'https://fake-signed-download-url'
     self.job_type = 'job'
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_upload_and_download_input(self):
     """Tests that uploading and downloading input works. This means that input
