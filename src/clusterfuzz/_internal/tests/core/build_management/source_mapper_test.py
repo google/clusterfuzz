@@ -36,7 +36,7 @@ class LinkifyStackFrameTest(unittest.TestCase):
         'clusterfuzz._internal.build_management.source_mapper.should_linkify_java_stack_frames',
     ])
     self.mock.should_linkify_java_stack_frames.return_value = True
-    self.maxDiff = None
+    self.maxDiff = None  # pylint: disable=invalid-name
 
   def test_java_stack_frame(self):
     frame = 'at org.apache.lucene.util.ArrayUtil.growExact(ArrayUtil.java:400)'
