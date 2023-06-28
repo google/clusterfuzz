@@ -126,15 +126,21 @@ def cleanup_testcases_and_issues():
       policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(
           testcase)
       if not policy:
+        logs.log('No policy')
         policy = empty_issue_tracker_policy
 
       # Issue updates.
       update_os_labels(policy, testcase, issue)
+      logs.log('maybe updated os')
       update_fuzz_blocker_label(policy, testcase, issue,
                                 top_crashes_by_project_and_platform_map)
+      logs.log('maybe updated fuzz blocker')
       update_component_labels(testcase, issue)
+      logs.log('maybe updated component labels')
       update_issue_ccs_from_owners_file(policy, testcase, issue)
+      logs.log('maybe updated issueccs')
       update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
+      logs.log('maybe updated update_issue_owner_and_ccs_from_predator_results')
       update_issue_labels_for_flaky_testcase(policy, testcase, issue)
 
       # Testcase marking rules.
@@ -1156,18 +1162,26 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
                                                      issue,
                                                      only_allow_ccs=False):
   """Assign the issue to an appropriate owner if possible."""
+  logs.log(f'{update_issue_owner_and_ccs_from_predator_results}')
   if not issue or not issue.is_open:
     return
+
+  logs.log('is_open')
 
   # If the issue already has an owner, we don't need to update the bug.
   if issue.assignee:
     return
 
+  logs.log('noassignee')
+
   # If there are more than 3 suspected CLs, we can't be confident in the
   # results. Just skip any sort of notification to CL authors in this case.
   suspected_cls = _get_predator_result_item(testcase, 'suspected_cls')
+  logs.log(f'suspected_cls {suspected_cls}')
   if not suspected_cls or len(suspected_cls) > 3:
     return
+
+  logs.log('suspected_cls2')
 
   # If we've assigned an owner or cc once before, it likely means we were
   # incorrect. Don't try again for this particular issue.
@@ -1176,6 +1190,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       issue_tracker_utils.was_label_added(
           issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)):
     return
+  logs.log('never assigned')
 
   # Validate that the suspected CLs have all of the information we need before
   # continuing. This allows us to assume that they are well-formed later,
@@ -1190,15 +1205,18 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       return
 
   if len(suspected_cls) == 1 and not only_allow_ccs:
+    logs.log('only 1 CL')
     suspected_cl = suspected_cls[0]
 
     # If this owner has already been assigned before but has since been removed,
     # don't assign it to them again.
     for action in issue.actions:
       if action.assignee == suspected_cls[0]['author']:
+        logs.log('already assigned')
         return
 
     # We have high confidence for the single-CL case, so we assign the owner.
+    logs.log('Updating issue')
     issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL)
     issue.assignee = suspected_cl['author']
     issue.status = policy.status('assigned')
@@ -1212,6 +1230,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
 
   else:
     if testcase.get_metadata('has_issue_ccs_from_predator_results'):
+      logs.log('has_issue_ccs_from_predator_results')
       return
 
     issue_comment = (
@@ -1226,7 +1245,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       author = suspected_cl['author']
       issue_comment += f'{suspected_cl["description"]} by ' \
                        f'{author} - {suspected_cl["url"]}\n\n'
+      logs.log('Suspected')
       if author in issue.ccs:
+        logs.log('AUthor CCed')
         continue
 
       # If an author has previously been manually removed from the cc list,
@@ -1235,9 +1256,11 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       for action in issue.actions:
         if author in action.ccs.removed:
           author_was_removed = True
+          logs.log('Breaking')
           break
 
       if author_was_removed:
+        logs.log('Author removed')
         continue
 
       issue.ccs.add(author)
@@ -1248,6 +1271,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       # to spam it with another comment. Also, set the metadata to avoid doing
       # this again.
       testcase.set_metadata('has_issue_ccs_from_owners_file', True)
+      logs.log('not ccs_added')
       return
 
     label_text = issue.issue_tracker.label_text(
