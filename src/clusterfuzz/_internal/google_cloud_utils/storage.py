@@ -346,8 +346,6 @@ class GcsProvider(StorageProvider):
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
-    if environment.get_value('UTASK_TESTS'):
-      self.read_data(signed_url)
     return _download_url(signed_url)
 
   def upload_signed_url(self, data, signed_url):
@@ -1047,6 +1045,8 @@ def uworker_io_bucket():
     exception_types=TRANSIENT_ERRORS)
 def _download_url(url):
   """Downloads |url| and returns the contents."""
+  if environment.get_value('UTASK_TESTS'):
+    return read_data(url)
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not request.ok:
     raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %
