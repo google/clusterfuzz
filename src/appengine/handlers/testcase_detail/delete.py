@@ -30,7 +30,7 @@ class Handler(base_handler.Handler):
 
     # Don't delete testcases that have an associated issue.
     if testcase.bug_information:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'The testcase (id=%d) with an assigned issue cannot be deleted.' %
           testcase_id, 400)
 

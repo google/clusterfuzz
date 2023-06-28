@@ -21,7 +21,7 @@ from libs import auth
 from libs import helpers
 
 
-class TestNotFoundException(Exception):
+class TestNotFoundError(Exception):
   """Serve as a testing exception."""
 
 
@@ -77,7 +77,7 @@ class GetOrExitTest(unittest.TestCase):
     def fn():
       return None
 
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(fn, 'not_found', 'error')
 
     self.assertEqual(catched.exception.status, 404)
@@ -89,7 +89,7 @@ class GetOrExitTest(unittest.TestCase):
     def fn():
       return (None, None)
 
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(fn, 'not_found', 'error')
 
     self.assertEqual(catched.exception.status, 404)
@@ -99,11 +99,11 @@ class GetOrExitTest(unittest.TestCase):
     """Ensure it raises 404 when `fn` throws a recognised exception."""
 
     def fn():
-      raise TestNotFoundException()
+      raise TestNotFoundError()
 
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(
-          fn, 'not_found', 'error', not_found_exception=TestNotFoundException)
+          fn, 'not_found', 'error', not_found_exception=TestNotFoundError)
 
     self.assertEqual(catched.exception.status, 404)
     self.assertEqual(str(catched.exception), 'not_found')
@@ -114,7 +114,7 @@ class GetOrExitTest(unittest.TestCase):
     def fn():
       raise Exception('message')  # pylint: disable=broad-exception-raised
 
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(fn, 'not_found', 'other')
 
     self.assertEqual(catched.exception.status, 500)

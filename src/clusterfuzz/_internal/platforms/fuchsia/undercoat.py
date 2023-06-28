@@ -190,7 +190,7 @@ def stop_instance(handle):
 
 
 def list_fuzzers(handle):
-  """Start an instance via undercoat."""
+  """List fuzzers available on an instance, via undercoat."""
   return undercoat_instance_command('list_fuzzers', handle).output.split('\n')
 
 

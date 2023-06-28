@@ -35,6 +35,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -76,7 +77,7 @@ SELECTION_METHOD_DISTRIBUTION = [
 THREAD_WAIT_TIMEOUT = 1
 
 
-class FuzzTaskException(Exception):
+class FuzzTaskError(Exception):
   """Fuzz task exception."""
 
 
@@ -1225,9 +1226,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
       options)
   fuzz_test_timeout -= additional_processing_time
   if fuzz_test_timeout <= 0:
-    raise FuzzTaskException(
-        f'Invalid engine timeout: '
-        f'{fuzz_test_timeout} - {additional_processing_time}')
+    raise FuzzTaskError(f'Invalid engine timeout: '
+                        f'{fuzz_test_timeout} - {additional_processing_time}')
 
   result = engine_impl.fuzz(target_path, options, testcase_directory,
                             fuzz_test_timeout)
@@ -1295,7 +1295,7 @@ class FuzzingSession:
                                 self.fuzz_target.project_qualified_name(),
                                 sync_corpus_directory, self.data_directory)
     if not self.gcs_corpus.sync_from_gcs():
-      raise FuzzTaskException(
+      raise FuzzTaskError(
           'Failed to sync corpus for fuzzer %s (job %s).' %
           (self.fuzz_target.project_qualified_name(), self.job_type))
 
@@ -1492,7 +1492,7 @@ class FuzzingSession:
     # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
     if not fuzz_target_name:
-      raise FuzzTaskException('No fuzz targets found.')
+      raise FuzzTaskError('No fuzz targets found.')
 
     self.fuzz_target = data_handler.record_fuzz_target(
         engine_impl.name, fuzz_target_name, self.job_type)
@@ -1890,8 +1890,21 @@ class FuzzingSession:
     utils.python_gc()
 
 
-def execute_task(fuzzer_name, job_type):
+def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  session = FuzzingSession(fuzzer_name, job_type, test_timeout)
+  session = FuzzingSession(uworker_input.fuzzer_name, uworker_input.job_type,
+                           test_timeout)
   session.run()
+
+
+def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  return uworker_io.UworkerInput(
+      job_type=job_type,
+      fuzzer_name=fuzzer_name,
+      uworker_env=uworker_env,
+  )
+
+
+def utask_postprocess(output):
+  del output

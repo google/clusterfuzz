@@ -36,6 +36,8 @@ from libs import auth
 from libs import csp
 from libs import helpers
 
+HTTP_GET_TIMEOUT_SECS = 30
+
 JSON = 'json'
 FORM = 'form'
 HTML = 'html'
@@ -62,8 +64,7 @@ def extend_request(req, params):
   """Extends a request."""
 
   def _iterparams():
-    for k, v in params.items():
-      yield k, v
+    yield from params.items()
 
   def _get(key, default_value=None):
     """Return the value of the key or the default value."""
@@ -78,7 +79,7 @@ def extend_json_request(req):
   try:
     params = json.loads(req.data)
   except ValueError as e:
-    raise helpers.EarlyExitException(
+    raise helpers.EarlyExitError(
         'Parsing the JSON request body failed: %s' % req.data, 400) from e
 
   extend_request(req, params)
@@ -94,7 +95,7 @@ def cron():
     def wrapper(self):
       """Wrapper."""
       if not self.is_cron():
-        raise helpers.AccessDeniedException('You are not a cron.')
+        raise helpers.AccessDeniedError('You are not a cron.')
 
       result = func(self)
       if result is None:
@@ -117,7 +118,7 @@ def check_admin_access(func):
   def wrapper(self):
     """Wrapper."""
     if not auth.is_current_user_admin():
-      raise helpers.AccessDeniedException('Admin access is required.')
+      raise helpers.AccessDeniedError('Admin access is required.')
 
     return func(self)
 
@@ -152,7 +153,7 @@ def unsupported_on_local_server(func):
   def wrapper(self, *args, **kwargs):
     """Wrapper."""
     if environment.is_running_on_app_engine_development():
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'This feature is not available in local App Engine Development '
           'environment.', 400)
 
@@ -167,7 +168,7 @@ def get_email_and_access_token(authorization):
     See: https://developers.google.com/identity/protocols/OAuth2InstalledApp
   """
   if not authorization.startswith(BEARER_PREFIX):
-    raise helpers.UnauthorizedException(
+    raise helpers.UnauthorizedError(
         'The Authorization header is invalid. It should have been started with'
         " '%s'." % BEARER_PREFIX)
 
@@ -175,11 +176,12 @@ def get_email_and_access_token(authorization):
 
   response = requests.get(
       'https://www.googleapis.com/oauth2/v3/tokeninfo',
-      params={'access_token': access_token})
+      params={'access_token': access_token},
+      timeout=HTTP_GET_TIMEOUT_SECS)
   if response.status_code != 200:
-    raise helpers.UnauthorizedException(
-        'Failed to authorize. The Authorization header (%s) might be invalid.' %
-        authorization)
+    raise helpers.UnauthorizedError(
+        f'Failed to authorize. The Authorization header ({authorization}) '
+        'might be invalid.')
 
   try:
     data = json.loads(response.text)
@@ -194,17 +196,17 @@ def get_email_and_access_token(authorization):
     whitelisted_client_ids = _auth_config().get(
         'whitelisted_oauth_client_ids', default=[])
     if data.get('aud') not in whitelisted_client_ids:
-      raise helpers.UnauthorizedException(
+      raise helpers.UnauthorizedError(
           "The access token doesn't belong to one of the allowed OAuth clients"
           ': %s.' % response.text)
 
     if not data.get('email_verified'):
-      raise helpers.UnauthorizedException('The email (%s) is not verified: %s.'
-                                          % (data.get('email'), response.text))
+      raise helpers.UnauthorizedError('The email (%s) is not verified: %s.' %
+                                      (data.get('email'), response.text))
 
     return data['email'], authorization
   except (KeyError, ValueError) as e:
-    raise helpers.EarlyExitException(
+    raise helpers.EarlyExitError(
         'Parsing the JSON response body failed: %s' % response.text, 500) from e
 
 
@@ -241,16 +243,16 @@ def pubsub_push(func):
     try:
       bearer_token = request.headers.get('Authorization', '')
       if not bearer_token.startswith(BEARER_PREFIX):
-        raise helpers.UnauthorizedException('Missing or invalid bearer token.')
+        raise helpers.UnauthorizedError('Missing or invalid bearer token.')
 
       token = bearer_token.split(' ')[1]
       claim = id_token.verify_oauth2_token(token, google_requests.Request())
     except google.auth.exceptions.GoogleAuthError as e:
-      raise helpers.UnauthorizedException('Invalid ID token.') from e
+      raise helpers.UnauthorizedError('Invalid ID token.') from e
 
     if (not claim.get('email_verified') or
         claim.get('email') != utils.service_account_email()):
-      raise helpers.UnauthorizedException('Invalid ID token.')
+      raise helpers.UnauthorizedError('Invalid ID token.')
 
     message = pubsub.raw_message_to_message(json.loads(request.data.decode()))
     return func(self, message)
@@ -271,7 +273,7 @@ def check_user_access(need_privileged_access):
     def wrapper(self, *args, **kwargs):
       """Wrapper."""
       if not access.has_access(need_privileged_access=need_privileged_access):
-        raise helpers.AccessDeniedException()
+        raise helpers.AccessDeniedError()
 
       return func(self, *args, **kwargs)
 
@@ -405,19 +407,19 @@ def require_csrf_token(func):
     token_value = request.get('csrf_token')
     user = auth.get_current_user()
     if not user:
-      raise helpers.AccessDeniedException('Not logged in.')
+      raise helpers.AccessDeniedError('Not logged in.')
 
     query = data_types.CSRFToken.query(
         data_types.CSRFToken.value == token_value,
         data_types.CSRFToken.user_email == user.email)
     token = query.get()
     if not token:
-      raise helpers.AccessDeniedException('Invalid CSRF token.')
+      raise helpers.AccessDeniedError('Invalid CSRF token.')
 
     # Make sure that the token is not expired.
     if token.expiration_time < datetime.datetime.utcnow():
       token.key.delete()
-      raise helpers.AccessDeniedException('Expired CSRF token.')
+      raise helpers.AccessDeniedError('Expired CSRF token.')
 
     return func(self, *args, **kwargs)
 

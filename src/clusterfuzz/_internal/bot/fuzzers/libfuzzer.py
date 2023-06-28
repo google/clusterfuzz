@@ -29,6 +29,7 @@ from clusterfuzz._internal.bot.fuzzers import mutator_plugin
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer.peach import pits
+from clusterfuzz._internal.bot.testcase_manager import TargetNotFoundError
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
@@ -75,11 +76,11 @@ MUTATOR_STRATEGIES = [
 # pylint: disable=no-member
 
 
-class LibFuzzerException(Exception):
-  """LibFuzzer exception."""
+class LibFuzzerError(Exception):
+  """LibFuzzer error."""
 
 
-class LibFuzzerCommon(object):
+class LibFuzzerCommon:
   """Provides common libFuzzer functionality."""
 
   # Window of time for libFuzzer to exit gracefully before we KILL it.
@@ -384,23 +385,23 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     self.handle = instance_handle
 
   def _corpus_directories_libfuzzer(self, corpus_directories):
-    """ Returns the corpus directory paths expected by libfuzzer itself. """
+    """Returns the corpus directory paths expected by libfuzzer itself."""
     return [
         self._target_corpus_path(os.path.basename(corpus_dir))
         for corpus_dir in corpus_directories
     ]
 
   def _new_corpus_dir_host(self, corpus_directories):
-    """ Returns the path of the 'new' corpus directory on the host. """
+    """Returns the path of the 'new' corpus directory on the host."""
     return corpus_directories[0]
 
   def _new_corpus_dir_target(self, corpus_directories):
-    """ Returns the path of the 'new' corpus directory on the target. """
+    """Returns the path of the 'new' corpus directory on the target."""
     return self._target_corpus_path(
         os.path.basename(self._new_corpus_dir_host(corpus_directories)))
 
   def _target_corpus_path(self, corpus_name):
-    """ Returns the path of a given corpus directory on the target. """
+    """Returns the path of a given corpus directory on the target."""
     return 'data/corpus/' + corpus_name
 
   def _push_corpora_from_host_to_target(self, corpus_directories):
@@ -412,7 +413,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                          'data/corpus')
 
   def _pull_new_corpus_from_target_to_host(self, corpus_directories):
-    """ Pull corpus directories from device to host. """
+    """Pull corpus directories from device to host."""
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
     logs.log('Fuzzer ran; pulling down corpus')
@@ -423,10 +424,28 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
                        self._new_corpus_dir_host(corpus_directories))
 
   def _clear_all_target_corpora(self):
-    """ Clears out all the corpora on the target. """
+    """Clears out all the corpora on the target."""
     logs.log('Clearing corpora on target')
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
+
+  def _ensure_target_exists(self):
+    """Check that the target fuzzer exists, raising an error if it does not.
+
+    We do this check by looking at the list of fuzzers, instead of relying on
+    an error from undercoat, because in some cases (e.g. regression tasks) it
+    is an expected error that we wish to recover from. Additionally, we can't
+    do this check earlier because we need an online target system to query."""
+    targets = undercoat.list_fuzzers(self.handle)
+
+    # These fuzzers are used for integration tests but not returned by
+    # list_fuzzers because we don't want them to be run in production.
+    targets += [
+        'example-fuzzers/crash_fuzzer', 'example-fuzzers/overflow_fuzzer'
+    ]
+
+    if self.executable_path not in targets:
+      raise TargetNotFoundError('Failed to find target ' + self.executable_path)
 
   def get_total_timeout(self, timeout):
     """LibFuzzerCommon.fuzz override."""
@@ -524,6 +543,8 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     if additional_args is None:
       additional_args = []
 
+    self._ensure_target_exists()
+
     # We need to push the testcase to the device and pass in the name.
     testcase_path_name = os.path.basename(os.path.normpath(testcase_path))
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
@@ -612,7 +633,7 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
         return os.path.join(binding.src_path,
                             os.path.relpath(path, binding.dest_path))
 
-    raise LibFuzzerException('Invalid testcase path ' + path)
+    raise LibFuzzerError('Invalid testcase path ' + path)
 
   def _get_chroot_corpus_paths(self, corpus_directories):
     """Return chroot relative paths for the given corpus directories.
@@ -636,8 +657,8 @@ class MinijailLibFuzzerRunner(new_process.UnicodeProcessRunnerMixin,
     """
     binding = self.chroot.get_binding(directory_path)
     if not binding:
-      raise LibFuzzerException(
-          'Failed to get chroot binding for "%s".' % directory_path)
+      raise LibFuzzerError(
+          f'Failed to get chroot binding for "{directory_path}".')
     return binding.dest_path
 
   def _bind_corpus_dirs(self, corpus_directories):
@@ -1391,9 +1412,10 @@ def is_sha1_hash(possible_hash):
 
 def move_mergeable_units(merge_directory, corpus_directory):
   """Move new units in |merge_directory| into |corpus_directory|."""
-  initial_units = set(
+  initial_units = {
       os.path.basename(filename)
-      for filename in shell.get_files_list(corpus_directory))
+      for filename in shell.get_files_list(corpus_directory)
+  }
 
   for unit_path in shell.get_files_list(merge_directory):
     unit_name = os.path.basename(unit_path)

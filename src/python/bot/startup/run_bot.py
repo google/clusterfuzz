@@ -43,7 +43,7 @@ from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 
 
-class _Monitor(object):
+class _Monitor:
   """Monitor one task."""
 
   def __init__(self, task, time_module=time):
@@ -100,7 +100,7 @@ def task_loop():
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0
-      if not clean_exit and not isinstance(e, untrusted.HostException):
+      if not clean_exit and not isinstance(e, untrusted.HostError):
         logs.log_error('SystemExit occurred while working on task.')
 
       stacktrace = traceback.format_exc()

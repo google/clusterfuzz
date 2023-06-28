@@ -15,7 +15,6 @@
 
 from flask import request
 from google.cloud import ndb
-import six
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_handler
@@ -41,7 +40,7 @@ FILTERS = [
 def get_queues():
   """Return list of task queues."""
   queues = []
-  for name, display_name in six.iteritems(tasks.TASK_QUEUE_DISPLAY_NAMES):
+  for name, display_name in tasks.TASK_QUEUE_DISPLAY_NAMES.items():
     queue = {
         'name': name,
         'display_name': display_name,
@@ -129,10 +128,10 @@ class UpdateJob(base_handler.GcsUploadHandler):
     """Handle a post request."""
     name = request.form.get('name')
     if not name:
-      raise helpers.EarlyExitException('Please give this job a name!', 400)
+      raise helpers.EarlyExitError('Please give this job a name!', 400)
 
     if not data_types.Job.VALID_NAME_REGEX.match(name):
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Job name can only contain letters, numbers, dashes and underscores.',
           400)
 
@@ -141,12 +140,11 @@ class UpdateJob(base_handler.GcsUploadHandler):
     for template in templates:
       if not data_types.JobTemplate.query(
           data_types.JobTemplate.name == template).get():
-        raise helpers.EarlyExitException('Invalid template name(s) specified.',
-                                         400)
+        raise helpers.EarlyExitError('Invalid template name(s) specified.', 400)
 
     new_platform = request.form.get('platform')
     if not new_platform or new_platform == 'undefined':
-      raise helpers.EarlyExitException('No platform provided for job.', 400)
+      raise helpers.EarlyExitError('No platform provided for job.', 400)
 
     description = request.form.get('description', '')
     environment_string = request.form.get('environment_string', '')
@@ -213,16 +211,16 @@ class UpdateJobTemplate(base_handler.Handler):
     """Handle a post request."""
     name = request.form.get('name')
     if not name:
-      raise helpers.EarlyExitException('Please give this template a name!', 400)
+      raise helpers.EarlyExitError('Please give this template a name!', 400)
 
     if not data_types.Job.VALID_NAME_REGEX.match(name):
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Template name can only contain letters, numbers, dashes and '
           'underscores.', 400)
 
     environment_string = request.form.get('environment_string')
     if not environment_string:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'No environment string provided for job template.', 400)
 
     template = data_types.JobTemplate.query(
@@ -258,7 +256,7 @@ class DeleteJobHandler(base_handler.Handler):
     key = helpers.get_integer_key(request)
     job = ndb.Key(data_types.Job, key).get()
     if not job:
-      raise helpers.EarlyExitException('Job not found.', 400)
+      raise helpers.EarlyExitError('Job not found.', 400)
 
     # Delete from fuzzers' jobs' list.
     for fuzzer in ndb_utils.get_all_from_model(data_types.Fuzzer):
