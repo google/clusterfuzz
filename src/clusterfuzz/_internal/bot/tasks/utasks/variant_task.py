@@ -29,8 +29,8 @@ from clusterfuzz._internal.system import environment
 
 
 def _get_variant_testcase_for_job(testcase, job_type):
-  """Return a testcase entity for variant task use. This changes the fuzz
-  target params for a particular fuzzing engine."""
+  """Return a testcase entity for variant task use. This changes the fuzz target
+  params for a particular fuzzing engine."""
   if testcase.job_type == job_type:
     # Update stack operation on same testcase.
     return testcase
@@ -75,13 +75,13 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
-  metadata = data_types.TestcaseUploadMetadata.query(
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   return uworker_io.UworkerInput(
       job_type=job_type,
       original_job_type=original_job_type,
       testcase=testcase,
-      metadata=metadata,
+      testcase_upload_metadata=testcase_upload_metadata,
       uworker_env=uworker_env,
       variant=variant,
       testcase_id=testcase_id,
@@ -102,7 +102,7 @@ def utask_main(uworker_input):
   _, testcase_file_path, error = setup.setup_testcase(
       uworker_input.testcase,
       uworker_input.job_type,
-      metadata=uworker_input.metadata,
+      metadata=uworker_input.testcase_upload_metadata,
       testcase_download_url=uworker_input.testcase_download_url)
   if error:
     return error
@@ -193,11 +193,10 @@ def utask_main(uworker_input):
 
 
 def handle_build_setup_error(output):
-  testcase = data_handler.get_testcase_by_id(
-      output.uworker_input['testcase_id'])
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(
       testcase, data_types.TaskState.ERROR,
-      f'Build setup failed with job: {output.uworker_input["testcase_id"]}')
+      f'Build setup failed with job: {output.uworker_input.testcase_id}')
 
 
 def utask_postprocess(output):
@@ -210,8 +209,7 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output)
     return
 
-  if (output.uworker_input['original_job_type'] == output.uworker_input[
-      'job_type']):
+  if output.uworker_input.original_job_type == output.uworker_input.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
     output.testcase.last_tested_crash_stacktrace = (

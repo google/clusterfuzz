@@ -218,7 +218,7 @@ class Engine(engine.Engine):
 
   @staticmethod
   def trim_logs(fuzz_log):
-    """ Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
+    """Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
 
     Args:
       fuzz_result: The ProcessResult returned by running fuzzer binary.
