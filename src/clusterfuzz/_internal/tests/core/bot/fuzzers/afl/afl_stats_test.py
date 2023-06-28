@@ -16,8 +16,7 @@
 import copy
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.afl import launcher

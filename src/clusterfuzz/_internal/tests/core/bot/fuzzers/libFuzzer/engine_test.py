@@ -19,8 +19,8 @@ import shlex
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
-import mock
 import parameterized
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 

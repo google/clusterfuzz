@@ -17,8 +17,7 @@ import ast
 import hashlib
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_types
@@ -96,13 +95,13 @@ class RevisionsTestcase(unittest.TestCase):
       return handle.read()
 
   # Helper classes and functions for mocks.
-  class MockConfigChromium(object):
+  class MockConfigChromium:
     """Simple mocked configuration for chromium."""
 
     def __init__(self):
       self.component_repository_mappings = 'default;chromium/src\nv8;v8/v8\n'
 
-  class MockConfigOSSFuzz(object):
+  class MockConfigOSSFuzz:
     """Simple mocked configuration."""
 
     def __init__(self):

@@ -18,8 +18,7 @@ import logging
 import os
 import sys
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.tests.test_libs import helpers

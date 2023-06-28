@@ -16,9 +16,9 @@
 import copy
 import functools
 import unittest
+from unittest import mock
 
 from google.cloud import ndb
-import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import compute_engine_projects
@@ -383,7 +383,7 @@ def mock_resource(spec):
   return resource
 
 
-class MockBotManager(object):
+class MockBotManager:
   """Mock BotManager."""
 
   def __init__(self, project_id, zone, instance_groups, instance_templates):
