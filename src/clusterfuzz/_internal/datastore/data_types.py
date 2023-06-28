@@ -342,7 +342,7 @@ class Fuzzer(Model):
   stats_columns = ndb.TextProperty()
 
   # Helpful descriptions for the stats_column.sw In a yaml format.
-  stats_column_descriptions = ndb.TextProperty(idndexed=False)
+  stats_column_descriptions = ndb.TextProperty(indexed=False)
 
   # Whether this is a builtin fuzzer.
   builtin = ndb.BooleanProperty(indexed=False, default=False)
