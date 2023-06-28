@@ -26,6 +26,7 @@ from clusterfuzz._internal.bot.tasks import fuzz_task
 from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.bot.tasks import minimize_task
 from clusterfuzz._internal.bot.tasks import progression_task
+from clusterfuzz._internal.bot.tasks import postprocess_task
 from clusterfuzz._internal.bot.tasks import regression_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import unpack_task
@@ -95,8 +96,7 @@ class UTaskLocalExecutor(BaseTask):
 
     input_download_url, output_download_url = preprocess_result
     utasks.uworker_main(self.module, input_download_url)
-    utasks.tworker_postprocess(self.module, output_download_url,
-                               input_download_url)
+    # Postprocessing is done on a different machine.
     logs.log('Utask local: done.')
 
 
@@ -135,6 +135,7 @@ COMMAND_MAP = {
     'regression': TrustedTask(regression_task),
     'symbolize': TrustedTask(symbolize_task),
     'unpack': TrustedTask(unpack_task),
+    'postprocess': TrustedTask(postprocess_task),
     'upload_reports': TrustedTask(upload_reports_task),
     'variant': utask_factory(variant_task),
 }

@@ -16,6 +16,7 @@
 import contextlib
 import datetime
 import random
+import re
 import threading
 import time
 
@@ -79,6 +80,10 @@ LEASE_RETRIES = 5
 
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
+
+SELF_LINK_REGEX = re.compile(
+    r'https\:\/\/www\.googleapis\.com\/storage\/v\d+\/b'
+    r'(?P<bucket>\/[a-zA-z\_\-\.]+)\/o(?P<path>\/[a-zA-z\_\-\.]+)')
 
 
 class Error(Exception):
@@ -156,6 +161,30 @@ def get_high_end_task():
   return task
 
 
+def initialize_task(messages):
+  message = messages[0]
+  if message.attributes.get('kind', None) != 'storage#object':
+    return PubSubTask(message)
+
+  # Handle postprocess task.
+  job = 'none'
+  command = 'postprocess'
+  raw_self_link = message.attributes.get('selfLink')
+  match = SELF_LINK_REGEX.search(raw_self_link)
+  if match is None:
+    raise Error(f'{raw_self_link} cannot be parsed.')
+  groupdict = match.groupdict()
+  path = groupdict['path']
+  if not path.endswith('.output'):
+    # This is an input message, and doesn't need to be postprocessed.
+    message.ack()
+    return None
+  bucket = groupdict['bucket']
+  argument = f'{bucket}{path}'
+  return Task(command, argument, job_type)
+
+
+
 def get_regular_task(queue=None):
   """Get a regular task."""
   if not queue:
@@ -171,7 +200,9 @@ def get_regular_task(queue=None):
       return None
 
     try:
-      task = PubSubTask(messages[0])
+      task = initialize_task(messages)
+      if task is None:
+        continue
     except KeyError:
       logs.log_error('Received an invalid task, discarding...')
       messages[0].ack()
@@ -214,7 +245,7 @@ def get_task():
   return task
 
 
-class Task(object):
+class Task:
   """Represents a task."""
 
   def __init__(self,

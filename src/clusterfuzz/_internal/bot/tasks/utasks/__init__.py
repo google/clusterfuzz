@@ -115,13 +115,9 @@ def uworker_bot_main():
   return True
 
 
-def tworker_postprocess(utask_module, output_download_url,
-                        input_download_url) -> None:
+def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
-  logs.log('Starting utask_postprocess: %s.' % utask_module)
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
-  uworker_input = uworker_io.download_and_deserialize_uworker_input(
-      input_download_url)
-  add_uworker_input_to_output(uworker_output, uworker_input)
+  utask_module = uworker_output.uworker_input.module_name
   utask_module.utask_postprocess(uworker_output)
