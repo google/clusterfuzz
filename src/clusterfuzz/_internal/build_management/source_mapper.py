@@ -28,7 +28,7 @@ JAVA_STACK_FRAME_REGEX = re.compile(
     r'\.java\:(?P<line>\d+)\)')
 
 
-class ComponentPath(object):
+class ComponentPath:
 
   def __init__(self, source=None, relative_path=None, display_path=None):
     self.source = source
@@ -41,7 +41,7 @@ class ComponentPath(object):
             self.display_path == other.display_path)
 
 
-class VCSViewer(object):
+class VCSViewer:
   """Base viewer class."""
   VCS_URL_REGEX = None
   VCS_REVISION_SUB = None
