@@ -15,7 +15,6 @@
 
 import datetime
 import os
-import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -202,21 +201,22 @@ class RoundTripTest(unittest.TestCase):
         testcase_download_url=self.FAKE_URL,
     )
 
-    # Create a mocked version of copy_file_to so that when we upload the uworker
+    # Create a mocked version of write_data so that when we upload the uworker
     # input, it goes to a known file we can read from.
-    copy_file_to_tempfile = None
+    write_data_tempfile = None
 
-    def copy_file_to(src, _):
-      shutil.copyfile(src, copy_file_to_tempfile.name)
+    def write_data(data, _):
+      with open(write_data_tempfile.name, 'wb') as fp:
+        fp.write(data)
       return True
 
-    copy_file_to_name = ('clusterfuzz._internal.google_cloud_utils.storage.'
-                         'copy_file_to')
+    write_data_name = ('clusterfuzz._internal.google_cloud_utils.storage.'
+                       'write_data')
 
     with tempfile.NamedTemporaryFile() as temp_file, mock.patch(
-        copy_file_to_name, copy_file_to) as _:
-      # copy_file_to will now copy the file to temp_file.
-      copy_file_to_tempfile = temp_file
+        write_data_name, write_data) as _:
+      # write_data will now write the data to temp_file.
+      write_data_tempfile = temp_file
 
       # Create a mocked version of download_signed_url that will read the data
       # from the file copy_file_to wrote to.
@@ -282,8 +282,6 @@ class RoundTripTest(unittest.TestCase):
 
     upload_signed_url_name = ('clusterfuzz._internal.google_cloud_utils.'
                               'storage.upload_signed_url')
-    copy_file_from_name = (
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from')
 
     with tempfile.TemporaryDirectory() as tmp_dir, mock.patch(
         upload_signed_url_name, upload_signed_url) as _:
@@ -293,23 +291,24 @@ class RoundTripTest(unittest.TestCase):
       upload_signed_url_tempfile = output_temp_file
       uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
 
-      # Create a version of copy_file_from that will "downloads" the data from
-      # the file upload_signed_url wrote it to.
-      def copy_file_from(gcs_url, local_path):
-        del gcs_url
-        shutil.copyfile(output_temp_file, local_path)
-        return True
+      download_input_based_on_output_url_name = (
+          'clusterfuzz._internal.bot.tasks.utasks.uworker_io.'
+          'download_input_based_on_output_url')
+      read_data_name = (
+          'clusterfuzz._internal.google_cloud_utils.storage.read_data')
 
-      download_uworker_input_name = (
-          'clusterfuzz._internal.bot.tasks.utasks.uworker_io._download_uworker_input_from_gcs'
-      )
+      def read_data(_):
+        with open(upload_signed_url_tempfile, 'rb') as fp:
+          return fp.read()
+
       uworker_env = {'PATH': '/blah'}
       uworker_input = uworker_io.UworkerInput(
           uworker_env=uworker_env, testcase_id='one-two')
-      serialized_uworker_input = uworker_io.serialize_uworker_input(
-          uworker_input)
-      with mock.patch(copy_file_from_name, copy_file_from) as _, mock.patch(
-          download_uworker_input_name, return_value=serialized_uworker_input):
+      with mock.patch(
+          download_input_based_on_output_url_name,
+          return_value=uworker_input) as _, mock.patch(read_data_name,
+                                                       read_data):
+
         downloaded_output = (
             uworker_io.download_and_deserialize_uworker_output(self.FAKE_URL))
 
