@@ -1403,7 +1403,6 @@ def close_invalid_uploaded_testcase(testcase, metadata, status):
 def mark_invalid_uploaded_testcase(testcase, metadata, status):
   """Closes an invalid testcase and updates metadata."""
   testcase.status = status
-  testcase.open = False
   testcase.minimized_keys = 'NA'
   testcase.regression = 'NA'
   testcase.set_impacts_as_na()
