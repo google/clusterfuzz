@@ -66,7 +66,6 @@ from handlers.cron import recurring_tasks
 from handlers.cron import schedule_corpus_pruning
 from handlers.cron import sync_admins
 from handlers.cron import triage
-from handlers.performance_report import show as show_performance_report
 from handlers.testcase_detail import crash_stats as crash_stats_on_testcase
 from handlers.testcase_detail import create_issue
 from handlers.testcase_detail import delete
@@ -200,9 +199,6 @@ handlers = [
     ('/jobs/delete-job', jobs.DeleteJobHandler),
     ('/login', login.Handler),
     ('/logout', login.LogoutHandler),
-    ('/performance-report', show_performance_report.Handler),
-    ('/performance-report/<fuzzer_name>/<job_type>/<logs_date>',
-     show_performance_report.Handler),
     ('/report-bug', help_redirector.ReportBugHandler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/revisions', revisions_info.Handler),

@@ -1364,38 +1364,3 @@ class BuiltinFieldTests(unittest.TestCase):
     data = logs_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_JOB, 'job2')
     self.assertEqual(data.value, 'Logs')
     self.assertEqual(data.link, 'gs://bucket2/fuzzer1/job2')
-
-  def test_performance_field_by_fuzzer(self):
-    """Test performance field (group by fuzzer)."""
-    ctx = fuzzer_stats.FuzzerRunLogsContext('fuzzer1', ['job1'])
-    performance_field = (
-        fuzzer_stats.BuiltinFieldSpecifier('_PERFORMANCE_REPORT').create(ctx))
-
-    data = performance_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_FUZZER,
-                                 'fuzzer_child1')
-    self.assertEqual(data.value, 'Performance')
-    expected_link = '/performance-report/fuzzer_child1/job1/latest'
-    self.assertEqual(data.link, expected_link)
-
-  def test_performance_field_by_day(self):
-    """Test performance field (group by day)."""
-    ctx = fuzzer_stats.FuzzerRunLogsContext('fuzzer1', ['job1'])
-    performance_field = (
-        fuzzer_stats.BuiltinFieldSpecifier('_PERFORMANCE_REPORT').create(ctx))
-
-    data = performance_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_DAY,
-                                 datetime.date(2016, 11, 18))
-    self.assertEqual(data.value, 'Performance')
-    expected_link = '/performance-report/fuzzer1/job1/2016-11-18'
-    self.assertEqual(data.link, expected_link)
-
-  def test_performance_field_by_job(self):
-    """Test performance field (group by job)."""
-    ctx = fuzzer_stats.FuzzerRunLogsContext('fuzzer1', ['blah'])
-    performance_field = (
-        fuzzer_stats.BuiltinFieldSpecifier('_PERFORMANCE_REPORT').create(ctx))
-
-    data = performance_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_JOB, 'job2')
-    self.assertEqual(data.value, 'Performance')
-    expected_link = '/performance-report/fuzzer1/job2/latest'
-    self.assertEqual(data.link, expected_link)
