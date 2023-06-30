@@ -33,15 +33,15 @@ _SCOPES = [
 ]
 
 
-class BotManagerException(Exception):
+class BotManagerError(Exception):
   """Base exception class."""
 
 
-class OperationError(BotManagerException):
+class OperationError(BotManagerError):
   """Errors during an operation."""
 
 
-class RequestError(BotManagerException):
+class RequestError(BotManagerError):
   """Errors during a request."""
 
 
@@ -57,7 +57,7 @@ class RetryableError(RequestError):
   """Retryable request error."""
 
 
-class BotManager(object):
+class BotManager:
   """Manager for bots."""
 
   def __init__(self, project_id, zone):
@@ -79,7 +79,7 @@ class BotManager(object):
     return InstanceTemplate(name, self)
 
 
-class Resource(object):
+class Resource:
   """Represents a resource."""
 
   _OPERATION_POLL_SECONDS = 5

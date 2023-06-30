@@ -29,7 +29,7 @@ message UworkerEntityWrapper {
 // field was unset or set to None.
 message Input {
   optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity metadata = 2;
+  optional google.datastore.v1.Entity testcase_upload_metadata = 2;
   optional string testcase_id = 3;
   optional Json uworker_env = 4;
   optional string testcase_download_url = 5;
@@ -38,6 +38,7 @@ message Input {
   optional string uworker_output_upload_url = 7;
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
+  optional string fuzzer_name = 10;
 }
 
 enum ErrorType {
@@ -51,12 +52,13 @@ enum ErrorType {
 
 message Output {
   optional UworkerEntityWrapper testcase = 1;
-  optional UworkerEntityWrapper metadata = 2;
+  optional UworkerEntityWrapper testcase_upload_metadata = 2;
   optional UworkerEntityWrapper variant = 3;
   optional ErrorType error = 4;
-  optional Json uworker_env = 5;
+  // This is only to be used by code that needs to be called by utasks and
+  // nonutasks.
+  optional Input uworker_input = 5;
   optional float test_timeout = 6;
   optional float crash_time = 7;
-  optional int64 revision = 8;
-  optional string crash_stacktrace_output = 9;
+  optional string crash_stacktrace_output = 8;
 }

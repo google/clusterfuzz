@@ -13,6 +13,8 @@
 # limitations under the License.
 """Module for executing the different parts of a utask."""
 
+import importlib
+
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -25,8 +27,6 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
     return None
-  assert 'job_type' not in uworker_input
-  uworker_input['job_type'] = job_type
   return uworker_io.serialize_uworker_input(uworker_input)
 
 
@@ -35,16 +35,20 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   remote executor)."""
   logs.log('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
-  # Deal with the environment.
-  uworker_env = uworker_input.pop('uworker_env')
-  set_uworker_env(uworker_env)
 
-  uworker_output = utask_module.utask_main(**uworker_input)
+  # Deal with the environment.
+  set_uworker_env(uworker_input.uworker_env)
+  delattr(uworker_input, 'uworker_env')
+
+  uworker_output = utask_module.utask_main(uworker_input)
+  if uworker_output is None:
+    return None
   return uworker_io.serialize_uworker_output(uworker_output)
 
 
 def add_uworker_input_to_output(uworker_output, uworker_input):
-  uworker_env = uworker_input.pop('uworker_env')
+  uworker_env = uworker_input.uworker_env
+  delattr(uworker_input, 'uworker_env')
   uworker_output.uworker_env = uworker_env
   uworker_output.uworker_input = uworker_input
 
@@ -72,7 +76,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   # Write the uworker's input to GCS and get the URL to download the input in
   # case the caller needs it.
   uworker_input_signed_download_url, uworker_output_download_gcs_url = (
-      uworker_io.serialize_and_upload_uworker_input(uworker_input, job_type))
+      uworker_io.serialize_and_upload_uworker_input(uworker_input))
 
   # Return the uworker_input_signed_download_url for the remote executor to pass
   # to the batch job and for the local executor to download locally. Return
@@ -93,15 +97,27 @@ def uworker_main(utask_module, input_download_url) -> None:
   logs.log('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
-  uworker_output_upload_url = uworker_input.pop('uworker_output_upload_url')
+  uworker_output_upload_url = uworker_input.uworker_output_upload_url  # pylint: disable=no-member
+  delattr(uworker_input, 'uworker_output_upload_url')
 
   # Deal with the environment.
-  uworker_env = uworker_input.pop('uworker_env')
+  uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
+  delattr(uworker_input, 'uworker_env')
   set_uworker_env(uworker_env)
 
-  uworker_output = utask_module.utask_main(**uworker_input)
+  uworker_output = utask_module.utask_main(uworker_input)
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
+  return True
+
+
+def uworker_bot_main():
+  module_name = environment.get_value('UWORKER_MODULE_NAME')
+  full_module_name = f'clusterfuzz._internal.bot.tasks.utasks.{module_name}'
+  module = importlib.import_module(full_module_name)
+  input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
+  uworker_main(module, input_download_url)
+  return True
 
 
 def tworker_postprocess(utask_module, output_download_url,

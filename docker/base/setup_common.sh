@@ -37,7 +37,7 @@ fi
 mount /mnt/scratch0 -o remount,exec,suid,dev
 
 # Prevent /dev/random hangs.
-if [[ -z "$DISABLE_DEV_RANDOM_RENAME" ]] 
+if [[ -z "$DISABLE_DEV_RANDOM_RENAME" ]]
 then
   rm /dev/random
   ln -s /dev/urandom /dev/random

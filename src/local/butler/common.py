@@ -19,7 +19,7 @@ from distutils import dir_util
 import io
 import os
 import platform
-from shlex import quote
+import shlex
 import shutil
 import stat
 import subprocess
@@ -64,7 +64,7 @@ class Gsutil:
 
 def _run_and_handle_exception(arguments, exception_class):
   """Run a command and handle its error output."""
-  print('Running:', ' '.join(quote(arg) for arg in arguments))
+  print('Running:', ' '.join(shlex.quote(arg) for arg in arguments))
   try:
     return subprocess.check_output(arguments)
   except subprocess.CalledProcessError as e:

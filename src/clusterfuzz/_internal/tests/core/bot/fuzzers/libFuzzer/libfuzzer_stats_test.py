@@ -26,7 +26,7 @@ class PerformanceStatsTest(unittest.TestCase):
 
   def setUp(self):
     """Prepare test data and necessary env variables."""
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
     test_helpers.patch_environ(self)
     self.data_directory = os.path.join(

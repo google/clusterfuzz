@@ -14,7 +14,7 @@
 """Wifi related functions."""
 
 import os
-from shlex import quote
+import shlex
 import time
 
 from clusterfuzz._internal.config import db_config
@@ -93,8 +93,8 @@ def configure(force_enable=False):
 
   output = adb.run_shell_command(
       connect_wifi_command.format(
-          ssid=quote(wifi_ssid),
-          password=quote(wifi_password),
+          ssid=shlex.quote(wifi_ssid),
+          password=shlex.quote(wifi_password),
           call_path=WIFI_UTIL_CALL_PATH))
   if 'result=true' not in output:
     logs.log_warn('Failed to connect to wifi.', output=output)

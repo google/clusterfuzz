@@ -14,9 +14,9 @@
 """testcase_list tests."""
 import datetime
 import unittest
+from unittest import mock
 
 import flask
-import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -125,7 +125,7 @@ class GroupFilterTest(unittest.TestCase):
 
   def test_raise_exception(self):
     """Test raising exceptions."""
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       self.filter.add(self.query, {'group': '123x4'})
 
     self.query.filter.assert_has_calls([])

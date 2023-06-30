@@ -15,7 +15,6 @@
 
 import datetime
 import os
-import shutil
 import tempfile
 import unittest
 from unittest import mock
@@ -151,17 +150,10 @@ class UworkerOutputTest(unittest.TestCase):
     # Test that these can be accessed without an attribute error.
     self.output.testcase  # pylint: disable=pointless-statement
     self.output.error  # pylint: disable=pointless-statement
-    self.assertEqual(self.output.to_dict(), {})
-    value = 'ERROR'
-    self.output.error = value
-    self.assertEqual(self.output.error, value)
-    self.assertEqual(self.output.to_dict(), {'error': value})
-
-  def to_dict(self):
-    """Tests that to_dict functions as intended."""
-    self.assertEqual(self.output.to_dict(), {})
-    self.output.j = 1
-    self.assertEqual(self.output.to_dict(), {'j': 1})
+    error_value = 1
+    self.output.error = error_value
+    self.assertEqual(self.output.error, error_value)
+    self.assertEqual(self.output.proto.error, error_value)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -197,33 +189,34 @@ class RoundTripTest(unittest.TestCase):
     self.env = {'ENVVAR': '1'}
     self.download_url = 'https://fake-signed-download-url'
     self.job_type = 'job'
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_upload_and_download_input(self):
     """Tests that uploading and downloading input works. This means that input
     serialization and deserialization works."""
     # Create input for the uworker.
-    uworker_input = {
-        'testcase': self.testcase,
-        'uworker_env': self.env,
-        'testcase_download_url': self.FAKE_URL,
-    }
+    uworker_input = uworker_io.UworkerInput(
+        testcase=self.testcase,
+        uworker_env=self.env,
+        testcase_download_url=self.FAKE_URL,
+    )
 
-    # Create a mocked version of copy_file_to so that when we upload the uworker
+    # Create a mocked version of write_data so that when we upload the uworker
     # input, it goes to a known file we can read from.
-    copy_file_to_tempfile = None
+    write_data_tempfile = None
 
-    def copy_file_to(src, _):
-      shutil.copyfile(src, copy_file_to_tempfile.name)
+    def write_data(data, _):
+      with open(write_data_tempfile.name, 'wb') as fp:
+        fp.write(data)
       return True
 
-    copy_file_to_name = ('clusterfuzz._internal.google_cloud_utils.storage.'
-                         'copy_file_to')
+    write_data_name = ('clusterfuzz._internal.google_cloud_utils.storage.'
+                       'write_data')
 
     with tempfile.NamedTemporaryFile() as temp_file, mock.patch(
-        copy_file_to_name, copy_file_to) as _:
-      # copy_file_to will now copy the file to temp_file.
-      copy_file_to_tempfile = temp_file
+        write_data_name, write_data) as _:
+      # write_data will now write the data to temp_file.
+      write_data_tempfile = temp_file
 
       # Create a mocked version of download_signed_url that will read the data
       # from the file copy_file_to wrote to.
@@ -233,16 +226,17 @@ class RoundTripTest(unittest.TestCase):
         with open(temp_file.name, 'rb') as fp:
           return fp.read()
 
-      uworker_io.serialize_and_upload_uworker_input(uworker_input,
-                                                    self.job_type)
-      with mock.patch(
-          'clusterfuzz._internal.google_cloud_utils.storage.download_signed_url',
-          download_signed_url) as _:
-        downloaded_input = uworker_io.download_and_deserialize_uworker_input(
-            self.FAKE_URL)
+      with tempfile.TemporaryDirectory() as tmp_dir:
+        os.environ['BOT_TMPDIR'] = tmp_dir
+        uworker_io.serialize_and_upload_uworker_input(uworker_input)
+        with mock.patch(
+            'clusterfuzz._internal.google_cloud_utils.storage.'
+            'download_signed_url', download_signed_url) as _:
+          downloaded_input = uworker_io.download_and_deserialize_uworker_input(
+              self.FAKE_URL)
 
     # Test that testcase (de)serialization worked.
-    downloaded_testcase = downloaded_input.pop('testcase')
+    downloaded_testcase = downloaded_input.testcase
     self.assertEqual(self.testcase.crash_type, downloaded_testcase.crash_type)
     self.assertEqual(self.testcase.crash_address,
                      downloaded_testcase.crash_address)
@@ -252,9 +246,12 @@ class RoundTripTest(unittest.TestCase):
     # Things will break horribly if we pass an unwrapped entity.
     self.assertIsInstance(downloaded_testcase, uworker_io.UworkerEntityWrapper)
 
-    # Now test that the rest of the input was (de)serialized properly.
-    del uworker_input['testcase']
-    self.assertDictEqual(uworker_input, downloaded_input)
+    self.assertDictEqual(uworker_input.uworker_env,
+                         downloaded_input.uworker_env)
+    self.assertEqual(uworker_input.uworker_output_upload_url,
+                     downloaded_input.uworker_output_upload_url)
+    self.assertEqual(uworker_input.testcase_download_url,
+                     downloaded_input.testcase_download_url)
 
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading uworker output works. This means
@@ -279,58 +276,58 @@ class RoundTripTest(unittest.TestCase):
 
     def upload_signed_url(data, src):
       del src
-      with open(upload_signed_url_tempfile.name, 'wb') as fp:
+      with open(upload_signed_url_tempfile, 'wb') as fp:
         fp.write(data)
       return True
 
     upload_signed_url_name = ('clusterfuzz._internal.google_cloud_utils.'
                               'storage.upload_signed_url')
-    copy_file_from_name = (
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from')
 
-    with tempfile.NamedTemporaryFile() as output_temp_file, mock.patch(
+    with tempfile.TemporaryDirectory() as tmp_dir, mock.patch(
         upload_signed_url_name, upload_signed_url) as _:
+
+      os.environ['BOT_TMPDIR'] = tmp_dir
+      output_temp_file = os.path.join(tmp_dir, 'output-temp-file')
       upload_signed_url_tempfile = output_temp_file
       uworker_io.serialize_and_upload_uworker_output(output, self.FAKE_URL)
 
-      # Create a version of copy_file_from that will "downloads" the data from
-      # the file upload_signed_url wrote it to.
-      def copy_file_from(gcs_url, local_path):
-        del gcs_url
-        shutil.copyfile(output_temp_file.name, local_path)
-        return True
+      download_input_based_on_output_url_name = (
+          'clusterfuzz._internal.bot.tasks.utasks.uworker_io.'
+          'download_input_based_on_output_url')
+      read_data_name = (
+          'clusterfuzz._internal.google_cloud_utils.storage.read_data')
 
-      download_uworker_input_name = (
-          'clusterfuzz._internal.bot.tasks.utasks.uworker_io._download_uworker_input_from_gcs'
-      )
+      def read_data(_):
+        with open(upload_signed_url_tempfile, 'rb') as fp:
+          return fp.read()
+
       uworker_env = {'PATH': '/blah'}
-      uworker_input = {'uworker_env': uworker_env, 'testcase_id': 'one-two'}
-      serialized_uworker_input = uworker_io.serialize_uworker_input(
-          uworker_input)
-      with mock.patch(copy_file_from_name, copy_file_from) as _, mock.patch(
-          download_uworker_input_name, return_value=serialized_uworker_input):
-        downloaded_output = uworker_io.download_and_deserialize_uworker_output(
-            self.FAKE_URL)
+      uworker_input = uworker_io.UworkerInput(
+          uworker_env=uworker_env, testcase_id='one-two')
+      with mock.patch(
+          download_input_based_on_output_url_name,
+          return_value=uworker_input) as _, mock.patch(read_data_name,
+                                                       read_data):
 
-    # Test that the entity (de)serialization and change tracking working.
-    downloaded_output = downloaded_output.to_dict()
-    downloaded_testcase = downloaded_output.pop('testcase')
-    self.assertEqual(downloaded_testcase.regression, testcase.regression)
-    self.assertEqual(downloaded_testcase.crash_type, testcase.crash_type)
-    self.assertEqual(downloaded_testcase.timestamp, testcase.timestamp)
+        downloaded_output = (
+            uworker_io.download_and_deserialize_uworker_output(self.FAKE_URL))
+
+        self.assertEqual(downloaded_output.testcase.regression,
+                         testcase.regression)
+        self.assertEqual(downloaded_output.testcase.crash_type,
+                         testcase.crash_type)
+        self.assertEqual(downloaded_output.testcase.timestamp,
+                         testcase.timestamp)
 
     # Test that the rest of the output was (de)serialized correctly.
-    self.assertEqual(downloaded_testcase.key.serialized(),
+    self.assertEqual(downloaded_output.testcase.key.serialized(),
                      self.testcase.key.serialized())
-    self.assertDictEqual(
-        downloaded_output, {
-            'crash_time': 1,
-            'error': uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
-            'uworker_input': uworker_input,
-            'uworker_env': {
-                'PATH': '/blah'
-            }
-        })
+    self.assertEqual(downloaded_output.crash_time, 1)
+    self.assertEqual(downloaded_output.error,
+                     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+    self.assertEqual(downloaded_output.uworker_input.testcase_id,
+                     uworker_input.testcase_id)
+    self.assertDictEqual(downloaded_output.uworker_env, uworker_env)
 
   def test_output_error_serialization(self):
     """Tests that errors can be returned by the tasks."""

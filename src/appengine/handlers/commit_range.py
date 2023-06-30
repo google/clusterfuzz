@@ -66,7 +66,7 @@ class RevisionFilter(filters.Filter):
   def add(self, query, params):
     """Set query according to revision and type params."""
     if not params.get('revision'):
-      raise helpers.EarlyExitException('Please specify the revision.', 400)
+      raise helpers.EarlyExitError('Please specify the revision.', 400)
 
     prefix = params['type']
     revision = helpers.cast(params['revision'], int,
@@ -112,7 +112,7 @@ class TypeFilter(filters.Filter):
     value = params.get('type', 'regression')
 
     if value not in ['fixed', 'regression']:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           "'type' can only be either 'fixed' or 'regression'.", 400)
 
 

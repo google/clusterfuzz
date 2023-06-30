@@ -57,7 +57,7 @@ class SessionLoginHandler(base_handler.Handler):
     try:
       session_cookie = auth.create_session_cookie(id_token, expires_in)
     except auth.AuthError:
-      raise helpers.EarlyExitException('Failed to create session cookie.', 401)
+      raise helpers.EarlyExitError('Failed to create session cookie.', 401)
 
     expires = datetime.datetime.now() + expires_in
     response = self.render_json({'status': 'success'})

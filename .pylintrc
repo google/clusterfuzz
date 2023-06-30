@@ -97,7 +97,7 @@ variable-rgx=^[a-z][a-z0-9_]*$
 inlinevar-rgx=^[a-z][a-z0-9_]*$
 
 # Good variable names which should always be accepted, separated by a comma.
-good-names=main,_
+good-names=main,_,maxDiff
 
 # Bad variable names which should always be refused, separated by a comma.
 bad-names=

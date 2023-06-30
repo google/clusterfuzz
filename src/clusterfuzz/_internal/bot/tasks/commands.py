@@ -21,17 +21,17 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import blame_task
-from clusterfuzz._internal.bot.tasks import corpus_pruning_task
-from clusterfuzz._internal.bot.tasks import fuzz_task
 from clusterfuzz._internal.bot.tasks import impact_task
-from clusterfuzz._internal.bot.tasks import minimize_task
-from clusterfuzz._internal.bot.tasks import progression_task
-from clusterfuzz._internal.bot.tasks import regression_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import minimize_task
+from clusterfuzz._internal.bot.tasks.utasks import progression_task
+from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
@@ -111,6 +111,8 @@ class UTaskLocalInMemoryExecutor(BaseTask):
     if uworker_input is None:
       return
     uworker_output = utasks.uworker_main_no_io(self.module, uworker_input)
+    if uworker_output is None:
+      return
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.log('Utask local: done.')
 
@@ -127,12 +129,12 @@ class UTask(BaseTask):
 COMMAND_MAP = {
     'analyze': utask_factory(analyze_task, use_gcs_for_io=True),
     'blame': TrustedTask(blame_task),
-    'corpus_pruning': TrustedTask(corpus_pruning_task),
-    'fuzz': TrustedTask(fuzz_task),
+    'corpus_pruning': utask_factory(corpus_pruning_task),
+    'fuzz': utask_factory(fuzz_task),
     'impact': TrustedTask(impact_task),
-    'minimize': TrustedTask(minimize_task),
-    'progression': TrustedTask(progression_task),
-    'regression': TrustedTask(regression_task),
+    'minimize': utask_factory(minimize_task),
+    'progression': utask_factory(progression_task),
+    'regression': utask_factory(regression_task),
     'symbolize': TrustedTask(symbolize_task),
     'unpack': TrustedTask(unpack_task),
     'upload_reports': TrustedTask(upload_reports_task),

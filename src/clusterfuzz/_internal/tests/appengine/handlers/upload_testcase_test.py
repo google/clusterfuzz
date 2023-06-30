@@ -69,7 +69,7 @@ class FindFuzzTargetTest(unittest.TestCase):
   def test_not_found(self):
     """Test target not found."""
     data_types.Job(name='job', environment_string='').put()
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       self.assertEqual((None, None),
                        upload_testcase.find_fuzz_target('libFuzzer', 'notfound',
                                                         'job'))
@@ -81,7 +81,7 @@ class UploadOAuthTest(unittest.TestCase):
   """OAuth upload tests."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
@@ -117,7 +117,7 @@ class UploadOAuthTest(unittest.TestCase):
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
-    with open(os.path.join(DATA_DIRECTORY, name), 'r') as handle:
+    with open(os.path.join(DATA_DIRECTORY, name)) as handle:
       return handle.read()
 
   def assert_dict_has_items(self, expected, actual):

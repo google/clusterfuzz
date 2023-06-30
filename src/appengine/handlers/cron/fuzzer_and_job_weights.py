@@ -17,7 +17,6 @@ import collections
 import datetime
 
 from google.cloud import ndb
-import six
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_handler
@@ -327,7 +326,7 @@ def update_target_weights_for_engine(client, engine, specifications):
   for match in specifications:
     update_matches_for_specification(match, client, engine, matches, run_set)
 
-  for (fuzzer, job), match in six.iteritems(matches):
+  for (fuzzer, job), match in matches.items():
     if (fuzzer, job) not in run_set:
       # This ensures that we don't reset weights for fuzzers with problems if
       # they didn't run in the time covered by our queries.

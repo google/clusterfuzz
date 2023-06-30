@@ -319,6 +319,6 @@ class PerformanceAnalyzerTest(PerformanceAnalyzerTestBase):
         os.path.join(self.libfuzzer_data_directory, 'expected_report.json'),
         eval_data=False)
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     self.assertEqual(
         json.loads(performance_report), json.loads(expected_report))

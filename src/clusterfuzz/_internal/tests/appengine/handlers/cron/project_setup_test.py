@@ -116,7 +116,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
   """Test project_setup for OSS-Fuzz."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/setup', view_func=project_setup.Handler.as_view('/setup'))
@@ -564,7 +564,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'MAIN_REPO = https://github.com/google/main-repo\n'
         'FILE_GITHUB_ISSUE = False\n')
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
@@ -1762,7 +1762,7 @@ class GenericProjectSetupTest(unittest.TestCase):
   """Test generic project setup."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/setup', view_func=project_setup.Handler.as_view('/setup'))

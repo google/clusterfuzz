@@ -370,7 +370,7 @@ class GetTestcaseTest(unittest.TestCase):
 
   def test_no_testcase_id(self):
     """Test no testcase id."""
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       show.get_testcase_detail_by_id(None)
 
     self.assertEqual(cm.exception.status, 404)
@@ -378,7 +378,7 @@ class GetTestcaseTest(unittest.TestCase):
 
   def test_no_testcase(self):
     """Test invalid testcase."""
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       show.get_testcase_detail_by_id(1)
 
     self.assertEqual(cm.exception.status, 404)
@@ -389,7 +389,7 @@ class GetTestcaseTest(unittest.TestCase):
     self.mock.can_user_access_testcase.return_value = False
     data_types.Testcase().put()
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       show.get_testcase_detail_by_id(2)
 
     self.assertEqual(cm.exception.status, 403)
@@ -487,7 +487,7 @@ class GetTestcaseTest(unittest.TestCase):
                                      ('fully_qualified_name', 'fuzzer1')]),
     }
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     self.assertDictContainsSubset(expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 
@@ -597,7 +597,7 @@ class GetTestcaseTest(unittest.TestCase):
                                          'libFuzzer_test_fuzzer')]),
     }
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     self.assertDictContainsSubset(expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 

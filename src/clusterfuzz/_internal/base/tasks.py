@@ -38,9 +38,6 @@ HIGH_END_JOBS_PREFIX = 'high-end-jobs'
 JOBS_TASKQUEUE = JOBS_PREFIX
 HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
 
-# ML job is currently supported on Linux only.
-ML_JOBS_TASKQUEUE = 'ml-jobs-linux'
-
 # Limits on number of tasks leased at once and in total.
 MAX_LEASED_TASKS_LIMIT = 1000
 MAX_TASKS_LIMIT = 100000
@@ -188,10 +185,6 @@ def get_task():
   task = get_command_override()
   if task:
     return task
-
-  # TODO(unassigned): Remove this hack.
-  if environment.get_value('ML'):
-    return get_regular_task(queue=ML_JOBS_TASKQUEUE)
 
   allow_all_tasks = not environment.get_value('PREEMPTIBLE')
   if allow_all_tasks:
