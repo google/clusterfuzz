@@ -79,7 +79,7 @@ TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
 SELF_LINK_REGEX = re.compile(
-    r'https\:\/\/www\.googleapis\.com\/storage\/v\d+\/b'
+    r'https\:\/\/www\.googleapis\.com\/storage\/v1\/b'
     r'(?P<bucket>\/[a-zA-Z\_\-\.]+)\/o(?P<path>\/[a-zA-Z\_\-\.]+)')
 
 
