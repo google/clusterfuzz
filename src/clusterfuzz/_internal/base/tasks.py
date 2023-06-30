@@ -174,6 +174,7 @@ def initialize_task(messages):
   if not path.endswith('.output'):
     # This is an input message, and doesn't need to be postprocessed.
     message.ack()
+    # TODO(metzman): Consider using differnet buckets for inputs and outputs.
     return None
   bucket = groupdict['bucket']
   argument = f'{bucket}{path}'
