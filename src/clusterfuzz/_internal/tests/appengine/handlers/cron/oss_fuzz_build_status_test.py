@@ -16,9 +16,9 @@
 import datetime
 import json
 import unittest
+from unittest import mock
 
 import flask
-import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -29,7 +29,7 @@ from libs.issue_management import monorail
 from libs.issue_management.monorail.issue import Issue
 
 
-class MockResponse(object):
+class MockResponse:
   """Mock url request's response."""
 
   def __init__(self, text):
@@ -39,7 +39,7 @@ class MockResponse(object):
     pass
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager:
   """Mock issue tracker manager."""
 
   def __init__(self, project_name):
@@ -87,7 +87,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.itm = IssueTrackerManager('oss-fuzz')
     self.mock.get_issue_tracker.return_value = monorail.IssueTracker(self.itm)
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_no_build_failures(self):
     """Test run with no build failures."""

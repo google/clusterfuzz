@@ -110,7 +110,7 @@ class IntegrationTest(unittest.TestCase):
       super().run(*args, **kwargs)
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     test_helpers.patch(self, ['os.getpid'])
     self.mock.getpid.return_value = 1337
     test_helpers.patch_environ(self)
