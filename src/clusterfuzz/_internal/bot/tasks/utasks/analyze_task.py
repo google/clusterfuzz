@@ -242,7 +242,7 @@ def handle_noncrash(output):
                    output.uworker_input.job_type)
     return
 
-  data_handler.close_invalid_uploaded_testcase(
+  data_handler.mark_invalid_uploaded_testcase(
       output.testcase, output.testcase_upload_metadata, 'Unreproducible')
 
 
@@ -393,9 +393,9 @@ def handle_build_setup_error(output):
         output.uworker_input.testcase_id,
         output.uworker_input.job_type,
         wait_time=testcase_fail_wait)
-  else:
-    data_handler.close_invalid_uploaded_testcase(
-        output.testcase, output.testcase_upload_metadata, 'Build setup failed')
+    return
+  data_handler.mark_invalid_uploaded_testcase(
+      output.testcase, output.testcase_upload_metadata, 'Build setup failed')
 
 
 def utask_postprocess(output):

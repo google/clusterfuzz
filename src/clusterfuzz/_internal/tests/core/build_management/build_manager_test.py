@@ -199,7 +199,7 @@ class FuchsiaBuildTest(unittest.TestCase):
         'fuchsia-([0-9]+).zip')
     environment.set_value('OS_OVERRIDE', 'FUCHSIA')
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir)
