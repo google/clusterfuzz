@@ -156,9 +156,13 @@ def run_tests_parallel(args, test_directory, top_level_dir):
         unittest.TextTestRunner(verbosity=1).run(subsuite)
         raise RuntimeError('A failure occurred while importing the module.')
 
-      for test_class in subsuite._tests:  # pylint: disable=protected-access
-        test_classes.append((test_class.__module__,
-                             test_class.__class__.__name__))
+      try:
+        for test_class in subsuite._tests:  # pylint: disable=protected-access
+          test_classes.append((test_class.__module__,
+                               test_class.__class__.__name__))
+      except AttributeError:
+        subsuite.debug()
+
   test_classes = sorted(test_classes)
 
   test_modules = []

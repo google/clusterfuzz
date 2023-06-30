@@ -16,8 +16,7 @@
 import copy
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.afl import launcher
@@ -68,7 +67,7 @@ class StatsGetterTests(unittest.TestCase):
     self.mock.is_lpm_fuzz_target.return_value = True
     self.strategies = launcher.FuzzingStrategies(None)
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_set_afl_stats(self):
     """Tests that set_afl_stats() parses a fuzzer_stats file properly."""

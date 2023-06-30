@@ -184,15 +184,8 @@ class Handler(base_handler.Handler):
     """Get and render the testcase list in HTML."""
     result, params = get_result()
     field_values = {
-        'projects':
-            data_handler.get_all_project_names(),
-        'fuzzers':
-            data_handler.get_all_fuzzer_names_including_children(
-                include_parents=True),
-        'jobs':
-            data_handler.get_all_job_type_names(),
-        'shouldShowImpact':
-            utils.is_chromium()
+        'projects': data_handler.get_all_project_names(),
+        'shouldShowImpact': utils.is_chromium()
     }
     return self.render('testcase-list.html', {
         'fieldValues': field_values,

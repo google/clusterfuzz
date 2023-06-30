@@ -19,8 +19,8 @@ import shlex
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
-import mock
 import parameterized
 import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 
@@ -232,7 +232,7 @@ class FuzzTest(fake_fs_unittest.TestCase):
 
     self.mock._is_multistep_merge_supported = True  # pylint: disable=protected-access
     self.mock.getpid.return_value = 9001
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_fuzz(self):
     """Test fuzz."""
@@ -448,7 +448,7 @@ class BaseIntegrationTest(unittest.TestCase):
   """Base integration tests."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     test_helpers.patch_environ(self)
 
     os.environ['BUILD_DIR'] = DATA_DIR
