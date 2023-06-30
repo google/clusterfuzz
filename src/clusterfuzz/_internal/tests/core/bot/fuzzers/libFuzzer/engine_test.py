@@ -379,8 +379,6 @@ class FuzzTest(fake_fs_unittest.TestCase):
         'strategy_dataflow_tracing': 0,
         'strategy_extra_sanitizers': 0,
         'strategy_fork': 0,
-        'strategy_mutator_plugin': 0,
-        'strategy_mutator_plugin_radamsa': 0,
         'strategy_peach_grammar_mutation': '',
         'strategy_random_max_len': 0,
         'strategy_selection_method': 'default',
@@ -462,8 +460,6 @@ class BaseIntegrationTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.get_merge_timeout',
         'clusterfuzz._internal.bot.fuzzers.engine_common.random_choice',
-        'clusterfuzz._internal.bot.fuzzers.mutator_plugin._download_mutator_plugin_archive',
-        'clusterfuzz._internal.bot.fuzzers.mutator_plugin._get_mutator_plugins_from_bucket',
         'clusterfuzz._internal.bot.fuzzers.strategy_selection.'
         'generate_weighted_strategy_pool',
         'clusterfuzz._internal.bot.fuzzers.libfuzzer.get_fuzz_timeout',
@@ -473,7 +469,6 @@ class BaseIntegrationTest(unittest.TestCase):
 
     self.mock.getpid.return_value = 1337
 
-    self.mock._get_mutator_plugins_from_bucket.return_value = []  # pylint: disable=protected-access
     self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool()
     self.mock.get_merge_timeout.return_value = 10
     self.mock.random_choice.side_effect = mock_random_choice
@@ -647,42 +642,6 @@ class IntegrationTests(BaseIntegrationTest):
     with open(cleanse_output_path, encoding='utf-8') as f:
       result = f.read()
       self.assertFalse(all(c == 'A' for c in result))
-
-  def test_fuzz_with_mutator_plugin(self):
-    """Tests fuzzing with a mutator plugin."""
-
-    os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(TEMP_DIR,
-                                                     'mutator-plugins')
-    # TODO(metzman): Remove the old binary and switch the test to the new one.
-    fuzz_target_name = 'test_fuzzer_old'
-    plugin_archive_name = (
-        'custom_mutator_plugin-libfuzzer_asan-test_fuzzer_old.zip')
-
-    # Call before setting up the plugin since this call will erase the directory
-    # the plugin is written to.
-    _, corpus_path = setup_testcase_and_corpus('empty', 'empty_corpus')
-    plugin_archive_path = os.path.join(DATA_DIR, plugin_archive_name)
-
-    self.mock.generate_weighted_strategy_pool.return_value = set_strategy_pool(
-        [strategy.MUTATOR_PLUGIN_STRATEGY])
-    self.mock._get_mutator_plugins_from_bucket.return_value = [  # pylint: disable=protected-access
-        plugin_archive_name
-    ]
-    self.mock._download_mutator_plugin_archive.return_value = (  # pylint: disable=protected-access
-        plugin_archive_path)
-    custom_mutator_print_string = 'CUSTOM MUTATOR\n'
-    try:
-      target_path = engine_common.find_fuzzer_path(DATA_DIR, fuzz_target_name)
-      engine_impl = engine.Engine()
-      options = engine_impl.prepare(corpus_path, target_path, DATA_DIR)
-      results = engine_impl.fuzz(target_path, options, TEMP_DIR, 5)
-    finally:
-      shutil.rmtree(os.environ['MUTATOR_PLUGINS_DIR'])
-
-    # custom_mutator_print_string gets printed before the custom mutator mutates
-    # a test case. Assert that the count is greater than 1 to ensure that the
-    # function didn't crash on its first execution (after printing).
-    self.assertGreater(results.logs.count(custom_mutator_print_string), 1)
 
   def test_merge_reductions(self):
     """Tests that reduced testcases are merged back into the original corpus
