@@ -14,7 +14,6 @@
 """Fuzz task for handling fuzzing."""
 
 import collections
-from collections import namedtuple
 import datetime
 import itertools
 import os
@@ -63,7 +62,7 @@ from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 from clusterfuzz.stacktraces.__init__ import CrashInfo
 
-SelectionMethod = namedtuple('SelectionMethod', 'method_name probability')
+SelectionMethod = collections.namedtuple('SelectionMethod', 'method_name probability')
 
 DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
@@ -317,7 +316,7 @@ class CrashGroup:
     # prevent other machines from creating identical testcases.
     self.existing_testcase = data_handler.find_testcase(
         context.project_name, crashes[0].crash_type, crashes[0].crash_state,
-        crashes[0].security_flag, fully_qualified_fuzzer_name)
+        crashes[0].security_flag, fuzz_target=fully_qualified_fuzzer_name)
 
   def is_new(self):
     """Return true if there's no existing testcase."""

@@ -727,7 +727,7 @@ def _process_corpus_crashes(context, result):
   for crash in result.crashes:
     existing_testcase = data_handler.find_testcase(
         project_name, crash.crash_type, crash.crash_state, crash.security_flag,
-        context.fuzz_target.project_qualified_name())
+        fuzz_target=context.fuzz_target.project_qualified_name())
     if existing_testcase:
       continue
 
