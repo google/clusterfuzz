@@ -119,17 +119,9 @@ def get_utask_module(module_name):
 
 
 def uworker_bot_main():
+  """The entrypoint for a uworker."""
   module_name = environment.get_value('UWORKER_MODULE_NAME')
-  get_utask_module(module_name)
-  input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
-  uworker_main(module, input_download_url)
-  return True
-
-
-def uworker_bot_main():
-  module_name = environment.get_value('UWORKER_MODULE_NAME')
-  full_module_name = f'clusterfuzz._internal.bot.tasks.utasks.{module_name}'
-  module = importlib.import_module(full_module_name)
+  module = get_utask_module(module_name)
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
   uworker_main(module, input_download_url)
   return True
@@ -139,5 +131,5 @@ def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
-  utask_module = get_utask_module(uworker_output.uworker_input.module_name)
+  utask_module = get_utask_module(uworker_output.uworker_input.module_name)  # pylint: disable=no-member
   utask_module.utask_postprocess(uworker_output)

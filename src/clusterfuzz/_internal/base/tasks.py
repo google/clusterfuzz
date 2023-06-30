@@ -159,13 +159,12 @@ def get_high_end_task():
 
 
 def initialize_task(messages):
+  """Creates a task from |messages|."""
   message = messages[0]
   if message.attributes.get('kind', None) != 'storage#object':
     return PubSubTask(message)
 
   # Handle postprocess task.
-  job = 'none'
-  command = 'postprocess'
   raw_self_link = message.attributes.get('selfLink')
   match = SELF_LINK_REGEX.search(raw_self_link)
   if match is None:
@@ -178,6 +177,8 @@ def initialize_task(messages):
     return None
   bucket = groupdict['bucket']
   argument = f'{bucket}{path}'
+  command = 'postprocess'
+  job_type = 'none'
   return Task(command, argument, job_type)
 
 

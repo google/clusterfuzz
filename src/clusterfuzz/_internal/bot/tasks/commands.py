@@ -90,10 +90,9 @@ class UTask(BaseTask):
 
     input_download_url, output_download_url = preprocess_result
     utasks.uworker_main(self.module, input_download_url)
-    # Postprocessing is done on a different machine.
-    utasks.tworker_postprocess(self.module, output_download_url,
-                               input_download_url)
-    logs.log('Utask local: done.')
+    # Postprocessing is done on a different instance.
+    del output_download_url  # Don't need this, it's for a different instance.
+    logs.log('Utask local: done with preprocess and main.')
 
 
 class UTaskLocalExecutor(BaseTask):
@@ -116,12 +115,17 @@ class UTaskLocalExecutor(BaseTask):
 class PostprocessTask(BaseTask):
   """Represents postprocessing of an untrusted task."""
 
-  def execute(self, input_path, job_type, uworker_env):
+  def __init__(self, module='none'):
+    # We don't need a module, postprocess isn't a real task, it's one part of
+    # many different tasks.
+    super().__init__(module)
+
+  def execute(self, task_argument, job_type, uworker_env):
     """Executes postprocessing of a utask."""
     # These values are false for now.
     del job_type
     del uworker_env
-
+    input_path = task_argument
     utasks.tworker_postprocess(input_path)
 
 
