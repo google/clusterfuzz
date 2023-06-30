@@ -80,7 +80,7 @@ TASK_END_TIME_KEY = 'task_end_time'
 
 SELF_LINK_REGEX = re.compile(
     r'https\:\/\/www\.googleapis\.com\/storage\/v\d+\/b'
-    r'(?P<bucket>\/[a-zA-z\_\-\.]+)\/o(?P<path>\/[a-zA-z\_\-\.]+)')
+    r'(?P<bucket>\/[a-zA-Z\_\-\.]+)\/o(?P<path>\/[a-zA-Z\_\-\.]+)')
 
 
 class Error(Exception):
