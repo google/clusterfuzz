@@ -184,7 +184,6 @@ def initialize_task(messages):
   return Task(command, argument, job_type)
 
 
-
 def get_regular_task(queue=None):
   """Get a regular task."""
   if not queue:
