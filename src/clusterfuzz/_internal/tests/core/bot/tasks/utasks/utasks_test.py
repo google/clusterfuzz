@@ -18,6 +18,7 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.tests.test_libs import helpers
 
@@ -103,3 +104,9 @@ class UworkerMainTest(unittest.TestCase):
     input_download_url = 'http://input'
     utasks.uworker_main(module, input_download_url)
     module.utask_main.assert_called_with(self.uworker_input)
+
+
+class GetUtaskModuleTest(unittest.TestCase):
+
+  def test_get_utask_module(self):
+    self.assertEqual(utasks.get_utask_module('analyze_task'), analyze_task)

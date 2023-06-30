@@ -20,6 +20,7 @@ from clusterfuzz._internal.base import tasks
 
 
 class InitializeTaskTest(unittest.TestCase):
+  """Tests for initialize_task."""
 
   def setUp(self):
     self.command = 'symbolize'
