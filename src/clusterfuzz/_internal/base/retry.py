@@ -21,6 +21,7 @@ import sys
 import time
 
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 
 def sleep(seconds):
@@ -31,7 +32,16 @@ def sleep(seconds):
 
 def get_delay(num_try, delay, backoff):
   """Compute backoff delay."""
-  return delay * (backoff**(num_try - 1))
+  delay = delay * (backoff**(num_try - 1))
+  if (environment.get_value('PY_UNITTESTS') or
+      environment.get_value('INTEGRATION') or
+      environment.get_value('UNTRUSTED_RUNNER_TESTS') or
+      environment.get_value('LOCAL_DEVELOPMENT') or
+      environment.get_value('UTASK_TESTS')):
+    # Don't sleep for long during tests. Flake is better.
+    return max(delay, 3)
+
+  return delay
 
 
 def wrap(retries,
