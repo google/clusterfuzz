@@ -341,7 +341,7 @@ class Fuzzer(Model):
   # Column specification for stats.
   stats_columns = ndb.TextProperty()
 
-  # Helpful descriptions for the stats_columns. In a yaml format.
+  # Helpful descriptions for the stats_column.sw In a yaml format.
   stats_column_descriptions = ndb.TextProperty(indexed=False)
 
   # Whether this is a builtin fuzzer.

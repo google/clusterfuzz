@@ -73,6 +73,8 @@ OSS_FUZZ_MEMORY_SAFE_LANGUAGE_PROJECT_WEIGHT = 0.2
 
 SetupResult = collections.namedtuple('SetupResult', 'project_names job_names')
 
+HTTP_TIMEOUT_SECONDS = 30
+
 
 class ProjectSetupError(Exception):
   """Exception."""
@@ -207,7 +209,8 @@ def get_github_url(url):
     raise ProjectSetupError('No github credentials.')
 
   client_id, client_secret = github_credentials.strip().split(';')
-  response = requests.get(url, auth=(client_id, client_secret), timeout=30)
+  response = requests.get(
+      url, auth=(client_id, client_secret), timeout=HTTP_TIMEOUT_SECONDS)
   if response.status_code != 200:
     logs.log_error(
         f'Failed to get github url: {url}.', status_code=response.status_code)
@@ -639,10 +642,6 @@ class ProjectSetup:
     """Shared corpus bucket name."""
     return environment.get_value('SHARED_CORPUS_BUCKET')
 
-  def _mutator_plugins_bucket_name(self):
-    """Mutator plugins bucket name."""
-    return environment.get_value('MUTATOR_PLUGINS_BUCKET')
-
   def _backup_bucket_name(self, project_name):
     """Return the backup_bucket_name."""
     return project_name + '-backup.' + data_handler.bucket_domain_suffix()
@@ -695,9 +694,6 @@ class ProjectSetup:
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
     add_service_account_to_bucket(client, self._shared_corpus_bucket_name(),
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
-    add_service_account_to_bucket(client, self._mutator_plugins_bucket_name(),
-                                  service_account, OBJECT_VIEWER_IAM_ROLE)
-
     data_bundles = {
         fuzzer_entity.get().data_bundle_name
         for fuzzer_entity in self._fuzzer_entities.values()

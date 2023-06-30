@@ -145,7 +145,7 @@ TEMPLATES = {
 }
 
 
-class BaseBuiltinFuzzerDefaults(object):
+class BaseBuiltinFuzzerDefaults:
   """Default values for a builtin Fuzzer data_type. Note this class should be
   inherited and should not be used directly."""
 
@@ -188,7 +188,6 @@ class LibFuzzerDefaults(BaseBuiltinFuzzerDefaults):
     # Use single quotes since the string ends in a double quote.
     # pylint: disable=line-too-long
     self.stats_column_descriptions = '''fuzzer: "Fuzz target"
-perf_report: "Link to performance analysis report"
 tests_executed: "Number of testcases executed during this time period"
 new_crashes: "Number of new unique crashes observed during this time period"
 edge_coverage: "Coverage for this fuzz target (number of edges/total)"
@@ -208,8 +207,7 @@ total_fuzzing_time_hrs: "Total time in hours for which the fuzzer(s) ran. Will b
 logs: "Link to fuzzing logs"
 corpus_backup: "Backup copy of the minimized corpus generated based on code coverage"'''
 
-    self.stats_columns = """_PERFORMANCE_REPORT as perf_report,
-sum(t.number_of_executed_units) as tests_executed,
+    self.stats_columns = """sum(t.number_of_executed_units) as tests_executed,
 custom(j.new_crashes) as new_crashes,
 _EDGE_COV as edge_coverage,
 _COV_REPORT as cov_report,
@@ -378,7 +376,7 @@ def setup_metrics(non_dry_run):
     if not isinstance(metric, monitor.Metric):
       continue
 
-    descriptor = monitoring_v3.types.MetricDescriptor()
+    descriptor = monitoring_v3.types.MetricDescriptor()  # pylint: disable=no-member
     metric.monitoring_v3_metric_descriptor(descriptor)
 
     if non_dry_run:
