@@ -65,16 +65,16 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-def utask_factory(task_module, in_memory=False):
+def utask_factory(task_module, in_memory=True):
   """Returns a task implemention for a utask. Depending on the global
   configuration, the implementation will either execute the utask entirely on
   one machine or on multiple."""
-  if not in_memory:
-    logs.log('Using GCS for utasks.')
-    return UTask(task_module)
+  if in_memory:
+    logs.log('Using memory for utasks.')
+    return UTaskLocalExecutor(task_module)
 
-  logs.log('Using memory for utasks.')
-  return UTaskLocalExecutor(task_module)
+  logs.log('Using GCS for utasks.')
+  return UTask(task_module)
 
 
 class UTask(BaseTask):

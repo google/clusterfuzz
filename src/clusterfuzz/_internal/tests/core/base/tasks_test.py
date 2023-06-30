@@ -18,7 +18,9 @@ from unittest import mock
 
 from clusterfuzz._internal.base import tasks
 
+
 class InitializeTaskTest(unittest.TestCase):
+
   def setUp(self):
     self.command = 'symbolize'
     self.argument = 'blah'
