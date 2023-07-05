@@ -17,8 +17,6 @@
 import datetime
 import unittest
 
-import six
-
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -381,7 +379,7 @@ class CleanupTest(unittest.TestCase):
     data_types.Job(
         name=testcase.job_type,
         platform='LINUX',
-        environment_string=('SKIP_AUTO_CLOSE_ISSUE = True\n')).put()
+        environment_string='SKIP_AUTO_CLOSE_ISSUE = True\n').put()
 
     cleanup.mark_issue_as_closed_if_testcase_is_fixed(
         policy=self.policy, testcase=testcase, issue=self.issue)
@@ -1077,11 +1075,10 @@ class GetJobsAndPlatformsForProjectTest(unittest.TestCase):
     data_types.Job(
         name='job5',
         platform='LINUX',
-        environment_string=('PROJECT_NAME=project5')).put()
+        environment_string='PROJECT_NAME=project5').put()
     data_types.Job(
-        name='job6',
-        platform='MAC',
-        environment_string=('PROJECT_NAME=project6')).put()
+        name='job6', platform='MAC',
+        environment_string='PROJECT_NAME=project6').put()
 
   def test(self):
     actual_projects_map = cleanup.get_jobs_and_platforms_for_project()
@@ -1127,12 +1124,12 @@ class GetTopCrashesForAllProjectsAndPlatforms(unittest.TestCase):
     data_types.Job(
         name='job',
         platform='LINUX',
-        environment_string=('PROJECT_NAME = project')).put()
+        environment_string='PROJECT_NAME = project').put()
 
   def test(self):
     """Test."""
     expected_top_crashes_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': 'state1',
                 'crashType': 'type1',
@@ -1188,7 +1185,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
 
   def test_no_top_crashes(self):
     """Test no label is added if there are no top crashes."""
-    top_crashes_by_project_and_platform_map = {u'project': {'LINUX': []}}
+    top_crashes_by_project_and_platform_map = {'project': {'LINUX': []}}
 
     cleanup.update_fuzz_blocker_label(self.policy, self.testcase, self.issue,
                                       top_crashes_by_project_and_platform_map)
@@ -1201,7 +1198,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_no_match(self):
     """Test no label is added if there are no matching top crashes."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': 'state1',
                 'crashType': 'type1',
@@ -1224,7 +1221,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     self.testcase.put()
 
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1244,7 +1241,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_match_single_platform(self):
     """Test label is added if there is a matching top crash."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1276,7 +1273,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
     self.mock.is_oss_fuzz.return_value = True
     self.testcase.set_metadata('fuzzer_binary_name', 'fuzz_target1')
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1302,7 +1299,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_match_multiple_platforms(self):
     """Test label is added if there is a matching top crash."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1341,7 +1338,7 @@ class UpdateTopCrashLabelsTest(unittest.TestCase):
   def test_top_crashes_match_and_label_removed(self):
     """Test label is not added if it was added before and removed."""
     top_crashes_by_project_and_platform_map = {
-        u'project': {
+        'project': {
             'LINUX': [{
                 'crashState': self.testcase.crash_state,
                 'crashType': self.testcase.crash_type,
@@ -1500,7 +1497,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_issue_updated_once(self):
@@ -1511,7 +1508,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     self.issue._monorail_issue.comments.append(comment)
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
 
   def test_skipped_no_testcase_metadata(self):
     """Test that we don't add ccs if there are no issue_owners key in testcase
@@ -1520,7 +1517,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_empty_testcase_metadata(self):
@@ -1530,7 +1527,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_ccs_already_added_and_metadata_set(self):
@@ -1540,7 +1537,7 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     cleanup.update_issue_ccs_from_owners_file(self.policy, self.testcase,
                                               self.issue)
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, [], self.issue.ccs)
+    self.assertCountEqual([], self.issue.ccs)
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_skipped_ccs_alread_added_and_metadata_set(self):
@@ -1552,8 +1549,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
     self.assertEqual(
         True, self.testcase.get_metadata('has_issue_ccs_from_owners_file'))
     self.assertEqual('', self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, ['dev1@example1.com', 'dev2@example2.com'],
-                         sorted(self.issue.ccs))
+    self.assertCountEqual(['dev1@example1.com', 'dev2@example2.com'],
+                          sorted(self.issue.ccs))
     self.assertNotIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_add_ccs_with_some_initial_ones(self):
@@ -1565,8 +1562,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
         'Automatically adding ccs based on OWNERS file / target commit history.'
         '\n\nIf this is incorrect, please add the ClusterFuzz-Wrong label.',
         self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, ['dev1@example1.com', 'dev2@example2.com'],
-                         sorted(self.issue.ccs))
+    self.assertCountEqual(['dev1@example1.com', 'dev2@example2.com'],
+                          sorted(self.issue.ccs))
     self.assertIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
   def test_add_ccs_without_any_initial_ones(self):
@@ -1579,8 +1576,8 @@ class UpdateIssueCCsFromOwnersFileTest(unittest.TestCase):
         '\n\nIf this is incorrect, '
         'please file a bug on https://github.com/google/oss-fuzz/issues/new.',
         self.issue._monorail_issue.comment)
-    six.assertCountEqual(self, ['dev1@example1.com', 'dev2@example2.com'],
-                         sorted(self.issue.ccs))
+    self.assertCountEqual(['dev1@example1.com', 'dev2@example2.com'],
+                          sorted(self.issue.ccs))
     self.assertIn('ClusterFuzz-Auto-CC', self.issue.labels)
 
 
@@ -2132,14 +2129,13 @@ class CleanupUnusedFuzzTargetsTest(unittest.TestCase):
 
     cleanup.cleanup_unused_fuzz_targets_and_jobs()
 
-    six.assertCountEqual(
-        self, ['libFuzzer_binary3', 'libFuzzer_binary4'],
+    self.assertCountEqual(
+        ['libFuzzer_binary3', 'libFuzzer_binary4'],
         list([t.key.id() for t in data_types.FuzzTarget.query()]))
-    six.assertCountEqual(
-        self, [
-            'libFuzzer_binary3/job1', 'libFuzzer_binary4/job1',
-            'libFuzzer_binary4/job2'
-        ], list([t.key.id() for t in data_types.FuzzTargetJob.query()]))
+    self.assertCountEqual([
+        'libFuzzer_binary3/job1', 'libFuzzer_binary4/job1',
+        'libFuzzer_binary4/job2'
+    ], list([t.key.id() for t in data_types.FuzzTargetJob.query()]))
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -2163,7 +2159,7 @@ class CleanupUnusedHeartbeatsTest(unittest.TestCase):
     data_types.Heartbeat(last_beat_time=datetime.datetime(2018, 2, 1)).put()
     cleanup.cleanup_unused_heartbeats()
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         {
             'task_payload': None,
             'source_version': None,

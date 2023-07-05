@@ -18,9 +18,9 @@ import datetime
 import json
 import os
 import unittest
+from unittest import mock
 
 import flask
-import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -52,7 +52,7 @@ class TestBuildResults(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
     data_types.Fuzzer(
         name='testFuzzer',
@@ -63,8 +63,7 @@ class TestBuildResults(unittest.TestCase):
                        '_CORPUS_BACKUP as corpus_backup, '
                        '_QUARANTINE_SIZE as quarantine_size, '
                        '_COV_REPORT as coverage_report, '
-                       '_FUZZER_RUN_LOGS as fuzzer_logs,'
-                       '_PERFORMANCE_REPORT as performance_report'),
+                       '_FUZZER_RUN_LOGS as fuzzer_logs'),
         stats_column_descriptions=(
             'blah: "blah description"\n'
             'func_coverage: "func coverage description"\n')).put()
@@ -78,8 +77,7 @@ class TestBuildResults(unittest.TestCase):
                        '_CORPUS_BACKUP as corpus_backup, '
                        '_QUARANTINE_SIZE as quarantine_size, '
                        '_COV_REPORT as coverage_report, '
-                       '_FUZZER_RUN_LOGS as fuzzer_logs,'
-                       '_PERFORMANCE_REPORT as performance_report'),
+                       '_FUZZER_RUN_LOGS as fuzzer_logs'),
         stats_column_descriptions=(
             'blah: "blah description"\n'
             'func_coverage: "func coverage description"\n')).put()
@@ -165,7 +163,7 @@ class TestBuildResults(unittest.TestCase):
 
   def test_build_invalid_params(self):
     """Tests build_results with invalid/missing params."""
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       fuzzer_stats.build_results('', '', '', '', '')
 
   def test_build_by_fuzzer(self):

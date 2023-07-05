@@ -18,7 +18,6 @@ import random
 import time
 
 from googleapiclient.discovery import build
-import six
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
@@ -29,6 +28,8 @@ NUM_RETRIES = 10
 OPERATION_TIMEOUT = 15 * 60
 POLL_INTERVAL = 30
 SLEEP_TIME = 10
+
+# pylint: disable=no-member
 
 # TODO(ochang): Allow batching.
 
@@ -247,7 +248,7 @@ def recreate_instance_with_disks(instance_name,
 
   # Add any additional metadata required for instance booting.
   if additional_metadata:
-    for key, value in six.iteritems(additional_metadata):
+    for key, value in additional_metadata.items():
       items = instance_info.setdefault('metadata', {}).setdefault('items', [])
       _add_metadata_key_value(items, key, value)
 

@@ -16,8 +16,6 @@
 import collections
 import re
 
-import six
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -47,7 +45,7 @@ VARIANT_MAX_THRESHOLD = 10
 TOP_CRASHES_LIMIT = 10
 
 
-class TestcaseAttributes(object):
+class TestcaseAttributes:
   """Testcase attributes used for grouping."""
 
   __slots__ = ('id', 'is_leader', 'issue_id') + FORWARDED_ATTRIBUTES
@@ -90,7 +88,7 @@ def combine_testcases_into_group(testcase_1, testcase_2, testcase_map):
   # together and reuse one of their group ids.
   group_id_to_reuse = testcase_1.group_id
   group_id_to_move = testcase_2.group_id
-  for testcase in six.itervalues(testcase_map):
+  for testcase in testcase_map.values():
     if testcase.group_id == group_id_to_move:
       testcase.group_id = group_id_to_reuse
 
@@ -245,8 +243,8 @@ def _group_testcases_based_on_variants(testcase_map):
 def _group_testcases_with_same_issues(testcase_map):
   """Group testcases that are associated with same underlying issue."""
   logs.log('Grouping based on same issues.')
-  for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
-    for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
+  for testcase_1_id, testcase_1 in testcase_map.items():
+    for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:
@@ -274,8 +272,8 @@ def _group_testcases_with_same_issues(testcase_map):
 def _group_testcases_with_similar_states(testcase_map):
   """Group testcases with similar looking crash states."""
   logs.log('Grouping based on similar states.')
-  for testcase_1_id, testcase_1 in six.iteritems(testcase_map):
-    for testcase_2_id, testcase_2 in six.iteritems(testcase_map):
+  for testcase_1_id, testcase_1 in testcase_map.items():
+    for testcase_2_id, testcase_2 in testcase_map.items():
       # Rule: Don't group the same testcase and use different combinations for
       # comparisons.
       if testcase_1_id <= testcase_2_id:
@@ -352,7 +350,7 @@ def _shrink_large_groups_if_needed(testcase_map):
     return weight
 
   group_id_with_testcases_map = {}
-  for testcase in six.itervalues(testcase_map):
+  for testcase in testcase_map.values():
     if not testcase.group_id:
       continue
 
@@ -475,7 +473,7 @@ def group_testcases():
     updated_group_id_count = 0
     updated_group_bug_information = 0
     if updated_group_id:
-      for other_testcase in six.itervalues(testcase_map):
+      for other_testcase in testcase_map.values():
         if other_testcase.group_id != updated_group_id:
           continue
         updated_group_id_count += 1

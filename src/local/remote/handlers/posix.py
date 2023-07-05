@@ -23,8 +23,10 @@ from paramiko import ssh_exception
 from local.butler import common as butler_common
 from local.butler import package
 
+# pylint: disable=no-member
 
-class Handler(object):
+
+class Handler:
   """Handler for performing linux task."""
 
   def __init__(self, instance_name, platform, project, zone):
@@ -53,8 +55,7 @@ class Handler(object):
     return pids
 
   def _log_path(self, log_name):
-    return '{log_dir}/{log_name}.log'.format(
-        log_dir=self._abspath('bot/logs'), log_name=log_name)
+    return f'{self._abspath("bot/logs")}/{log_name}.log'
 
   def _run(self, command):
     """Run the command."""
@@ -75,7 +76,7 @@ class Handler(object):
 
     try:
       api.run('echo "Test rebooting"', timeout=3)
-      raise Exception(
+      raise RuntimeError(
           'Failed to reboot because we can still connect to the machine.')
     except ssh_exception.ProxyCommandFailure:
       print('Cannot connect to the machine. The machine has been rebooted '
@@ -86,9 +87,9 @@ class Handler(object):
     it back again."""
     pids = self._get_run_bot_pids()
     if not pids:
-      raise Exception('No run_bot.py is running.')
+      raise RuntimeError('No run_bot.py is running.')
 
-    self._run('kill %s' % ' '.join(pids))
+    self._run(f'kill {" ".join(pids)}')
     time.sleep(3)
 
     for _ in range(30):
@@ -99,26 +100,23 @@ class Handler(object):
       time.sleep(1)
 
     if not new_pids:
-      raise Exception('Failed to start run_bot.py after restarting.')
+      raise RuntimeError('Failed to start run_bot.py after restarting.')
 
-    print('run_bot.py has been restarted (PID=%s).' % ','.join(new_pids))
+    print(f'run_bot.py has been restarted (PID={",".join(new_pids)}).')
 
   def tail(self, log_name, line_count):
     """Print the last x lines of ./bot/logs/`log_name`.log."""
-    self._run('tail -n {line_count} {log_path}'.format(
-        line_count=line_count, log_path=self._log_path(log_name)))
+    self._run(f'tail -n {line_count} {self._log_path(log_name)}')
 
   def tailf(self, log_names):
     """Print ./bot/logs/`name`.log in real-time (equivalent to `tail -f`)."""
     log_paths = ' '.join([self._log_path(i) for i in log_names])
-    self._run('tail -f -n 100 %s' % log_paths)
+    self._run(f'tail -f -n 100 {log_paths}')
 
   def _copy_staging_archive_from_local_to_remote(self, local_zip_path):
     """Copy staging archive from local to remote."""
     remote_zip_path = (
-        '{clusterfuzz_parent_path}/{staging_source_filename}'.format(
-            clusterfuzz_parent_path=self.clusterfuzz_parent_path,
-            staging_source_filename=self.staging_source_filename))
+        f'{self.clusterfuzz_parent_path}/{self.staging_source_filename}')
     self._run('rm -f ' + remote_zip_path)
     api.put(local_zip_path, remote_zip_path)
 
@@ -135,12 +133,8 @@ class Handler(object):
         platform_name=self.platform)
     self._copy_staging_archive_from_local_to_remote(local_zip_path)
 
-    self._run(('cd {clusterfuzz_parent_path} && '
-               'unzip -o -d . {staging_source_filename}').format(
-                   clusterfuzz_parent_path=self.clusterfuzz_parent_path,
-                   staging_source_filename=self.staging_source_filename))
-    self._run('chown -R {username} {clusterfuzz_parent_path}'.format(
-        username=self.username,
-        clusterfuzz_parent_path=self.clusterfuzz_parent_path))
+    self._run(f'cd {self.clusterfuzz_parent_path} && '
+              f'unzip -o -d . {self.staging_source_filename}')
+    self._run(f'chown -R {self.username} {self.clusterfuzz_parent_path}')
 
     self.restart()

@@ -71,13 +71,18 @@ def _coverage_information(summary_path, name, report_info):
     # We can encounter empty JSON files for broken fuzz targets.
     return cov_info
 
-  total_stats = summary['data'][0]['totals']
-  cov_info.functions_covered = total_stats['functions']['covered']
-  cov_info.functions_total = total_stats['functions']['count']
-  cov_info.edges_covered = total_stats['regions']['covered']
-  cov_info.edges_total = total_stats['regions']['count']
-
-  return cov_info
+  try:
+    # Don't rely on the coverage data being well-formatted. Otherwise new
+    # languages can break everything else.
+    total_stats = summary['data'][0]['totals']
+    cov_info.functions_covered = total_stats['functions']['covered']
+    cov_info.functions_total = total_stats['functions']['count']
+    cov_info.edges_covered = total_stats['regions']['covered']
+    cov_info.edges_total = total_stats['regions']['count']
+    return cov_info
+  except KeyError:
+    logs.log_error('Malformed code coverage for %s.' % name)
+    return None
 
 
 def _process_fuzzer_stats(fuzzer, project_info, project_name, bucket):
@@ -98,13 +103,11 @@ def _process_project_stats(project_info, project_name):
   return _coverage_information(summary_path, project_name, project_info)
 
 
-def _process_project(project, bucket):
+def _process_project(project_name, latest_project_info_url, bucket):
   """Collects coverage information for all fuzz targets in the given project and
   the total stats for the project."""
-  project_name = _basename(project)
   logs.log('Processing coverage for %s project.' % project_name)
-  report_path = storage.get_cloud_storage_file_path(bucket, project)
-  report_info = _read_json(report_path)
+  report_info = _read_json(latest_project_info_url)
   if not report_info:
     logs.log_warn('Skipping code coverage for %s project.' % project_name)
     return
@@ -114,23 +117,31 @@ def _process_project(project, bucket):
   entities = []
   for fuzzer in storage.list_blobs(
       report_info['fuzzer_stats_dir'], recursive=False):
-    entities.append(
-        _process_fuzzer_stats(fuzzer, report_info, project_name, bucket))
+    fuzzer_stats = _process_fuzzer_stats(fuzzer, report_info, project_name,
+                                         bucket)
+    if fuzzer_stats:
+      entities.append(fuzzer_stats)
 
   logs.log('Processed coverage for %d targets in %s project.' % (len(entities),
                                                                  project_name))
 
   # Prepare CoverageInformation entity for the total project stats.
-  entities.append(_process_project_stats(report_info, project_name))
-
-  ndb_utils.put_multi(entities)
+  project_stats = _process_project_stats(report_info, project_name)
+  if project_stats:
+    entities.append(project_stats)
+    ndb_utils.put_multi(entities)
 
 
 def collect_fuzzer_coverage(bucket):
   """Actual implementation of the fuzzer coverage task."""
   url = _latest_report_info_dir(bucket)
-  for project in storage.list_blobs(url, recursive=False):
-    _process_project(project, bucket)
+  for latest_project_report_info_path in storage.list_blobs(
+      url, recursive=False):
+    project = _basename(latest_project_report_info_path)
+    latest_project_info_url = storage.get_cloud_storage_file_path(
+        bucket,
+        latest_project_report_info_path)  # Path is relative to the bucket.
+    _process_project(project, latest_project_info_url, bucket)
 
 
 class Handler(base_handler.Handler):

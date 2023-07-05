@@ -16,10 +16,9 @@
 import datetime
 import json
 import unittest
+from unittest import mock
 
 import flask
-import mock
-import six
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -30,7 +29,7 @@ from libs.issue_management import monorail
 from libs.issue_management.monorail.issue import Issue
 
 
-class MockResponse(object):
+class MockResponse:
   """Mock url request's response."""
 
   def __init__(self, text):
@@ -40,7 +39,7 @@ class MockResponse(object):
     pass
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager:
   """Mock issue tracker manager."""
 
   def __init__(self, project_name):
@@ -88,7 +87,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.itm = IssueTrackerManager('oss-fuzz')
     self.mock.get_issue_tracker.return_value = monorail.IssueTracker(self.itm)
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_no_build_failures(self):
     """Test run with no build failures."""
@@ -124,8 +123,9 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
   def test_build_failures(self):
     """Test run with multiple build failures of different type."""
 
-    def _mock_requests_get(url):
+    def _mock_requests_get(url, timeout=None):
       """Mock requests.get."""
+      del timeout
       if url == oss_fuzz_build_status.FUZZING_STATUS_URL:
         return MockResponse(
             json.dumps({
@@ -328,48 +328,48 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         id='proj6', name='proj7', ccs=['b@user.com']).put()
 
     self.app.get('/build-status')
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 1,
             'issue_id': None,
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj1'
+            'project_name': 'proj1'
         },
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 3,
             'issue_id': '1',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj2'
+            'project_name': 'proj2'
         },
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 1,
             'issue_id': None,
             'last_checked_timestamp': datetime.datetime(2018, 1, 31, 0, 0),
-            'project_name': u'proj3'
+            'project_name': 'proj3'
         },
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 4,
             'issue_id': '1337',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj4'
+            'project_name': 'proj4'
         },
         {
             'build_type': 'coverage',
             'consecutive_failures': 6,
             'issue_id': '31337',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj5'
+            'project_name': 'proj5'
         },
         {
             'build_type': 'coverage',
             'consecutive_failures': 3,
             'issue_id': '2',
             'last_checked_timestamp': datetime.datetime(2018, 2, 1, 0, 0),
-            'project_name': u'proj6'
+            'project_name': 'proj6'
         },
     ], [
         failure.to_dict() for failure in data_types.OssFuzzBuildFailure.query()
@@ -377,7 +377,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.assertEqual(2, len(self.itm.issues))
     issue = self.itm.issues[1]
-    six.assertCountEqual(self, ['a@user.com'], issue.cc)
+    self.assertCountEqual(['a@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj2: Fuzzing build failure', issue.summary)
     self.assertEqual(
@@ -399,7 +399,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.assertTrue(issue.has_label('Type-Build-Failure'))
 
     issue = self.itm.issues[2]
-    six.assertCountEqual(self, ['b@user.com'], issue.cc)
+    self.assertCountEqual(['b@user.com'], issue.cc)
     self.assertEqual('New', issue.status)
     self.assertEqual('proj6: Coverage build failure', issue.summary)
     self.assertEqual(
@@ -464,8 +464,9 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
   def test_missing_builds(self):
     """Test missing builds."""
 
-    def _mock_requests_get(url):
+    def _mock_requests_get(url, timeout=None):
       """Mock fetch."""
+      del timeout
       if url == oss_fuzz_build_status.FUZZING_STATUS_URL:
         return MockResponse(
             json.dumps({
@@ -548,13 +549,13 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         build_type='fuzzing').put()
 
     self.app.get('/build-status')
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         {
             'build_type': 'fuzzing',
             'consecutive_failures': 2,
             'issue_id': None,
             'last_checked_timestamp': datetime.datetime(2018, 1, 31, 0, 0),
-            'project_name': u'disabled_proj',
+            'project_name': 'disabled_proj',
         },
     ], [
         failure.to_dict() for failure in data_types.OssFuzzBuildFailure.query()

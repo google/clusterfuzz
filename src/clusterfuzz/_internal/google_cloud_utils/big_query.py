@@ -29,6 +29,8 @@ from clusterfuzz._internal.google_cloud_utils import credentials
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+# pylint: disable=no-member
+
 REQUEST_TIMEOUT = 60
 QUERY_TIMEOUT = 10 * 60
 QUERY_MAX_RESULTS = 10000
@@ -77,7 +79,7 @@ def cast(value, field):
     return datetime.datetime.utcfromtimestamp(float(value))
   if field['type'] in {'RECORD'}:
     return convert_row(value, field['fields'])
-  raise Exception('The type %s is unsupported.' % field['type'])
+  raise RuntimeError(f'The type field[{"type"}] is unsupported.')
 
 
 def convert_row(raw_row, fields):
@@ -134,7 +136,7 @@ def write_range(table_id, testcase, range_name, start, end):
     logs.log_error(
         ("Ignoring error writing the testcase's %s range (%s) to "
          'BigQuery.' % (range_name, testcase.key.id())),
-        exception=Exception(error))
+        exception=ValueError(error))
 
 
 def _get_max_results(max_results, limit, count_so_far):
@@ -150,7 +152,7 @@ Insert = collections.namedtuple('Insert', ['row', 'insert_id'])
 QueryResult = collections.namedtuple('QueryResult', ['rows', 'total_count'])
 
 
-class Client(object):
+class Client:
   """BigQuery client."""
 
   def __init__(self, dataset_id=None, table_id=None):
@@ -230,8 +232,8 @@ class Client(object):
         return result
 
       if (time.time() - start_time) > timeout:
-        raise Exception(
-            "Timeout: the query doesn't finish within %d seconds." % timeout)
+        raise RuntimeError(
+            f'Timeout: the query doesn\'t finish within {timeout} seconds.')
       time.sleep(1)
 
   def query(self,

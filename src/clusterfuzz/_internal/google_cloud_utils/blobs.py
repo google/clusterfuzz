@@ -62,7 +62,7 @@ class _blobmigrator_BlobKeyMapping(data_types.Model):
 
 
 # pylint: enable=invalid-name
-class BlobsException(Exception):
+class BlobsError(Exception):
   """Base exception for blobs module."""
 
 
@@ -147,7 +147,7 @@ def write_blob(file_handle_or_path):
   blob_name = generate_new_blob_name()
 
   if storage.get(storage.get_cloud_storage_file_path(blobs_bucket, blob_name)):
-    raise BlobsException('UUID collision found: %s' % blob_name)
+    raise BlobsError('UUID collision found: %s' % blob_name)
 
   if isinstance(file_handle_or_path, str):
     filename = os.path.basename(file_handle_or_path)
@@ -162,7 +162,7 @@ def write_blob(file_handle_or_path):
   if storage.copy_file_to(file_handle_or_path, gcs_path, metadata=metadata):
     return blob_name
 
-  raise BlobsException('Failed to write blob %s.' % blob_name)
+  raise BlobsError('Failed to write blob %s.' % blob_name)
 
 
 @retry.wrap(
@@ -201,7 +201,7 @@ def get_legacy_blob_info(blob_key):
   # entry created by our migration jobs.
   blob_mapping = get_blob_mapping(blob_key)
   if not blob_mapping:
-    raise BlobsException('Blob mapping not found.')
+    raise BlobsError('Blob mapping not found.')
 
   legacy_blob_info.gs_object_name = blob_mapping.gcs_filename
   return legacy_blob_info
@@ -215,3 +215,10 @@ def get_blob_mapping(blob_key):
 def generate_new_blob_name():
   """Generate a new blob name."""
   return str(uuid.uuid4()).lower()
+
+
+def get_signed_download_url(blob_key):
+  """Returns a signed download URL that can be used to download the blob pointed
+  to by |blob_key|."""
+  gcs_path = get_gcs_path(blob_key)
+  return storage.get_signed_download_url(gcs_path)

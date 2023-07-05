@@ -69,7 +69,7 @@ class FindFuzzTargetTest(unittest.TestCase):
   def test_not_found(self):
     """Test target not found."""
     data_types.Job(name='job', environment_string='').put()
-    with self.assertRaises(helpers.EarlyExitException):
+    with self.assertRaises(helpers.EarlyExitError):
       self.assertEqual((None, None),
                        upload_testcase.find_fuzz_target('libFuzzer', 'notfound',
                                                         'job'))
@@ -81,9 +81,10 @@ class UploadOAuthTest(unittest.TestCase):
   """OAuth upload tests."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
         'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_info',
         'clusterfuzz._internal.google_cloud_utils.blobs.write_blob',
         'libs.access.has_access',
@@ -116,7 +117,7 @@ class UploadOAuthTest(unittest.TestCase):
 
   def _read_test_data(self, name):
     """Helper function to read test data."""
-    with open(os.path.join(DATA_DIRECTORY, name), 'r') as handle:
+    with open(os.path.join(DATA_DIRECTORY, name)) as handle:
       return handle.read()
 
   def assert_dict_has_items(self, expected, actual):
@@ -149,7 +150,6 @@ class UploadOAuthTest(unittest.TestCase):
         'additional_metadata': '{"fuzzer_binary_name": "target"}',
         'archive_filename': None,
         'archive_state': 0,
-        'binary_flag': False,
         'bug_information': '',
         'comments': '[2021-01-01 00:00:00 UTC] uploader@email: '
                     'External testcase upload.\n',
@@ -255,8 +255,6 @@ class UploadOAuthTest(unittest.TestCase):
             None,
         'archive_state':
             0,
-        'binary_flag':
-            False,
         'bug_information':
             '',
         'comments':
@@ -415,7 +413,6 @@ class UploadOAuthTest(unittest.TestCase):
         'additional_metadata': '{"fuzzer_binary_name": "target"}',
         'archive_filename': None,
         'archive_state': 0,
-        'binary_flag': False,
         'bug_information': '',
         'comments': '[2021-01-01 00:00:00 UTC] uploader@email: '
                     'External testcase upload.\n',
@@ -491,3 +488,133 @@ class UploadOAuthTest(unittest.TestCase):
         'timestamp': datetime.datetime(2021, 1, 1, 0, 0),
         'uploader_email': 'uploader@email'
     }, metadata._to_dict())
+
+  def test_trusted_uploader_post(self):
+    """Test trusted uploader post."""
+    email = 'uploader@email'
+    data_types.Config(privileged_users=email).put()
+    data_types.ExternalUserPermission(
+        email=email,
+        entity_name=None,
+        entity_kind=data_types.PermissionEntityKind.UPLOADER,
+        is_prefix=False,
+        auto_cc=data_types.AutoCCType.NONE).put()
+    data_types.Job(
+        name='libfuzzer_proj',
+        environment_string='PROJECT_NAME = proj',
+        platform='LINUX').put()
+    with self.app.test_client() as client:
+      response = client.post(
+          '/',
+          data={
+              'job': 'libfuzzer_proj',
+              'target': 'target',
+              'revision': 1337,
+              'file': (io.BytesIO(b'contents'), 'file'),
+          })
+
+    self.assertDictEqual({
+        'id': '5',
+        'uploadUrl': 'http://localhost//upload-testcase/upload-oauth'
+    }, response.json)
+
+    testcase = data_handler.get_testcase_by_id(5)
+    self.assert_dict_has_items({
+        'absolute_path': 'input',
+        'additional_metadata': '{"fuzzer_binary_name": "target"}',
+        'archive_filename': None,
+        'archive_state': 0,
+        'bug_information': '',
+        'comments': '[2021-01-01 00:00:00 UTC] uploader@email: '
+                    'Analyze task.\n',
+        'crash_address': '',
+        'crash_revision': 1337,
+        'crash_stacktrace': '',
+        'crash_state': 'Pending',
+        'crash_type': '',
+        'disable_ubsan': False,
+        'duplicate_of': None,
+        'fixed': '',
+        'flaky_stack': False,
+        'fuzzed_keys': 'blob_key',
+        'fuzzer_name': 'libFuzzer',
+        'gestures': [],
+        'github_issue_num': None,
+        'github_repo_id': None,
+        'group_bug_information': 0,
+        'group_id': 0,
+        'has_bug_flag': False,
+        'http_flag': False,
+        'impact_beta_version': None,
+        'impact_beta_version_indices': [],
+        'impact_beta_version_likely': None,
+        'impact_extended_stable_version': None,
+        'impact_extended_stable_version_indices': [],
+        'impact_extended_stable_version_likely': None,
+        'impact_head_version': None,
+        'impact_head_version_indices': [],
+        'impact_head_version_likely': None,
+        'impact_indices': [],
+        'impact_stable_version': None,
+        'impact_stable_version_indices': [],
+        'impact_stable_version_likely': None,
+        'impact_version_indices': [],
+        'is_a_duplicate_flag': False,
+        'is_impact_set_flag': None,
+        'is_leader': False,
+        'job_type': 'libfuzzer_proj',
+        'last_tested_crash_stacktrace': None,
+        'minidump_keys': None,
+        'minimized_arguments': '',
+        'minimized_keys': '',
+        'one_time_crasher_flag': False,
+        'open': True,
+        'overridden_fuzzer_name': 'libFuzzer_proj_target',
+        'platform': None,
+        'platform_id': None,
+        'project_name': 'proj',
+        'queue': None,
+        'redzone': 128,
+        'regression': '',
+        'security_flag': False,
+        'security_severity': None,
+        'status': 'Pending',
+        'symbolized': False,
+        'timeout_multiplier': 1.0,
+        'timestamp': datetime.datetime(2021, 1, 1, 0, 0),
+        'triaged': False,
+        'uploader_email': 'uploader@email',
+        'window_argument': ''
+    }, testcase._to_dict())
+
+    metadata = data_types.TestcaseUploadMetadata.query(
+        data_types.TestcaseUploadMetadata.testcase_id ==
+        testcase.key.id()).get()
+    self.assertIsNotNone(metadata)
+    self.assertDictEqual({
+        'additional_metadata_string': None,
+        'blobstore_key': 'blob_key',
+        'bot_name': None,
+        'bug_information': '',
+        'bug_summary_update_flag': False,
+        'bundled': False,
+        'duplicate_of': None,
+        'filename': 'input',
+        'original_blobstore_key': 'blob_key',
+        'path_in_archive': None,
+        'quiet_flag': False,
+        'retries': None,
+        'security_flag': False,
+        'status': 'Pending',
+        'testcase_id': 5,
+        'timeout': 0,
+        'timestamp': datetime.datetime(2021, 1, 1, 0, 0),
+        'uploader_email': 'uploader@email'
+    }, metadata._to_dict())
+    self.assertDictEqual({
+        'binary': 'target',
+        'engine': 'libFuzzer',
+        'project': 'proj'
+    },
+                         data_handler.get_fuzz_target('libFuzzer_proj_target')
+                         ._to_dict())

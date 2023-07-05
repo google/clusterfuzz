@@ -25,29 +25,6 @@ from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-class IsDirectoryOnNfsTest(unittest.TestCase):
-  """Tests for the is_directory_on_nfs function."""
-
-  def setUp(self):
-    environment.set_value('NFS_ROOT', '/nfs')
-
-  def tearDown(self):
-    environment.remove_key('NFS_ROOT')
-
-  def test_is_directory_on_nfs_without_nfs(self):
-    """Test is_directory_on_nfs without nfs."""
-    environment.remove_key('NFS_ROOT')
-    self.assertFalse(setup.is_directory_on_nfs('/nfs/dir1'))
-
-  def test_is_directory_on_nfs_with_nfs_and_data_bundle_on_nfs(self):
-    """Test is_directory_on_nfs with nfs and data bundle on nfs."""
-    self.assertTrue(setup.is_directory_on_nfs('/nfs/dir1'))
-
-  def test_is_directory_on_nfs_with_nfs_and_data_bundle_on_local(self):
-    """Test is_directory_on_nfs with nfs and data bundle on local."""
-    self.assertFalse(setup.is_directory_on_nfs('/tmp/dir1'))
-
-
 # pylint: disable=protected-access
 @test_utils.with_cloud_emulators('datastore')
 class GetApplicationArgumentsTest(unittest.TestCase):
@@ -58,17 +35,16 @@ class GetApplicationArgumentsTest(unittest.TestCase):
 
     data_types.Job(
         name='linux_asan_chrome',
-        environment_string=('APP_ARGS = --orig-arg1 --orig-arg2')).put()
+        environment_string='APP_ARGS = --orig-arg1 --orig-arg2').put()
     data_types.Job(
         name='linux_msan_chrome_variant',
         environment_string=(
             'APP_ARGS = --arg1 --arg2 --arg3="--flag1 --flag2"')).put()
 
-    data_types.Job(name='libfuzzer_asan_chrome', environment_string=('')).put()
+    data_types.Job(name='libfuzzer_asan_chrome', environment_string='').put()
     data_types.Job(
-        name='libfuzzer_msan_chrome_variant', environment_string=('')).put()
-    data_types.Job(
-        name='afl_asan_chrome_variant', environment_string=('')).put()
+        name='libfuzzer_msan_chrome_variant', environment_string='').put()
+    data_types.Job(name='afl_asan_chrome_variant', environment_string='').put()
 
     self.testcase = test_utils.create_generic_testcase()
 

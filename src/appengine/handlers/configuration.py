@@ -102,7 +102,7 @@ class Handler(base_handler.Handler):
 
     previous_hash = request.get('previous_hash')
     if config.previous_hash and config.previous_hash != previous_hash:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Your change conflicts with another configuration update. '
           'Please refresh and try again.', 500)
 
@@ -193,14 +193,14 @@ class AddExternalUserPermission(base_handler.Handler):
     auto_cc = request.get('auto_cc')
 
     if not email:
-      raise helpers.EarlyExitException('No email provided.', 400)
+      raise helpers.EarlyExitError('No email provided.', 400)
 
     if not entity_kind or entity_kind == 'undefined':
-      raise helpers.EarlyExitException('No entity_kind provided.', 400)
+      raise helpers.EarlyExitError('No entity_kind provided.', 400)
 
     entity_kind = get_value_by_name(USER_PERMISSION_ENTITY_KINDS, entity_kind)
     if entity_kind is None:
-      raise helpers.EarlyExitException('Invalid entity_kind provided.', 400)
+      raise helpers.EarlyExitError('Invalid entity_kind provided.', 400)
 
     if entity_kind == data_types.PermissionEntityKind.UPLOADER:
       # Enforce null values for entity name and auto-cc when uploader is chosen.
@@ -208,14 +208,14 @@ class AddExternalUserPermission(base_handler.Handler):
       auto_cc = data_types.AutoCCType.NONE
     else:
       if not entity_name:
-        raise helpers.EarlyExitException('No entity_name provided.', 400)
+        raise helpers.EarlyExitError('No entity_name provided.', 400)
 
       if not auto_cc or auto_cc == 'undefined':
-        raise helpers.EarlyExitException('No auto_cc provided.', 400)
+        raise helpers.EarlyExitError('No auto_cc provided.', 400)
 
       auto_cc = get_value_by_name(USER_PERMISSION_AUTO_CC_TYPES, auto_cc)
       if auto_cc is None:
-        raise helpers.EarlyExitException('Invalid auto_cc provided.', 400)
+        raise helpers.EarlyExitError('Invalid auto_cc provided.', 400)
 
     # Check for existing permission.
     query = data_types.ExternalUserPermission.query(
@@ -259,20 +259,20 @@ class DeleteExternalUserPermission(base_handler.Handler):
     entity_name = request.get('entity_name')
 
     if not email:
-      raise helpers.EarlyExitException('No email provided.', 400)
+      raise helpers.EarlyExitError('No email provided.', 400)
 
     if not entity_kind or entity_kind == 'undefined':
-      raise helpers.EarlyExitException('No entity_kind provided.', 400)
+      raise helpers.EarlyExitError('No entity_kind provided.', 400)
 
     entity_kind = get_value_by_name(USER_PERMISSION_ENTITY_KINDS, entity_kind)
     if entity_kind is None:
-      raise helpers.EarlyExitException('Invalid entity_kind provided.', 400)
+      raise helpers.EarlyExitError('Invalid entity_kind provided.', 400)
 
     if entity_kind == data_types.PermissionEntityKind.UPLOADER:
       entity_name = None
     else:
       if not entity_name:
-        raise helpers.EarlyExitException('No entity_name provided.', 400)
+        raise helpers.EarlyExitError('No entity_name provided.', 400)
 
     # Check for existing permission.
     permission = data_types.ExternalUserPermission.query(
@@ -280,7 +280,7 @@ class DeleteExternalUserPermission(base_handler.Handler):
         data_types.ExternalUserPermission.entity_kind == entity_kind,
         data_types.ExternalUserPermission.entity_name == entity_name).get()
     if not permission:
-      raise helpers.EarlyExitException('Permission does not exist.', 400)
+      raise helpers.EarlyExitError('Permission does not exist.', 400)
     permission.key.delete()
 
     helpers.log('Configuration', helpers.MODIFY_OPERATION)

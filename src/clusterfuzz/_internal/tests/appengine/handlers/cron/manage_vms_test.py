@@ -16,10 +16,9 @@
 import copy
 import functools
 import unittest
+from unittest import mock
 
 from google.cloud import ndb
-import mock
-import six
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import compute_engine_projects
@@ -384,7 +383,7 @@ def mock_resource(spec):
   return resource
 
 
-class MockBotManager(object):
+class MockBotManager:
   """Mock BotManager."""
 
   def __init__(self, project_id, zone, instance_groups, instance_templates):
@@ -601,7 +600,7 @@ class CronTest(unittest.TestCase):
 
   def test_update_cpus(self):
     """Tests CPU distribution cron."""
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     manager = manage_vms.OssFuzzClustersManager('clusterfuzz-external')
     manager.update_clusters()
 
@@ -858,96 +857,96 @@ class CronTest(unittest.TestCase):
             auto_healing_policy={},
             wait_for_instances=False)
 
-    six.assertCountEqual(self, [{
+    self.assertCountEqual([{
         'instance_num': 0,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj1-0001',
-        'project_name': u'proj1',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj1-0001',
+        'project_name': 'proj1',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 1,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj2-0001',
-        'project_name': u'proj2',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj2-0001',
+        'project_name': 'proj2',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 2,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj2-0002',
-        'project_name': u'proj2',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj2-0002',
+        'project_name': 'proj2',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 3,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj2-0003',
-        'project_name': u'proj2',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj2-0003',
+        'project_name': 'proj2',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 4,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj2-0004',
-        'project_name': u'proj2',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj2-0004',
+        'project_name': 'proj2',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 5,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0001',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0001',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 6,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0002',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0002',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 7,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0003',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-abcd'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0003',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-abcd'
     }, {
         'instance_num': 0,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0004',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0004',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 1,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0005',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0005',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 2,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0006',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0006',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 3,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0007',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0007',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 4,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0008',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0008',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 5,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj3-0009',
-        'project_name': u'proj3',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj3-0009',
+        'project_name': 'proj3',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 6,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj4-0001',
-        'project_name': u'proj4',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj4-0001',
+        'project_name': 'proj4',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 7,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-proj5-0001',
-        'project_name': u'proj5',
-        'host_name': u'oss-fuzz-linux-zone3-host-efgh'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-proj5-0001',
+        'project_name': 'proj5',
+        'host_name': 'oss-fuzz-linux-zone3-host-efgh'
     }, {
         'instance_num': 0,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-high-end-proj6-0001',
-        'project_name': u'proj6',
-        'host_name': u'oss-fuzz-linux-zone3-host-high-end-1'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-high-end-proj6-0001',
+        'project_name': 'proj6',
+        'host_name': 'oss-fuzz-linux-zone3-host-high-end-1'
     }, {
         'instance_num': 1,
-        'worker_name': u'oss-fuzz-linux-zone3-worker-high-end-proj6-0002',
-        'project_name': u'proj6',
-        'host_name': u'oss-fuzz-linux-zone3-host-high-end-1'
+        'worker_name': 'oss-fuzz-linux-zone3-worker-high-end-proj6-0002',
+        'project_name': 'proj6',
+        'host_name': 'oss-fuzz-linux-zone3-host-high-end-1'
     }], [
         assignment.to_dict()
         for assignment in data_types.HostWorkerAssignment.query()
@@ -1135,37 +1134,37 @@ class AssignHostWorkerTest(unittest.TestCase):
         host_names, worker_instances, 8)
     self.assertListEqual([
         {
-            'host_name': u'host',
+            'host_name': 'host',
             'instance_num': 0,
             'project_name': 'proj',
             'worker_name': 'worker-proj-0'
         },
         {
-            'host_name': u'host',
+            'host_name': 'host',
             'instance_num': 1,
             'project_name': 'proj',
             'worker_name': 'worker-proj-2'
         },
         {
-            'host_name': u'host',
+            'host_name': 'host',
             'instance_num': 4,
             'project_name': 'proj',
             'worker_name': 'worker-proj-3'
         },
         {
-            'host_name': u'host',
+            'host_name': 'host',
             'instance_num': 5,
             'project_name': 'proj',
             'worker_name': 'worker-proj-4'
         },
         {
-            'host_name': u'host',
+            'host_name': 'host',
             'instance_num': 6,
             'project_name': 'proj',
             'worker_name': 'worker-proj-5'
         },
         {
-            'host_name': u'host',
+            'host_name': 'host',
             'instance_num': 7,
             'project_name': 'proj',
             'worker_name': 'worker-proj-7'

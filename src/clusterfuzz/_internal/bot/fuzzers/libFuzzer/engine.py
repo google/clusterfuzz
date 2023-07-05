@@ -71,7 +71,6 @@ class LibFuzzerOptions(engine.FuzzOptions):
     self.use_dataflow_tracing = use_dataflow_tracing
     self.is_mutations_run = is_mutations_run
     self.merge_back_new_testcases = True
-    self.analyze_dictionary = True
 
 
 class Engine(engine.Engine):
@@ -369,11 +368,6 @@ class Engine(engine.Engine):
           engine.Crash(crash_testcase_file_path, fuzz_logs, reproduce_arguments,
                        actual_duration))
 
-    if options.analyze_dictionary:
-      libfuzzer.analyze_and_update_recommended_dictionary(
-          runner, project_qualified_fuzzer_name, log_lines, options.corpus_dir,
-          non_fuzz_arguments)
-
     return engine.FuzzResult(fuzz_logs, fuzz_result.command, crashes,
                              parsed_stats, fuzz_result.time_executed,
                              fuzz_result.timed_out)
@@ -408,7 +402,7 @@ class Engine(engine.Engine):
         input_path, timeout=max_time, additional_args=arguments)
 
     if result.timed_out:
-      logs.log_error('Reproducing timed out.', fuzzer_output=result.output)
+      logs.log_warn('Reproducing timed out.', fuzzer_output=result.output)
       raise TimeoutError('Reproducing timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,

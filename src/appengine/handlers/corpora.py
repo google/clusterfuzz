@@ -57,21 +57,20 @@ class CreateHandler(base_handler.Handler):
     """Handle a post request."""
     name = request.get('name')
     if not name:
-      raise helpers.EarlyExitException('Please give this corpus a name!', 400)
+      raise helpers.EarlyExitError('Please give this corpus a name!', 400)
 
     if not data_types.DataBundle.VALID_NAME_REGEX.match(name):
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Name can only contain letters, numbers, dashes and underscores.',
           400)
 
     user_email = helpers.get_user_email()
     bucket_name = data_handler.get_data_bundle_bucket_name(name)
     bucket_url = data_handler.get_data_bundle_bucket_url(name)
-    is_local = not request.get('nfs', False)
 
     if not data_handler.create_data_bundle_bucket_and_iams(name, [user_email]):
-      raise helpers.EarlyExitException(
-          'Failed to create bucket %s.' % bucket_name, 400)
+      raise helpers.EarlyExitError('Failed to create bucket %s.' % bucket_name,
+                                   400)
 
     data_bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == name).get()
@@ -80,7 +79,6 @@ class CreateHandler(base_handler.Handler):
       data_bundle = data_types.DataBundle()
     data_bundle.name = name
     data_bundle.bucket_name = bucket_name
-    data_bundle.is_local = is_local
     data_bundle.put()
 
     template_values = {
@@ -105,7 +103,7 @@ class DeleteHandler(base_handler.Handler):
 
     data_bundle = ndb.Key(data_types.DataBundle, key).get()
     if not data_bundle:
-      raise helpers.EarlyExitException('Corpus not found', 400)
+      raise helpers.EarlyExitError('Corpus not found', 400)
 
     affected_fuzzers = data_types.Fuzzer.query(
         data_types.Fuzzer.data_bundle_name == data_bundle.name)

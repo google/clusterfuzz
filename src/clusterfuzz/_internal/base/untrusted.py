@@ -20,7 +20,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.system import environment
 
 
-class HostException(SystemExit):
+class HostError(SystemExit):
   """Unrecoverable Exception."""
 
 

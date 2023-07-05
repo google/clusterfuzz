@@ -42,9 +42,6 @@ TIMEOUT_FLAG = '-timeout='
 
 EXACT_ARTIFACT_PATH_FLAG = '-exact_artifact_path='
 
-# libFuzzer arguments.
-ANALYZE_DICT_ARGUMENT = '-analyze_dict=1'
-
 CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
 
 MERGE_ARGUMENT = '-merge=1'
@@ -78,6 +75,8 @@ RUNS_TO_REPRODUCE = 100
 TARGET_ERROR_EXITCODE = 77
 
 NONCRASH_RETURN_CODES = {
+    # Code when LibFuzzer exits due to SIGTERM cancellation (timeout exceeded).
+    -15,
     0,
     # pylint: disable=line-too-long
     # Code when we interrupt libFuzzer (https://github.com/llvm/llvm-project/blob/1f161919065fbfa2b39b8f373553a64b89f826f8/compiler-rt/lib/fuzzer/FuzzerOptions.h#L25)

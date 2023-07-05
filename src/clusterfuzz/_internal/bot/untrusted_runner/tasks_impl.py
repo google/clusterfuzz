@@ -14,16 +14,17 @@
 """Tasks RPC implementations."""
 
 from google.protobuf import wrappers_pb2
-from google.protobuf.any_pb2 import Any
-import six
+from google.protobuf.any_pb2 import Any  # pylint: disable=no-name-in-module
 
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks import corpus_pruning_task
-from clusterfuzz._internal.bot.tasks import fuzz_task
-from clusterfuzz._internal.bot.tasks import minimize_task
+from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import untrusted_runner_pb2
 from clusterfuzz.fuzz import engine
+
+# pylint:disable=no-member
 
 
 def _proto_to_fuzz_target(proto):
@@ -56,9 +57,7 @@ def prune_corpus(request, _):
     cross_pollination_stats = untrusted_runner_pb2.CrossPollinationStats(
         project_qualified_name=result.cross_pollination_stats.
         project_qualified_name,
-        method=result.cross_pollination_stats.method,
         sources=result.cross_pollination_stats.sources,
-        tags=result.cross_pollination_stats.tags,
         initial_corpus_size=result.cross_pollination_stats.initial_corpus_size,
         corpus_size=result.cross_pollination_stats.corpus_size,
         initial_edge_coverage=result.cross_pollination_stats.
@@ -125,13 +124,13 @@ def _pack_values(values):
   if values is None:
     return packed
 
-  for key, value in six.iteritems(values):
+  for key, value in values.items():
     packed_value = Any()
     if isinstance(value, float):
       packed_value.Pack(wrappers_pb2.DoubleValue(value=value))
-    elif isinstance(value, six.integer_types):
+    elif isinstance(value, int):
       packed_value.Pack(wrappers_pb2.Int64Value(value=value))
-    elif isinstance(value, six.string_types):
+    elif isinstance(value, str):
       packed_value.Pack(wrappers_pb2.StringValue(value=value))
     else:
       raise ValueError('Unknown stat type for ' + key)

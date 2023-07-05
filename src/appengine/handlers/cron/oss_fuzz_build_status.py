@@ -28,6 +28,8 @@ from libs import handler
 from libs import helpers
 from libs.issue_management import issue_tracker_utils
 
+HTTP_GET_TIMEOUT_SECS = 30
+
 BUCKET_URL = 'https://oss-fuzz-build-logs.storage.googleapis.com'
 FUZZING_STATUS_URL = BUCKET_URL + '/status.json'
 COVERAGE_STATUS_URL = BUCKET_URL + '/status-coverage.json'
@@ -57,7 +59,7 @@ MIN_CONSECUTIVE_BUILD_FAILURES = 3
 REMINDER_INTERVAL = 6
 
 
-class OssFuzzBuildStatusException(Exception):
+class OssFuzzBuildStatusError(Exception):
   """Exceptions for the build status cron."""
 
 
@@ -187,7 +189,7 @@ class Handler(base_handler.Handler):
     """Close bugs for fixed builds."""
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
-      raise OssFuzzBuildStatusException('Failed to get issue tracker.')
+      raise OssFuzzBuildStatusError('Failed to get issue tracker.')
 
     for project in projects:
       project_name = project['name']
@@ -218,7 +220,7 @@ class Handler(base_handler.Handler):
     """Process failures."""
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     if not issue_tracker:
-      raise OssFuzzBuildStatusException('Failed to get issue tracker.')
+      raise OssFuzzBuildStatusError('Failed to get issue tracker.')
 
     for project in projects:
       project_name = project['name']
@@ -289,11 +291,11 @@ class Handler(base_handler.Handler):
     """Handles a get request."""
     for build_type, status_url in BUILD_STATUS_MAPPINGS:
       try:
-        response = requests.get(status_url)
+        response = requests.get(status_url, timeout=HTTP_GET_TIMEOUT_SECS)
         response.raise_for_status()
         build_status = json.loads(response.text)
       except (requests.exceptions.RequestException, ValueError) as e:
-        raise helpers.EarlyExitException(str(e), response.status_code)
+        raise helpers.EarlyExitError(str(e), response.status_code)
 
       projects = build_status['projects']
 

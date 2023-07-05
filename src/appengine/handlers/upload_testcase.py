@@ -56,6 +56,12 @@ def _is_uploader_allowed(email):
   return external_users.is_upload_allowed_for_user(email)
 
 
+def _is_trusted_uploader_allowed(email):
+  """Return whether or not uploader is allowed and trusted."""
+  return access.has_access(
+      need_privileged_access=True) and _is_uploader_allowed(email)
+
+
 def attach_testcases(rows):
   """Attach testcase to each crash."""
   testcases = {}
@@ -121,7 +127,7 @@ def _read_to_bytesio(gcs_path):
   """Return a bytesio representing a GCS object."""
   data = storage.read_data(gcs_path)
   if not data:
-    raise helpers.EarlyExitException('Failed to read uploaded archive.', 500)
+    raise helpers.EarlyExitError('Failed to read uploaded archive.', 500)
 
   return io.BytesIO(data)
 
@@ -183,7 +189,7 @@ def find_fuzz_target(engine, target_name, job_name):
 
   target = data_handler.get_fuzz_target(candidate_name)
   if not target:
-    raise helpers.EarlyExitException('Fuzz target does not exist.', 400)
+    raise helpers.EarlyExitError('Fuzz target does not exist.', 400)
 
   return target.fully_qualified_name(), target.binary
 
@@ -208,7 +214,7 @@ class Handler(base_handler.Handler):
     """Handles get request."""
     email = helpers.get_user_email()
     if not email:
-      raise helpers.AccessDeniedException()
+      raise helpers.AccessDeniedError()
 
     is_privileged_or_domain_user = access.has_access(
         need_privileged_access=False)
@@ -224,7 +230,7 @@ class Handler(base_handler.Handler):
           email, include_from_jobs=True)
 
       if not allowed_fuzzers and not allowed_jobs:
-        raise helpers.AccessDeniedException()
+        raise helpers.AccessDeniedError()
 
     has_issue_tracker = bool(data_handler.get_issue_tracker_name())
 
@@ -278,13 +284,13 @@ class JsonHandler(base_handler.Handler):
   def post(self):
     """Handles a post request."""
     if not helpers.get_user_email():
-      raise helpers.AccessDeniedException()
+      raise helpers.AccessDeniedError()
 
     result, _ = get_result()
     return self.render_json(result)
 
 
-class UploadHandlerCommon(object):
+class UploadHandlerCommon:
   """Handler that uploads the testcase file."""
 
   def get_upload(self):
@@ -299,7 +305,7 @@ class UploadHandlerCommon(object):
     if testcase_id and not uploaded_file:
       testcase = helpers.get_testcase(testcase_id)
       if not access.can_user_access_testcase(testcase):
-        raise helpers.AccessDeniedException()
+        raise helpers.AccessDeniedError()
 
       # Use minimized testcase for upload (if available).
       key = (
@@ -314,11 +320,11 @@ class UploadHandlerCommon(object):
 
     job_type = request.get('job')
     if not job_type:
-      raise helpers.EarlyExitException('Missing job name.', 400)
+      raise helpers.EarlyExitError('Missing job name.', 400)
 
     job = data_types.Job.query(data_types.Job.name == job_type).get()
     if not job:
-      raise helpers.EarlyExitException('Invalid job name.', 400)
+      raise helpers.EarlyExitError('Invalid job name.', 400)
 
     fuzzer_name = request.get('fuzzer')
     job_type_lowercase = job_type.lower()
@@ -330,23 +336,25 @@ class UploadHandlerCommon(object):
     is_engine_job = fuzzer_name and environment.is_engine_fuzzer_job(job_type)
     target_name = request.get('target')
     if not is_engine_job and target_name:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Target name is not applicable to non-engine jobs (AFL, libFuzzer).',
           400)
 
     if is_engine_job and not target_name:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Missing target name for engine job (AFL, libFuzzer).', 400)
 
     if (target_name and
         not data_types.Fuzzer.VALID_NAME_REGEX.match(target_name)):
-      raise helpers.EarlyExitException('Invalid target name.', 400)
+      raise helpers.EarlyExitError('Invalid target name.', 400)
 
     fully_qualified_fuzzer_name = ''
     if is_engine_job and target_name:
-      if job.is_external():
+      if _is_trusted_uploader_allowed(email) or job.is_external():
         # External jobs don't run and set FuzzTarget entities as part of
         # fuzz_task. Set it here instead.
+        # Additionally, record fuzz target here for trusted uploaders
+        # to avoid race conditions with newly added fuzz targets.
         fuzz_target = (
             data_handler.record_fuzz_target(fuzzer_name, target_name, job_type))
         fully_qualified_fuzzer_name = fuzz_target.fully_qualified_name()
@@ -360,7 +368,7 @@ class UploadHandlerCommon(object):
         job_type=job_type,
         fuzzer_name=(fully_qualified_fuzzer_name or fuzzer_name)) and
         not _is_uploader_allowed(email)):
-      raise helpers.AccessDeniedException()
+      raise helpers.AccessDeniedError()
 
     multiple_testcases = bool(request.get('multiple'))
     http_flag = bool(request.get('http'))
@@ -381,12 +389,12 @@ class UploadHandlerCommon(object):
     crash_data = None
     if job.is_external():
       if not stacktrace:
-        raise helpers.EarlyExitException(
-            'Stacktrace required for external jobs.', 400)
+        raise helpers.EarlyExitError('Stacktrace required for external jobs.',
+                                     400)
 
       if not crash_revision:
-        raise helpers.EarlyExitException('Revision required for external jobs.',
-                                         400)
+        raise helpers.EarlyExitError('Revision required for external jobs.',
+                                     400)
 
       crash_data = stack_analyzer.get_crash_data(
           stacktrace,
@@ -395,7 +403,7 @@ class UploadHandlerCommon(object):
           already_symbolized=True,
           detect_ooms_and_hangs=True)
     elif stacktrace:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Should not specify stacktrace for non-external jobs.', 400)
 
     testcase_metadata = request.get('metadata', {})
@@ -403,16 +411,16 @@ class UploadHandlerCommon(object):
       try:
         testcase_metadata = json.loads(testcase_metadata)
       except Exception as e:
-        raise helpers.EarlyExitException('Invalid metadata JSON.', 400) from e
+        raise helpers.EarlyExitError('Invalid metadata JSON.', 400) from e
       if not isinstance(testcase_metadata, dict):
-        raise helpers.EarlyExitException('Metadata is not a JSON object.', 400)
+        raise helpers.EarlyExitError('Metadata is not a JSON object.', 400)
     if issue_labels:
       testcase_metadata['issue_labels'] = issue_labels
 
     try:
       gestures = ast.literal_eval(gestures)
     except Exception as e:
-      raise helpers.EarlyExitException('Failed to parse gestures.', 400) from e
+      raise helpers.EarlyExitError('Failed to parse gestures.', 400) from e
 
     archive_state = 0
     bundled = False
@@ -423,31 +431,31 @@ class UploadHandlerCommon(object):
     privileged_user = access.has_access(need_privileged_access=True)
     if not privileged_user:
       if bug_information or bug_summary_update_flag:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'You are not privileged to update existing issues.', 400)
 
       need_privileged_access = utils.string_is_true(
           data_handler.get_value_from_job_definition(job_type,
                                                      'PRIVILEGED_ACCESS'))
       if need_privileged_access:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'You are not privileged to run this job type.', 400)
 
       if app_launch_command:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary launch commands.', 400)
 
       if (testcase_metadata and
           not _allow_unprivileged_metadata(testcase_metadata)):
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'You are not privileged to set testcase metadata.', 400)
 
       if additional_arguments:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'You are not privileged to add command-line arguments.', 400)
 
       if gestures:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'You are not privileged to run arbitrary gestures.', 400)
 
     if crash_revision and crash_revision.isdigit():
@@ -458,17 +466,17 @@ class UploadHandlerCommon(object):
     if bug_information == '0':  # Auto-recover from this bad input.
       bug_information = None
     if bug_information and not bug_information.isdigit():
-      raise helpers.EarlyExitException('Bug is not a number.', 400)
+      raise helpers.EarlyExitError('Bug is not a number.', 400)
 
     if not timeout:
       timeout = 0
     elif not timeout.isdigit() or timeout == '0':
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Testcase timeout must be a number greater than 0.', 400)
     else:
       timeout = int(timeout)
       if timeout > 120:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'Testcase timeout may not be greater than 120 seconds.', 400)
 
     if retries:
@@ -478,7 +486,7 @@ class UploadHandlerCommon(object):
         retries = None
 
       if retries is None or retries > MAX_RETRIES:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'Testcase retries must be a number less than %d.' % MAX_RETRIES,
             400)
     else:
@@ -543,12 +551,12 @@ class UploadHandlerCommon(object):
 
         file_path_input = guess_input_file(uploaded_file, filename)
         if not file_path_input:
-          raise helpers.EarlyExitException(
+          raise helpers.EarlyExitError(
               ("Unable to detect which file to launch. The main file\'s name "
                'must contain either of %s.' % str(RUN_FILE_PATTERNS)), 400)
 
     else:
-      raise helpers.EarlyExitException('Please select a file to upload.', 400)
+      raise helpers.EarlyExitError('Please select a file to upload.', 400)
 
     testcase_id = data_handler.create_user_uploaded_testcase(
         key,
@@ -588,8 +596,8 @@ class UploadHandlerCommon(object):
                    'Developers can follow the progress at %s.' % report_url)
         issue.save(new_comment=comment)
 
-    helpers.log('Uploaded testcase %s' % testcase_id, helpers.VIEW_OPERATION)
-    return self.render_json({'id': '%s' % testcase_id})
+    helpers.log(f'Uploaded testcase {testcase_id}', helpers.VIEW_OPERATION)
+    return self.render_json({'id': str(testcase_id)})  # pylint: disable=no-member
 
 
 class UploadHandler(UploadHandlerCommon, base_handler.GcsUploadHandler):
@@ -629,7 +637,7 @@ class UploadHandlerOAuth(base_handler.Handler, UploadHandlerCommon):
     """Get the upload."""
     uploaded_file = request.files.get('file')
     if not uploaded_file:
-      raise helpers.EarlyExitException('File upload not found.', 400)
+      raise helpers.EarlyExitError('File upload not found.', 400)
 
     bytes_io = NamedBytesIO(uploaded_file.filename, uploaded_file.stream.read())
     key = blobs.write_blob(bytes_io)

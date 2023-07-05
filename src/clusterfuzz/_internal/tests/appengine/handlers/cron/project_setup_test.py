@@ -18,12 +18,11 @@ import json
 import os
 import posixpath
 import unittest
+from unittest import mock
 
 import flask
 from google.cloud import ndb
 import googleapiclient
-import mock
-import six
 import webtest
 
 from clusterfuzz._internal.base import utils
@@ -36,7 +35,7 @@ from handlers.cron import project_setup
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'project_setup_data')
 
-EXISTING_BUCKETS = set(['lib1-logs.clusterfuzz-external.appspot.com'])
+EXISTING_BUCKETS = {'lib1-logs.clusterfuzz-external.appspot.com'}
 
 
 def _read_data_file(data_file):
@@ -46,7 +45,7 @@ def _read_data_file(data_file):
     return handle.read()
 
 
-class MockRequest(object):
+class MockRequest:
   """Mock API request."""
 
   def __init__(self, raise_exception=False, return_value=None):
@@ -117,7 +116,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
   """Test project_setup for OSS-Fuzz."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/setup', view_func=project_setup.Handler.as_view('/setup'))
@@ -342,8 +341,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib1')
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    six.assertCountEqual(self, job.templates,
-                         ['engine_asan', 'libfuzzer', 'prune'])
+    self.assertCountEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib1/lib1-address-([0-9]+).zip\n'
@@ -368,8 +366,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    six.assertCountEqual(self, job.templates,
-                         ['engine_asan', 'libfuzzer', 'prune'])
+    self.assertCountEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-address-([0-9]+).zip\n'
@@ -391,7 +388,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    six.assertCountEqual(self, job.templates, ['engine_asan', 'libfuzzer'])
+    self.assertCountEqual(job.templates, ['engine_asan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-i386/lib3/lib3-address-([0-9]+).zip\n'
@@ -413,7 +410,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    six.assertCountEqual(self, job.templates, ['engine_msan', 'libfuzzer'])
+    self.assertCountEqual(job.templates, ['engine_msan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-memory-([0-9]+).zip\n'
@@ -436,7 +433,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib3')
     self.assertEqual(job.platform, 'LIB3_LINUX')
-    six.assertCountEqual(self, job.templates, ['engine_ubsan', 'libfuzzer'])
+    self.assertCountEqual(job.templates, ['engine_ubsan', 'libfuzzer'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib3/lib3-undefined-([0-9]+).zip\n'
@@ -457,7 +454,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib1')
     self.assertEqual(job.platform, 'LIB1_LINUX')
-    six.assertCountEqual(self, job.templates, ['engine_asan', 'afl'])
+    self.assertCountEqual(job.templates, ['engine_asan', 'afl'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-afl/lib1/lib1-address-([0-9]+).zip\n'
@@ -527,8 +524,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib7')
     self.assertEqual(job.platform, 'LIB7_LINUX')
-    six.assertCountEqual(self, job.templates,
-                         ['engine_asan', 'libfuzzer', 'prune'])
+    self.assertCountEqual(job.templates, ['engine_asan', 'libfuzzer', 'prune'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds/lib7/lib7-address-([0-9]+).zip\n'
@@ -549,7 +545,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(job)
     self.assertEqual(job.project, 'lib9')
     self.assertEqual(job.platform, 'LIB9_LINUX')
-    six.assertCountEqual(self, job.templates, ['engine_asan', 'centipede'])
+    self.assertCountEqual(job.templates, ['engine_asan', 'centipede'])
     self.assertEqual(
         job.environment_string, 'RELEASE_BUILD_BUCKET_PATH = '
         'gs://clusterfuzz-builds-centipede/lib9/lib9-none-([0-9]+).zip\n'
@@ -568,11 +564,11 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'MAIN_REPO = https://github.com/google/main-repo\n'
         'FILE_GITHUB_ISSUE = False\n')
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
-    six.assertCountEqual(self, libfuzzer.jobs, [
+    self.assertCountEqual(libfuzzer.jobs, [
         'libfuzzer_asan_lib1',
         'libfuzzer_asan_lib3',
         'libfuzzer_asan_i386_lib3',
@@ -589,14 +585,14 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     ])
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
-    six.assertCountEqual(self, afl.jobs, [
+    self.assertCountEqual(afl.jobs, [
         'afl_asan_lib1',
         'afl_asan_lib6',
     ])
 
     centipede = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'centipede').get()
-    six.assertCountEqual(self, centipede.jobs, [
+    self.assertCountEqual(centipede.jobs, [
         'centipede_asan_lib9',
     ])
 
@@ -1100,20 +1096,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib1@serviceaccount.com']
                 }]
             },
-            bucket='test-mutator-plugins-bucket'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib1@serviceaccount.com']
-                }]
-            },
             bucket='global-corpus.clusterfuzz-external.appspot.com'),
         mock.call(
             body={
@@ -1199,20 +1181,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 }]
             },
             bucket='test-shared-corpus-bucket'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib2@serviceaccount.com']
-                }]
-            },
-            bucket='test-mutator-plugins-bucket'),
         mock.call(
             body={
                 'resourceId':
@@ -1378,26 +1346,12 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib3@serviceaccount.com']
                 }]
             },
-            bucket='test-mutator-plugins-bucket'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib3@serviceaccount.com']
-                }]
-            },
             bucket='global-corpus.clusterfuzz-external.appspot.com')
     ])
 
     mappings = data_types.FuzzerJob.query()
     tags_fuzzers_and_jobs = [(m.platform, m.fuzzer, m.job) for m in mappings]
-    six.assertCountEqual(self, tags_fuzzers_and_jobs, [
+    self.assertCountEqual(tags_fuzzers_and_jobs, [
         ('LIB1_LINUX', 'afl', 'afl_asan_lib1'),
         ('LIB1_LINUX', 'libFuzzer', 'libfuzzer_asan_lib1'),
         ('LIB3_LINUX', 'libFuzzer', 'libfuzzer_asan_lib3'),
@@ -1422,7 +1376,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         for entity in data_types.ExternalUserPermission.query()
     ]
 
-    six.assertCountEqual(self, all_permissions, [
+    self.assertCountEqual(all_permissions, [
         {
             'entity_kind': 1,
             'is_prefix': False,
@@ -1696,12 +1650,12 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'projects/clusterfuzz-external/topics/jobs-lib8-linux',
         'projects/clusterfuzz-external/topics/jobs-lib9-linux',
     ]
-    six.assertCountEqual(self, expected_topics,
-                         list(pubsub_client.list_topics('projects/' + app_id)))
+    self.assertCountEqual(expected_topics,
+                          list(pubsub_client.list_topics('projects/' + app_id)))
 
     for topic in expected_topics[2:]:
       lib = posixpath.basename(topic).split('-')[1]
-      six.assertCountEqual(self, [
+      self.assertCountEqual([
           'projects/clusterfuzz-external/subscriptions/'
           f'jobs-{lib}-linux',
       ], pubsub_client.list_topic_subscriptions(topic))
@@ -1723,10 +1677,10 @@ def mock_get_url(url):
   return URL_RESULTS[url]
 
 
-class MockRequestsGet(object):
+class MockRequestsGet:
   """Mock requests.get."""
 
-  def __init__(self, url, params=None, auth=None):  # pylint: disable=unused-argument
+  def __init__(self, url, params=None, auth=None, timeout=None):  # pylint: disable=unused-argument
     if url in URL_RESULTS:
       self.text = URL_RESULTS[url]
       self.status_code = 200
@@ -1808,7 +1762,7 @@ class GenericProjectSetupTest(unittest.TestCase):
   """Test generic project setup."""
 
   def setUp(self):
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/setup', view_func=project_setup.Handler.as_view('/setup'))
@@ -1939,8 +1893,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
-                         job.templates)
+    self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
@@ -1958,7 +1911,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'INT_VAR = 0\n'
         'MSAN_VAR = VAL\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    six.assertCountEqual(self, ['engine_msan', 'libfuzzer'], job.templates)
+    self.assertCountEqual(['engine_msan', 'libfuzzer'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
@@ -1975,8 +1928,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
-                         job.templates)
+    self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
@@ -2013,8 +1965,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-dbg\n', job.environment_string)
-    six.assertCountEqual(self, ['engine_asan', 'libfuzzer', 'prune'],
-                         job.templates)
+    self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
     self.assertEqual('projects/proj/topics/reproduction',
                      job.external_reproduction_topic)
     self.assertEqual('projects/proj/subscriptions/updates',
@@ -2033,7 +1984,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    six.assertCountEqual(self, ['engine_asan', 'honggfuzz'], job.templates)
+    self.assertCountEqual(['engine_asan', 'honggfuzz'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
@@ -2050,7 +2001,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-dbg\n', job.environment_string)
-    six.assertCountEqual(self, ['engine_asan', 'honggfuzz'], job.templates)
+    self.assertCountEqual(['engine_asan', 'honggfuzz'], job.templates)
     self.assertEqual('projects/proj/topics/reproduction',
                      job.external_reproduction_topic)
     self.assertEqual('projects/proj/subscriptions/updates',
@@ -2068,14 +2019,14 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL\n', job.environment_string)
-    six.assertCountEqual(self, ['engine_asan', 'googlefuzztest'], job.templates)
+    self.assertCountEqual(['engine_asan', 'googlefuzztest'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'libfuzzer_asan_a-b',
         'libfuzzer_asan_c-d',
         'libfuzzer_msan_a-b',
@@ -2084,14 +2035,14 @@ class GenericProjectSetupTest(unittest.TestCase):
     ], libfuzzer.jobs)
 
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
-    six.assertCountEqual(self, [], afl.jobs)
+    self.assertCountEqual([], afl.jobs)
 
     honggfuzz = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'honggfuzz').get()
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'honggfuzz_asan_a-b',
     ], honggfuzz.jobs)
 
     gft = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'googlefuzztest').get()
-    six.assertCountEqual(self, ['googlefuzztest_asan_c-d'], gft.jobs)
+    self.assertCountEqual(['googlefuzztest_asan_c-d'], gft.jobs)

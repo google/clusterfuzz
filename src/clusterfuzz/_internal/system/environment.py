@@ -21,7 +21,6 @@ import socket
 import subprocess
 import sys
 
-import six
 import yaml
 
 from clusterfuzz._internal import fuzzing
@@ -65,8 +64,7 @@ def _eval_value(value_string):
 def join_memory_tool_options(options):
   """Joins a dict holding memory tool options into a string that can be set in
   the environment."""
-  return ':'.join('%s=%s' % (key, str(value))
-                  for key, value in sorted(six.iteritems(options)))
+  return ':'.join(f'{key}={str(val)}' for key, val in sorted(options.items()))
 
 
 def _maybe_convert_to_int(value):
@@ -709,6 +707,12 @@ def is_untrusted_worker():
   return get_value('UNTRUSTED_WORKER')
 
 
+def is_uworker():
+  """Return whether or not the current bot is a uworker. This is not the same as
+  OSS-Fuzz's untrusted worker."""
+  return get_value('UWORKER')
+
+
 def is_running_on_app_engine():
   """Return True if we are running on appengine (local or production)."""
   return (os.getenv('GAE_ENV') or is_running_on_app_engine_development() or
@@ -914,7 +918,7 @@ def set_default_vars():
     env_file_contents = file_handle.read()
 
   env_vars_and_values = yaml.safe_load(env_file_contents)
-  for variable, value in six.iteritems(env_vars_and_values):
+  for variable, value in env_vars_and_values.items():
     # We cannot call set_value here.
     os.environ[variable] = str(value)
 
@@ -953,8 +957,6 @@ def set_bot_environment():
   os.environ['FUZZ_INPUTS_MEMORY'] = os.environ['FUZZ_INPUTS']
   os.environ['FUZZ_INPUTS_DISK'] = os.path.join(inputs_dir,
                                                 'fuzzer-testcases-disk')
-  os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(inputs_dir,
-                                                   'mutator-plugins')
   os.environ['FUZZ_DATA'] = os.path.join(inputs_dir,
                                          'fuzzer-common-data-bundles')
   os.environ['IMAGES_DIR'] = os.path.join(inputs_dir, 'images')

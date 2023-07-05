@@ -137,56 +137,6 @@
               </paper-listbox>
             </paper-dropdown-menu>
           </template>
-          <paper-dropdown-menu
-              id="fuzzers"
-              class="dropdown-filter"
-              no-animations="true"
-              label="Fuzzer"
-              value="All"
-              noink>
-            <paper-listbox
-                slot="dropdown-content"
-                selected="{{params.fuzzer}}"
-                attr-for-selected="val">
-              <paper-input
-                  label="Search fuzzers"
-                  value="{{fuzzerKey}}"
-                  on-tap="stopEventPropagation"
-                  on-keydown="stopEventPropagation"
-                  on-keyup="stopEventPropagation" no-label-float>
-                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
-                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
-              </paper-input>
-              <template is="dom-repeat" items="[[fieldValues.fuzzers]]" filter="{{onmatch(fuzzerKey)}}">
-                <paper-item on-click="submit" val="[[sanitise(item)]]">[[item]]</paper-item>
-              </template>
-            </paper-listbox>
-          </paper-dropdown-menu>
-          <paper-dropdown-menu
-              id="jobs"
-              class="dropdown-filter"
-              no-animations="true"
-              label="Job"
-              value="All"
-              noink>
-            <paper-listbox
-                slot="dropdown-content"
-                selected="{{params.job}}"
-                attr-for-selected="val">
-              <paper-input
-                  label="Search jobs"
-                  value="{{jobKey}}"
-                  on-tap="stopEventPropagation"
-                  on-keydown="stopEventPropagation"
-                  on-keyup="stopEventPropagation" no-label-float>
-                <iron-icon icon="icons:search" slot="prefix"></iron-icon>
-                <iron-icon icon="icons:clear" slot="suffix" on-click="clearSearchInput"></iron-icon>
-              </paper-input>
-              <template is="dom-repeat" items="[[fieldValues.jobs]]" filter="{{onmatch(jobKey)}}">
-                <paper-item on-click="submit" val="[[sanitise(item)]]">[[item]]</paper-item>
-              </template>
-            </paper-listbox>
-          </paper-dropdown-menu>
           <template is="dom-if" if="[[fieldValues.shouldShowImpact]]">
             <paper-dropdown-menu
                 id="impactOptions"

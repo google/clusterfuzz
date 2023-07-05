@@ -16,8 +16,6 @@
 import time
 import unittest
 
-import six
-
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -78,7 +76,7 @@ class PubSubTest(unittest.TestCase):
     time.sleep(ACK_DEADLINE + ACK_DEADLINE_WINDOW)
     messages = self.client.pull_from_subscription(self.subscription)
     self.assertEqual(2, len(messages))
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         {
             'data': 'MTIz',
         },
@@ -136,14 +134,14 @@ class PubSubTest(unittest.TestCase):
     expected.append('projects/fake-project/topics/test-topic')
 
     topics = list(self.client.list_topics('projects/' + PROJECT_NAME))
-    six.assertCountEqual(self, expected, topics)
+    self.assertCountEqual(expected, topics)
 
     # Note: Page size appears to be ignored by the emulator. Even when creating
     # large amounts of topics to force paging, the nextPageToken returned is
     # buggy and results in infinite loops.
     topics = list(
         self.client.list_topics('projects/' + PROJECT_NAME, page_size=1))
-    six.assertCountEqual(self, expected, topics)
+    self.assertCountEqual(expected, topics)
 
   def test_list_topic_subscriptions(self):
     """Test listing topic subscriptions."""
@@ -156,14 +154,14 @@ class PubSubTest(unittest.TestCase):
     expected.append('projects/fake-project/subscriptions/subscription')
 
     subscriptions = list(self.client.list_topic_subscriptions(self.topic))
-    six.assertCountEqual(self, expected, subscriptions)
+    self.assertCountEqual(expected, subscriptions)
 
     # Note: Page size appears to be ignored by the emulator. Even when creating
     # large amounts of topics to force paging, the nextPageToken returned is
     # buggy and results in infinite loops.
     subscriptions = list(
         self.client.list_topic_subscriptions(self.topic, page_size=1))
-    six.assertCountEqual(self, expected, subscriptions)
+    self.assertCountEqual(expected, subscriptions)
 
   def test_get_topic(self):
     """Test getting a topic."""

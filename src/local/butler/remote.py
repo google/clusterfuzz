@@ -14,10 +14,9 @@
 """Helps with remote command-line tasks (e.g. read logs, stage zip)."""
 
 import inspect
-import paramiko
-import six
 
 from fabric import api
+import paramiko
 
 from local.remote.handlers import android_chrome_lab
 from local.remote.handlers import linux
@@ -46,9 +45,7 @@ def _args_to_dict(args, method):
   """Convert args to dict that is compatible with the method's argument."""
   arg_names = inspect.getfullargspec(method).args[1:]
   args_dict = {
-      k: v
-      for k, v in six.iteritems(vars(args))
-      if k in arg_names and v is not None
+      k: v for k, v in vars(args.items()) if k in arg_names and v is not None
   }
   return args_dict
 

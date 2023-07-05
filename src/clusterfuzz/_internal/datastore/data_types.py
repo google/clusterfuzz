@@ -16,13 +16,14 @@
 import re
 
 from google.cloud import ndb
-import six
 
 from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import search_tokenizer
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+
+# pylint: disable=no-member,arguments-differ
 
 # Prefix used when a large testcase is stored in the blobstore.
 BLOBSTORE_STACK_PREFIX = 'BLOB_KEY='
@@ -137,15 +138,17 @@ COVERAGE_INFORMATION_DATE_FORMAT = '%Y%m%d'
 def clone_entity(e, **extra_args):
   """Clones a DataStore entity and returns the clone."""
   ent_class = e.__class__
-  # pylint: disable=protected-access
-  props = dict((v._code_name, v.__get__(e, ent_class))
-               for v in six.itervalues(ent_class._properties)
-               if not isinstance(v, ndb.ComputedProperty))
+  # pylint: disable=protected-access,unnecessary-dunder-call
+  props = {
+      v._code_name: v.__get__(e, ent_class)
+      for v in ent_class._properties.values()
+      if not isinstance(v, ndb.ComputedProperty)
+  }
   props.update(extra_args)
   return ent_class(**props)
 
 
-class SecuritySeverity(object):
+class SecuritySeverity:
   """Enum for Security Severity."""
   CRITICAL = 0
   HIGH = 1
@@ -187,7 +190,7 @@ class SecuritySeverity(object):
 
 
 # Impact values for security issues.
-class SecurityImpact(object):
+class SecurityImpact:
   EXTENDED_STABLE = 0
   STABLE = 1
   BETA = 2
@@ -197,7 +200,7 @@ class SecurityImpact(object):
 
 
 # Archive state enums.
-class ArchiveStatus(object):
+class ArchiveStatus:
   NONE = 0
   FUZZED = 1
   MINIMIZED = 2
@@ -205,7 +208,7 @@ class ArchiveStatus(object):
 
 
 # ExternalUserPermission Auto-CC type.
-class AutoCCType(object):
+class AutoCCType:
   # Don't Auto-CC user.
   NONE = 0
   # Auto-CC user for all issues.
@@ -215,14 +218,14 @@ class AutoCCType(object):
 
 
 # Type of permission. Used by ExternalUserPermision.
-class PermissionEntityKind(object):
+class PermissionEntityKind:
   FUZZER = 0
   JOB = 1
   UPLOADER = 2
 
 
 # Task state string mappings.
-class TaskState(object):
+class TaskState:
   STARTED = 'started'
   WIP = 'in-progress'
   FINISHED = 'finished'
@@ -231,13 +234,13 @@ class TaskState(object):
 
 
 # Build state.
-class BuildState(object):
+class BuildState:
   UNMARKED = 0
   GOOD = 1
   BAD = 2
 
 
-class TestcaseVariantStatus(object):
+class TestcaseVariantStatus:
   PENDING = 0
   REPRODUCIBLE = 1
   FLAKY = 2
@@ -338,7 +341,7 @@ class Fuzzer(Model):
   # Column specification for stats.
   stats_columns = ndb.TextProperty()
 
-  # Helpful descriptions for the stats_columns. In a yaml format.
+  # Helpful descriptions for the stats_column.sw In a yaml format.
   stats_column_descriptions = ndb.TextProperty(indexed=False)
 
   # Whether this is a builtin fuzzer.
@@ -425,9 +428,6 @@ class Testcase(Model):
 
   # File name of the original uploaded archive.
   archive_filename = ndb.TextProperty()
-
-  # Is this a binary file?
-  binary_flag = ndb.BooleanProperty(default=False, indexed=False)
 
   # Timestamp.
   timestamp = ndb.DateTimeProperty()
@@ -605,8 +605,7 @@ class Testcase(Model):
     self.bug_indices = search_tokenizer.tokenize_bug_information(self)
     self.has_bug_flag = bool(self.bug_indices)
     self.is_a_duplicate_flag = bool(self.duplicate_of)
-    fuzzer_name_indices = list(
-        set([self.fuzzer_name, self.overridden_fuzzer_name]))
+    fuzzer_name_indices = list({self.fuzzer_name, self.overridden_fuzzer_name})
     self.fuzzer_name_indices = [f for f in fuzzer_name_indices if f]
 
     # If the impact task hasn't been run (aka is_impact_set_flag=False) OR
@@ -752,9 +751,6 @@ class DataBundle(Model):
   # Data bundle's source (for accountability).
   # TODO(ochang): Remove.
   source = ndb.StringProperty()
-
-  # If data bundle can be unpacked locally or needs nfs.
-  is_local = ndb.BooleanProperty(default=True)
 
   # Creation timestamp.
   timestamp = ndb.DateTimeProperty()
@@ -982,7 +978,7 @@ class Job(Model):
     variables in its template. Avoid using this if possible."""
     environment_string = ''
     job_environment = self.get_environment()
-    for key, value in six.iteritems(job_environment):
+    for key, value in job_environment.items():
       environment_string += f'{key} = {value}\n'
 
     return environment_string
@@ -1329,6 +1325,12 @@ class FiledBug(Model):
   # Platform id.
   platform_id = ndb.StringProperty()
 
+  # Project name that is associated with the filed issue.
+  project_name = ndb.StringProperty()
+
+  # Job type that is associated with the filed issue.
+  job_type = ndb.StringProperty()
+
 
 class CoverageInformation(Model):
   """Coverage info."""
@@ -1363,12 +1365,6 @@ class CoverageInformation(Model):
     """Pre-put hook."""
     self.key = ndb.Key(CoverageInformation,
                        coverage_information_key(self.fuzzer, self.date))
-
-
-class CorpusTag(Model):
-  """Corpus Tags for sharing corpora between fuzz targets."""
-  tag = ndb.StringProperty()
-  fully_qualified_fuzz_target_name = ndb.StringProperty()
 
 
 def coverage_information_date_to_string(date):

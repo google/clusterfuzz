@@ -16,15 +16,13 @@
 import os
 import re
 
-import six
-
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-z]+Sanitizer:.*')
+SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-Za-z]+Sanitizer:.*')
 SANITIZER_SEPERATOR_REGEX = re.compile(r'^=+$')
 
 
@@ -189,13 +187,13 @@ class StatsGetter(object):
     # Set dictionary stats if self.dict_path is set.
     if self.dict_path is not None:
       self.stats['dict_used'] = 1
-      self.stats['manual_dict_size'], _ = (
+      self.stats['manual_dict_size'] = (
           dictionary_manager.get_stats_for_dictionary_file(self.dict_path))
 
     # Read and parse stats from AFL's afl_stats. Then use them to set and
     # calculate our own stats.
     self.set_afl_stats()
-    for afl_stat, clusterfuzz_stat in six.iteritems(self.AFL_STATS_MAPPING):
+    for afl_stat, clusterfuzz_stat in self.AFL_STATS_MAPPING.items():
       self.stats[clusterfuzz_stat] = self.get_afl_stat(afl_stat)
 
     try:
@@ -244,7 +242,3 @@ class StatsGetter(object):
        ):
       self.stats['strategy_' +
                  strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name] = 1
-    elif (fuzzing_strategies.generator_strategy ==
-          engine_common.Generator.ML_RNN):
-      self.stats['strategy_' +
-                 strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name] = 1
