@@ -179,6 +179,8 @@ def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
     ab_target = 'cloudripper-fuzz-test-debug'
   if device in ['oriole', 'raven', 'bluejay']:
     ab_target = 'slider-fuzz-test-debug'
+  if device in ['shiba', 'husky']:
+    ab_target = 'ripcurrent-fuzz-test-debug'
 
   branch = 'polygon-trusty-whitechapel-master'
   if not bid:
