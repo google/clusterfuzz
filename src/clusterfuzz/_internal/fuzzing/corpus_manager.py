@@ -293,7 +293,7 @@ class GcsCorpus:
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
   def get_zipcorpora_gcs_urls(self, max_partial_corpora=float('inf')):
-    yield self.get_zipcorpus_gcs_url(partial=False)[1]
+    yield self.get_zipcorpus_gcs_url(partial=False)
     partial_corpora_gcs_url = f'{self.get_zipcorpus_gcs_dir_url()}/partial*'
     partial_corpora = storage.list_blobs(partial_corpora_gcs_url)
     for idx, partial_corpus in enumerate(partial_corpora):
