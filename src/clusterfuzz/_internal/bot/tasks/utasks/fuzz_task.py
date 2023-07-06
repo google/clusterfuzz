@@ -1758,7 +1758,7 @@ class FuzzingSession:
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return
+      return None
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1774,7 +1774,7 @@ class FuzzingSession:
     if not build_setup_result or not build_manager.check_app_path():
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.BUILD_SETUP_FAILED)
-      return
+      return None
 
     dataflow_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
     if dataflow_bucket_path:
@@ -1802,7 +1802,7 @@ class FuzzingSession:
                                                         crash_revision)
     _track_build_run_result(self.job_type, crash_revision, is_bad_build)
     if is_bad_build:
-      return
+      return None
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
@@ -1812,7 +1812,7 @@ class FuzzingSession:
                                FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return
+      return None
 
     engine_impl = engine.get(self.fuzzer.name)
 
@@ -1831,7 +1831,7 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return
+      return None
 
     logs.log('Finished processing test cases.')
 
@@ -1873,11 +1873,6 @@ class FuzzingSession:
             thread_wait_timeout=THREAD_WAIT_TIMEOUT,
             data_directory=self.data_directory))
 
-    upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
-                         crash_revision, time.time(),
-                         new_crash_count, known_crash_count,
-                         len(testcase_file_paths), processed_groups)
-
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
     # unclear if needed but it is kept because it is not harmful.
@@ -1889,19 +1884,32 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
+    return uworker_io.UworkerOutput(
+        crash_revision=crash_revision,
+        job_run_timestamp=time.time(),
+        new_crash_count=new_crash_count,
+        known_crash_count=known_crash_count,
+        testcases_executed=len(testcase_file_paths),
+        job_run_crashes=convert_groups_to_crashes(processed_groups),
+    )
+
   def preprocess(self):
     """Handles preprocessing."""
     # TODO(metzman): Finish this.
 
-  def postprocess(self):
+  def postprocess(self, output):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
+    upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
+                         output.crash_revision, output.job_run_timestamp,
+                         output.new_crash_count, output.known_crash_count,
+                         output.testcases_executed, output.job_run_crashes)
 
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   session = _make_session(uworker_input.fuzzer_name, uworker_input.job_type)
-  session.run()
+  return session.run()
 
 
 def _make_session(fuzzer_name, job_type):
@@ -1922,5 +1930,4 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 def utask_postprocess(output):
   session = _make_session(output.uworker_input.fuzzer_name,
                           output.uworker_input.job_type)
-  session.postprocess()
-  del session
+  session.postprocess(output)

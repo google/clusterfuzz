@@ -39,6 +39,12 @@ message Input {
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
+  optional int64 crash_revision = 11;
+  optional int64 job_run_timestamp = 12;
+  optional int64 new_crash_count = 13;
+  optional int64 known_crash_count = 14;
+  optional int64 testcases_executed = 15;
+  optional Json job_run_crashes = 16;
 }
 
 enum ErrorType {
