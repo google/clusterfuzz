@@ -1921,7 +1921,6 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 def utask_postprocess(output):
   session = _make_session(output.uworker_input.fuzzer_name,
-                          output.uworker_input.job_type,
-                          output.uworker_env['TEST_TIMEOUT'])
+                          output.uworker_input.job_type)
   session.postprocess()
   del session

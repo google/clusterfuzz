@@ -81,6 +81,7 @@ class RunCommandTest(unittest.TestCase):
     os.environ['BOT_NAME'] = 'bot_name'
     os.environ['TASK_LEASE_SECONDS'] = '60'
     os.environ['FAIL_WAIT'] = '60'
+    os.environ['TEST_TIMEOUT'] = '10'
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
 
   def test_run_command_fuzz(self):
