@@ -168,12 +168,17 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-@test_utils.with_cloud_emulators('pubsub')
 class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
   """Integration tests for analyze_task."""
+  def setUp(self):
+    super().setUp()
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+    ])
 
   def test_analyze_reproducible(self):
     """Tests that analyze_task handles reproducible testcases properly."""
+    # TODO(metzman): Figure out why this test doesn't crash in CI.
     self.execute(analyze_task, str(self.testcase.key.id()), self.job_type,
                  self.uworker_env)
     testcase = self.testcase.key.get(use_cache=False, use_memcache=False)
