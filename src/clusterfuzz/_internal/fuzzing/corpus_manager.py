@@ -286,7 +286,7 @@ class GcsCorpus:
     # TODO(metzman): Get rid of the rest of this function when migration is
     # complete.
     filenames = shell.get_files_list(directory)
-    self.upload_files(filenames, partial=False)
+    self._upload_to_zipcorpus(filenames, CORPUS_FILES_SYNC_TIMEOUT, partial=False)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
@@ -306,7 +306,7 @@ class GcsCorpus:
       # TODO(metzman): Find out what's the tradeoff between writing the file to
       # disk first or unpacking it in-memory.
       with get_temp_zip_filename() as temp_zip_filename:
-        storage.copy_file_to(zipcorpus_url, temp_zip_filename)
+        storage.copy_file_from(zipcorpus_url, temp_zip_filename)
         archive.unpack(temp_zip_filename, dst_dir)
 
   def rsync_to_disk(self,
@@ -378,11 +378,9 @@ class GcsCorpus:
     return filename, zipcorpus_url + filename
 
   def _upload_to_zipcorpus(self, file_paths, timeout, partial):
-    filename, gcs_dir_url = self.get_zipcorpus_name_and_gcs_url(partial)
+    filename, gcs_url = self.get_zipcorpus_name_and_gcs_url(partial)
     with zip_files(filename, file_paths) as archive_path:
-      pass
-      # self._gsutil_runner.upload_files_to_url(
-      #     [archive_path], gcs_dir_url, timeout=timeout)
+      storage.copy_file_to(archive_path, gcs_url)
 
 
 @contextlib.contextmanager

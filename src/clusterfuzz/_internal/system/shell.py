@@ -437,11 +437,15 @@ def remove_file(file_path):
     pass
 
 
+def _get_random_filename():
+  return str(uuid.uuid4()).lower()
+
+
 @contextlib.contextmanager
 def get_tempfile(prefix='', suffix=''):
   """Returns path to a temporary file."""
   tempdir = environment.get_value('BOT_TMPDIR', '/tmp')
-  basename = str(uuid.uuid4()).lower()
+  basename = _get_random_filename()
   filename = f'{prefix}{basename}{suffix}'
   filepath = os.path.join(tempdir, filename)
   yield filepath

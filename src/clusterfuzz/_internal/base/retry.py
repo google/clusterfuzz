@@ -27,6 +27,7 @@ from clusterfuzz._internal.system import environment
 def sleep(seconds):
   """Invoke time.sleep. This is to avoid the flakiness of time.sleep. See:
   crbug.com/770375"""
+  return
   time.sleep(seconds)
 
 
