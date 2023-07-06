@@ -292,7 +292,7 @@ class GcsCorpus:
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
   def get_zipcorpora_gcs_urls(self, max_partial_corpora=float('inf')):
-    yield self.get_zipcorpus_name_and_gcs_dir(partial=False)
+    yield self.get_zipcorpus_name_and_gcs_url(partial=False)[1]
     partial_corpora_gcs_url = f'{self.get_zipcorpus_gcs_url()}/partial*'
     partial_corpora = storage.list_blobs(partial_corpora_gcs_url)
     for idx, partial_corpus in enumerate(partial_corpora):
@@ -366,7 +366,7 @@ class GcsCorpus:
     self._upload_to_zipcorpus(file_paths, timeout, partial=partial)
     return result
 
-  def get_zipcorpus_name_and_gcs_dir(self, partial):
+  def get_zipcorpus_name_and_gcs_url(self, partial):
     zipcorpus_url = self.get_zipcorpus_gcs_url()
     if partial:
       timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
@@ -378,7 +378,7 @@ class GcsCorpus:
     return filename, zipcorpus_url + filename
 
   def _upload_to_zipcorpus(self, file_paths, timeout, partial):
-    filename, gcs_dir_url = self.get_zipcorpus_name_and_gcs_dir(partial)
+    filename, gcs_dir_url = self.get_zipcorpus_name_and_gcs_url(partial)
     with zip_files(filename, file_paths) as archive_path:
       self._gsutil_runner.upload_files_to_url(
           [archive_path], gcs_dir_url, timeout=timeout)
