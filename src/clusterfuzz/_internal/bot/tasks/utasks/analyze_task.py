@@ -337,7 +337,6 @@ def utask_main(uworker_input):
   # In the general case, we will not attempt to symbolize if we do not detect
   # a crash. For user uploads, we should symbolize anyway to provide more
   # information about what might be happening.
-  raise Exception(state.crash_stacktrace)
   crash_stacktrace_output = utils.get_crash_stacktrace_output(
       application_command_line, state.crash_stacktrace,
       unsymbolized_crash_stacktrace)
