@@ -132,10 +132,10 @@ class TestGetUrls(unittest.TestCase):
 
   def test_get_uworker_input_urls(self):
     """Tests that get_uworker_input_urls works."""
-    expected_urls = (self.FAKE_URL, self.EXPECTED_GCS_PATH)
+    expected_urls = (self.FAKE_URL, self.EXPECTED_INPUT_GCS_PATH)
     self.assertEqual(uworker_io.get_uworker_input_urls(), expected_urls)
     self.mock._sign_url.assert_called_with(
-        self.EXPECTED_GCS_PATH,
+        self.EXPECTED_INPUT_GCS_PATH,
         method='GET',
         minutes=DEFAULT_SIGNED_URL_MINUTES)
 
@@ -166,7 +166,6 @@ class RoundTripTest(unittest.TestCase):
   WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
   WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
-  EXPECTED_GCS_PATH = '/UWORKER_IO/new-filename'
   FAKE_URL = 'https://fake'
 
   def setUp(self):
