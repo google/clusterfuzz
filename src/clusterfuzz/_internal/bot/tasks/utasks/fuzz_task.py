@@ -1738,7 +1738,7 @@ class FuzzingSession:
       ]
     return fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes
 
-  def run(self):
+  def main(self):
     """Run the fuzzing session."""
     failure_wait_interval = environment.get_value('FAIL_WAIT')
 
@@ -1892,13 +1892,20 @@ class FuzzingSession:
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
+
+
+  session.main()
+
+
+def _make_session(fuzzer_name, job_type):
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  session = FuzzingSession(uworker_input.fuzzer_name, uworker_input.job_type,
+    session = FuzzingSession(uworker_input.fuzzer_name, uworker_input.job_type,
                            test_timeout)
-  session.run()
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  session = FuzzingSession(fuzzer_name, job_type,
+                           test_timeout)
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
