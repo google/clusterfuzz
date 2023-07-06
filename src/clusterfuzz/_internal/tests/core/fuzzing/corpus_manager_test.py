@@ -287,7 +287,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         'gs://bucket/libFuzzer/fuzzer/'
     ])
     self.mock.copy_file_to.assert_called_with(
-        '/tmp/randomname.zip', 'gs://zc/bucket/libFuzzer/fuzzer/base.zip')
+        '/tmp/randomname.zip', 'gs://bucket/zc/libFuzzer/fuzzer/base.zip')
 
   def test_upload_files(self):
     """Test upload_files."""

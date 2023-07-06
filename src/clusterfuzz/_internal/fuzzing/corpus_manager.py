@@ -250,12 +250,13 @@ class GcsCorpus:
 
     return url
 
-  def get_zipcorpus_gcs_dir_url(self, suffix=''):
+  def get_zipcorpus_gcs_dir_url(self):
     """Build zipcorpus GCS URL for gsutil.
     Returns:
       A string giving the GCS URL.
     """
-    url = f'gs://zc/{self.bucket_name}{self.bucket_path}{suffix}'
+    url = storage.get_cloud_storage_file_path(self.bucket_name,
+                                              f'zc{self.bucket_path}')
     if not url.endswith('/'):
       # Ensure that the bucket path is '/' terminated. Without this, when a
       # single file is being uploaded, it is renamed to the trailing non-/
