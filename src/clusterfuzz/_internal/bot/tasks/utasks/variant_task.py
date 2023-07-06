@@ -201,7 +201,8 @@ def handle_build_setup_error(output):
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  if environment.is_engine_fuzzer_job(output.testcase.job_type):
+  if output.testcase and environment.is_engine_fuzzer_job(
+      output.testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     output.testcase.put = lambda: None
 

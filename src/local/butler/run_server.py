@@ -73,8 +73,6 @@ def bootstrap_gcs(storage_path):
                       config.get('env.SHARED_CORPUS_BUCKET'))
   create_local_bucket(local_gcs_buckets_path,
                       config.get('env.FUZZ_LOGS_BUCKET'))
-  create_local_bucket(local_gcs_buckets_path,
-                      config.get('env.MUTATOR_PLUGINS_BUCKET'))
 
   # Symlink local GCS bucket path to appengine src dir to bypass sandboxing
   # issues.
@@ -179,10 +177,10 @@ def execute(args):
   os.environ['DATASTORE_EMULATOR_HOST'] = constants.DATASTORE_EMULATOR_HOST
   os.environ['PUBSUB_EMULATOR_HOST'] = constants.PUBSUB_EMULATOR_HOST
   os.environ['GAE_ENV'] = 'dev'
+  cron_server = common.execute_async(
+      'gunicorn -b :{port} main:app'.format(port=constants.CRON_SERVICE_PORT),
+      cwd=os.path.join('src', 'appengine'))
   try:
-    cron_server = common.execute_async(
-        'gunicorn -b :{port} main:app'.format(port=constants.CRON_SERVICE_PORT),
-        cwd=os.path.join('src', 'appengine'))
 
     common.execute(
         'gunicorn -b :{port} main:app'.format(

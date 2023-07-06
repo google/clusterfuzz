@@ -34,10 +34,6 @@ DATAFLOW_TRACING_STRATEGY = Strategy(
 CORPUS_SUBSET_STRATEGY = Strategy(
     name='corpus_subset', probability=0.50, manually_enable=True)
 FORK_STRATEGY = Strategy(name='fork', probability=0.50, manually_enable=False)
-MUTATOR_PLUGIN_STRATEGY = Strategy(
-    name='mutator_plugin', probability=0.50, manually_enable=True)
-MUTATOR_PLUGIN_RADAMSA_STRATEGY = Strategy(
-    name='mutator_plugin_radamsa', probability=.20, manually_enable=False)
 RANDOM_MAX_LENGTH_STRATEGY = Strategy(
     name='random_max_len', probability=0.15, manually_enable=False)
 VALUE_PROFILE_STRATEGY = Strategy(
@@ -56,8 +52,6 @@ LIBFUZZER_STRATEGY_LIST = [
     FORK_STRATEGY,
     CORPUS_SUBSET_STRATEGY,
     DATAFLOW_TRACING_STRATEGY,
-    MUTATOR_PLUGIN_STRATEGY,
-    MUTATOR_PLUGIN_RADAMSA_STRATEGY,
     PEACH_GRAMMAR_MUTATION_STRATEGY,
     USE_EXTRA_SANITIZERS_STRATEGY,
 ]
@@ -88,8 +82,6 @@ LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE_TYPE = {
 LIBFUZZER_STRATEGIES_WITH_BOOLEAN_VALUE = [
     CORPUS_MUTATION_RADAMSA_STRATEGY,
     DATAFLOW_TRACING_STRATEGY,
-    MUTATOR_PLUGIN_STRATEGY,
-    MUTATOR_PLUGIN_RADAMSA_STRATEGY,
     RANDOM_MAX_LENGTH_STRATEGY,
     VALUE_PROFILE_STRATEGY,
     USE_EXTRA_SANITIZERS_STRATEGY,
