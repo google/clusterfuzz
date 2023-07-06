@@ -102,7 +102,8 @@ class TestGetUrls(unittest.TestCase):
   WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
   WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
-  EXPECTED_GCS_PATH = '/UWORKER_IO/new-filename'
+  EXPECTED_INPUT_GCS_PATH = '/UWORKER_INPUT/new-filename'
+  EXPECTED_OUTPUT_GCS_PATH = '/UWORKER_OUTPUT/new-filename'
 
   def setUp(self):
     helpers.patch_environ(self)
@@ -120,13 +121,14 @@ class TestGetUrls(unittest.TestCase):
 
   def test_get_uworker_output_urls(self):
     """Tests that get_uworker_output_urls works."""
-    expected_upload_url = self.EXPECTED_GCS_PATH + '.output'
-    expected_urls = (self.FAKE_URL, expected_upload_url)
+    expected_urls = (self.FAKE_URL, self.EXPECTED_OUTPUT_GCS_PATH)
     self.assertEqual(
-        uworker_io.get_uworker_output_urls(self.EXPECTED_GCS_PATH),
+        uworker_io.get_uworker_output_urls(self.EXPECTED_INPUT_GCS_PATH),
         expected_urls)
     self.mock._sign_url.assert_called_with(
-        expected_upload_url, method='PUT', minutes=DEFAULT_SIGNED_URL_MINUTES)
+        self.EXPECTED_OUTPUT_GCS_PATH,
+        method='PUT',
+        minutes=DEFAULT_SIGNED_URL_MINUTES)
 
   def test_get_uworker_input_urls(self):
     """Tests that get_uworker_input_urls works."""
