@@ -170,6 +170,7 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
   """Integration tests for analyze_task."""
+
   def setUp(self):
     super().setUp()
     helpers.patch(self, [
