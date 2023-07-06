@@ -1910,7 +1910,8 @@ def _make_session(fuzzer_name, job_type, test_timeout=None):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  session = _make_session(fuzzer_name, job_type, uworker_env['TEST_TIMEOUT'])
+  session = _make_session(fuzzer_name, job_type,
+                          uworker_env.get('TEST_TIMEOUT', None))
   session.preprocess()
   return uworker_io.UworkerInput(
       job_type=job_type,
