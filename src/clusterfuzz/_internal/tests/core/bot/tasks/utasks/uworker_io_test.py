@@ -161,7 +161,8 @@ class UworkerOutputTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class RoundTripTest(unittest.TestCase):
   """Tests round trips for download and uploading inputs and outputs."""
-  WORKER_IO_BUCKET = 'UWORKER_IO'
+  WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
+  WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
   EXPECTED_GCS_PATH = '/UWORKER_IO/new-filename'
   FAKE_URL = 'https://fake'
@@ -169,7 +170,8 @@ class RoundTripTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     os.environ['FAIL_RETRIES'] = '1'
-    os.environ['TEST_UWORKER_IO_BUCKET'] = self.WORKER_IO_BUCKET
+    os.environ['TEST_UWORKER_INPUT_BUCKET'] = self.WORKER_INPUT_BUCKET
+    os.environ['TEST_UWORKER_OUTPUT_BUCKET'] = self.WORKER_OUTPUT_BUCKET
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',

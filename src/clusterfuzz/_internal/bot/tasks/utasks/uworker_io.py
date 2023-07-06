@@ -34,7 +34,7 @@ def generate_new_input_file_name():
 def get_uworker_input_gcs_path():
   """Returns a GCS path for uworker I/O."""
   # Inspired by blobs.write_blob.
-  io_bucket = storage.uworker_io_bucket()
+  io_bucket = storage.uworker_input_bucket()
   io_file_name = generate_new_input_file_name()
   if storage.get(storage.get_cloud_storage_file_path(io_bucket, io_file_name)):
     raise RuntimeError(f'UUID collision found: {io_file_name}.')
@@ -51,13 +51,13 @@ def get_uworker_output_urls(input_gcs_path):
 
 
 def uworker_input_path_to_output_path(input_gcs_path):
-  return input_gcs_path.replace(uworker_input_bucket(),
-                                uworker_output_bucket())
+  return input_gcs_path.replace(storage.uworker_input_bucket(),
+                                storage.uworker_output_bucket())
 
 
 def uworker_output_path_to_input_path(output_gcs_path):
-  return output_gcs_path.replace(uworker_output_bucket(),
-                                 uworker_input_bucket())
+  return output_gcs_path.replace(storage.uworker_output_bucket(),
+                                 storage.uworker_input_bucket())
 
 
 def get_uworker_input_urls():
