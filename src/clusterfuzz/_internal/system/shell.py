@@ -13,6 +13,7 @@
 # limitations under the License.
 """Shell related functions."""
 
+import contextlib
 import os
 import re
 import shlex
@@ -20,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.metrics import logs
@@ -433,6 +435,18 @@ def remove_file(file_path):
       os.remove(file_path)
   except:
     pass
+
+
+@contextlib.contextmanager
+def get_tempfile(prefix='', suffix=''):
+  """Returns path to a temporary file."""
+  tempdir = environment.get_value('BOT_TMPDIR')
+  basename = str(uuid.uuid4()).lower()
+  filename = f'{prefix}{basename}{suffix}'
+  filepath = os.path.join(tempdir, filename)
+  yield filepath
+  if os.path.exists(filepath):
+    os.remove(filepath)
 
 
 def remove_directory(directory, recreate=False, ignore_errors=False):
