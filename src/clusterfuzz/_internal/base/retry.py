@@ -27,7 +27,6 @@ from clusterfuzz._internal.system import environment
 def sleep(seconds):
   """Invoke time.sleep. This is to avoid the flakiness of time.sleep. See:
   crbug.com/770375"""
-  return
   time.sleep(seconds)
 
 
@@ -44,7 +43,7 @@ def get_delay(num_try, delay, backoff):
   delay = delay * (backoff**(num_try - 1))
   if _should_ignore_delay_for_testing():
     # Don't sleep for long during tests. Flake is better.
-    return min(delay, 2)
+    return max(delay, 3)
 
   return delay
 
