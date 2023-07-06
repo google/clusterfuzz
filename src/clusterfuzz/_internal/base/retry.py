@@ -39,7 +39,7 @@ def get_delay(num_try, delay, backoff):
       environment.get_value('LOCAL_DEVELOPMENT') or
       environment.get_value('UTASK_TESTS')):
     # Don't sleep for long during tests. Flake is better.
-    return max(delay, 3)
+    return min(delay, 3)
 
   return delay
 
