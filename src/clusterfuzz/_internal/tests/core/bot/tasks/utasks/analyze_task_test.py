@@ -168,6 +168,7 @@ class SetupTestcaseAndBuildTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
+@test_utils.with_cloud_emulators('pubsub')
 class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
   """Integration tests for analyze_task."""
 
