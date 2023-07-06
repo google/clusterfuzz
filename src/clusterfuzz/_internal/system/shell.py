@@ -445,6 +445,7 @@ def _get_random_filename():
 def get_tempfile(prefix='', suffix=''):
   """Returns path to a temporary file."""
   tempdir = environment.get_value('BOT_TMPDIR', '/tmp')
+  os.makedirs(tempdir, exist_ok=True)
   basename = _get_random_filename()
   filename = f'{prefix}{basename}{suffix}'
   filepath = os.path.join(tempdir, filename)
