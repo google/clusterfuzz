@@ -28,8 +28,10 @@ class WrapTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.retry.sleep',
+        'clusterfuzz._internal.base.retry._should_ignore_delay_for_testing'
     ])
 
+    self.mock._should_ignore_delay_for_testing.return_value = False
     self.func_body = mock.MagicMock()
     monitor.metrics_store().reset_for_testing()
 
