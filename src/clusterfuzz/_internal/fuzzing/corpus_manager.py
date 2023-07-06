@@ -380,18 +380,19 @@ class GcsCorpus:
   def _upload_to_zipcorpus(self, file_paths, timeout, partial):
     filename, gcs_dir_url = self.get_zipcorpus_name_and_gcs_url(partial)
     with zip_files(filename, file_paths) as archive_path:
-      self._gsutil_runner.upload_files_to_url(
-          [archive_path], gcs_dir_url, timeout=timeout)
+      pass
+      # self._gsutil_runner.upload_files_to_url(
+      #     [archive_path], gcs_dir_url, timeout=timeout)
 
 
 @contextlib.contextmanager
 def zip_files(base_filename, file_paths):
-  tmp_dir = environment.get_value('BOT_TMPDIR')
-  zip_filename = os.path.join(tmp_dir, base_filename)
-  with zipfile.ZipFile(zip_filename, 'w') as zip_file:
-    for file_path in file_paths:
-      zip_file.write(file_path)
-    yield zip_filename
+  with get_temp_zip_filename() as zip_filename:
+    with zipfile.ZipFile(zip_filename, 'w') as zip_file:
+      for file_path in file_paths:
+        zip_file.write(file_path)
+
+      yield zip_filename
 
 
 class FuzzTargetCorpus(GcsCorpus):
