@@ -45,9 +45,19 @@ def get_uworker_output_urls(input_gcs_path):
   """Returns a signed download URL for the uworker to upload the output and a
   GCS url for the tworker to download the output. Make sure we can infer the
   actual input since the output is not trusted."""
-  gcs_path = input_gcs_path + '.output'
+  gcs_path = uworker_input_path_to_output_path(input_gcs_path)
   # Note that the signed upload URL can't be directly downloaded from.
   return storage.get_signed_upload_url(gcs_path), gcs_path
+
+
+def uworker_input_path_to_output_path(input_gcs_path):
+  return input_gcs_path.replace(uworker_input_bucket(),
+                                uworker_output_bucket())
+
+
+def uworker_output_path_to_input_path(output_gcs_path):
+  return output_gcs_path.replace(uworker_output_bucket(),
+                                 uworker_input_bucket())
 
 
 def get_uworker_input_urls():
@@ -169,7 +179,7 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 
 def download_input_based_on_output_url(output_url):
   # Get the portion that does not contain ".output".
-  input_url = output_url.split('.output')[0]
+  input_url = uworker_output_path_to_input_path(output_url)
   serialized_uworker_input = storage.read_data(input_url)
   return deserialize_uworker_input(serialized_uworker_input)
 

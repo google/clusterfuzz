@@ -1022,17 +1022,32 @@ def blobs_bucket():
   return local_config.ProjectConfig().get('blobs.bucket')
 
 
-def uworker_io_bucket():
-  """Returns the bucket where uworker I/O is done."""
-  test_uworker_io_bucket = environment.get_value('TEST_UWORKER_IO_BUCKET')
-  if test_uworker_io_bucket:
-    return test_uworker_io_bucket
+def uworker_input_bucket():
+  """Returns the bucket where uworker input is done."""
+  test_uworker_input_bucket = environment.get_value('TEST_UWORKER_INPUT_BUCKET')
+  if test_uworker_input_bucket:
+    return test_uworker_input_bucket
 
   assert not environment.get_value('PY_UNITTESTS')
   # TODO(metzman): Use local config.
-  bucket = environment.get_value('UWORKER_IO_BUCKET')
+  bucket = environment.get_value('UWORKER_INPUT_BUCKET')
   if not bucket:
-    logs.log_error('UWORKER_IO_BUCKET is not defined.')
+    logs.log_error('UWORKER_INPUT_BUCKET is not defined.')
+  return bucket
+
+
+def uworker_output_bucket():
+  """Returns the bucket where uworker I/O is done."""
+  test_uworker_output_bucket = environment.get_value(
+      'TEST_UWORKER_OUTPUT_BUCKET')
+  if test_uworker_output_bucket:
+    return test_uworker_output_bucket
+
+  assert not environment.get_value('PY_UNITTESTS')
+  # TODO(metzman): Use local config.
+  bucket = environment.get_value('UWORKER_OUTPUT_BUCKET')
+  if not bucket:
+    logs.log_error('UWORKER_OUTPUT_BUCKET is not defined.')
   return bucket
 
 

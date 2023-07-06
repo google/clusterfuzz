@@ -99,13 +99,15 @@ class TestGetUrls(unittest.TestCase):
   """Tests that functions for getting urls for uploading and downloading input
   and output work properly."""
   FAKE_URL = 'https://fake'
-  WORKER_IO_BUCKET = 'UWORKER_IO'
+  WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
+  WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
   EXPECTED_GCS_PATH = '/UWORKER_IO/new-filename'
 
   def setUp(self):
     helpers.patch_environ(self)
-    os.environ['TEST_UWORKER_IO_BUCKET'] = self.WORKER_IO_BUCKET
+    os.environ['TEST_UWORKER_INPUT_BUCKET'] = self.WORKER_INPUT_BUCKET
+    os.environ['TEST_UWORKER_OUTPUT_BUCKET'] = self.WORKER_OUTPUT_BUCKET
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
