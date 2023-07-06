@@ -1904,14 +1904,13 @@ def utask_main(uworker_input):
   session.run()
 
 
-def _make_session(fuzzer_name, job_type, test_timeout=None):
-  test_timeout = test_timeout or environment.get_value('TEST_TIMEOUT')
+def _make_session(fuzzer_name, job_type):
+  test_timeout = environment.get_value('TEST_TIMEOUT')
   return FuzzingSession(fuzzer_name, job_type, test_timeout)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  session = _make_session(fuzzer_name, job_type,
-                          uworker_env.get('TEST_TIMEOUT', None))
+  session = _make_session(fuzzer_name, job_type)
   session.preprocess()
   return uworker_io.UworkerInput(
       job_type=job_type,
