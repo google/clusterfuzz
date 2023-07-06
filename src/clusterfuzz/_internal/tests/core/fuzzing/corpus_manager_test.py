@@ -17,7 +17,7 @@ import datetime
 import os
 import unittest
 
-import mock
+from unittest import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
@@ -349,7 +349,7 @@ class CorpusBackupTest(fake_filesystem_unittest.TestCase):
     ])
 
 
-class FileMixin(object):
+class FileMixin:
   """Mixin with a setUp implementation and attributes that are useful for test
   classes dealing with cleaning filenames for Windows."""
   # Make the content greater than chunk size.
