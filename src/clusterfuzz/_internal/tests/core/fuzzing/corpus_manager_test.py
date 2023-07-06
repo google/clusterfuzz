@@ -16,8 +16,8 @@
 import datetime
 import os
 import unittest
-
 from unittest import mock
+
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
@@ -25,6 +25,8 @@ from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
+
+# pylint: disable=protected-access
 
 
 class GcsCorpusTest(unittest.TestCase):
@@ -41,7 +43,6 @@ class GcsCorpusTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
         'zipfile.ZipFile.write',
         'uuid.uuid4',
-
     ])
 
     self.mock.Popen.return_value.poll.return_value = 0
@@ -52,7 +53,9 @@ class GcsCorpusTest(unittest.TestCase):
 
     os.environ['GSUTIL_PATH'] = '/gsutil_path'
 
-  @mock.patch('clusterfuzz._internal.google_cloud_utils.storage.list_blobs', return_value=[])
+  @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
+      return_value=[])
   def test_rsync_to_disk(self, _):
     """Test rsync_to_disk."""
     self.mock.cpu_count.return_value = 1
@@ -212,8 +215,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
-        'multiprocessing.cpu_count',
-        'subprocess.Popen',
+        'multiprocessing.cpu_count', 'subprocess.Popen',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
@@ -284,7 +286,8 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
         'gs://bucket/libFuzzer/fuzzer/'
     ])
-    self.mock.copy_file_to.assert_called_with('/tmp/randomname.zip', 'gs://zc/bucket/libFuzzer/fuzzer/base.zip')
+    self.mock.copy_file_to.assert_called_with(
+        '/tmp/randomname.zip', 'gs://zc/bucket/libFuzzer/fuzzer/base.zip')
 
   def test_upload_files(self):
     """Test upload_files."""

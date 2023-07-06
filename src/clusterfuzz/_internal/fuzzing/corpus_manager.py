@@ -250,7 +250,7 @@ class GcsCorpus:
 
     return url
 
-  def get_zipcorpus_gcs_url(self, suffix=''):
+  def get_zipcorpus_gcs_dir_url(self, suffix=''):
     """Build zipcorpus GCS URL for gsutil.
     Returns:
       A string giving the GCS URL.
@@ -286,15 +286,14 @@ class GcsCorpus:
     # TODO(metzman): Get rid of the rest of this function when migration is
     # complete.
     filenames = shell.get_files_list(directory)
-    self._upload_to_zipcorpus(
-        filenames, CORPUS_FILES_SYNC_TIMEOUT, partial=False)
+    self._upload_to_zipcorpus(filenames, partial=False)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
   def get_zipcorpora_gcs_urls(self, max_partial_corpora=float('inf')):
-    yield self.get_zipcorpus_name_and_gcs_url(partial=False)[1]
-    partial_corpora_gcs_url = f'{self.get_zipcorpus_gcs_url()}/partial*'
+    yield self.get_zipcorpus_gcs_url(partial=False)[1]
+    partial_corpora_gcs_url = f'{self.get_zipcorpus_gcs_dir_url()}/partial*'
     partial_corpora = storage.list_blobs(partial_corpora_gcs_url)
     for idx, partial_corpus in enumerate(partial_corpora):
       if idx > max_partial_corpora:
@@ -339,9 +338,7 @@ class GcsCorpus:
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
-  def upload_files(self,
-                   file_paths,
-                   timeout=CORPUS_FILES_SYNC_TIMEOUT):
+  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
     """Upload files to the GCS.
 
     Args:
@@ -364,11 +361,11 @@ class GcsCorpus:
     # Upload zipcorpus.
     # TODO(metzman): Get rid of the rest of this function when migration is
     # complete.
-    self._upload_to_zipcorpus(file_paths, timeout, partial=True)
+    self._upload_to_zipcorpus(file_paths, partial=True)
     return result
 
-  def get_zipcorpus_name_and_gcs_url(self, partial):
-    zipcorpus_url = self.get_zipcorpus_gcs_url()
+  def get_zipcorpus_gcs_url(self, partial):
+    zipcorpus_url = self.get_zipcorpus_gcs_dir_url()
     if partial:
       timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
       prefix = f'partial-{timestamp}'
@@ -376,16 +373,16 @@ class GcsCorpus:
       prefix = 'base'
 
     filename = f'{prefix}.zip'
-    return filename, zipcorpus_url + filename
+    return zipcorpus_url + filename
 
-  def _upload_to_zipcorpus(self, file_paths, timeout, partial):
-    filename, gcs_url = self.get_zipcorpus_name_and_gcs_url(partial)
-    with zip_files(filename, file_paths) as archive_path:
+  def _upload_to_zipcorpus(self, file_paths, partial):
+    gcs_url = self.get_zipcorpus_gcs_url(partial)
+    with zip_files(file_paths) as archive_path:
       storage.copy_file_to(archive_path, gcs_url)
 
 
 @contextlib.contextmanager
-def zip_files(base_filename, file_paths):
+def zip_files(file_paths):
   with get_temp_zip_filename() as zip_filename:
     with zipfile.ZipFile(zip_filename, 'w') as zip_file:
       for file_path in file_paths:
