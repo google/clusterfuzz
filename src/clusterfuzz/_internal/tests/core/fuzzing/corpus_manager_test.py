@@ -127,7 +127,9 @@ class RsyncErrorHandlingTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.gsutil.GSUtilRunner.run_gsutil',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
+        'clusterfuzz._internal.google_cloud_utils.storage.exists',
     ])
+    self.mock.exists.return_value = True
 
   def test_rsync_error_below_threshold(self):
     """Test rsync returning errors (but they're below threshold)."""
@@ -229,6 +231,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     self.mock.Popen.return_value.poll.return_value = 0
     self.mock.Popen.return_value.communicate.return_value = (None, None)
     self.mock.cpu_count.return_value = 2
+    self.mock.exists = True
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/dir')
