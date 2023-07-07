@@ -307,6 +307,8 @@ class GcsCorpus:
       # TODO(metzman): Find out what's the tradeoff between writing the file to
       # disk first or unpacking it in-memory.
       with get_temp_zip_filename() as temp_zip_filename:
+        if not storage.exists(zipcorpus_url):
+          continue
         if not storage.copy_file_from(zipcorpus_url, temp_zip_filename):
           continue
         archive.unpack(temp_zip_filename, dst_dir)
