@@ -44,6 +44,10 @@ LATEST_BACKUP_TIMESTAMP = 'latest'
 PUBLIC_BACKUP_TIMESTAMP = 'public'
 REGRESSIONS_GCS_PATH_SUFFIX = '_regressions'
 
+ZIPPED_PATH_PREFIX = 'zipped'
+PARTIAL_ZIPCORPUS_PREFIX = 'partial'
+BASE_ZIPCORPUS_PREFIX = 'base'
+
 RSYNC_ERROR_REGEX = (br'CommandException:\s*(\d+)\s*files?/objects? '
                      br'could not be copied/removed')
 
@@ -255,8 +259,8 @@ class GcsCorpus:
     Returns:
       A string giving the GCS URL.
     """
-    url = storage.get_cloud_storage_file_path(self.bucket_name,
-                                              f'zc{self.bucket_path}')
+    url = storage.get_cloud_storage_file_path(
+        self.bucket_name, f'{ZIPPED_PATH_PREFIX}{self.bucket_path}')
     if not url.endswith('/'):
       # Ensure that the bucket path is '/' terminated. Without this, when a
       # single file is being uploaded, it is renamed to the trailing non-/
@@ -293,23 +297,40 @@ class GcsCorpus:
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
   def get_zipcorpora_gcs_urls(self, max_partial_corpora=float('inf')):
+    """Generates a sequence of GCS paths containing the base corpus and at most
+    |max_partial_corpora| (all of them by default) of the most recent partial
+    corpora. Note that this function can return a non-existent base zipcorpus,
+    so callers must ensure the zipcorpus exists before copying it."""
     yield self.get_zipcorpus_gcs_url(partial=False)
-    partial_corpora_gcs_url = f'{self.get_zipcorpus_gcs_dir_url()}/partial*'
-    partial_corpora = storage.list_blobs(partial_corpora_gcs_url)
+    partial_corpora_gcs_url = (
+        f'{self.get_zipcorpus_gcs_dir_url()}/{PARTIAL_ZIPCORPUS_PREFIX}*')
+    partial_corpora = reversed(
+        list(storage.list_blobs(partial_corpora_gcs_url)))
     for idx, partial_corpus in enumerate(partial_corpora):
       if idx > max_partial_corpora:
         break
       yield partial_corpus
 
   def download_zipcorpora(self, dst_dir):
-    """Downloads zipcorpora to |dst_dir|"""
-    zipcorpora_urls = self.get_zipcorpora_gcs_urls()
-    for zipcorpus_url in zipcorpora_urls:
+    """Downloads zipcorpora, unzips their contents, and stores them in
+    |dst_dir|"""
+    for zipcorpus_url in self.get_zipcorpora_gcs_urls():
       # TODO(metzman): Find out what's the tradeoff between writing the file to
       # disk first or unpacking it in-memory.
       with get_temp_zip_filename() as temp_zip_filename:
         if not storage.exists(zipcorpus_url):
-          continue
+          # This is expected to happen in two scenarios:
+          # 1. When a fuzzer is new, get_zipcorpora_gcs_urls() will always
+          # return the base zipcorpus even if it doesn't exist.
+          # 2. When this function is executed concurrently with a corpus prune,
+          # the intermediate corpus may be deleted.
+          if zipcorpus_url.endswith(f'{BASE_ZIPCORPUS_PREFIX}.zip'):
+            logs.log_warn(f'Base zipcorpus {zipcorpus_url} does not exist.')
+          else:
+            logs.log_error(
+                f'Zipcorpus {zipcorpus_url} was expected to exist but does not.'
+            )
+            continue
         if not storage.copy_file_from(zipcorpus_url, temp_zip_filename):
           continue
         archive.unpack(temp_zip_filename, dst_dir)
@@ -369,24 +390,29 @@ class GcsCorpus:
     return result
 
   def get_zipcorpus_gcs_url(self, partial):
+    """Returns a zipcorpus URL for a partial zipcorpus if |partial|, or for a
+    base corpus if not."""
     zipcorpus_url = self.get_zipcorpus_gcs_dir_url()
     if partial:
       timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
-      prefix = f'partial-{timestamp}'
+      prefix = f'{PARTIAL_ZIPCORPUS_PREFIX}-{timestamp}'
     else:
-      prefix = 'base'
+      prefix = BASE_ZIPCORPUS_PREFIX
 
     filename = f'{prefix}.zip'
     return zipcorpus_url + filename
 
   def _upload_to_zipcorpus(self, file_paths, partial):
+    """Uploads |file_paths| to the zipcorpus on GCS. Uploads them as part of a
+    partial corpus if |partial| is True."""
     gcs_url = self.get_zipcorpus_gcs_url(partial)
-    with zip_files(file_paths) as archive_path:
+    with temp_zipfile(file_paths) as archive_path:
       storage.copy_file_to(archive_path, gcs_url)
 
 
 @contextlib.contextmanager
-def zip_files(file_paths):
+def temp_zipfile(file_paths):
+  """Yields a temporary zip file containing |file_paths|."""
   with get_temp_zip_filename() as zip_filename:
     with zipfile.ZipFile(zip_filename, 'w') as zip_file:
       for file_path in file_paths:
