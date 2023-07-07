@@ -13,12 +13,14 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
+import collections
 import json
 import uuid
 
 from google.cloud import ndb
 from google.cloud.datastore_v1.proto import entity_pb2
 from google.cloud.ndb import model
+from google.protobuf import message
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -90,29 +92,61 @@ def get_proto_fields(proto):
       # This probably occurs after a deploy.
       logs.log_error(f'Error getting proto fields {error}.')
       has_field = False
+    except ValueError:
+      field_value = getattr(proto, field_name, [])
+      yield field_name, field_value, descriptor
+      continue
     if has_field:
       field_value = getattr(proto, field_name)
     else:
       field_value = None
-    yield field_name, field_value
+    yield field_name, field_value, descriptor
+
+
+def deserialize_proto_field(field_value, field_descriptor):
+  """Converts a proto field |field_value| to a deserialized representation of
+  its contents for use by code outside of this module. The deserialized value
+  can contain real ndb models and other python objects, instead of only the
+  python serialized versions. |field_descriptor| is used to check for repeated
+  fields and can be None."""
+  if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
+    field_value = deserialize_wrapped_entity(field_value)
+  elif isinstance(field_value, uworker_msg_pb2.Json):
+    field_value = json.loads(field_value.serialized)
+  elif isinstance(field_value, entity_pb2.Entity):
+    field_value = UworkerEntityWrapper(model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
+  elif field_descriptor is not None and (
+      field_descriptor.label == field_descriptor.LABEL_REPEATED):
+    initial_field_value = field_value
+    # We can pass None as the descriptor because we know it won't be repeated.
+    field_value = [
+        deserialize_proto_field(element, None)
+        for element in initial_field_value
+    ]
+  elif isinstance(field_value, message.Message):
+    # This must come last! Otherwise it subsumes more specific types.
+    field_value = proto_to_deserialized_msg_object(field_value)
+  return field_value
+
+
+def proto_to_deserialized_msg_object(serialized_msg_proto):
+  """Converts a |serialized_msg_proto| to a deserialized representation of its
+  contents for use by code outside of this module. The deserialized object can
+  contain real ndb models and other python objects, instead of only the python
+  serialized versions."""
+  deserialized_msg = DeserializedUworkerMsg()
+  for field_name, field_value, descriptor in get_proto_fields(
+      serialized_msg_proto):
+    field_value = deserialize_proto_field(field_value, descriptor)
+    setattr(deserialized_msg, field_name, field_value)
+  return deserialized_msg
 
 
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
   uworker_input_proto.ParseFromString(serialized_uworker_input)
-  uworker_input = DeserializedUworkerMsg()
-  # Use get_proto_fields, so we can be sure we never get an attribute error,
-  # trying to access a field in uworker_input, that would not give us an error
-  # if we accessed it in uworker_proto_input.
-  for field_name, field_value in get_proto_fields(uworker_input_proto):
-    if isinstance(field_value, entity_pb2.Entity):
-      field_value = UworkerEntityWrapper(
-          model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
-    elif isinstance(field_value, uworker_msg_pb2.Json):
-      field_value = json.loads(field_value.serialized)
-
-    setattr(uworker_input, field_name, field_value)
+  uworker_input = proto_to_deserialized_msg_object(uworker_input_proto)
   return uworker_input
 
 
@@ -216,7 +250,7 @@ def deserialize_uworker_output(uworker_output_str):
   # Convert the proto to a Python object that can contain real ndb models and
   # other python objects, instead of only the python serialized versions.
   uworker_output = DeserializedUworkerMsg()
-  for field_name, field_value in get_proto_fields(uworker_output_proto):
+  for field_name, field_value, _ in get_proto_fields(uworker_output_proto):
     if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
       field_value = deserialize_wrapped_entity(field_value)
     setattr(uworker_output, field_name, field_value)
@@ -305,6 +339,24 @@ def save_json_field(field, value):
   field.CopyFrom(serialized_json)
 
 
+class UpdateFuzzerAndDataBundleInput(UworkerMsg):
+  """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(field, collections.Sequence):
+      # This the way to tell if it's a repeated field.
+      # We can't get the type of the repeated field directly.
+      assert isinstance(value[0], ndb.Model), value[0]
+      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      return
+    if not isinstance(value, UworkerEntityWrapper):
+      raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+    wrapped_entity_proto = serialize_wrapped_entity(value)
+    field.CopyFrom(wrapped_entity_proto)
+
+
 class UworkerOutput(UworkerMsg):
   """Class representing an unserialized UworkerOutput message from
   utask_main."""
@@ -316,7 +368,9 @@ class UworkerOutput(UworkerMsg):
       save_json_field(field, value)
       return
 
-    # TODO(metzman): Remove this once everything is migrated.
+    # TODO(metzman): Remove this once everything is migrated. This is only
+    # needed because some functions need to support utasks and non-utasks at the
+    # same time.
     if isinstance(value, uworker_msg_pb2.Input):
       field.CopyFrom(value)
       return
@@ -337,6 +391,10 @@ class UworkerInput(UworkerMsg):
     field = getattr(self.proto, attribute)
     if isinstance(value, dict):
       save_json_field(field, value)
+      return
+
+    if isinstance(value, UworkerMsg):
+      field.CopyFrom(value.proto)
       return
 
     if not isinstance(value, ndb.Model):
