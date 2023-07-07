@@ -1608,18 +1608,6 @@ class FuzzingSession:
     thread_delay = environment.get_value('THREAD_DELAY')
     thread_error_occurred = False
 
-    # TODO: Remove environment variable once fuzzing engine refactor is
-    # complete. Set multi-armed bandit strategy selection distribution as an
-    # environment variable so we can access it in launcher.
-    if environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
-      selection_method = utils.random_weighted_choice(
-          SELECTION_METHOD_DISTRIBUTION, 'probability')
-      environment.set_value('STRATEGY_SELECTION_METHOD',
-                            selection_method.method_name)
-      distribution = get_strategy_distribution_from_ndb()
-      if distribution:
-        environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution)
-
     # Reset memory tool options.
     environment.reset_current_memory_tool_options(
         redzone_size=self.redzone, disable_ubsan=self.disable_ubsan)
@@ -1776,14 +1764,6 @@ class FuzzingSession:
                                FuzzErrorCode.BUILD_SETUP_FAILED)
       return
 
-    dataflow_bucket_path = environment.get_value('DATAFLOW_BUILD_BUCKET_PATH')
-    if dataflow_bucket_path:
-      # Some fuzzing jobs may use auxiliary builds, such as DFSan instrumented
-      # builds accompanying libFuzzer builds to enable DFT-based fuzzing.
-      if not build_manager.setup_trunk_build(
-          [dataflow_bucket_path], build_prefix='DATAFLOW'):
-        logs.log_error('Failed to set up dataflow build.')
-
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
       sanitized_target_bucket_path = environment.get_value(
@@ -1849,7 +1829,7 @@ class FuzzingSession:
 
     logs.log('Raw crash count: ' + str(len(crashes)))
 
-    project_name = data_handler.get_project_name(self.job_type)
+    project_name = os.environ['PROJECT_NAME']
 
     # Process and save crashes to datastore.
     bot_name = environment.get_value('BOT_NAME')
@@ -1889,10 +1869,6 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
-  def preprocess(self):
-    """Handles preprocessing."""
-    # TODO(metzman): Finish this.
-
   def postprocess(self):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
@@ -1909,9 +1885,29 @@ def _make_session(fuzzer_name, job_type):
   return FuzzingSession(fuzzer_name, job_type, test_timeout)
 
 
+def do_multiarmed_bandit_strategy_selection(uworker_env):
+  """Set multi-armed bandit strategy selection during preprocessing. Set
+  multi-armed bandit strategy selection distribution as an environment variable
+  so we can access it in launcher."""
+  # TODO: Remove environment variable once fuzzing engine refactor is
+  # complete.
+  if not environment.get_value('USE_BANDIT_STRATEGY_SELECTION'):
+    return
+  selection_method = utils.random_weighted_choice(SELECTION_METHOD_DISTRIBUTION,
+                                                  'probability')
+  environment.set_value('STRATEGY_SELECTION_METHOD',
+                        selection_method.method_name, uworker_env)
+  distribution = get_strategy_distribution_from_ndb()
+  if not distribution:
+    return
+  environment.set_value('STRATEGY_SELECTION_DISTRIBUTION', distribution,
+                        uworker_env)
+
+
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  session = _make_session(fuzzer_name, job_type)
-  session.preprocess()
+  do_multiarmed_bandit_strategy_selection(uworker_env)
+  environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
+                        uworker_env)
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
