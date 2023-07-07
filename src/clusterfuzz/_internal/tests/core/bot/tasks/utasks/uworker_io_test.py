@@ -352,11 +352,10 @@ class RoundTripTest(unittest.TestCase):
         'security_flag': True,
     }]
     output = uworker_io.UworkerOutput(
-      fuzz_task_output=uworker_io.FuzzTaskOutput(
-        crash_revision=crash_revision,
-        job_run_crashes=crashes
-      ))
+        fuzz_task_output=uworker_io.FuzzTaskOutput(
+            crash_revision=crash_revision, job_run_crashes=crashes))
     serialized = uworker_io.serialize_uworker_output(output)
     deserialized = uworker_io.deserialize_uworker_output(serialized)
     self.assertEqual(deserialized.fuzz_task_output.job_run_crashes, crashes)
-    self.assertEqual(deserialized.fuzz_task_output.crash_revision, crash_revision)
+    self.assertEqual(deserialized.fuzz_task_output.crash_revision,
+                     crash_revision)

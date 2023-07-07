@@ -329,6 +329,7 @@ class FuzzTaskOutput(UworkerMsg):
 
     raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
+
 def save_json_field(field, value):
   serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
   field.CopyFrom(serialized_json)
