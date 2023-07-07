@@ -533,7 +533,6 @@ class Engine(engine.Engine):
     merge_output = result.output
     merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
 
-    # TODO(ochang): Get crashes found during merge.
     return engine.FuzzResult(merge_output, result.command, [], merge_stats,
                              result.time_executed)
 

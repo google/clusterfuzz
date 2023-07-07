@@ -18,6 +18,7 @@ import datetime
 import os
 import re
 import shutil
+import uuid
 import zipfile
 
 from clusterfuzz._internal.base import utils
@@ -148,8 +149,8 @@ def gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
   Returns:
     A string giving the GCS URL.
   """
-  return 'gs://%s/corpus/%s/%s/' % (backup_bucket_name, fuzzer_name,
-                                    project_qualified_target_name)
+  return (f'gs://{backup_bucket_name}/corpus/{fuzzer_name}/'
+          f'{project_qualified_target_name}/')
 
 
 def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
@@ -162,16 +163,12 @@ def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
   backup_dir = gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
                                             project_qualified_target_name)
   backup_file = str(date) + os.extsep + BACKUP_ARCHIVE_FORMAT
-  return '%s/%s' % (backup_dir.rstrip('/'), backup_file)
+  return f'{backup_dir.rstrip("/")}/{backup_file}'
 
 
 def legalize_filenames(file_paths):
   """Convert the name of every file in |file_paths| a name that is legal on
   Windows. Returns list of legally named files."""
-  # TODO(metzman): Support legalizing filenames when called on trusted host, but
-  # file paths exist on untrusted workers. This is fine for now since Linux is
-  # the only supported platform on OSS-Fuzz and this functionality is not needed
-  # in OSS-Fuzz.
   if environment.is_trusted_host():
     return file_paths
 
@@ -245,7 +242,7 @@ class GcsCorpus:
     """
     # TODO(metzman): Delete this after we are done migrating to the zipcorpus
     # format.
-    url = 'gs://%s' % self.bucket_name + self.bucket_path + suffix
+    url = f'gs://{self.bucket_name}{self.bucket_path}{suffix}'
     if not url.endswith('/'):
       # Ensure that the bucket path is '/' terminated. Without this, when a
       # single file is being uploaded, it is renamed to the trailing non-/
@@ -330,7 +327,7 @@ class GcsCorpus:
             logs.log_error(
                 f'Zipcorpus {zipcorpus_url} was expected to exist but does not.'
             )
-            continue
+          continue
         if not storage.copy_file_from(zipcorpus_url, temp_zip_filename):
           continue
         archive.unpack(temp_zip_filename, dst_dir)
@@ -413,12 +410,35 @@ class GcsCorpus:
 @contextlib.contextmanager
 def temp_zipfile(file_paths):
   """Yields a temporary zip file containing |file_paths|."""
+  file_paths = list(file_paths)
+  seen_filenames = set()
+
+  # Because of the way this function is used we will probably only ever get
+  # file_paths from one directory. But if we were to get files from different
+  # directories, it's possible there are name collisions. So do a low effort, no
+  # cost attempt to avoid this problem that preserves the original name for
+  # humans readers.
+  def get_unique_name(filename):
+    if filename not in seen_filenames:
+      seen_filenames.add(filename)
+      return filename
+    new_filename = f'{filename}-{str(uuid.uuid4()).lower()}'
+    # Assume no collisions
+    # https://stackoverflow.com/questions/24876188/how-big-is-the-chance-to-get-a-java-uuid-randomuuid-collision
+    seen_filenames.add(new_filename)
+    return new_filename
+
   with get_temp_zip_filename() as zip_filename:
     with zipfile.ZipFile(zip_filename, 'w') as zip_file:
       for file_path in file_paths:
-        zip_file.write(file_path)
+        # Don't use the leading paths.
+        name = os.path.basename(file_path)
+        name = get_unique_name(name)
+        zip_file.write(file_path, arcname=name)
 
-      yield zip_filename
+    # Make sure to yield after the zip file is closed otherwise the user will
+    # get an incomplete zip file.
+    yield zip_filename
 
 
 class FuzzTargetCorpus(GcsCorpus):
@@ -459,15 +479,15 @@ class FuzzTargetCorpus(GcsCorpus):
     GcsCorpus.__init__(
         self,
         sync_corpus_bucket_name,
-        '/%s/%s' % (self._engine, self._project_qualified_target_name),
+        f'/{self._engine}/{self._project_qualified_target_name}',
         log_results=log_results,
         gsutil_runner_func=gsutil_runner_func,
     )
 
     self._regressions_corpus = GcsCorpus(
         sync_corpus_bucket_name,
-        '/%s/%s%s' % (self._engine, self._project_qualified_target_name,
-                      REGRESSIONS_GCS_PATH_SUFFIX),
+        f'/{self._engine}/{self._project_qualified_target_name}'
+        f'{REGRESSIONS_GCS_PATH_SUFFIX}',
         log_results=log_results,
         gsutil_runner_func=gsutil_runner_func) if include_regressions else None
 
