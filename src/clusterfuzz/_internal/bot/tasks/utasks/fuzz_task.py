@@ -1885,7 +1885,7 @@ class FuzzingSession:
     utils.python_gc()
 
     return uworker_io.UworkerOutput(
-        fuzz_task_output=uworker_msg.UworkerOutput(
+        fuzz_task_output=uworker_io.UworkerOutput(
             crash_revision=crash_revision,
             job_run_timestamp=time.time(),
             new_crash_count=new_crash_count,
@@ -1898,13 +1898,15 @@ class FuzzingSession:
     """Handles preprocessing."""
     # TODO(metzman): Finish this.
 
-  def postprocess(self, output):
+  def postprocess(self, uworker_output):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
-    upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
-                         output.crash_revision, output.job_run_timestamp,
-                         output.new_crash_count, output.known_crash_count,
-                         output.testcases_executed, output.job_run_crashes)
+    fuzz_task_output = uworker_output.fuzz_task_output
+    upload_job_run_stats(
+        self.fully_qualified_fuzzer_name, self.job_type,
+        fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
+        fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
+        fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
 
 
 def utask_main(uworker_input):
