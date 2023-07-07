@@ -30,16 +30,20 @@ def sleep(seconds):
   time.sleep(seconds)
 
 
+def _should_ignore_delay_for_testing():
+  return (environment.get_value('PY_UNITTESTS') or
+          environment.get_value('INTEGRATION') or
+          environment.get_value('UNTRUSTED_RUNNER_TESTS') or
+          environment.get_value('LOCAL_DEVELOPMENT') or
+          environment.get_value('UTASK_TESTS'))
+
+
 def get_delay(num_try, delay, backoff):
   """Compute backoff delay."""
   delay = delay * (backoff**(num_try - 1))
-  if (environment.get_value('PY_UNITTESTS') or
-      environment.get_value('INTEGRATION') or
-      environment.get_value('UNTRUSTED_RUNNER_TESTS') or
-      environment.get_value('LOCAL_DEVELOPMENT') or
-      environment.get_value('UTASK_TESTS')):
+  if _should_ignore_delay_for_testing():
     # Don't sleep for long during tests. Flake is better.
-    return max(delay, 3)
+    return min(delay, 2)
 
   return delay
 
