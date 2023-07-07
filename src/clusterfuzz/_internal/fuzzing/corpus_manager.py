@@ -302,6 +302,7 @@ class GcsCorpus:
       yield partial_corpus
 
   def download_zipcorpora(self, dst_dir):
+    """Downloads zipcorpora to |dst_dir|"""
     zipcorpora_urls = self.get_zipcorpora_gcs_urls()
     for zipcorpus_url in zipcorpora_urls:
       # TODO(metzman): Find out what's the tradeoff between writing the file to
