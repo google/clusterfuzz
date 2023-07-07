@@ -158,7 +158,8 @@ class UworkerOutputTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class RoundTripTest(unittest.TestCase):
-  """Tests round trips for download and uploading inputs and outputs."""
+  """Tests round trips for serializing+deserializing as well as
+  downloading+uploading inputs and outputs."""
   WORKER_IO_BUCKET = 'UWORKER_IO'
   NEW_IO_FILE_NAME = 'new-filename'
   EXPECTED_GCS_PATH = '/UWORKER_IO/new-filename'
@@ -338,3 +339,24 @@ class RoundTripTest(unittest.TestCase):
     serialized = uworker_io.serialize_uworker_output(output)
     processed_output = uworker_io.deserialize_uworker_output(serialized)
     self.assertEqual(processed_output.test_timeout, test_timeout)
+
+  def test_submessage_serialization_and_deserialization(self):
+    """Tests that output messages with submessages are serialized and
+    deserialized properly."""
+    crash_revision = '1337'
+    crashes = [{
+        'is_new': False,
+        'count': 1,
+        'crash_type': 'Abort',
+        'crash_state': 'NULL',
+        'security_flag': True,
+    }]
+    output = uworker_io.UworkerOutput(
+      fuzz_task_output=uworker_io.FuzzTaskOutput(
+        crash_revision=crash_revision,
+        job_run_crashes=crashes
+      ))
+    serialized = uworker_io.serialize_uworker_output(output)
+    deserialized = uworker_io.deserialize_uworker_output(serialized)
+    self.assertEqual(deserialized.fuzz_task_output.job_run_crashes, crashes)
+    self.assertEqual(deserialized.fuzz_task_output.crash_revision, crash_revision)

@@ -42,7 +42,7 @@ message Input {
 
 message FuzzTaskOutput {
   optional string fuzzer_name = 1;
-  optional int64 crash_revision = 2;
+  optional string crash_revision = 2;
   optional int64 job_run_timestamp = 3;
   optional int64 new_crash_count = 4;
   optional int64 known_crash_count = 5;
