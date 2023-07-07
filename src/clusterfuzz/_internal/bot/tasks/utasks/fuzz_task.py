@@ -1885,13 +1885,14 @@ class FuzzingSession:
     utils.python_gc()
 
     return uworker_io.UworkerOutput(
-        crash_revision=crash_revision,
-        job_run_timestamp=time.time(),
-        new_crash_count=new_crash_count,
-        known_crash_count=known_crash_count,
-        testcases_executed=len(testcase_file_paths),
-        job_run_crashes=convert_groups_to_crashes(processed_groups),
-    )
+        fuzz_task_output=uworker_msg.UworkerOutput(
+            crash_revision=crash_revision,
+            job_run_timestamp=time.time(),
+            new_crash_count=new_crash_count,
+            known_crash_count=known_crash_count,
+            testcases_executed=len(testcase_file_paths),
+            job_run_crashes=convert_groups_to_crashes(processed_groups),
+        ),)
 
   def preprocess(self):
     """Handles preprocessing."""
