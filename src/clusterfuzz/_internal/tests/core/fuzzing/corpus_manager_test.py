@@ -217,7 +217,9 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
-        'multiprocessing.cpu_count', 'subprocess.Popen',
+        'multiprocessing.cpu_count',
+        'subprocess.Popen',
+        'clusterfuzz._internal.google_cloud_utils.storage.exists',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
