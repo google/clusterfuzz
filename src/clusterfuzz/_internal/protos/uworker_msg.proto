@@ -38,6 +38,7 @@ message Input {
   optional string uworker_output_upload_url = 7;
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
+  optional string fuzzer_name = 10;
 }
 
 message FuzzTaskOutput {
