@@ -359,6 +359,8 @@ class GcsProvider(StorageProvider):
     function='google_cloud_utils.storage._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
+  if environment.get_value('UTASK_TESTS'):
+    return remote_path
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
   signing_creds = _signing_creds()
@@ -1043,6 +1045,8 @@ def uworker_io_bucket():
     exception_types=TRANSIENT_ERRORS)
 def _download_url(url):
   """Downloads |url| and returns the contents."""
+  if environment.get_value('UTASK_TESTS'):
+    return read_data(url)
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not request.ok:
     raise RuntimeError('Request to %s failed. Code: %d. Reason: %s' %

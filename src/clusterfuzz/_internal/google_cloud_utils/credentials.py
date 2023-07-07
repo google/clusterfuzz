@@ -34,7 +34,8 @@ FAIL_WAIT = 10
 def _use_anonymous_credentials():
   """Returns whether or not to use anonymous credentials."""
   if (environment.get_value('INTEGRATION') or
-      environment.get_value('UNTRUSTED_RUNNER_TESTS')):
+      environment.get_value('UNTRUSTED_RUNNER_TESTS') or
+      environment.get_value('UTASK_TESTS')):
     # Integration tests need real credentials.
     return False
 
