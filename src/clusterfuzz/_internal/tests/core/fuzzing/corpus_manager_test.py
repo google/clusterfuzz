@@ -38,6 +38,7 @@ class GcsCorpusTest(unittest.TestCase):
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
         'multiprocessing.cpu_count',
         'subprocess.Popen',
+        'clusterfuzz._internal.google_cloud_utils.storage.exists',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
@@ -47,6 +48,7 @@ class GcsCorpusTest(unittest.TestCase):
 
     self.mock.Popen.return_value.poll.return_value = 0
     self.mock.list_blobs.return_value = []
+    self.mock.exists.return_value = True
     self.mock.uuid4.return_value = 'random'
     self.mock.Popen.return_value.communicate.return_value = (None, None)
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
@@ -287,7 +289,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         'gs://bucket/libFuzzer/fuzzer/'
     ])
     self.mock.copy_file_to.assert_called_with(
-        '/tmp/randomname.zip', 'gs://bucket/zc/libFuzzer/fuzzer/base.zip')
+        '/tmp/randomname.zip', 'gs://bucket/zipped/libFuzzer/fuzzer/base.zip')
 
   def test_upload_files(self):
     """Test upload_files."""
