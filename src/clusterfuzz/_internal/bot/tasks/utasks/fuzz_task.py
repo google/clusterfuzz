@@ -1918,8 +1918,6 @@ def _make_session(fuzzer_name, job_type):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  session = _make_session(fuzzer_name, job_type)
-  session.preprocess()
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
