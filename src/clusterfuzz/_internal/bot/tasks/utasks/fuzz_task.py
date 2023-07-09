@@ -1889,29 +1889,16 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
-  def preprocess(self):
-    """Handles preprocessing."""
-    # TODO(metzman): Finish this.
-
-  def postprocess(self):
-    """Handles postprocessing."""
-    # TODO(metzman): Finish this.
-
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
-  session = _make_session(uworker_input.fuzzer_name, uworker_input.job_type)
+  test_timeout = environment.get_value('TEST_TIMEOUT')
+  session = FuzzingSession(uworker_input.fuzzer_name, uworker_input.job_type,
+                           test_timeout)
   session.run()
 
 
-def _make_session(fuzzer_name, job_type):
-  test_timeout = environment.get_value('TEST_TIMEOUT')
-  return FuzzingSession(fuzzer_name, job_type, test_timeout)
-
-
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  session = _make_session(fuzzer_name, job_type)
-  session.preprocess()
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
@@ -1920,7 +1907,4 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 def utask_postprocess(output):
-  session = _make_session(output.uworker_input.fuzzer_name,
-                          output.uworker_input.job_type)
-  session.postprocess()
-  del session
+  del output
