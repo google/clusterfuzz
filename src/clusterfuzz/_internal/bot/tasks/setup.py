@@ -177,9 +177,9 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
 
 def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
   """Error handler for setup_testcase that is called by uworker_postprocess."""
-  # Get the testcase again because it may be a pain to set the testcase for
+  # Get the testcase again because it is too hard to set the testcase for
   # partially migrated tasks.
-  # !!! TODO(metzman): Find out if this is real.
+  # TODO(metzman): Experiment with making this unnecessary.
   # First update comment.
   testcase = data_handler.get_testcase_by_id(
       uworker_output.uworker_input.testcase_id.testcase_id)
@@ -195,7 +195,6 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
       uworker_output.uworker_input.job_type,
       wait_time=testcase_fail_wait)
 
-  # !!! TODO(metzman): check this.
   testcase = data_handler.get_testcase_by_id(
       uworker_output.uworker_input.testcase_id.testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
@@ -205,9 +204,8 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
 def handle_setup_testcase_error_invalid_fuzzer(
     uworker_output: uworker_io.UworkerOutput):
   """Error handler for setup_testcase that is called by uworker_postprocess."""
-  # Get the testcase again because it may be a pain to set the testcase for
+  # Get the testcase again because it is too hard to set the testcase for
   # partially migrated tasks.
-  # !!! TODO(metzman): Find out if this is real.
   # First update comment.
   testcase = data_handler.get_testcase_by_id(
       uworker_output.uworker_input.testcase_id.testcase_id)
