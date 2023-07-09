@@ -264,7 +264,7 @@ def setup_testcase(testcase,
       return None, None, uworker_io.UworkerOutput(
           uworker_input=uworker_error_input,
           error_message=error_message,
-          uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER)
+          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER)
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'
