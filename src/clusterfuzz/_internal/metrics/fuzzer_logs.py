@@ -112,7 +112,7 @@ def upload_to_logs(bucket_name,
                    job_type=None,
                    file_extension=None,
                    signed_upload_url=None):
-  """Upload file contents to log directory in GCS bucket.
+  """Uploads file contents to log directory in GCS bucket.
   Args:
     bucket_name: Bucket logs are stored in.
     contents: String containing log to be uploaded.
@@ -154,7 +154,7 @@ def upload_script_log(log_contents,
                       fuzzer_name=None,
                       job_type=None,
                       signed_upload_url=None):
-  """Upload logs to script logs GCS bucket.
+  """Uploads logs to script logs GCS bucket.
   Args:
     logs_bucket: Bucket logs are stored in.
     log_contents: String containing log to be uploaded.

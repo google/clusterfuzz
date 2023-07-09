@@ -626,7 +626,7 @@ def _set_up_data_bundles(update_input):
 
 
 def update_fuzzer_and_data_bundles(update_input):
-  """Update the fuzzer with a given name if necessary."""
+  """Updates the fuzzer specified by |update_input| and its data bundles."""
   fuzzer = update_input.fuzzer
 
   _set_fuzzer_env_vars(update_input.fuzzer)
