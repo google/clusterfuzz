@@ -1769,7 +1769,6 @@ class FuzzingSession:
       time.sleep(failure_wait_interval)
       return
 
-
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
     # Set up a custom or regular build based on revision. By default, fuzzing
@@ -1906,7 +1905,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
                         uworker_env)
 
   update_fuzzer_and_data_bundles_input = (
-    setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name))
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
