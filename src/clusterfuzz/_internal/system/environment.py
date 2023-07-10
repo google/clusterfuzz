@@ -601,9 +601,11 @@ def get_value_string(environment_variable, default_value=None):
   return os.getenv(environment_variable, default_value)
 
 
-def get_value(environment_variable, default_value=None):
+def get_value(environment_variable, default_value=None, env=None):
   """Return an environment variable value."""
-  value_string = os.getenv(environment_variable)
+  if env is None:
+    env = os.environ
+  value_string = env.get(environment_variable)
 
   # value_string will be None if the variable is not defined.
   if value_string is None:
