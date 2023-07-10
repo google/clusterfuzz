@@ -1008,12 +1008,14 @@ def set_tsan_max_history_size():
   set_value('TSAN_OPTIONS', tsan_options)
 
 
-def set_value(environment_variable, value):
+def set_value(environment_variable, value, env=None):
   """Set an environment variable."""
+  if env is None:
+    env = os.environ
   value_str = str(value)
   environment_variable_str = str(environment_variable)
   value_str = value_str.replace('%ROOT_DIR%', os.getenv('ROOT_DIR', ''))
-  os.environ[environment_variable_str] = value_str
+  env[environment_variable_str] = value_str
 
   if is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import \
