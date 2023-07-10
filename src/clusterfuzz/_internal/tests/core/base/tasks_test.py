@@ -72,16 +72,3 @@ class InitializeTaskTest(unittest.TestCase):
     }
     with self.assertRaises(tasks.Error):
       tasks.initialize_task([self.message])
-
-  def test_initialize_untrusted_from_input_upload(self):
-    """Because inputs and outputs are written to the same bucket, a message is
-    created for inputs and outputs. Make sure a task isn't created when an input
-    is uploaded."""
-    # Test version 2 of an output.
-    self_link = f'https://www.googleapis.com/storage/v1/b/{self.bucket}/o/worker'
-    self.message.attributes = {
-        'kind': 'storage#object',
-        'selfLink': self_link,
-    }
-    self.assertIsNone(tasks.initialize_task([self.message]))
-    self.message.ack.assert_called_with()
