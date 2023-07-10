@@ -32,6 +32,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
+from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -408,14 +409,15 @@ class CorpusPruningTestUntrusted(
     self.mock.get_data_bundle_bucket_name.return_value = TEST_GLOBAL_BUCKET
     data_types.DataBundle(name='bundle', sync_to_worker=True).put()
 
-    data_types.Fuzzer(
+    self.fuzzer = data_types.Fuzzer(
         revision=1,
         file_size='builtin',
         source='builtin',
         name='libFuzzer',
         max_testcases=4,
         builtin=True,
-        data_bundle_name='bundle').put()
+        data_bundle_name='bundle')
+    self.fuzzer.put()
 
     self.temp_dir = tempfile.mkdtemp()
 
@@ -440,6 +442,9 @@ class CorpusPruningTestUntrusted(
     uworker_input = uworker_io.DeserializedUworkerMsg(
         job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
 
+    # This file is as good as any.
+    self.fuzzer.blobstore_key = blobs.write_blob(__file__)
+    self.fuzzer.put()
     corpus_pruning_task.utask_main(uworker_input)
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')
