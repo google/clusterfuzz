@@ -1746,7 +1746,7 @@ class FuzzingSession:
       ]
     return fuzzer_metadata, testcase_file_paths, testcases_metadata, crashes
 
-  def run(self):
+  def run(self, uworker_input):
     """Run the fuzzing session."""
     failure_wait_interval = environment.get_value('FAIL_WAIT')
 
@@ -1757,12 +1757,8 @@ class FuzzingSession:
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
-    # preprocess.
-    update_fuzzer_and_data_bundles_input = (
-        setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
-        update_fuzzer_and_data_bundles_input)
+        uworker_input.update_fuzzer_and_data_bundles_input)
     if not self.fuzzer:
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.FUZZER_SETUP_FAILED)
@@ -1772,6 +1768,7 @@ class FuzzingSession:
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
       return
+
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1900,17 +1897,21 @@ def utask_main(uworker_input):
   test_timeout = environment.get_value('TEST_TIMEOUT')
   session = FuzzingSession(uworker_input.fuzzer_name, uworker_input.job_type,
                            test_timeout)
-  session.run()
+  session.run(uworker_input)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
+
+  update_fuzzer_and_data_bundles_input = (
+    setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
+      update_fuzzer_and_data_bundles_input=update_fuzzer_and_data_bundles_input,
   )
 
 
