@@ -99,13 +99,16 @@ class TestGetUrls(unittest.TestCase):
   """Tests that functions for getting urls for uploading and downloading input
   and output work properly."""
   FAKE_URL = 'https://fake'
-  WORKER_IO_BUCKET = 'UWORKER_IO'
+  WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
+  WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
-  EXPECTED_GCS_PATH = '/UWORKER_IO/new-filename'
+  EXPECTED_INPUT_GCS_PATH = '/UWORKER_INPUT/new-filename'
+  EXPECTED_OUTPUT_GCS_PATH = '/UWORKER_OUTPUT/new-filename'
 
   def setUp(self):
     helpers.patch_environ(self)
-    os.environ['TEST_UWORKER_IO_BUCKET'] = self.WORKER_IO_BUCKET
+    os.environ['TEST_UWORKER_INPUT_BUCKET'] = self.WORKER_INPUT_BUCKET
+    os.environ['TEST_UWORKER_OUTPUT_BUCKET'] = self.WORKER_OUTPUT_BUCKET
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
@@ -118,20 +121,21 @@ class TestGetUrls(unittest.TestCase):
 
   def test_get_uworker_output_urls(self):
     """Tests that get_uworker_output_urls works."""
-    expected_upload_url = self.EXPECTED_GCS_PATH + '.output'
-    expected_urls = (self.FAKE_URL, expected_upload_url)
+    expected_urls = (self.FAKE_URL, self.EXPECTED_OUTPUT_GCS_PATH)
     self.assertEqual(
-        uworker_io.get_uworker_output_urls(self.EXPECTED_GCS_PATH),
+        uworker_io.get_uworker_output_urls(self.EXPECTED_INPUT_GCS_PATH),
         expected_urls)
     self.mock._sign_url.assert_called_with(
-        expected_upload_url, method='PUT', minutes=DEFAULT_SIGNED_URL_MINUTES)
+        self.EXPECTED_OUTPUT_GCS_PATH,
+        method='PUT',
+        minutes=DEFAULT_SIGNED_URL_MINUTES)
 
   def test_get_uworker_input_urls(self):
     """Tests that get_uworker_input_urls works."""
-    expected_urls = (self.FAKE_URL, self.EXPECTED_GCS_PATH)
+    expected_urls = (self.FAKE_URL, self.EXPECTED_INPUT_GCS_PATH)
     self.assertEqual(uworker_io.get_uworker_input_urls(), expected_urls)
     self.mock._sign_url.assert_called_with(
-        self.EXPECTED_GCS_PATH,
+        self.EXPECTED_INPUT_GCS_PATH,
         method='GET',
         minutes=DEFAULT_SIGNED_URL_MINUTES)
 
@@ -159,15 +163,16 @@ class UworkerOutputTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class RoundTripTest(unittest.TestCase):
   """Tests round trips for download and uploading inputs and outputs."""
-  WORKER_IO_BUCKET = 'UWORKER_IO'
+  WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
+  WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
-  EXPECTED_GCS_PATH = '/UWORKER_IO/new-filename'
   FAKE_URL = 'https://fake'
 
   def setUp(self):
     helpers.patch_environ(self)
     os.environ['FAIL_RETRIES'] = '1'
-    os.environ['TEST_UWORKER_IO_BUCKET'] = self.WORKER_IO_BUCKET
+    os.environ['TEST_UWORKER_INPUT_BUCKET'] = self.WORKER_INPUT_BUCKET
+    os.environ['TEST_UWORKER_OUTPUT_BUCKET'] = self.WORKER_OUTPUT_BUCKET
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get',
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
