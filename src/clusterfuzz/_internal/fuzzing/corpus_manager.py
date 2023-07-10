@@ -434,7 +434,10 @@ def temp_zipfile(file_paths):
         # Don't use the leading paths.
         name = os.path.basename(file_path)
         name = get_unique_name(name)
-        zip_file.write(file_path, arcname=name)
+        try:
+          zip_file.write(file_path, arcname=name)
+        except FileNotFoundError:
+          logs.log_warn(f'Could not find {file_path}.')
 
     # Make sure to yield after the zip file is closed otherwise the user will
     # get an incomplete zip file.
