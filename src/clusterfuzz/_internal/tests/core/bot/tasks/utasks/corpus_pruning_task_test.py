@@ -56,6 +56,7 @@ class BaseTest(object):
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
         'clusterfuzz._internal.fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
         'clusterfuzz._internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
@@ -67,6 +68,7 @@ class BaseTest(object):
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
 
