@@ -509,18 +509,21 @@ class UntrustedRunnerIntegrationTest(
   def test_update_data_bundle(self):
     """Test update_data_bundle."""
     self.mock.get_data_bundle_bucket_name.return_value = TEST_BUNDLE_BUCKET
-    fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == 'fuzzer').get()
+    update_fuzzer_and_data_bundles_input = (
+        setup.preprocess_update_fuzzer_and_data_bundles('fuzzer'))
     bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == 'bundle').get()
 
-    self.assertTrue(setup.update_data_bundle(fuzzer, bundle))
+    self.assertTrue(
+        setup.update_data_bundle(update_fuzzer_and_data_bundles_input, bundle))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
         setup.get_data_bundle_directory('fuzzer'))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'a')))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'b')))
 
-    self.assertTrue(setup.update_data_bundle(fuzzer, bundle))
+    self.assertTrue(
+        setup.update_data_bundle(update_fuzzer_and_data_bundles_input, bundle))
 
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""
