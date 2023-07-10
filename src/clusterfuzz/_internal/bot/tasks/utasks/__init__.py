@@ -48,7 +48,6 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
 
 def add_uworker_input_to_output(uworker_output, uworker_input):
-  uworker_output.uworker_env = uworker_env
   uworker_output.uworker_input = uworker_input
 
 
