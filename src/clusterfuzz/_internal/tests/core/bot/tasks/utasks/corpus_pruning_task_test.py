@@ -57,7 +57,6 @@ class BaseTest(object):
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
-        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
         'clusterfuzz._internal.fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
         'clusterfuzz._internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
@@ -69,7 +68,6 @@ class BaseTest(object):
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
-    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
 
@@ -441,10 +439,6 @@ class CorpusPruningTestUntrusted(
     self._setup_env(job_type='libfuzzer_asan_job')
     uworker_input = uworker_io.DeserializedUworkerMsg(
         job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
-
-    # This file is as good as any.
-    self.fuzzer.blobstore_key = blobs.write_blob(__file__)
-    self.fuzzer.put()
     corpus_pruning_task.utask_main(uworker_input)
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')
