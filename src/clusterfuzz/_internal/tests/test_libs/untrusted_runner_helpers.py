@@ -213,5 +213,6 @@ class UntrustedRunnerIntegrationTest(unittest.TestCase):
       return
 
     job = data_types.Job.query(data_types.Job.name == job_type).get()
+    self.fuzzer_name = 'test_fuzzer'
     environment.set_value('JOB_NAME', job_type)
     commands.update_environment_for_job(job.environment_string)

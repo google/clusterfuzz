@@ -1,4 +1,4 @@
-#!/bin/bash -ex
+#!/bin/bash -eux
 # Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,5 +18,5 @@
 TEST_NAME=$1
 shift
 
-echo "Running untrusted integration tests for $TEST_NAME..."
-UNTRUSTED_RUNNER_TESTS=1 python butler.py py_unittest -t core -p \*"$TEST_NAME"\* "$@"
+echo "Running utask test for $TEST_NAME..."
+UTASK_TESTS=1 python butler.py py_unittest -t core -p \*"$TEST_NAME"\* "$@"

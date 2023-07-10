@@ -601,9 +601,11 @@ def get_value_string(environment_variable, default_value=None):
   return os.getenv(environment_variable, default_value)
 
 
-def get_value(environment_variable, default_value=None):
+def get_value(environment_variable, default_value=None, env=None):
   """Return an environment variable value."""
-  value_string = os.getenv(environment_variable)
+  if env is None:
+    env = os.environ
+  value_string = env.get(environment_variable)
 
   # value_string will be None if the variable is not defined.
   if value_string is None:
@@ -1008,12 +1010,14 @@ def set_tsan_max_history_size():
   set_value('TSAN_OPTIONS', tsan_options)
 
 
-def set_value(environment_variable, value):
+def set_value(environment_variable, value, env=None):
   """Set an environment variable."""
+  if env is None:
+    env = os.environ
   value_str = str(value)
   environment_variable_str = str(environment_variable)
   value_str = value_str.replace('%ROOT_DIR%', os.getenv('ROOT_DIR', ''))
-  os.environ[environment_variable_str] = value_str
+  env[environment_variable_str] = value_str
 
   if is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import \
