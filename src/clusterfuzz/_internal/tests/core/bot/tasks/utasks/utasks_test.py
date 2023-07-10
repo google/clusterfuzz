@@ -47,6 +47,7 @@ class TworkerPreprocessTest(unittest.TestCase):
     """Tests that tworker_preprocess works as intended."""
     module = mock.MagicMock()
     module.utask_preprocess.return_value = self.uworker_input
+    module.__name__ = 'mock_task'
     result = utasks.tworker_preprocess(module, self.TASK_ARGUMENT,
                                        self.JOB_TYPE, self.UWORKER_ENV)
 
