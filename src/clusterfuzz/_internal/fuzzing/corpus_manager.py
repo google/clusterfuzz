@@ -288,7 +288,11 @@ class GcsCorpus:
     # TODO(metzman): Get rid of the rest of this function when migration is
     # complete.
     filenames = shell.get_files_list(directory)
-    self._upload_to_zipcorpus(filenames, partial=False)
+    # We can delete corpus files after uploading them because this function is
+    # only called during pruning. After pruning one target's corpus, fuzzing
+    # will not be done on the same bot until all other fuzzers in the job get
+    # pruned.
+    self._upload_to_zipcorpus(filenames, partial=False, delete_on_compress=True)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
@@ -383,7 +387,13 @@ class GcsCorpus:
     # Upload zipcorpus.
     # TODO(metzman): Get rid of the rest of this function when migration is
     # complete.
-    self._upload_to_zipcorpus(file_paths, partial=True)
+    try:
+      self._upload_to_zipcorpus(file_paths, partial=True)
+    except OSError:
+      # This is OK for now while non-zipcorpora are still used, uploading during
+      # pruning is more important.
+      logs.log_error('Cloud not upload zipcorpus.')
+
     return result
 
   def get_zipcorpus_gcs_url(self, partial):
@@ -399,16 +409,16 @@ class GcsCorpus:
     filename = f'{prefix}.zip'
     return zipcorpus_url + filename
 
-  def _upload_to_zipcorpus(self, file_paths, partial):
+  def _upload_to_zipcorpus(self, file_paths, partial, delete_on_compress=False):
     """Uploads |file_paths| to the zipcorpus on GCS. Uploads them as part of a
     partial corpus if |partial| is True."""
     gcs_url = self.get_zipcorpus_gcs_url(partial)
-    with temp_zipfile(file_paths) as archive_path:
+    with temp_zipfile(file_paths, delete_on_compress) as archive_path:
       storage.copy_file_to(archive_path, gcs_url)
 
 
 @contextlib.contextmanager
-def temp_zipfile(file_paths):
+def temp_zipfile(file_paths, delete_on_compress=False):
   """Yields a temporary zip file containing |file_paths|."""
   file_paths = list(file_paths)
   seen_filenames = set()
@@ -436,6 +446,8 @@ def temp_zipfile(file_paths):
         name = get_unique_name(name)
         try:
           zip_file.write(file_path, arcname=name)
+          if delete_on_compress:
+            os.remove(file_path)
         except FileNotFoundError:
           logs.log_warn(f'Could not find {file_path}.')
 
