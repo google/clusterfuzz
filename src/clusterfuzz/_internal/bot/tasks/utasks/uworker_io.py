@@ -406,6 +406,8 @@ class UpdateFuzzerAndDataBundleInput(UworkerInput):
       # This the way to tell if it's a repeated field.
       # We can't get the type of the repeated field directly.
       value = list(value)
+      if len(value) == 0:
+        return
       assert isinstance(value[0], ndb.Model), value[0]
       field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
       return
