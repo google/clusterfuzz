@@ -545,8 +545,9 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
 
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
-  update_input.fuzzer_download_url = blobs.get_signed_download_url(
-      update_input.fuzzer.blobstore_key)
+  if not fuzzer.builtin:
+    update_input.fuzzer_download_url = blobs.get_signed_download_url(
+        update_input.fuzzer.blobstore_key)
 
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Finish migrating
   # update data bundles.
