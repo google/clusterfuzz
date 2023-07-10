@@ -171,11 +171,6 @@ def initialize_task(messages):
     raise Error(f'{raw_self_link} cannot be parsed.')
   groupdict = match.groupdict()
   path = groupdict['path']
-  if not path.endswith('.output'):
-    # This is an input message, and doesn't need to be postprocessed.
-    message.ack()
-    # TODO(metzman): Consider using differnet buckets for inputs and outputs.
-    return None
   bucket = groupdict['bucket']
   argument = f'{bucket}{path}'
   command = 'postprocess'

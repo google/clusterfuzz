@@ -75,6 +75,9 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
     # Bail if preprocessing failed since we can't proceed.
     return None
 
+  assert not uworker_input.module_name
+  uworker_input.module_name = utask_module.__name__
+
   # Write the uworker's input to GCS and get the URL to download the input in
   # case the caller needs it.
   uworker_input_signed_download_url, uworker_output_download_gcs_url = (
