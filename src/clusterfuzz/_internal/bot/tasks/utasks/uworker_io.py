@@ -339,24 +339,6 @@ def save_json_field(field, value):
   field.CopyFrom(serialized_json)
 
 
-class UpdateFuzzerAndDataBundleInput(UworkerMsg):
-  """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
-  PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
-
-  def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
-    if isinstance(field, collections.Sequence):
-      # This the way to tell if it's a repeated field.
-      # We can't get the type of the repeated field directly.
-      assert isinstance(value[0], ndb.Model), value[0]
-      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
-      return
-    if not isinstance(value, UworkerEntityWrapper):
-      raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-    wrapped_entity_proto = serialize_wrapped_entity(value)
-    field.CopyFrom(wrapped_entity_proto)
-
-
 class UworkerOutput(UworkerMsg):
   """Class representing an unserialized UworkerOutput message from
   utask_main."""
@@ -402,6 +384,22 @@ class UworkerInput(UworkerMsg):
 
     entity_proto = model._entity_to_protobuf(value)  # pylint: disable=protected-access
     field.CopyFrom(entity_proto)
+
+
+class UpdateFuzzerAndDataBundleInput(UworkerInput):
+  """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(field, collections.Sequence):
+      # This the way to tell if it's a repeated field.
+      # We can't get the type of the repeated field directly.
+      assert isinstance(value[0], ndb.Model), value[0]
+      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      return
+
+    super().save_rich_type(attribute, value)
 
 
 class DeserializedUworkerMsg:
