@@ -38,7 +38,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
 
   # Deal with the environment.
-  set_uworker_env(uworker_input.uworker_env)
+  set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
   delattr(uworker_input, 'uworker_env')
 
   uworker_output = utask_module.utask_main(uworker_input)
@@ -47,19 +47,11 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   return uworker_io.serialize_uworker_output(uworker_output)
 
 
-def add_uworker_input_to_output(uworker_output, uworker_input):
-  uworker_env = uworker_input.uworker_env
-  delattr(uworker_input, 'uworker_env')
-  uworker_output.uworker_env = uworker_env
-  uworker_output.uworker_input = uworker_input
-
-
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
   # Do this to simulate out-of-band tamper-proof storage of the input.
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
-  add_uworker_input_to_output(uworker_output, uworker_input)
-  set_uworker_env(uworker_input.uworker_env)
+  set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
   utask_module.utask_postprocess(uworker_output)
 
 
@@ -131,6 +123,5 @@ def tworker_postprocess(utask_module, output_download_url,
       output_download_url)
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
-  add_uworker_input_to_output(uworker_output, uworker_input)
-  set_uworker_env(uworker_input.uworker_env)
+  set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
   utask_module.utask_postprocess(uworker_output)

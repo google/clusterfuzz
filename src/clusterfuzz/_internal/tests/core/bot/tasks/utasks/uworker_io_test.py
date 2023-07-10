@@ -333,7 +333,8 @@ class RoundTripTest(unittest.TestCase):
                      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     self.assertEqual(downloaded_output.uworker_input.testcase_id,
                      uworker_input.testcase_id)
-    self.assertDictEqual(downloaded_output.uworker_env, uworker_env)
+    self.assertDictEqual(downloaded_output.uworker_input.uworker_env,
+                         uworker_env)
 
   def test_output_error_serialization(self):
     """Tests that errors can be returned by the tasks."""

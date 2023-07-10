@@ -195,7 +195,6 @@ def download_and_deserialize_uworker_output(output_url: str):
   # tamper with it.
   uworker_input = download_input_based_on_output_url(output_url)
 
-  uworker_output.uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
   uworker_output.uworker_input = uworker_input
   return uworker_output
 
