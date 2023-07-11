@@ -22,6 +22,7 @@ import time
 
 from google.cloud import ndb
 
+from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
@@ -120,11 +121,6 @@ def get_testcase_by_id(testcase_id):
   return testcase
 
 
-@memoize.wrap(memoize.Memcache(MEMCACHE_TTL_IN_SECONDS))
-def _get_builtin_fuzzers():
-  return data_types.Fuzzer.query(ndb_utils.is_true(data_types.Fuzzer.builtin))
-
-
 def find_testcase(project_name,
                   crash_type,
                   crash_state,
@@ -142,20 +138,18 @@ def find_testcase(project_name,
       ndb_utils.is_true(data_types.Testcase.open)
   ]
   if fuzz_target and environment.get_value('DEDUP_ONLY_SAME_TARGET'):
-    builtin_fuzzers = _get_builtin_fuzzers()
-    culprit_builtin = None
-    target_without_builtin = None
-    for builtin_fuzzer in builtin_fuzzers:
-      if fuzz_target.startswith(f'{builtin_fuzzer.name}_'):
-        culprit_builtin = builtin_fuzzer
-        target_without_builtin = fuzz_target[len(culprit_builtin) + 1:]
+    culprit_engine = None
+    target_without_engine = None
+    for engine in fuzzing.PUBLIC_ENGINES:
+      if fuzz_target.startswith(f'{engine}_'):
+        culprit_engine = engine
+        target_without_engine = fuzz_target[len(culprit_engine) + 1:]
         break
       target_with_different_engines = []
-      assert culprit_builtin
+      assert culprit_engine
 
     target_with_different_engines = [
-        f'{builtin_fuzzer.engine}_{target_without_builtin}'
-        for builtin_fuzzer in builtin_fuzzers
+        f'{engine}_{target_without_engine}' for engine in fuzzing.PUBLIC_ENGINES
     ]
     query_args.append(
         data_types.Testcase.overridden_fuzzer_name.IN(
