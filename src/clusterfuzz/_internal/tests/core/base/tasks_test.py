@@ -56,7 +56,7 @@ class InitializeTaskTest(unittest.TestCase):
     }
     task = tasks.initialize_task([self.message])
     self.assertFalse(isinstance(task, tasks.PubSubTask))
-    self.assertEqual(task.command, 'postprocess')
+    self.assertEqual(task.command, 'uwoker_postprocess')
     self.assertEqual(task.argument, '/mybucket/worker.output')
     self.assertEqual(task.job, 'none')
 
