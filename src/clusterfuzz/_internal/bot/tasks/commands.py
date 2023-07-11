@@ -20,19 +20,7 @@ import time
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import blame_task
-from clusterfuzz._internal.bot.tasks import impact_task
-from clusterfuzz._internal.bot.tasks import symbolize_task
-from clusterfuzz._internal.bot.tasks import unpack_task
-from clusterfuzz._internal.bot.tasks import upload_reports_task
-from clusterfuzz._internal.bot.tasks import utasks
-from clusterfuzz._internal.bot.tasks.utasks import analyze_task
-from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
-from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-from clusterfuzz._internal.bot.tasks.utasks import minimize_task
-from clusterfuzz._internal.bot.tasks.utasks import progression_task
-from clusterfuzz._internal.bot.tasks.utasks import regression_task
-from clusterfuzz._internal.bot.tasks.utasks import variant_task
+from clusterfuzz._internal.bot import tasks as bot_tasks
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -42,109 +30,6 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
 TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
-
-
-class BaseTask:
-  """Base module for tasks."""
-
-  def __init__(self, module):
-    self.module = module
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a task."""
-    raise NotImplementedError('Child class must implement.')
-
-
-class TrustedTask(BaseTask):
-  """Implementation of a task that is run on a single machine. These tasks were
-  the original ones in ClusterFuzz."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    # Simple tasks can just use the environment they don't need the uworker env.
-    del uworker_env
-    self.module.execute_task(task_argument, job_type)
-
-
-def utask_factory(task_module, in_memory=True):
-  """Returns a task implemention for a utask. Depending on the global
-  configuration, the implementation will either execute the utask entirely on
-  one machine or on multiple."""
-  if in_memory:
-    logs.log('Using memory for utasks.')
-    return UTaskLocalExecutor(task_module)
-
-  logs.log('Using GCS for utasks.')
-  return UTask(task_module)
-
-
-class UTask(BaseTask):
-  """Represents an untrusted task. Executes it entirely locally."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
-
-    if preprocess_result is None:
-      return
-
-    input_download_url, output_download_url = preprocess_result
-    utasks.uworker_main(self.module, input_download_url)
-    # Postprocessing is done on a different instance.
-    del output_download_url  # Don't need this, it's for a different instance.
-    logs.log('Utask local: done with preprocess and main.')
-
-
-class UTaskLocalExecutor(BaseTask):
-  """Represents an untrusted task. Executes it entirely locally and in
-  memory."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally in-memory."""
-    uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
-                                                    job_type, uworker_env)
-    if uworker_input is None:
-      return
-    uworker_output = utasks.uworker_main_no_io(self.module, uworker_input)
-    if uworker_output is None:
-      return
-    utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
-    logs.log('Utask local: done.')
-
-
-class PostprocessTask(BaseTask):
-  """Represents postprocessing of an untrusted task."""
-
-  def __init__(self, module='none'):
-    # We don't need a module, postprocess isn't a real task, it's one part of
-    # many different tasks.
-    super().__init__(module)
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes postprocessing of a utask."""
-    # These values are false for now.
-    del job_type
-    del uworker_env
-    input_path = task_argument
-    utasks.tworker_postprocess(input_path)
-
-
-COMMAND_MAP = {
-    # TODO(metzman): Change analyze task away from in-memory.
-    'analyze': utask_factory(analyze_task),
-    'blame': TrustedTask(blame_task),
-    'corpus_pruning': utask_factory(corpus_pruning_task),
-    'fuzz': utask_factory(fuzz_task),
-    'impact': TrustedTask(impact_task),
-    'minimize': utask_factory(minimize_task),
-    'progression': utask_factory(progression_task),
-    'regression': utask_factory(regression_task),
-    'symbolize': TrustedTask(symbolize_task),
-    'unpack': TrustedTask(unpack_task),
-    'postprocess': PostprocessTask(),
-    'upload_reports': TrustedTask(upload_reports_task),
-    'variant': utask_factory(variant_task),
-}
 
 
 class Error(Exception):
@@ -275,11 +160,10 @@ def start_web_server_if_needed():
 
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Run the command."""
-  if task_name not in COMMAND_MAP:
+  task = bot_tasks.COMMAND_MAP.get(task_name)
+  if not task:
     logs.log_error("Unknown command '%s'" % task_name)
     return
-
-  task = COMMAND_MAP[task_name]
 
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
