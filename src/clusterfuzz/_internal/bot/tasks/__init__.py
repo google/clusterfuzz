@@ -77,6 +77,23 @@ class UTask(BaseTask):
     # TODO(metzman): Execute main on other machines.
 
 
+class UTask(BaseTask):
+  """Represents an untrusted task. Executes the preprocess and main parts on
+  this machine and causes postprocess to be executed on on other machines."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally."""
+    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
+                                                  job_type, uworker_env)
+
+    if preprocess_result is None:
+      return
+
+    input_download_url, _ = preprocess_result
+    utasks.uworker_main(input_download_url)
+    logs.log('Utask: done with preprocess and main.')
+
+
 class UTaskLocalExecutor(BaseTask):
   """Represents an untrusted task. Executes it entirely locally and in
   memory."""
