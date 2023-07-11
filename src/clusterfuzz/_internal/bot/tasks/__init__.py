@@ -77,7 +77,7 @@ class UTask(BaseTask):
     # TODO(metzman): Execute main on other machines.
 
 
-class UTask(BaseTask):
+class UTaskLocalPreprocessAndMain(BaseTask):
   """Represents an untrusted task. Executes the preprocess and main parts on
   this machine and causes postprocess to be executed on on other machines."""
 
