@@ -83,5 +83,5 @@ class UtaskIntegrationTest(unittest.TestCase):
         os.path.join(ROOT_DIR, 'configs', 'test'))
 
   def execute(self, utask_module, task_argument, job_type, uworker_env):
-    executor = tasks.UTaskLocalExecutor(utask_module)
+    executor = commands.UTaskLocalExecutor(utask_module)
     return executor.execute(task_argument, job_type, uworker_env)
