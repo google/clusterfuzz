@@ -188,7 +188,7 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner(target_path)
-    engine_common.process_sanitizer_options_overrides(fuzzer_path)
+    engine_common.process_sanitizer_options_overrides(target_path)
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
         additional_args=options.arguments, timeout=timeout)
@@ -233,7 +233,7 @@ class Engine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    engine_common.process_sanitizer_options_overrides(fuzzer_path)
+    engine_common.process_sanitizer_options_overrides(target_path)
     target_binaries = self._get_binary_paths(target_path)
     sanitized_target = str(target_binaries.sanitized)
 
