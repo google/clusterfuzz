@@ -130,7 +130,7 @@ class PostprocessTask(BaseTask):
 
 
 COMMAND_MAP = {
-    'analyze': utask_factory(analyze_task, in_memory=False),
+    'analyze': utask_factory(analyze_task),
     'blame': TrustedTask(blame_task),
     'corpus_pruning': utask_factory(corpus_pruning_task),
     'fuzz': utask_factory(fuzz_task),
