@@ -23,9 +23,9 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import blame_task
 from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot.tasks import unpack_task
 from clusterfuzz._internal.bot.tasks import upload_reports_task
-from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
@@ -33,7 +33,6 @@ from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
-from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -43,6 +42,7 @@ from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
 TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
+
 
 def utask_factory(task_module, in_memory=True):
   """Returns a task implemention for a utask. Depending on the global
@@ -54,6 +54,7 @@ def utask_factory(task_module, in_memory=True):
 
   logs.log('Using GCS for utasks.')
   return task_types.UTask(task_module)
+
 
 COMMAND_MAP = {
     # TODO(metzman): Change analyze task away from in-memory.
@@ -67,9 +68,9 @@ COMMAND_MAP = {
     'regression': utask_factory(regression_task),
     'symbolize': task_types.TrustedTask(symbolize_task),
     'unpack': task_types.TrustedTask(unpack_task),
-    'uworker_postprocess': PostprocessTask(),
+    'uworker_postprocess': task_types.PostprocessTask(),
     'upload_reports': task_types.TrustedTask(upload_reports_task),
-    'uworker_main': UworkerMainTask(),
+    'uworker_main': task_types.UworkerMainTask(),
     'variant': utask_factory(variant_task),
 }
 
@@ -202,7 +203,7 @@ def start_web_server_if_needed():
 
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Run the command."""
-  task = bot_tasks.COMMAND_MAP.get(task_name)
+  task = COMMAND_MAP.get(task_name)
   if not task:
     logs.log_error("Unknown command '%s'" % task_name)
     return

@@ -17,8 +17,8 @@ import shutil
 import tempfile
 import unittest
 
-from clusterfuzz._internal.bot import tasks
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.system import environment
@@ -83,5 +83,5 @@ class UtaskIntegrationTest(unittest.TestCase):
         os.path.join(ROOT_DIR, 'configs', 'test'))
 
   def execute(self, utask_module, task_argument, job_type, uworker_env):
-    executor = commands.UTaskLocalExecutor(utask_module)
+    executor = task_types.UTaskLocalExecutor(utask_module)
     return executor.execute(task_argument, job_type, uworker_env)
