@@ -148,6 +148,7 @@ class BaseTest(object):
     return True
 
 
+# TODO(unassigned): Support macOS.
 @test_utils.supported_platforms('LINUX')
 @test_utils.with_cloud_emulators('datastore')
 class CorpusPruningTest(unittest.TestCase, BaseTest):
@@ -343,6 +344,8 @@ class CorpusPruningTestUntrusted(
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.setup.get_fuzzer_directory',
         'clusterfuzz._internal.base.tasks.add_task',
+        'clusterfuzz._internal.bot.tasks.utasks.corpus_pruning_task.'
+        '_record_cross_pollination_stats',
         'clusterfuzz.fuzz.engine.get',
     ])
 
@@ -361,10 +364,10 @@ class CorpusPruningTestUntrusted(
                             f'QUARANTINE_BUCKET = {self.quarantine_bucket}\n'
                             f'BACKUP_BUCKET={self.backup_bucket}\n'
                             'RELEASE_BUILD_BUCKET_PATH = '
-                            'gs://clusterfuzz-test-data/test_libfuzzer_builds2/'
+                            'gs://clusterfuzz-test-data/test_libfuzzer_builds/'
                             'test-libfuzzer-build-([0-9]+).zip\n'
                             'REVISION_VARS_URL = gs://clusterfuzz-test-data/'
-                            'test_libfuzzer_builds2/'
+                            'test_libfuzzer_builds/'
                             'test-libfuzzer-build-%s.srcmap.json\n'))
     job.put()
 
@@ -392,6 +395,7 @@ class CorpusPruningTestUntrusted(
         job='libfuzzer_asan_job2',
         last_run=datetime.datetime.now()).put()
 
+    environment.set_value('USE_MINIJAIL', True)
     environment.set_value('SHARED_CORPUS_BUCKET', TEST_SHARED_BUCKET)
 
     # Set up remote corpora.
@@ -435,20 +439,30 @@ class CorpusPruningTestUntrusted(
   def test_prune(self):
     """Test pruning."""
     self._setup_env(job_type='libfuzzer_asan_job')
+    self.mock._record_cross_pollination_stats.side_effect = (
+        self.get_mock_record_compare(
+            project_qualified_name='test_fuzzer',
+            sources='test2_fuzzer',
+            initial_corpus_size=5,
+            corpus_size=3,
+            initial_edge_coverage=0,
+            edge_coverage=0,
+            initial_feature_coverage=0,
+            feature_coverage=0))
+
     uworker_input = uworker_io.DeserializedUworkerMsg(
         job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
-
     corpus_pruning_task.utask_main(uworker_input)
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')
     os.mkdir(corpus_dir)
-
     self.corpus.rsync_to_disk(corpus_dir)
+
     self.assertCountEqual([
+        '39e0574a4abfd646565a3e436c548eeb1684fb57',
+        '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
         '6fa8c57336628a7d733f684dc9404fbd09020543',
-        '7d157d7c000ae27db146575c08ce30df893d3a64',
-        '39e0574a4abfd646565a3e436c548eeb1684fb57',
     ], os.listdir(corpus_dir))
 
     quarantine_dir = os.path.join(self.temp_dir, 'quarantine')
