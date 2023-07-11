@@ -43,7 +43,7 @@ def get_delay(num_try, delay, backoff):
   delay = delay * (backoff**(num_try - 1))
   if _should_ignore_delay_for_testing():
     # Don't sleep for long during tests. Flake is better.
-    return min(delay, 2)
+    return min(delay, 3)
 
   return delay
 
