@@ -72,7 +72,6 @@ def _get_reproducer_path(log, reproducers_dir):
   return crash_path
 
 
-
 class Engine(engine.Engine):
   """Centipede engine implementation."""
 
