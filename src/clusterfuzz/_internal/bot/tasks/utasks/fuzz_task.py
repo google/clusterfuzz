@@ -1886,6 +1886,7 @@ class FuzzingSession:
 
     return uworker_io.UworkerOutput(
         fuzz_task_output=uworker_io.UworkerOutput(
+            fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
             crash_revision=crash_revision,
             job_run_timestamp=time.time(),
             new_crash_count=new_crash_count,

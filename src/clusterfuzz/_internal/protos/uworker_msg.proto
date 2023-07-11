@@ -49,6 +49,7 @@ message FuzzTaskOutput {
   optional int64 known_crash_count = 5;
   optional int64 testcases_executed = 6;
   optional Json job_run_crashes = 7;
+  optional string fully_qualified_fuzzer_name = 8;
 }
 
 enum ErrorType {
