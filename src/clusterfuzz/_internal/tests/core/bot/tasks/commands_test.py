@@ -84,6 +84,14 @@ class RunCommandTest(unittest.TestCase):
     os.environ['TEST_TIMEOUT'] = '10'
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
 
+  def test_run_command_postprocess(self):
+    """Tests that the postprocess command is executed properly."""
+    worker_output_url = '/worker-output'
+    with mock.patch('clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess'
+                   ) as postprocess:
+      commands.run_command('postprocess', worker_output_url, 'none', {})
+    postprocess.assert_called_with(worker_output_url)
+
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
     commands.run_command('fuzz', 'fuzzer', 'job', {})

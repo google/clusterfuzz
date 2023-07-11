@@ -26,6 +26,8 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
   set_uworker_env(uworker_env)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
+  assert not uworker_input.module_name
+  uworker_input.module_name = utask_module.__name__
   if not uworker_input:
     return None
   return uworker_io.serialize_uworker_input(uworker_input)
@@ -73,6 +75,9 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
     # Bail if preprocessing failed since we can't proceed.
     return None
 
+  assert not uworker_input.module_name
+  uworker_input.module_name = utask_module.__name__
+
   # Write the uworker's input to GCS and get the URL to download the input in
   # case the caller needs it.
   uworker_input_signed_download_url, uworker_output_download_gcs_url = (
@@ -111,23 +116,27 @@ def uworker_main(utask_module, input_download_url) -> None:
   return True
 
 
-def uworker_bot_main():
-  module_name = environment.get_value('UWORKER_MODULE_NAME')
+def get_utask_module(module_name):
   full_module_name = f'clusterfuzz._internal.bot.tasks.utasks.{module_name}'
-  module = importlib.import_module(full_module_name)
+  return importlib.import_module(full_module_name)
+
+
+def uworker_bot_main():
+  """The entrypoint for a uworker."""
+  module_name = environment.get_value('UWORKER_MODULE_NAME')
+  module = get_utask_module(module_name)
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
   uworker_main(module, input_download_url)
   return True
 
 
-def tworker_postprocess(utask_module, output_download_url,
-                        input_download_url) -> None:
+def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
-  logs.log('Starting utask_postprocess: %s.' % utask_module)
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
   add_uworker_input_to_output(uworker_output, uworker_input)
   set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
+  utask_module = get_utask_module(uworker_output.uworker_input.module_name)  # pylint: disable=no-member
   utask_module.utask_postprocess(uworker_output)
