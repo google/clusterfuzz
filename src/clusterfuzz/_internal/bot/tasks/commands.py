@@ -130,6 +130,7 @@ class PostprocessTask(BaseTask):
 
 
 COMMAND_MAP = {
+    # TODO(metzman): Change analyze task away from in-memory.
     'analyze': utask_factory(analyze_task),
     'blame': TrustedTask(blame_task),
     'corpus_pruning': utask_factory(corpus_pruning_task),
