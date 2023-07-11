@@ -39,6 +39,7 @@ message Input {
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
+  optional string module_name = 11;
 }
 
 enum ErrorType {

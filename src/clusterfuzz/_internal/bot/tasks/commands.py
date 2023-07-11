@@ -65,24 +65,19 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-def utask_factory(task_module, use_gcs_for_io=False):
+def utask_factory(task_module, in_memory=True):
   """Returns a task implemention for a utask. Depending on the global
   configuration, the implementation will either execute the utask entirely on
   one machine or on multiple."""
-  if environment.get_value('UTASK_REMOTE_EXECUTION'):
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Make remote
-    # execution opt-out.
-    return UTask(task_module)
-
-  if use_gcs_for_io:
-    logs.log('Using GCS for utasks.')
+  if in_memory:
+    logs.log('Using memory for utasks.')
     return UTaskLocalExecutor(task_module)
 
-  logs.log('Using memory for utasks.')
-  return UTaskLocalInMemoryExecutor(task_module)
+  logs.log('Using GCS for utasks.')
+  return UTask(task_module)
 
 
-class UTaskLocalExecutor(BaseTask):
+class UTask(BaseTask):
   """Represents an untrusted task. Executes it entirely locally."""
 
   def execute(self, task_argument, job_type, uworker_env):
@@ -95,12 +90,12 @@ class UTaskLocalExecutor(BaseTask):
 
     input_download_url, output_download_url = preprocess_result
     utasks.uworker_main(self.module, input_download_url)
-    utasks.tworker_postprocess(self.module, output_download_url,
-                               input_download_url)
-    logs.log('Utask local: done.')
+    # Postprocessing is done on a different instance.
+    del output_download_url  # Don't need this, it's for a different instance.
+    logs.log('Utask local: done with preprocess and main.')
 
 
-class UTaskLocalInMemoryExecutor(BaseTask):
+class UTaskLocalExecutor(BaseTask):
   """Represents an untrusted task. Executes it entirely locally and in
   memory."""
 
@@ -117,17 +112,26 @@ class UTaskLocalInMemoryExecutor(BaseTask):
     logs.log('Utask local: done.')
 
 
-class UTask(BaseTask):
-  """Represents an untrusted task. Executes it remotely."""
+class PostprocessTask(BaseTask):
+  """Represents postprocessing of an untrusted task."""
+
+  def __init__(self, module='none'):
+    # We don't need a module, postprocess isn't a real task, it's one part of
+    # many different tasks.
+    super().__init__(module)
 
   def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask remotely."""
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Implement.
-    raise NotImplementedError('UTask remote executor not implemented yet.')
+    """Executes postprocessing of a utask."""
+    # These values are false for now.
+    del job_type
+    del uworker_env
+    input_path = task_argument
+    utasks.tworker_postprocess(input_path)
 
 
 COMMAND_MAP = {
-    'analyze': utask_factory(analyze_task, use_gcs_for_io=True),
+    # TODO(metzman): Change analyze task away from in-memory.
+    'analyze': utask_factory(analyze_task),
     'blame': TrustedTask(blame_task),
     'corpus_pruning': utask_factory(corpus_pruning_task),
     'fuzz': utask_factory(fuzz_task),
@@ -137,6 +141,7 @@ COMMAND_MAP = {
     'regression': utask_factory(regression_task),
     'symbolize': TrustedTask(symbolize_task),
     'unpack': TrustedTask(unpack_task),
+    'postprocess': PostprocessTask(),
     'upload_reports': TrustedTask(upload_reports_task),
     'variant': utask_factory(variant_task),
 }
