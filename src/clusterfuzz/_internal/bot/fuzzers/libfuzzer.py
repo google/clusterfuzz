@@ -28,7 +28,7 @@ from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer.peach import pits
-from clusterfuzz._internal.bot.testcase_manager import TargetNotFoundError
+from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
@@ -442,7 +442,8 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     ]
 
     if self.executable_path not in targets:
-      raise TargetNotFoundError('Failed to find target ' + self.executable_path)
+      raise testcase_manager.TargetNotFoundError(
+        f'Failed to find target {self.executable_path}')
 
   def get_total_timeout(self, timeout):
     """LibFuzzerCommon.fuzz override."""
