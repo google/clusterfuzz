@@ -1885,7 +1885,7 @@ class FuzzingSession:
     utils.python_gc()
 
     return uworker_io.UworkerOutput(
-        fuzz_task_output=uworker_io.UworkerOutput(
+        fuzz_task_output=uworker_io.FuzzTaskOutput(
             fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
             crash_revision=crash_revision,
             job_run_timestamp=time.time(),
