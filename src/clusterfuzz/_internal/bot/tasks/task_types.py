@@ -91,10 +91,11 @@ class UTaskLocalExecutor(BaseTask):
 class PostprocessTask(BaseTask):
   """Represents postprocessing of an untrusted task."""
 
-  def __init__(self, module='none'):
+  def __init__(self, module):
+    del module
     # We don't need a module, postprocess isn't a real task, it's one part of
     # many different tasks.
-    super().__init__(module)
+    super().__init__('none')
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes postprocessing of a utask."""
@@ -110,10 +111,11 @@ class UworkerMainTask(BaseTask):
   tasks that cannot use Google Cloud batch (e.g. Mac)."""
 
   # TODO(metzman): Merge with PostprocessTask.
-  def __init__(self, module='none'):
+  def __init__(self, module):
     # We don't need a module, uworker_main isn't a real task, it's one part of
     # many different tasks.
-    super().__init__(module)
+    del module
+    super().__init__('none')
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes uworker_main of a utask."""
@@ -122,3 +124,38 @@ class UworkerMainTask(BaseTask):
     del uworker_env
     input_path = task_argument
     utasks.uworker_main(input_path)
+
+
+COMMAND_TYPES = {
+    # TODO(metzman): Change analyze task away from in-memory.
+    'analyze': UTaskLocalExecutor,
+    'blame': TrustedTask,
+    'corpus_pruning': UTaskLocalExecutor,
+    'fuzz': UTaskLocalExecutor,
+    'impact': TrustedTask,
+    'minimize': UTaskLocalExecutor,
+    'progression': UTaskLocalExecutor,
+    'regression': UTaskLocalExecutor,
+    'symbolize': TrustedTask,
+    'unpack': TrustedTask,
+    'uworker_postprocess': PostprocessTask,
+    'upload_reports': TrustedTask,
+    'uworker_main': UworkerMainTask,
+    'variant': UTaskLocalExecutor,
+}
+
+
+def is_trusted_portion_of_utask(task_name):
+  task_type = COMMAND_TYPES[task_name]
+  # Postprocess and preprocess tasks are executed on tworkers, while utask_mains
+  # are executed on uworkers. Note that the uworker_main command will be used to
+  # execute uworker_main, while the name of the task itself will be used to
+  # request execution of the preprocess step.
+  return task_type in (UTask, PostprocessTask)
+
+
+def get_utask_trusted_portions():
+  return [
+      task_name for task_name, task_type in COMMAND_TYPES.items()
+      if is_trusted_portion_of_utask(task_type)
+  ]

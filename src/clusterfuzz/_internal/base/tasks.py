@@ -212,22 +212,25 @@ def get_regular_task(queue=None):
 
 
 def get_filters(is_chromium, is_linux):
-  """Returns a string containing filters for pubsub tasks. If |is_chromium| and
-  |is_linux| the filters filter out all non-multimachine tasks. The filter
-  should be used to read from non-linux queues so linux bots can do the trusted
-  preprocess step of non-linux utasks. Otherwise the filters should be used when
-  readin from the "normal" queue to filter out these preprocess steps."""
+  """Returns a string containing filters for pubsub commands. If |is_chromium|
+  and |is_linux| the filters filter out all commands that are not the trusted
+  portions (preprocess and postprocess of utasks). The filter should be used to
+  read from non-linux queues so linux bots can do the trusted preprocess step of
+  non-linux utasks. Otherwise the filters should be used when reading from the
+  bot's "normal" queue to filter out these preprocess/postprocess steps."""
   if not is_chromium:
     # Execute all tasks on one machine outside of chrome for now.
     return None
   # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
   # syntax.
-  multimachine_tasks = task_types.get_multimachine_tasks()
+  utask_trusted_portions = task_types.get_utask_trusted_portions()
   if not is_linux:
-    pubsub_filters = [f'attribute.name = {task}' for task in multimachine_tasks]
+    pubsub_filters = [
+        f'attribute.name = {task}' for task in utask_trusted_portions
+    ]
   else:
     pubsub_filters = [
-        f'-attribute.name = {task}' for task in multimachine_tasks
+        f'-attribute.name = {task}' for task in utask_trusted_portions
     ]
   pubsub_filter = FILTERS_AND.join(pubsub_filters)
   return pubsub_filter

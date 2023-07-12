@@ -43,36 +43,38 @@ from clusterfuzz._internal.system import shell
 
 TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
 
+COMMAND_MAP = {}
 
-def utask_factory(task_module, in_memory=True):
-  """Returns a task implemention for a utask. Depending on the global
-  configuration, the implementation will either execute the utask entirely on
-  one machine or on multiple."""
-  if in_memory:
-    logs.log('Using memory for utasks.')
-    return task_types.UTaskLocalExecutor(task_module)
-
-  logs.log('Using GCS for utasks.')
-  return task_types.UTask(task_module)
-
-
-COMMAND_MAP = {
-    # TODO(metzman): Change analyze task away from in-memory.
-    'analyze': utask_factory(analyze_task),
-    'blame': task_types.TrustedTask(blame_task),
-    'corpus_pruning': utask_factory(corpus_pruning_task),
-    'fuzz': utask_factory(fuzz_task),
-    'impact': task_types.TrustedTask(impact_task),
-    'minimize': utask_factory(minimize_task),
-    'progression': utask_factory(progression_task),
-    'regression': utask_factory(regression_task),
-    'symbolize': task_types.TrustedTask(symbolize_task),
-    'unpack': task_types.TrustedTask(unpack_task),
-    'uworker_postprocess': task_types.PostprocessTask(),
-    'upload_reports': task_types.TrustedTask(upload_reports_task),
-    'uworker_main': task_types.UworkerMainTask(),
-    'variant': utask_factory(variant_task),
+COMMAND_MODULE_MAP = {
+    'analyze': analyze_task,
+    'blame': blame_task,
+    'corpus_pruning': corpus_pruning_task,
+    'fuzz': fuzz_task,
+    'impact': impact_task,
+    'minimize': minimize_task,
+    'progression': progression_task,
+    'regression': regression_task,
+    'symbolize': symbolize_task,
+    'unpack': unpack_task,
+    'uworker_postprocess': None,
+    'upload_reports': upload_reports_task,
+    'uworker_main': None,
+    'variant': variant_task,
 }
+
+
+def initialize_command_map(command_map):
+  assert set(COMMAND_MODULE_MAP.keys()) == set(task_types.COMMAND_TYPES.keys())
+  for task_name, task_callable in task_types.COMMAND_TYPES.items():
+    task_module = COMMAND_MODULE_MAP[task_name]
+    task = task_callable(task_module)
+    command_map[task_name] = task
+
+
+def get_command_map():
+  if not COMMAND_MAP:
+    initialize_command_map(COMMAND_MAP)
+  return COMMAND_MAP
 
 
 class Error(Exception):
