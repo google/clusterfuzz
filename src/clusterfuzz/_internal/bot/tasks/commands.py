@@ -205,7 +205,7 @@ def start_web_server_if_needed():
 
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Run the command."""
-  task = COMMAND_MAP.get(task_name)
+  task = get_command_map().get(task_name)
   if not task:
     logs.log_error("Unknown command '%s'" % task_name)
     return
