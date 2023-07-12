@@ -23,7 +23,7 @@ import time
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot import tasks as bot_tasks
+from clusterfuzz._internal.bot import tasks as task_types
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
@@ -222,7 +222,7 @@ def get_filters(is_chromium, is_linux):
     return None
   # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
   # syntax.
-  multimachine_tasks = bot_tasks.get_multimachine_tasks()
+  multimachine_tasks = task_types.get_multimachine_tasks()
   if not is_linux:
     pubsub_filters = [f'attribute.name = {task}' for task in multimachine_tasks]
   else:
