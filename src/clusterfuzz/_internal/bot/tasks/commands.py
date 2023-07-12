@@ -130,8 +130,7 @@ class PostprocessTask(BaseTask):
 
 
 COMMAND_MAP = {
-    # TODO(metzman): Change analyze task away from in-memory.
-    'analyze': utask_factory(analyze_task),
+    'analyze': utask_factory(analyze_task, in_memory=False),
     'blame': TrustedTask(blame_task),
     'corpus_pruning': utask_factory(corpus_pruning_task),
     'fuzz': utask_factory(fuzz_task),
@@ -460,6 +459,8 @@ def process_command(task):
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
+  # TOOD(metzman): Make this check more sophisticated, it will not be true when
+  # linux tworkers are doing e.g. preprocess for e.g. Mac utasks.
   if not is_supported_cpu_arch_for_job():
     logs.log(
         'Unsupported cpu architecture specified in job definition, exiting.')
