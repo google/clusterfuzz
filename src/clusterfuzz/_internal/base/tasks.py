@@ -23,7 +23,7 @@ import time
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot import task_types
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
