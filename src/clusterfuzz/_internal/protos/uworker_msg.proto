@@ -48,6 +48,7 @@ message Input {
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
   optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
+  optional string task_name = 12;
 }
 
 enum ErrorType {
