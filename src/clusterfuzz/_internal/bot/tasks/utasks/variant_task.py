@@ -201,14 +201,13 @@ def handle_build_setup_error(output):
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
+  if output.error is not None:
+    uworker_handle_errors.handle(output)
+    return
   if output.testcase and environment.is_engine_fuzzer_job(
       output.testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     output.testcase.put = lambda: None
-
-  if output.error is not None:
-    uworker_handle_errors.handle(output)
-    return
 
   if output.uworker_input.original_job_type == output.uworker_input.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
