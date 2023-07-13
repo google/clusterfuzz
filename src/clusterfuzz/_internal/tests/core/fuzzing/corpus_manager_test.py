@@ -15,6 +15,8 @@
 
 import datetime
 import os
+import tempfile
+from types import GeneratorType
 import unittest
 from unittest import mock
 
@@ -22,6 +24,7 @@ from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.fuzzing import corpus_manager
+from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -292,8 +295,8 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
         'gs://bucket/libFuzzer/fuzzer/'
     ])
-    self.mock.copy_file_to.assert_called_with(
-        '/tmp/randomname.zip', 'gs://bucket/zipped/libFuzzer/fuzzer/base.zip')
+    self.assertEqual(self.mock.copy_file_to.call_args_list[0][0][1],
+                     'gs://bucket/zipped/libFuzzer/fuzzer/base.zip')
 
   def test_upload_files(self):
     """Test upload_files."""
@@ -421,3 +424,42 @@ class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
 
     self.mock.log_error.assert_called_with(
         'Failed to rename files.', failed_to_move_files=failed_to_move_files)
+
+
+class ZipInMemoryTest(unittest.TestCase):
+  """Tests that the zip_in_memory function works as intended."""
+
+  def test_zip_in_memory(self):
+    """Tests that the zip_in_memory function works as intended."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+      src_dir = os.path.join(tmp_dir, 'src')
+      os.makedirs(src_dir)
+
+      file_paths = []
+      filenames = []
+      for num in range(3):
+        filename = str(num)
+        filenames.append(filename)
+        file_path = os.path.join(src_dir, filename)
+        file_paths.append(file_path)
+        with open(file_path, 'w+') as fp:
+          fp.write('A' * (num + 10))
+      archive_path = os.path.join(tmp_dir, 'archive_path.zip')
+      with corpus_manager.zip_in_memory(file_paths) as zip_file:
+        assert zip_file
+        with open(archive_path, 'wb') as fp:
+          data = zip_file.read()
+          fp.write(data)
+      unpack_dir = os.path.join(tmp_dir, 'unpack')
+      archive.unpack(archive_path, unpack_dir)
+      self.assertEqual(sorted(os.listdir(unpack_dir)), sorted(filenames))
+
+      unpacked_files = [
+          os.path.join(unpack_dir, filename)
+          for filename in os.listdir(unpack_dir)
+      ]
+      for initial_file_path, unpacked_file_path in zip(
+          sorted(file_paths), sorted(unpacked_files)):
+        with open(initial_file_path) as initial:
+          with open(unpacked_file_path) as unpacked:
+            self.assertEqual(initial.read(), unpacked.read())
