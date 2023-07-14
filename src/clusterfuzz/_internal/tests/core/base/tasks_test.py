@@ -75,6 +75,7 @@ class InitializeTaskTest(unittest.TestCase):
 
 
 class GetUtaskFiltersTest(unittest.TestCase):
+  """Tests for get_utask_filters."""
 
   def test_chromium_linux(self):
     """Tests that the get_utask_filters only has linux bots in chrome
