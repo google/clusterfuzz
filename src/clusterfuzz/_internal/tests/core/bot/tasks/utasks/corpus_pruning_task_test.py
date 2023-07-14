@@ -20,8 +20,7 @@ import os
 import shutil
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
@@ -46,7 +45,7 @@ TEST_SHARED_BUCKET = 'clusterfuzz-test-shared-corpus'
 TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
 
 
-class BaseTest(object):
+class BaseTest:
   """Base corpus pruning tests."""
 
   def setUp(self):
@@ -56,6 +55,7 @@ class BaseTest(object):
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
         'clusterfuzz._internal.fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
         'clusterfuzz._internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
@@ -67,6 +67,7 @@ class BaseTest(object):
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
 
@@ -164,8 +165,11 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
+
     uworker_input = uworker_io.DeserializedUworkerMsg(
-        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        update_fuzzer_and_data_bundles_input=mock.Mock())
     corpus_pruning_task.utask_main(uworker_input)
 
     quarantined = os.listdir(self.quarantine_dir)
@@ -263,7 +267,7 @@ class CorpusPruningTestMinijail(CorpusPruningTest):
     if environment.platform() != 'LINUX':
       self.skipTest('Minijail tests are only applicable for linux platform.')
 
-    super(CorpusPruningTestMinijail, self).setUp()
+    super().setUp()
     os.environ['USE_MINIJAIL'] = 'True'
 
 
@@ -337,7 +341,7 @@ class CorpusPruningTestUntrusted(
 
   def setUp(self):
     """Set up."""
-    super(CorpusPruningTestUntrusted, self).setUp()
+    super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
@@ -429,7 +433,7 @@ class CorpusPruningTestUntrusted(
     ])
 
   def tearDown(self):
-    super(CorpusPruningTestUntrusted, self).tearDown()
+    super().tearDown()
     shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   def test_prune(self):

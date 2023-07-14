@@ -35,7 +35,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xf5\x04\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x07\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x08\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\t\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x0b \x01(\tH\n\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_module_name\"\xcd\x03\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\x08\n\x06_errorB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_output*\x84\x01\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x12\n\x0eTESTCASE_SETUP\x10\x03\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xb3\x02\n\x1fUpdateFuzzerAndDataBundlesInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_url\"\xf3\x05\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x05\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x06\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x07\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x08\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\t\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x0b \x01(\tH\n\x88\x01\x01\x12S\n$update_fuzzer_and_data_bundles_input\x18\x0c \x01(\x0b\x32 .UpdateFuzzerAndDataBundlesInputH\x0b\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x18\n\x16_testcase_download_urlB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_module_nameB\'\n%_update_fuzzer_and_data_bundles_input\"\xcd\x03\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\x08\n\x06_errorB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_output*\xa7\x01\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x12\n\x0eTESTCASE_SETUP\x10\x03\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x12!\n\x1dTESTCASE_SETUP_INVALID_FUZZER\x10\x06\x62\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,])
 
@@ -76,11 +76,16 @@ _ERRORTYPE = _descriptor.EnumDescriptor(
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='TESTCASE_SETUP_INVALID_FUZZER', index=6, number=6,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=1314,
-  serialized_end=1446,
+  serialized_start=1750,
+  serialized_end=1917,
 )
 _sym_db.RegisterEnumDescriptor(_ERRORTYPE)
 
@@ -91,6 +96,7 @@ ANALYZE_NO_CRASH = 2
 TESTCASE_SETUP = 3
 UNHANDLED = 4
 VARIANT_BUILD_SETUP = 5
+TESTCASE_SETUP_INVALID_FUZZER = 6
 
 
 
@@ -162,6 +168,86 @@ _UWORKERENTITYWRAPPER = _descriptor.Descriptor(
   ],
   serialized_start=124,
   serialized_end=215,
+)
+
+
+_UPDATEFUZZERANDDATABUNDLESINPUT = _descriptor.Descriptor(
+  name='UpdateFuzzerAndDataBundlesInput',
+  full_name='UpdateFuzzerAndDataBundlesInput',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='fuzzer', full_name='UpdateFuzzerAndDataBundlesInput.fuzzer', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='fuzzer_name', full_name='UpdateFuzzerAndDataBundlesInput.fuzzer_name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='data_bundles', full_name='UpdateFuzzerAndDataBundlesInput.data_bundles', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='fuzzer_log_upload_url', full_name='UpdateFuzzerAndDataBundlesInput.fuzzer_log_upload_url', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='fuzzer_download_url', full_name='UpdateFuzzerAndDataBundlesInput.fuzzer_download_url', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='_fuzzer', full_name='UpdateFuzzerAndDataBundlesInput._fuzzer',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_fuzzer_name', full_name='UpdateFuzzerAndDataBundlesInput._fuzzer_name',
+      index=1, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_fuzzer_log_upload_url', full_name='UpdateFuzzerAndDataBundlesInput._fuzzer_log_upload_url',
+      index=2, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_fuzzer_download_url', full_name='UpdateFuzzerAndDataBundlesInput._fuzzer_download_url',
+      index=3, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+  ],
+  serialized_start=218,
+  serialized_end=525,
 )
 
 
@@ -250,6 +336,13 @@ _INPUT = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='update_fuzzer_and_data_bundles_input', full_name='Input.update_fuzzer_and_data_bundles_input', index=11,
+      number=12, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -316,9 +409,14 @@ _INPUT = _descriptor.Descriptor(
       index=10, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_update_fuzzer_and_data_bundles_input', full_name='Input._update_fuzzer_and_data_bundles_input',
+      index=11, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
-  serialized_start=218,
-  serialized_end=847,
+  serialized_start=528,
+  serialized_end=1283,
 )
 
 
@@ -438,16 +536,31 @@ _OUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=850,
-  serialized_end=1311,
+  serialized_start=1286,
+  serialized_end=1747,
 )
 
 _UWORKERENTITYWRAPPER.fields_by_name['entity'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _UWORKERENTITYWRAPPER.fields_by_name['changed'].message_type = _JSON
+_UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
+_UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['data_bundles'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
+_UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer'].fields.append(
+  _UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer'])
+_UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer'].containing_oneof = _UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer']
+_UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer_name'].fields.append(
+  _UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer_name'])
+_UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer_name'].containing_oneof = _UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer_name']
+_UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer_log_upload_url'].fields.append(
+  _UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer_log_upload_url'])
+_UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer_log_upload_url'].containing_oneof = _UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer_log_upload_url']
+_UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer_download_url'].fields.append(
+  _UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer_download_url'])
+_UPDATEFUZZERANDDATABUNDLESINPUT.fields_by_name['fuzzer_download_url'].containing_oneof = _UPDATEFUZZERANDDATABUNDLESINPUT.oneofs_by_name['_fuzzer_download_url']
 _INPUT.fields_by_name['testcase'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['testcase_upload_metadata'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['uworker_env'].message_type = _JSON
 _INPUT.fields_by_name['variant'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
+_INPUT.fields_by_name['update_fuzzer_and_data_bundles_input'].message_type = _UPDATEFUZZERANDDATABUNDLESINPUT
 _INPUT.oneofs_by_name['_testcase'].fields.append(
   _INPUT.fields_by_name['testcase'])
 _INPUT.fields_by_name['testcase'].containing_oneof = _INPUT.oneofs_by_name['_testcase']
@@ -481,6 +594,9 @@ _INPUT.fields_by_name['fuzzer_name'].containing_oneof = _INPUT.oneofs_by_name['_
 _INPUT.oneofs_by_name['_module_name'].fields.append(
   _INPUT.fields_by_name['module_name'])
 _INPUT.fields_by_name['module_name'].containing_oneof = _INPUT.oneofs_by_name['_module_name']
+_INPUT.oneofs_by_name['_update_fuzzer_and_data_bundles_input'].fields.append(
+  _INPUT.fields_by_name['update_fuzzer_and_data_bundles_input'])
+_INPUT.fields_by_name['update_fuzzer_and_data_bundles_input'].containing_oneof = _INPUT.oneofs_by_name['_update_fuzzer_and_data_bundles_input']
 _OUTPUT.fields_by_name['testcase'].message_type = _UWORKERENTITYWRAPPER
 _OUTPUT.fields_by_name['testcase_upload_metadata'].message_type = _UWORKERENTITYWRAPPER
 _OUTPUT.fields_by_name['variant'].message_type = _UWORKERENTITYWRAPPER
@@ -512,6 +628,7 @@ _OUTPUT.oneofs_by_name['_crash_stacktrace_output'].fields.append(
 _OUTPUT.fields_by_name['crash_stacktrace_output'].containing_oneof = _OUTPUT.oneofs_by_name['_crash_stacktrace_output']
 DESCRIPTOR.message_types_by_name['Json'] = _JSON
 DESCRIPTOR.message_types_by_name['UworkerEntityWrapper'] = _UWORKERENTITYWRAPPER
+DESCRIPTOR.message_types_by_name['UpdateFuzzerAndDataBundlesInput'] = _UPDATEFUZZERANDDATABUNDLESINPUT
 DESCRIPTOR.message_types_by_name['Input'] = _INPUT
 DESCRIPTOR.message_types_by_name['Output'] = _OUTPUT
 DESCRIPTOR.enum_types_by_name['ErrorType'] = _ERRORTYPE
@@ -530,6 +647,13 @@ UworkerEntityWrapper = _reflection.GeneratedProtocolMessageType('UworkerEntityWr
   # @@protoc_insertion_point(class_scope:UworkerEntityWrapper)
   })
 _sym_db.RegisterMessage(UworkerEntityWrapper)
+
+UpdateFuzzerAndDataBundlesInput = _reflection.GeneratedProtocolMessageType('UpdateFuzzerAndDataBundlesInput', (_message.Message,), {
+  'DESCRIPTOR' : _UPDATEFUZZERANDDATABUNDLESINPUT,
+  '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
+  # @@protoc_insertion_point(class_scope:UpdateFuzzerAndDataBundlesInput)
+  })
+_sym_db.RegisterMessage(UpdateFuzzerAndDataBundlesInput)
 
 Input = _reflection.GeneratedProtocolMessageType('Input', (_message.Message,), {
   'DESCRIPTOR' : _INPUT,
