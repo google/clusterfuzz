@@ -76,12 +76,14 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
         'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
     ])
 
     os.environ['BOT_NAME'] = 'bot_name'
     os.environ['TASK_LEASE_SECONDS'] = '60'
     os.environ['FAIL_WAIT'] = '60'
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
 
   def test_run_command_postprocess(self):
     """Tests that the postprocess command is executed properly."""
