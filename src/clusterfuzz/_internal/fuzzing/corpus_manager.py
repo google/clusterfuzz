@@ -412,6 +412,7 @@ class GcsCorpus:
 
 
 def _get_unique_filename(filename, seen_filenames):
+  """Returns a unique filename instead of |filename|."""
   # Because of the way this function is used we will probably only ever get
   # file_paths from one directory. But if we were to get files from different
   # directories, it's possible there are name collisions. So do a low effort, no
