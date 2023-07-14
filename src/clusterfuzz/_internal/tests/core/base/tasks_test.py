@@ -75,6 +75,7 @@ class InitializeTaskTest(unittest.TestCase):
 
 
 class GetUtaskFiltersTest(unittest.TestCase):
+
   def test_chromium_linux(self):
     """Tests that the get_utask_filters only has linux bots in chrome
     clusterfuzz executing preprocess and postprocess. This test is temporary and
