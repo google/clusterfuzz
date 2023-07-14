@@ -252,7 +252,7 @@ class GcsProvider(StorageProvider):
       if isinstance(local_path_or_handle, str):
         blob.upload_from_filename(local_path_or_handle)
       else:
-        blob.upload_from_file(local_path_or_handle, rewind=rewind)
+        blob.upload_from_file(local_path_or_handle, rewind=True)
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
                     (local_path_or_handle, remote_path))

@@ -16,7 +16,6 @@
 import datetime
 import os
 import tempfile
-from types import GeneratorType
 import unittest
 from unittest import mock
 
@@ -45,6 +44,7 @@ class GcsCorpusTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
+        'clusterfuzz._internal.google_cloud_utils.storage.write_stream',
         'zipfile.ZipFile.write',
         'uuid.uuid4',
     ])
@@ -53,6 +53,7 @@ class GcsCorpusTest(unittest.TestCase):
     self.mock.list_blobs.return_value = []
     self.mock.exists.return_value = True
     self.mock.uuid4.return_value = 'random'
+    self.mock.write_stream.return_value = True
     self.mock.Popen.return_value.communicate.return_value = (None, None)
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
 
@@ -222,18 +223,21 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
 
     test_helpers.patch(self, [
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
-        'multiprocessing.cpu_count', 'subprocess.Popen',
+        'multiprocessing.cpu_count',
         'clusterfuzz._internal.google_cloud_utils.storage.exists',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
+        'clusterfuzz._internal.google_cloud_utils.storage.write_stream',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
-        'clusterfuzz._internal.system.shell._get_random_filename'
+        'clusterfuzz._internal.system.shell._get_random_filename',
+        'subprocess.Popen',
     ])
 
     self.mock.Popen.return_value.poll.return_value = 0
     self.mock.Popen.return_value.communicate.return_value = (None, None)
     self.mock.cpu_count.return_value = 2
-    self.mock.exists = True
+    self.mock.exists.return_value = True
+    self.mock.write_stream.return_value = True
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/dir')
@@ -295,7 +299,7 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
         'gs://bucket/libFuzzer/fuzzer/'
     ])
-    self.assertEqual(self.mock.copy_file_to.call_args_list[0][0][1],
+    self.assertEqual(self.mock.write_stream.call_args_list[0][0][1],
                      'gs://bucket/zipped/libFuzzer/fuzzer/base.zip')
 
   def test_upload_files(self):
@@ -445,11 +449,10 @@ class ZipInMemoryTest(unittest.TestCase):
         with open(file_path, 'w+') as fp:
           fp.write('A' * (num + 10))
       archive_path = os.path.join(tmp_dir, 'archive_path.zip')
-      with corpus_manager.zip_in_memory(file_paths) as zip_file:
-        assert zip_file
-        with open(archive_path, 'wb') as fp:
-          data = zip_file.read()
-          fp.write(data)
+      zip_file = corpus_manager.zip_in_memory(file_paths)
+      with open(archive_path, 'wb') as fp:
+        data = b''.join(data for data in zip_file)
+        fp.write(data)
       unpack_dir = os.path.join(tmp_dir, 'unpack')
       archive.unpack(archive_path, unpack_dir)
       self.assertEqual(sorted(os.listdir(unpack_dir)), sorted(filenames))

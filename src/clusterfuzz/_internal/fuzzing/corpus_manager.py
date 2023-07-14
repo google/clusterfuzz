@@ -333,8 +333,6 @@ class GcsCorpus:
           continue
         if not storage.copy_file_from(zipcorpus_url, temp_zip_filename):
           continue
-        from remote_pdb import RemotePdb
-        RemotePdb('127.0.0.1', 4444).set_trace()
         archive.unpack(temp_zip_filename, dst_dir)
 
   def rsync_to_disk(self,
@@ -408,8 +406,8 @@ class GcsCorpus:
     """Uploads |file_paths| to the zipcorpus on GCS. Uploads them as part of a
     partial corpus if |partial| is True."""
     gcs_url = self.get_zipcorpus_gcs_url(partial)
-    zip_file = zip_in_memory(file_paths)
-    storage.copy_file_to(zip_file, gcs_url, rewind=False)
+    zip_file_generator = zip_in_memory(file_paths)
+    storage.write_stream(zip_file_generator, gcs_url)
 
 
 # Because of the way this function is used we will probably only ever get
