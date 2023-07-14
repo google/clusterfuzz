@@ -210,7 +210,8 @@ def get_regular_task(queue=None):
     if not task.defer():
       return task
 
-
+# TODO(metzman): Use this function so that linux bots can execute preprocess and
+# postprocess of every utask.
 def get_filters(is_chromium, is_linux):
   """Returns a string containing filters for pubsub commands. If |is_chromium|
   and |is_linux| the filters filter out all commands that are not the trusted

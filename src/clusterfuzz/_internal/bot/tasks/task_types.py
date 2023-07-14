@@ -145,7 +145,20 @@ COMMAND_TYPES = {
 }
 
 
-def is_trusted_portion_of_utask(task_name):
+def is_trusted_portion_of_utask(command_name):
+  """Returns true if |command_name| is asking the bot to execute the
+  trusted-portion of a utask (preprocess and postprocess). The workflow for
+  executing a task is as follows:
+  1. A command such as analyze is given to a bot.
+  2. The bot executes preprocess and schedules uworker_main.
+  3. The uworker_main command is given to the uworker which executes the
+  uworker_main function of the specified task.
+  4. Postprocessing runs (the postprocess task is triggered by GCS when
+  uworker_main writes its output.
+  Therefore, the commands to execute utasks and the "postprocess" command can be
+  executed on Linux bots even if the utask is supposed to run on Windows. This
+  function returns commands that denote these portions.
+  """
   task_type = COMMAND_TYPES[task_name]
   # Postprocess and preprocess tasks are executed on tworkers, while utask_mains
   # are executed on uworkers. Note that the uworker_main command will be used to
