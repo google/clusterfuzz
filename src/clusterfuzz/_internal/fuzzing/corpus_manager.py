@@ -55,6 +55,7 @@ RSYNC_ERROR_REGEX = (br'CommandException:\s*(\d+)\s*files?/objects? '
 
 MAX_SYNC_ERRORS = 10
 
+# Default used by shutil.
 COPY_BUFFER_SIZE = 16 * 1024
 
 
@@ -410,12 +411,12 @@ class GcsCorpus:
     storage.write_stream(zip_file_generator, gcs_url)
 
 
-# Because of the way this function is used we will probably only ever get
-# file_paths from one directory. But if we were to get files from different
-# directories, it's possible there are name collisions. So do a low effort, no
-# cost attempt to avoid this problem that preserves the original name for
-# humans readers.
-def get_unique_name(filename, seen_filenames):
+def _get_unique_filename(filename, seen_filenames):
+  # Because of the way this function is used we will probably only ever get
+  # file_paths from one directory. But if we were to get files from different
+  # directories, it's possible there are name collisions. So do a low effort, no
+  # cost attempt to avoid this problem that preserves the original name for
+  # humans readers.
   filename = os.path.basename(filename)
   if filename not in seen_filenames:
     seen_filenames.add(filename)
@@ -460,7 +461,7 @@ def _add_files_to_zip(file_paths, zip_file):
   yielding after each chunk. To write all files, iterate all the way through."""
   seen_filenames = set()
   for file_path in file_paths:
-    arcname = get_unique_name(file_path, seen_filenames)
+    arcname = _get_unique_filename(file_path, seen_filenames)
     with _compressed_version_of_file(
         zip_file, file_path, arcname, mode='w') as zipped_file:
       for _ in chunked_file_zipper(file_path, zipped_file):
