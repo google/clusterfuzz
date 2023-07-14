@@ -43,9 +43,7 @@ from clusterfuzz._internal.system import shell
 
 TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
 
-COMMAND_MAP = {}
-
-COMMAND_MODULE_MAP = {
+_COMMAND_MODULE_MAP = {
     'analyze': analyze_task,
     'blame': blame_task,
     'corpus_pruning': corpus_pruning_task,
@@ -62,19 +60,11 @@ COMMAND_MODULE_MAP = {
     'variant': variant_task,
 }
 
-
-def initialize_command_map(command_map):
-  assert set(COMMAND_MODULE_MAP.keys()) == set(task_types.COMMAND_TYPES.keys())
-  for task_name, task_callable in task_types.COMMAND_TYPES.items():
-    task_module = COMMAND_MODULE_MAP[task_name]
-    task = task_callable(task_module)
-    command_map[task_name] = task
-
-
-def get_command_map():
-  if not COMMAND_MAP:
-    initialize_command_map(COMMAND_MAP)
-  return COMMAND_MAP
+assert set(_COMMAND_MODULE_MAP.keys()) == set(task_types.COMMAND_TYPES.keys())
+COMMAND_MAP = {
+    command: task_cls(_COMMAND_MODULE_MAP[command])
+    for command, task_cls in task_types.COMMAND_TYPES
+}
 
 
 class Error(Exception):
@@ -205,7 +195,7 @@ def start_web_server_if_needed():
 
 def run_command(task_name, task_argument, job_name, uworker_env):
   """Run the command."""
-  task = get_command_map().get(task_name)
+  task = COMMAND_MAP.get(task_name)
   if not task:
     logs.log_error("Unknown command '%s'" % task_name)
     return

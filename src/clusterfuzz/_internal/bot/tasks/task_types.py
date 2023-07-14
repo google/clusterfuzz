@@ -159,7 +159,7 @@ def is_trusted_portion_of_utask(command_name):
   executed on Linux bots even if the utask is supposed to run on Windows. This
   function returns commands that denote these portions.
   """
-  task_type = COMMAND_TYPES[task_name]
+  task_type = COMMAND_TYPES[command_name]
   # Postprocess and preprocess tasks are executed on tworkers, while utask_mains
   # are executed on uworkers. Note that the uworker_main command will be used to
   # execute uworker_main, while the name of the task itself will be used to

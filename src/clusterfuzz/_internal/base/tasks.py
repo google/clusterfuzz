@@ -210,6 +210,7 @@ def get_regular_task(queue=None):
     if not task.defer():
       return task
 
+
 # TODO(metzman): Use this function so that linux bots can execute preprocess and
 # postprocess of every utask.
 def get_filters(is_chromium, is_linux):
