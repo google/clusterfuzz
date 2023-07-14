@@ -164,11 +164,11 @@ def is_trusted_portion_of_utask(command_name):
   # are executed on uworkers. Note that the uworker_main command will be used to
   # execute uworker_main, while the name of the task itself will be used to
   # request execution of the preprocess step.
-  return task_type in (UTask, PostprocessTask)
+  return task_type in (PostprocessTask, UTask)
 
 
 def get_utask_trusted_portions():
   return [
-      task_name for task_name, task_type in COMMAND_TYPES.items()
-      if is_trusted_portion_of_utask(task_type)
+      command_name for command_name in COMMAND_TYPES
+      if is_trusted_portion_of_utask(command_name)
   ]

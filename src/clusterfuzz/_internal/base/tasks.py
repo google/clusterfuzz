@@ -213,7 +213,7 @@ def get_regular_task(queue=None):
 
 # TODO(metzman): Use this function so that linux bots can execute preprocess and
 # postprocess of every utask.
-def get_filters(is_chromium, is_linux):
+def get_utask_filters(is_chromium, is_linux):
   """Returns a string containing filters for pubsub commands. If |is_chromium|
   and |is_linux| the filters filter out all commands that are not the trusted
   portions (preprocess and postprocess of utasks). The filter should be used to
@@ -226,7 +226,7 @@ def get_filters(is_chromium, is_linux):
   # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
   # syntax.
   utask_trusted_portions = task_types.get_utask_trusted_portions()
-  if not is_linux:
+  if is_linux:
     pubsub_filters = [
         f'attribute.name = {task}' for task in utask_trusted_portions
     ]

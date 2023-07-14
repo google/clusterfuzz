@@ -72,3 +72,33 @@ class InitializeTaskTest(unittest.TestCase):
     }
     with self.assertRaises(tasks.Error):
       tasks.initialize_task([self.message])
+
+
+class GetUtaskFiltersTest(unittest.TestCase):
+  def test_chromium_linux(self):
+    """Tests that the get_utask_filters only has linux bots in chrome
+    clusterfuzz executing preprocess and postprocess. This test is temporary and
+    will be removed when the migration is complete."""
+    # TOOD(metzman): Delete this test when it is no longer needed.
+    filters = tasks.get_utask_filters(is_chromium=True, is_linux=True)
+    self.assertEqual(filters, 'attribute.name = uworker_postprocess')
+
+  def test_chromium_nonlinux(self):
+    """Tests that the get_utask_filters only has linux bots in chrome
+    clusterfuzz executing preprocess and postprocess. This test is temporary and
+    will be removed when the migration is complete."""
+    # TOOD(metzman): Delete this test when it is no longer needed.
+    filters = tasks.get_utask_filters(is_chromium=True, is_linux=False)
+    self.assertEqual(filters, '-attribute.name = uworker_postprocess')
+
+  def test_external_linux(self):
+    """Tests that the get_utask_filters only has linux bots in chrome
+    clusterfuzz executing preprocess and postprocess."""
+    filters = tasks.get_utask_filters(is_chromium=False, is_linux=True)
+    self.assertIsNone(filters)
+
+  def test_external_nonlinux(self):
+    """Tests that the get_utask_filters only has linux bots in chrome
+    clusterfuzz executing preprocess and postprocess."""
+    filters = tasks.get_utask_filters(is_chromium=False, is_linux=False)
+    self.assertIsNone(filters)

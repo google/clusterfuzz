@@ -63,7 +63,7 @@ _COMMAND_MODULE_MAP = {
 assert set(_COMMAND_MODULE_MAP.keys()) == set(task_types.COMMAND_TYPES.keys())
 COMMAND_MAP = {
     command: task_cls(_COMMAND_MODULE_MAP[command])
-    for command, task_cls in task_types.COMMAND_TYPES
+    for command, task_cls in task_types.COMMAND_TYPES.items()
 }
 
 
