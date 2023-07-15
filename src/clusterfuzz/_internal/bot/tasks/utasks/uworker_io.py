@@ -17,13 +17,17 @@ import json
 import uuid
 
 from google.cloud import ndb
-from google.cloud.datastore_v1.proto import entity_pb2
+from google.cloud.datastore_v1.types import entity as entity_pb2
 from google.cloud.ndb import model
+from google.protobuf import any_pb2
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
+
+# pylint: disable=no-member
+# pylint: disable=protected-access
 
 
 def generate_new_input_file_name():
@@ -116,9 +120,10 @@ def deserialize_uworker_input(serialized_uworker_input):
   # trying to access a field in uworker_input, that would not give us an error
   # if we accessed it in uworker_proto_input.
   for field_name, field_value in get_proto_fields(uworker_input_proto):
-    if isinstance(field_value, entity_pb2.Entity):
-      field_value = UworkerEntityWrapper(
-          model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
+    if isinstance(field_value, uworker_msg_pb2.Entity):
+      entity = entity_pb2.Entity()
+      field_value.any_wrapper.Unpack(entity._pb)
+      field_value = UworkerEntityWrapper(model._entity_from_protobuf(entity))  # pylint: disable=protected-access
     elif isinstance(field_value, uworker_msg_pb2.Json):
       field_value = json.loads(field_value.serialized)
 
@@ -163,11 +168,13 @@ def serialize_uworker_output(uworker_output_obj):
 
 
 def serialize_wrapped_entity(wrapped_entity):
-  entity_proto = model._entity_to_protobuf(wrapped_entity._entity)  # pylint: disable=protected-access
-  changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))  # pylint: disable=protected-access
+  entity_proto = model._entity_to_protobuf(wrapped_entity._entity)
+  any_entity_message = any_pb2.Any()
+  any_entity_message.Pack(entity_proto._pb)
+  changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))
   changed = uworker_msg_pb2.Json(serialized=changed)
   wrapped_entity_proto = uworker_msg_pb2.UworkerEntityWrapper(
-      entity=entity_proto, changed=changed)
+      entity=any_entity_message, changed=changed)
   return wrapped_entity_proto
 
 
@@ -203,7 +210,11 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   """Deserializes a proto representing a db entity."""
   # TODO(metzman): Add verification to ensure only the correct object is
   # retreived.
-  changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
+  # Unserialize the entity part
+  any_message = wrapped_entity_proto.entity
+  entity = entity_pb2.Entity()
+  any_message.Unpack(entity._pb)
+  changed_entity = model._entity_from_protobuf(entity)
   changes = json.loads(wrapped_entity_proto.changed.serialized)
   original_entity = changed_entity.key.get()
   if original_entity is None:  # Object is new.
@@ -353,7 +364,10 @@ class UworkerInput(UworkerMsg):
       raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
     entity_proto = model._entity_to_protobuf(value)  # pylint: disable=protected-access
-    field.CopyFrom(entity_proto)
+    any_entity_message = any_pb2.Any()
+    any_entity_message.Pack(entity_proto._pb)
+    entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)
+    field.CopyFrom(entity)
 
 
 class DeserializedUworkerMsg:

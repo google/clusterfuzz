@@ -34,10 +34,10 @@ RUN apt-get update && \
 
 # Note: snapcraft installation seems to always fail.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
-    sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.sh && \ 
-    chmod u+x /tmp/install-build-deps.sh && \
-    /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms
+    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py && \
+    sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py && \
+    chmod u+x /tmp/install-build-deps.py && \
+    /tmp/install-build-deps.py --backwards-compatible --no-prompt --no-chromeos-fonts --syms
 
 RUN git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git \
     /data/depot_tools
@@ -50,5 +50,5 @@ COPY start.sh setup_depot_tools.sh setup_gerrit.sh /data/
 # Fix PATH to prefer /usr/local/bin to avoid build failures with using older
 # Python 3 in /usr/bin.
 ENV PATH /usr/local/bin:$PATH
-RUN ln -s /usr/local/bin/python3.7 /usr/local/bin/python3
+RUN ln -s /usr/local/bin/python3.11 /usr/local/bin/python3
 CMD ["bash", "-ex", "/data/start.sh"]

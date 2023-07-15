@@ -14,29 +14,33 @@
 
 syntax = "proto3";
 
-import "google/cloud/datastore_v1/proto/entity.proto";
+import "google/protobuf/any.proto";
 
 message Json {
   string serialized = 1;
 }
 
+message Entity {
+  google.protobuf.Any any_wrapper = 1;
+}
+
 message UworkerEntityWrapper {
-  google.datastore.v1.Entity entity = 1;
+  google.protobuf.Any entity = 1;
   Json changed = 2;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
-  optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+  optional Entity testcase = 1;
+  optional Entity testcase_upload_metadata = 2;
   optional string testcase_id = 3;
   optional Json uworker_env = 4;
   optional string testcase_download_url = 5;
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
-  optional google.datastore.v1.Entity variant = 8;
+  optional Entity variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
   optional string module_name = 11;

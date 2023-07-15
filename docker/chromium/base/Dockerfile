@@ -18,10 +18,10 @@ ENV NFS_ROOT /mnt/nfs/cfvolume
 
 # Note: snapcraft installation seems to always fail.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.sh?format=TEXT' | base64 -d > /tmp/install-build-deps.sh && \
-    sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.sh && \ 
-    chmod u+x /tmp/install-build-deps.sh && \
-    /tmp/install-build-deps.sh --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32
+    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py && \
+    sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py && \
+    chmod u+x /tmp/install-build-deps.py && \
+    /tmp/install-build-deps.py --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32
 
 RUN dpkg --add-architecture i386 && \
     apt-get update && \

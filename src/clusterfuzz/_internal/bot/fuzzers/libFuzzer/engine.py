@@ -28,7 +28,6 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
@@ -269,7 +268,6 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    profiler.start_if_needed('libfuzzer_fuzz')
     runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path, fuzz_options=options)
 
@@ -484,7 +482,6 @@ class Engine(engine.Engine):
 
     self._merge_control_file = None
 
-    # TODO(ochang): Get crashes found during merge.
     return engine.FuzzResult(output, result_2.command, [], merge_stats,
                              result_1.time_executed + result_2.time_executed)
 
@@ -533,6 +530,7 @@ class Engine(engine.Engine):
     merge_output = result.output
     merge_stats = stats.parse_stats_from_merge_log(merge_output.splitlines())
 
+    # TODO(ochang): Get crashes found during merge.
     return engine.FuzzResult(merge_output, result.command, [], merge_stats,
                              result.time_executed)
 

@@ -200,11 +200,12 @@ def setup_testcase(testcase,
   # Only include uworker_input for callers that aren't deserializing the output
   # and thus, uworker_io is not adding the input to.
   # TODO(metzman): Remove this when the consolidation is complete.
-  uworker_error_input = uworker_msg_pb2.Input(
-      testcase_id=str(testcase_id), job_type=job_type)
+  uworker_error_input = uworker_msg_pb2.Input(  # pylint: disable=no-member
+      testcase_id=str(testcase_id),
+      job_type=job_type)
   uworker_error_output = uworker_io.UworkerOutput(
       uworker_input=uworker_error_input,
-      error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+      error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)  # pylint: disable=no-member
 
   testcase_setup_error_result = (None, None, uworker_error_output)
 
@@ -235,7 +236,7 @@ def setup_testcase(testcase,
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       return None, None, uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.UNHANDLED)
+          error=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'

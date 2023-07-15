@@ -424,9 +424,9 @@ def _prod_deployment_helper(config_dir,
 
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
-  if sys.version_info.major != 3 or sys.version_info.minor != 7:
-    print('You can only deploy from Python 3.7. Install Python 3.7 and '
-          'run: `PYTHON=python3.7 local/install_deps.bash`')
+  if sys.version_info.major != 3 or sys.version_info.minor != 11:
+    print('You can only deploy from Python 3.11. Install Python 3.11 and '
+          'run: `PYTHON=python3.11 local/install_deps.bash`')
     sys.exit(1)
 
   os.environ['ROOT_DIR'] = '.'
@@ -502,18 +502,18 @@ def execute(args):
            ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
     sys.exit(1)
 
-  if args.staging:
-    _staging_deployment_helper(python3=is_python3)
-  else:
-    _prod_deployment_helper(
-        args.config_dir,
-        package_zip_paths,
-        deploy_appengine,
-        python3=is_python3)
+  # if args.staging:
+  #   _staging_deployment_helper(python3=is_python3)
+  # else:
+  #   _prod_deployment_helper(
+  #       args.config_dir,
+  #       package_zip_paths,
+  #       deploy_appengine,
+  #       python3=is_python3)
 
-  with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
-    print('Source updated to %s' % f.read())
+  # with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
+  #   print('Source updated to %s' % f.read())
 
-  if platforms[-1] != common.get_platform():
-    # Make sure the installed dependencies are for the current platform.
-    common.install_dependencies()
+  # if platforms[-1] != common.get_platform():
+  #   # Make sure the installed dependencies are for the current platform.
+  #   common.install_dependencies()

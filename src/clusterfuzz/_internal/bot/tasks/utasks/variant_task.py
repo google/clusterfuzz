@@ -113,13 +113,13 @@ def utask_main(uworker_input):
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
+    return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
+        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
         testcase=uworker_input.testcase)
 
   # Disable gestures if we're running on a different platform from that of
