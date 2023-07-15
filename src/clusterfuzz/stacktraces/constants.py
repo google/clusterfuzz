@@ -186,8 +186,7 @@ OUT_OF_MEMORY_REGEX = re.compile(r'.*(?:%s).*' % '|'.join([
 ]))
 RUNTIME_ERROR_REGEX = re.compile(r'#\s*Runtime error in (.*)')
 RUNTIME_ERROR_LINE_REGEX = re.compile(r'#\s*Runtime error in (.*), line [0-9]+')
-RUST_ASSERT_REGEX = re.compile(r'.*\spanicked at \'([^\']*)',
-                               re.IGNORECASE)
+RUST_ASSERT_REGEX = re.compile(r'.*\spanicked at \'([^\']*)', re.IGNORECASE)
 SAN_ABRT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: ABRT ')
 SAN_BREAKPOINT_REGEX = re.compile(r'.*[a-zA-Z]+Sanitizer: breakpoint ')
 SAN_CHECK_FAILURE_REGEX = re.compile(
