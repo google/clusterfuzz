@@ -437,7 +437,7 @@ def utask_postprocess(output):
 
     # Add new leaks to global blacklist to avoid detecting duplicates.
     # Only add if testcase has a direct leak crash and if it's reproducible.
-    is_lsan_enabled = output.uworker_env.get('LSAN')
+    is_lsan_enabled = output.uworker_input.uworker_env.get('LSAN')
     if is_lsan_enabled:
       leak_blacklist.add_crash_to_global_blacklist_if_needed(testcase)
 

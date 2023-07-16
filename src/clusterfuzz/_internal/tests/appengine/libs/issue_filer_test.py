@@ -18,8 +18,8 @@
 import datetime
 import os
 import unittest
+from unittest import mock
 
-import mock
 import parameterized
 
 from clusterfuzz._internal.datastore import data_types
@@ -301,7 +301,7 @@ QUESTIONS_NOTE = (
     'https://github.com/google/oss-fuzz/issues.')
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager:
   """Mock issue tracker manager."""
 
   def __init__(self, project_name):

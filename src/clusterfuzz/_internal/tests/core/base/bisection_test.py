@@ -14,8 +14,7 @@
 """Tests for bisection."""
 import datetime
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.datastore import data_types

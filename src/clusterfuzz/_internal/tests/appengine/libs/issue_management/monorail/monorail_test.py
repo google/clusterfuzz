@@ -15,8 +15,7 @@
 
 import datetime
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.tests.test_libs import helpers
 from libs.issue_management import monorail

@@ -13,8 +13,7 @@
 # limitations under the License.
 """Run tests."""
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.tests.test_libs import helpers
 from python.bot.startup import run

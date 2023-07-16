@@ -14,9 +14,9 @@
 """Tests for recurring_tasks."""
 
 import unittest
+from unittest import mock
 
 import flask
-import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -95,7 +95,7 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
   """Tests ProgressionTasksScheduler."""
 
   def setUp(self):
-    super(ProgressionTasksSchedulerTest, self).setUp()
+    super().setUp()
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/schedule-progression-tasks',
@@ -120,7 +120,7 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
   """Tests ProgressionTasksScheduler."""
 
   def setUp(self):
-    super(ImpactTasksSchedulerTest, self).setUp()
+    super().setUp()
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(
         '/schedule-impact-tasks',
