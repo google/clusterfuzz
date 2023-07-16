@@ -801,8 +801,7 @@ def upload_job_run_stats(fuzzer_name, job_type, revision, timestamp,
   # New format.
   job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
                                 testcases_executed, new_crash_count,
-                                known_crash_count,
-                                convert_groups_to_crashes(groups))
+                                known_crash_count, groups)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
