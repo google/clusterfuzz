@@ -502,18 +502,18 @@ def execute(args):
            ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
     sys.exit(1)
 
-  # if args.staging:
-  #   _staging_deployment_helper(python3=is_python3)
-  # else:
-  #   _prod_deployment_helper(
-  #       args.config_dir,
-  #       package_zip_paths,
-  #       deploy_appengine,
-  #       python3=is_python3)
+  if args.staging:
+    _staging_deployment_helper(python3=is_python3)
+  else:
+    _prod_deployment_helper(
+        args.config_dir,
+        package_zip_paths,
+        deploy_appengine,
+        python3=is_python3)
 
-  # with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
-  #   print('Source updated to %s' % f.read())
+  with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
+    print('Source updated to %s' % f.read())
 
-  # if platforms[-1] != common.get_platform():
-  #   # Make sure the installed dependencies are for the current platform.
-  #   common.install_dependencies()
+  if platforms[-1] != common.get_platform():
+    # Make sure the installed dependencies are for the current platform.
+    common.install_dependencies()

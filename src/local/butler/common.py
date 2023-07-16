@@ -269,7 +269,6 @@ def _install_pip(requirements_path, target_path):
 
 def _install_platform_pip(requirements_path, target_path, platform_name):
   """Install platform specific pip packages."""
-  import ipdb; ipdb.set_trace()
   pip_platform = constants.PLATFORMS.get(platform_name)
   if not pip_platform:
     raise OSError(f'Unknown platform: {platform_name}.')
