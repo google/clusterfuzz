@@ -16,9 +16,8 @@
 import os
 import socket
 import unittest
+from unittest import mock
 import urllib.parse
-
-import mock
 
 from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -44,9 +43,9 @@ ACTUAL_DMP_PATH = os.path.join(DATA_DIRECTORY, '%s.dmp' % SAMPLE_MIME_FILENAME)
 EXPECTED_PROCESSED_REPORT_PATH = os.path.join(
     DATA_DIRECTORY, 'expected_processed_report_bytes')
 SAMPLE_OUTPUT = open(
-    os.path.join(DATA_DIRECTORY, 'android_crash_stack_output'), 'r').read()
+    os.path.join(DATA_DIRECTORY, 'android_crash_stack_output')).read()
 SAMPLE_OUTPUT_TO_PARSE = open(
-    os.path.join(DATA_DIRECTORY, 'crash_output_to_parse'), 'r').read()
+    os.path.join(DATA_DIRECTORY, 'crash_output_to_parse')).read()
 EXPECTED_REPORT_INFO = crash_uploader.CrashReportInfo(
     minidump_path=ACTUAL_DMP_PATH,
     product='Chrome_Android',
@@ -94,7 +93,7 @@ class CrashReportsTest(CrashBaseTest):
       expected_dmp_file_contents = open(my_expected_dmp_path, 'rb').read()
       actual_dmp_file_contents = open(my_actual_dmp_path, 'rb').read()
       self.assertEqual(actual_dmp_file_contents, expected_dmp_file_contents)
-    except IOError:
+    except OSError:
       self.fail('Could not find processed %s or %s.' % (my_expected_dmp_path,
                                                         my_actual_dmp_path))
 
@@ -264,7 +263,7 @@ class CrashUploadTest(CrashBaseTest):
       sock = socket.create_connection((ping_url, 443), timeout=1)
       sock.close()
       return None
-    except (socket.error, socket.timeout) as e:
+    except (OSError, socket.timeout) as e:
       return 'Failed to connect to crash/: %s' % e
 
   def test_upload_processed_report(self):

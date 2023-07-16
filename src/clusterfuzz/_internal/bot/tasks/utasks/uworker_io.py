@@ -212,7 +212,6 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 
 
 def download_input_based_on_output_url(output_url):
-  # Get the portion that does not contain ".output".
   input_url = uworker_output_path_to_input_path(output_url)
   serialized_uworker_input = storage.read_data(input_url)
   return deserialize_uworker_input(serialized_uworker_input)
@@ -228,7 +227,6 @@ def download_and_deserialize_uworker_output(output_url: str):
   # tamper with it.
   uworker_input = download_input_based_on_output_url(output_url)
 
-  uworker_output.uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
   uworker_output.uworker_input = uworker_input
   return uworker_output
 
@@ -248,6 +246,24 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   return original_entity
 
 
+def proto_to_deserialized_msg_object(serialized_msg_proto):
+  """Converts a |proto| to a deserialized representation of its contents for use
+  by code outside of this module. The deserialized object can contain real ndb
+  models and other python objects, instead of only the python serialized
+  versions."""
+  # Consider merging this with input deserialization routines.
+  deserialized_msg = DeserializedUworkerMsg()
+  for field_name, field_value in get_proto_fields(serialized_msg_proto):
+    if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
+      field_value = deserialize_wrapped_entity(field_value)
+    elif isinstance(field_value, uworker_msg_pb2.Json):
+      field_value = json.loads(field_value.serialized)
+    elif isinstance(field_value, message.Message):
+      field_value = proto_to_deserialized_msg_object(field_value)
+    setattr(deserialized_msg, field_name, field_value)
+  return deserialized_msg
+
+
 def deserialize_uworker_output(uworker_output_str):
   """Deserializes uworker's execute output for postprocessing. Returns a dict
   that can be passed as kwargs to postprocess. Changes made db entities that
@@ -256,14 +272,7 @@ def deserialize_uworker_output(uworker_output_str):
   # Deserialize the proto.
   uworker_output_proto = uworker_msg_pb2.Output()
   uworker_output_proto.ParseFromString(uworker_output_str)
-
-  # Convert the proto to a Python object that can contain real ndb models and
-  # other python objects, instead of only the python serialized versions.
-  uworker_output = DeserializedUworkerMsg()
-  for field_name, field_value, _ in get_proto_fields(uworker_output_proto):
-    if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
-      field_value = deserialize_wrapped_entity(field_value)
-    setattr(uworker_output, field_name, field_value)
+  uworker_output = proto_to_deserialized_msg_object(uworker_output_proto)
   return uworker_output
 
 
@@ -314,6 +323,8 @@ class UworkerMsg:
     for key, value in kwargs.items():
       setattr(self, key, value)
 
+    assert self.PROTO_CLS is not None
+
   def __getattr__(self, attribute):
     if attribute in ['proto']:
       # Allow setting and changing proto. Stack overflow in __init__ otherwise.
@@ -344,6 +355,21 @@ class UworkerMsg:
     return self.proto.SerializeToString()
 
 
+class FuzzTaskOutput(UworkerMsg):
+  """Class representing an unserialized FuzzTaskOutput message from
+  fuzz_task."""
+
+  PROTO_CLS = uworker_msg_pb2.FuzzTaskOutput
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
 def save_json_field(field, value):
   serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
   field.CopyFrom(serialized_json)
@@ -365,6 +391,10 @@ class UworkerOutput(UworkerMsg):
     # same time.
     if isinstance(value, uworker_msg_pb2.Input):
       field.CopyFrom(value)
+      return
+
+    if isinstance(value, UworkerMsg):
+      field.CopyFrom(value.proto)
       return
 
     if not isinstance(value, UworkerEntityWrapper):

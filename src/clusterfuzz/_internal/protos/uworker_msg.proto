@@ -51,6 +51,17 @@ message Input {
   optional string module_name = 12;
 }
 
+message FuzzTaskOutput {
+  optional string fuzzer_name = 1;
+  optional string crash_revision = 2;
+  optional float job_run_timestamp = 3;
+  optional int64 new_crash_count = 4;
+  optional int64 known_crash_count = 5;
+  optional int64 testcases_executed = 6;
+  optional Json job_run_crashes = 7;
+  optional string fully_qualified_fuzzer_name = 8;
+}
+
 enum ErrorType {
   NO_ERROR = 0;
   ANALYZE_BUILD_SETUP = 1;
@@ -72,4 +83,5 @@ message Output {
   optional float test_timeout = 6;
   optional float crash_time = 7;
   optional string crash_stacktrace_output = 8;
+  optional FuzzTaskOutput fuzz_task_output = 9;
 }

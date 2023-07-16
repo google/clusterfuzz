@@ -15,8 +15,7 @@
 # pylint: disable=protected-access
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers.syzkaller import runner
 from clusterfuzz._internal.bot.fuzzers.syzkaller.runner import \
@@ -64,7 +63,7 @@ class RunnerTest(unittest.TestCase):
   """Tests for AndroidSyzkallerRunner."""
 
   def setUp(self):
-    super(RunnerTest, self).setUp()
+    super().setUp()
     self.target = AndroidSyzkallerRunner(EXECUTABLE_PATH)
 
   def test_filter_log(self):
@@ -119,14 +118,14 @@ class RunnerTest(unittest.TestCase):
         '"procs": 1, '
         '"cover": true, '
         '"disable_syscalls": ["openat$vhost_vsock"]}')
-    with open(f'{TEMP_DIR}/config.json', 'r') as file:
+    with open(f'{TEMP_DIR}/config.json') as file:
       actual_config = file.read()
       self.assertEqual(expected_config, actual_config)
 
     # Check syzkaller config for physical device has correct devices format.
     env['OS_OVERRIDE'] = 'ANDROID'
     runner.get_config()
-    with open(f'{TEMP_DIR}/config.json', 'r') as file:
+    with open(f'{TEMP_DIR}/config.json') as file:
       actual_config = file.read()
       self.assertIn('"devices": ["172.18.0.2:6520"]', actual_config)
 
@@ -145,7 +144,7 @@ class RunnerTest(unittest.TestCase):
             output=output,
         ))
 
-    with open(f'{TEST_PATH}/reproducer11', 'r') as file:
+    with open(f'{TEST_PATH}/reproducer11') as file:
       actual = self.target.repro(0, [])
       self.assertEqual(actual.command, SYZ_CRUSH_COMMAND)
       self.assertEqual(actual.return_code, 1)

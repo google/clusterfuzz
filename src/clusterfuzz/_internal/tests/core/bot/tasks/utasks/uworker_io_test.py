@@ -162,7 +162,8 @@ class UworkerOutputTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class RoundTripTest(unittest.TestCase):
-  """Tests round trips for download and uploading inputs and outputs."""
+  """Tests round trips for serializing+deserializing as well as
+  downloading and uploading inputs and outputs."""
   WORKER_INPUT_BUCKET = 'UWORKER_INPUT'
   WORKER_OUTPUT_BUCKET = 'UWORKER_OUTPUT'
   NEW_IO_FILE_NAME = 'new-filename'
@@ -332,7 +333,8 @@ class RoundTripTest(unittest.TestCase):
                      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     self.assertEqual(downloaded_output.uworker_input.testcase_id,
                      uworker_input.testcase_id)
-    self.assertDictEqual(downloaded_output.uworker_env, uworker_env)
+    self.assertDictEqual(downloaded_output.uworker_input.uworker_env,
+                         uworker_env)
 
   def test_output_error_serialization(self):
     """Tests that errors can be returned by the tasks."""
@@ -361,3 +363,23 @@ class RoundTripTest(unittest.TestCase):
     update_input = deserialized.update_fuzzer_and_data_bundles_input
     self.assertEqual(update_input.data_bundles[0].name, bundle1.name)
     self.assertEqual(update_input.data_bundles[1].name, bundle2.name)
+
+  def test_submessage_serialization_and_deserialization(self):
+    """Tests that output messages with submessages are serialized and
+    deserialized properly."""
+    crash_revision = '1337'
+    crashes = [{
+        'is_new': False,
+        'count': 1,
+        'crash_type': 'Abort',
+        'crash_state': 'NULL',
+        'security_flag': True,
+    }]
+    output = uworker_io.UworkerOutput(
+        fuzz_task_output=uworker_io.FuzzTaskOutput(
+            crash_revision=crash_revision, job_run_crashes=crashes))
+    serialized = uworker_io.serialize_uworker_output(output)
+    deserialized = uworker_io.deserialize_uworker_output(serialized)
+    self.assertEqual(deserialized.fuzz_task_output.job_run_crashes, crashes)
+    self.assertEqual(deserialized.fuzz_task_output.crash_revision,
+                     crash_revision)

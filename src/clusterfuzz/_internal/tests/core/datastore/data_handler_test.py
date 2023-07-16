@@ -17,9 +17,9 @@ import datetime
 import json
 import os
 import unittest
+from unittest import mock
 
 from google.cloud import ndb
-import mock
 import parameterized
 from pyfakefs import fake_filesystem_unittest
 

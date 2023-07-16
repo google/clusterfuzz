@@ -14,8 +14,7 @@
 """Tests for the issue_tracker module."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from libs.issue_management.issue_tracker import IssueTracker
 from libs.issue_management.issue_tracker import LabelStore
