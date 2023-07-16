@@ -16,8 +16,7 @@
 import os
 import re
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.untrusted_runner import environment
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -30,10 +29,10 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
     )
 ]
 
-REBASED_ENVIRONMENT_VARIABLES = set([
+REBASED_ENVIRONMENT_VARIABLES = {
     'FUZZER_DIR',
     'REBASED',
-])
+}
 
 
 @mock.patch('clusterfuzz._internal.bot.untrusted_runner.environment.'
