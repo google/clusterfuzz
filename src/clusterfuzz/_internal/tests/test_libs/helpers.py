@@ -15,7 +15,6 @@
 
 import os
 import time
-import types
 from unittest import mock
 
 
