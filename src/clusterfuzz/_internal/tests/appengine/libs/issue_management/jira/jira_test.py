@@ -16,11 +16,9 @@
 import datetime
 import unittest
 
-import pytz
-
 from clusterfuzz._internal.tests.test_libs import helpers
 from libs.issue_management import jira
-from libs.issue_management.jira import Issue
+from libs.issue_management import jira
 from libs.issue_management.jira import issue_tracker_manager
 
 
@@ -94,7 +92,7 @@ class JiraTests(unittest.TestCase):
     self.jira_issue = JiraIssue('VSEC-3112')
     self.mock.get_watchers.return_value = []
 
-    self.mock_issue = Issue(self.itm, self.jira_issue)
+    self.mock_issue = jira.Issue(self.itm, self.jira_issue)
     self.mock_issue.title = 'summary'
     self.mock_issue.body = 'body'
     self.mock_issue.reporter = 'reporter'
@@ -133,7 +131,8 @@ class JiraTests(unittest.TestCase):
     issue = self.issue_tracker.get_issue('VSEC-3112')
     self.assertEqual('VSEC-3112', issue.key)
     self.assertEqual(
-        datetime.datetime(2020, 1, 14, 11, 46, 34, tzinfo=pytz.utc).timestamp(),
+        datetime.datetime(
+          2020, 1, 14, 11, 46, 34, tzinfo=datetime.timezone.utc).timestamp(),
         issue.closed_time.timestamp())
 
   def test_modify_labels(self):
