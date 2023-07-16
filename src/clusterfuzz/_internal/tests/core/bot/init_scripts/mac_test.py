@@ -14,8 +14,7 @@
 """Tests for the Mac initialization script."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.init_scripts import mac
 from clusterfuzz._internal.tests.test_libs import helpers

@@ -17,8 +17,7 @@ import shutil
 import tempfile
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_types

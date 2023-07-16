@@ -15,8 +15,8 @@
 import os
 import sys
 import unittest
+from unittest import mock
 
-import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.system import environment
@@ -274,7 +274,7 @@ class GetExecuteCommand(unittest.TestCase):
     self.call_and_assert_helper(executable_name, executable_name)
 
 
-class GetInterpreter(object):
+class GetInterpreter:
   """Test that the correct interpreters to execute a file are returned."""
 
   def get_interpreted_file_test(self):

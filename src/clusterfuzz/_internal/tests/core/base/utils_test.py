@@ -19,9 +19,9 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 from google.cloud import ndb
-import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
@@ -206,7 +206,7 @@ class RandomWeightedChoiceTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, ['random.SystemRandom.uniform'])
 
-    class O(object):
+    class O:
 
       def __init__(self, data, weight):
         self.data = data
