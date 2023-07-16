@@ -142,7 +142,7 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
-COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile Pipfile.lock /data/
+COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile Pipfile.lock /data/
 RUN cd /data && \
     # Make pip3.7 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
