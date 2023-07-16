@@ -38,7 +38,7 @@ PACKAGE_TARGET_MANIFEST_PATH = os.path.join('src', 'appengine', 'resources',
 PLATFORMS = collections.OrderedDict([
     ('windows', 'win_amd64'),
     ('macos', ('macosx_10_10_universal2')),
-  ('linux', ('manylinux_2_17_x86_64')),
+    ('linux', ('manylinux_2_17_x86_64')),
 ])
 
 if sys.version_info.major == 3 and sys.version_info.minor == 7:
