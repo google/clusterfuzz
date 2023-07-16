@@ -145,6 +145,5 @@ ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
 COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh /data/
-
 CMD ["bash", "-ex", "/data/start.sh"]
 
