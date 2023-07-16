@@ -1879,6 +1879,10 @@ class FuzzingSession:
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 
+    testcases_executed = len(testcase_file_paths)
+
+    # Explicit cleanup for large vars.
+    del testcase_file_paths
     del testcases_metadata
     utils.python_gc()
 
@@ -1889,7 +1893,7 @@ class FuzzingSession:
             job_run_timestamp=time.time(),
             new_crash_count=new_crash_count,
             known_crash_count=known_crash_count,
-            testcases_executed=len(testcase_file_paths),
+            testcases_executed=testcases_executed,
             job_run_crashes=convert_groups_to_crashes(processed_groups),
         ),)
 
