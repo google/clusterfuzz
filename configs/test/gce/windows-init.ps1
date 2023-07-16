@@ -157,9 +157,9 @@ if (!(Test-Path ($fileName))) {
 
 Copy-Item "c:\python27\python.exe" -Destination "c:\python27\python2.exe"
 
-$fileName = "$tmp\python-3.7.7-amd64.exe"
+$fileName = "$tmp\python-3.11.4-amd64.exe"
 if (!(Test-Path ($fileName))) {
-  $webClient.DownloadFile("https://www.python.org/ftp/python/3.7.7/python-3.7.7-amd64.exe", $fileName)
+  $webClient.DownloadFile("https://www.python.org/ftp/python/3.11.4/python-3.11.4-amd64.exe", $fileName)
   Remove-Item c:\python37 -Recurse -ErrorAction Ignore
   cmd /c $fileName /quiet InstallAllUsers=1 Include_test=0 TargetDir=c:\python37
 }
