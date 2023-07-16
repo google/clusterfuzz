@@ -1879,8 +1879,6 @@ class FuzzingSession:
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 
-    # Explicit cleanup for large vars.
-    del testcase_file_paths
     del testcases_metadata
     utils.python_gc()
 
