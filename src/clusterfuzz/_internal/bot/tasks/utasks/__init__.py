@@ -22,7 +22,10 @@ from clusterfuzz._internal.system import environment
 
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
+  """Executes the preprocessing step of the utask |utask_module| and returns the
+  serialized output."""
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  set_uworker_env(uworker_env)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   assert not uworker_input.module_name
@@ -39,7 +42,7 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
 
   # Deal with the environment.
-  set_uworker_env(uworker_input.uworker_env)
+  set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
   delattr(uworker_input, 'uworker_env')
 
   uworker_output = utask_module.utask_main(uworker_input)
@@ -49,9 +52,6 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
 
 
 def add_uworker_input_to_output(uworker_output, uworker_input):
-  uworker_env = uworker_input.uworker_env
-  delattr(uworker_input, 'uworker_env')
-  uworker_output.uworker_env = uworker_env
   uworker_output.uworker_input = uworker_input
 
 
@@ -60,6 +60,7 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   # Do this to simulate out-of-band tamper-proof storage of the input.
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
   add_uworker_input_to_output(uworker_output, uworker_input)
+  set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
   utask_module.utask_postprocess(uworker_output)
 
 
@@ -68,6 +69,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  set_uworker_env(uworker_env)
   # Do preprocessing.
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
@@ -134,5 +136,6 @@ def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
+  set_uworker_env(uworker_output.uworker_input.uworker_env)  # pylint: disable=no-member
   utask_module = get_utask_module(uworker_output.uworker_input.module_name)  # pylint: disable=no-member
   utask_module.utask_postprocess(uworker_output)
