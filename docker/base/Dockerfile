@@ -94,11 +94,11 @@ RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db
 
 # Install Python 3.
 RUN cd /tmp && \
-    curl -sS https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz -O && \
-    tar xf Python-3.11.3.tar.xz && \
-    cd /tmp/Python-3.11.3 && \
+    curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tar.xz -O && \
+    tar xf Python-3.11.4.tar.xz && \
+    cd /tmp/Python-3.11.4 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
-    rm -rf /tmp/Python-3.11.3 /tmp/Python-3.11.3.tar.xz
+    rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
 RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 
 # Install Node.js
