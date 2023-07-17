@@ -89,7 +89,7 @@ class RunCommandTest(unittest.TestCase):
     worker_output_url = '/worker-output'
     with mock.patch('clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess'
                    ) as postprocess:
-      commands.run_command('postprocess', worker_output_url, 'none', {})
+      commands.run_command('uworker_postprocess', worker_output_url, 'none', {})
     postprocess.assert_called_with(worker_output_url)
 
   def test_run_command_fuzz(self):

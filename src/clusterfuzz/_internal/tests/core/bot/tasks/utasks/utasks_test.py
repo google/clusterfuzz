@@ -85,7 +85,10 @@ class UworkerMainTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_input',
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
+        'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
     ])
+    self.module = mock.MagicMock()
+    self.mock.get_utask_module.return_value = self.module
     self.uworker_input = uworker_io.UworkerInput(
         original_job_type='original_job_type-value',
         uworker_env=self.UWORKER_ENV,
@@ -96,15 +99,15 @@ class UworkerMainTest(unittest.TestCase):
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
-    module = mock.MagicMock()
     uworker_output = {
         'testcase': None,
         'crash_time': 70.1,
     }
-    module.utask_main.return_value = uworker_io.UworkerOutput(**uworker_output)
+    self.module.utask_main.return_value = uworker_io.UworkerOutput(
+        **uworker_output)
     input_download_url = 'http://input'
-    utasks.uworker_main(module, input_download_url)
-    module.utask_main.assert_called_with(self.uworker_input)
+    utasks.uworker_main(input_download_url)
+    self.module.utask_main.assert_called_with(self.uworker_input)
 
 
 class GetUtaskModuleTest(unittest.TestCase):
