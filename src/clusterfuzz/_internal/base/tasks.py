@@ -24,6 +24,7 @@ from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import task_types
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
@@ -236,6 +237,52 @@ def get_utask_filters(is_chromium, is_linux):
     ]
   pubsub_filter = FILTERS_AND.join(pubsub_filters)
   return pubsub_filter
+
+
+def get_ttask_commands_queues():
+  """Get queues tworkers should be querying for ttask commands. (i.e. tworkers
+  on Linux will need to know about the Windows and Mac queues)."""
+  pass
+
+
+def get_machine_template_for_queue(queue_name):
+  """Gets the machine template for the instance used to execute a task from
+  |queue_name|. This will be used by tworkers to schedule the appropriate machine using batch
+  to execute the utask_main part of a utask."""
+  initial_queue_name = queue_name
+
+  # Handle it being high-end (preemptible) or not.
+  if queue_name.startswith(JOBS_PREFIX):
+    is_high_end = False
+    prefix = JOBS_PREFIX
+  else:
+    assert queue_name.startswith(HIGH_END_JOBS_PREFIX)
+    is_high_end = True
+    prefix = HIGH_END_JOBS_PREFIX
+  # Add 1 for hyphen.
+  queue_name = queue_name[len(prefix) + 1:]
+
+  template_name = f'clusterfuzz-{queue_name}'
+  if not is_high_end:
+    template_name = f'{template_name}-pre'
+
+  templates = get_templates()
+  for template in templates:
+    if template['name'] == template_name:
+      logs.log(
+          f'Found machine template for {initial_queue_name}',
+          machine_template=template)
+      return template
+  return None
+
+
+def get_machine_templates():
+  """Returns machine templates."""
+  # TODO(metzman): Cache this.
+  clusters_config = local_config.Config(local_config.GCE_CLUSTERS_PATH).get()
+  project = utils.get_application_id()
+  conf = clusters_config[project]
+  return conf['instance_templates']
 
 
 def get_task():
@@ -561,6 +608,9 @@ def redo_testcase(testcase, tasks, user_email):
     if blame:
       add_task('blame', testcase_id, testcase.job_type,
                queue_for_testcase(testcase))
+
+
+# def batch
 
 
 def get_task_payload():
