@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 antlr4-python3-runtime = "==4.7.2"
+google-api-core = "==2.11.1"
 google-api-python-client = "==2.93.0"
 google-auth = "==2.22.0"
 google-auth-oauthlib = "==0.4.1"
@@ -24,10 +25,8 @@ pytz = "==2023.3"
 PyYAML = "==5.4"
 redis = "==3.3.11"
 requests = "==2.21.0"
-tlslite-ng = "==0.7.6"
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
-google-api-core = "==2.11.1"
 
 [dev-packages]
 cryptography = "==41.0.2"
