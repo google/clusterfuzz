@@ -502,18 +502,18 @@ def _initialize_monitored_resource():
 
   # The project ID must be the same as the one we write metrics to, not the ID
   # where the instance lives.
-  _monitored_resource.labels['project_id'] = utils.get_application_id()
+  _monitored_resource.labels['project_id'] = utils.get_application_id()  # pylint: disable=no-member
 
   # Use bot name here instance as that's more useful to us.
-  _monitored_resource.labels['instance_id'] = environment.get_value('BOT_NAME')
+  _monitored_resource.labels['instance_id'] = environment.get_value('BOT_NAME')  # pylint: disable=no-member
 
   if compute_metadata.is_gce():
     # Returned in the form projects/{id}/zones/{zone}
     zone = compute_metadata.get('instance/zone').split('/')[-1]
-    _monitored_resource.labels['zone'] = zone
+    _monitored_resource.labels['zone'] = zone  # pylint: disable=no-member
   else:
     # Default zone for instances not on GCE.
-    _monitored_resource.labels['zone'] = 'us-central1-f'
+    _monitored_resource.labels['zone'] = 'us-central1-f'  # pylint: disable=no-member
 
 
 def _time_to_timestamp(timestamp, time_seconds):
