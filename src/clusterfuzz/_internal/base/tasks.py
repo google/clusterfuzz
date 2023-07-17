@@ -250,8 +250,8 @@ def get_ttask_commands_queues():
 
 def get_machine_template_for_queue(queue_name):
   """Gets the machine template for the instance used to execute a task from
-  |queue_name|. This will be used by tworkers to schedule the appropriate machine using batch
-  to execute the utask_main part of a utask."""
+  |queue_name|. This will be used by tworkers to schedule the appropriate
+  machine using batch to execute the utask_main part of a utask."""
   initial_queue_name = queue_name
 
   # Handle it being high-end (preemptible) or not.
