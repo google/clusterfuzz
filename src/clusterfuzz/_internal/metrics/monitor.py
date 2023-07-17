@@ -31,6 +31,7 @@ except (ImportError, RuntimeError):
 
 from google.api import label_pb2
 from google.api import metric_pb2
+from google.api import monitored_resource_pb2
 from google.api_core import exceptions
 from google.api_core import retry
 
@@ -494,7 +495,7 @@ def stub_unavailable(module):
 def _initialize_monitored_resource():
   """Monitored resources."""
   global _monitored_resource
-  _monitored_resource = monitoring_v3.types.MonitoredResource()  # pylint: disable=no-member
+  _monitored_resource = monitored_resource_pb2.MonitoredResource()  # pylint: disable=no-member
 
   # TODO(ochang): Use generic_node when that is available.
   _monitored_resource.type = 'gce_instance'
