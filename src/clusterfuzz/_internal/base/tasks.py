@@ -613,9 +613,6 @@ def redo_testcase(testcase, tasks, user_email):
                queue_for_testcase(testcase))
 
 
-# def batch
-
-
 def get_task_payload():
   """Return current task payload."""
   return persistent_cache.get_value(TASK_PAYLOAD_KEY)
