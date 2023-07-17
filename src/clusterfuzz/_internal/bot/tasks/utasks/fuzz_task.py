@@ -801,8 +801,7 @@ def upload_job_run_stats(fuzzer_name, job_type, revision, timestamp,
   # New format.
   job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
                                 testcases_executed, new_crash_count,
-                                known_crash_count,
-                                convert_groups_to_crashes(groups))
+                                known_crash_count, groups)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
@@ -1766,7 +1765,7 @@ class FuzzingSession:
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return
+      return None
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1782,7 +1781,7 @@ class FuzzingSession:
     if not build_setup_result or not build_manager.check_app_path():
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.BUILD_SETUP_FAILED)
-      return
+      return None
 
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
@@ -1802,7 +1801,7 @@ class FuzzingSession:
                                                         crash_revision)
     _track_build_run_result(self.job_type, crash_revision, is_bad_build)
     if is_bad_build:
-      return
+      return None
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
@@ -1812,7 +1811,7 @@ class FuzzingSession:
                                FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return
+      return None
 
     engine_impl = engine.get(self.fuzzer.name)
 
@@ -1831,7 +1830,7 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return
+      return None
 
     logs.log('Finished processing test cases.')
 
@@ -1873,29 +1872,54 @@ class FuzzingSession:
             thread_wait_timeout=THREAD_WAIT_TIMEOUT,
             data_directory=self.data_directory))
 
-    upload_job_run_stats(self.fully_qualified_fuzzer_name, self.job_type,
-                         crash_revision, time.time(),
-                         new_crash_count, known_crash_count,
-                         len(testcase_file_paths), processed_groups)
-
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
     # unclear if needed but it is kept because it is not harmful.
     for testcase_file_path in testcase_file_paths:
       shell.remove_file(testcase_file_path)
 
+    testcases_executed = len(testcase_file_paths)
+
     # Explicit cleanup for large vars.
     del testcase_file_paths
     del testcases_metadata
     utils.python_gc()
 
+    return uworker_io.UworkerOutput(
+        fuzz_task_output=uworker_io.FuzzTaskOutput(
+            fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
+            crash_revision=str(crash_revision),
+            job_run_timestamp=time.time(),
+            new_crash_count=new_crash_count,
+            known_crash_count=known_crash_count,
+            testcases_executed=testcases_executed,
+            job_run_crashes=convert_groups_to_crashes(processed_groups),
+        ),)
+
+  def preprocess(self):
+    """Handles preprocessing."""
+    # TODO(metzman): Finish this.
+
+  def postprocess(self, uworker_output):
+    """Handles postprocessing."""
+    # TODO(metzman): Finish this.
+    fuzz_task_output = uworker_output.fuzz_task_output
+    upload_job_run_stats(
+        self.fully_qualified_fuzzer_name, self.job_type,
+        fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
+        fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
+        fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
+
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
+  session = _make_session(uworker_input.fuzzer_name, uworker_input.job_type)
+  return session.run()
+
+
+def _make_session(fuzzer_name, job_type):
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  session = FuzzingSession(uworker_input.fuzzer_name, uworker_input.job_type,
-                           test_timeout)
-  session.run()
+  return FuzzingSession(fuzzer_name, job_type, test_timeout)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -1910,4 +1934,6 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 def utask_postprocess(output):
-  del output
+  session = _make_session(output.uworker_input.fuzzer_name,
+                          output.uworker_input.job_type)
+  session.postprocess(output)

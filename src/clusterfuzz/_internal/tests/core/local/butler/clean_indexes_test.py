@@ -15,8 +15,7 @@
 from collections import namedtuple
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 Args = namedtuple('Args', 'config_dir')
 
