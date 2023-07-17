@@ -103,7 +103,7 @@ class RemoteProcessRunner(new_process.ProcessRunner):
         max_stdout_len=max_stdout_len)
 
     request.default_args.extend(self.default_args)
-    if additional_args is None:
+    if additional_args is not None:
       request.additional_args.extend(additional_args)
 
     if 'bufsize' in popen_args:
