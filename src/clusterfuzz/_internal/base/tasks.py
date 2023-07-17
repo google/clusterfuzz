@@ -23,7 +23,6 @@ import time
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -224,6 +223,10 @@ def get_utask_filters(is_chromium, is_linux):
   if not is_chromium:
     # Execute all tasks on one machine outside of chrome for now.
     return None
+
+  # Import here to avoid import errors on webapp.
+  from clusterfuzz._internal.bot.tasks import task_types
+
   # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
   # syntax.
   utask_trusted_portions = task_types.get_utask_trusted_portions()
