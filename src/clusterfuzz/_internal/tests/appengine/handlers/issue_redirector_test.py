@@ -14,8 +14,8 @@
 """Tests for the issue redirector handler."""
 
 import unittest
+from unittest import mock
 
-import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types

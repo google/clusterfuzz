@@ -20,8 +20,7 @@ import os
 import shutil
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
@@ -46,7 +45,7 @@ TEST_SHARED_BUCKET = 'clusterfuzz-test-shared-corpus'
 TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
 
 
-class BaseTest(object):
+class BaseTest:
   """Base corpus pruning tests."""
 
   def setUp(self):
@@ -263,7 +262,7 @@ class CorpusPruningTestMinijail(CorpusPruningTest):
     if environment.platform() != 'LINUX':
       self.skipTest('Minijail tests are only applicable for linux platform.')
 
-    super(CorpusPruningTestMinijail, self).setUp()
+    super().setUp()
     os.environ['USE_MINIJAIL'] = 'True'
 
 
@@ -337,7 +336,7 @@ class CorpusPruningTestUntrusted(
 
   def setUp(self):
     """Set up."""
-    super(CorpusPruningTestUntrusted, self).setUp()
+    super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
@@ -429,7 +428,7 @@ class CorpusPruningTestUntrusted(
     ])
 
   def tearDown(self):
-    super(CorpusPruningTestUntrusted, self).tearDown()
+    super().tearDown()
     shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   def test_prune(self):

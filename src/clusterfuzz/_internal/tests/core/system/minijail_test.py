@@ -14,8 +14,8 @@
 """Tests for process."""
 
 import os
+from unittest import mock
 
-import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.system import environment

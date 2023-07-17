@@ -16,9 +16,8 @@ import os
 import shutil
 import tempfile
 import unittest
-
 # pylint: disable=unused-argument
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init

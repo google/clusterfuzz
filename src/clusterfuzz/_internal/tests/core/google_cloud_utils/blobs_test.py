@@ -15,8 +15,7 @@
 
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.tests.test_libs import helpers

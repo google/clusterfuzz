@@ -15,7 +15,6 @@
 
 source /data/setup_common.sh
 source /data/setup_x.sh
-source /data/setup_nfs.sh
 
 export $(sudo -u $USER dbus-launch)
 sudo -H -u $USER pulseaudio -D

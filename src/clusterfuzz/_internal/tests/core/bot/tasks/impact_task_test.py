@@ -13,8 +13,7 @@
 # limitations under the License.
 """impact_task tests."""
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.datastore import data_types

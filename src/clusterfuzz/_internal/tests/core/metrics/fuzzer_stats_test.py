@@ -254,7 +254,8 @@ class FuzzerStatsTest(unittest.TestCase):
     groups[1].is_new.return_value = True
 
     fuzz_task.upload_job_run_stats('fuzzer', 'job', 123, 1472846341.017923, 1,
-                                   2, 1337, groups)
+                                   2, 1337,
+                                   fuzz_task.convert_groups_to_crashes(groups))
     self.assertEqual(1, self.mock.write_data.call_count)
     self.assertEqual({
         'kind':
