@@ -15,6 +15,7 @@
 
 import contextlib
 import datetime
+import io
 import os
 import re
 import shutil
@@ -53,6 +54,9 @@ RSYNC_ERROR_REGEX = (br'CommandException:\s*(\d+)\s*files?/objects? '
                      br'could not be copied/removed')
 
 MAX_SYNC_ERRORS = 10
+
+# Default used by shutil.
+COPY_BUFFER_SIZE = 16 * 1024
 
 
 def _rsync_errors_below_threshold(gsutil_result, max_errors):
@@ -403,45 +407,79 @@ class GcsCorpus:
     """Uploads |file_paths| to the zipcorpus on GCS. Uploads them as part of a
     partial corpus if |partial| is True."""
     gcs_url = self.get_zipcorpus_gcs_url(partial)
-    with temp_zipfile(file_paths) as archive_path:
-      storage.copy_file_to(archive_path, gcs_url)
+    zip_file_generator = zip_in_memory(file_paths)
+    storage.write_stream(zip_file_generator, gcs_url)
 
 
-@contextlib.contextmanager
-def temp_zipfile(file_paths):
-  """Yields a temporary zip file containing |file_paths|."""
-  file_paths = list(file_paths)
-  seen_filenames = set()
-
+def _get_unique_filename(filename, seen_filenames):
+  """Returns a unique filename instead of |filename|."""
   # Because of the way this function is used we will probably only ever get
   # file_paths from one directory. But if we were to get files from different
   # directories, it's possible there are name collisions. So do a low effort, no
   # cost attempt to avoid this problem that preserves the original name for
   # humans readers.
-  def get_unique_name(filename):
-    if filename not in seen_filenames:
-      seen_filenames.add(filename)
-      return filename
-    new_filename = f'{filename}-{str(uuid.uuid4()).lower()}'
-    # Assume no collisions
-    # https://stackoverflow.com/questions/24876188/how-big-is-the-chance-to-get-a-java-uuid-randomuuid-collision
-    seen_filenames.add(new_filename)
-    return new_filename
+  filename = os.path.basename(filename)
+  if filename not in seen_filenames:
+    seen_filenames.add(filename)
+    return filename
+  new_filename = f'{filename}-{str(uuid.uuid4()).lower()}'
+  # Assume no collisions
+  # https://stackoverflow.com/questions/24876188/how-big-is-the-chance-to-get-a-java-uuid-randomuuid-collision
+  seen_filenames.add(new_filename)
+  return new_filename
 
-  with get_temp_zip_filename() as zip_filename:
-    with zipfile.ZipFile(zip_filename, 'w') as zip_file:
-      for file_path in file_paths:
-        # Don't use the leading paths.
-        name = os.path.basename(file_path)
-        name = get_unique_name(name)
-        try:
-          zip_file.write(file_path, arcname=name)
-        except FileNotFoundError:
-          logs.log_warn(f'Could not find {file_path}.')
 
-    # Make sure to yield after the zip file is closed otherwise the user will
-    # get an incomplete zip file.
-    yield zip_filename
+@contextlib.contextmanager
+def _compressed_version_of_file(zip_file, file_path, arcname=None, mode='w'):
+  """Context manager yielding the zipped version of |file_path| in |zip_file|.
+  The zipped version will use arcname."""
+  zipinfo = zipfile.ZipInfo.from_file(file_path, arcname=arcname)
+  with zip_file.open(zipinfo, mode=mode) as zipped_file:
+    yield zipped_file
+
+
+def chunked_file_copy(file1, file2):
+  """Copies contents of |file1| to |file2| in chunks, yielding after each chunk.
+  To copy the whole file, iterate all the way through."""
+  copy_buffer = file1.read(COPY_BUFFER_SIZE)
+  while copy_buffer:
+    file2.write(copy_buffer)
+    yield
+    copy_buffer = file1.read(COPY_BUFFER_SIZE)
+
+
+def chunked_file_zipper(file_path, zipped_file):
+  """Compresses and writes |file_path| to |zipped_file| in chunks, yielding
+  after each chunk. To compress and write the whole file, iterate all the way
+  through."""
+  with open(file_path, 'rb') as file_to_archive:
+    for _ in chunked_file_copy(file_to_archive, zipped_file):
+      yield
+
+
+def _add_files_to_zip(file_paths, zip_file):
+  """Generator that adds each file in |file_paths| to |zip_file| in chunks,
+  yielding after each chunk. To write all files, iterate all the way through."""
+  seen_filenames = set()
+  for file_path in file_paths:
+    arcname = _get_unique_filename(file_path, seen_filenames)
+    with _compressed_version_of_file(
+        zip_file, file_path, arcname, mode='w') as zipped_file:
+      for _ in chunked_file_zipper(file_path, zipped_file):
+        yield
+
+
+def zip_in_memory(file_paths):
+  """Yields an in-memory file storing a zip file that contains |file_paths|. The
+  zipfile will compress the files one-by-one in memory as it is read. It does
+  not support seeking because all read data is discarded so that arbitrarily
+  large zips an be uploaded."""
+  write_buffer = HoldAsNeededFile()
+  with zipfile.ZipFile(write_buffer, mode='w') as zip_file:
+    for _ in _add_files_to_zip(file_paths, zip_file):
+      yield write_buffer.destructive_read()
+  # Do one last read on after closure of the whole zipfile.
+  yield write_buffer.destructive_read()
 
 
 class FuzzTargetCorpus(GcsCorpus):
@@ -563,6 +601,26 @@ class FuzzTargetCorpus(GcsCorpus):
   def get_regressions_corpus_gcs_url(self):
     """Return gcs path to directory containing crash regressions."""
     return self.get_gcs_url(suffix=REGRESSIONS_GCS_PATH_SUFFIX)
+
+
+class HoldAsNeededFile(io.RawIOBase):
+  """In-memory file object that when read (using destructive_read) discards
+  previously written data."""
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self._buf_list = []
+
+  def write(self, data):
+    """Normal behaving write method."""
+    self._buf_list.append(data)
+    return len(data)
+
+  def destructive_read(self):
+    """Returns all the data we have and discards it."""
+    old_buf = b''.join(self._buf_list)
+    self._buf_list = []
+    return old_buf
 
 
 def get_temp_zip_filename():
