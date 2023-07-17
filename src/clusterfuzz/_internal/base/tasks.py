@@ -245,7 +245,6 @@ def get_utask_filters(is_chromium, is_linux):
 def get_ttask_commands_queues():
   """Get queues tworkers should be querying for ttask commands. (i.e. tworkers
   on Linux will need to know about the Windows and Mac queues)."""
-  pass
 
 
 def get_machine_template_for_queue(queue_name):
@@ -269,7 +268,7 @@ def get_machine_template_for_queue(queue_name):
   if not is_high_end:
     template_name = f'{template_name}-pre'
 
-  templates = get_templates()
+  templates = get_machine_templates()
   for template in templates:
     if template['name'] == template_name:
       logs.log(
