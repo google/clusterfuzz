@@ -104,3 +104,176 @@ class GetUtaskFiltersTest(unittest.TestCase):
     clusterfuzz executing preprocess and postprocess."""
     filters = tasks.get_utask_filters(is_chromium=False, is_linux=False)
     self.assertIsNone(filters)
+
+
+class GetMachineTemplateForQueueTests(unittest.TestCase):
+  """Tests that we know the specs of an instance to launch a batch task on."""
+
+  def setUp(self):
+    self.maxDiff = None
+
+  def test_get_machine_template_for_linux_queue(self):
+    """Tests that the correct specs are found for preemptible linux tasks."""
+    queue_name = 'jobs-linux'
+    template = tasks.get_machine_template_for_queue(queue_name)
+    expected_template = {
+        'description': '{"version": 1}',
+        'name': 'clusterfuzz-linux-pre',
+        'properties': {
+            'disks': [{
+                'autoDelete': True,
+                'boot': True,
+                'initializeParams': {
+                    'diskSizeGb':
+                        100,
+                    'diskType':
+                        'pd-standard',
+                    'sourceImage':
+                        'projects/cos-cloud/global/images/family/cos-stable'
+                }
+            }],
+            'machineType':
+                'n1-standard-1',
+            'metadata': {
+                'items': [{
+                    'key':
+                        'docker-image',
+                    'value':
+                        'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                }, {
+                    'key': 'user-data',
+                    'value': 'file://linux-init.yaml'
+                }]
+            },
+            'networkInterfaces': [{
+                'accessConfigs': [{
+                    'name': 'External '
+                            'NAT',
+                    'type': 'ONE_TO_ONE_NAT'
+                }],
+                'network':
+                    'global/networks/default'
+            }],
+            'scheduling': {
+                'preemptible': True
+            },
+            'serviceAccounts': [{
+                'email':
+                    'test-clusterfuzz-service-account-email',
+                'scopes': [
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/prodxmon'
+                ]
+            }]
+        }
+    }
+
+    self.assertEqual(template, expected_template)
+
+  def test_get_machine_template_for_windows_queue(self):
+    """Tests that the correct specs are found for preemptible windows tasks."""
+    queue_name = 'jobs-windows'
+    template = tasks.get_machine_template_for_queue(queue_name)
+    expected_template = {
+        'description': '{"version": 1}',
+        'name': 'clusterfuzz-windows-pre',
+        'properties': {
+            'disks': [{
+                'autoDelete': True,
+                'boot': True,
+                'initializeParams': {
+                    'diskSizeGb':
+                        100,
+                    'diskType':
+                        'pd-standard',
+                    'sourceImage':
+                        'https://www.googleapis.com/compute/v1/projects/windows-cloud/global/images/family/windows-2016'
+                }
+            }],
+            'machineType':
+                'n1-standard-2',
+            'metadata': {
+                'items': [{
+                    'key': 'windows-startup-script-ps1',
+                    'value': 'file://windows-init.ps1'
+                }]
+            },
+            'networkInterfaces': [{
+                'accessConfigs': [{
+                    'name': 'External '
+                            'NAT',
+                    'type': 'ONE_TO_ONE_NAT'
+                }],
+                'network':
+                    'global/networks/default'
+            }],
+            'scheduling': {
+                'preemptible': True
+            },
+            'serviceAccounts': [{
+                'email':
+                    'test-clusterfuzz-service-account-email',
+                'scopes': [
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/prodxmon'
+                ]
+            }]
+        }
+    }
+
+    self.assertEqual(template, expected_template)
+
+  def test_get_machine_template_for_high_end_linux_queue(self):
+    """Tests that the correct specs are found for nonpreemptible linux tasks."""
+    queue_name = 'high-end-jobs-linux'
+    template = tasks.get_machine_template_for_queue(queue_name)
+    expected_template = {
+        'description': '{"version": 1}',
+        'name': 'clusterfuzz-linux',
+        'properties': {
+            'disks': [{
+                'autoDelete': True,
+                'boot': True,
+                'initializeParams': {
+                    'diskSizeGb':
+                        100,
+                    'diskType':
+                        'pd-standard',
+                    'sourceImage':
+                        'projects/cos-cloud/global/images/family/cos-stable'
+                }
+            }],
+            'machineType':
+                'n1-standard-1',
+            'metadata': {
+                'items': [{
+                    'key':
+                        'docker-image',
+                    'value':
+                        'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+                }, {
+                    'key': 'user-data',
+                    'value': 'file://linux-init.yaml'
+                }]
+            },
+            'networkInterfaces': [{
+                'accessConfigs': [{
+                    'name': 'External '
+                            'NAT',
+                    'type': 'ONE_TO_ONE_NAT'
+                }],
+                'network':
+                    'global/networks/default'
+            }],
+            'serviceAccounts': [{
+                'email':
+                    'test-clusterfuzz-service-account-email',
+                'scopes': [
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/prodxmon'
+                ]
+            }]
+        }
+    }
+
+    self.assertEqual(template, expected_template)
