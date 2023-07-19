@@ -113,50 +113,40 @@ def get_proto_fields(proto):
     yield field_name, field_value, descriptor
 
 
-def deserialize_proto_field(field_value, field_descriptor):
+def deserialize_proto_field(field_value, field_descriptor, is_input):
   """Converts a proto field |field_value| to a deserialized representation of
   its contents for use by code outside of this module. The deserialized value
   can contain real ndb models and other python objects, instead of only the
   python serialized versions. |field_descriptor| is used to check for repeated
   fields and can be None."""
   if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
+    assert not is_input
     field_value = deserialize_wrapped_entity(field_value)
   elif isinstance(field_value, uworker_msg_pb2.Json):
     field_value = json.loads(field_value.serialized)
   elif isinstance(field_value, entity_pb2.Entity):
+    assert is_input
     field_value = UworkerEntityWrapper(model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
   elif field_descriptor is not None and (
       field_descriptor.label == field_descriptor.LABEL_REPEATED):
     initial_field_value = field_value
     # We can pass None as the descriptor because we know it won't be repeated.
     field_value = [
-        deserialize_proto_field(element, None)
+        deserialize_proto_field(element, None, is_input)
         for element in initial_field_value
     ]
   elif isinstance(field_value, message.Message):
     # This must come last! Otherwise it subsumes more specific types.
-    field_value = proto_to_deserialized_msg_object(field_value)
+    field_value = proto_to_deserialized_msg_object(field_value, is_input)
   return field_value
-
-
-def proto_to_deserialized_msg_object(serialized_msg_proto):
-  """Converts a |serialized_msg_proto| to a deserialized representation of its
-  contents for use by code outside of this module. The deserialized object can
-  contain real ndb models and other python objects, instead of only the python
-  serialized versions."""
-  deserialized_msg = DeserializedUworkerMsg()
-  for field_name, field_value, descriptor in get_proto_fields(
-      serialized_msg_proto):
-    field_value = deserialize_proto_field(field_value, descriptor)
-    setattr(deserialized_msg, field_name, field_value)
-  return deserialized_msg
 
 
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
   uworker_input_proto.ParseFromString(serialized_uworker_input)
-  uworker_input = proto_to_deserialized_msg_object(uworker_input_proto)
+  uworker_input = proto_to_deserialized_msg_object(
+      uworker_input_proto, is_input=True)
   return uworker_input
 
 
@@ -246,20 +236,15 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   return original_entity
 
 
-def proto_to_deserialized_msg_object(serialized_msg_proto):
-  """Converts a |proto| to a deserialized representation of its contents for use
-  by code outside of this module. The deserialized object can contain real ndb
-  models and other python objects, instead of only the python serialized
-  versions."""
-  # Consider merging this with input deserialization routines.
+def proto_to_deserialized_msg_object(serialized_msg_proto, is_input):
+  """Converts a |serialized_msg_proto| to a deserialized representation of its
+  contents for use by code outside of this module. The deserialized object can
+  contain real ndb models and other python objects, instead of only the python
+  serialized versions."""
   deserialized_msg = DeserializedUworkerMsg()
-  for field_name, field_value in get_proto_fields(serialized_msg_proto):
-    if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
-      field_value = deserialize_wrapped_entity(field_value)
-    elif isinstance(field_value, uworker_msg_pb2.Json):
-      field_value = json.loads(field_value.serialized)
-    elif isinstance(field_value, message.Message):
-      field_value = proto_to_deserialized_msg_object(field_value)
+  for field_name, field_value, descriptor in get_proto_fields(
+      serialized_msg_proto):
+    field_value = deserialize_proto_field(field_value, descriptor, is_input)
     setattr(deserialized_msg, field_name, field_value)
   return deserialized_msg
 
@@ -272,7 +257,8 @@ def deserialize_uworker_output(uworker_output_str):
   # Deserialize the proto.
   uworker_output_proto = uworker_msg_pb2.Output()
   uworker_output_proto.ParseFromString(uworker_output_str)
-  uworker_output = proto_to_deserialized_msg_object(uworker_output_proto)
+  uworker_output = proto_to_deserialized_msg_object(
+      uworker_output_proto, is_input=False)
   return uworker_output
 
 
