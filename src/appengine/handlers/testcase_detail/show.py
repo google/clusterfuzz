@@ -194,10 +194,11 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   crash_stacktrace = _truncate_stacktrace(crash_stacktrace)
 
   filtered_crash_lines = []
+  linkifier = source_mapper.StackFrameLinkfier()
   for line in crash_stacktrace.splitlines():
     # Html escape line content to prevent XSS.
     line = html.escape(line, quote=True)
-    line = source_mapper.linkify_stack_frame(line, revisions_dict)
+    line = linkifer.linkify_stack_frame(line, revisions_dict)
 
     if 'android' in platform or environment.is_lkl_job(job_type):
       line = _linkify_android_kernel_stack_frame_if_needed(line)
