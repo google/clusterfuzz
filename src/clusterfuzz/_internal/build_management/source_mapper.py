@@ -191,7 +191,9 @@ def should_linkify_java_stack_frames():
   return local_config.Config(local_config.PROJECT_PATH).get('linkify_java')
 
 
-class StackFrameLinkifer:
+class StackFrameLinkifier:
+  """Class for converting stackframes to clickable links to the source code."""
+
   def __init__(self, revisions_dict):
     self.revisions_dict = revisions_dict
     # Make this a class so we're not requerying the config so often.
@@ -212,7 +214,7 @@ class StackFrameLinkifer:
     path = path.replace('.', '/')
     return f' in {method} {path}.java:{line}'
 
-  def linkify_stack_frame(stack_frame):
+  def linkify_stack_frame(self, stack_frame):
     """Linkify a stack frame with source links to its repo."""
     stack_frame = self.convert_java_stack_frame(stack_frame)
     match = STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
