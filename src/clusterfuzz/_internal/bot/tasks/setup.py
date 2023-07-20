@@ -176,7 +176,17 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
 
 
 def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
-  """Handles for setup_testcase that is called by uworker_postprocess."""
+  """Error handler for setup_testcase that is called by uworker_postprocess."""
+  # Get the testcase again because it is too hard to set the testcase for
+  # partially migrated tasks.
+  # TODO(metzman): Experiment with making this unnecessary.
+  # First update comment.
+  testcase = data_handler.get_testcase_by_id(
+      uworker_output.uworker_input.testcase_id.testcase_id)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                       uworker_output.error_message)
+
+  # Then reschedule the task.
   task_name = environment.get_value('TASK_NAME')
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   tasks.add_task(
@@ -184,6 +194,22 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
       uworker_output.uworker_input.testcase_id,
       uworker_output.uworker_input.job_type,
       wait_time=testcase_fail_wait)
+
+
+def handle_setup_testcase_error_invalid_fuzzer(
+    uworker_output: uworker_io.UworkerOutput):
+  """Error handler for setup_testcase that is called by uworker_postprocess."""
+  # Get the testcase again because it is too hard to set the testcase for
+  # partially migrated tasks.
+  # First update comment.
+  testcase = data_handler.get_testcase_by_id(
+      uworker_output.uworker_input.testcase_id.testcase_id)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                       uworker_output.error_message)
+  testcase.open = False
+  testcase.fixed = 'NA'
+  testcase.set_metadata('fuzzer_was_deleted', True)
+  testcase.put()
 
 
 def setup_testcase(testcase,
@@ -219,37 +245,31 @@ def setup_testcase(testcase,
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if fuzzer_name:
     try:
-      update_successful = update_fuzzer_and_data_bundles(fuzzer_name)
+      update_fuzzer_and_data_bundles_input = (
+          preprocess_update_fuzzer_and_data_bundles(fuzzer_name))
+      update_successful = update_fuzzer_and_data_bundles(
+          update_fuzzer_and_data_bundles_input)
     except errors.InvalidFuzzerError:
-      # Don't need to use an error handler here becasue we're only updating a db
-      # entity. This can be done on the uworker as long as they return it to the
-      # tworker for saving.
       # Close testcase and don't recreate tasks if this fuzzer is invalid.
-      testcase.open = False
-      testcase.fixed = 'NA'
-      testcase.set_metadata('fuzzer_was_deleted', True)
       logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
                      (testcase_id, fuzzer_name))
-
-      error_message = 'Fuzzer %s no longer exists' % fuzzer_name
-      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                           error_message)
+      error_message = f'Fuzzer {fuzzer_name} no longer exists.'
       return None, None, uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.UNHANDLED)
+          uworker_input=uworker_error_input,
+          error_message=error_message,
+          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER)
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'
-      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                           error_message)
+      uworker_error_output.error_message = error_message
       return testcase_setup_error_result
 
   # Extract the testcase and any of its resources to the input directory.
   file_list, testcase_file_path = unpack_testcase(testcase,
                                                   testcase_download_url)
   if not file_list:
-    error_message = 'Unable to setup testcase %s' % testcase_file_path
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         error_message)
+    error_message = f'Unable to setup testcase {testcase_file_path}'
+    uworker_error_output.error_message = error_message
     return testcase_setup_error_result
 
   # For Android/Fuchsia, we need to sync our local testcases directory with the
@@ -328,6 +348,7 @@ def _is_testcase_minimized(testcase):
 
 
 def download_testcase(key, testcase_download_url, dst):
+  # TODO(metzman): Clean this up when everyone is using signed URLs.
   if testcase_download_url:
     logs.log(f'Downloading testcase from: {testcase_download_url}')
     return storage.download_signed_url_to_file(testcase_download_url, dst)
@@ -379,7 +400,7 @@ def unpack_testcase(testcase, testcase_download_url=None):
 
 def _get_data_bundle_update_lock_name(data_bundle_name):
   """Return the lock key name for the given data bundle."""
-  return 'update:data_bundle:%s' % data_bundle_name
+  return f'update:data_bundle:{data_bundle_name}'
 
 
 def _get_data_bundle_sync_file_path(data_bundle_directory):
@@ -408,13 +429,14 @@ def _clear_old_data_bundles_if_needed():
     shell.remove_directory(dir_to_remove)
 
 
-def update_data_bundle(fuzzer, data_bundle):
+def update_data_bundle(update_input, data_bundle):
   """Updates a data bundle to the latest version."""
+  # TODO(metzman): Migrate this functionality to utask.
   # This module can't be in the global imports due to appengine issues
   # with multiprocessing and psutil imports.
   from clusterfuzz._internal.google_cloud_utils import gsutil
 
-  data_bundle_directory = get_data_bundle_directory(fuzzer.name)
+  data_bundle_directory = get_data_bundle_directory(update_input.fuzzer.name)
   if not data_bundle_directory:
     logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
     return False
@@ -431,6 +453,7 @@ def update_data_bundle(fuzzer, data_bundle):
     return True
 
   # Re-check if another bot did the sync already. If yes, skip.
+  # TODO(metzman): Figure out if is this even needed without NFS?
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.log('Another bot finished the sync, skip.')
     return True
@@ -475,24 +498,9 @@ def update_data_bundle(fuzzer, data_bundle):
   return True
 
 
-def update_fuzzer_and_data_bundles(fuzzer_name):
-  """Update the fuzzer with a given name if necessary."""
-  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
-  if not fuzzer:
-    logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
-    raise errors.InvalidFuzzerError
-
-  # Set some helper environment variables.
-  fuzzer_directory = get_fuzzer_directory(fuzzer_name)
-  environment.set_value('FUZZER_DIR', fuzzer_directory)
+def _set_fuzzer_env_vars(fuzzer):
+  """Sets fuzzer env vars for fuzzer set up."""
   environment.set_value('UNTRUSTED_CONTENT', fuzzer.untrusted_content)
-
-  # If the fuzzer generates large testcases or a large number of small ones
-  # that don't fit on tmpfs, then use the larger disk directory.
-  if fuzzer.has_large_testcases:
-    testcase_disk_directory = environment.get_value('FUZZ_INPUTS_DISK')
-    environment.set_value('FUZZ_INPUTS', testcase_disk_directory)
-
   # Adjust the test timeout, if user has provided one.
   if fuzzer.timeout:
     environment.set_value('TEST_TIMEOUT', fuzzer.timeout)
@@ -508,63 +516,126 @@ def update_fuzzer_and_data_bundles(fuzzer_name):
   if fuzzer.max_testcases and fuzzer.max_testcases < max_testcases:
     environment.set_value('MAX_TESTCASES', fuzzer.max_testcases)
 
-  # Check for updates to this fuzzer.
-  version_file = os.path.join(fuzzer_directory, '.%s_version' % fuzzer_name)
-  if (not fuzzer.builtin and
-      revisions.needs_update(version_file, fuzzer.revision)):
-    logs.log('Fuzzer update was found, updating.')
+  # If the fuzzer generates large testcases or a large number of small ones
+  # that don't fit on tmpfs, then use the larger disk directory.
+  if fuzzer.has_large_testcases:
+    testcase_disk_directory = environment.get_value('FUZZ_INPUTS_DISK')
+    environment.set_value('FUZZ_INPUTS', testcase_disk_directory)
 
-    # Clear the old fuzzer directory if it exists.
-    if not shell.remove_directory(fuzzer_directory, recreate=True):
-      logs.log_error('Failed to clear fuzzer directory.')
-      return None
 
-    # Copy the archive to local disk and unpack it.
-    archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
-    if not blobs.read_blob_to_disk(fuzzer.blobstore_key, archive_path):
-      logs.log_error('Failed to copy fuzzer archive.')
-      return None
+def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
+  """Does preprocessing for calls to update_fuzzer_and_data_bundles in
+  uworker_main. Returns a UpdateFuzzerAndDataBundleInput object."""
+  update_input = uworker_io.UpdateFuzzerAndDataBundleInput(
+      fuzzer_name=fuzzer_name)
+  update_input.fuzzer = data_types.Fuzzer.query(
+      data_types.Fuzzer.name == fuzzer_name).get()
+  if not update_input.fuzzer:
+    logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
+    raise errors.InvalidFuzzerError
 
-    try:
-      archive.unpack(archive_path, fuzzer_directory)
-    except Exception:
-      error_message = ('Failed to unpack fuzzer archive %s '
-                       '(bad archive or unsupported format).') % fuzzer.filename
-      logs.log_error(error_message)
-      fuzzer_logs.upload_script_log(
-          'Fatal error: ' + error_message, fuzzer_name=fuzzer_name)
-      return None
-
-    fuzzer_path = os.path.join(fuzzer_directory, fuzzer.executable_path)
-    if not os.path.exists(fuzzer_path):
-      error_message = ('Fuzzer executable %s not found. '
-                       'Check fuzzer configuration.') % fuzzer.executable_path
-      logs.log_error(error_message)
-      fuzzer_logs.upload_script_log(
-          'Fatal error: ' + error_message, fuzzer_name=fuzzer_name)
-      return None
-
-    # Make fuzzer executable.
-    os.chmod(fuzzer_path, 0o750)
-
-    # Cleanup unneeded archive.
-    shell.remove_file(archive_path)
-
-    # Save the current revision of this fuzzer in a file for later checks.
-    revisions.write_revision_to_revision_file(version_file, fuzzer.revision)
-    logs.log('Updated fuzzer to revision %d.' % fuzzer.revision)
-
-  _clear_old_data_bundles_if_needed()
-
-  # Setup data bundles associated with this fuzzer.
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to a
-  # seperate function.
-  data_bundles = ndb_utils.get_all_from_query(
+  update_input.data_bundles = ndb_utils.get_all_from_query(
       data_types.DataBundle.query(
-          data_types.DataBundle.name == fuzzer.data_bundle_name))
-  for data_bundle in data_bundles:
-    if not update_data_bundle(fuzzer, data_bundle):
-      return None
+          data_types.DataBundle.name == update_input.fuzzer.data_bundle_name))
+
+  update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
+      fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
+  if not update_input.fuzzer.builtin:
+    update_input.fuzzer_download_url = blobs.get_signed_download_url(
+        update_input.fuzzer.blobstore_key)
+
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Finish migrating
+  # update data bundles.
+
+  return update_input
+
+
+def _update_fuzzer(update_input, fuzzer_directory, version_file):
+  """Updates the fuzzer. Helper for update_fuzzer_and_data_bundles."""
+  fuzzer = update_input.fuzzer
+  fuzzer_name = update_input.fuzzer_name
+  if fuzzer.builtin:
+    return True
+
+  if not revisions.needs_update(version_file, fuzzer.revision):
+    return True
+
+  logs.log('Fuzzer update was found, updating.')
+
+  # Clear the old fuzzer directory if it exists.
+  if not shell.remove_directory(fuzzer_directory, recreate=True):
+    logs.log_error('Failed to clear fuzzer directory.')
+    return False
+
+  # Copy the archive to local disk and unpack it.
+  archive_path = os.path.join(fuzzer_directory, fuzzer.filename)
+  if not storage.download_signed_url_to_file(update_input.fuzzer_download_url,
+                                             archive_path):
+    logs.log_error('Failed to copy fuzzer archive.')
+    return False
+
+  try:
+    archive.unpack(archive_path, fuzzer_directory)
+  except Exception:
+    error_message = (f'Failed to unpack fuzzer archive {fuzzer.filename} '
+                     '(bad archive or unsupported format).')
+    logs.log_error(error_message)
+    fuzzer_logs.upload_script_log(
+        'Fatal error: ' + error_message,
+        signed_upload_url=update_input.fuzzer_log_upload_url)
+
+    return False
+
+  fuzzer_path = os.path.join(fuzzer_directory, fuzzer.executable_path)
+  if not os.path.exists(fuzzer_path):
+    error_message = ('Fuzzer executable %s not found. '
+                     'Check fuzzer configuration.') % fuzzer.executable_path
+    logs.log_error(error_message)
+    fuzzer_logs.upload_script_log(
+        'Fatal error: ' + error_message,
+        fuzzer_name=fuzzer_name,
+        signed_upload_url=update_input.fuzzer_log_upload_url)
+    return False
+
+  # Make fuzzer executable.
+  os.chmod(fuzzer_path, 0o750)
+
+  # Cleanup unneeded archive.
+  shell.remove_file(archive_path)
+
+  # Save the current revision of this fuzzer in a file for later checks.
+  revisions.write_revision_to_revision_file(version_file, fuzzer.revision)
+  logs.log('Updated fuzzer to revision %d.' % fuzzer.revision)
+  return True
+
+
+def _set_up_data_bundles(update_input):
+  """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
+  # Setup data bundles associated with this fuzzer.
+  for data_bundle in update_input.data_bundles:
+    if not update_data_bundle(update_input, data_bundle):
+      return False
+
+  return True
+
+
+def update_fuzzer_and_data_bundles(update_input):
+  """Updates the fuzzer specified by |update_input| and its data bundles."""
+  fuzzer = update_input.fuzzer
+
+  _set_fuzzer_env_vars(update_input.fuzzer)
+  # Set some helper environment variables.
+  fuzzer_directory = get_fuzzer_directory(update_input.fuzzer_name)
+  environment.set_value('FUZZER_DIR', fuzzer_directory)
+
+  # Check for updates to this fuzzer.
+  version_file = os.path.join(fuzzer_directory,
+                              f'.{update_input.fuzzer_name}_version')
+  if not _update_fuzzer(update_input, fuzzer_directory, version_file):
+    return None
+  _clear_old_data_bundles_if_needed()
+  if not _set_up_data_bundles(update_input):
+    return None
 
   # Setup environment variable for launcher script path.
   if fuzzer.launcher_script:

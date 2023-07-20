@@ -1759,7 +1759,12 @@ class FuzzingSession:
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    self.fuzzer = setup.update_fuzzer_and_data_bundles(self.fuzzer_name)
+    # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
+    # preprocess.
+    update_fuzzer_and_data_bundles_input = (
+        setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
+    self.fuzzer = setup.update_fuzzer_and_data_bundles(
+        update_fuzzer_and_data_bundles_input)
     if not self.fuzzer:
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.FUZZER_SETUP_FAILED)

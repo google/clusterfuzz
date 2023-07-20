@@ -25,6 +25,14 @@ message UworkerEntityWrapper {
   Json changed = 2;
 }
 
+message UpdateFuzzerAndDataBundlesInput {
+  optional google.datastore.v1.Entity fuzzer = 1;
+  optional string fuzzer_name = 2;
+  repeated google.datastore.v1.Entity data_bundles = 3;
+  optional string fuzzer_log_upload_url = 4;
+  optional string fuzzer_download_url = 5;
+}
+
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
@@ -39,7 +47,8 @@ message Input {
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
-  optional string module_name = 11;
+  optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
+  optional string module_name = 12;
 }
 
 message FuzzTaskOutput {
@@ -60,6 +69,7 @@ enum ErrorType {
   TESTCASE_SETUP = 3;
   UNHANDLED = 4;
   VARIANT_BUILD_SETUP = 5;
+  TESTCASE_SETUP_INVALID_FUZZER = 6;
 }
 
 message Output {
