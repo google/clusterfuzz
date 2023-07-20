@@ -23,6 +23,7 @@ import time
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
@@ -81,6 +82,9 @@ TASK_END_TIME_KEY = 'task_end_time'
 SELF_LINK_REGEX = re.compile(
     r'https\:\/\/www\.googleapis\.com\/storage\/v1\/b'
     r'(?P<bucket>\/[a-zA-Z\_\-\.]+)\/o(?P<path>\/[a-zA-Z\_\-\.]+)')
+
+FILTERS_AND = 'AND'
+FILTERS_OR = 'OR'
 
 
 class Error(Exception):
@@ -173,7 +177,7 @@ def initialize_task(messages):
   path = groupdict['path']
   bucket = groupdict['bucket']
   argument = f'{bucket}{path}'
-  command = 'postprocess'
+  command = 'uworker_postprocess'
   job_type = 'none'
   return Task(command, argument, job_type)
 
@@ -205,6 +209,82 @@ def get_regular_task(queue=None):
     # its execution.
     if not task.defer():
       return task
+
+
+# TODO(metzman): Use this function so that linux bots can execute preprocess and
+# postprocess of every utask.
+def get_utask_filters(is_chromium, is_linux):
+  """Returns a string containing filters for pubsub commands. If |is_chromium|
+  and |is_linux| the filters filter out all commands that are not the trusted
+  portions (preprocess and postprocess of utasks). The filter should be used to
+  read from non-linux queues so linux bots can do the trusted preprocess step of
+  non-linux utasks. Otherwise the filters should be used when reading from the
+  bot's "normal" queue to filter out these preprocess/postprocess steps."""
+  if not is_chromium:
+    # Execute all tasks on one machine outside of chrome for now.
+    return None
+
+  # Import here to avoid import errors on webapp.
+  from clusterfuzz._internal.bot.tasks import task_types
+
+  # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
+  # syntax.
+  utask_trusted_portions = task_types.get_utask_trusted_portions()
+  if is_linux:
+    pubsub_filters = [
+        f'attribute.name = {task}' for task in utask_trusted_portions
+    ]
+  else:
+    pubsub_filters = [
+        f'-attribute.name = {task}' for task in utask_trusted_portions
+    ]
+  pubsub_filter = FILTERS_AND.join(pubsub_filters)
+  return pubsub_filter
+
+
+def get_ttask_commands_queues():
+  """Get queues tworkers should be querying for ttask commands. (i.e. tworkers
+  on Linux will need to know about the Windows and Mac queues)."""
+
+
+def get_machine_template_for_queue(queue_name):
+  """Gets the machine template for the instance used to execute a task from
+  |queue_name|. This will be used by tworkers to schedule the appropriate
+  machine using batch to execute the utask_main part of a utask."""
+  initial_queue_name = queue_name
+
+  # Handle it being high-end (preemptible) or not.
+  if queue_name.startswith(JOBS_PREFIX):
+    is_high_end = False
+    prefix = JOBS_PREFIX
+  else:
+    assert queue_name.startswith(HIGH_END_JOBS_PREFIX)
+    is_high_end = True
+    prefix = HIGH_END_JOBS_PREFIX
+  # Add 1 for hyphen.
+  queue_name = queue_name[len(prefix) + 1:]
+
+  template_name = f'clusterfuzz-{queue_name}'
+  if not is_high_end:
+    template_name = f'{template_name}-pre'
+
+  templates = get_machine_templates()
+  for template in templates:
+    if template['name'] == template_name:
+      logs.log(
+          f'Found machine template for {initial_queue_name}',
+          machine_template=template)
+      return template
+  return None
+
+
+def get_machine_templates():
+  """Returns machine templates."""
+  # TODO(metzman): Cache this.
+  clusters_config = local_config.Config(local_config.GCE_CLUSTERS_PATH).get()
+  project = utils.get_application_id()
+  conf = clusters_config[project]
+  return conf['instance_templates']
 
 
 def get_task():

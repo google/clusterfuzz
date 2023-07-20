@@ -14,7 +14,6 @@
 """Fuzz task for handling fuzzing."""
 
 import collections
-from collections import namedtuple
 import datetime
 import itertools
 import os
@@ -63,7 +62,8 @@ from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 from clusterfuzz.stacktraces.__init__ import CrashInfo
 
-SelectionMethod = namedtuple('SelectionMethod', 'method_name probability')
+SelectionMethod = collections.namedtuple('SelectionMethod',
+                                         'method_name probability')
 
 DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
@@ -336,8 +336,11 @@ class CrashGroup:
     # condition among different machines. One machine might finish first and
     # prevent other machines from creating identical testcases.
     self.existing_testcase = data_handler.find_testcase(
-        context.project_name, crashes[0].crash_type, crashes[0].crash_state,
-        crashes[0].security_flag)
+        context.project_name,
+        crashes[0].crash_type,
+        crashes[0].crash_state,
+        crashes[0].security_flag,
+        fuzz_target=fully_qualified_fuzzer_name)
 
   def is_new(self):
     """Return true if there's no existing testcase."""
@@ -801,8 +804,7 @@ def upload_job_run_stats(fuzzer_name, job_type, revision, timestamp,
   # New format.
   job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,
                                 testcases_executed, new_crash_count,
-                                known_crash_count,
-                                convert_groups_to_crashes(groups))
+                                known_crash_count, groups)
   fuzzer_stats.upload_stats([job_run])
 
   _track_testcase_run_result(fuzzer_name, job_type, new_crash_count,
