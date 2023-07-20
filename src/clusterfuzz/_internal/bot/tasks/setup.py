@@ -195,11 +195,6 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
       uworker_output.uworker_input.job_type,
       wait_time=testcase_fail_wait)
 
-  testcase = data_handler.get_testcase_by_id(
-      uworker_output.uworker_input.testcase_id.testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       uworker_output.error_message)
-
 
 def handle_setup_testcase_error_invalid_fuzzer(
     uworker_output: uworker_io.UworkerOutput):
