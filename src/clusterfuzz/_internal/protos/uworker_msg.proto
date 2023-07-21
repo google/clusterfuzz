@@ -84,4 +84,5 @@ message Output {
   optional float crash_time = 7;
   optional string crash_stacktrace_output = 8;
   optional FuzzTaskOutput fuzz_task_output = 9;
+  optional string error_message = 10;
 }
