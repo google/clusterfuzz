@@ -17,7 +17,6 @@ from google.api import metric_pb2
 from google.api_core import exceptions
 from google.cloud import monitoring_v3
 
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import monitor
@@ -384,11 +383,13 @@ def setup_metrics(non_dry_run):
     if non_dry_run:
       print('Creating metric', descriptor)
       try:
-        client.create_metric_descriptor(project_path, descriptor)
+        client.create_metric_descriptor(
+            name=project_path, metric_descriptor=descriptor)
       except exceptions.AlreadyExists:
         client.delete_metric_descriptor(name=project_path +
-                                        '/metricDescriptors/' + descriptor.type)
-        client.create_metric_descriptor(project_path, descriptor)
+                                        '/metricDescriptors/' + name)
+        client.create_metric_descriptor(
+            name=project_path, metric_descriptor=descriptor)
     else:
       print('Skip creating metric', descriptor, '(dry-run mode)')
 
