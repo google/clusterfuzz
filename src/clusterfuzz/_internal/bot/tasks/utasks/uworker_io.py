@@ -231,7 +231,7 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   """Deserializes a proto representing a db entity."""
   # TODO(metzman): Add verification to ensure only the correct object is
   # retreived.
-  # Unserialize the entity part
+  # Unserialize the entity part.
   any_message = wrapped_entity_proto.entity
   entity = entity_pb2.Entity()
   any_message.Unpack(entity._pb)
