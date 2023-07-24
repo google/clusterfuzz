@@ -13,19 +13,23 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
-import collections
+from collections import abc
 import json
 import uuid
 
 from google.cloud import ndb
-from google.cloud.datastore_v1.proto import entity_pb2
+from google.cloud.datastore_v1.types import entity as entity_pb2
 from google.cloud.ndb import model
+from google.protobuf import any_pb2
 from google.protobuf import message
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
+
+# pylint: disable=no-member
+# pylint: disable=protected-access
 
 
 def generate_new_input_file_name():
@@ -124,9 +128,11 @@ def deserialize_proto_field(field_value, field_descriptor, is_input):
     field_value = deserialize_wrapped_entity(field_value)
   elif isinstance(field_value, uworker_msg_pb2.Json):
     field_value = json.loads(field_value.serialized)
-  elif isinstance(field_value, entity_pb2.Entity):
+  elif isinstance(field_value, uworker_msg_pb2.Entity):
     assert is_input
-    field_value = UworkerEntityWrapper(model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
+    entity = entity_pb2.Entity()
+    field_value.any_wrapper.Unpack(entity._pb)
+    field_value = UworkerEntityWrapper(model._entity_from_protobuf(entity))  # pylint: disable=protected-access
   elif field_descriptor is not None and (
       field_descriptor.label == field_descriptor.LABEL_REPEATED):
     initial_field_value = field_value
@@ -187,11 +193,11 @@ def serialize_uworker_output(uworker_output_obj):
 
 
 def serialize_wrapped_entity(wrapped_entity):
-  entity_proto = model._entity_to_protobuf(wrapped_entity._entity)  # pylint: disable=protected-access
-  changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))  # pylint: disable=protected-access
+  any_entity_message = entity_to_any_message(wrapped_entity._entity)
+  changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))
   changed = uworker_msg_pb2.Json(serialized=changed)
   wrapped_entity_proto = uworker_msg_pb2.UworkerEntityWrapper(
-      entity=entity_proto, changed=changed)
+      entity=any_entity_message, changed=changed)
   return wrapped_entity_proto
 
 
@@ -225,7 +231,11 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   """Deserializes a proto representing a db entity."""
   # TODO(metzman): Add verification to ensure only the correct object is
   # retreived.
-  changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
+  # Unserialize the entity part.
+  any_message = wrapped_entity_proto.entity
+  entity = entity_pb2.Entity()
+  any_message.Unpack(entity._pb)
+  changed_entity = model._entity_from_protobuf(entity)
   changes = json.loads(wrapped_entity_proto.changed.serialized)
   original_entity = changed_entity.key.get()
   if original_entity is None:  # Object is new.
@@ -242,6 +252,9 @@ def proto_to_deserialized_msg_object(serialized_msg_proto, is_input):
   contain real ndb models and other python objects, instead of only the python
   serialized versions."""
   deserialized_msg = DeserializedUworkerMsg()
+  # Use get_proto_fields, so we can be sure we never get an attribute error,
+  # trying to access a field in uworker_input, that would not give us an error
+  # if we accessed it in uworker_proto_input.
   for field_name, field_value, descriptor in get_proto_fields(
       serialized_msg_proto):
     field_value = deserialize_proto_field(field_value, descriptor, is_input)
@@ -408,8 +421,8 @@ class UworkerInput(UworkerMsg):
     if not isinstance(value, ndb.Model):
       raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
-    entity_proto = model._entity_to_protobuf(value)  # pylint: disable=protected-access
-    field.CopyFrom(entity_proto)
+    entity = db_entity_to_entity_message(value)
+    field.CopyFrom(entity)
 
 
 class UpdateFuzzerAndDataBundleInput(UworkerInput):
@@ -418,14 +431,14 @@ class UpdateFuzzerAndDataBundleInput(UworkerInput):
 
   def save_rich_type(self, attribute, value):
     field = getattr(self.proto, attribute)
-    if isinstance(field, collections.Sequence):
-      # This the way to tell if it's a repeated field.
-      # We can't get the type of the repeated field directly.
+    if isinstance(field, abc.Sequence):
+      # This the way to tell if it's a repeated field. We can't get the type of
+      # the repeated field directly.
       value = list(value)
       if len(value) == 0:
         return
       assert isinstance(value[0], ndb.Model), value[0]
-      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      field.extend([db_entity_to_entity_message(entity) for entity in value])  # pylint: disable=protected-access
       return
 
     super().save_rich_type(attribute, value)
@@ -438,3 +451,16 @@ class DeserializedUworkerMsg:
     self.error = error
     for key, value in kwargs.items():
       setattr(self, key, value)
+
+
+def db_entity_to_entity_message(entity):
+  any_entity_message = entity_to_any_message(entity)
+  entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)
+  return entity
+
+
+def entity_to_any_message(entity):
+  any_entity_message = any_pb2.Any()
+  entity_proto = model._entity_to_protobuf(entity)
+  any_entity_message.Pack(entity_proto._pb)
+  return any_entity_message

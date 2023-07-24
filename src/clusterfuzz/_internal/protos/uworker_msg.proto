@@ -14,21 +14,25 @@
 
 syntax = "proto3";
 
-import "google/cloud/datastore_v1/proto/entity.proto";
+import "google/protobuf/any.proto";
 
 message Json {
   string serialized = 1;
 }
 
+message Entity {
+  google.protobuf.Any any_wrapper = 1;
+}
+
 message UworkerEntityWrapper {
-  google.datastore.v1.Entity entity = 1;
+  google.protobuf.Any entity = 1;
   Json changed = 2;
 }
 
 message UpdateFuzzerAndDataBundlesInput {
-  optional google.datastore.v1.Entity fuzzer = 1;
+  optional Entity fuzzer = 1;
   optional string fuzzer_name = 2;
-  repeated google.datastore.v1.Entity data_bundles = 3;
+  repeated Entity data_bundles = 3;
   optional string fuzzer_log_upload_url = 4;
   optional string fuzzer_download_url = 5;
 }
@@ -36,15 +40,15 @@ message UpdateFuzzerAndDataBundlesInput {
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
-  optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+  optional Entity testcase = 1;
+  optional Entity testcase_upload_metadata = 2;
   optional string testcase_id = 3;
   optional Json uworker_env = 4;
   optional string testcase_download_url = 5;
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
-  optional google.datastore.v1.Entity variant = 8;
+  optional Entity variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
   optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;

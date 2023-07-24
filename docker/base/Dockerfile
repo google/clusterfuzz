@@ -93,11 +93,13 @@ RUN wget https://download.java.net/java/GA/jdk15.0.2/0d1cfde4252546c6931946de8db
     rm -rf openjdk*.tar.gz $JAVA_HOME/jmods $JAVA_HOME/lib/src.zip
 
 # Install Python 3.
-RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /tmp -xzv && \
-    cd /tmp/Python-3.7.7 && \
+RUN cd /tmp && \
+    curl -sS https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tar.xz -O && \
+    tar xf Python-3.11.4.tar.xz && \
+    cd /tmp/Python-3.11.4 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
-    rm -rf /tmp/Python-3.7.7
-RUN pip3.7 --no-cache-dir install pipenv==2022.8.5
+    rm -rf /tmp/Python-3.11.4 /tmp/Python-3.11.4.tar.xz
+RUN pip3.11 --no-cache-dir install pipenv==2022.8.5
 
 # Install Node.js
 COPY setup_19.x /data
@@ -125,7 +127,7 @@ ENV BOT_TMPDIR $INSTALL_DIRECTORY/tmp
 ENV ROOT_DIR $INSTALL_DIRECTORY/clusterfuzz
 ENV UPDATE_WEB_TESTS True
 ENV PYTHONPATH $INSTALL_DIRECTORY/clusterfuzz/src
-ENV RUN_CMD "python3.7 $ROOT_DIR/src/python/bot/startup/run.py"
+ENV RUN_CMD "python3.11 $ROOT_DIR/src/python/bot/startup/run.py"
 ENV DEPLOYMENT_ZIP "linux-3.zip"
 
 # Passwordless sudo (needed for AFL launcher).

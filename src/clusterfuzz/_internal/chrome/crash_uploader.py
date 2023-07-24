@@ -76,7 +76,7 @@ def post_with_retries(upload_url, params, files):
   return None
 
 
-class FileMetadataInfo(object):
+class FileMetadataInfo:
   """Handles file metadata for e.g. minidumps and processed reports."""
 
   def __init__(self, path=None, key=None, contents=None):
@@ -126,7 +126,7 @@ class FileMetadataInfo(object):
     return metadata_file
 
 
-class CrashReportInfo(object):
+class CrashReportInfo:
   """Stores the data collected from a run (via stacktrace or other) to be
      used in uploading to Chromecrash."""
 
@@ -544,8 +544,8 @@ def get_symbolized_stack_bytes(crash_type, crash_address, symbolized_stack):
     crash_address = 0xDEADBEEF
 
   # TODO(jchinlee): Add os[_info] and cpu[_info] in form crash/ expects.
-  process_state = process_state_pb2.ProcessStateProto(
-      crash=process_state_pb2.ProcessStateProto.Crash(
+  process_state = process_state_pb2.ProcessStateProto(  # pylint: disable=no-member
+      crash=process_state_pb2.ProcessStateProto.Crash(  # pylint: disable=no-member
           reason=crash_type,
           address=stack_parser.unsigned_to_signed(crash_address)),
       requesting_thread=0,

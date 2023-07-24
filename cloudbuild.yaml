@@ -27,19 +27,19 @@ steps:
     git -C tmp checkout -qf FETCH_HEAD
     mv tmp/.git .git
     rm -rf tmp
-- name: 'gcr.io/clusterfuzz-images/ci'
-  args: ['pipenv', 'sync', '--dev', '--python=3.7']
+- name: 'gcr.io/clusterfuzz-images/ci:5c8f37633ec2f2a1fcbadcb5c6d2711da5a671ad-202307162032'
+  args: ['pipenv', 'sync', '--dev', '--python=3.11']
   env:
     - PIPENV_VENV_IN_PROJECT=1
-- name: 'gcr.io/clusterfuzz-images/ci'
+- name: 'gcr.io/clusterfuzz-images/ci:5c8f37633ec2f2a1fcbadcb5c6d2711da5a671ad-202307162032'
   args: ['pipenv', 'run', 'setup']
   env:
     - PIPENV_VENV_IN_PROJECT=1
-- name: 'gcr.io/clusterfuzz-images/ci'
+- name: 'gcr.io/clusterfuzz-images/ci:5c8f37633ec2f2a1fcbadcb5c6d2711da5a671ad-202307162032'
   args: ['pipenv', 'run', 'python', 'butler.py', 'lint']
   env:
     - PIPENV_VENV_IN_PROJECT=1
-- name: 'gcr.io/clusterfuzz-images/ci'
+- name: 'gcr.io/clusterfuzz-images/ci:5c8f37633ec2f2a1fcbadcb5c6d2711da5a671ad-202307162032'
   args: ['pipenv', 'run', 'local/tests/run_all_tests']
   env:
     - TEST_BLOBS_BUCKET=clusterfuzz-ci-blobs

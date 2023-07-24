@@ -39,7 +39,7 @@ particular release using:
 ```bash
 git checkout tags/vX.Y.Z
 ```
-where X.Y.Z is the release version (for example, 1.0.1). 
+where X.Y.Z is the release version (for example, 1.0.1).
 
 ## Installing prerequisites
 
@@ -62,7 +62,7 @@ gcloud auth login
 [running ClusterFuzz locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
 ### Python programming language
-[Download Python 3.7](https://www.python.org/downloads/release/python-377/),
+[Download Python 3.11](https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tar.xz),
 then install it. If you have Python installed already, you can verify its
 version by running `python --version`.
 

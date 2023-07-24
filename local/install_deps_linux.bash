@@ -25,7 +25,9 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$PYTHON" ]; then
-  if which python3.10 > /dev/null; then
+  if which python3.11 > /dev/null; then
+    export PYTHON='python3.11'
+  elif which python3.10 > /dev/null; then
     export PYTHON='python3.10'
   elif which python3.9 > /dev/null; then
     export PYTHON='python3.9'
@@ -112,7 +114,8 @@ sudo apt-get install -y \
     docker-ce \
     google-cloud-sdk \
     openjdk-11-jdk \
-    liblzma-dev
+    liblzma-dev \
+    pipenv
 
 # Install patchelf - latest version not available on some older distros so we
 # compile from source.

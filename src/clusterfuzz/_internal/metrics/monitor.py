@@ -29,6 +29,9 @@ try:
 except (ImportError, RuntimeError):
   monitoring_v3 = None
 
+from google.api import label_pb2
+from google.api import metric_pb2
+from google.api import monitored_resource_pb2
 from google.api_core import exceptions
 from google.api_core import retry
 
@@ -81,7 +84,7 @@ class _FlusherThread(threading.Thread):
   def run(self):
     """Run the flusher thread."""
     create_time_series = _retry_wrap(_monitoring_v3_client.create_time_series)
-    project_path = _monitoring_v3_client.project_path(
+    project_path = _monitoring_v3_client.common_project_path(
         utils.get_application_id())
 
     while True:
@@ -92,8 +95,8 @@ class _FlusherThread(threading.Thread):
         time_series = []
         end_time = time.time()
         for metric, labels, start_time, value in _metrics_store.iter_values():
-          if (metric.metric_kind ==
-              monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE):
+          if (metric.metric_kind == metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
+             ):
             start_time = end_time
 
           series = monitoring_v3.types.TimeSeries()  # pylint: disable=no-member
@@ -193,7 +196,7 @@ class StringField(_Field):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.LabelDescriptor.ValueType.STRING
+    return label_pb2.LabelDescriptor.ValueType.STRING  # pylint: disable=no-member
 
 
 class BooleanField(_Field):
@@ -201,7 +204,7 @@ class BooleanField(_Field):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.LabelDescriptor.ValueType.BOOL
+    return label_pb2.LabelDescriptor.ValueType.BOOL  # pylint: disable=no-member
 
 
 class IntegerField(_Field):
@@ -209,7 +212,7 @@ class IntegerField(_Field):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.LabelDescriptor.ValueType.INT64
+    return label_pb2.LabelDescriptor.ValueType.INT64  # pylint: disable=no-member
 
 
 class Metric(object):
@@ -294,11 +297,11 @@ class _CounterMetric(Metric):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64
+    return metric_pb2.MetricDescriptor.ValueType.INT64  # pylint: disable=no-member
 
   @property
   def metric_kind(self):
-    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE
+    return metric_pb2.MetricDescriptor.MetricKind.CUMULATIVE  # pylint: disable=no-member
 
   @property
   def default_value(self):
@@ -320,11 +323,11 @@ class _GaugeMetric(Metric):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.MetricDescriptor.ValueType.INT64
+    return metric_pb2.MetricDescriptor.ValueType.INT64  # pylint: disable=no-member
 
   @property
   def metric_kind(self):
-    return monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE
+    return metric_pb2.MetricDescriptor.MetricKind.GAUGE  # pylint: disable=no-member
 
   @property
   def default_value(self):
@@ -436,11 +439,11 @@ class _CumulativeDistributionMetric(Metric):
 
   @property
   def value_type(self):
-    return monitoring_v3.enums.MetricDescriptor.ValueType.DISTRIBUTION
+    return metric_pb2.MetricDescriptor.ValueType.DISTRIBUTION  # pylint: disable=no-member
 
   @property
   def metric_kind(self):
-    return monitoring_v3.enums.MetricDescriptor.MetricKind.CUMULATIVE
+    return metric_pb2.MetricDescriptor.MetricKind.CUMULATIVE  # pylint: disable=no-member
 
   @property
   def default_value(self):
@@ -492,25 +495,25 @@ def stub_unavailable(module):
 def _initialize_monitored_resource():
   """Monitored resources."""
   global _monitored_resource
-  _monitored_resource = monitoring_v3.types.MonitoredResource()  # pylint: disable=no-member
+  _monitored_resource = monitored_resource_pb2.MonitoredResource()  # pylint: disable=no-member
 
   # TODO(ochang): Use generic_node when that is available.
   _monitored_resource.type = 'gce_instance'
 
   # The project ID must be the same as the one we write metrics to, not the ID
   # where the instance lives.
-  _monitored_resource.labels['project_id'] = utils.get_application_id()
+  _monitored_resource.labels['project_id'] = utils.get_application_id()  # pylint: disable=no-member
 
   # Use bot name here instance as that's more useful to us.
-  _monitored_resource.labels['instance_id'] = environment.get_value('BOT_NAME')
+  _monitored_resource.labels['instance_id'] = environment.get_value('BOT_NAME')  # pylint: disable=no-member
 
   if compute_metadata.is_gce():
     # Returned in the form projects/{id}/zones/{zone}
     zone = compute_metadata.get('instance/zone').split('/')[-1]
-    _monitored_resource.labels['zone'] = zone
+    _monitored_resource.labels['zone'] = zone  # pylint: disable=no-member
   else:
     # Default zone for instances not on GCE.
-    _monitored_resource.labels['zone'] = 'us-central1-f'
+    _monitored_resource.labels['zone'] = 'us-central1-f'  # pylint: disable=no-member
 
 
 def _time_to_timestamp(timestamp, time_seconds):
