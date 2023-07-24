@@ -13,7 +13,7 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
-import collections
+from collections import abc
 import json
 import uuid
 
@@ -128,7 +128,7 @@ def deserialize_proto_field(field_value, field_descriptor, is_input):
     field_value = deserialize_wrapped_entity(field_value)
   elif isinstance(field_value, uworker_msg_pb2.Json):
     field_value = json.loads(field_value.serialized)
-  elif isinstance(field_value, entity_pb2.Entity):
+  elif isinstance(field_value, uworker_msg_pb2.Entity):
     assert is_input
     entity = entity_pb2.Entity()
     field_value.any_wrapper.Unpack(entity._pb)
@@ -193,9 +193,7 @@ def serialize_uworker_output(uworker_output_obj):
 
 
 def serialize_wrapped_entity(wrapped_entity):
-  entity_proto = model._entity_to_protobuf(wrapped_entity._entity)
-  any_entity_message = any_pb2.Any()
-  any_entity_message.Pack(entity_proto._pb)
+  any_entity_message = entity_to_any_message(wrapped_entity._entity)
   changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))
   changed = uworker_msg_pb2.Json(serialized=changed)
   wrapped_entity_proto = uworker_msg_pb2.UworkerEntityWrapper(
@@ -423,10 +421,7 @@ class UworkerInput(UworkerMsg):
     if not isinstance(value, ndb.Model):
       raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
-    entity_proto = model._entity_to_protobuf(value)  # pylint: disable=protected-access
-    any_entity_message = any_pb2.Any()
-    any_entity_message.Pack(entity_proto._pb)
-    entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)
+    entity = db_entity_to_entity_message(value)
     field.CopyFrom(entity)
 
 
@@ -436,14 +431,14 @@ class UpdateFuzzerAndDataBundleInput(UworkerInput):
 
   def save_rich_type(self, attribute, value):
     field = getattr(self.proto, attribute)
-    if isinstance(field, collections.Sequence):
-      # This the way to tell if it's a repeated field.
-      # We can't get the type of the repeated field directly.
+    if isinstance(field, abc.Sequence):
+      # This the way to tell if it's a repeated field. We can't get the type of
+      # the repeated field directly.
       value = list(value)
       if len(value) == 0:
         return
       assert isinstance(value[0], ndb.Model), value[0]
-      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      field.extend([db_entity_to_entity_message(entity) for entity in value])  # pylint: disable=protected-access
       return
 
     super().save_rich_type(attribute, value)
@@ -456,3 +451,16 @@ class DeserializedUworkerMsg:
     self.error = error
     for key, value in kwargs.items():
       setattr(self, key, value)
+
+
+def db_entity_to_entity_message(entity):
+  any_entity_message = entity_to_any_message(entity)
+  entity = uworker_msg_pb2.Entity(any_wrapper=any_entity_message)
+  return entity
+
+
+def entity_to_any_message(entity):
+  any_entity_message = any_pb2.Any()
+  entity_proto = model._entity_to_protobuf(entity)
+  any_entity_message.Pack(entity_proto._pb)
+  return any_entity_message
