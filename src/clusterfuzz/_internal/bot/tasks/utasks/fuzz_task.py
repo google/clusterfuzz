@@ -14,7 +14,6 @@
 """Fuzz task for handling fuzzing."""
 
 import collections
-from collections import namedtuple
 import datetime
 import itertools
 import os
@@ -63,7 +62,8 @@ from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
 from clusterfuzz.stacktraces.__init__ import CrashInfo
 
-SelectionMethod = namedtuple('SelectionMethod', 'method_name probability')
+SelectionMethod = collections.namedtuple('SelectionMethod',
+                                         'method_name probability')
 
 DEFAULT_CHOOSE_PROBABILITY = 9  # 10%
 FUZZER_METADATA_REGEX = re.compile(r'metadata::(\w+):\s*(.*)')
@@ -336,8 +336,11 @@ class CrashGroup:
     # condition among different machines. One machine might finish first and
     # prevent other machines from creating identical testcases.
     self.existing_testcase = data_handler.find_testcase(
-        context.project_name, crashes[0].crash_type, crashes[0].crash_state,
-        crashes[0].security_flag)
+        context.project_name,
+        crashes[0].crash_type,
+        crashes[0].crash_state,
+        crashes[0].security_flag,
+        fuzz_target=fully_qualified_fuzzer_name)
 
   def is_new(self):
     """Return true if there's no existing testcase."""
@@ -1756,7 +1759,12 @@ class FuzzingSession:
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    self.fuzzer = setup.update_fuzzer_and_data_bundles(self.fuzzer_name)
+    # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
+    # preprocess.
+    update_fuzzer_and_data_bundles_input = (
+        setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
+    self.fuzzer = setup.update_fuzzer_and_data_bundles(
+        update_fuzzer_and_data_bundles_input)
     if not self.fuzzer:
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.FUZZER_SETUP_FAILED)

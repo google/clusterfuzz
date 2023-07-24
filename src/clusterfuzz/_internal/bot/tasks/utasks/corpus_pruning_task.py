@@ -726,7 +726,11 @@ def _process_corpus_crashes(context, result):
   # Generate crash reports.
   for crash in result.crashes:
     existing_testcase = data_handler.find_testcase(
-        project_name, crash.crash_type, crash.crash_state, crash.security_flag)
+        project_name,
+        crash.crash_type,
+        crash.crash_state,
+        crash.security_flag,
+        fuzz_target=context.fuzz_target.project_qualified_name())
     if existing_testcase:
       continue
 
@@ -892,7 +896,12 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput()
 
   # Setup fuzzer and data bundle.
-  if not setup.update_fuzzer_and_data_bundles(fuzz_target.engine):
+  # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
+  # preprocess.
+  update_fuzzer_and_data_bundles_input = (
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
+  if not setup.update_fuzzer_and_data_bundles(
+      update_fuzzer_and_data_bundles_input):
     raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.

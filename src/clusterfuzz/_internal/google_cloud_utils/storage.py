@@ -384,7 +384,8 @@ class GcsProvider(StorageProvider):
     function='google_cloud_utils.storage._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
-  if environment.get_value('UTASK_TESTS'):
+  if environment.get_value('UTASK_TESTS') or environment.get_value(
+      'UNTRUSTED_RUNNER_TESTS'):
     return remote_path
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)

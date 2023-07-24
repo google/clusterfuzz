@@ -22,6 +22,7 @@ import time
 
 from google.cloud import ndb
 
+from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
@@ -124,16 +125,37 @@ def find_testcase(project_name,
                   crash_type,
                   crash_state,
                   security_flag,
-                  testcase_to_exclude=None):
+                  testcase_to_exclude=None,
+                  fuzz_target=None):
   """Find an open test case matching certain parameters."""
   # Prepare the query.
-  query = data_types.Testcase.query(
+  query_args = [
       data_types.Testcase.project_name == project_name,
       data_types.Testcase.crash_type == crash_type,
       data_types.Testcase.crash_state == crash_state,
       data_types.Testcase.security_flag == security_flag,
       data_types.Testcase.status == 'Processed',
-      ndb_utils.is_true(data_types.Testcase.open))
+      ndb_utils.is_true(data_types.Testcase.open)
+  ]
+  if fuzz_target and environment.get_value('DEDUP_ONLY_SAME_TARGET'):
+    culprit_engine = None
+    target_without_engine = None
+    for engine in fuzzing.PUBLIC_ENGINES:
+      if fuzz_target.startswith(f'{engine}_'):
+        culprit_engine = engine
+        target_without_engine = fuzz_target[len(culprit_engine) + 1:]
+        break
+      target_with_different_engines = []
+      assert culprit_engine
+
+    target_with_different_engines = [
+        f'{engine}_{target_without_engine}' for engine in fuzzing.PUBLIC_ENGINES
+    ]
+    query_args.append(
+        data_types.Testcase.overridden_fuzzer_name.IN(
+            target_with_different_engines))
+
+  query = data_types.Testcase.query(*query_args)
 
   # Return any open (not fixed) test cases if they exist.
   testcases = ndb_utils.get_all_from_query(query)
@@ -607,7 +629,8 @@ def handle_duplicate_entry(testcase):
       testcase.crash_type,
       testcase.crash_state,
       testcase.security_flag,
-      testcase_to_exclude=testcase)
+      testcase_to_exclude=testcase,
+      fuzz_target=testcase.fuzzer_name)
   if not existing_testcase:
     return
 

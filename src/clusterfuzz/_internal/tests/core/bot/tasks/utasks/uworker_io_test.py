@@ -346,6 +346,24 @@ class RoundTripTest(unittest.TestCase):
     processed_output = uworker_io.deserialize_uworker_output(serialized)
     self.assertEqual(processed_output.test_timeout, test_timeout)
 
+  def test_update_fuzzer_and_data_bundle_input(self):
+    """Tests that we can serialize and deserialize
+    update_fuzzer_and_data_bundle_input."""
+    bundle1 = data_types.DataBundle(name='name1')
+    bundle2 = data_types.DataBundle(name='name2')
+    bundle1.put()
+    bundle2.put()
+    data_bundles = [bundle1, bundle2]
+    update_input = uworker_io.UpdateFuzzerAndDataBundleInput(
+        data_bundles=data_bundles)
+    uworker_input = uworker_io.UworkerInput(
+        update_fuzzer_and_data_bundles_input=update_input)
+    serialized = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(serialized)
+    update_input = deserialized.update_fuzzer_and_data_bundles_input
+    self.assertEqual(update_input.data_bundles[0].name, bundle1.name)
+    self.assertEqual(update_input.data_bundles[1].name, bundle2.name)
+
   def test_submessage_serialization_and_deserialization(self):
     """Tests that output messages with submessages are serialized and
     deserialized properly."""
