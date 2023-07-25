@@ -433,6 +433,8 @@ def _clear_old_data_bundles_if_needed():
 def update_data_bundle(update_input, data_bundle):
   """Updates a data bundle to the latest version."""
   # TODO(metzman): Migrate this functionality to utask.
+
+  logs.info('Setting up data bundle %s.' % data_bundle)
   # This module can't be in the global imports due to appengine issues
   # with multiprocessing and psutil imports.
   from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -538,6 +540,7 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
   update_input.data_bundles = ndb_utils.get_all_from_query(
       data_types.DataBundle.query(
           data_types.DataBundle.name == update_input.fuzzer.data_bundle_name))
+  logs.log('Data bundles: %s' % update_input.data_bundles)
 
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
@@ -613,6 +616,7 @@ def _update_fuzzer(update_input, fuzzer_directory, version_file):
 def _set_up_data_bundles(update_input):
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
+  logs.info('Setting up data bundles.')
   for data_bundle in update_input.data_bundles:
     if not update_data_bundle(update_input, data_bundle):
       return False
