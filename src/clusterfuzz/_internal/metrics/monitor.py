@@ -286,7 +286,7 @@ class Metric:
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    iinterval = monitoring_v3.types.TimeInterval()
+    interval = monitoring_v3.types.TimeInterval()
     point = monitoring_v3.types.Point(interval=interval)
     time_series.points.append(point)
     _time_to_timestamp(point.interval, 'start_time', start_time)
@@ -523,7 +523,7 @@ def _time_to_timestamp(interval, attr, time_seconds):
   """Convert result of time.time() to Timestamp."""
   seconds = int(time_seconds)
   nanos = int((time_seconds - seconds) * 10**9)
-  timestamp = timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)
+  timestamp = timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)  # pylint: disable=no-member
   setattr(interval, attr, timestamp)
 
 
