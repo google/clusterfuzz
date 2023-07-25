@@ -248,7 +248,12 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
-      extracted_path = zip_archive.extract(filepath, output_directory)
+      try:
+        extracted_path = zip_archive.extract(filepath, output_directory)
+      except PermissionError:
+        # Deal with write-protected files in protobuf package.
+        os.remove(absolute_filepath)
+        extracted_path = zip_archive.extract(filepath, output_directory)
       external_attr = zip_archive.getinfo(filepath).external_attr
       mode = (external_attr >> 16) & 0o777
       mode |= 0o440
