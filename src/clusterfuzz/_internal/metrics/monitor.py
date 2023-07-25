@@ -108,11 +108,11 @@ class _FlusherThread(threading.Thread):
           time_series.append(series)
 
           if len(time_series) == MAX_TIME_SERIES_PER_CALL:
-            create_time_series(project_path, time_series)
+            create_time_series(name=project_path, time_series=time_series)
             time_series = []
 
         if time_series:
-          create_time_series(project_path, time_series)
+          create_time_series(name=project_path, time_series=time_series)
       except Exception:
         logs.log_error('Failed to flush metrics.')
 
