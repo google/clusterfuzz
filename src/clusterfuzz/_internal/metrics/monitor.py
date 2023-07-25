@@ -34,6 +34,7 @@ from google.api import metric_pb2
 from google.api import monitored_resource_pb2
 from google.api_core import exceptions
 from google.api_core import retry
+from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
@@ -63,7 +64,7 @@ _retry_wrap = retry.Retry(
     deadline=RETRY_DEADLINE_SECONDS)
 
 
-class _MockMetric(object):
+class _MockMetric:
   """Mock metric object, used for when monitoring isn't available."""
 
   def _mock_method(self, *args, **kwargs):  # pylint: disable=unused-argument
@@ -77,7 +78,7 @@ class _FlusherThread(threading.Thread):
   """Flusher thread."""
 
   def __init__(self):
-    super(_FlusherThread, self).__init__()
+    super().__init__()
     self.daemon = True
     self.stop_event = threading.Event()
 
@@ -100,6 +101,8 @@ class _FlusherThread(threading.Thread):
             start_time = end_time
 
           series = monitoring_v3.types.TimeSeries()  # pylint: disable=no-member
+          logs.log(f'monitor iter: {metric}, {start_time}, {self}, '
+                   f'{metric.metric_kind}, {end_time}')
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           time_series.append(series)
@@ -122,7 +125,7 @@ _StoreValue = collections.namedtuple(
     '_StoreValue', ['metric', 'labels', 'start_time', 'value'])
 
 
-class _MetricsStore(object):
+class _MetricsStore:
   """In-process metrics store."""
 
   def __init__(self):
@@ -140,8 +143,7 @@ class _MetricsStore(object):
 
   def iter_values(self):
     with self._lock:
-      for value in self._store.values():
-        yield value
+      yield from self._store.values()
 
   def get(self, metric, labels):
     """Get the stored value for the metric."""
@@ -180,7 +182,7 @@ class _MetricsStore(object):
       self._store.clear()
 
 
-class _Field(object):
+class _Field:
   """_Field is the base class used for field specs."""
 
   def __init__(self, name):
@@ -215,7 +217,7 @@ class IntegerField(_Field):
     return label_pb2.LabelDescriptor.ValueType.INT64  # pylint: disable=no-member
 
 
-class Metric(object):
+class Metric:
   """Base metric class."""
 
   def __init__(self, name, description, field_spec):
@@ -284,10 +286,14 @@ class Metric(object):
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    point = monitoring_v3.types.Point()
+    start_timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
+    end_timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
+    interval = monitoring_v3.types.TimeInterval(
+        start_time=start_timestamp, end_time=end_timestamp)
+    point = monitoring_v3.types.Point(interval=interval)
     time_series.points.append(point)
-    _time_to_timestamp(point.interval.start_time, start_time)
-    _time_to_timestamp(point.interval.end_time, end_time)
+    _time_to_timestamp(point.interval.start_time, start_time)  # pylint: disable=no-member
+    _time_to_timestamp(point.interval.end_time, end_time)  # pylint: disable=no-member
     self._set_value(point.value, value)
 
     return time_series
@@ -342,7 +348,7 @@ class _GaugeMetric(Metric):
     point.int64_value = value
 
 
-class _Bucketer(object):
+class _Bucketer:
   """Bucketer."""
 
   def __init__(self):
@@ -387,7 +393,7 @@ class GeometricBucketer(_Bucketer):
         [scale * growth_factor**i for i in range(num_finite_buckets + 1)])
 
 
-class _Distribution(object):
+class _Distribution:
   """Holds a distribution."""
 
   def __init__(self, bucketer):
@@ -434,8 +440,7 @@ class _CumulativeDistributionMetric(Metric):
   """Cumulative distribution metric."""
 
   def __init__(self, name, description, bucketer, field_spec=None):
-    super(_CumulativeDistributionMetric, self).__init__(
-        name, description=description, field_spec=field_spec)
+    super().__init__(name, description=description, field_spec=field_spec)
     self.bucketer = bucketer
 
   @property
