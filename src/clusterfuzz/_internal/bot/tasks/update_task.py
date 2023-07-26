@@ -16,6 +16,7 @@
 import datetime
 import os
 import platform
+import stat
 import sys
 import time
 import zipfile
@@ -202,9 +203,14 @@ def update_source_code():
     logs.log_error('Could not retrieve source code archive from url.')
     return
 
+  unzip_source(temp_archive, root_directory)
+
+
+def unzip_source(archive_path, root_directory):
+  """Unpacks source code from |archive_path| to |root_directory|."""
   try:
-    file_list = archive.get_file_list(temp_archive)
-    zip_archive = zipfile.ZipFile(temp_archive, 'r')
+    file_list = archive.get_file_list(archive_path)
+    zip_archive = zipfile.ZipFile(archive_path, 'r')
   except Exception:
     logs.log_error('Bad zip file.')
     return
@@ -246,18 +252,15 @@ def update_source_code():
     except Exception:
       logs.log_error('Failed to remove or move %s before extracting new '
                      'version.' % absolute_filepath)
-
     try:
-      try:
-        extracted_path = zip_archive.extract(filepath, output_directory)
-      except PermissionError:
-        # Deal with write-protected files in protobuf package.
-        os.remove(absolute_filepath)
-        extracted_path = zip_archive.extract(filepath, output_directory)
-        logs.log(f'Backup extraction {filepath} {output_directory}')
+      extracted_path = zip_archive.extract(filepath, output_directory)
       external_attr = zip_archive.getinfo(filepath).external_attr
       mode = (external_attr >> 16) & 0o777
       mode |= 0o440
+      # Deal with protobuf including write-protected files. Otherwise we will
+      # never be able to update source on this container/instance again and will
+      # need to junk it and create a new one.
+      mode |= stat.S_IWRITE
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True
