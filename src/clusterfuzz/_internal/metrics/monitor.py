@@ -45,7 +45,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 CUSTOM_METRIC_PREFIX = 'custom.googleapis.com/'
-FLUSH_INTERVAL_SECONDS = 10 * 60  # 10 minutes.
+FLUSH_INTERVAL_SECONDS = 10
 RETRY_DEADLINE_SECONDS = 5 * 60  # 5 minutes.
 INITIAL_DELAY_SECONDS = 16
 MAXIMUM_DELAY_SECONDS = 2 * 60  # 2 minutes.
@@ -84,7 +84,7 @@ class _FlusherThread(threading.Thread):
 
   def run(self):
     """Run the flusher thread."""
-    create_time_series = _retry_wrap(_monitoring_v3_client.create_time_series)
+    create_time_series = _monitoring_v3_client.create_time_series
     project_path = _monitoring_v3_client.common_project_path(
         utils.get_application_id())
 
@@ -114,6 +114,7 @@ class _FlusherThread(threading.Thread):
         if time_series:
           create_time_series(name=project_path, time_series=time_series)
       except Exception:
+        print('Failed')
         logs.log_error('Failed to flush metrics.')
 
   def stop(self):
@@ -288,11 +289,13 @@ class Metric:
 
     interval = monitoring_v3.types.TimeInterval()
     point = monitoring_v3.types.Point(interval=interval)
-    time_series.points.append(point)
+
     _time_to_timestamp(point.interval, 'start_time', start_time)
     _time_to_timestamp(point.interval, 'end_time', end_time)
     self._set_value(point.value, value)
-
+    # Need to do this after setting interval because the values are copied to
+    # time_series.
+    time_series.points.append(point)
     return time_series
 
 
