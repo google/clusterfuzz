@@ -84,7 +84,7 @@ class _FlusherThread(threading.Thread):
 
   def run(self):
     """Run the flusher thread."""
-    create_time_series = _monitoring_v3_client.create_time_series
+    create_time_series = _retry_wrap(_monitoring_v3_client.create_time_series)
     project_path = _monitoring_v3_client.common_project_path(
         utils.get_application_id())
 
@@ -114,7 +114,6 @@ class _FlusherThread(threading.Thread):
         if time_series:
           create_time_series(name=project_path, time_series=time_series)
       except Exception:
-        print('Failed')
         logs.log_error('Failed to flush metrics.')
 
   def stop(self):
