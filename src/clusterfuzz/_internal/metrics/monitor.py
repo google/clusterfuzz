@@ -45,7 +45,7 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 CUSTOM_METRIC_PREFIX = 'custom.googleapis.com/'
-FLUSH_INTERVAL_SECONDS = 10
+FLUSH_INTERVAL_SECONDS = 10 * 60  # 10 minutes
 RETRY_DEADLINE_SECONDS = 5 * 60  # 5 minutes.
 INITIAL_DELAY_SECONDS = 16
 MAXIMUM_DELAY_SECONDS = 2 * 60  # 2 minutes.
