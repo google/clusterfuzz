@@ -207,6 +207,7 @@ def update_source_code():
 
 
 def unzip_source(archive_path, root_directory):
+  """Unpacks source code from |archive_path| to |root_directory|."""
   try:
     file_list = archive.get_file_list(archive_path)
     zip_archive = zipfile.ZipFile(archive_path, 'r')
@@ -256,7 +257,10 @@ def unzip_source(archive_path, root_directory):
       external_attr = zip_archive.getinfo(filepath).external_attr
       mode = (external_attr >> 16) & 0o777
       mode |= 0o440
-      mode |=  stat.S_IWRITE
+      # Deal with protobuf including write-protected files. Otherwise we will
+      # never be able to update source on this container/instance again and will
+      # need to junk it and create a new one.
+      mode |= stat.S_IWRITE
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True
