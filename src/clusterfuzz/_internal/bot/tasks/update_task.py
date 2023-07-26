@@ -252,13 +252,7 @@ def unzip_source(archive_path, root_directory):
       logs.log_error('Failed to remove or move %s before extracting new '
                      'version.' % absolute_filepath)
     try:
-      try:
-        extracted_path = zip_archive.extract(filepath, output_directory)
-      except PermissionError:
-        # Add an extra line for debugging.
-        os.remove(absolute_filepath)
-        extracted_path = zip_archive.extract(filepath, output_directory)
-        logs.log(f'Backup extraction {filepath} {output_directory}')
+      extracted_path = zip_archive.extract(filepath, output_directory)
       external_attr = zip_archive.getinfo(filepath).external_attr
       mode = (external_attr >> 16) & 0o777
       mode |= 0o440
