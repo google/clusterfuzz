@@ -38,7 +38,15 @@ def _add_to_zip(output_file, src_file_path, dest_file_path=None):
   """Add the src_file_path to the output_file with the right target path."""
   if dest_file_path is None:
     dest_file_path = src_file_path
-  output_file.write(src_file_path, os.path.join('clusterfuzz', dest_file_path))
+  zip_info = zipfile.ZipInfo.from_file(
+      src_file_path, os.path.join('clusterfuzz', dest_file_path))
+
+  # Make every file owner/group writeable.
+  zip_info.external_attr |= 0o220 << 16
+
+  with open(src_file_path, 'rb') as fp:
+    data = fp.read()
+  output_file.writestr(zip_info, data)
 
 
 def _is_nodejs_up_to_date():
