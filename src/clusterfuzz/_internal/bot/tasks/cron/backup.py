@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Run the backup cron task."""
+"""Task that triggers the backup URL. We need this task because
+  https://cloud.google.com/appengine/articles/scheduled_backups doesn't support
+  backing up all entities. Therefore, we have to get all entities here and
+  send them to the backup URL."""
 
 import datetime
 
@@ -27,19 +30,18 @@ from clusterfuzz._internal.metrics import logs
 # can be rebuilt from BigQuery dataset.
 EXCLUDED_MODELS = {'CrashStatistic', 'CrashStatisticJobHistory'}
 
-
 def _datastore_client():
-  """Return an api client for datastore."""
+  """Returns an api client for datastore."""
   return discovery.build('datastore', 'v1')
 
 
 def main():
-  """Handle a cron job."""
+  """Backups all entities in a datastore bucket."""
   backup_bucket = local_config.Config(
       local_config.PROJECT_PATH).get('backup.bucket')
   if not backup_bucket:
-    logs.log('No backup bucket is set, skipping.')
-    return 'OK'
+    logs.log_error('No backup bucket is set, skipping.')
+    return 1
 
   kinds = [
       kind for kind in ndb.Model._kind_map  # pylint: disable=protected-access
@@ -49,8 +51,7 @@ def main():
   app_id = utils.get_application_id()
   timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
   output_url_prefix = (
-      'gs://testing-{backup_bucket}/datastore-backups/{timestamp}'.format(
-          backup_bucket=backup_bucket, timestamp=timestamp))
+      f'gs://testing-{backup_bucket}/datastore-backups/{timestamp}')
 
   body = {
       'output_url_prefix': output_url_prefix,
@@ -62,17 +63,11 @@ def main():
   try:
     request = _datastore_client().projects().export(projectId=app_id, body=body)
     response = request.execute()
-
     message = 'Datastore export succeeded.'
-    status_code = 200
     logs.log(message, response=response)
+    return 0
   except errors.HttpError as e:
-    message = 'Datastore export failed.'
     status_code = e.resp.status
-    logs.log_error(message, error=str(e))
-
-  return (message, status_code, {'Content-Type': 'text/plain'})
-
-
-if __name__ == '__main__':
-  main()
+    message = f'Datastore export failed. Status code: {status_code}'
+    logs.log_error(message)
+    return 1

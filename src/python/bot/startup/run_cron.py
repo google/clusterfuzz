@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Start the cron scripts."""
+"""Starts the cron scripts."""
 
 # Before any other imports, we must fix the path. Some libraries might expect
 # to be able to import dependencies directly, but we must store these in
@@ -20,8 +20,7 @@ from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
-import os
-import subprocess
+import importlib
 import sys
 
 from clusterfuzz._internal.config import local_config
@@ -30,8 +29,8 @@ from clusterfuzz._internal.system import environment
 
 CRON_TASKS = ['backup']
 
-
 def main():
+  """Runs the cron jobs"""
   root_directory = environment.get_value('ROOT_DIR')
   local_config.ProjectConfig().set_environment()
 
@@ -39,18 +38,19 @@ def main():
     print('Please set ROOT_DIR environment variable to the root of the source '
           'checkout before running. Exiting.')
     print('For an example, check init.bash in the local directory.')
-    return
-  cron_tasks_directory = os.path.join(root_directory, 'src', 'clusterfuzz',
-                                      '_internal', 'bot', 'tasks', 'cron')
+    return 1
+
   task = sys.argv[1]
-
   if task not in CRON_TASKS:
-    return
+    print('Invalid task name. '
+          f'Please enter one of the following tasks: {CRON_TASKS}')
+    return 1
 
-  task_path = os.path.join(cron_tasks_directory, f'{task}.py')
-  subprocess.run(['python3.11', task_path], check=False)
+  task_module_name = f'clusterfuzz._internal.bot.tasks.cron.{task}'
+  task_module = importlib.import_module(task_module_name)
+  return task_module.main()
 
 
 if __name__ == '__main__':
   with ndb_init.context():
-    main()
+    sys.exit(main())
