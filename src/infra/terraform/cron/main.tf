@@ -11,43 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-variable "project_id" {
-  description = "The project id"
-}
-
-variable "bucket_name" {
-  description = "The bucket name"
-}
-
-variable "region" {
-  description = "The region"
-}
-
-variable "subnet_name" {
-  description = "The compute subnetwork name"
-}
-
-variable "network_name" {
-  description = "The network name"
-}
-
-variable "gke_num_nodes" {
-  default     = 2
-  description = "The number of gke nodes"
-}
-
-variable "machine_type" {
-  default     = "e2-standard-2"
-  description = "The machine type"
-}
-
-variable "ip_cidr_range" {
-  default     = "10.128.0.0/16"
-  description = "The IP CIDR range"
-}
-
-
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -65,9 +28,9 @@ resource "google_compute_network" "vpc" {
 
 # Gets the existing subnet
 resource "google_compute_subnetwork" "subnet" {
-  name    = var.subnet_name
+  name          = var.subnet_name
   region        = var.region
-  network = var.network_name
+  network       = var.network_name
   ip_cidr_range = var.ip_cidr_range
 
   lifecycle {

@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+variable "project_id" {
+  description = "The project id"
+}
 
-# Checks if the user has provided at least two arguments
-if [ $# -lt 2 ]; then
-  echo "Usage: $0 PROJECT_ID BUCKET_NAME [BUCKET_LOCATION]"
-  exit 1
-fi
+variable "bucket_name" {
+  description = "The bucket name"
+}
 
-export TF_VAR_project_id=$1
-export TF_VAR_bucket_name=$2
-# Gets the bucket location, if provided. Default: us-east1
-export TF_VAR_bucket_location=${3:-us-central1}
+variable "region" {
+  description = "The region"
+}
 
-terraform init
-terraform plan
-terraform apply
+variable "subnet_name" {
+  description = "The compute subnetwork name"
+}
+
+variable "network_name" {
+  description = "The network name"
+}
+
+variable "ip_cidr_range" {
+  description = "The IP CIDR range"
+}
+
+variable "gke_num_nodes" {
+  default     = 2
+  description = "The number of gke nodes"
+}
+
+variable "machine_type" {
+  default     = "e2-standard-2"
+  description = "The machine type"
+}
