@@ -27,7 +27,6 @@ redis = "==3.3.11"
 requests = "==2.21.0"
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
-pyopenssl = "==23.2.0"
 
 [dev-packages]
 cryptography = "==41.0.2"
