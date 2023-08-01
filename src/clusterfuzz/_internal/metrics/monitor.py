@@ -284,8 +284,7 @@ class Metric(object):
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    point = monitoring_v3.types.Point()
-    time_series.points.append(point)
+    point = time_series.points.add()
     _time_to_timestamp(point.interval.start_time, start_time)
     _time_to_timestamp(point.interval.end_time, end_time)
     self._set_value(point.value, value)
