@@ -254,7 +254,6 @@ def update_source_code():
         # Deal with write-protected files in protobuf package.
         os.remove(absolute_filepath)
         extracted_path = zip_archive.extract(filepath, output_directory)
-        logs.info(f'Backup extraction {filepath} {output_directory}')
       external_attr = zip_archive.getinfo(filepath).external_attr
       mode = (external_attr >> 16) & 0o777
       mode |= 0o440
