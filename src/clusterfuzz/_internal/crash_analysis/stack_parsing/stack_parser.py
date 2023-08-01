@@ -48,7 +48,7 @@ def format_address_to_dec(address, base=16):
   return None
 
 
-class StackFrameStructure:
+class StackFrameStructure(object):
   """IR for fields a stackframe may contain/expect."""
 
   def __init__(self,
@@ -145,7 +145,7 @@ class StackFrameStructure:
 
   def to_proto(self):
     """Convert StackFrame to process_state.proto format for upload to crash/."""
-    frame_proto = process_state_pb2.StackFrame()  # pylint: disable=no-member
+    frame_proto = process_state_pb2.StackFrame()
     if self.address is not None:
       frame_proto.instruction = unsigned_to_signed(self.address)
     if self.module_base is not None:
@@ -179,7 +179,7 @@ class StackFrame(StackFrameStructure):
                module_base=None,
                module_offset=None,
                base=16):
-    super().__init__(
+    super(StackFrame, self).__init__(
         address=format_address_to_dec(address),
         function_name=function_name,
         function_base=format_address_to_dec(function_base),
@@ -208,10 +208,10 @@ class StackFrame(StackFrameStructure):
     ]
     if field_name in address_fields:
       address = format_address_to_dec(field_value, self._base)
-      super().__setattr__(field_name, address)
+      super(StackFrame, self).__setattr__(field_name, address)
       return
 
-    super().__setattr__(field_name, field_value)
+    super(StackFrame, self).__setattr__(field_name, field_value)
 
   def __str__(self):
     s = []
@@ -248,7 +248,7 @@ class StackFrameSpec(StackFrameStructure):
     module_name = module_name if module_name is not None else []
     module_base = module_base if module_base is not None else []
     module_offset = module_offset if module_offset is not None else []
-    super().__init__(
+    super(StackFrameSpec, self).__init__(
         address=address,
         function_name=function_name,
         function_base=function_base,

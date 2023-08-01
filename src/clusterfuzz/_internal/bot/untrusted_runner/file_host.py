@@ -75,9 +75,8 @@ def rebase_to_worker_root(host_path):
 
 def create_directory(path, create_intermediates=False):
   """Create a directory."""
-  request = untrusted_runner_pb2.CreateDirectoryRequest(  # pylint: disable=no-member
-      path=path,
-      create_intermediates=create_intermediates)
+  request = untrusted_runner_pb2.CreateDirectoryRequest(
+      path=path, create_intermediates=create_intermediates)
 
   response = host.stub().CreateDirectory(request)
   return response.result
@@ -86,7 +85,7 @@ def create_directory(path, create_intermediates=False):
 def remove_directory(path, recreate=False):
   """Remove a directory. If |recreate| is set, always creates the directory even
   if it did not exist."""
-  request = untrusted_runner_pb2.RemoveDirectoryRequest(  # pylint: disable=no-member
+  request = untrusted_runner_pb2.RemoveDirectoryRequest(
       path=path, recreate=recreate)
 
   response = host.stub().RemoveDirectory(request)
@@ -95,7 +94,7 @@ def remove_directory(path, recreate=False):
 
 def list_files(path, recursive=False):
   """List files in the directory. Returns full file paths."""
-  request = untrusted_runner_pb2.ListFilesRequest(  # pylint: disable=no-member
+  request = untrusted_runner_pb2.ListFilesRequest(
       path=path, recursive=recursive)
 
   response = host.stub().ListFiles(request)
@@ -124,7 +123,7 @@ def write_data_to_worker(data, worker_path):
 
 def copy_file_from_worker(worker_path, host_path):
   """Copy file from worker to host."""
-  request = untrusted_runner_pb2.CopyFileFromRequest(path=worker_path)  # pylint: disable=no-member
+  request = untrusted_runner_pb2.CopyFileFromRequest(path=worker_path)
   response = host.stub().CopyFileFrom(request)
   file_utils.write_chunks(host_path, response)
   metadata = dict(response.trailing_metadata())
@@ -188,7 +187,7 @@ def copy_directory_from_worker(worker_directory, host_directory, replace=False):
 
 def stat(path):
   """stat() a path."""
-  request = untrusted_runner_pb2.StatRequest(path=path)  # pylint: disable=no-member
+  request = untrusted_runner_pb2.StatRequest(path=path)
   response = host.stub().Stat(request)
   if not response.result:
     return None
@@ -236,6 +235,6 @@ def pull_testcases_from_worker():
 
 def get_fuzz_targets(path):
   """Get list of fuzz target paths."""
-  request = untrusted_runner_pb2.GetFuzzTargetsRequest(path=path)  # pylint: disable=no-member
+  request = untrusted_runner_pb2.GetFuzzTargetsRequest(path=path)
   response = host.stub().GetFuzzTargets(request)
   return response.fuzz_target_paths

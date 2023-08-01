@@ -87,7 +87,7 @@ def create_job(email,
   instances.policy = policy
   allocation_policy = batch.AllocationPolicy()
   allocation_policy.instances = [instances]
-  service_account = batch.ServiceAccount(email=email)  # pylint: disable=no-member
+  service_account = batch.ServiceAccount(email=email)
   allocation_policy.service_account = service_account
 
   job = batch.Job()

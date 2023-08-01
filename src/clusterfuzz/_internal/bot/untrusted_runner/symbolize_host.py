@@ -22,7 +22,7 @@ from . import protobuf_utils
 def symbolize_stacktrace(unsymbolized_crash_stacktrace,
                          enable_inline_frames=True):
   """Symbolize stacktrace."""
-  request = untrusted_runner_pb2.SymbolizeStacktraceRequest(  # pylint: disable=no-member
+  request = untrusted_runner_pb2.SymbolizeStacktraceRequest(
       unsymbolized_crash_stacktrace=protobuf_utils.encode_utf8_if_unicode(
           unsymbolized_crash_stacktrace),
       enable_inline_frames=enable_inline_frames)

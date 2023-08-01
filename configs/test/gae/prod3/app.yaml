@@ -13,7 +13,7 @@
 # limitations under the License.
 
 service: default
-runtime: python311
+runtime: python37
 
 handlers:
   - url: /favicon/(.*)

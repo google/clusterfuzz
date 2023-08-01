@@ -28,9 +28,6 @@ def handle(output):
   return get_mapping()[output.error](output)
 
 
-# pylint: disable=no-member
-
-
 def get_mapping():
   return {
       uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
