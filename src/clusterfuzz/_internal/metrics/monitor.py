@@ -286,11 +286,14 @@ class Metric:
     time_series.metric_kind = self.metric_kind
     time_series.value_type = self.value_type
 
-    interval = monitoring_v3.types.TimeInterval()
+    start_timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
+    end_timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
+    interval = monitoring_v3.types.TimeInterval(
+        start_time=start_timestamp, end_time=end_timestamp)
     point = monitoring_v3.types.Point(interval=interval)
     time_series.points.append(point)
-    _time_to_timestamp(point.interval, 'start_time', start_time)
-    _time_to_timestamp(point.interval, 'end_time', end_time)
+    _time_to_timestamp(point.interval.start_time, start_time)  # pylint: disable=no-member
+    _time_to_timestamp(point.interval.end_time, end_time)  # pylint: disable=no-member
     self._set_value(point.value, value)
 
     return time_series
@@ -519,12 +522,10 @@ def _initialize_monitored_resource():
     _monitored_resource.labels['zone'] = 'us-central1-f'  # pylint: disable=no-member
 
 
-def _time_to_timestamp(interval, attr, time_seconds):
+def _time_to_timestamp(timestamp, time_seconds):
   """Convert result of time.time() to Timestamp."""
-  seconds = int(time_seconds)
-  nanos = int((time_seconds - seconds) * 10**9)
-  timestamp = timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)  # pylint: disable=no-member
-  setattr(interval, attr, timestamp)
+  timestamp.seconds = int(time_seconds)
+  timestamp.nanos = int((time_seconds - timestamp.seconds) * 10**9)
 
 
 def initialize():
