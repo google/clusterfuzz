@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 cryptography = "==3.4.8"
 crcmod = "==1.7"
-psutil = "==5.9.5"
+psutil = "==5.7.0"
 protobuf = "==4.23.4"
 
 [dev-packages]
