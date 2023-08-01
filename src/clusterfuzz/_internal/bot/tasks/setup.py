@@ -434,7 +434,7 @@ def update_data_bundle(update_input, data_bundle):
   """Updates a data bundle to the latest version."""
   # TODO(metzman): Migrate this functionality to utask.
 
-  logs.log('Setting up data bundle %s.' % data_bundle)
+  logs.info('Setting up data bundle %s.' % data_bundle)
   # This module can't be in the global imports due to appengine issues
   # with multiprocessing and psutil imports.
   from clusterfuzz._internal.google_cloud_utils import gsutil
@@ -616,7 +616,7 @@ def _update_fuzzer(update_input, fuzzer_directory, version_file):
 def _set_up_data_bundles(update_input):
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
-  logs.log('Setting up data bundles.')
+  logs.info('Setting up data bundles.')
   for data_bundle in update_input.data_bundles:
     if not update_data_bundle(update_input, data_bundle):
       return False
