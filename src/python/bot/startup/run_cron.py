@@ -29,6 +29,7 @@ from clusterfuzz._internal.system import environment
 
 CRON_TASKS = ['backup']
 
+
 def main():
   """Runs the cron jobs"""
   root_directory = environment.get_value('ROOT_DIR')

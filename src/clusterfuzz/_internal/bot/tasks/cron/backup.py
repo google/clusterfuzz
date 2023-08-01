@@ -30,6 +30,7 @@ from clusterfuzz._internal.metrics import logs
 # can be rebuilt from BigQuery dataset.
 EXCLUDED_MODELS = {'CrashStatistic', 'CrashStatisticJobHistory'}
 
+
 def _datastore_client():
   """Returns an api client for datastore."""
   return discovery.build('datastore', 'v1')
