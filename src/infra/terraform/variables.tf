@@ -15,10 +15,6 @@ variable "project_id" {
   description = "The project id"
 }
 
-variable "bucket_name" {
-  description = "The bucket name"
-}
-
 variable "region" {
   description = "The region"
 }
