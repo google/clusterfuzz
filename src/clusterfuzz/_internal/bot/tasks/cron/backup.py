@@ -42,7 +42,7 @@ def main():
       local_config.PROJECT_PATH).get('backup.bucket')
   if not backup_bucket:
     logs.log_error('No backup bucket is set, skipping.')
-    return 1
+    return False
 
   kinds = [
       kind for kind in ndb.Model._kind_map  # pylint: disable=protected-access
@@ -66,9 +66,9 @@ def main():
     response = request.execute()
     message = 'Datastore export succeeded.'
     logs.log(message, response=response)
-    return 0
+    return True
   except errors.HttpError as e:
     status_code = e.resp.status
     message = f'Datastore export failed. Status code: {status_code}'
     logs.log_error(message)
-    return 1
+    return False

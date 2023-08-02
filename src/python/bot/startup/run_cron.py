@@ -49,7 +49,7 @@ def main():
 
   task_module_name = f'clusterfuzz._internal.bot.tasks.cron.{task}'
   task_module = importlib.import_module(task_module_name)
-  return task_module.main()
+  return 0 if task_module.main() else 1
 
 
 if __name__ == '__main__':
