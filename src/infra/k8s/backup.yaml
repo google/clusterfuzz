@@ -16,3 +16,4 @@ spec:
             - name: RUN_CMD
               value: "python3 $ROOT_DIR/src/python/bot/startup/run_cron.py"
           restartPolicy: OnFailure
+      backoffLimit: 3
