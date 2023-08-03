@@ -18,6 +18,7 @@ metadata:
   name: backup
 spec:
   schedule: "47 1 * * *"
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
@@ -25,7 +26,7 @@ spec:
           containers:
           - name: backup
             image: gcr.io/clusterfuzz-images/base
-            imagePullPolicy: IfNotPresent
+            imagePullPolicy: Always
             env:
             - name: RUN_CMD
               value: "python3 $ROOT_DIR/src/python/bot/startup/run_cron.py backup"
