@@ -21,6 +21,7 @@ from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.syzkaller import constants
 from clusterfuzz._internal.bot.fuzzers.syzkaller import runner
+from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
@@ -145,6 +146,7 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
+    profiler.start_if_needed('syzkaller_kasan')
     syzkaller_runner = runner.get_runner(target_path)
 
     # Directory to place new units.

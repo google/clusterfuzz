@@ -22,5 +22,5 @@ def symbolize_stacktrace(request):
   symbolized_stacktrace = stack_symbolizer.symbolize_stacktrace(
       request.unsymbolized_crash_stacktrace, request.enable_inline_frames)
 
-  return untrusted_runner_pb2.SymbolizeStacktraceResponse(  # pylint: disable=no-member
+  return untrusted_runner_pb2.SymbolizeStacktraceResponse(
       symbolized_stacktrace=symbolized_stacktrace)

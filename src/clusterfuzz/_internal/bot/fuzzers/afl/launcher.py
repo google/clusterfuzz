@@ -43,6 +43,7 @@ from clusterfuzz._internal.bot.fuzzers.afl import stats
 from clusterfuzz._internal.bot.fuzzers.afl.fuzzer import write_dummy_file
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
@@ -76,7 +77,7 @@ class AflOptionType(enum.Enum):
 AflOption = collections.namedtuple('AflOption', ['name', 'type'])
 
 
-class AflConfig:
+class AflConfig(object):
   """Helper class that determines the arguments that should be passed to
   afl-fuzz, environment variables that should be set before running afl-fuzz,
   and the number of persistent executions that should be passed to the target
@@ -158,7 +159,7 @@ class AflConfig:
     self.additional_afl_arguments.append(constants.DICT_FLAG + self.dict_path)
 
 
-class AflFuzzOutputDirectory:
+class AflFuzzOutputDirectory(object):
   """Helper class used by AflRunner to deal with AFL's output directory and its
   contents (ie: the -o argument to afl-fuzz)."""
 
@@ -275,7 +276,7 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
     super().copy_crash_if_needed(testcase_path)
 
 
-class FuzzingStrategies:
+class FuzzingStrategies(object):
   """Helper class used by AflRunner classes to decide what strategy to use
   and to record the decision for StatsGetter to use later."""
 
@@ -381,7 +382,7 @@ class FuzzingStrategies:
     return strategies_dict
 
 
-class AflFuzzInputDirectory:
+class AflFuzzInputDirectory(object):
   """Helper class used by AflRunner to deal with the input directory passed to
   afl-fuzz as the -i argument.
   """
@@ -434,7 +435,7 @@ class AflFuzzInputDirectory:
 # pylint: disable=no-member
 
 
-class AflRunnerCommon:
+class AflRunnerCommon(object):
   """Afl runner common routines."""
 
   # Window of time for afl to exit gracefully before we kill it.
@@ -552,7 +553,7 @@ class AflRunnerCommon:
             utils.read_from_handle_truncated(file_handle, MAX_OUTPUT_LEN))
 
       self._fuzzer_stderr = get_first_stacktrace(stderr_data)
-    except OSError:
+    except IOError:
       self._fuzzer_stderr = ''
     return self._fuzzer_stderr
 
@@ -754,14 +755,14 @@ class AflRunnerCommon:
     (calculated using |max_total_time|).
     """
     if max_total_time <= 0:
-      logs.log_error('Tried fuzzing for {} seconds. Not retrying'.format(
+      logs.log_error('Tried fuzzing for {0} seconds. Not retrying'.format(
           self.initial_max_total_time))
 
       return False
 
     if num_retries > self.MAX_FUZZ_RETRIES:
       logs.log_error(
-          'Tried to retry fuzzing {} times. Fuzzer is likely broken'.format(
+          'Tried to retry fuzzing {0} times. Fuzzer is likely broken'.format(
               num_retries))
 
       return False
@@ -1370,7 +1371,7 @@ class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
 
 
-class CorpusElement:
+class CorpusElement(object):
   """An element (file) in a corpus."""
 
   def __init__(self, path):
@@ -1378,7 +1379,7 @@ class CorpusElement:
     self.size = os.path.getsize(self.path)
 
 
-class Corpus:
+class Corpus(object):
   """A minimal set of input files (elements) for a fuzz target."""
 
   def __init__(self):
@@ -1387,7 +1388,7 @@ class Corpus:
   @property
   def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
-    return {element.path for element in self.features_and_elements.values()}
+    return set(element.path for element in self.features_and_elements.values())
 
   def _associate_feature_with_element(self, feature, element):
     """Associate a feature with an element if the element is the smallest for
@@ -1638,6 +1639,7 @@ def main(argv):
   # same python process.
   logs.configure('run_fuzzer')
   _verify_system_config()
+  profiler.start_if_needed('afl_launcher')
 
   build_directory = environment.get_value('BUILD_DIR')
   fuzzer_path = engine_common.find_fuzzer_path(build_directory, target_name)

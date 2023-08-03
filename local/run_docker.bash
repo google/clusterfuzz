@@ -40,7 +40,7 @@ else
   CONFIG_DIR_OVERRIDE="/config"
 fi
 
-sudo docker run -e COMMAND_OVERRIDE="$COMMAND_OVERRIDE" -e HOST_UID=$UID \
+sudo docker run -e COMMAND_OVERRIDE="$COMMAND_OVERRIDE" -e HOST_UID=$UID o\
               -e LOCAL_METADATA_SERVER=$docker_ip -e LOCAL_METADATA_PORT=8080 \
               $MOUNT_ARGS \
               -e LOCAL_SRC=$LOCAL_SRC \

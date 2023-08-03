@@ -92,7 +92,7 @@ if ! python3 -m pip > /dev/null ; then
   python3 get-pip.py
 fi
 python3 -m pip install --upgrade pipenv
-pipenv --python 3.11
+pipenv --python 3.7
 pipenv sync
 source "$(pipenv --venv)/bin/activate"
 

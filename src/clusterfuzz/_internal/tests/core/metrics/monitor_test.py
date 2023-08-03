@@ -18,7 +18,6 @@ import os
 import unittest
 
 from clusterfuzz._internal.metrics import monitor
-from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -197,22 +196,3 @@ class MonitorTest(unittest.TestCase):
         2,
         1,
     ], result.buckets)
-
-
-@unittest.skip('Skip this because it\'s only used by metzman for debugging.')
-class JonathanDebugTest(unittest.TestCase):
-  """Sets up the flusher thread so we can debug it."""
-
-  def test_flush(self):
-    """Sets up the flusher thread so we can debug it."""
-    monitor.credentials._use_anonymous_credentials = lambda: False
-    monitor._monitoring_v3_client = monitor.monitoring_v3.MetricServiceClient(
-        credentials=monitor.credentials.get_default()[0])
-    monitor._flusher_thread = monitor._FlusherThread()
-    monitor.FLUSH_INTERVAL_SECONDS = 1
-    monitoring_metrics.BOT_COUNT.set(1, {'revision': '1'})
-    monitor.utils.get_application_id = lambda: 'google.com:clusterfuzz'
-    os.environ['BOT_NAME'] = 'bot-1'
-    monitor._initialize_monitored_resource()
-    monitor._monitored_resource.labels['zone'] = 'us-central1-b'
-    monitor._flusher_thread.run()

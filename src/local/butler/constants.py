@@ -37,8 +37,9 @@ PACKAGE_TARGET_MANIFEST_PATH = os.path.join('src', 'appengine', 'resources',
 # Supported Platforms and ABIS (newer to older order).
 PLATFORMS = collections.OrderedDict([
     ('windows', 'win_amd64'),
-    ('macos', ('macosx_10_10_universal2')),
-    ('linux', ('manylinux_2_17_x86_64')),
+    ('macos', ('macosx_10_14_x86_64', 'macosx_10_9_x86_64',
+               'macosx_10_12_x86_64')),
+    ('linux', ('manylinux2010_x86_64', 'manylinux1_x86_64')),
 ])
 
 if sys.version_info.major == 3 and sys.version_info.minor == 7:
@@ -49,10 +50,8 @@ elif sys.version_info.major == 3 and sys.version_info.minor == 9:
   ABIS = {'linux': 'cp39', 'windows': 'cp39', 'macos': 'cp39'}
 elif sys.version_info.major == 3 and sys.version_info.minor == 10:
   ABIS = {'linux': 'cp310', 'windows': 'cp310', 'macos': 'cp310'}
-elif sys.version_info.major == 3 and sys.version_info.minor == 11:
-  ABIS = {'linux': 'cp311', 'windows': 'cp311', 'macos': 'cp311'}
 else:
-  raise RuntimeError('Only python versions 3.7-3.11 are supported.')
+  raise ValueError('Only python versions 3.7-3.9 are supported.')
 
 # Config directory to use for tests.
 TEST_CONFIG_DIR = os.path.join('configs', 'test')
