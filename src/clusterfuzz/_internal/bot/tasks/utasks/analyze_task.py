@@ -45,6 +45,10 @@ def _add_default_issue_metadata(testcase):
 
   testcase_metadata = testcase.get_metadata()
   for key, default_value in default_metadata.items():
+    # Only string metadata are supported.
+    if not isinstance(default_value, str):
+      continue
+
     # Add the default issue metadata first. This gives preference to uploader
     # specified issue metadata.
     new_value_list = utils.parse_delimited(
