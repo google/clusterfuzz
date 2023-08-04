@@ -51,4 +51,4 @@ steps:
     - PIPENV_VENV_IN_PROJECT=1
 timeout: 5400s
 options:
-  machineType: N1_HIGHCPU_8
+  machineType: E2_HIGHCPU_8
