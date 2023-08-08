@@ -34,7 +34,11 @@ then
 fi
 
 # Make sure mounted volume doesn't have noexec,nosuid,nodev
-mount /mnt/scratch0 -o remount,exec,suid,dev
+# Running this in k8s environment will cause mounting errors
+if [[ -z "$IS_K8S_ENV" ]]
+then
+  mount /mnt/scratch0 -o remount,exec,suid,dev
+fi
 
 # Prevent /dev/random hangs.
 if [[ -z "$DISABLE_DEV_RANDOM_RENAME" ]]
