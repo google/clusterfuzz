@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cloud credential helpers."""
+import os
 
 from google.auth import compute_engine
 from google.auth import credentials
