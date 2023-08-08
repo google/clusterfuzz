@@ -34,8 +34,8 @@ then
 fi
 
 # Make sure mounted volume doesn't have noexec,nosuid,nodev
-# Running this in k8s will cause errors
-if [[ -z "$RUNNING_IN_K8S" ]]
+# Running this in k8s environment will cause mounting errors
+if [[ -z "$IS_K8S_ENV" ]]
 then
   mount /mnt/scratch0 -o remount,exec,suid,dev
 fi
