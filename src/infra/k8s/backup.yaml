@@ -29,7 +29,7 @@ spec:
             imagePullPolicy: Always
             env:
             - name: RUN_CMD
-              value: "python3 $ROOT_DIR/src/python/bot/startup/run_cron.py backup"
+              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py backup"
             - name: IS_K8S_ENV
               value: "true"
           restartPolicy: OnFailure
