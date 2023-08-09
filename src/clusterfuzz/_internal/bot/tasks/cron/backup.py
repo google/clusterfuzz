@@ -24,6 +24,9 @@ from googleapiclient import errors
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
+# pylint: disable=unused-import
+# This is required to populate the ndb _kind_map.
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
 
 # CrashStatistic is excluded because the number of records is too high and

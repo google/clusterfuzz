@@ -25,6 +25,7 @@ import sys
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 CRON_TASKS = ['backup']
@@ -32,6 +33,8 @@ CRON_TASKS = ['backup']
 
 def main():
   """Runs the cron jobs"""
+  logs.configure('run_cron')
+
   root_directory = environment.get_value('ROOT_DIR')
   local_config.ProjectConfig().set_environment()
 
