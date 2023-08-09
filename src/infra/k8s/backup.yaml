@@ -32,5 +32,7 @@ spec:
               value: "python3 $ROOT_DIR/src/python/bot/startup/run_cron.py backup"
             - name: IS_K8S_ENV
               value: "true"
+            - name: DISABLE_MOUNTS
+              value: "true"
           restartPolicy: OnFailure
       backoffLimit: 3
