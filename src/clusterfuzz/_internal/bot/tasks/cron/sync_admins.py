@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ from clusterfuzz._internal.metrics import logs
 
 
 def admins_from_iam_policy(iam_policy):
-  """Get a list of admins from the IAM policy."""
+  """Gets a list of admins from the IAM policy."""
   # Per
   # https://cloud.google.com/appengine/docs/standard/python/users/adminusers, An
   # administrator is a user who has the Viewer, Editor, or Owner primitive role,
