@@ -27,7 +27,7 @@ from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.system import environment
 
-CRON_TASKS = ['backup']
+CRON_TASKS = ['backup', 'sync_admins']
 
 
 def main():
