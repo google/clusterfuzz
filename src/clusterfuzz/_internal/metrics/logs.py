@@ -108,6 +108,8 @@ def get_logging_config_dict(name):
           get_handler_config('bot/logs/run_testcase.log', 1),
       'android_heartbeat':
           get_handler_config('bot/logs/android_heartbeat.log', 1),
+      'run_cron':
+          get_handler_config('bot/logs/run_cron.log', 1),
   }
 
   return {
