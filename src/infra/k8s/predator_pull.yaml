@@ -15,21 +15,21 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: batch-fuzzer-jobs
+  name: predator_pull
 spec:
-  schedule: "*/30 * * * *"
+  schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-          - name: batch-fuzzer-jobs
+          - name: predator_pull
             image: gcr.io/clusterfuzz-images/base
             imagePullPolicy: Always
             env:
             - name: RUN_CMD
-              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py batch-fuzzer-jobs"
+              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py predator_pull"
             - name: IS_K8S_ENV
               value: "true"
             - name: DISABLE_MOUNTS
