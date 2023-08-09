@@ -73,8 +73,7 @@ def update_admins(new_admins):
 
 def main():
   """Admin user syncing cron."""
-  resource_manager = discovery.build('cloudresourcemanager',
-                                                      'v1')
+  resource_manager = discovery.build('cloudresourcemanager', 'v1')
   project_id = utils.get_application_id()
   policy = resource_manager.projects().getIamPolicy(
       resource=project_id, body={}).execute()
