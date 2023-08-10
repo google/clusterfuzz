@@ -293,6 +293,7 @@ def configure_k8s():
   client = google.cloud.logging.Client()
   client.setup_logging()
   old_factory = logging.getLogRecordFactory()
+
   def record_factory(*args, **kwargs):
     """Insert jsonPayload fields to all logs."""
 
