@@ -61,7 +61,7 @@ def _is_running_on_app_engine():
 
 def _is_runnging_on_k8s():
   """Returns whether or not we're running on K8s."""
-  return os.getenv('IS_K8S_ENV') == "true"
+  return os.getenv('IS_K8S_ENV') == 'true'
 
 
 def _console_logging_enabled():
@@ -293,7 +293,6 @@ def configure_k8s():
   client = google.cloud.logging.Client()
   client.setup_logging()
   old_factory = logging.getLogRecordFactory()
-
   def record_factory(*args, **kwargs):
     """Insert jsonPayload fields to all logs."""
 
@@ -365,7 +364,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine():
+  if _is_running_on_app_engine() or _is_runnging_on_k8s():
     # Running on App Engine.
     set_logger(logging.getLogger())
 
@@ -434,7 +433,7 @@ def emit(level, message, exc_info=None, **extras):
 
   path_name, line_number, method_name = get_source_location()
 
-  if _is_running_on_app_engine():
+  if _is_running_on_app_engine() or _is_runnging_on_k8s():
     if exc_info == (None, None, None):
       # Don't pass exc_info at all, as otherwise cloud logging will append
       # "NoneType: None" to the message.
