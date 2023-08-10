@@ -3211,6 +3211,23 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_rust_panic_bolero(self):
+    """Test for a panic in Rust from Bolero.
+    """
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_panic_bolero.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = ('assertion failed: *i != NUMBER\n'
+                      'lib.rs\n'
+                      'LLVMFuzzerStartTest\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_rust_panic_fuchsia(self):
     """Test for a panic in Rust on Fuchsia, i.e. compiled with `panic=abort`
     instead of relying on the special panic hook installed by libfuzzer-sys.
