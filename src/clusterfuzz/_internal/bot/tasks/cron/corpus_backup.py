@@ -106,8 +106,7 @@ def main():
 
       try:
         _make_corpus_backup_public(target, corpus_fuzzer_name_override,
-                                    corpus_backup_bucket_name)
+                                   corpus_backup_bucket_name)
       except:
         logs.log_error(f'Failed to make {target} corpus backup public.')
-        return False
   return True

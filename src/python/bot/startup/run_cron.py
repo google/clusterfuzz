@@ -28,9 +28,10 @@ from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-CRON_TASKS = ['backup', 'sync_admins', 'batch_fuzzer_jobs',
-              'build_crash_stats', 'corpus_backup', 'fuzzer_coverage',
-              'predator_pull']
+CRON_TASKS = [
+    'backup', 'sync_admins', 'batch_fuzzer_jobs', 'build_crash_stats',
+    'corpus_backup', 'fuzzer_coverage', 'predator_pull'
+]
 
 
 def main():

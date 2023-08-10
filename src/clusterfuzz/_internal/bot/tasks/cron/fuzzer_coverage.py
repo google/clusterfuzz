@@ -24,6 +24,7 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 
+
 def _latest_report_info_dir(bucket):
   """Returns a GCS URL to the latest report info for the given bucket."""
   return 'gs://{0}/latest_report_info/'.format(bucket)
@@ -148,8 +149,7 @@ def main():
   logs.log('FuzzerCoverage task started.')
   bucket = local_config.ProjectConfig().get('coverage.reports.bucket')
   if not bucket:
-    logs.log(
-        'Coverage bucket is not specified. Skipping FuzzerCoverage task.')
+    logs.log('Coverage bucket is not specified. Skipping FuzzerCoverage task.')
     return False
 
   collect_fuzzer_coverage(bucket)
