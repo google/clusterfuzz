@@ -33,7 +33,9 @@ _default_extras = {}
 
 def _increment_error_count():
   """"Increment the error count metric."""
-  if _is_running_on_app_engine():
+  if _is_runnging_on_k8s():
+    task_name = 'k8s'
+  elif _is_running_on_app_engine():
     task_name = 'appengine'
   else:
     task_name = os.getenv('TASK_NAME', 'unknown')
@@ -55,6 +57,11 @@ def _is_running_on_app_engine():
       os.getenv('SERVER_SOFTWARE') and
       (os.getenv('SERVER_SOFTWARE').startswith('Development/') or
        os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
+
+
+def _is_runnging_on_k8s():
+  """Returns whether or not we're running on K8s."""
+  return os.getenv('IS_K8S_ENV') == 'true'
 
 
 def _console_logging_enabled():
@@ -280,11 +287,54 @@ def configure_appengine():
   logging.getLogger().addHandler(handler)
 
 
+def configure_k8s():
+  """Configure logging for K8S and reporting errors."""
+  import google.cloud.logging
+  client = google.cloud.logging.Client()
+  client.setup_logging()
+  old_factory = logging.getLogRecordFactory()
+
+  def record_factory(*args, **kwargs):
+    """Insert jsonPayload fields to all logs."""
+
+    record = old_factory(*args, **kwargs)
+    if not hasattr(record, 'json_fields'):
+      record.json_fields = {}
+
+    # Add jsonPayload fields to logs that don't contain stack traces to enable
+    # capturing and grouping by error reporting.
+    # https://cloud.google.com/error-reporting/docs/formatting-error-messages#log-text
+    if record.levelno >= logging.ERROR and not record.exc_info:
+      record.json_fields.update({
+          '@type':
+              'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent',  # pylint: disable=line-too-long
+          'serviceContext': {
+              'service': 'k8s',
+          },
+          'context': {
+              'reportLocation': {
+                  'filePath': record.pathname,
+                  'lineNumber': record.lineno,
+                  'functionName': record.funcName,
+              }
+          },
+      })
+
+    return record
+
+  logging.setLogRecordFactory(record_factory)
+  logging.getLogger().setLevel(logging.INFO)
+
+
 def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
+
+  if _is_runnging_on_k8s():
+    configure_k8s()
+    return
 
   if _is_running_on_app_engine():
     configure_appengine()
@@ -315,7 +365,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine():
+  if _is_running_on_app_engine() or _is_runnging_on_k8s():
     # Running on App Engine.
     set_logger(logging.getLogger())
 
@@ -384,7 +434,7 @@ def emit(level, message, exc_info=None, **extras):
 
   path_name, line_number, method_name = get_source_location()
 
-  if _is_running_on_app_engine():
+  if _is_running_on_app_engine() or _is_runnging_on_k8s():
     if exc_info == (None, None, None):
       # Don't pass exc_info at all, as otherwise cloud logging will append
       # "NoneType: None" to the message.
