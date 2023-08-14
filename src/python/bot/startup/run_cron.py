@@ -30,7 +30,9 @@ from clusterfuzz._internal.system import environment
 
 CRON_TASKS = [
     'backup', 'sync_admins', 'batch_fuzzer_jobs', 'build_crash_stats',
-    'corpus_backup', 'fuzzer_coverage', 'predator_pull'
+    'corpus_backup', 'fuzzer_coverage', 'predator_pull',
+    'fuzz_strategy_selection', 'fuzzer_and_job_weights', 'load_bigquery_stats',
+    'manage_vms', 'schedule_corpus_pruning'
 ]
 
 
