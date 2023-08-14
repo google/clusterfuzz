@@ -84,5 +84,5 @@ def main():
     logs.log('Sync admins succeeded.')
     return True
   except Exception as e:
-    logs.log(f'Sync admins failed. {str(e)}')
+    logs.log_error(f'Sync admins failed. {str(e)}')
     return False
