@@ -15,21 +15,21 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: sync_admins
+  name: corpus-backup
 spec:
-  schedule: "0 * * * *"
+  schedule: "0 3 * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-          - name: sync_admins
+          - name: corpus-backup
             image: gcr.io/clusterfuzz-images/base
             imagePullPolicy: Always
             env:
             - name: RUN_CMD
-              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py sync_admins"
+              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py corpus_backup"
             - name: IS_K8S_ENV
               value: "true"
             - name: DISABLE_MOUNTS
