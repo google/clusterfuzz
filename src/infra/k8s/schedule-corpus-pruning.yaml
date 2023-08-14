@@ -17,7 +17,7 @@ kind: CronJob
 metadata:
   name: schedule-corpus-pruning
 spec:
-  schedule: "** 7 * * *"
+  schedule: "* 7 * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
