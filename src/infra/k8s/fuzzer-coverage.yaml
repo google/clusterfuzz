@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: fuzzer_coverage
+  name: fuzzer-coverage
 spec:
   schedule: "30 18 * * *"
   concurrencyPolicy: Forbid
@@ -24,7 +24,7 @@ spec:
       template:
         spec:
           containers:
-          - name: fuzzer_coverage
+          - name: fuzzer-coverage
             image: gcr.io/clusterfuzz-images/base
             imagePullPolicy: Always
             env:

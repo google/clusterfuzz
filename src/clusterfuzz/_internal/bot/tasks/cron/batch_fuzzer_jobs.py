@@ -16,6 +16,7 @@
 from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 
 FUZZER_JOB_BATCH_SIZE = 4000
 
@@ -57,4 +58,5 @@ def batch_fuzzer_jobs():
 def main():
   """Batches FuzzerJobs."""
   batch_fuzzer_jobs()
+  logs.log('Batch fuzzer jobs succeeded.')
   return True

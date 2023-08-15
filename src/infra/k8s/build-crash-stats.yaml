@@ -15,21 +15,21 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: batch_fuzzer_jobs
+  name: build-crash-stats
 spec:
-  schedule: "*/30 * * * *"
+  schedule: "*/5 * * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:
         spec:
           containers:
-          - name: batch_fuzzer_jobs
+          - name: build-crash-stats
             image: gcr.io/clusterfuzz-images/base
             imagePullPolicy: Always
             env:
             - name: RUN_CMD
-              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py batch_fuzzer_jobs"
+              value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py build_crash_stats"
             - name: IS_K8S_ENV
               value: "true"
             - name: DISABLE_MOUNTS

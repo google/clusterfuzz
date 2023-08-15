@@ -80,4 +80,5 @@ def main():
 
   admins = admins_from_iam_policy(policy)
   update_admins(admins)
+  logs.log('Sync admins succeeded.')
   return True
