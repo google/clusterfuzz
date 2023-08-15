@@ -57,10 +57,6 @@ def batch_fuzzer_jobs():
 
 def main():
   """Batches FuzzerJobs."""
-  try:
-    batch_fuzzer_jobs()
-    logs.log('Batch fuzzer jobs succeeded.')
-    return True
-  except Exception as e:
-    logs.log_error(f'Batch fuzzer jobs failed. {str(e)}')
-    return False
+  batch_fuzzer_jobs()
+  logs.log('Batch fuzzer jobs succeeded.')
+  return True

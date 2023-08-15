@@ -79,10 +79,6 @@ def main():
       resource=project_id, body={}).execute()
 
   admins = admins_from_iam_policy(policy)
-  try:
-    update_admins(admins)
-    logs.log('Sync admins succeeded.')
-    return True
-  except Exception as e:
-    logs.log_error(f'Sync admins failed. {str(e)}')
-    return False
+  update_admins(admins)
+  logs.log('Sync admins succeeded.')
+  return True
