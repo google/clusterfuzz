@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import logging
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks.cron.helpers import bot_manager
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.google_cloud_utils import compute_engine_projects
-from handlers.cron.helpers import bot_manager
 
 PROJECT_MIN_CPUS = 1
 

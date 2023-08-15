@@ -17,7 +17,7 @@ kind: CronJob
 metadata:
   name: fuzz-strategy-selection
 spec:
-  schedule: "* 5 * * *"
+  schedule: "0 5 * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:

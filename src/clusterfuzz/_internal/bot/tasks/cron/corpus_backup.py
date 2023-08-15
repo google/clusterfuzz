@@ -109,4 +109,5 @@ def main():
                                    corpus_backup_bucket_name)
       except:
         logs.log_error(f'Failed to make {target} corpus backup public.')
+  logs.log('Corpus backup succeeded.')
   return True
