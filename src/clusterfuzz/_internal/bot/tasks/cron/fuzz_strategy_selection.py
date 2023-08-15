@@ -206,10 +206,7 @@ def _query_and_upload_strategy_probabilities(engine):
 def main():
   """Periodically update fuzz strategy bandit probabilities
   based on a performance metric (currently based on new_edges)."""
-  try:
-    for engine in ENGINE_LIST:
-      _query_and_upload_strategy_probabilities(engine)
-    return True
-  except Exception as e:
-    logs.log_error(f'Fuzz strategy selection failed. {str(e)}')
-    return False
+  for engine in ENGINE_LIST:
+    _query_and_upload_strategy_probabilities(engine)
+  logs.log(f'Fuzz strategy selection succeeded.')
+  return True

@@ -388,14 +388,11 @@ def update_job_weights():
 def main():
   """Periodically update fuzz target weights based on performance."""
   client = big_query.Client()
-  try:
-    update_target_weights_for_engine(client, 'libFuzzer',
-                                     LIBFUZZER_SPECIFICATIONS)
-    update_target_weights_for_engine(client, 'afl', AFL_SPECIFICATIONS)
-    update_job_weights()
+  update_target_weights_for_engine(client, 'libFuzzer',
+                                   LIBFUZZER_SPECIFICATIONS)
+  update_target_weights_for_engine(client, 'afl', AFL_SPECIFICATIONS)
+  update_job_weights()
 
-    store_current_weights_in_bigquery()
-    return True
-  except Exception as e:
-    logs.log_error(f'Fuzzer and job weights failed. {str(e)}')
-    return False
+  store_current_weights_in_bigquery()
+  logs.log_error(f'Fuzzer and job weights succeeded. {str(e)}')
+  return True
