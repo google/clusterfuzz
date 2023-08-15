@@ -17,7 +17,7 @@ kind: CronJob
 metadata:
   name: load-bigquery-stats
 spec:
-  schedule: "* 1 * * *"
+  schedule: "0 1 * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:

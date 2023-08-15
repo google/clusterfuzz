@@ -17,7 +17,7 @@ kind: CronJob
 metadata:
   name: fuzzer-and-job-weights
 spec:
-  schedule: "* 3 * * *"
+  schedule: "0 3 * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
