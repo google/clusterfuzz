@@ -149,7 +149,7 @@ def main():
   logs.log('FuzzerCoverage task started.')
   bucket = local_config.ProjectConfig().get('coverage.reports.bucket')
   if not bucket:
-    logs.log('Coverage bucket is not specified. Skipping FuzzerCoverage task.')
+    logs.log_error('Coverage bucket is not specified. Skipping FuzzerCoverage task.')
     return False
 
   collect_fuzzer_coverage(bucket)
