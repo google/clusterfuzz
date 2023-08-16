@@ -28,15 +28,6 @@ from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
-# TODO(gongh): Auto import new cron tasks.
-CRON_TASKS = [
-    'backup', 'sync_admins', 'batch_fuzzer_jobs', 'build_crash_stats',
-    'corpus_backup', 'fuzzer_coverage', 'predator_pull',
-    'fuzz_strategy_selection', 'fuzzer_and_job_weights', 'load_bigquery_stats',
-    'manage_vms', 'schedule_corpus_pruning', 'schedule_impact_tasks',
-    'schedule_progression_tasks', 'schedule_upload_reports_tasks'
-]
-
 
 def main():
   """Runs the cron jobs"""
@@ -52,16 +43,12 @@ def main():
     return 1
 
   task = sys.argv[1]
-  if task not in CRON_TASKS:
-    print('Invalid task name. '
-          f'Please enter one of the following tasks: {CRON_TASKS}')
-    return 1
 
   task_module_name = f'clusterfuzz._internal.bot.tasks.cron.{task}'
-  task_module = importlib.import_module(task_module_name)
-  return 0 if task_module.main() else 1
+  with ndb_init.context():
+    task_module = importlib.import_module(task_module_name)
+    return 0 if task_module.main() else 1
 
 
 if __name__ == '__main__':
-  with ndb_init.context():
-    sys.exit(main())
+  sys.exit(main())
