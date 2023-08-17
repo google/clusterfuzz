@@ -33,9 +33,10 @@ def get_tasks_to_schedule():
 
 
 def main():
-  """Schedule corpus pruning tasks.."""
+  """Schedule corpus pruning tasks."""
   for task_target, job_name, queue_name in get_tasks_to_schedule():
+    logs.log(f'Adding corpus pruning task {task_target}.')
     tasks.add_task('corpus_pruning', task_target, job_name, queue=queue_name)
 
   logs.log(f'Schedule corpus pruning task succeeded.')
-  return False
+  return True
