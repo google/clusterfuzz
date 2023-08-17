@@ -434,7 +434,7 @@ def emit(level, message, exc_info=None, **extras):
 
   path_name, line_number, method_name = get_source_location()
 
-  if _is_running_on_app_engine() or _is_runnging_on_k8s():
+  if _is_running_on_app_engine():
     if exc_info == (None, None, None):
       # Don't pass exc_info at all, as otherwise cloud logging will append
       # "NoneType: None" to the message.
