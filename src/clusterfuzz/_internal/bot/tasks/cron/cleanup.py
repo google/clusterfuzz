@@ -32,10 +32,10 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.metrics import logs
-from libs import mail
-from libs.issue_management import issue_filer
-from libs.issue_management import issue_tracker_policy
-from libs.issue_management import issue_tracker_utils
+from clusterfuzz._internal.bot.tasks.cron.libs import mail
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import issue_filer
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import issue_tracker_policy
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import issue_tracker_utils
 
 GENERIC_INCORRECT_COMMENT = (
     '\n\nIf this is incorrect, please add the {label_text}')

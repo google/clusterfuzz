@@ -27,9 +27,9 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.metrics import logs
-from libs.issue_management import issue_filer
-from libs.issue_management import issue_tracker_policy
-from libs.issue_management import issue_tracker_utils
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import issue_filer
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import issue_tracker_policy
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import issue_tracker_utils
 
 from . import grouper
 
