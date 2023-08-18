@@ -13,13 +13,14 @@
 # limitations under the License.
 """Utilities for managing issue tracker instance."""
 
+from clusterfuzz._internal.bot.tasks.cron.libs import request_cache
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import \
+    issue_tracker_policy
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import jira
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import monorail
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
-from libs import request_cache
-from libs.issue_management import issue_tracker_policy
-from libs.issue_management import jira
-from libs.issue_management import monorail
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
 _ISSUE_TRACKER_CONSTRUCTORS = {

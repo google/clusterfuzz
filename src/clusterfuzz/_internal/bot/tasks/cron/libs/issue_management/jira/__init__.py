@@ -18,9 +18,11 @@ from urllib.parse import urljoin
 
 from dateutil import parser
 
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import \
+    issue_tracker
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management.jira.issue_tracker_manager import \
+    IssueTrackerManager
 from clusterfuzz._internal.config import db_config
-from libs.issue_management import issue_tracker
-from libs.issue_management.jira.issue_tracker_manager import IssueTrackerManager
 
 
 class Issue(issue_tracker.Issue):

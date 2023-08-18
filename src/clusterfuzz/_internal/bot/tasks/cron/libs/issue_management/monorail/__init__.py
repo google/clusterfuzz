@@ -15,10 +15,13 @@
 
 import urllib.parse
 
-from libs.issue_management import issue_tracker
-from libs.issue_management.monorail.issue import ChangeList
-from libs.issue_management.monorail.issue import Issue as MonorailIssue
-from libs.issue_management.monorail.issue_tracker_manager import \
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import \
+    issue_tracker
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management.monorail.issue import \
+    ChangeList
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management.monorail.issue import \
+    Issue as MonorailIssue
+from clusterfuzz._internal.bot.tasks.cron.libs.issue_management.monorail.issue_tracker_manager import \
     IssueTrackerManager
 
 ISSUE_TRACKER_URL = (
