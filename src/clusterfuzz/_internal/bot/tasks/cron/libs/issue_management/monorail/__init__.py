@@ -18,8 +18,8 @@ import urllib.parse
 from libs.issue_management import issue_tracker
 from libs.issue_management.monorail.issue import ChangeList
 from libs.issue_management.monorail.issue import Issue as MonorailIssue
-from libs.issue_management.monorail.issue_tracker_manager import (
-    IssueTrackerManager)
+from libs.issue_management.monorail.issue_tracker_manager import \
+    IssueTrackerManager
 
 ISSUE_TRACKER_URL = (
     'https://bugs.chromium.org/p/{project}/issues/detail?id={id}')
