@@ -877,6 +877,14 @@
             "markers": "python_version >= '3.7'",
             "version": "==68.0.0"
         },
+        "sendgrid": {
+            "hashes": [
+                "sha256:351a7fc501d2b9d5afdcbc70a02490917057d6ce5cc22c558cadfc16229f157b",
+                "sha256:e1f93c72b3db3bd00d86f79ee926a093ee7e65533936a140855916569b08e0b0"
+            ],
+            "index": "pypi",
+            "version": "==6.0.4"
+        },
         "six": {
             "hashes": [
                 "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
