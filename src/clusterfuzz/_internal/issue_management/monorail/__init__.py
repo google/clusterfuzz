@@ -19,6 +19,7 @@ from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management.monorail.issue import \
     Issue as MonorailIssue
 from clusterfuzz._internal.issue_management.monorail.issue import ChangeList
+# pylint: disable=line-too-long
 from clusterfuzz._internal.issue_management.monorail.issue_tracker_manager import \
     IssueTrackerManager
 

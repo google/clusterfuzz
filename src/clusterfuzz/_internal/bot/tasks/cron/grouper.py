@@ -17,12 +17,11 @@ import collections
 import re
 
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import \
-    issue_tracker_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs
 
 from . import cleanup
