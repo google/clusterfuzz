@@ -18,15 +18,13 @@ import re
 
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import \
-    issue_tracker_policy
-from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import \
-    oss_fuzz_github
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.issue_management import issue_tracker_policy
+from clusterfuzz._internal.issue_management import oss_fuzz_github
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 

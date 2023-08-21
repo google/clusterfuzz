@@ -13,14 +13,13 @@
 # limitations under the License.
 """Utilities for managing issue tracker instance."""
 
-from clusterfuzz._internal.bot.tasks.cron.libs import request_cache
-from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import \
-    issue_tracker_policy
-from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import jira
-from clusterfuzz._internal.bot.tasks.cron.libs.issue_management import monorail
+from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.issue_management import issue_tracker_policy
+from clusterfuzz._internal.issue_management import jira
+from clusterfuzz._internal.issue_management import monorail
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
 _ISSUE_TRACKER_CONSTRUCTORS = {
@@ -44,7 +43,7 @@ def _get_issue_tracker_project_name(testcase=None):
   return data_handler.get_issue_tracker_name(job_type)
 
 
-@request_cache.wrap(capacity=_ISSUE_TRACKER_CACHE_CAPACITY)
+@memoize.wrap(memoize.FifoInMemory(256))
 def get_issue_tracker(project_name=None):
   """Get the issue tracker with the given type and name."""
   issue_tracker_config = local_config.IssueTrackerConfig()
