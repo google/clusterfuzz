@@ -28,6 +28,8 @@ from .issue import Issue
 FAIL_RETRIES = 7
 FAIL_WAIT = 1
 
+# pylint: disable=no-member
+
 
 def convert_entry_to_comment(entry):
   """Convert an issue entry object into a comment object."""
