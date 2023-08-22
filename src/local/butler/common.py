@@ -378,6 +378,16 @@ def has_file_in_path(filename):
   return False
 
 
+def get_all_files(directory):
+  """Gets all files under a given directory."""
+  files = []
+  for root, _, files in os.walk(directory):
+    for filename in files:
+      filepath = os.path.join(root, filename)
+      files.append(filepath)
+  return files
+
+
 def test_bucket(env_var):
   """Get the integration test bucket."""
   bucket = os.getenv(env_var)

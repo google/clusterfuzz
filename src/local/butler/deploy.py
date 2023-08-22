@@ -419,7 +419,32 @@ def _prod_deployment_helper(config_dir,
   if deploy_appengine:
     common.execute('python butler.py run setup --config-dir {config_dir} '
                    '--non-dry-run'.format(config_dir=config_dir))
+
+  _deploy_terraform(config_dir)
+  _deploy_k8s(config_dir)
   print('Production deployment finished.')
+
+
+def _deploy_terraform(config_dir):
+  """Deploys GKE cluster via terraform."""
+  terraform_dir = os.path.join(config_dir, 'terraform')
+  terraform = f'terraform -chdir=={terraform_dir}'
+  common.execute(f'{terraform} init')
+  common.execute(
+      f'{terraform} import module.clusterfuzz.google_compute_network.vpc main')
+  common.execute(
+      f'{terraform} import module.clusterfuzz.google_compute_subnetwork.subnet us-central1'
+  )
+  common.execute(f'{terraform} plan -target=module.clusterfuzz')
+  common.execute(f'{terraform} apply -target=module.clusterfuzz')
+
+
+def _deploy_k8s():
+  """Deploys all k8s workloads."""
+  k8s_dir = os.path.join('..', '..', '..', 'infra', 'k8s')
+  workloads = common.get_all_files(k8s_dir)
+  for workload in workloads:
+    common.execute(f'kubectl apply -f {workload}')
 
 
 def execute(args):
