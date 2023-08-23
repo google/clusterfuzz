@@ -40,3 +40,8 @@ variable "machine_type" {
   default     = "e2-standard-2"
   description = "The machine type"
 }
+
+variable "memory_size_gb" {
+  default     = 1
+  description = "The memory size"
+}

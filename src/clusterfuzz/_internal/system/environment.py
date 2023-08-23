@@ -721,6 +721,11 @@ def is_running_on_app_engine():
           os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'))
 
 
+def is_running_on_k8s():
+  """Return True if we are running on k8s."""
+  return os.getenv('IS_K8S_ENV') == 'true'
+
+
 def is_running_on_app_engine_development():
   """Return True if running on the local development appengine server."""
   return (os.getenv('GAE_ENV') == 'dev' or
@@ -1051,7 +1056,7 @@ def bot_noop(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
-    is_bot = not is_running_on_app_engine()
+    is_bot = not (is_running_on_app_engine() or is_running_on_k8s())
     if is_bot:
       return None
 
