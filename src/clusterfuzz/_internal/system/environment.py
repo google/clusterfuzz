@@ -1117,3 +1117,16 @@ def is_lib():
 
 def is_i386(job_type):
   return '_i386' in job_type
+
+
+def if_redis_available(func):
+  """Wrap a function if redis is available and return None if not."""
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    if get_value('REDIS_HOST'):
+      return func(*args, **kwargs)
+
+    return None
+
+  return wrapper
