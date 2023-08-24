@@ -721,11 +721,6 @@ def is_running_on_app_engine():
           os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'))
 
 
-def is_running_on_k8s():
-  """Return True if we are running on k8s."""
-  return os.getenv('IS_K8S_ENV') == 'true'
-
-
 def is_running_on_app_engine_development():
   """Return True if running on the local development appengine server."""
   return (os.getenv('GAE_ENV') == 'dev' or
@@ -1056,7 +1051,7 @@ def bot_noop(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
-    is_bot = not (is_running_on_app_engine() or is_running_on_k8s())
+    is_bot = not is_running_on_app_engine()
     if is_bot:
       return None
 
@@ -1122,3 +1117,16 @@ def is_lib():
 
 def is_i386(job_type):
   return '_i386' in job_type
+
+
+def if_redis_available(func):
+  """Wrap a function if redis is available and return None if not."""
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    if get_value('REDIS_HOST'):
+      return func(*args, **kwargs)
+
+    return None
+
+  return wrapper
