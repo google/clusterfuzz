@@ -32,7 +32,7 @@ _REQUIRED_SERVICES = (
     'bigquery-json.googleapis.com',
     'cloudapis.googleapis.com',
     'cloudbuild.googleapis.com',
-    'clouddebugger.googleapis.com',
+    # 'clouddebugger.googleapis.com',
     'clouderrorreporting.googleapis.com',
     'cloudprofiler.googleapis.com',
     'cloudresourcemanager.googleapis.com',
