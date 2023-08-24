@@ -39,6 +39,15 @@ RUN curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add 
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
     apt-get update && apt-get install -y google-chrome-stable
 
+# Install latest kubectl.
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && mv kubectl /usr/local/bin/
+
+# Install terraform.
+RUN wget https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip \
+    && unzip terraform_1.5.6_linux_amd64.zip -d /usr/local/bin \
+    && rm terraform_1.5.6_linux_amd64.zip
+
 # Container Builder mount.
 VOLUME /workspace
 WORKDIR /workspace

@@ -421,7 +421,7 @@ def _prod_deployment_helper(config_dir,
                    '--non-dry-run'.format(config_dir=config_dir))
 
   _deploy_terraform(config_dir)
-  _deploy_k8s(config_dir)
+  _deploy_k8s()
   print('Production deployment finished.')
 
 
@@ -430,11 +430,6 @@ def _deploy_terraform(config_dir):
   terraform_dir = os.path.join(config_dir, 'terraform')
   terraform = f'terraform -chdir=={terraform_dir}'
   common.execute(f'{terraform} init')
-  common.execute(
-      f'{terraform} import module.clusterfuzz.google_compute_network.vpc main')
-  common.execute(
-      f'{terraform} import module.clusterfuzz.google_compute_subnetwork.subnet us-central1'
-  )
   common.execute(f'{terraform} plan -target=module.clusterfuzz')
   common.execute(f'{terraform} apply -target=module.clusterfuzz')
 
