@@ -72,3 +72,17 @@ resource "google_container_node_pool" "primary_nodes" {
     }
   }
 }
+
+resource "google_redis_instance" "memorystore_redis_instance" {
+  project        = var.project_id
+  name           = "k8s-redis"
+  tier           = "BASIC"
+  memory_size_gb = 16
+  region         = var.region
+  redis_version  = "REDIS_6_X"
+  authorized_network = google_compute_network.vpc.name
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
