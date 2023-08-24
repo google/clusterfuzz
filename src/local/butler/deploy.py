@@ -424,7 +424,7 @@ def _prod_deployment_helper(config_dir,
 
 def execute(args):
   """Deploy Clusterfuzz to Appengine."""
-  if sys.version_info.major != 3 or sys.version_info.minor != 7:
+  if sys.version_info.major != 3:
     print('You can only deploy from Python 3.7. Install Python 3.7 and '
           'run: `PYTHON=python3.7 local/install_deps.bash`')
     sys.exit(1)
