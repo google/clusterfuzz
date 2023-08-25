@@ -79,8 +79,11 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 HTTP_TIMEOUT_SECONDS = 15
 
 _TRANSIENT_ERRORS = [
-    google.cloud.exceptions.GoogleCloudError, ConnectionError,
-    requests.exceptions.ConnectionError
+    google.cloud.exceptions.GoogleCloudError,
+    ConnectionError,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.ChunkedEncodingError,
+    ConnectionResetError,
 ]
 
 
