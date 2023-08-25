@@ -538,6 +538,7 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
   update_input.data_bundles = ndb_utils.get_all_from_query(
       data_types.DataBundle.query(
           data_types.DataBundle.name == update_input.fuzzer.data_bundle_name))
+  update_input.data_bundles = list(update_input.data_bundles)
   logs.log('Data bundles: %s' % update_input.data_bundles)
 
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
