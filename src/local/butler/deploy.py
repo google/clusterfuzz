@@ -445,7 +445,7 @@ def _deploy_k8s():
   redis_host = _get_redis_ip(k8s_project)
   common.execute(f'export REDIS_HOST={redis_host}')
   for workload in workloads:
-    common.execute(f'envsubst < {workload} | kubectl apply -f -')
+    common.execute(f'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
 
 
 def execute(args):
