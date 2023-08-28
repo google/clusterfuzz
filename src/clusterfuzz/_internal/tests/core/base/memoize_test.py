@@ -218,10 +218,9 @@ class MemcacheTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'redis.Redis',
-        'clusterfuzz._internal.system.environment.is_running_on_app_engine',
     ])
     self.mock.Redis.return_value = _MockRedis()
-    self.mock.is_running_on_app_engine.return_value = True
+    environment.set_value('REDIS_HOST', 'test_redis')
 
     self.cache = memoize.Memcache(100)
 
@@ -238,8 +237,8 @@ class MemcacheTest(unittest.TestCase):
     self.assertEqual(self.value, self.cache.get(self.key))
 
   def test_noop(self):
-    """Test noop on bot."""
-    self.mock.is_running_on_app_engine.return_value = False
+    """Test noop if redis is not available."""
+    environment.set_value('REDIS_HOST', None)
 
     self.assertIsNone(self.cache.get(self.key))
     self.cache.put(self.key, self.value)
