@@ -384,6 +384,7 @@ def _staging_deployment_helper(python3=True):
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
+                            deploy_k8s=False,
                             python3=True):
   """Helper for production deployment."""
   config = local_config.Config()
@@ -420,8 +421,9 @@ def _prod_deployment_helper(config_dir,
     common.execute('python butler.py run setup --config-dir {config_dir} '
                    '--non-dry-run'.format(config_dir=config_dir))
 
-  _deploy_terraform(config_dir)
-  _deploy_k8s()
+  if deploy_k8s:
+    _deploy_terraform(config_dir)
+    _deploy_k8s()
   print('Production deployment finished.')
 
 
@@ -430,16 +432,20 @@ def _deploy_terraform(config_dir):
   terraform_dir = os.path.join(config_dir, 'terraform')
   terraform = f'terraform -chdir=={terraform_dir}'
   common.execute(f'{terraform} init')
+  # TODO: Remove terraform plan and set apply to auto-approve after testing.
   common.execute(f'{terraform} plan -target=module.clusterfuzz')
   common.execute(f'{terraform} apply -target=module.clusterfuzz')
 
 
 def _deploy_k8s():
   """Deploys all k8s workloads."""
-  k8s_dir = os.path.join('..', '..', '..', 'infra', 'k8s')
+  k8s_dir = os.path.join('infra', 'k8s')
   workloads = common.get_all_files(k8s_dir)
+  k8s_project = local_config.ProjectConfig().get('env.K8S_PROJECT')
+  redis_host = _get_redis_ip(k8s_project)
+  common.execute(f'export REDIS_HOST={redis_host}')
   for workload in workloads:
-    common.execute(f'kubectl apply -f {workload}')
+    common.execute(f'envsubst < {workload} | kubectl apply -f -')
 
 
 def execute(args):
@@ -499,6 +505,7 @@ def execute(args):
 
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
+  deploy_k8s = 'k8s' in args.targets
 
   is_python3 = sys.version_info.major == 3
   package_zip_paths = []
@@ -529,6 +536,7 @@ def execute(args):
         args.config_dir,
         package_zip_paths,
         deploy_appengine,
+        deploy_k8s,
         python3=is_python3)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
