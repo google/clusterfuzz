@@ -182,7 +182,7 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
   # TODO(metzman): Experiment with making this unnecessary.
   # First update comment.
   testcase = data_handler.get_testcase_by_id(
-      uworker_output.uworker_input.testcase_id.testcase_id)
+      uworker_output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
 
