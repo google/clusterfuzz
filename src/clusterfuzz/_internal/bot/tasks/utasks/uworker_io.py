@@ -277,38 +277,45 @@ class UworkerEntityWrapper:
     # which won't be possible to set on a model when there's no datastore
     # connection.
     self._wrapped_changed_attributes = set()
-    self._wrapper_initial_dict = self._entity.__dict__()
+    self._wrapper_initial_dict = self._entity.__dict__['_values'].copy()
 
   def __getattr__(self, attribute):
-    if attribute in ['_entity', '_wrapped_changed_attributes']:
+    if attribute in [
+        '_entity', '_wrapped_changed_attributes', '_wrapper_initial_dict'
+    ]:
       # Allow setting and changing _entity and _wrapped_changed_attributes.
       # Stack overflow in __init__ otherwise.
       return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self._entity, attribute)
 
   def __setattr__(self, attribute, value):
-    if attribute in ['_entity', '_wrapped_changed_attributes',
-                     '_wrapper_initial_dict']:
+    if attribute in [
+        '_entity', '_wrapped_changed_attributes', '_wrapper_initial_dict'
+    ]:
       # Allow setting and changing _entity. Stack overflow in __init__
       # otherwise.
       super().__setattr__(attribute, value)
       return
+    self._wrapped_changed_attributes.add(attribute)
     setattr(self._entity, attribute, value)
 
   def get_changed_attrs(self):
-    current_dict = self._entity.__dict__()
-    changed = self._wrapped_changed_attributes
+    """Gets changed attributes."""
+    # TODO(metzman): Use __dict__ comparision method in get_changed_attrs to
+    # track all changes.
+    # Get attributes changed by methods too.
+    current_dict = self._entity.__dict__['_values']
+    changed = self._wrapped_changed_attributes.copy()
     wrapper_initial_dict = self._wrapper_initial_dict
     for key, value in wrapper_initial_dict.items():
       if key in changed:
         continue
       try:
-        if value != wrapper_initial_dict[key]:
+        if value != current_dict[key]:
           changed.add(key)
       except KeyError:
         changed.add(key)
     return changed
-
 
 
 class UworkerMsg:
