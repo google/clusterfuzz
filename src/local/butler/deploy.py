@@ -439,11 +439,10 @@ def _deploy_terraform(config_dir):
 def _deploy_k8s():
   """Deploys all k8s workloads."""
   k8s_dir = os.path.join('infra', 'k8s')
-  workloads = common.get_all_files(k8s_dir)
   k8s_project = local_config.ProjectConfig().get('env.K8S_PROJECT')
   redis_host = _get_redis_ip(k8s_project)
   common.execute(f'export REDIS_HOST={redis_host}')
-  for workload in workloads:
+  for workload in common.get_all_files(k8s_dir):
     # pylint:disable=anomalous-backslash-in-string
     common.execute(f'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
 
