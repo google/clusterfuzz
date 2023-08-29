@@ -27,6 +27,13 @@ spec:
           - name: cleanup
             image: gcr.io/clusterfuzz-images/base
             imagePullPolicy: Always
+            resources:
+              requests:
+                cpu: 1
+                memory: "4G"
+              limits:
+                cpu: 1.5
+                memory: "5G"
             env:
             - name: RUN_CMD
               value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py cleanup"
@@ -34,5 +41,7 @@ spec:
               value: "true"
             - name: DISABLE_MOUNTS
               value: "true"
+            - name: REDIS_HOST
+              value: $REDIS_HOST
           restartPolicy: OnFailure
       backoffLimit: 3
