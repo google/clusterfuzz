@@ -379,13 +379,13 @@ def has_file_in_path(filename):
 
 
 def get_all_files(directory):
-  """Gets all files under a given directory."""
-  files = []
+  """Returns a list of all files recursively under a given directory."""
+  all_files = []
   for root, _, files in os.walk(directory):
     for filename in files:
       filepath = os.path.join(root, filename)
-      files.append(filepath)
-  return files
+      all_files.append(filepath)
+  return all_files
 
 
 def test_bucket(env_var):

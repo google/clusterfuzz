@@ -432,8 +432,7 @@ def _deploy_terraform(config_dir):
   terraform_dir = os.path.join(config_dir, 'terraform')
   terraform = f'terraform -chdir=={terraform_dir}'
   common.execute(f'{terraform} init')
-  # TODO: Remove terraform plan and set apply to auto-approve after testing.
-  common.execute(f'{terraform} plan -target=module.clusterfuzz')
+  # TODO(gongh): Set apply to auto-approve after testing.
   common.execute(f'{terraform} apply -target=module.clusterfuzz')
 
 
