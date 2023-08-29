@@ -601,7 +601,7 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
   logs.log('Locating generated test cases.')
 
   # Get the list of testcase files.
-  testcase_directories = [testcase_directory]
+  testcase_directories = [testcase_directory, data_directory]
   testcase_file_paths = testcase_manager.get_testcases_from_directories(
       testcase_directories)
 
