@@ -430,7 +430,7 @@ def _prod_deployment_helper(config_dir,
 def _deploy_terraform(config_dir):
   """Deploys GKE cluster via terraform."""
   terraform_dir = os.path.join(config_dir, 'terraform')
-  terraform = f'terraform -chdir=={terraform_dir}'
+  terraform = f'terraform -chdir={terraform_dir}'
   common.execute(f'{terraform} init')
   # TODO(gongh): Set apply to auto-approve after testing.
   common.execute(f'{terraform} apply -target=module.clusterfuzz')
@@ -441,7 +441,11 @@ def _deploy_k8s():
   k8s_dir = os.path.join('infra', 'k8s')
   k8s_project = local_config.ProjectConfig().get('env.K8S_PROJECT')
   redis_host = _get_redis_ip(k8s_project)
-  common.execute(f'export REDIS_HOST={redis_host}')
+  os.environ['REDIS_HOST'] = redis_host
+  common.execute(f'gcloud config set project {k8s_project}')
+  common.execute(
+      'gcloud container clusters get-credentials clusterfuzz-cronjobs-gke '
+      f'--region={appengine.region(k8s_project)}')
   for workload in common.get_all_files(k8s_dir):
     # pylint:disable=anomalous-backslash-in-string
     common.execute(f'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
