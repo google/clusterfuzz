@@ -48,6 +48,15 @@ resource "google_container_cluster" "primary" {
 
   network    = google_compute_network.vpc.name
   subnetwork = google_compute_subnetwork.subnet.name
+
+  # We need to define this for private clusters, but all fields are optional.
+  ip_allocation_policy {}
+
+  private_cluster_config {
+    enable_private_endpoint = false
+    enable_private_nodes    = true
+    master_ipv4_cidr_block  = "172.16.0.32/28"
+  }
 }
 
 resource "google_container_node_pool" "primary_nodes" {
@@ -75,7 +84,7 @@ resource "google_container_node_pool" "primary_nodes" {
 
 resource "google_redis_instance" "memorystore_redis_instance" {
   project        = var.project_id
-  name           = "k8s-redis"
+  name           = "redis-instance"
   tier           = "BASIC"
   memory_size_gb = 16
   region         = var.region
@@ -84,5 +93,27 @@ resource "google_redis_instance" "memorystore_redis_instance" {
 
   lifecycle {
     prevent_destroy = true
+  }
+}
+
+resource "google_compute_router" "router" {
+  project = var.project_id
+  name    = "router"
+  network = var.network_name
+  region  = var.region
+}
+
+resource "google_compute_router_nat" "nat_config" {
+  project                             = var.project_id
+  name                                = "nat-config"
+  router                              = google_compute_router.router.name
+  source_subnetwork_ip_ranges_to_nat  = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+  nat_ip_allocate_option              = "AUTO_ONLY"
+  region                              = google_compute_router.router.region
+  enable_endpoint_independent_mapping = false
+
+  log_config {
+    enable = false
+    filter = "ALL"
   }
 }

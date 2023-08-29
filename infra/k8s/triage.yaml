@@ -27,6 +27,13 @@ spec:
           - name: triage
             image: gcr.io/clusterfuzz-images/base
             imagePullPolicy: Always
+            resources:
+              requests:
+                cpu: 1.5
+                memory: "5G"
+              limits:
+                cpu: 1.5
+                memory: "5G"
             env:
             - name: RUN_CMD
               value: "python3.7 $ROOT_DIR/src/python/bot/startup/run_cron.py triage"

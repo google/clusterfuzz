@@ -23,6 +23,7 @@ RUN apt-get update && \
         google-cloud-sdk-app-engine-python-extras \
         google-cloud-sdk-datastore-emulator \
         google-cloud-sdk-pubsub-emulator=312.0.0-0 \
+        kubectl \
         liblzma-dev \
         openjdk-11-jdk
 
@@ -38,6 +39,12 @@ RUN npm install -g bower polymer-bundler
 RUN curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
     apt-get update && apt-get install -y google-chrome-stable
+
+# Install terraform.
+RUN wget https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip && \
+    echo "3de5135eecbdb882c7c941920846cc63b0685209f9f8532c6fc1460d9c58e347  terraform_1.5.6_linux_amd64.zip" | sha256sum --check --status && \
+    unzip terraform_1.5.6_linux_amd64.zip -d /usr/local/bin && \
+    rm terraform_1.5.6_linux_amd64.zip
 
 # Container Builder mount.
 VOLUME /workspace
