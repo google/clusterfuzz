@@ -32,67 +32,67 @@ DEFAULT_SIGNED_URL_MINUTES = 24 * 60
 # pylint: disable=protected-access
 
 
-# class UworkerEntityWrapperTest(unittest.TestCase):
-#   """Tests for UworkerEntityWrapper, a core part of how ndb models/data_types
-#   are used by uworkers."""
-#   VALUE = 1
-#   NEW_VALUE = 2
+class UworkerEntityWrapperTest(unittest.TestCase):
+  """Tests for UworkerEntityWrapper, a core part of how ndb models/data_types
+  are used by uworkers."""
+  VALUE = 1
+  NEW_VALUE = 2
 
-#   def setUp(self):
-#     self.underlying_entity = mock.MagicMock()
-#     self.underlying_entity.a = self.VALUE
-#     self.wrapped = uworker_io.UworkerEntityWrapper(self.underlying_entity)
+  def setUp(self):
+    self.underlying_entity = mock.MagicMock()
+    self.underlying_entity.a = self.VALUE
+    self.wrapped = uworker_io.UworkerEntityWrapper(self.underlying_entity)
 
-#   def test_reflecting_underlying(self):
-#     """Tests that UworkerEntityWrapper reflects values on the underlying
-#     entity."""
-#     self.assertEqual(self.wrapped.a, self.VALUE)
+  def test_reflecting_underlying(self):
+    """Tests that UworkerEntityWrapper reflects values on the underlying
+    entity."""
+    self.assertEqual(self.wrapped.a, self.VALUE)
 
-#   def test_modifying_underlying(self):
-#     """Tests that UworkerEntityWrapper modifies attributes on the underlying
-#     entity, and that when queried, reflects those values back."""
-#     self.wrapped.a = self.NEW_VALUE
-#     self.assertEqual(self.wrapped.a, self.NEW_VALUE)
-#     self.assertEqual(self.underlying_entity.a, self.NEW_VALUE)
+  def test_modifying_underlying(self):
+    """Tests that UworkerEntityWrapper modifies attributes on the underlying
+    entity, and that when queried, reflects those values back."""
+    self.wrapped.a = self.NEW_VALUE
+    self.assertEqual(self.wrapped.a, self.NEW_VALUE)
+    self.assertEqual(self.underlying_entity.a, self.NEW_VALUE)
 
-#     self.wrapped.b = self.NEW_VALUE
-#     self.assertEqual(self.wrapped.b, self.NEW_VALUE)
-#     self.assertEqual(self.underlying_entity.b, self.NEW_VALUE)
+    self.wrapped.b = self.NEW_VALUE
+    self.assertEqual(self.wrapped.b, self.NEW_VALUE)
+    self.assertEqual(self.underlying_entity.b, self.NEW_VALUE)
 
-#     # Test with setattr to make sure we handle fanciness.
-#     setattr(self.wrapped, 'c', self.NEW_VALUE)
-#     self.assertEqual(self.wrapped.c, self.NEW_VALUE)
-#     self.assertEqual(self.underlying_entity.c, self.NEW_VALUE)
+    # Test with setattr to make sure we handle fanciness.
+    setattr(self.wrapped, 'c', self.NEW_VALUE)
+    self.assertEqual(self.wrapped.c, self.NEW_VALUE)
+    self.assertEqual(self.underlying_entity.c, self.NEW_VALUE)
 
-#   def test_no_changes(self):
-#     """Tests that UworkerEntityWrapper works when nothing is modified"""
-#     self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
-#     x = self.wrapped.a
-#     del x
-#     self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
+  def test_no_changes(self):
+    """Tests that UworkerEntityWrapper works when nothing is modified"""
+    self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
+    x = self.wrapped.a
+    del x
+    self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
 
-#   def test_tracking_changes(self):
-#     """Tests that UworkerEntityWrapper tracks attributes on the underlying
-#     entity."""
-#     # If a user sets an attribute we need to track that, even if nothing is
-#     # actually changed.
-#     self.wrapped.a = self.VALUE
-#     self.wrapped.b = self.VALUE
-#     setattr(self.wrapped, 'c', self.VALUE)
-#     expected = {'a': self.VALUE, 'b': self.VALUE, 'c': self.VALUE}
-#     self.assertEqual(self.wrapped._wrapped_changed_attributes, expected)
+  def test_tracking_changes(self):
+    """Tests that UworkerEntityWrapper tracks attributes on the underlying
+    entity."""
+    # If a user sets an attribute we need to track that, even if nothing is
+    # actually changed.
+    self.wrapped.a = self.VALUE
+    self.wrapped.b = self.VALUE
+    setattr(self.wrapped, 'c', self.VALUE)
+    expected = {'a': self.VALUE, 'b': self.VALUE, 'c': self.VALUE}
+    self.assertEqual(self.wrapped._wrapped_changed_attributes, expected)
 
-#   def test_not_adding_fields(self):
-#     """Tests that UworkerEntityWrapper isn't adding fields to the
-#     underlying_entity when not intended by the user."""
-#     # Change the underlying entity to something that isn't MagicMock.
-#     self.wrapped._entity = {}
+  def test_not_adding_fields(self):
+    """Tests that UworkerEntityWrapper isn't adding fields to the
+    underlying_entity when not intended by the user."""
+    # Change the underlying entity to something that isn't MagicMock.
+    self.wrapped._entity = {}
 
-#     with self.assertRaises(AttributeError):
-#       self.wrapped.nonexistent  # pylint: disable=pointless-statement
+    with self.assertRaises(AttributeError):
+      self.wrapped.nonexistent  # pylint: disable=pointless-statement
 
-#     with self.assertRaises(AttributeError):
-#       getattr(self.wrapped, 'also_non_existent')  # pylint: disable=pointless-statement
+    with self.assertRaises(AttributeError):
+      getattr(self.wrapped, 'also_non_existent')  # pylint: disable=pointless-statement
 
 
 class TestGetUrls(unittest.TestCase):
@@ -372,10 +372,13 @@ class RoundTripTest(unittest.TestCase):
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     uworker_input = uworker_io.deserialize_uworker_input(serialized)
     additional_metadata = '"gn_args": "is_asan = true\nis_clang = true"'
-    uworker_input.testcase.additional_metadata = additional_metadata
+    uworker_input.testcase.set_metadata('gn_args',
+                                        'is_asan = true\nis_clang = true')
+    self.assertEqual(uworker_input.testcase.get_changed_attrs(),
+                     ['additional_metadata'])
+    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     output = uworker_io.UworkerOutput(testcase=uworker_input.testcase)
     serialized_output = uworker_io.serialize_uworker_output(output)
-    from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     deserialized = uworker_io.deserialize_uworker_output(serialized_output)
     self.assertEqual(deserialized.testcase.additional_metadata,
                      additional_metadata)
