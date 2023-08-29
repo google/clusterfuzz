@@ -39,7 +39,14 @@ class UworkerEntityWrapperTest(unittest.TestCase):
   NEW_VALUE = 2
 
   def setUp(self):
-    self.underlying_entity = mock.MagicMock()
+
+    class ModelClass(data_types.Model):
+      a = ndb.IntegerProperty()
+
+      def change_a(self):
+        self.a = 9
+
+    self.underlying_entity = ModelClass()
     self.underlying_entity.a = self.VALUE
     self.wrapped = uworker_io.UworkerEntityWrapper(self.underlying_entity)
 
@@ -47,6 +54,11 @@ class UworkerEntityWrapperTest(unittest.TestCase):
     """Tests that UworkerEntityWrapper reflects values on the underlying
     entity."""
     self.assertEqual(self.wrapped.a, self.VALUE)
+
+  def test_method_modifying(self):
+    """Tests that we can track changes by method calls."""
+    self.underlying_entity.change_a()
+    self.assertEqual(self.wrapped.get_changed_attrs(), {'a'})
 
   def test_modifying_underlying(self):
     """Tests that UworkerEntityWrapper modifies attributes on the underlying
@@ -66,10 +78,10 @@ class UworkerEntityWrapperTest(unittest.TestCase):
 
   def test_no_changes(self):
     """Tests that UworkerEntityWrapper works when nothing is modified"""
-    self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
+    self.assertEqual(self.wrapped.get_changed_attrs(), set())
     x = self.wrapped.a
     del x
-    self.assertEqual(self.wrapped._wrapped_changed_attributes, {})
+    self.assertEqual(self.wrapped.get_changed_attrs(), set())
 
   def test_tracking_changes(self):
     """Tests that UworkerEntityWrapper tracks attributes on the underlying
@@ -79,7 +91,7 @@ class UworkerEntityWrapperTest(unittest.TestCase):
     self.wrapped.a = self.VALUE
     self.wrapped.b = self.VALUE
     setattr(self.wrapped, 'c', self.VALUE)
-    expected = {'a': self.VALUE, 'b': self.VALUE, 'c': self.VALUE}
+    expected = {'a', 'b', 'c'}
     self.assertEqual(self.wrapped._wrapped_changed_attributes, expected)
 
   def test_not_adding_fields(self):
@@ -363,6 +375,25 @@ class RoundTripTest(unittest.TestCase):
     update_input = deserialized.update_fuzzer_and_data_bundles_input
     self.assertEqual(update_input.data_bundles[0].name, bundle1.name)
     self.assertEqual(update_input.data_bundles[1].name, bundle2.name)
+
+  def test_additional_metadata(self):
+    """Tests that additional_metadata field on Testcase is serialized and
+    deserialized properly."""
+    testcase = data_types.Testcase()
+    testcase.put()
+    uworker_input = uworker_io.UworkerInput(testcase=testcase)
+    serialized = uworker_io.serialize_uworker_input(uworker_input)
+    uworker_input = uworker_io.deserialize_uworker_input(serialized)
+    additional_metadata = r'{"gn_args": "is_asan = true\nis_clang = true"}'
+    uworker_input.testcase.set_metadata(
+        'gn_args', 'is_asan = true\nis_clang = true', False)
+    self.assertEqual(uworker_input.testcase.get_changed_attrs(),
+                     {'additional_metadata'})
+    output = uworker_io.UworkerOutput(testcase=uworker_input.testcase)
+    serialized_output = uworker_io.serialize_uworker_output(output)
+    deserialized = uworker_io.deserialize_uworker_output(serialized_output)
+    self.assertEqual(deserialized.testcase.additional_metadata,
+                     additional_metadata)
 
   def test_submessage_serialization_and_deserialization(self):
     """Tests that output messages with submessages are serialized and

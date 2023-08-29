@@ -188,7 +188,7 @@ def serialize_uworker_output(uworker_output_obj):
 
 def serialize_wrapped_entity(wrapped_entity):
   entity_proto = model._entity_to_protobuf(wrapped_entity._entity)  # pylint: disable=protected-access
-  changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))  # pylint: disable=protected-access
+  changed = json.dumps(list(wrapped_entity.get_changed_attrs()))  # pylint: disable=protected-access
   changed = uworker_msg_pb2.Json(serialized=changed)
   wrapped_entity_proto = uworker_msg_pb2.UworkerEntityWrapper(
       entity=entity_proto, changed=changed)
@@ -276,25 +276,46 @@ class UworkerEntityWrapper:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Deal with key
     # which won't be possible to set on a model when there's no datastore
     # connection.
-    self._wrapped_changed_attributes = {}
+    self._wrapped_changed_attributes = set()
+    self._wrapper_initial_dict = self._entity.__dict__['_values'].copy()
 
   def __getattr__(self, attribute):
-    if attribute in ['_entity', '_wrapped_changed_attributes']:
+    if attribute in [
+        '_entity', '_wrapped_changed_attributes', '_wrapper_initial_dict'
+    ]:
       # Allow setting and changing _entity and _wrapped_changed_attributes.
       # Stack overflow in __init__ otherwise.
       return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self._entity, attribute)
 
   def __setattr__(self, attribute, value):
-    if attribute in ['_entity', '_wrapped_changed_attributes']:
+    if attribute in [
+        '_entity', '_wrapped_changed_attributes', '_wrapper_initial_dict'
+    ]:
       # Allow setting and changing _entity. Stack overflow in __init__
       # otherwise.
       super().__setattr__(attribute, value)
       return
-    # Record the attribute change.
-    self._wrapped_changed_attributes[attribute] = value
-    # Make the attribute change.
+    self._wrapped_changed_attributes.add(attribute)
     setattr(self._entity, attribute, value)
+
+  def get_changed_attrs(self):
+    """Gets changed attributes."""
+    # TODO(metzman): Use __dict__ comparision method in get_changed_attrs to
+    # track all changes.
+    # Get attributes changed by methods too.
+    current_dict = self._entity.__dict__['_values']
+    changed = self._wrapped_changed_attributes.copy()
+    wrapper_initial_dict = self._wrapper_initial_dict
+    for key, value in wrapper_initial_dict.items():
+      if key in changed:
+        continue
+      try:
+        if value != current_dict[key]:
+          changed.add(key)
+      except KeyError:
+        changed.add(key)
+    return changed
 
 
 class UworkerMsg:
