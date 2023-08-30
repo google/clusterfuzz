@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import modules
 modules.fix_module_search_paths()
 
 import importlib
+import os
 import sys
 
 from clusterfuzz._internal.config import local_config
@@ -41,6 +42,18 @@ def main():
           'checkout before running. Exiting.')
     print('For an example, check init.bash in the local directory.')
     return 1
+
+  config_modules_path = os.path.join(root_directory, 'src', 'appengine',
+                                     'config', 'modules')
+  if os.path.exists(config_modules_path):
+    sys.path.append(config_modules_path)
+
+  try:
+    # Run any module initialization code.
+    import module_init_k8s
+    module_init_k8s.init()
+  except ImportError:
+    pass
 
   task = sys.argv[1]
 
