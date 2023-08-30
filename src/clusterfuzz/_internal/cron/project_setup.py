@@ -1041,8 +1041,7 @@ def main():
         config_suffix=setup_config.get('job_suffix', ''),
         external_config=setup_config.get('external_config', ''),
         segregate_projects=segregate_projects,
-        experimental_sanitizers=setup_config.get('experimental_sanitizers',
-                                                  []),
+        experimental_sanitizers=setup_config.get('experimental_sanitizers', []),
         engine_build_buckets={
             'libfuzzer': bucket_config.get('libfuzzer'),
             'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
@@ -1055,8 +1054,7 @@ def main():
         },
         fuzzer_entities=fuzzer_entities,
         add_info_labels=setup_config.get('add_info_labels', False),
-        add_revision_mappings=setup_config.get('add_revision_mappings',
-                                                False),
+        add_revision_mappings=setup_config.get('add_revision_mappings', False),
         additional_vars=setup_config.get('additional_vars'))
 
     projects_source = setup_config.get('source')
@@ -1077,6 +1075,6 @@ def main():
   cleanup_stale_projects(
       list(fuzzer_entities.values()), project_names, job_names,
       segregate_projects)
-  
+
   logs.log('Project setup succeeded.')
   return True

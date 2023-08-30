@@ -21,10 +21,10 @@ from google.cloud import ndb
 import requests
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.datastore import data_types
-from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.cron.libs import helpers
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.metrics import logs
 
 HTTP_GET_TIMEOUT_SECS = 30
 
@@ -202,14 +202,15 @@ def _close_fixed_builds(projects, build_type):
 
     if build_failure.last_checked_timestamp >= get_build_time(build):
       logs.log_error('Latest successful build time for %s in %s config is '
-                      'older than or equal to last failure time.' %
-                      (project_name, build_type))
+                     'older than or equal to last failure time.' %
+                     (project_name, build_type))
       continue
 
     if build_failure.issue_id is not None:
       close_bug(issue_tracker, build_failure.issue_id, project_name)
 
     close_build_failure(build_failure)
+
 
 def _process_failures(projects, build_type):
   """Process failures."""
@@ -261,10 +262,10 @@ def _process_failures(projects, build_type):
                                           oss_fuzz_project.ccs, build_type)
       elif (build_failure.consecutive_failures -
             MIN_CONSECUTIVE_BUILD_FAILURES) % REMINDER_INTERVAL == 0:
-        send_reminder(issue_tracker, build_failure.issue_id,
-                      build['build_id'])
+        send_reminder(issue_tracker, build_failure.issue_id, build['build_id'])
 
     build_failure.put()
+
 
 def _check_last_get_build_time(projects, build_type):
   """Check that builds are up to date."""
@@ -279,7 +280,7 @@ def _check_last_get_build_time(projects, build_type):
     if time_since_last_build >= NO_BUILDS_THRESHOLD:
       # Something likely went wrong with the build infrastructure, log errors.
       logs.log_error('%s has not been built in %s config for %d days.' %
-                      (project_name, build_type, time_since_last_build.days))
+                     (project_name, build_type, time_since_last_build.days))
 
 
 def main():
@@ -300,5 +301,3 @@ def main():
 
   logs.log('OSS fuzz apply ccs succeeded.')
   return True
-
-

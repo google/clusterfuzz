@@ -56,11 +56,8 @@ def main():
     cert_contents, key_contents = generate_cert(project.name)
 
     tls_cert = data_types.WorkerTlsCert(
-        id=project.name,
-        cert_contents=cert_contents,
-        key_contents=key_contents)
+        id=project.name, cert_contents=cert_contents, key_contents=key_contents)
     tls_cert.put()
 
   logs.log('OSS fuzz generate certs succeeded.')
   return True
-
