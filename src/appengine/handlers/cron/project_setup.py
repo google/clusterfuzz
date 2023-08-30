@@ -110,6 +110,8 @@ LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
                              ['libfuzzer', 'engine_asan', 'prune'])
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
                              ['libfuzzer', 'engine_msan'])
+LIBFUZZER_HWASAN_JOB = JobInfo('libfuzzer_hwasan_', 'libfuzzer', 'address',
+                             ['libfuzzer', 'engine_asan', 'android'])
 LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
                               ['libfuzzer', 'engine_ubsan'])
 LIBFUZZER_ASAN_I386_JOB = JobInfo(
@@ -123,6 +125,8 @@ AFL_ASAN_JOB = JobInfo(
     'afl',
     'address', ['afl', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
+AFL_HWASAN_JOB = JobInfo('afl_hwasan_', 'afl', 'address',
+                             ['afl', 'android'])
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
 HONGGFUZZ_ASAN_JOB = JobInfo(
@@ -161,10 +165,16 @@ JOB_MAP = {
             'address': LIBFUZZER_ASAN_I386_JOB,
             'none': LIBFUZZER_NONE_I386_JOB,
         },
+        'arm': {
+            'hardware': LIBFUZZER_HWASAN_JOB,
+        }
     },
     'afl': {
         'x86_64': {
             'address': AFL_ASAN_JOB,
+        },
+        'arm': {
+            'hardware': AFL_HWASAN_JOB,
         }
     },
     'honggfuzz': {
@@ -547,7 +557,13 @@ def create_project_settings(project, info, service_account):
 
 def create_pubsub_topics(project):
   """Create pubsub topics for tasks."""
-  for platform in PUBSUB_PLATFORMS:
+  platforms = PUBSUB_PLATFORMS
+  if 'android_' in project:
+    platforms = ['android']
+    # Avoid the stutter in queue name
+    project = project.replace('android_', '')
+
+  for platform in platforms:
     name = untrusted.queue_name(project, platform)
     client = pubsub.PubSubClient()
     application_id = utils.get_application_id()
@@ -769,10 +785,13 @@ class ProjectSetup:
       job.name = job_name
       if self._segregate_projects:
         job.platform = untrusted.platform_name(project, 'linux')
+      elif 'android' in job.name:
+        if 'hwasan' in job.name:
+          job.platform = 'ANDROID'
+        else:
+          job.platform = 'ANDROID_X86'
       else:
-        # TODO(ochang): Support other platforms?
         job.platform = 'LINUX'
-
       job.templates = template.cf_job_templates
 
       # Centipede always uses unsanitized binary as the main fuzz target.
@@ -865,6 +884,11 @@ class ProjectSetup:
 
       file_github_issue = info.get('file_github_issue', False)
       job.environment_string += f'FILE_GITHUB_ISSUE = {file_github_issue}\n'
+
+      queue_id = info.get('queue_id', False)
+      if queue_id:
+        job.queue = queue_id
+        create_pubsub_topics(project)
 
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and
@@ -980,6 +1004,15 @@ def cleanup_stale_projects(fuzzer_entities, project_names, job_names,
   """Clean up stale projects."""
   update_fuzzer_jobs(fuzzer_entities, job_names)
   cleanup_old_projects_settings(project_names)
+
+  # Only Android & OSS-Fuzz create new topics
+  # topics_created = False
+  # if segregate_projects:
+  #   topics_created = True
+  # for job in job_names:
+  #   if 'android' in job:
+  #     topics_created = True
+  #     break
 
   if segregate_projects:
     cleanup_pubsub_topics(project_names)
