@@ -23,7 +23,7 @@ import logging
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.cron.helpers import bot_manager
+from clusterfuzz._internal.cron.helpers import bot_manager
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils

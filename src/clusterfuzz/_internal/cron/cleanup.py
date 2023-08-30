@@ -23,7 +23,7 @@ from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.cron.libs import mail
+from clusterfuzz._internal.cron.libs import mail
 from clusterfuzz._internal.chrome import build_info
 from clusterfuzz._internal.crash_analysis import crash_comparer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
