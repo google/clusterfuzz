@@ -30,13 +30,3 @@ class EarlyExitError(Exception):
         self.trace_dump = traceback.format_exc()
       else:
         self.trace_dump = ''.join(traceback.format_stack())
-
-  def to_dict(self):
-    """Build dict that is used for JSON serialisation."""
-    return {
-        'traceDump': self.trace_dump,
-        'message': str(self),
-        # 'email': get_user_email(),
-        'status': self.status,
-        'type': self.__class__.__name__
-    }
