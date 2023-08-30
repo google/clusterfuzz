@@ -19,7 +19,8 @@ provider "google" {
 # Gets the existing VPC
 resource "google_compute_network" "vpc" {
   name                    = var.network_name
-  auto_create_subnetworks = "false"
+  auto_create_subnetworks = var.network_auto_mode
+  description             = var.network_description
 
   lifecycle {
     prevent_destroy = true
@@ -57,6 +58,10 @@ resource "google_container_cluster" "primary" {
     enable_private_nodes    = true
     master_ipv4_cidr_block  = "172.16.0.32/28"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_container_node_pool" "primary_nodes" {
@@ -80,16 +85,25 @@ resource "google_container_node_pool" "primary_nodes" {
       disable-legacy-endpoints = "true"
     }
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "google_redis_instance" "memorystore_redis_instance" {
   project        = var.project_id
   name           = "redis-instance"
   tier           = "BASIC"
-  memory_size_gb = 16
+  memory_size_gb = 1
   region         = var.region
   redis_version  = "REDIS_6_X"
   authorized_network = google_compute_network.vpc.name
+  timeouts {}
+
+  labels = {
+    goog-dm = "redis"
+  }
 
   lifecycle {
     prevent_destroy = true
