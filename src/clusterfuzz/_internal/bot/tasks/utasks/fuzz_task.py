@@ -42,6 +42,7 @@ from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import fuzz_target_utils
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import coverage_uploader
@@ -1512,7 +1513,7 @@ class FuzzingSession:
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
     # Record fuzz target.
-    fuzz_target_name = environment.get_value('FUZZ_TARGET')
+    fuzz_target_name = get_random_fuzz_target(self.job_type)
     if not fuzz_target_name:
       raise FuzzTaskError('No fuzz targets found.')
 
@@ -1945,3 +1946,14 @@ def utask_postprocess(output):
   session = _make_session(output.uworker_input.fuzzer_name,
                           output.uworker_input.job_type)
   session.postprocess(output)
+
+
+def get_random_fuzz_target(job_type):
+  projection = ['fuzz_target_name', 'weight']
+  query = fuzz_target_utils.get_fuzz_target_jobs(
+    engine_name, job_type).fetch(projection=projection)
+  fuzz_targets = list(query)
+  fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets)
+  environment.set_value('FUZZ_TARGET', fuzz_target.fuzz_target_name)
+  return fuzz_target.fuzz_target_name
+  

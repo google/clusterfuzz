@@ -132,14 +132,27 @@ def get_fuzz_task_payload(platform=None):
   return selection.fuzzer, selection.job
 
 
-def select_fuzz_target(targets, target_weights):
+def _get_weights_from_fuzz_targets(fuzz_targets):
+  weights = {}
+  for fuzz_target, target_job in zip(fuzz_targets, target_jobs):
+    if not fuzz_target:
+      logs.log_error('Skipping weight assignment for fuzz target %s.' %
+                     target_job.fuzz_target_name)
+      continue
+
+    weights[fuzz_target.binary] = target_job.weight
+  return weights
+
+
+def select_fuzz_target(fuzz_targets):
   """Select a fuzz target from a list of potential targets."""
   assert targets
 
+  target_weights = _get_weights_from_fuzz_targets(fuzz_targets)
   weighted_targets = []
-  for target in targets:
+  for target in fuzz_targets:
     weight = target_weights.get(target, 1.0)
-    weighted_targets.append(WeightedTarget(target, weight))
+    weighted_targets.append(WeightedTarget(fuzz_target, weight))
 
   return utils.random_weighted_choice(weighted_targets).target
 
