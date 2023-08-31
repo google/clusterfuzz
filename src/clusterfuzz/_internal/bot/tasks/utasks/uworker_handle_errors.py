@@ -23,13 +23,20 @@ def noop(*args, **kwargs):
   del kwargs
 
 
-def handle(output):
+def handle(output, handled_errors):
   """Handles the errors bubbled up from the uworker."""
-  return get_mapping()[output.error](output)
+  if output.error not in handled_errors:
+    raise RuntimeError('Can\'t handle ' + output.error)
+  return get_handle_all_errors_mapping()[output.error](output)
 
 
-def get_mapping():
-  return {
+def get_all_handled_errors():
+  return set(get_handle_all_errors_mapping().keys())
+
+
+def get_handle_all_errors_mapping():
+  """Returns a mapping of all uworker errors to their postprocess handlers."""
+  mapping = {
       uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
           analyze_task.handle_noncrash,
       uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
@@ -43,3 +50,4 @@ def get_mapping():
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }
+  return mapping
