@@ -1778,13 +1778,8 @@ class FuzzingSession:
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    # Set up a custom or regular build based on revision. By default, fuzzing
-    # is done on trunk build (using revision=None). Otherwise, a job definition
-    # can provide a revision to use via |APP_REVISION|.
-    target_weights = fuzzer_selection.get_fuzz_target_weights()
-
-    build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'), target_weights=target_weights)
+    build_setup_result, fuzz_targets = build_manager.setup_build(
+        environment.get_value('APP_REVISION'))
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
@@ -1902,6 +1897,7 @@ class FuzzingSession:
             new_crash_count=new_crash_count,
             known_crash_count=known_crash_count,
             testcases_executed=testcases_executed,
+            fuzz_targets=fuzz_targets,
             job_run_crashes=convert_groups_to_crashes(processed_groups),
         ),)
 
@@ -1951,9 +1947,8 @@ def utask_postprocess(output):
 def get_random_fuzz_target(job_type):
   projection = ['fuzz_target_name', 'weight']
   query = fuzz_target_utils.get_fuzz_target_jobs(
-    engine_name, job_type).fetch(projection=projection)
+      job=job_type).fetch(projection=projection)
   fuzz_targets = list(query)
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets)
   environment.set_value('FUZZ_TARGET', fuzz_target.fuzz_target_name)
   return fuzz_target.fuzz_target_name
-  

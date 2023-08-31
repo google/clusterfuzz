@@ -647,11 +647,7 @@ class Build(BaseBuild):
 class RegularBuild(Build):
   """Represents a regular build."""
 
-  def __init__(self,
-               base_build_dir,
-               revision,
-               build_url,
-               build_prefix=''):
+  def __init__(self, base_build_dir, revision, build_url, build_prefix=''):
     super().__init__(base_build_dir, revision, build_prefix)
     self.build_url = build_url
 
@@ -676,7 +672,7 @@ class RegularBuild(Build):
     if build_update:
       if not self._unpack_build(self.base_build_dir, self.build_dir,
                                 self.build_url):
-        return False
+        return False, []
 
       logs.log('Retrieved build r%d.' % self.revision)
 
@@ -687,7 +683,8 @@ class RegularBuild(Build):
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
 
-    return True
+    fuzz_targets = self._get_fuzz_targets_from_dir(self.build_dir)
+    return True, fuzz_targets
 
 
 class FuchsiaBuild(RegularBuild):
@@ -726,7 +723,7 @@ class FuchsiaBuild(RegularBuild):
     # List fuzzers, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
 
-    return True
+    return True, fuzz_targets
 
 
 class SymbolizedBuild(Build):
@@ -793,16 +790,14 @@ class SymbolizedBuild(Build):
           self.debug_build_dir, 'APP_PATH_DEBUG', build_update=build_update)
 
     self._post_setup_success(update_revision=build_update)
-    return True
+    fuzz_targets = self._get_fuzz_targets_from_dir(self.build_dir)
+    return True, fuzz_targets
 
 
 class CustomBuild(Build):
   """Custom binary."""
 
-  def __init__(self,
-               base_build_dir,
-               custom_binary_key,
-               custom_binary_filename,
+  def __init__(self, base_build_dir, custom_binary_key, custom_binary_filename,
                custom_binary_revision):
     super().__init__(base_build_dir, custom_binary_revision)
     self.custom_binary_key = custom_binary_key
@@ -861,7 +856,7 @@ class CustomBuild(Build):
 
     if build_update:
       if not self._unpack_custom_build():
-        return False
+        return False, []
 
       logs.log('Retrieved custom binary build r%d.' % self.revision)
     else:
@@ -870,7 +865,7 @@ class CustomBuild(Build):
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
     fuzz_targets = self._get_fuzz_targets_from_dir(self.build_dir)
-    return fuzz_targets
+    return True, fuzz_targets
 
 
 class SystemBuild(Build):
@@ -888,7 +883,7 @@ class SystemBuild(Build):
     """Set up a build that we assume is already installed on the system."""
     self._pre_setup()
     self._setup_application_path()
-    return True
+    return True, []
 
   def delete(self):
     raise BuildManagerError('Cannot delete system build.')
@@ -1076,7 +1071,8 @@ def _setup_split_targets_build(bucket_path, revision=None):
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
 
-  return setup_regular_build(revision, bucket_path=fuzz_target_bucket_path)
+  result, _ = setup_regular_build(revision, bucket_path=fuzz_target_bucket_path)
+  return result, targets_list
 
 
 def _get_latest_revision(bucket_paths):
@@ -1121,20 +1117,15 @@ def setup_trunk_build(bucket_paths, build_prefix=None):
     logs.log_error('Unable to find a matching revision.')
     return None
 
-  build = setup_regular_build(
-      latest_revision,
-      bucket_path=bucket_paths[0],
-      build_prefix=build_prefix)
-  if not build:
+  result, targets = setup_regular_build(
+      latest_revision, bucket_path=bucket_paths[0], build_prefix=build_prefix)
+  if not result:
     logs.log_error('Failed to set up a build.')
-    return None
 
-  return build
+  return result, targets
 
 
-def setup_regular_build(revision,
-                        bucket_path=None,
-                        build_prefix=''):
+def setup_regular_build(revision, bucket_path=None, build_prefix=''):
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1144,13 +1135,13 @@ def setup_regular_build(revision,
   job_type = environment.get_value('JOB_NAME')
   if not build_urls:
     logs.log_error('Error getting build urls for job %s.' % job_type)
-    return None
+    return False, []
   build_url = revisions.find_build_url(bucket_path, build_urls, revision)
   if not build_url:
     logs.log_error(
         'Error getting build url for job %s (r%d).' % (job_type, revision))
 
-    return None
+    return False, []
 
   base_build_dir = _base_build_dir(bucket_path)
 
@@ -1166,14 +1157,10 @@ def setup_regular_build(revision,
 
   result = None
   build = build_class(
-      base_build_dir,
-      revision,
-      build_url,
-      build_prefix=build_prefix)
-  if build.setup():
-    result = build
-  else:
-    return None
+      base_build_dir, revision, build_url, build_prefix=build_prefix)
+  result, targets = build.setup()
+  if not result:
+    return result, targets
 
   # Additional binaries to pull (for fuzzing engines such as Centipede).
   extra_bucket_path = get_bucket_path('EXTRA_BUILD_BUCKET_PATH')
@@ -1186,7 +1173,7 @@ def setup_regular_build(revision,
     if not extra_build_url:
       logs.log_error('Error getting extra build url for job %s (r%d).' %
                      (job_type, revision))
-      return None
+      return False, []
 
     build = build_class(
         build.build_dir,  # Store inside the main build.
@@ -1194,9 +1181,9 @@ def setup_regular_build(revision,
         extra_build_url,
         build_prefix=fuzzer_utils.EXTRA_BUILD_DIR)
     if not build.setup():
-      return None
+      return False, []
 
-  return result
+  return result, targets
 
 
 def setup_symbolized_builds(revision):
@@ -1254,14 +1241,11 @@ def setup_custom_binary():
   if not job or not job.custom_binary_key or not job.custom_binary_filename:
     logs.log_error(
         'Job does not have a custom binary, even though CUSTOM_BINARY is set.')
-    return False
+    return None, []
 
   base_build_dir = _base_build_dir('')
-  build = CustomBuild(
-      base_build_dir,
-      job.custom_binary_key,
-      job.custom_binary_filename,
-      job.custom_binary_revision)
+  build = CustomBuild(base_build_dir, job.custom_binary_key,
+                      job.custom_binary_filename, job.custom_binary_revision)
 
   # Revert back the actual job name.
   if share_build_job_type:

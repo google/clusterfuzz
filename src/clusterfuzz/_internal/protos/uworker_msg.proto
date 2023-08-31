@@ -60,6 +60,9 @@ message FuzzTaskOutput {
   optional int64 testcases_executed = 6;
   optional Json job_run_crashes = 7;
   optional string fully_qualified_fuzzer_name = 8;
+  // The main part of fuzz task is responsible for finding fuzz targets since it
+  runs the most frequently of any task that unpacks the build.
+  repeated string fuzz_targets = 9;
 }
 
 enum ErrorType {

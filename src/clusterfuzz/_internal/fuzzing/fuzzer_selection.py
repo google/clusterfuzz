@@ -146,11 +146,11 @@ def _get_weights_from_fuzz_targets(fuzz_targets):
 
 def select_fuzz_target(fuzz_targets):
   """Select a fuzz target from a list of potential targets."""
-  assert targets
+  assert fuzz_targets
 
   target_weights = _get_weights_from_fuzz_targets(fuzz_targets)
   weighted_targets = []
-  for target in fuzz_targets:
+  for fuzz_target in fuzz_targets:
     weight = target_weights.get(target, 1.0)
     weighted_targets.append(WeightedTarget(fuzz_target, weight))
 
