@@ -181,8 +181,8 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
   # partially migrated tasks.
   # TODO(metzman): Experiment with making this unnecessary.
   # First update comment.
-  testcase = data_handler.get_testcase_by_id(
-      uworker_output.uworker_input.testcase_id)
+  testcase_id = uworker_output.uworker_input.testcase_id
+  testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
 
@@ -191,25 +191,9 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   tasks.add_task(
       task_name,
-      uworker_output.uworker_input.testcase_id,
+      testcase_id,
       uworker_output.uworker_input.job_type,
       wait_time=testcase_fail_wait)
-
-
-def handle_setup_testcase_error_invalid_fuzzer(
-    uworker_output: uworker_io.UworkerOutput):
-  """Error handler for setup_testcase that is called by uworker_postprocess."""
-  # Get the testcase again because it is too hard to set the testcase for
-  # partially migrated tasks.
-  # First update comment.
-  testcase = data_handler.get_testcase_by_id(
-      uworker_output.uworker_input.testcase_id.testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       uworker_output.error_message)
-  testcase.open = False
-  testcase.fixed = 'NA'
-  testcase.set_metadata('fuzzer_was_deleted', True)
-  testcase.put()
 
 
 def setup_testcase(testcase,
@@ -217,8 +201,8 @@ def setup_testcase(testcase,
                    fuzzer_override=None,
                    testcase_download_url=None,
                    metadata=None):
-  """Sets up the testcase and needed dependencies like fuzzer,
-  data bundle, etc."""
+  """Sets up the testcase and needed dependencies like fuzzer, data bundle,
+  etc."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
 
@@ -254,10 +238,20 @@ def setup_testcase(testcase,
       logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
                      (testcase_id, fuzzer_name))
       error_message = f'Fuzzer {fuzzer_name} no longer exists.'
+      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                           error_message)
+      # Logically, this should never happen, and really bad things could happen
+      # in variant task if it is True.
+      # TODO(metzman): Get rid of this assertion and make variant task more
+      # robust.
+      assert not environment.is_engine_fuzzer_job(testcase.job_type)
+      testcase.open = False
+      testcase.fixed = 'NA'
+      testcase.set_metadata('fuzzer_was_deleted', True)
+      testcase.put()
       return None, None, uworker_io.UworkerOutput(
           uworker_input=uworker_error_input,
-          error_message=error_message,
-          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER)
+          error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'

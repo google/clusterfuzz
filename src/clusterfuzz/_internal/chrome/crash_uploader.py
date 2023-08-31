@@ -26,6 +26,7 @@ from clusterfuzz._internal.crash_analysis.stack_parsing import stack_parser
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.android import adb
 from clusterfuzz._internal.platforms.android import constants
@@ -273,7 +274,7 @@ class CrashReportInfo(object):
       mode = 'staging'
     return post_with_retries(CRASH_REPORT_UPLOAD_URL[mode], params, files)
 
-  def store_minidump(self):
+  def store_minidump(self, signed_upload_url=None):
     """Store the crash minidump in appengine and return key."""
     if not self.minidump_info.path:
       return ''
@@ -283,7 +284,11 @@ class CrashReportInfo(object):
     try:
       minidump_key = ''
       with open(self.minidump_info.path, 'rb') as file_handle:
-        minidump_key = blobs.write_blob(file_handle)
+        if signed_upload_url is not None:
+          storage.upload_signed_url(file_handle, signed_upload_url)
+        else:
+          # TODO(metzman): Remove write_blob option after migrating fuzz_task.
+          minidump_key = blobs.write_blob(file_handle)
     except:
       logs.log_error('Failed to store minidump.')
 
