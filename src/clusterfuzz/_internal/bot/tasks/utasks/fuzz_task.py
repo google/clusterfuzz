@@ -1500,7 +1500,8 @@ class FuzzingSession:
                              generated_testcase_count, testcase_count,
                              generated_testcase_string)
 
-    # TODO(metzman): Consider adding back coverage uploader. !!!! PR number.
+    # TODO(https://github.com/google/clusterfuzz/pull/3309): Consider adding
+    # back coverage uploader.
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths

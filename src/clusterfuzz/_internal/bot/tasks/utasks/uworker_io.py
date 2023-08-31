@@ -225,23 +225,20 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   """Deserializes a proto representing a db entity."""
   # TODO(metzman): Don't do this anymore, store data directly on uworker_output
   # and let postprocess deal with it.
-  changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
+  deserialized_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
 
   # Prevent saving directly.
   def put():
     raise RuntimeError('Should not be saving untrusted entity.')
 
-  original_entity = changed_entity.key.get()
-  if original_entity is None:
-    original_entity = changed_entity
-  original_entity.put = put
+  deserialized_entity.put = put
   changes = json.loads(wrapped_entity_proto.changed.serialized)
-  original_entity._wrapped_changed_attributes = set(changes)  # pylint: disable=protected-access
+  deserialized_entity._wrapped_changed_attributes = set(changes)  # pylint: disable=protected-access
   for changed_attr_name in changes:
-    changed_attr_value = getattr(changed_entity, changed_attr_name)
-    setattr(original_entity, changed_attr_name, changed_attr_value)
+    changed_attr_value = getattr(deserialized_entity, changed_attr_name)
+    setattr(deserialized_entity, changed_attr_name, changed_attr_value)
   # Prevent saving directly.
-  return original_entity
+  return deserialized_entity
 
 
 def get_modified_attr_from_untrusted_entity(entity, attr):
