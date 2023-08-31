@@ -291,7 +291,7 @@ def main():
       response.raise_for_status()
       build_status = json.loads(response.text)
     except (requests.exceptions.RequestException, ValueError) as e:
-      raise helpers.EarlyExitError(str(e), response.status_code)
+      raise RuntimeError(str(e))
 
     projects = build_status['projects']
 

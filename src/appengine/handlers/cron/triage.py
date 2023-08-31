@@ -13,8 +13,7 @@
 # limitations under the License.
 """Automated bug filing."""
 
-import importlib
-
+from clusterfuzz._internal.cron import triage
 from handlers import base_handler
 from libs import handler
 
@@ -24,5 +23,4 @@ class Handler(base_handler.Handler):
 
   @handler.cron()
   def get(self):
-    triage_module = importlib.import_module('clusterfuzz._internal.cron.triage')
-    triage_module.main()
+    triage.main()
