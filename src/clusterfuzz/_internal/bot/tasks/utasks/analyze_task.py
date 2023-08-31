@@ -191,10 +191,9 @@ def save_minidump(testcase, state, application_command_line, gestures,
   crash_info, _ = (
       crash_uploader.get_crash_info_and_stacktrace(
           application_command_line, state.crash_stacktrace, gestures))
-  # TODO(metzman): Do this in postprocess.
   if crash_info:
-    crash_info.store_minidump()
-    testcase.minidump_keys = analyze_input.minidump_keys
+    crash_info.store_minidump(analyze_input.minidump_upload_url)
+    testcase.minidump_keys = analyze_input.minidump_blob_keys
 
 
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):

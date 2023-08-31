@@ -287,7 +287,8 @@ class CrashReportInfo(object):
         if signed_upload_url is not None:
           storage.upload_signed_url(file_handle, signed_upload_url)
         else:
-          # TODO(metzman): Remove write_blob option after migrating fuzz_task.
+          # TODO(https://github.com/google/clusterfuzz/issues/3008): Remove
+          # write_blob option after migrating fuzz_task.
           minidump_key = blobs.write_blob(file_handle)
     except:
       logs.log_error('Failed to store minidump.')

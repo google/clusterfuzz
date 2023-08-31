@@ -223,8 +223,9 @@ def download_and_deserialize_uworker_output(output_url: str):
 
 def deserialize_wrapped_entity(wrapped_entity_proto):
   """Deserializes a proto representing a db entity."""
-  # TODO(metzman): Don't do this anymore, store data directly on uworker_output
-  # and let postprocess deal with it.
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Don't do this
+  # anymore, store data directly on uworker_output and let postprocess deal with
+  # it.
   deserialized_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
 
   # Prevent saving directly.

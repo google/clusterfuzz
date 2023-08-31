@@ -57,14 +57,6 @@ message AnalyzeTaskInput {
   optional string minidump_blob_keys = 2;
 }
 
-
-message BlackboxFuzzerOutput {
-}
-
-message FuzzTaskInput {
-
-}
-
 message FuzzTaskOutput {
   optional string fuzzer_name = 1;
   optional string crash_revision = 2;

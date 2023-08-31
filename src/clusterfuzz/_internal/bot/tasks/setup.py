@@ -179,7 +179,6 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
   """Error handler for setup_testcase that is called by uworker_postprocess."""
   # Get the testcase again because it is too hard to set the testcase for
   # partially migrated tasks.
-  # TODO(metzman): Experiment with making this unnecessary.
   # First update comment.
   testcase_id = uworker_output.uworker_input.testcase_id
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -242,8 +241,10 @@ def setup_testcase(testcase,
                                            error_message)
       # Logically, this should never happen, and really bad things could happen
       # in variant task if it is True.
-      # TODO(metzman): Get rid of this assertion and make variant task more
-      # robust.
+      # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
+      # assertion and make variant task more robust. Unfortunately variant task
+      # took a shortcut where it modifies the existing testcase in a way that
+      # things break if it is saved, it is only meant to be read.
       assert not environment.is_engine_fuzzer_job(testcase.job_type)
       testcase.open = False
       testcase.fixed = 'NA'
