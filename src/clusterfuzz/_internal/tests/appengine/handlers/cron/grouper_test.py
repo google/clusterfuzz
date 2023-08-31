@@ -16,10 +16,10 @@
 import datetime
 import unittest
 
+from clusterfuzz._internal.cron import grouper
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import grouper
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -37,7 +37,7 @@ class GrouperTest(unittest.TestCase):
     ]
 
     helpers.patch(self, [
-        'handlers.cron.cleanup.get_top_crashes_for_all_projects_and_platforms',
+        'clusterfuzz._internal.cron.cleanup.get_top_crashes_for_all_projects_and_platforms',
     ])
 
     self.mock.get_top_crashes_for_all_projects_and_platforms.return_value = {
