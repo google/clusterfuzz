@@ -225,7 +225,7 @@ def setup_testcase(testcase,
   # Prepare an error result to return in case of error.
   # Only include uworker_input for callers that aren't deserializing the output
   # and thus, uworker_io is not adding the input to.
-  # TODO(metzman): Remove this when the consolidation is complete.
+  # TODO(metzman): Remove the input when the consolidation is complete.
   uworker_error_input = uworker_msg_pb2.Input(
       testcase_id=str(testcase_id), job_type=job_type)
   uworker_error_output = uworker_io.UworkerOutput(

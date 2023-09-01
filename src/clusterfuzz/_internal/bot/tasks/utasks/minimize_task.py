@@ -385,7 +385,10 @@ def utask_main(uworker_input):
       uworker_input.job_type,
       fuzzer_override=minimize_fuzzer_override)
   if error:
-    uworker_handle_errors.handle(error)
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
+    # minimize is migrated.
+    all_errors = uworker_handle_errors.get_all_handled_errors()
+    uworker_handle_errors.handle(error, all_errors)
     return
 
   # Initialize variables.
