@@ -230,7 +230,10 @@ def find_regression_range(testcase_id, job_type):
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
   if error:
-    uworker_handle_errors.handle(error)
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
+    # regression is migrated.
+    all_errors = uworker_handle_errors.get_all_handled_errors()
+    uworker_handle_errors.handle(error, all_errors)
     return
 
   build_bucket_path = build_manager.get_primary_bucket_path()

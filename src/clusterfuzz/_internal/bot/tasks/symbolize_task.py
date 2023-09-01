@@ -51,7 +51,10 @@ def execute_task(testcase_id, job_type):
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
   if error:
-    uworker_handle_errors.handle(error)
+    # TODO(metzman): Assert trusted.
+    # Because this is trusted, we can trust the error.
+    all_errors = uworker_handle_errors.get_all_handled_errors()
+    uworker_handle_errors.handle(error, all_errors)
     return
 
   # Initialize variables.

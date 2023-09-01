@@ -199,6 +199,13 @@ def handle_build_setup_error(output):
       f'Build setup failed with job: {output.uworker_input.testcase_id}')
 
 
+HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+    uworker_msg_pb2.ErrorType.UNHANDLED
+]
+
+
 def utask_postprocess(output):
   """Handle the output from utask_main."""
   if output.testcase and environment.is_engine_fuzzer_job(
@@ -207,7 +214,7 @@ def utask_postprocess(output):
     output.testcase.put = lambda: None
 
   if output.error is not None:
-    uworker_handle_errors.handle(output)
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
   if output.uworker_input.original_job_type == output.uworker_input.job_type:

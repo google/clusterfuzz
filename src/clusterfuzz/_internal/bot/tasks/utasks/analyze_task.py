@@ -402,11 +402,20 @@ def handle_build_setup_error(output):
       output.testcase, output.testcase_upload_metadata, 'Build setup failed')
 
 
+HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
+    uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER,
+    uworker_msg_pb2.ErrorType.UNHANDLED
+]
+
+
 def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   if output.error is not None:
-    uworker_handle_errors.handle(output)
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   testcase = output.testcase
   testcase_upload_metadata = output.testcase_upload_metadata
