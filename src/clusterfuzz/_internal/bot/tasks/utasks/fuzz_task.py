@@ -1963,9 +1963,17 @@ def handle_data_bundle_setup_failure(output):
                            FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
 
 
+HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.UNHANDLED,
+    uworker_msg_pb2.ErrorType.FUZZ_TASK_NO_FUZZER,
+    uworker_msg_pb2.ErrorType.FUZZ_TASK_BUILD_SETUP_FAILURE,
+    uworker_msg_pb2.ErrorType.FUZZ_TASK_DATA_BUNDLE_SETUP_FAILURE,
+]
+
+
 def utask_postprocess(output):
   if output.error is not None:
-    uworker_handle_errors.handle(output)
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   session = _make_session(output.uworker_input)
   session.postprocess(output)
