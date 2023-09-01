@@ -1304,7 +1304,6 @@ class FuzzingSession:
     self.fuzz_target = None
     self.gcs_corpus = None
     self.uworker_input = uworker_input
-    self.update_input = uworker_input.update_fuzzer_and_data_bundles_input
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1493,10 +1492,9 @@ class FuzzingSession:
             output=fuzzer_output)
 
     # Store fuzzer run results.
-    upload_url = self.update_input.update_input.fuzzer_log_upload_url
-    fuzzer_logs.upload_script_log(
-        fuzzer_output,
-        signed_upload_url=upload_url)
+    upload_url = (
+        self.uworker_input.update_fuzzer_and_data_bundles_input)
+    fuzzer_logs.upload_script_log(fuzzer_output, signed_upload_url=upload_url)
 
     store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              fuzzer_output, fuzzer_return_code, fuzzer_revision,
@@ -1766,7 +1764,7 @@ class FuzzingSession:
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
-        self.update_input.update_fuzzer_and_data_bundles_input)
+        self.uworker_input.update_fuzzer_and_data_bundles_input)
     if not self.fuzzer:
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
