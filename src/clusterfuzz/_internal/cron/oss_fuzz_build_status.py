@@ -21,7 +21,6 @@ from google.cloud import ndb
 import requests
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.cron.libs import helpers
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import logs

@@ -23,4 +23,11 @@ class Handler(base_handler.Handler):
 
   @handler.cron()
   def get(self):
+    try:
+      # Run any module initialization code.
+      import module_init_k8s
+      module_init_k8s.init()
+    except ImportError:
+      pass
+
     cleanup.main()
