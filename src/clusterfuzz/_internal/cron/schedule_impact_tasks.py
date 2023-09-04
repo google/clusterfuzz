@@ -13,7 +13,7 @@
 # limitations under the License.
 """Creates impact tasks."""
 
-from clusterfuzz._internal.bot.tasks.cron.helpers import tasks_scheduler
+from clusterfuzz._internal.cron.helpers import tasks_scheduler
 
 
 def main():
