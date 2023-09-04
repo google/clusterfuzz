@@ -1492,7 +1492,8 @@ class FuzzingSession:
             output=fuzzer_output)
 
     # Store fuzzer run results.
-    upload_url = self.uworker_input.update_fuzzer_and_data_bundles_input
+    update_input = self.uworker_input.update_fuzzer_and_data_bundles_input
+    upload_url = update_input.fuzzer_log_upload_url
     fuzzer_logs.upload_script_log(fuzzer_output, signed_upload_url=upload_url)
 
     store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
