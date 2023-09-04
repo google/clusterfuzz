@@ -371,6 +371,9 @@ def utask_main(uworker_input):
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
+    # TODO(metzman): Handle this by closing the testcase on the trusted worker.
+    # Also, deal with the other cases where we are updating testcase comment
+    # in untrusted.
     data_handler.close_invalid_uploaded_testcase(
         uworker_input.testcase, uworker_input.testcase_upload_metadata,
         'Irrelevant')
