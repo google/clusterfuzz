@@ -25,7 +25,6 @@ from typing import List
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import dates
-from clusterfuzz._internal.base import errors as errors_module
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import builtin
@@ -35,7 +34,6 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
-from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.chrome import crash_uploader
@@ -46,6 +44,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import corpus_manager
+from clusterfuzz._internal.fuzzing import coverage_uploader
 from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.fuzzing import gesture_handler
 from clusterfuzz._internal.fuzzing import leak_blacklist
@@ -57,7 +56,6 @@ from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
-from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
@@ -819,6 +817,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              generated_testcase_string):
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
+  fuzzer_logs.upload_script_log(fuzzer_output)
 
   # Save the test results for the following cases.
   # 1. There is no result yet.
@@ -1284,7 +1283,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 class FuzzingSession:
   """Class for orchestrating fuzzing sessions."""
 
-  def __init__(self, fuzzer_name, job_type, test_timeout, uworker_input=None):
+  def __init__(self, fuzzer_name, job_type, test_timeout):
     self.fuzzer_name = fuzzer_name
     self.job_type = job_type
 
@@ -1303,7 +1302,6 @@ class FuzzingSession:
     # Fuzzing engine specific state.
     self.fuzz_target = None
     self.gcs_corpus = None
-    self.uworker_input = uworker_input
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1492,17 +1490,15 @@ class FuzzingSession:
             output=fuzzer_output)
 
     # Store fuzzer run results.
-    update_input = self.uworker_input.update_fuzzer_and_data_bundles_input
-    upload_url = update_input.fuzzer_log_upload_url
-    fuzzer_logs.upload_script_log(fuzzer_output, signed_upload_url=upload_url)
-
     store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              fuzzer_output, fuzzer_return_code, fuzzer_revision,
                              generated_testcase_count, testcase_count,
                              generated_testcase_string)
 
-    # TODO(https://github.com/google/clusterfuzz/pull/3309): Consider adding
-    # back coverage uploader.
+    # Upload blackbox fuzzer test cases to GCS on a small number of runs.
+    coverage_uploader.upload_testcases_if_needed(
+        fuzzer.name, testcase_file_paths, self.testcase_directory,
+        self.data_directory)
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths
@@ -1763,15 +1759,21 @@ class FuzzingSession:
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
+    # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
+    # preprocess.
+    update_fuzzer_and_data_bundles_input = (
+        setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
-        self.uworker_input.update_fuzzer_and_data_bundles_input)
+        update_fuzzer_and_data_bundles_input)
     if not self.fuzzer:
+      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
+                               FuzzErrorCode.FUZZER_SETUP_FAILED)
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
+
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.FUZZ_TASK_NO_FUZZER)
+      return None
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1785,8 +1787,9 @@ class FuzzingSession:
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
-      return uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.FUZZ_TASK_BUILD_SETUP_FAILURE)
+      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
+                               FuzzErrorCode.BUILD_SETUP_FAILED)
+      return None
 
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
@@ -1806,16 +1809,17 @@ class FuzzingSession:
                                                         crash_revision)
     _track_build_run_result(self.job_type, crash_revision, is_bad_build)
     if is_bad_build:
-      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return None
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
     self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
     if not self.data_directory:
+      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
+                               FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.FUZZ_TASK_DATA_BUNDLE_SETUP_FAILURE)
+      return None
 
     engine_impl = engine.get(self.fuzzer.name)
 
@@ -1834,7 +1838,7 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return None
 
     logs.log('Finished processing test cases.')
 
@@ -1902,7 +1906,7 @@ class FuzzingSession:
 
   def preprocess(self):
     """Handles preprocessing."""
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Finish this.
+    # TODO(metzman): Finish this.
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
@@ -1917,64 +1921,27 @@ class FuzzingSession:
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
-  session = _make_session(uworker_input)
+  session = _make_session(uworker_input.fuzzer_name, uworker_input.job_type)
   return session.run()
 
 
-def _make_session(uworker_input):
+def _make_session(fuzzer_name, job_type):
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  return FuzzingSession(
-      uworker_input.fuzzer_name,
-      uworker_input.job_type,
-      test_timeout,
-      uworker_input=uworker_input)
+  return FuzzingSession(fuzzer_name, job_type, test_timeout)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  """Preprocess before running a fuzzer."""
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
-  try:
-    update_fuzzer_and_data_bundles_input = (
-        setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name))
-  except errors_module.InvalidFuzzerError:
-    return None
-
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
-      update_fuzzer_and_data_bundles_input=update_fuzzer_and_data_bundles_input,
   )
 
 
-def handle_no_fuzzer(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
-                           FuzzErrorCode.FUZZER_SETUP_FAILED)
-
-
-def handle_build_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
-                           FuzzErrorCode.BUILD_SETUP_FAILED)
-
-
-def handle_data_bundle_setup_failure(output):
-  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
-                           FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
-
-
-HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.UNHANDLED,
-    uworker_msg_pb2.ErrorType.FUZZ_TASK_NO_FUZZER,
-    uworker_msg_pb2.ErrorType.FUZZ_TASK_BUILD_SETUP_FAILURE,
-    uworker_msg_pb2.ErrorType.FUZZ_TASK_DATA_BUNDLE_SETUP_FAILURE,
-]
-
-
 def utask_postprocess(output):
-  if output.error is not None:
-    uworker_handle_errors.handle(output, HANDLED_ERRORS)
-    return
-  session = _make_session(output.uworker_input)
+  session = _make_session(output.uworker_input.fuzzer_name,
+                          output.uworker_input.job_type)
   session.postprocess(output)

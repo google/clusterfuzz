@@ -32,7 +32,6 @@ from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
-from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
@@ -183,8 +182,7 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.put()
 
 
-def save_minidump(testcase, state, application_command_line, gestures,
-                  analyze_input):
+def save_minidump(testcase, state, application_command_line, gestures):
   """Saves a minidump when on Windows."""
   # Get crash info object with minidump info. Also, re-generate unsymbolized
   # stacktrace if needed.
@@ -192,8 +190,7 @@ def save_minidump(testcase, state, application_command_line, gestures,
       crash_uploader.get_crash_info_and_stacktrace(
           application_command_line, state.crash_stacktrace, gestures))
   if crash_info:
-    crash_info.store_minidump(analyze_input.minidump_upload_url)
-    testcase.minidump_keys = analyze_input.minidump_blob_keys
+    testcase.minidump_keys = crash_info.store_minidump()
 
 
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
@@ -233,24 +230,24 @@ def handle_noncrash(output):
   """Handles a non-crashing testcase. Either deletes the testcase or schedules
   another, final analysis."""
   # Could not reproduce the crash.
-  testcase_id = output.uworker_input.testcase_id
-  testcase = data_handler.get_testcase_by_id(testcase_id)
   log_message = (
       f'Testcase didn\'t crash in {output.test_timeout} seconds (with retries)')
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
-                                       log_message)
+  data_handler.update_testcase_comment(
+      output.testcase, data_types.TaskState.FINISHED, log_message)
+
   # For an unreproducible testcase, retry once on another bot to confirm
   # our results and in case this bot is in a bad state which we didn't catch
   # through our usual means.
-  if data_handler.is_first_retry_for_task(testcase):
-    testcase.status = 'Unreproducible, retrying'
-    testcase.put()
+  if data_handler.is_first_retry_for_task(output.testcase):
+    output.testcase.status = 'Unreproducible, retrying'
+    output.testcase.put()
 
-    tasks.add_task('analyze', testcase_id, output.uworker_input.job_type)
+    tasks.add_task('analyze', output.uworker_input.testcase_id,
+                   output.uworker_input.job_type)
     return
 
   data_handler.mark_invalid_uploaded_testcase(
-      testcase, output.uworker_input.testcase_upload_metadata, 'Unreproducible')
+      output.testcase, output.testcase_upload_metadata, 'Unreproducible')
 
 
 def update_testcase_after_crash(testcase, state, job_type, http_flag):
@@ -271,6 +268,7 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
+
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
@@ -294,23 +292,13 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   initialize_testcase_for_main(testcase, job_type)
 
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
-  analyze_input = get_analyze_task_input()
   return uworker_io.UworkerInput(
       testcase_upload_metadata=testcase_upload_metadata,
       testcase=testcase,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       job_type=job_type,
-      analyze_task_input=analyze_input,
       testcase_download_url=testcase_download_url)
-
-
-def get_analyze_task_input():
-  analyze_input = uworker_io.AnalyzeTaskInput()
-  analyze_input.minidump_blob_keys = blobs.generate_new_blob_name()
-  analyze_input.minidump_upload_url = blobs.get_signed_download_url(
-      analyze_input.minidump_blob_keys)
-  return analyze_input
 
 
 def utask_main(uworker_input):
@@ -347,7 +335,7 @@ def utask_main(uworker_input):
   state = result.get_symbolized_data()
 
   save_minidump(uworker_input.testcase, state, application_command_line,
-                gestures, uworker_input.analyze_task_input)
+                gestures)
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
   # In the general case, we will not attempt to symbolize if we do not detect
@@ -401,29 +389,27 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
 
 def handle_build_setup_error(output):
   """Handles errors for scenarios where build setup fails."""
-  testcase_id = output.uworker_input.testcase_id
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       'Build setup failed')
+  data_handler.update_testcase_comment(
+      output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
   if data_handler.is_first_retry_for_task(output.testcase):
     task_name = environment.get_value('TASK_NAME')
     testcase_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
         task_name,
-        testcase_id,
+        output.uworker_input.testcase_id,
         output.uworker_input.job_type,
         wait_time=testcase_fail_wait)
     return
   data_handler.mark_invalid_uploaded_testcase(
-      testcase, output.uworker_input.testcase_upload_metadata,
-      'Build setup failed')
+      output.testcase, output.testcase_upload_metadata, 'Build setup failed')
 
 
 HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
     uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER,
     uworker_msg_pb2.ErrorType.UNHANDLED
 ]
 
@@ -434,24 +420,8 @@ def utask_postprocess(output):
   if output.error is not None:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
-  testcase = output.uworker_input.testcase.key.get(
-      use_cache=False, use_memcache=False)
-  untrusted_testcase = output.uworker_input.testcase
-  # Update testcase.
-  trusted_attrs = [
-      'absolute_path', 'minimized_arguments', 'minidump_keys', 'http_flag',
-      'crash_type', 'crash_address', 'crash_state', 'security_flag',
-      'security_severity', 'crash_revision', 'crash_stacktrace',
-      'one_time_crasher_flag'
-  ]
-  for trusted_attr in trusted_attrs:
-    attr_value, modified = uworker_io.get_modified_attr_from_untrusted_entity(
-        untrusted_testcase, trusted_attr)
-    if not modified:
-      continue
-    setattr(testcase, trusted_attr, attr_value)
-
-  testcase_upload_metadata = output.uworker_input.testcase_upload_metadata
+  testcase = output.testcase
+  testcase_upload_metadata = output.testcase_upload_metadata
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
