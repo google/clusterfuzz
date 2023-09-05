@@ -36,6 +36,10 @@ try:
   # Run any module initialization code.
   import module_init
   module_init.appengine()
+
+  # Run module initialization code for internal issue tracker
+  import module_init_k8s
+  module_init_k8s.init()
 except ImportError:
   pass
 
