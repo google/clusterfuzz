@@ -17,12 +17,12 @@
 import datetime
 import unittest
 
+from clusterfuzz._internal.cron import cleanup
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import cleanup
-from libs.issue_management import issue_tracker_policy
 
 ISSUE_IGNORE_LABEL = 'ClusterFuzz-Ignore'
 ISSUE_INVALID_FUZZER_LABEL = 'ClusterFuzz-Invalid-Fuzzer'
@@ -73,7 +73,7 @@ class CleanupTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
-        'handlers.cron.cleanup.get_crash_occurrence_platforms',
+        'clusterfuzz._internal.cron.cleanup.get_crash_occurrence_platforms',
     ])
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
     self.issue = appengine_test_utils.create_generic_issue()
@@ -1916,9 +1916,9 @@ class NotifyUploaderIfTestcaseIsProcessed(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'handlers.cron.cleanup._update_issue_security_severity_and_get_comment',
-        'libs.issue_management.issue_filer.update_issue_impact_labels',
-        'libs.mail.send',
+        'clusterfuzz._internal.cron.cleanup._update_issue_security_severity_and_get_comment',
+        'clusterfuzz._internal.issue_management.issue_filer.update_issue_impact_labels',
+        'clusterfuzz._internal.cron.libs.mail.send',
     ])
 
     self.issue = appengine_test_utils.create_generic_issue()

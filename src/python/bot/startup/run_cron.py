@@ -57,7 +57,7 @@ def main():
 
   task = sys.argv[1]
 
-  task_module_name = f'clusterfuzz._internal.bot.tasks.cron.{task}'
+  task_module_name = f'clusterfuzz._internal.cron.{task}'
   with ndb_init.context():
     task_module = importlib.import_module(task_module_name)
     return 0 if task_module.main() else 1
