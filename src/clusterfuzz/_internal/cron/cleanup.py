@@ -97,11 +97,14 @@ def cleanup_reports_metadata():
 
 def cleanup_testcases_and_issues():
   """Clean up unneeded open testcases and their associated issues."""
+  logs.log(f'getting all job type names.')
   jobs = data_handler.get_all_job_type_names()
+  logs.log(f'getting test case keys from query.')
   testcase_keys = ndb_utils.get_all_from_query(
       data_types.Testcase.query(
           ndb_utils.is_false(data_types.Testcase.triaged)),
       keys_only=True)
+  logs.log(f'getting top crashes for all projects and platforms.')
   top_crashes_by_project_and_platform_map = (
       get_top_crashes_for_all_projects_and_platforms())
 
