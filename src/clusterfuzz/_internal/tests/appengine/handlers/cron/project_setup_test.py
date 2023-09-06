@@ -1726,11 +1726,10 @@ def _mock_read_data(path):
             'sanitizers': ['address']
         }]
     })
-  
+
   if 'android' in path:
     return json.dumps({
-        'projects': [
-          {
+        'projects': [{
             'build_path': 'gs://bucket-android/%ENGINE%/%SANITIZER%/'
                           '%TARGET%/([0-9]+).zip',
             'name': 'android_pixel7',
@@ -1738,17 +1737,16 @@ def _mock_read_data(path):
             'architectures': ['x86_64', 'arm'],
             'sanitizers': ['address', 'hardware'],
             'queue_id': 'android-pixel7'
-            },
-            {
-            'build_path': 'gs://bucket-android/a-b-android/%ENGINE%/%SANITIZER%/'
-                          '%TARGET%/([0-9]+).zip',
+        }, {
+            'build_path':
+                'gs://bucket-android/a-b-android/%ENGINE%/%SANITIZER%/'
+                '%TARGET%/([0-9]+).zip',
             'name': 'android_pixel8',
             'fuzzing_engines': ['libfuzzer', 'afl'],
             'architectures': ['x86_64', 'arm'],
             'sanitizers': ['address'],
             'queue_id': 'android-pixel8'
-            }
-        ]
+        }]
     })
 
   return json.dumps({
@@ -2146,5 +2144,3 @@ class GenericProjectSetupTest(unittest.TestCase):
     gft = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'googlefuzztest').get()
     self.assertCountEqual(['googlefuzztest_asan_c-d'], gft.jobs)
-
-   
