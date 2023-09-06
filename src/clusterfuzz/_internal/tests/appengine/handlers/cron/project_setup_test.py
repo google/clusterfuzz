@@ -1743,7 +1743,7 @@ def _mock_read_data(path):
                 '%TARGET%/([0-9]+).zip',
             'name': 'android_pixel8',
             'fuzzing_engines': ['libfuzzer', 'afl'],
-            'architectures': ['x86_64', 'arm'],
+            'architectures': ['x86_64'],
             'sanitizers': ['address'],
             'queue_id': 'android-pixel8'
         }]
@@ -1916,7 +1916,7 @@ class GenericProjectSetupTest(unittest.TestCase):
                     },
                     'afl': {
                         'address': {
-                            'HWASAN_VAR': 'VAL-android',
+                            'ASAN_VAR': 'VAL-android',
                         },
                     }
                 }
@@ -2090,13 +2090,13 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-android\n', job.environment_string)
-    self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune'], job.templates)
+    self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune', 'android'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
 
     job = data_types.Job.query(
-        data_types.Job.name == 'afl_hwasan_android_pixel7').get()
+        data_types.Job.name == 'afl_asan_android_pixel7').get()
     print(job)
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
@@ -2104,13 +2104,14 @@ class GenericProjectSetupTest(unittest.TestCase):
         'PROJECT_NAME = android_pixel7\n'
         'SUMMARY_PREFIX = android_pixel7\n'
         'MANAGED = True\n'
+        'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_android_pixel7\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
+        'ASAN_VAR = VAL-android\n'
         'BOOL_VAR = True\n'
-        'HWASAN_VAR = VAL-android\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-android\n', job.environment_string)
-    self.assertCountEqual(['afl', 'android'], job.templates)
+    self.assertCountEqual(['afl', 'android', 'engine_asan'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
@@ -2131,7 +2132,6 @@ class GenericProjectSetupTest(unittest.TestCase):
     afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
     self.assertCountEqual([
         'afl_asan_android_pixel7',
-        'afl_hwasan_android_pixel7',
         'afl_asan_android_pixel8',
     ], afl.jobs)
 
