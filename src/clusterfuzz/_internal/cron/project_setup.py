@@ -170,9 +170,6 @@ JOB_MAP = {
         'x86_64': {
             'address': AFL_ASAN_JOB,
         },
-        'arm': {
-            'hardware': AFL_HWASAN_JOB,
-        }
     },
     'honggfuzz': {
         'x86_64': {
@@ -555,7 +552,9 @@ def create_project_settings(project, info, service_account):
 def create_pubsub_topics(project):
   """Create pubsub topics for tasks."""
   platforms = PUBSUB_PLATFORMS
-  if 'android_' in project:
+  if 'android_' not in project:
+    platforms = PUBSUB_PLATFORMS
+  else:
     platforms = ['android']
     # Avoid the stutter in queue name
     project = project.replace('android_', '')
@@ -785,8 +784,6 @@ class ProjectSetup:
       elif 'android' in job.name:
         if 'hwasan' in job.name:
           job.platform = 'ANDROID'
-        else:
-          job.platform = 'ANDROID_X86'
       else:
         job.platform = 'LINUX'
       job.templates = template.cf_job_templates
@@ -885,6 +882,7 @@ class ProjectSetup:
       queue_id = info.get('queue_id', False)
       if queue_id:
         job.queue = queue_id
+        job.templates.append('android')
         create_pubsub_topics(project)
 
       if (template.engine == 'libfuzzer' and
