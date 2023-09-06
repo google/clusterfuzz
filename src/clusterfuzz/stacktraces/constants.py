@@ -541,6 +541,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*logging::LogMessage',
     r'.*stdext::exception::what',
     r'.*v8::base::OS::Abort',
+    r'.*Runtime_AbortCSADcheck',
 
     # File paths.
     r'.* base/callback',
