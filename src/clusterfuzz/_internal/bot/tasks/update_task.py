@@ -195,8 +195,8 @@ def update_source_code():
 
   # ROOT_DIR just means the clusterfuzz directory.
   source_root_directory = environment.get_value('ROOT_DIR')
-  root_directory = os.path.dirname(source_root_directory)
-  temp_archive = os.path.join(root_directory, 'clusterfuzz-source.zip')
+  cf_source_root_parent_dir = os.path.dirname(source_root_directory)
+  temp_archive = os.path.join(cf_source_root_parent_dir, 'clusterfuzz-source.zip')
   try:
     storage.copy_file_from(get_source_url(), temp_archive)
   except Exception:
