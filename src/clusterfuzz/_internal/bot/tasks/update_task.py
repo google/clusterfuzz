@@ -194,8 +194,7 @@ def update_source_code():
   shell.clear_temp_directory()
 
   root_directory = environment.get_value('ROOT_DIR')
-  temp_directory = environment.get_value('BOT_TMPDIR')
-  temp_archive = os.path.join(temp_directory, 'clusterfuzz-source.zip')
+  temp_archive = os.path.join(root_directory, 'clusterfuzz-source.zip')
   try:
     storage.copy_file_from(get_source_url(), temp_archive)
   except Exception:
@@ -270,6 +269,7 @@ def update_source_code():
                                      utils.LOCAL_SOURCE_MANIFEST)
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
+  os.remove(temp_archive)
   logs.log('Source code updated to %s.' % source_version)
 
 
