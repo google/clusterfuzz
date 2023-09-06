@@ -266,8 +266,8 @@ def update_source_code():
   clear_pyc_files(src_directory)
   clear_old_files(src_directory, normalized_file_set)
 
-  local_manifest_path = os.path.join(root_directory,
-                                     utils.LOCAL_SOURCE_MANIFEST)
+  local_manifest_path = os.path.join(source_root_directory,
+                                    utils.LOCAL_SOURCE_MANIFEST)
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
   os.remove(temp_archive)
