@@ -109,7 +109,7 @@ LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
                              ['libfuzzer', 'engine_msan'])
 LIBFUZZER_HWASAN_JOB = JobInfo('libfuzzer_hwasan_', 'libfuzzer', 'address',
-                             ['libfuzzer', 'engine_asan', 'android'])
+                               ['libfuzzer', 'engine_asan', 'android'])
 LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
                               ['libfuzzer', 'engine_ubsan'])
 LIBFUZZER_ASAN_I386_JOB = JobInfo(
@@ -123,8 +123,7 @@ AFL_ASAN_JOB = JobInfo(
     'afl',
     'address', ['afl', 'engine_asan'],
     minimize_job_override=LIBFUZZER_ASAN_JOB)
-AFL_HWASAN_JOB = JobInfo('afl_hwasan_', 'afl', 'address',
-                             ['afl', 'android'])
+AFL_HWASAN_JOB = JobInfo('afl_hwasan_', 'afl', 'address', ['afl', 'android'])
 NO_ENGINE_ASAN_JOB = JobInfo('asan_', 'none', 'address', [])
 
 HONGGFUZZ_ASAN_JOB = JobInfo(

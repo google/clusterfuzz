@@ -2189,5 +2189,3 @@ class GenericProjectSetupTest(unittest.TestCase):
     gft = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'googlefuzztest').get()
     self.assertCountEqual(['googlefuzztest_asan_c-d'], gft.jobs)
-
-   
