@@ -196,7 +196,8 @@ def update_source_code():
   # ROOT_DIR just means the clusterfuzz directory.
   source_root_directory = environment.get_value('ROOT_DIR')
   cf_source_root_parent_dir = os.path.dirname(source_root_directory)
-  temp_archive = os.path.join(cf_source_root_parent_dir, 'clusterfuzz-source.zip')
+  temp_archive = os.path.join(cf_source_root_parent_dir,
+                              'clusterfuzz-source.zip')
   try:
     storage.copy_file_from(get_source_url(), temp_archive)
   except Exception:
@@ -267,7 +268,7 @@ def update_source_code():
   clear_old_files(src_directory, normalized_file_set)
 
   local_manifest_path = os.path.join(source_root_directory,
-                                    utils.LOCAL_SOURCE_MANIFEST)
+                                     utils.LOCAL_SOURCE_MANIFEST)
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
   os.remove(temp_archive)
