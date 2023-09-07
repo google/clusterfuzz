@@ -2090,7 +2090,8 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-android\n', job.environment_string)
-    self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune', 'android'], job.templates)
+    self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune', 'android'],
+                          job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())

@@ -86,6 +86,8 @@ SELF_LINK_REGEX = re.compile(
 FILTERS_AND = 'AND'
 FILTERS_OR = 'OR'
 
+QUEUE_DELIMITER = ':'
+
 
 class Error(Exception):
   """Base exception class."""
@@ -99,8 +101,10 @@ class InvalidRedoTask(Error):
 
 def queue_suffix_for_platform(platform):
   """Get the queue suffix for a platform."""
-  return '-' + platform.lower().replace('_', '-')
+  if not QUEUE_DELIMITER in platform:
+    return '-' + platform.lower().replace('_', '-')
 
+  return '-' + platform.lower().replace(':', '-')
 
 def default_queue_suffix():
   """Get the queue suffix for the current platform."""
