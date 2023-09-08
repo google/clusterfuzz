@@ -20,12 +20,12 @@ from unittest import mock
 
 from google.cloud import ndb
 
+from clusterfuzz._internal.cron import manage_vms
+from clusterfuzz._internal.cron.helpers import bot_manager
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import compute_engine_projects
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import manage_vms
-from handlers.cron.helpers import bot_manager
 
 AUTO_HEALING_POLICY = {
     'healthCheck': 'global/healthChecks/example-check',
@@ -468,7 +468,7 @@ class CronTest(unittest.TestCase):
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.utils.is_oss_fuzz',
-        'handlers.cron.helpers.bot_manager.BotManager',
+        'clusterfuzz._internal.cron.helpers.bot_manager.BotManager',
         'clusterfuzz._internal.system.environment.is_running_on_app_engine',
         'clusterfuzz._internal.google_cloud_utils.compute_engine_projects.load_project',
     ])

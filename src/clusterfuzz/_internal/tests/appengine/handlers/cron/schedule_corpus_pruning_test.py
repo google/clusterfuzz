@@ -18,7 +18,7 @@ import unittest
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import schedule_corpus_pruning
+from clusterfuzz._internal.cron import schedule_corpus_pruning
 
 
 @test_utils.with_cloud_emulators('datastore')

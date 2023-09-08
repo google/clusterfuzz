@@ -17,9 +17,9 @@ import unittest
 
 from google.cloud import ndb
 
+from clusterfuzz._internal.cron import batch_fuzzer_jobs
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import batch_fuzzer_jobs
 
 
 @test_utils.with_cloud_emulators('datastore')
