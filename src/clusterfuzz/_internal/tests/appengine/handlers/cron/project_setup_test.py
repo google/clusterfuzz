@@ -2159,12 +2159,12 @@ class GenericProjectSetupTest(unittest.TestCase):
                           list(pubsub_client.list_topics('projects/' + app_id)))
 
     self.assertCountEqual(
-        [f'projects/clusterfuzz-external/subscriptions/jobs-android-pixel7'],
+        ['projects/clusterfuzz-external/subscriptions/jobs-android-pixel7'],
         pubsub_client.list_topic_subscriptions(
             'projects/clusterfuzz-external/topics/jobs-android-pixel7'))
 
     self.assertCountEqual(
-        [f'projects/clusterfuzz-external/subscriptions/jobs-android-pixel8'],
+        ['projects/clusterfuzz-external/subscriptions/jobs-android-pixel8'],
         pubsub_client.list_topic_subscriptions(
             'projects/clusterfuzz-external/topics/jobs-android-pixel8'))
 
