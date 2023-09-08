@@ -15,19 +15,19 @@
 
 import collections
 
+import flask
+
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.metrics import logs
 
 
 def get_current_request():
   """Get the current request."""
-  import flask
   return flask.request
 
 
 def get_cache_backing():
   """Get the cache backing for saving current context data."""
-  import flask
   return flask.g
 
 

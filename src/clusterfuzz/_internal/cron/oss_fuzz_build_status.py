@@ -181,7 +181,7 @@ def send_reminder(issue_tracker, issue_id, build_id):
 
 def _close_fixed_builds(projects, build_type):
   """Close bugs for fixed builds."""
-  issue_tracker = issue_tracker_utils.get_issue_tracker(is_appengine=False)
+  issue_tracker = issue_tracker_utils.get_issue_tracker()
   if not issue_tracker:
     raise OssFuzzBuildStatusError('Failed to get issue tracker.')
 
@@ -213,7 +213,7 @@ def _close_fixed_builds(projects, build_type):
 
 def _process_failures(projects, build_type):
   """Process failures."""
-  issue_tracker = issue_tracker_utils.get_issue_tracker(is_appengine=False)
+  issue_tracker = issue_tracker_utils.get_issue_tracker()
   if not issue_tracker:
     raise OssFuzzBuildStatusError('Failed to get issue tracker.')
 

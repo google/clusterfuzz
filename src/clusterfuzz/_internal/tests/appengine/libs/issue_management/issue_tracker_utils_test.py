@@ -61,7 +61,7 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     test_issue_tracker = issue_tracker.IssueTracker()
     self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
 
-    issue_tracker_utils.get_issue_url(testcase, is_appengine=False)
+    issue_tracker_utils.get_issue_url(testcase)
     self.assertEqual(0, self.mock.issue_url.call_count)
 
   def test_get_issue_tracker(self):
