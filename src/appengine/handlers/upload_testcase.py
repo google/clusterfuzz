@@ -587,8 +587,7 @@ class UploadHandlerCommon:
 
     if not quiet_flag:
       testcase = data_handler.get_testcase_by_id(testcase_id)
-      issue = issue_tracker_utils.get_issue_for_testcase(
-          testcase, is_appengine=False)
+      issue = issue_tracker_utils.get_issue_for_testcase(testcase)
       if issue:
         report_url = data_handler.TESTCASE_REPORT_URL.format(
             domain=data_handler.get_domain(), testcase_id=testcase_id)

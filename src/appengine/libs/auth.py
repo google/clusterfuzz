@@ -84,6 +84,7 @@ def _get_iap_key(key_id):
   """Retrieves a public key from the list published by Identity-Aware Proxy,
   re-fetching the key file if necessary.
   """
+  # pylint: disable=missing-timeout
   resp = requests.get('https://www.gstatic.com/iap/verify/public_key')
   if resp.status_code != 200:
     raise AuthError('Unable to fetch IAP keys: '

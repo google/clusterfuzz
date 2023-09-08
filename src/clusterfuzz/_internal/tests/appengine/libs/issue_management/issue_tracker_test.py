@@ -116,7 +116,7 @@ class LabelStoreTest(unittest.TestCase):
     self.assertFalse('label' in store)
 
 
-class TestIssueTracker(IssueTracker):
+class TestIssueTracker(IssueTracker):  # pylint:disable=abstract-method
   """Test issue tracker."""
 
   def __init__(self):
