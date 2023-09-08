@@ -113,15 +113,17 @@ def get_fuzz_task_payload(platform=None):
     queue_override = environment.get_value('QUEUE_OVERRIDE')
     platform = queue_override if queue_override else environment.platform()
 
-  query = data_types.FuzzerJob.query()
   if environment.is_local_development():
+    query = data_types.FuzzerJob.query()
     query = query.filter(data_types.FuzzerJobs.platform == platform)
     mappings = list(ndb_utils.get_all_from_query(query))
   elif tasks.SUBQUEUE_IDENTIFIER in platform:
     platform1, platform2 = platform.split(':')
+    query = data_types.FuzzerJob.query()
     query = query.filter(
         data_types.FuzzerJobs.platform.IN([platform1, platform2]))
   else:
+    query = data_types.FuzzerJob.query()
     query = query.filter(data_types.FuzzerJobs.platform == platform)
 
     mappings = []
