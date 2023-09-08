@@ -187,7 +187,9 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
     uworker_input = uworker_io.DeserializedUworkerMsg(
-        job_type='libfuzzer_asan_job', testcase_id=str(testcase.key.id()))
+        job_type='libfuzzer_asan_job',
+        testcase=testcase,
+        testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
 
     testcase = data_handler.get_testcase_by_id(testcase.key.id())

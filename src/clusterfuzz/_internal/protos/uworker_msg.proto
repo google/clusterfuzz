@@ -108,6 +108,7 @@ enum ErrorType {
   UNHANDLED = 5;
   VARIANT_BUILD_SETUP = 6;
   TESTCASE_SETUP_INVALID_FUZZER = 7;
+  MINIMIZE_SETUP = 8;
 }
 
 message Output {

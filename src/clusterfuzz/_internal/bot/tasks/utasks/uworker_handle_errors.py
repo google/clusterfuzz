@@ -14,6 +14,7 @@
 """Module for handling errors in utasks."""
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
@@ -37,6 +38,8 @@ def get_all_handled_errors():
 def get_handle_all_errors_mapping():
   """Returns a mapping of all uworker errors to their postprocess handlers."""
   mapping = {
+      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP:
+          minimize_task.handle_minimize_setup_error,
       uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
           analyze_task.handle_noncrash,
       uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
