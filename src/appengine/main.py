@@ -34,8 +34,8 @@ if gae_env:
 
 try:
   # Run module initialization code for internal issue tracker
-  import module_init_k8s
-  module_init_k8s.init()
+  import module_init
+  module_init.init()
 except ImportError:
   pass
 
