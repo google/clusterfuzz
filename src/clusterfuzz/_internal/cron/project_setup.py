@@ -39,6 +39,8 @@ from clusterfuzz._internal.system import environment
 
 from . import service_accounts
 
+ANDROID_CUTTLEFISH = 'ANDROID_X86'
+
 BUILD_BUCKET_PATH_TEMPLATE = (
     'gs://%BUCKET%/%PROJECT%/%PROJECT%-%SANITIZER%-([0-9]+).zip')
 
@@ -555,9 +557,9 @@ def create_pubsub_topics(project):
   if 'android_' not in project:
     platforms = PUBSUB_PLATFORMS
   else:
-    platforms = ['android']
+    platforms = [project.replace('android_', '')]
     # Avoid the stutter in queue name
-    project = project.replace('android_', '')
+    project = 'android'
 
   for platform in platforms:
     name = untrusted.queue_name(project, platform)
@@ -783,7 +785,9 @@ class ProjectSetup:
         job.platform = untrusted.platform_name(project, 'linux')
       elif 'android' in job.name:
         if 'hwasan' in job.name:
-          job.platform = 'ANDROID'
+          job.platform = job_name.split('_')[-1].upper()
+        else:
+          job.platform = ANDROID_CUTTLEFISH
       else:
         job.platform = 'LINUX'
       job.templates = template.cf_job_templates
@@ -879,10 +883,12 @@ class ProjectSetup:
       file_github_issue = info.get('file_github_issue', False)
       job.environment_string += f'FILE_GITHUB_ISSUE = {file_github_issue}\n'
 
+      # Android creates device-specific queues during project setup.
       queue_id = info.get('queue_id', False)
       if queue_id:
+        if 'android' not in job.templates:
+          job.templates.append('android')
         job.queue = queue_id
-        job.templates.append('android')
         create_pubsub_topics(project)
 
       if (template.engine == 'libfuzzer' and
@@ -999,15 +1005,6 @@ def cleanup_stale_projects(fuzzer_entities, project_names, job_names,
   """Clean up stale projects."""
   update_fuzzer_jobs(fuzzer_entities, job_names)
   cleanup_old_projects_settings(project_names)
-
-  # Only Android & OSS-Fuzz create new topics
-  # topics_created = False
-  # if segregate_projects:
-  #   topics_created = True
-  # for job in job_names:
-  #   if 'android' in job:
-  #     topics_created = True
-  #     break
 
   if segregate_projects:
     cleanup_pubsub_topics(project_names)

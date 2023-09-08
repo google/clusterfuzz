@@ -1930,6 +1930,14 @@ class GenericProjectSetupTest(unittest.TestCase):
     pubsub_client.create_topic(unmanaged_topic_name)
     pubsub_client.create_topic(other_topic_name)
 
+    pubsub_client = pubsub.PubSubClient()
+    self.mock.get_application_id_2.return_value = 'clusterfuzz-external'
+    app_id = utils.get_application_id()
+    unmanaged_topic_name = pubsub.topic_name(app_id, 'jobs-linux')
+    other_topic_name = pubsub.topic_name(app_id, 'other')
+    pubsub_client.create_topic(unmanaged_topic_name)
+    pubsub_client.create_topic(other_topic_name)
+
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b').get()
     self.assertEqual(

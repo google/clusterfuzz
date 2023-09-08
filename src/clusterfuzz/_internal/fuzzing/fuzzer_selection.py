@@ -19,6 +19,7 @@ from google.cloud import ndb
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import fuzz_target_utils
 from clusterfuzz._internal.datastore import ndb_utils
@@ -113,8 +114,8 @@ def get_fuzz_task_payload(platform=None):
     queue_override = environment.get_value('QUEUE_OVERRIDE')
     platform = queue_override if queue_override else environment.platform()
 
+  query = data_types.FuzzerJob.query()
   if environment.is_local_development():
-    query = data_types.FuzzerJob.query()
     query = query.filter(data_types.FuzzerJobs.platform == platform)
     mappings = list(ndb_utils.get_all_from_query(query))
   elif tasks.SUBQUEUE_IDENTIFIER in platform:
@@ -123,7 +124,6 @@ def get_fuzz_task_payload(platform=None):
     query = query.filter(
         data_types.FuzzerJobs.platform.IN([platform1, platform2]))
   else:
-    query = data_types.FuzzerJobs.query()
     query = query.filter(data_types.FuzzerJobs.platform == platform)
 
     mappings = []
