@@ -1931,6 +1931,14 @@ class GenericProjectSetupTest(unittest.TestCase):
 
   def test_execute(self):
     """Tests executing of cron job."""
+    pubsub_client = pubsub.PubSubClient()
+    self.mock.get_application_id_2.return_value = 'clusterfuzz-external'
+    app_id = utils.get_application_id()
+    unmanaged_topic_name = pubsub.topic_name(app_id, 'jobs-linux')
+    other_topic_name = pubsub.topic_name(app_id, 'other')
+    pubsub_client.create_topic(unmanaged_topic_name)
+    pubsub_client.create_topic(other_topic_name)
+
     self.app.get('/setup')
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b').get()
@@ -2095,6 +2103,29 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID_X86", job.platform)
+
+    job = data_types.Job.query(
+        data_types.Job.name == 'libfuzzer_hwasan_android_pixel7').get()
+    print(job)
+    self.assertEqual(
+        'FUZZ_TARGET_BUILD_BUCKET_PATH = '
+        'gs://bucket-android/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
+        'PROJECT_NAME = android_pixel7\n'
+        'SUMMARY_PREFIX = android_pixel7\n'
+        'MANAGED = True\n'
+        'DISABLE_DISCLOSURE = True\n'
+        'FILE_GITHUB_ISSUE = False\n'
+        'ASAN_VAR = VAL-android\n'
+        'BOOL_VAR = True\n'
+        'INT_VAR = 0\n'
+        'STRING_VAR = VAL-android\n', job.environment_string)
+    self.assertCountEqual(['engine_asan', 'libfuzzer', 'android'],
+                          job.templates)
+    self.assertEqual(None, job.external_reproduction_topic)
+    self.assertEqual(None, job.external_updates_subscription)
+    self.assertFalse(job.is_external())
+    self.assertEqual("PIXEL7", job.platform)
 
     job = data_types.Job.query(
         data_types.Job.name == 'afl_asan_android_pixel7').get()
@@ -2116,6 +2147,29 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
+    self.assertEqual("ANDROID_X86", job.platform)
+
+    expected_topics = [
+        'projects/clusterfuzz-external/topics/jobs-linux',
+        'projects/clusterfuzz-external/topics/other',
+        'projects/clusterfuzz-external/topics/jobs-android-pixel7',
+        'projects/clusterfuzz-external/topics/jobs-android-pixel8',
+    ]
+    self.assertCountEqual(expected_topics,
+                          list(pubsub_client.list_topics('projects/' + app_id)))
+
+    self.assertCountEqual(
+        [f'projects/clusterfuzz-external/subscriptions/jobs-android-pixel7'],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-pixel7'))
+
+    self.assertCountEqual(
+        [f'projects/clusterfuzz-external/subscriptions/jobs-android-pixel8'],
+        pubsub_client.list_topic_subscriptions(
+            'projects/clusterfuzz-external/topics/jobs-android-pixel8'))
+
+    self.assertIsNotNone(pubsub_client.get_topic(unmanaged_topic_name))
+    self.assertIsNotNone(pubsub_client.get_topic(other_topic_name))
 
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
