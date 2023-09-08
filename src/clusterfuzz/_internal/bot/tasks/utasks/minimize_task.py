@@ -49,6 +49,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
@@ -353,26 +354,24 @@ class TestRunner(object):
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
+  """Preprocess in a trusted bot."""
+  # Locate the testcase associated with the id.
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  if not testcase:
+    return None
+
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=str(testcase_id),
-      uworker_env=uworker_env,
-  )
-
-
-def utask_postprocess(output):
-  del output
+      testcase=testcase,
+      uworker_env=uworker_env)
 
 
 def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
   # Get deadline to finish this task.
+  testcase = uworker_input.testcase
   deadline = tasks.get_task_completion_deadline()
-
-  # Locate the testcase associated with the id.
-  testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
-  if not testcase:
-    return
 
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -382,15 +381,10 @@ def utask_main(uworker_input):
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
   setup_input = setup.preprocess_setup_testcase(
       testcase, fuzzer_override=minimize_fuzzer_override)
-
-  file_list, testcase_file_path, error = setup.setup_testcase(
+  file_list, testcase_file_path, uworker_error_output = setup.setup_testcase(
       testcase, uworker_input.job_type, setup_input)
-  if error:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
-    # minimize is migrated.
-    all_errors = uworker_handle_errors.get_all_handled_errors()
-    uworker_handle_errors.handle(error, all_errors)
-    return
+  if uworker_error_output:
+    return uworker_error_output
 
   # Initialize variables.
   max_timeout = environment.get_value('TEST_TIMEOUT', 10)
@@ -408,29 +402,20 @@ def utask_main(uworker_input):
   if not build_manager.check_app_path():
     logs.log_error('Unable to setup build for minimization.')
     build_fail_wait = environment.get_value('FAIL_WAIT')
-
-    if environment.get_value('ORIGINAL_JOB_NAME'):
-      _skip_minimization(testcase, 'Failed to setup build for overridden job.')
-    else:
-      # Only recreate task if this isn't an overriden job. It's possible that a
-      # revision exists for the original job, but doesn't exist for the
-      # overriden job.
-      tasks.add_task(
-          'minimize',
-          uworker_input.testcase_id,
-          uworker_input.job_type,
-          wait_time=build_fail_wait)
-
-    return
+    return uworker_io.UworkerOutput(
+        testcase=testcase,
+        job_type=uworker_input.job_type,
+        build_fail_wait=build_fail_wait,
+        error=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
     do_libfuzzer_minimization(testcase, testcase_file_path)
-    return
+    return None
 
   if environment.is_engine_fuzzer_job():
     # TODO(ochang): More robust check for engine minimization support.
     _skip_minimization(testcase, 'Engine does not support minimization.')
-    return
+    return None
 
   max_threads = utils.maximum_parallel_processes_allowed()
 
@@ -485,7 +470,7 @@ def utask_main(uworker_input):
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          'Unable to reproduce crash')
     task_creation.mark_unreproducible_if_flaky(testcase, True)
-    return
+    return None
 
   if flaky_stack:
     testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
@@ -504,7 +489,7 @@ def utask_main(uworker_input):
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     create_additional_tasks(testcase)
-    return
+    return None
 
   test_runner.set_test_expectations(testcase.security_flag, flaky_stack,
                                     saved_unsymbolized_crash_state)
@@ -521,7 +506,7 @@ def utask_main(uworker_input):
 
     # We can't call check_deadline_exceeded_and_store_partial_minimized_testcase
     # at this point because we do not have a test case to store.
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
 
     if testcase.security_flag and len(testcase.gestures) != len(gestures):
       # Re-run security severity analysis since gestures affect the severity.
@@ -533,8 +518,9 @@ def utask_main(uworker_input):
     testcase.set_metadata('minimization_phase', MinimizationPhase.MAIN_FILE)
 
     if time.time() > test_runner.deadline:
-      tasks.add_task('minimize', testcase.key.id(), uworker_input.job_type)
-      return
+      tasks.add_task('minimize', uworker_input.testcase_id,
+                     uworker_input.job_type)
+      return None
 
   # Minimize the main file.
   data = utils.get_file_contents_with_fatal_error_on_failure(testcase_file_path)
@@ -544,7 +530,7 @@ def utask_main(uworker_input):
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, uworker_input.testcase_id, uworker_input.job_type,
         input_directory, file_list, data, testcase_file_path):
-      return
+      return None
 
     testcase.set_metadata('minimization_phase', MinimizationPhase.FILE_LIST)
 
@@ -557,7 +543,7 @@ def utask_main(uworker_input):
       if check_deadline_exceeded_and_store_partial_minimized_testcase(
           deadline, uworker_input.testcase_id, uworker_input.job_type,
           input_directory, file_list, data, testcase_file_path):
-        return
+        return None
     else:
       logs.log('Skipping minimization of file list.')
 
@@ -573,7 +559,7 @@ def utask_main(uworker_input):
         if check_deadline_exceeded_and_store_partial_minimized_testcase(
             deadline, uworker_input.testcase_id, uworker_input.job_type,
             input_directory, file_list, data, testcase_file_path):
-          return
+          return None
     else:
       logs.log('Skipping minimization of resources.')
 
@@ -589,19 +575,61 @@ def utask_main(uworker_input):
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, uworker_input.testcase_id, uworker_input.job_type,
         input_directory, file_list, data, testcase_file_path):
-      return
+      return None
 
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_args=app_arguments, needs_http=testcase.http_flag)
   last_crash_result = test_runner.last_failing_result
 
-  store_minimized_testcase(testcase, input_directory, file_list, data,
-                           testcase_file_path)
-  finalize_testcase(
-      uworker_input.testcase_id,
-      command,
-      last_crash_result,
+  return uworker_io.UworkerOutput(
+      testcase=testcase,
+      input_directory=input_directory,
+      file_list=file_list,
+      data=data,
+      testcase_file_path=testcase_file_path,
+      command=command,
+      last_crash_result=last_crash_result,
       flaky_stack=flaky_stack)
+
+
+HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.MINIMIZE_SETUP,
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+    uworker_msg_pb2.ErrorType.UNHANDLED
+]
+
+
+def utask_postprocess(output):
+  """Postprocess in a trusted bot."""
+  if output.error is not None:
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    return
+
+  store_minimized_testcase(output.testcase, output.input_directory,
+                           output.file_list, output.data,
+                           output.testcase_file_path)
+  finalize_testcase(
+      output.uworker_input.testcase_id,
+      output.command,
+      output.last_crash_result,
+      flaky_stack=output.flaky_stack)
+
+
+def handle_minimize_setup_error(output):
+  """Handles errors occuring during setup."""
+
+  if output.uworker_input.uworker_env['ORIGINAL_JOB_NAME']:
+    _skip_minimization(output.uworker_input.testcase,
+                       'Failed to setup build for overridden job.')
+  else:
+    # Only recreate task if this isn't an overriden job. It's possible that a
+    # revision exists for the original job, but doesn't exist for the
+    # overriden job.
+    tasks.add_task(
+        'minimize',
+        output.uworker_input.testcase_id,
+        output.uworker_input.job_type,
+        wait_time=output.build_fail_wait)
 
 
 def finalize_testcase(testcase_id,

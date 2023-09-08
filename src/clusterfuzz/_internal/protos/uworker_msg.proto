@@ -107,6 +107,7 @@ enum ErrorType {
   TESTCASE_SETUP = 4;
   UNHANDLED = 5;
   VARIANT_BUILD_SETUP = 6;
+  MINIMIZE_SETUP = 7;
 }
 
 message Output {
