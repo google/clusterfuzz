@@ -358,7 +358,8 @@ def main():
 
     # If this project does not have an associated issue tracker, we cannot
     # file this crash anywhere.
-    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+        testcase, is_appengine=False)
     if not issue_tracker:
       issue_filer.notify_issue_update(testcase, 'new')
       continue

@@ -17,11 +17,14 @@ import datetime
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail import \
+    issue_tracker_manager
+from clusterfuzz._internal.issue_management.monorail.comment import \
+    Comment as MonorailComment
+from clusterfuzz._internal.issue_management.monorail.issue import \
+    Issue as MonorailIssue
 from clusterfuzz._internal.tests.test_libs import helpers
-from libs.issue_management import monorail
-from libs.issue_management.monorail import issue_tracker_manager
-from libs.issue_management.monorail.comment import Comment as MonorailComment
-from libs.issue_management.monorail.issue import Issue as MonorailIssue
 
 
 class IssueTrackerManager(issue_tracker_manager.IssueTrackerManager):
@@ -50,7 +53,7 @@ class MonorailTests(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'libs.issue_management.monorail.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.monorail.issue_tracker_manager.'
         'IssueTrackerManager.get_issues',
     ])
 

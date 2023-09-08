@@ -44,7 +44,8 @@ def cc_users_for_job(job_type, security_flag):
 def main():
   """Cron handler for adding new CC's to oss-fuzz bugs.."""
   for testcase in get_open_testcases_with_bugs():
-    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(testcase)
+    issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+        testcase, is_appengine=False)
     if not issue_tracker:
       logging.error('Failed to get issue tracker manager for %s',
                     testcase.key.id())

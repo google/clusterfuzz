@@ -16,9 +16,10 @@
 import unittest
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker
+from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.issue_management import monorail
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
-from libs.issue_management import issue_tracker
-from libs.issue_management import issue_tracker_utils
 
 
 class IssueTrackerUtilsUrlTest(unittest.TestCase):
@@ -26,9 +27,9 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
-        'libs.issue_management.issue_tracker.IssueTracker.issue_url',
+        'clusterfuzz._internal.issue_management.issue_tracker.IssueTracker.issue_url',
     ])
 
   def test_get_issue_url(self):
@@ -60,5 +61,21 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     test_issue_tracker = issue_tracker.IssueTracker()
     self.mock.get_issue_tracker_for_testcase.return_value = test_issue_tracker
 
-    issue_tracker_utils.get_issue_url(testcase)
+    issue_tracker_utils.get_issue_url(testcase, is_appengine=False)
     self.assertEqual(0, self.mock.issue_url.call_count)
+
+  def test_get_issue_tracker(self):
+    # pylint: disable=protected-access
+    """Test for get issue tracker."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.issue_management.monorail._get_issue_tracker_manager_for_project'
+    ])
+    self.mock.get.return_value = {'type': 'monorail'}
+    self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
+    issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
+        'monorail': monorail.get_issue_tracker
+    }
+
+    constructor = issue_tracker_utils.get_issue_tracker()
+    self.assertIsNotNone(constructor)

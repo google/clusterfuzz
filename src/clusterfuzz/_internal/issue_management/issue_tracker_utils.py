@@ -20,6 +20,7 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import jira
 from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management import request_cache
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
 _ISSUE_TRACKER_CONSTRUCTORS = {
@@ -43,8 +44,16 @@ def _get_issue_tracker_project_name(testcase=None):
   return data_handler.get_issue_tracker_name(job_type)
 
 
-@memoize.wrap(memoize.FifoInMemory(256))
-def get_issue_tracker(project_name=None):
+def get_issue_tracker(project_name=None, is_appengine=True):
+  """Get the issue tracker with the given type and name."""
+  if is_appengine:
+    return request_cache.wrap(capacity=_ISSUE_TRACKER_CACHE_CAPACITY)(
+        _get_issue_tracker(project_name))
+  return memoize.wrap(memoize.FifoInMemory(256))(
+      _get_issue_tracker(project_name))
+
+
+def _get_issue_tracker(project_name=None):
   """Get the issue tracker with the given type and name."""
   issue_tracker_config = local_config.IssueTrackerConfig()
   if not project_name:
@@ -63,13 +72,13 @@ def get_issue_tracker(project_name=None):
   return constructor(project_name, issue_project_config)
 
 
-def get_issue_tracker_for_testcase(testcase):
+def get_issue_tracker_for_testcase(testcase, is_appengine=True):
   """Get the issue tracker with the given type and name."""
   issue_tracker_project_name = _get_issue_tracker_project_name(testcase)
   if not issue_tracker_project_name or issue_tracker_project_name == 'disabled':
     return None
 
-  return get_issue_tracker(issue_tracker_project_name)
+  return get_issue_tracker(issue_tracker_project_name, is_appengine)
 
 
 def get_issue_tracker_policy_for_testcase(testcase):
@@ -81,14 +90,14 @@ def get_issue_tracker_policy_for_testcase(testcase):
   return issue_tracker_policy.get(issue_tracker_project_name)
 
 
-def get_issue_for_testcase(testcase):
+def get_issue_for_testcase(testcase, is_appengine=True):
   """Return issue object associated with testcase."""
   if not testcase.bug_information:
     # Do not check |testcase.group_bug_information| as we look for an issue
     # associated with the testcase directly, not through a group of testcases.
     return None
 
-  issue_tracker = get_issue_tracker_for_testcase(testcase)
+  issue_tracker = get_issue_tracker_for_testcase(testcase, is_appengine)
   if not issue_tracker:
     return None
 
@@ -152,10 +161,10 @@ def get_similar_issues_url(issue_tracker, testcase, only_open=True):
   return issue_tracker.find_issues_url(keywords=keywords, only_open=only_open)
 
 
-def get_issue_url(testcase):
+def get_issue_url(testcase, is_appengine=True):
   """Return issue url for a testcase. This is used when rendering a testcase,
   details page, therefore it accounts for |group_bug_information| as well."""
-  issue_tracker = get_issue_tracker_for_testcase(testcase)
+  issue_tracker = get_issue_tracker_for_testcase(testcase, is_appengine)
   if not issue_tracker:
     return None
 

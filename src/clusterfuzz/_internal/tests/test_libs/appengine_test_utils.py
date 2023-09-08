@@ -15,10 +15,10 @@
 
 import datetime
 
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail.comment import Comment
+from clusterfuzz._internal.issue_management.monorail.issue import Issue
 from clusterfuzz._internal.tests.test_libs import test_utils
-from libs.issue_management import monorail
-from libs.issue_management.monorail.comment import Comment
-from libs.issue_management.monorail.issue import Issue
 
 
 def create_generic_issue(created_days_ago=28):

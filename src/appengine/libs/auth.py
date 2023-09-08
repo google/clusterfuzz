@@ -25,9 +25,9 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import request_cache
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
-from libs import request_cache
 
 User = collections.namedtuple('User', ['email'])
 
@@ -71,6 +71,7 @@ def is_current_user_admin():
 def _project_number_from_id(project_id):
   """Get the project number from project ID."""
   resource_manager = build('cloudresourcemanager', 'v1')
+  # pylint: disable=no-member
   result = resource_manager.projects().get(projectId=project_id).execute()
   if 'projectNumber' not in result:
     raise AuthError('Failed to get project number.')

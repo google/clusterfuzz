@@ -20,10 +20,10 @@ from unittest import mock
 
 from clusterfuzz._internal.cron import oss_fuzz_build_status
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail.issue import Issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from libs.issue_management import monorail
-from libs.issue_management.monorail.issue import Issue
 
 
 class MockResponse:

@@ -123,7 +123,8 @@ def cleanup_testcases_and_issues():
     logs.log(f'Processing testcase {testcase_id}.')
 
     try:
-      issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+      issue = issue_tracker_utils.get_issue_for_testcase(
+          testcase, is_appengine=False)
       policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(
           testcase)
       if not policy:
@@ -660,7 +661,8 @@ def mark_testcase_as_triaged_if_needed(testcase, issue):
   # Check if there is an associated bug in open state. If yes, bail out.
   if issue:
     # Get latest issue object to ensure our update went through.
-    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+    issue = issue_tracker_utils.get_issue_for_testcase(
+        testcase, is_appengine=False)
     if issue.is_open:
       return
 
@@ -1293,7 +1295,8 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
 
     # Retry without setting the owner. They may not be a chromium project
     # member, in which case we can try falling back to cc.
-    issue = issue_tracker_utils.get_issue_for_testcase(testcase)
+    issue = issue_tracker_utils.get_issue_for_testcase(
+        testcase, is_appengine=False)
     update_issue_owner_and_ccs_from_predator_results(
         policy, testcase, issue, only_allow_ccs=True)
 

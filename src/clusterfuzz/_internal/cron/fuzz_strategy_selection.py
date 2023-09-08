@@ -208,5 +208,5 @@ def main():
   based on a performance metric (currently based on new_edges)."""
   for engine in ENGINE_LIST:
     _query_and_upload_strategy_probabilities(engine)
-  logs.log(f'Fuzz strategy selection succeeded.')
+  logs.log('Fuzz strategy selection succeeded.')
   return True

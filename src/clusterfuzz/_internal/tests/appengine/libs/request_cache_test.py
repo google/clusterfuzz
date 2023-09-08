@@ -15,8 +15,8 @@
 
 import unittest
 
+from clusterfuzz._internal.issue_management import request_cache
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
-from libs import request_cache
 
 
 class CacheClass(object):
@@ -51,7 +51,9 @@ class CacheTest(unittest.TestCase):
   """Cache tests."""
 
   def setUp(self):
-    test_helpers.patch(self, ['libs.request_cache.get_cache_backing'])
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.issue_management.request_cache.get_cache_backing'
+    ])
 
     self.mock.get_cache_backing.return_value = FakeRequest()
 

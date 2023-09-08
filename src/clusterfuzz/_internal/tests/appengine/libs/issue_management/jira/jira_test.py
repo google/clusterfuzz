@@ -18,10 +18,10 @@ import unittest
 
 import pytz
 
+from clusterfuzz._internal.issue_management import jira
+from clusterfuzz._internal.issue_management.jira import Issue
+from clusterfuzz._internal.issue_management.jira import issue_tracker_manager
 from clusterfuzz._internal.tests.test_libs import helpers
-from libs.issue_management import jira
-from libs.issue_management.jira import Issue
-from libs.issue_management.jira import issue_tracker_manager
 
 
 class Config(object):
@@ -78,14 +78,14 @@ class JiraTests(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'libs.issue_management.jira.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.jira.issue_tracker_manager.'
         'IssueTrackerManager.get_watchers',
-        'libs.issue_management.jira.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.jira.issue_tracker_manager.'
         'IssueTrackerManager.get_issues',
-        'libs.issue_management.jira.IssueTracker.get_issue',
-        'libs.issue_management.jira.IssueTracker.new_issue',
+        'clusterfuzz._internal.issue_management.jira.IssueTracker.get_issue',
+        'clusterfuzz._internal.issue_management.jira.IssueTracker.new_issue',
         'clusterfuzz._internal.config.db_config.get',
-        'libs.issue_management.jira.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.jira.issue_tracker_manager.'
         'IssueTrackerManager.client'
     ])
 
