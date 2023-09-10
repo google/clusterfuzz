@@ -75,6 +75,9 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.utask_main'),
         ('progression_utask_main',
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
+        ('progression_utask_preprocess',
+         'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_preprocess'
+        ),
         'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles'
@@ -111,6 +114,9 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_progression(self):
     """Test run_command with a progression task."""
+
+    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
+        job_type='job', testcase_id='123', uworker_env={})
     commands.run_command('progression', '123', 'job', {})
 
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
@@ -152,7 +158,7 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_invalid_testcase(self):
     """Test run_command with an invalid testcase exception."""
-    self.mock.progression_utask_main.side_effect = errors.InvalidTestcaseError
+    self.mock.progression_utask_preprocess.side_effect = errors.InvalidTestcaseError
     commands.run_command('progression', '123', 'job', {})
 
     task_status_entities = list(data_types.TaskStatus.query())
@@ -198,6 +204,8 @@ class RunCommandTest(unittest.TestCase):
         time=datetime.datetime(1970, 1, 1),
         status='started').put()
 
+    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
+        job_type='job', testcase_id='123', uworker_env={})
     commands.run_command('progression', '123', 'job', {})
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
 

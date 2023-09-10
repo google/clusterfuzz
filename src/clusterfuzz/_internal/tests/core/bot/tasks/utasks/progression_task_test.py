@@ -19,9 +19,9 @@ import unittest
 
 from pyfakefs import fake_filesystem_unittest
 
-from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -68,9 +68,12 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     os.environ['APP_NAME'] = 'app_name'
     # No need to implement a fake setup_regular_build. Since it's doing nothing,
     # we won't have the build directory properly set.
-    with self.assertRaises(errors.BuildSetupError):
-      progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-          None, '/tmp/blah', 'job_type', 1)
+    result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        None, None, '/tmp/blah', 'job_type', 1)
+    self.assertIsNone(result)
+    self.assertIs(worker_output.error,
+                  uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP,
+                  "build setup is expected to fail")
 
 
 @test_utils.with_cloud_emulators('datastore')

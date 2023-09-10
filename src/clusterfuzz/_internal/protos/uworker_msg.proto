@@ -99,6 +99,19 @@ message RegressionTaskOutput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
+message ProgressionTaskOutput{
+  optional string min_revision = 1;
+  optional string max_revision = 2;
+  optional bool custom_binary = 3;
+  // Set to true when latest revision or latest custom build still crash.
+  optional bool crash_on_latest = 4;
+  // Information passed back to trusted worker when we crash on latest.
+  optional string crash_revision = 5;
+  optional string crash_type = 6;
+  optional string crash_address = 7;
+  optional string crash_frames = 8;
+}
+
 enum ErrorType {
   NO_ERROR = 0;
   ANALYZE_BUILD_SETUP = 1;
@@ -112,6 +125,13 @@ enum ErrorType {
   FUZZ_BUILD_SETUP_FAILURE = 9;
   FUZZ_DATA_BUNDLE_SETUP_FAILURE = 10;
   FUZZ_NO_FUZZER = 11;
+  PROGRESSION_REVISION_LIST_ERROR = 12;
+  PROGRESSION_BUILD_NOT_FOUND = 13;
+  PROGRESSION_NO_CRASH = 14;
+  PROGRESSION_BAD_STATE_MIN_MAX = 15;
+  PROGRESSION_TIMEOUT = 16;
+  PROGRESSION_BAD_BUILD = 17;
+  PROGRESSION_BUILD_SETUP = 18;
 }
 
 message Output {
@@ -129,7 +149,6 @@ message Output {
   optional FuzzTaskOutput fuzz_task_output = 10;
   optional MinimizeTaskOutput minimize_task_output = 11;
   optional RegressionTaskOutput regression_task_output = 12;
-  // Don't do progression as Ali is working on it already.
-  // TODO(Ali): Add an input for progression.
+  optional ProgressionTaskOutput progresstion_task_output = 13;
   optional string error_message = 13;
 }
