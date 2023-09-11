@@ -384,7 +384,7 @@ def _staging_deployment_helper(python3=True):
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
-                            deploy_k8s=False,
+                            deploy_k8s=True,
                             python3=True):
   """Helper for production deployment."""
   config = local_config.Config()
@@ -432,8 +432,8 @@ def _deploy_terraform(config_dir):
   terraform_dir = os.path.join(config_dir, 'terraform')
   terraform = f'terraform -chdir={terraform_dir}'
   common.execute(f'{terraform} init')
-  # TODO(gongh): Set apply to auto-approve after testing.
-  common.execute(f'{terraform} apply -target=module.clusterfuzz')
+  common.execute(f'{terraform} apply -target=module.clusterfuzz -auto-approve')
+  common.execute(f'rm -rf {terraform_dir}/.terraform*')
 
 
 def _deploy_k8s(config_dir):
