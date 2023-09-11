@@ -50,8 +50,8 @@ def main():
 
   try:
     # Run any module initialization code.
-    import module_init_k8s
-    module_init_k8s.init()
+    import module_init
+    module_init.init()
   except ImportError:
     pass
 

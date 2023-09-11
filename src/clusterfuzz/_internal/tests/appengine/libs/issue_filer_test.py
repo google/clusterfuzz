@@ -24,14 +24,15 @@ import parameterized
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.issue_management import issue_filer
+from clusterfuzz._internal.issue_management import issue_tracker_policy
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
+from clusterfuzz._internal.issue_management.monorail.issue import \
+    Issue as MonorailIssue
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
-from libs.issue_management import issue_filer
-from libs.issue_management import issue_tracker_policy
-from libs.issue_management import monorail
-from libs.issue_management.issue_tracker import LabelStore
-from libs.issue_management.monorail.issue import Issue as MonorailIssue
 
 CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     'status': {
@@ -405,7 +406,7 @@ class IssueFilerTests(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
         'clusterfuzz._internal.datastore.data_handler.get_issue_description',
-        'libs.issue_management.issue_tracker_policy.get',
+        'clusterfuzz._internal.issue_management.issue_tracker_policy.get',
     ])
 
     self.mock.get_issue_description.return_value = 'Issue'
@@ -576,7 +577,9 @@ class IssueFilerTests(unittest.TestCase):
     """Tests issue filing when issue.save exception"""
     self.mock.get.return_value = CHROMIUM_POLICY_FALLBACK
     original_save = monorail.issue.Issue.save
-    helpers.patch(self, ['libs.issue_management.monorail.issue.Issue.save'])
+    helpers.patch(
+        self,
+        ['clusterfuzz._internal.issue_management.monorail.issue.Issue.save'])
 
     def my_save(*args, **kwargs):
       if getattr(my_save, 'raise_exception', True):

@@ -20,8 +20,8 @@ import traceback
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from libs import auth
-from libs.issue_management import issue_tracker_utils
 
 VIEW_OPERATION = 'View'
 MODIFY_OPERATION = 'Modify'

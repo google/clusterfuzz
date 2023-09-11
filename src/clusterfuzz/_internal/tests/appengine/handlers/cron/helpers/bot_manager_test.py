@@ -16,8 +16,8 @@
 import getpass
 import unittest
 
-from handlers.cron.helpers import bot_manager
-from handlers.cron.helpers.bot_manager import OperationError
+from clusterfuzz._internal.cron.helpers import bot_manager
+from clusterfuzz._internal.cron.helpers.bot_manager import OperationError
 
 TEST_PROJECT = 'clusterfuzz-testing'
 TEST_ZONE = 'us-central1-b'

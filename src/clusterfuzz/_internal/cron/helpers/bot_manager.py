@@ -138,7 +138,7 @@ class Resource:
   @retry.wrap(
       RETRY_COUNT,
       RETRY_DELAY,
-      'handlers.cron.helpers.bot_manager.Resource.execute',
+      'clusterfuzz._internal.cron.helpers.bot_manager.Resource.execute',
       exception_types=[RetryableError])
   def execute(self, request, result_proc=None):
     """Execute a request."""

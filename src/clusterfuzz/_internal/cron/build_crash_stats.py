@@ -177,5 +177,5 @@ def build_if_needed():
 def main():
   """Builds crash stats from data_types.CrashsStats2."""
   end_hour = build_if_needed()
-  logging.info(f'OK (end_hour={end_hour})')
+  logging.info('OK (end_hour=%s)', end_hour)
   return True

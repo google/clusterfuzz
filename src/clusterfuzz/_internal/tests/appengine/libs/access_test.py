@@ -17,15 +17,16 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail import \
+    issue_tracker_manager
+from clusterfuzz._internal.issue_management.monorail import issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
 from libs import access
 from libs import auth
 from libs import helpers
-from libs.issue_management import monorail
-from libs.issue_management.monorail import issue
-from libs.issue_management.monorail import issue_tracker_manager
 
 
 class GetUserJobTypeTest(unittest.TestCase):
@@ -246,10 +247,10 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
         'libs.access._is_domain_allowed',
         'libs.auth.get_current_user',
         'clusterfuzz._internal.config.db_config.get',
-        'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_tracker.IssueTracker.get_original_issue',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
-        'libs.issue_management.monorail.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.monorail.issue_tracker_manager.'
         'IssueTrackerManager',
     ])
     self.itm = issue_tracker_manager.IssueTrackerManager('test')

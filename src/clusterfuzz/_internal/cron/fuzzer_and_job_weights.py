@@ -394,5 +394,5 @@ def main():
   update_job_weights()
 
   store_current_weights_in_bigquery()
-  logs.log(f'Fuzzer and job weights succeeded.')
+  logs.log('Fuzzer and job weights succeeded.')
   return True

@@ -75,6 +75,7 @@ def main():
   """Admin user syncing cron."""
   resource_manager = discovery.build('cloudresourcemanager', 'v1')
   project_id = utils.get_application_id()
+  # pylint: disable=no-member
   policy = resource_manager.projects().getIamPolicy(
       resource=project_id, body={}).execute()
 

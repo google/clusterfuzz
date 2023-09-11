@@ -174,7 +174,7 @@ def _load_data(fuzzer):
       try:
         logs.log("Uploading job to BigQuery.", job_body=job_body)
 
-        request = bigquery.jobs().insert(projectId=project_id, body=job_body)
+        request = bigquery.jobs().insert(projectId=project_id, body=job_body)  # pylint: disable=no-member
         load_response = request.execute(num_retries=NUM_RETRIES)
         job_id = load_response['jobReference']['jobId']
         logs.log(f'Load job id: {job_id}')

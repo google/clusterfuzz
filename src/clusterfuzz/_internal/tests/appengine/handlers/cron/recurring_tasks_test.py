@@ -16,13 +16,11 @@
 import unittest
 from unittest import mock
 
-import flask
-import webtest
-
+from clusterfuzz._internal.cron import schedule_impact_tasks
+from clusterfuzz._internal.cron import schedule_progression_tasks
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import recurring_tasks
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -30,13 +28,6 @@ class OpenReproducibleTestcaseTasksSchedulerTest(unittest.TestCase):
   """Tests OpenReproducibleTestcaseTasksScheduler."""
 
   def setUp(self):
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/schedule-open-reproducible-testcase-tasks',
-        view_func=recurring_tasks.OpenReproducibleTestcaseTasksScheduler.
-        as_view('/schedule-open-reproducible-testcase-tasks'))
-    self.app = webtest.TestApp(flaskapp)
-
     self.testcase_0 = data_types.Testcase(
         open=True,
         one_time_crasher_flag=False,
@@ -85,23 +76,12 @@ class OpenReproducibleTestcaseTasksSchedulerTest(unittest.TestCase):
         'handlers.base_handler.Handler.is_cron',
     ])
 
-  def test_execute(self):
-    """Tests that we don't directly use this scheduler."""
-    with self.assertRaises(webtest.AppError):
-      self.app.get('/schedule-open-reproducible-testcase-tasks')
-
 
 class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
   """Tests ProgressionTasksScheduler."""
 
   def setUp(self):
     super().setUp()
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/schedule-progression-tasks',
-        view_func=recurring_tasks.ProgressionTasksScheduler.as_view(
-            '/schedule-progression-tasks'))
-    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
@@ -109,7 +89,7 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
   def test_execute(self):
     """Tests scheduling of progression tasks."""
-    self.app.get('/schedule-progression-tasks')
+    schedule_progression_tasks.main()
     self.mock.add_task.assert_has_calls([
         mock.call('progression', 1, 'job', queue='jobs-linux'),
         mock.call('progression', 5, 'job_windows', queue='jobs-windows')
@@ -121,19 +101,13 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
 
   def setUp(self):
     super().setUp()
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/schedule-impact-tasks',
-        view_func=recurring_tasks.ImpactTasksScheduler.as_view(
-            '/schedule-impact-tasks'))
-    self.app = webtest.TestApp(flaskapp)
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
     ])
 
   def test_execute(self):
     """Tests scheduling of progression tasks."""
-    self.app.get('/schedule-impact-tasks')
+    schedule_impact_tasks.main()
     self.mock.add_task.assert_has_calls([
         mock.call('impact', 1, 'job', queue='jobs-linux'),
         mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
