@@ -16,12 +16,14 @@ FROM gcr.io/clusterfuzz-images/base
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update && \
     apt-get install -y \
+        gettext-base \
         git \
         golang-go \
         google-cloud-sdk-app-engine-go \
         google-cloud-sdk-app-engine-python \
         google-cloud-sdk-app-engine-python-extras \
         google-cloud-sdk-datastore-emulator \
+        google-cloud-sdk-gke-gcloud-auth-plugin \
         google-cloud-sdk-pubsub-emulator=312.0.0-0 \
         kubectl \
         liblzma-dev \
