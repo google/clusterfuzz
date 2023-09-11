@@ -45,8 +45,8 @@ def _get_issue_tracker_project_name(testcase=None):
 
 
 def request_or_task_cache(func):
-  """Cache that lasts for a bot task's lifetime,
-  or an App Engine request lifetime."""
+  """Cache that lasts for a bot task's lifetime, or an App Engine request
+  lifetime."""
   if environment.is_running_on_app_engine():
     from libs import request_cache
     return request_cache.wrap(capacity=_ISSUE_TRACKER_CACHE_CAPACITY)(func)
