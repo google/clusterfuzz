@@ -15,16 +15,13 @@
 import datetime
 import unittest
 
-import flask
-import webtest
-
+from clusterfuzz._internal.cron import oss_fuzz_apply_ccs
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_policy
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail.issue import Issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import oss_fuzz_apply_ccs
-from libs.issue_management import issue_tracker_policy
-from libs.issue_management import monorail
-from libs.issue_management.monorail.issue import Issue
 
 OSS_FUZZ_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     'deadline_policy_message':
@@ -92,12 +89,6 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch_environ(self)
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/apply-ccs',
-        view_func=oss_fuzz_apply_ccs.Handler.as_view('/apply-ccs'))
-    self.app = webtest.TestApp(flaskapp)
-
     data_types.ExternalUserPermission(
         email='user@example.com',
         entity_name='job',
@@ -115,9 +106,9 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
-        'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
-        'libs.issue_management.issue_tracker_policy.get',
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_tracker.IssueTracker.get_original_issue',
+        'clusterfuzz._internal.issue_management.issue_tracker_policy.get',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
     ])
 
@@ -149,7 +140,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
 
   def test_execute(self):
     """Tests executing of cron job."""
-    self.app.get('/apply-ccs')
+    oss_fuzz_apply_ccs.main()
     self.assertEqual(len(self.itm.modified_issues), 3)
 
     issue_1337 = self.itm.modified_issues[1337]
@@ -186,7 +177,7 @@ class OssFuzzApplyCcsTest(unittest.TestCase):
     self.job.environment_string += 'DISABLE_DISCLOSURE = True\n'
     self.job.put()
 
-    self.app.get('/apply-ccs')
+    oss_fuzz_apply_ccs.main()
     self.assertEqual(len(self.itm.modified_issues), 3)
 
     issue_1337 = self.itm.modified_issues[1337]

@@ -19,11 +19,11 @@ import flask
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail import issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import find_similar_issues
-from libs.issue_management import monorail
-from libs.issue_management.monorail import issue
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -33,12 +33,12 @@ class HandlerTest(unittest.TestCase):
   def setUp(self):
     test_helpers.patch(self, [
         'libs.access.check_access_and_get_testcase',
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
-        'libs.issue_management.issue_tracker_utils.get_issue_url',
-        'libs.issue_management.issue_tracker_utils.get_search_keywords',
-        'libs.issue_management.issue_tracker_utils.get_similar_issues',
-        'libs.issue_management.issue_tracker_utils.get_similar_issues_url',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_search_keywords',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_similar_issues',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_similar_issues_url',
     ])
     flaskapp = flask.Flask('testflask')
     flaskapp.add_url_rule(

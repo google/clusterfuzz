@@ -38,5 +38,5 @@ def main():
     logs.log(f'Adding corpus pruning task {task_target}.')
     tasks.add_task('corpus_pruning', task_target, job_name, queue=queue_name)
 
-  logs.log(f'Schedule corpus pruning task succeeded.')
+  logs.log('Schedule corpus pruning task succeeded.')
   return True

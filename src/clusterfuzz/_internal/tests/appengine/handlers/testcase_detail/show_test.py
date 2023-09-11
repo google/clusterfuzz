@@ -334,7 +334,7 @@ class GetTestcaseTest(unittest.TestCase):
         'clusterfuzz._internal.config.db_config.get_value_for_job',
         'clusterfuzz._internal.datastore.data_handler.get_stacktrace',
         'handlers.testcase_detail.show.filter_stacktrace',
-        'libs.issue_management.issue_tracker_utils.get_issue_url',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
         'libs.access.can_user_access_testcase',
         'libs.access.has_access',
         'libs.auth.is_current_user_admin',

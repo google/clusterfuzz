@@ -14,9 +14,9 @@
 """Handler for redirecting to the issue url (given a testcase). See
   crbug.com/665652 on why we need it."""
 
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from handlers import base_handler
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 
 
 class Handler(base_handler.Handler):

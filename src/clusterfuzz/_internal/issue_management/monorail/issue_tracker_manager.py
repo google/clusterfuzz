@@ -142,7 +142,9 @@ class IssueTrackerManager(object):
   @retry.wrap(
       retries=FAIL_RETRIES,
       delay=FAIL_WAIT,
-      function='libs.issue_management.issue_tracker_manager._execute_with_retry'
+      # pylint: disable=line-too-long
+      function=
+      'clusterfuzz._internal.issue_management.issue_tracker_manager._execute_with_retry'
   )
   def _execute_with_retry(self, query):
     """Execute a query (with retries)."""
@@ -151,7 +153,10 @@ class IssueTrackerManager(object):
   @retry.wrap(
       retries=FAIL_RETRIES,
       delay=FAIL_WAIT,
-      function='libs.issue_management.issue_tracker_manager._create_client')
+      # pylint: disable=line-too-long
+      function=
+      'clusterfuzz._internal.issue_management.issue_tracker_manager._create_client'
+  )
   def _create_client(self):
     """Return a client object for querying the issue tracker.
 

@@ -54,7 +54,7 @@ def main():
 
   app_id = utils.get_application_id()
   timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d-%H:%M:%S')
-  output_url_prefix = (f'gs://{backup_bucket}/datastore-backups/{timestamp}')
+  output_url_prefix = f'gs://{backup_bucket}/datastore-backups/{timestamp}'
 
   body = {
       'output_url_prefix': output_url_prefix,
@@ -64,6 +64,7 @@ def main():
   }
 
   try:
+    # pylint: disable=no-member
     request = _datastore_client().projects().export(projectId=app_id, body=body)
     response = request.execute()
     message = 'Datastore export succeeded.'

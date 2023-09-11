@@ -23,6 +23,8 @@ _MIN_LEN = 6
 _MAX_LEN = 30
 _HASH_PREFIX_LEN = _MAX_LEN - len(_ACCOUNT_PREFIX)
 
+# pylint: disable=no-member
+
 
 def _create_client(service_name, version='v1'):
   """Create a googleapiclient client."""

@@ -20,6 +20,7 @@ from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import jira
 from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.system import environment
 
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
 _ISSUE_TRACKER_CONSTRUCTORS = {
@@ -43,7 +44,16 @@ def _get_issue_tracker_project_name(testcase=None):
   return data_handler.get_issue_tracker_name(job_type)
 
 
-@memoize.wrap(memoize.FifoInMemory(256))
+def request_or_task_cache(func):
+  """Cache that lasts for a bot task's lifetime, or an App Engine request
+  lifetime."""
+  if environment.is_running_on_app_engine():
+    from libs import request_cache
+    return request_cache.wrap(capacity=_ISSUE_TRACKER_CACHE_CAPACITY)(func)
+  return memoize.wrap(memoize.FifoInMemory(256))(func)
+
+
+@request_or_task_cache
 def get_issue_tracker(project_name=None):
   """Get the issue tracker with the given type and name."""
   issue_tracker_config = local_config.IssueTrackerConfig()

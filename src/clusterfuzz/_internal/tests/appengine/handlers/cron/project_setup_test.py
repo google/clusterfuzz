@@ -20,18 +20,16 @@ import posixpath
 import unittest
 from unittest import mock
 
-import flask
 from google.cloud import ndb
 import googleapiclient
-import webtest
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.cron import project_setup
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import project_setup
 
 DATA_DIRECTORY = os.path.join(os.path.dirname(__file__), 'project_setup_data')
 
@@ -117,10 +115,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
 
   def setUp(self):
     self.maxDiff = None
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/setup', view_func=project_setup.Handler.as_view('/setup'))
-    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)
 
@@ -192,9 +186,9 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.build',
         'time.sleep',
         'handlers.base_handler.Handler.is_cron',
-        'handlers.cron.project_setup.get_oss_fuzz_projects',
-        'handlers.cron.service_accounts.get_or_create_service_account',
-        'handlers.cron.service_accounts.set_service_account_roles',
+        'clusterfuzz._internal.cron.project_setup.get_oss_fuzz_projects',
+        'clusterfuzz._internal.cron.service_accounts.get_or_create_service_account',
+        'clusterfuzz._internal.cron.service_accounts.set_service_account_roles',
     ])
 
     self.mock.get_or_create_service_account.side_effect = (
@@ -334,7 +328,7 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
     mock_storage.buckets().setIamPolicy = CopyingMock()
     mock_storage.buckets().setIamPolicy.side_effect = mock_set_iam_policy
 
-    self.app.get('/setup')
+    project_setup.main()
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_lib1').get()
@@ -1763,10 +1757,6 @@ class GenericProjectSetupTest(unittest.TestCase):
 
   def setUp(self):
     self.maxDiff = None
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/setup', view_func=project_setup.Handler.as_view('/setup'))
-    self.app = webtest.TestApp(flaskapp)
 
     helpers.patch_environ(self)
 
@@ -1880,7 +1870,7 @@ class GenericProjectSetupTest(unittest.TestCase):
 
   def test_execute(self):
     """Tests executing of cron job."""
-    self.app.get('/setup')
+    project_setup.main()
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b').get()
     self.assertEqual(
