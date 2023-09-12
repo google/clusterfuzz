@@ -194,8 +194,8 @@ def update_source_code():
   shell.clear_temp_directory()
 
   # ROOT_DIR just means the clusterfuzz directory.
-  source_root_directory = environment.get_value('ROOT_DIR')
-  cf_source_root_parent_dir = os.path.dirname(source_root_directory)
+  root_directory = environment.get_value('ROOT_DIR')
+  cf_source_root_parent_dir = os.path.dirname(root_directory)
   temp_archive = os.path.join(cf_source_root_parent_dir,
                               'clusterfuzz-source.zip')
   try:
@@ -211,7 +211,7 @@ def update_source_code():
     logs.log_error('Bad zip file.')
     return
 
-  src_directory = os.path.join(source_root_directory, 'src')
+  src_directory = os.path.join(root_directory, 'src')
   error_occurred = False
   normalized_file_set = set()
   for filepath in file_list:
@@ -221,7 +221,7 @@ def update_source_code():
     if filename == 'adb':
       continue
 
-    absolute_filepath = os.path.join(source_root_directory, filepath)
+    absolute_filepath = os.path.join(cf_source_root_parent_dir, filepath)
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
@@ -249,7 +249,7 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
-      extracted_path = zip_archive.extract(filepath, source_root_directory)
+      extracted_path = zip_archive.extract(filepath, cf_source_root_parent_dir)
       external_attr = zip_archive.getinfo(filepath).external_attr
       mode = (external_attr >> 16) & 0o777
       mode |= 0o440
@@ -267,7 +267,7 @@ def update_source_code():
   clear_pyc_files(src_directory)
   clear_old_files(src_directory, normalized_file_set)
 
-  local_manifest_path = os.path.join(source_root_directory,
+  local_manifest_path = os.path.join(root_directory,
                                      utils.LOCAL_SOURCE_MANIFEST)
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
