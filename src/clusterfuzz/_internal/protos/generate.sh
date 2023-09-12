@@ -14,17 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SCRIPT_DIR=$( readlink -f $( dirname ${BASH_SOURCE[0]} ) )
-PARENT_DIR=$( dirname $( dirname $( dirname ${SCRIPT_DIR} ) ) )
-
-TEMP_LDAP=(${SCRIPT_DIR//home/ })
-TEMP_LDAP=(${TEMP_LDAP[1]//\// })
-LDAP=${TEMP_LDAP[0]}
-
-python -m grpc_tools.protoc --proto_path=$PARENT_DIR:/usr/local/google/home/$LDAP/clusterfuzz/src/third_party --python_out=$PARENT_DIR --grpc_python_out=$PARENT_DIR $SCRIPT_DIR/*.proto
+python -m grpc_tools.protoc --proto_path=$PARENT_DIR --python_out=$PARENT_DIR --grpc_python_out=$PARENT_DIR $SCRIPT_DIR/*.proto
 
 read -r -d '' COPYRIGHT_HEADER <<EOF
-# Copyright 2020 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
