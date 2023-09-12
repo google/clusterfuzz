@@ -886,17 +886,19 @@ class AflRunnerCommon(object):
         if engine_common.decide_with_probability(
             self.strategies.MUTATION_EXPLORE_PROB):
           self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
-                       MUTATION_EXPLORE)
+                       constants.MUTATION_EXPLORE)
         else:
           self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
-                       MUTATION_EXPLOIT)
+                       constants.MUTATION_EXPLOIT)
 
       if engine_common.decide_with_probability(self.strategies.INPUT_PROB):
         if engine_common.decide_with_probability(
             self.strategies.INPUT_ASCII_PROB):
-          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG, INPUT_ASCII)
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_ASCII)
         else:
-          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG, INPUT_BINARY)
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_BINARY)
 
       if not environment.is_android():
         # Attempt to start the fuzzer.
