@@ -29,7 +29,6 @@ def write_dummy_file(input_dir):
   """Afl will refuse to run if the corpus directory is empty or contains empty
   files. So write the bare minimum to get afl to run if there is no corpus
   yet."""
-  # TODO(metzman): Ask lcamtuf to allow AFL to run with an empty input corpus.
   dummy_input_path = os.path.join(input_dir, AFL_DUMMY_INPUT)
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import file_host
