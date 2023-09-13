@@ -807,8 +807,8 @@ class AflRunnerCommon(object):
       matches = re.search(error_regex, fuzz_result.output)
       if matches:
         erroring_filename = matches.groups()[0]
-        message_format = ('Seconds spent fuzzing: {seconds}, ' +
-                          log_message_format)
+        message_format = (
+            'Seconds spent fuzzing: {seconds}, ' + log_message_format)
 
         logs.log(
             message_format.format(
@@ -1377,15 +1377,13 @@ class AflAndroidRunner(AflRunnerCommon, new_process.UnicodeProcessRunner):
     android.adb.copy_local_file_to_remote(local_script_path, device_script_path)
     android.adb.run_shell_command(f'chmod 0777 {device_script_path}', root=True)
     android.adb.run_shell_command(
-        device_script_path + ' --showmap_path ' +
-        android.util.get_device_path(self.afl_showmap_path) +
-        ' --fuzzer_path ' + android.util.get_device_path(self.target_path) +
-        ' --corpus_path ' +
-        android.util.get_device_path(self.afl_output.queue) +
-        ' --output_path ' +
-        android.util.get_device_path(self._showmap_results_dir) +
-        ' --seed_path ' +
-        android.util.get_device_path(self.afl_input.input_directory),
+        device_script_path + ' --showmap_path ' + android.util.get_device_path(
+            self.afl_showmap_path) + ' --fuzzer_path ' +
+        android.util.get_device_path(self.target_path) + ' --corpus_path ' +
+        android.util.get_device_path(self.afl_output.queue) + ' --output_path '
+        + android.util.get_device_path(self._showmap_results_dir) +
+        ' --seed_path ' + android.util.get_device_path(
+            self.afl_input.input_directory),
         root=True,
         log_output=True)
 
