@@ -288,22 +288,33 @@ class FuzzingStrategies(object):
   ]
 
   # Probabilty for arithmetic CMPLOG calculations.
-  CMPLOG_ARITH_PROB = 0.1
+  CMPLOG_ARITH_PROB = 0.4
 
   # Probability for transforming CMPLOG solving.
   CMPLOG_TRANS_PROB = 0.1
+
+  # Probability for extreme CMPLOG solving.
+  CMPLOG_XTREME_PROB = 0.05
 
   # Probability for randomized coloring.
   CMPLOG_RAND_PROB = 0.1
 
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
-  DISABLE_TRIM_PROB = 0.75
+  DISABLE_TRIM_PROB = 0.70
 
   # Probability to keep long running finds. (AFL_KEEP_TIMEOUTS=1)
-  KEEP_TIMEOUTS_PROB = 0.5
+  KEEP_TIMEOUTS_PROB = 0.7
 
   # Probability for increased havoc intensity. (AFL_EXPAND_HAVOC_NOW=1)
   EXPAND_HAVOC_PROB = 0.5
+
+  # Probability for a fixed mutation type. (-P)
+  MUTATION_PROB = 0.5
+  MUTATION_EXPLORE_PROB = 0.75
+
+  # PROBABILITY for input type. (-a)
+  INPUT_PROB = 0.4
+  INPUT_ASCII_PROB = 0.3
 
   # Probability to use the MOpt mutator. (-L0)
   MOPT_PROB = 0.4
@@ -569,6 +580,7 @@ class AflRunnerCommon(object):
     environment.set_value(constants.SKIP_CRASHES_ENV_VAR, 1)
     environment.set_value(constants.BENCH_UNTIL_CRASH_ENV_VAR, 1)
     environment.set_value(constants.SKIP_CPUFREQ_ENV_VAR, 1)
+    environment.set_value(constants.IGNORE_SEED_PROBLEMS, 1)
 
     stderr_file_path = self.stderr_file_path
     if environment.is_android():
@@ -869,6 +881,24 @@ class AflRunnerCommon(object):
       # Select the CMPLOG level (even if no cmplog is used, it does not hurt).
       self.set_arg(fuzz_args, constants.CMPLOG_LEVEL_FLAG,
                    rand_cmplog_level(self.strategies))
+
+      if engine_common.decide_with_probability(self.strategies.MUTATION_PROB):
+        if engine_common.decide_with_probability(
+            self.strategies.MUTATION_EXPLORE_PROB):
+          self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
+                       constants.MUTATION_EXPLORE)
+        else:
+          self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
+                       constants.MUTATION_EXPLOIT)
+
+      if engine_common.decide_with_probability(self.strategies.INPUT_PROB):
+        if engine_common.decide_with_probability(
+            self.strategies.INPUT_ASCII_PROB):
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_ASCII)
+        else:
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_BINARY)
 
       if not environment.is_android():
         # Attempt to start the fuzzer.
@@ -1620,6 +1650,8 @@ def rand_cmplog_level(strategies):
     cmplog_level += constants.CMPLOG_ARITH
   if engine_common.decide_with_probability(strategies.CMPLOG_TRANS_PROB):
     cmplog_level += constants.CMPLOG_TRANS
+  if engine_common.decide_with_probability(strategies.CMPLOG_XTREME_PROB):
+    cmplog_level += constants.CMPLOG_XTREME
   if engine_common.decide_with_probability(strategies.CMPLOG_RAND_PROB):
     cmplog_level += constants.CMPLOG_RAND
   return cmplog_level
