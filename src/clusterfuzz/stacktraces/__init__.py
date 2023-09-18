@@ -915,18 +915,6 @@ class StackParser:
       self.update_state_on_check_failure(
           state, line, SECURITY_DCHECK_FAILURE_REGEX, 'Security DCHECK failure')
 
-      # Timeout/OOM detected by libFuzzer and Centipede.
-      if self.detect_ooms_and_hangs:
-        for timeout_regex in [LIBFUZZER_TIMEOUT_REGEX, CENTIPEDE_TIMEOUT_REGEX]:
-          self.update_state_on_match(
-              timeout_regex, line, state, new_type='Timeout', reset=True)
-        self.update_state_on_match(
-            OUT_OF_MEMORY_REGEX,
-            line,
-            state,
-            new_type='Out-of-memory',
-            reset=True)
-
       # The following parsing signatures don't lead to crash state overwrites.
       if not state.crash_type:
         # Windows cdb stack overflow.
@@ -1169,6 +1157,18 @@ class StackParser:
           state,
           new_state='',
           new_frame_count=0)
+
+      # Timeout/OOM detected by libFuzzer and Centipede.
+      if self.detect_ooms_and_hangs:
+        for timeout_regex in [LIBFUZZER_TIMEOUT_REGEX, CENTIPEDE_TIMEOUT_REGEX]:
+          self.update_state_on_match(
+              timeout_regex, line, state, new_type='Timeout', reset=True)
+        self.update_state_on_match(
+            OUT_OF_MEMORY_REGEX,
+            line,
+            state,
+            new_type='Out-of-memory',
+            reset=True)
 
       # Stack frame parsing signatures.
       # Don't allow more stack frames if a certain stop marker is seen.
