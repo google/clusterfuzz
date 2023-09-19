@@ -33,6 +33,11 @@ message UpdateFuzzerAndDataBundlesInput {
   optional string fuzzer_download_url = 5;
 }
 
+message AnalyzeTaskInput {
+  optional string minidump_upload_url = 1;
+  optional string minidump_blob_keys = 2;
+}
+
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
@@ -49,7 +54,8 @@ message Input {
   optional string fuzzer_name = 10;
   optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
   repeated google.datastore.v1.Entity bad_builds = 12;
-  optional string module_name = 13;
+  optional AnalyzeTaskInput analyze_task_input = 13;
+  optional string module_name = 14;
 }
 
 message FuzzTaskOutput {

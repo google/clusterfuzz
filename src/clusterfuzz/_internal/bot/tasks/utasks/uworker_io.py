@@ -443,6 +443,11 @@ class UworkerInput(UworkerMsg):
     field.CopyFrom(entity_proto)
 
 
+class AnalyzeTaskInput(UworkerInput):
+  """Input for analyze_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.AnalyzeTaskInput
+
+
 class UpdateFuzzerAndDataBundleInput(UworkerInput):
   """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
   PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
