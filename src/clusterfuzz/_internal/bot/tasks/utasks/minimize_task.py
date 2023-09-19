@@ -583,12 +583,10 @@ def utask_main(uworker_input):
 
   return uworker_io.UworkerOutput(
       testcase=testcase,
-      input_directory=input_directory,
       file_list=file_list,
-      data=data,
+      testcase_data=data,
       testcase_file_path=testcase_file_path,
-      command=command,
-      last_crash_result=last_crash_result,
+      last_crash_result_json=_jsonify_crash_result(last_crash_result, command),
       flaky_stack=flaky_stack)
 
 
@@ -606,13 +604,12 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
-  store_minimized_testcase(output.testcase, output.input_directory,
-                           output.file_list, output.data,
-                           output.testcase_file_path)
+  store_minimized_testcase(
+      output.testcase, output.uworker_input.uworker_env['FUZZ_INPUTS'],
+      output.file_list, output.testcase_data, output.testcase_file_path)
   finalize_testcase(
       output.uworker_input.testcase_id,
-      output.command,
-      output.last_crash_result,
+      output.last_crash_result_json,
       flaky_stack=output.flaky_stack)
 
 
@@ -633,15 +630,12 @@ def handle_minimize_setup_error(output):
         wait_time=output.build_fail_wait)
 
 
-def finalize_testcase(testcase_id,
-                      command,
-                      last_crash_result,
-                      flaky_stack=False):
+def finalize_testcase(testcase_id, last_crash_result_json, flaky_stack=False):
   """Perform final updates on a test case and prepare it for other tasks."""
   # Symbolize crash output if we have it.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if last_crash_result:
-    _update_crash_result(testcase, last_crash_result, command)
+  if last_crash_result_json:
+    _update_crash_result(testcase, last_crash_result_json)
   testcase.delete_metadata('redo_minimize', update_testcase=False)
 
   # Update remaining test case information.
@@ -1267,18 +1261,27 @@ def _run_libfuzzer_tool(tool_name,
   return output_file_path, crash_result
 
 
-def _update_crash_result(testcase, crash_result, command):
-  """Update testcase with crash result."""
+def _jsonify_crash_result(crash_result, command):
+  """Extract necessary data from CrashResult."""
   min_state = crash_result.get_symbolized_data()
   min_unsymbolized_crash_stacktrace = crash_result.get_stacktrace(
       symbolized=False)
   min_crash_stacktrace = utils.get_crash_stacktrace_output(
       command, min_state.crash_stacktrace, min_unsymbolized_crash_stacktrace)
-  testcase.crash_type = min_state.crash_type
-  testcase.crash_address = min_state.crash_address
-  testcase.crash_state = min_state.crash_state
-  testcase.crash_stacktrace = data_handler.filter_stacktrace(
-      min_crash_stacktrace)
+  return {
+      'crash_type': min_state.crash_type,
+      'crash_address': min_state.crash_address,
+      'crash_state': min_state.crash_state,
+      'crash_stacktrace': data_handler.filter_stacktrace(min_crash_stacktrace),
+  }
+
+
+def _update_crash_result(testcase, crash_result_json):
+  """Update testcase with crash result."""
+  testcase.crash_type = crash_result_json['crash_type']
+  testcase.crash_address = crash_result_json['crash_address']
+  testcase.crash_state = crash_result_json['crash_state']
+  testcase.crash_stacktrace = crash_result_json['crash_stacktrace']
 
 
 def _skip_minimization(testcase, message, crash_result=None, command=None):
@@ -1287,7 +1290,8 @@ def _skip_minimization(testcase, message, crash_result=None, command=None):
   testcase.minimized_keys = testcase.fuzzed_keys
 
   if crash_result:
-    _update_crash_result(testcase, crash_result, command)
+    crash_result_json = _jsonify_crash_result(crash_result, command)
+    _update_crash_result(testcase, crash_result_json)
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        message)
@@ -1410,8 +1414,10 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
   # Finalize the test case if we were able to reproduce it.
   repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
+  last_crash_result_json = _jsonify_crash_result(last_crash_result,
+                                                 repro_command)
   finalize_testcase(
-      testcase.key.id(), repro_command, last_crash_result, flaky_stack=False)
+      testcase.key.id(), last_crash_result_json, flaky_stack=False)
 
   # Clean up after we're done.
   shell.clear_testcase_directories()

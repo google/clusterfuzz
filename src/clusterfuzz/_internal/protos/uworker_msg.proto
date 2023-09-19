@@ -92,11 +92,15 @@ message FuzzTaskOutput {
 }
 
 message MinimizeTaskOutput {
- // TODO(pgrace): Finish this.
+  repeated string file_list = 1;
+  optional string testcase_data = 2;
+  optional string testcase_file_path = 3;
+  optional Json last_crash_result_json = 4;
+  optional bool flaky_stack = 5;
 }
 
 message RegressionTaskOutput {
-// TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
 enum ErrorType {
