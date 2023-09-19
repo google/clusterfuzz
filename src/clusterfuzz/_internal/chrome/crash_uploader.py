@@ -276,7 +276,8 @@ class CrashReportInfo(object):
 
   def store_minidump(self, signed_upload_url=None):
     """Store the crash minidump in appengine and return key."""
-    # TODO(#3008): Make signed_upload_url mandatory.
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Make
+    # signed_upload_url mandatory.
     if not self.minidump_info.path:
       return ''
 
