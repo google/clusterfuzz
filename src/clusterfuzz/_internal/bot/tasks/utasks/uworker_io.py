@@ -221,20 +221,48 @@ def download_and_deserialize_uworker_output(output_url: str):
   return uworker_output
 
 
+def update_entity_from_worker(trusted_entity, untrusted_entity, trusted_attrs):
+  """Updates entity with changes made on untrusted worker."""
+  if not untrusted_entity:
+    return
+  assert trusted_entity
+
+  for trusted_attr in trusted_attrs:
+    attr_value, modified = get_modified_attr_from_untrusted_entity(
+        untrusted_entity, trusted_attr)
+    if not modified:
+      continue
+    setattr(trusted_entity, trusted_attr, attr_value)
+
+
 def deserialize_wrapped_entity(wrapped_entity_proto):
   """Deserializes a proto representing a db entity."""
-  # TODO(metzman): Add verification to ensure only the correct object is
-  # retreived.
-  changed_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
-  changes = json.loads(wrapped_entity_proto.changed.serialized)
-  original_entity = changed_entity.key.get()
-  if original_entity is None:  # Object is new.
-    return changed_entity
-  for changed_attr_name in changes:
-    changed_attr_value = getattr(changed_entity, changed_attr_name)
-    setattr(original_entity, changed_attr_name, changed_attr_value)
-  return original_entity
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Don't do this
+  # anymore, store data directly on uworker_output and let postprocess deal with
+  # it.
+  deserialized_entity = model._entity_from_protobuf(wrapped_entity_proto.entity)  # pylint: disable=protected-access
 
+  # Prevent saving directly.
+  def put():
+    raise RuntimeError('Should not be saving untrusted entity.')
+
+  deserialized_entity.put = put
+  changes = json.loads(wrapped_entity_proto.changed.serialized)
+  deserialized_entity._wrapped_changed_attributes = set(changes)  # pylint: disable=protected-access
+  for changed_attr_name in changes:
+    changed_attr_value = getattr(deserialized_entity, changed_attr_name)
+    setattr(deserialized_entity, changed_attr_name, changed_attr_value)
+  # Prevent saving directly.
+  return deserialized_entity
+
+
+def get_modified_attr_from_untrusted_entity(entity, attr):
+  modified = False
+  if attr in entity._wrapped_changed_attributes:  # pylint: disable=protected-access
+    modified = True
+
+  value = getattr(entity, attr)
+  return value, modified
 
 def proto_to_deserialized_msg_object(serialized_msg_proto, is_input):
   """Converts a |serialized_msg_proto| to a deserialized representation of its
