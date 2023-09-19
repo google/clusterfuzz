@@ -514,7 +514,7 @@ def _set_fuzzer_env_vars(fuzzer):
 
 def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
-  uworker_main. Returns a UpdateFuzzerAndDataBundleInput object."""
+  uworker_main. Returns a SetupInput object."""
   update_input = uworker_io.SetupInput(fuzzer_name=fuzzer_name)
   update_input.fuzzer = data_types.Fuzzer.query(
       data_types.Fuzzer.name == fuzzer_name).get()

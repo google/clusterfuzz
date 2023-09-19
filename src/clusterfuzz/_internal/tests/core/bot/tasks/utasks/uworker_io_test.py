@@ -216,7 +216,7 @@ class RoundTripTest(unittest.TestCase):
     uworker_input = uworker_io.UworkerInput(
         testcase=self.testcase,
         uworker_env=self.env,
-        testcase_download_url=self.FAKE_URL,
+        setup_input=uworker_io.SetupInput(testcase_download_url=self.FAKE_URL),
     )
 
     # Create a mocked version of write_data so that when we upload the uworker
@@ -366,10 +366,8 @@ class RoundTripTest(unittest.TestCase):
     bundle1.put()
     bundle2.put()
     data_bundles = [bundle1, bundle2]
-    update_input = uworker_io.UpdateFuzzerAndDataBundleInput(
-        data_bundles=data_bundles)
-    uworker_input = uworker_io.UworkerInput(
-        update_fuzzer_and_data_bundles_input=update_input)
+    setup_input = uworker_io.SetupInput(data_bundles=data_bundles)
+    uworker_input = uworker_io.UworkerInput(setup_input=setup_input)
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(serialized)
     update_input = deserialized.update_fuzzer_and_data_bundles_input
