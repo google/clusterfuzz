@@ -48,7 +48,8 @@ def handle_progression_timeout(uworker_output: uworker_io.UworkerOutput):
   tasks.add_task('progression', testcase_id, job_type)
 
 
-def handle_build_not_found(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_build_not_found(
+    uworker_output: uworker_io.UworkerOutput):
   """Handles an expected build that no longer exists, we can't continue. Also,
   clears progression_pending testcase metadata"""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -60,14 +61,15 @@ def handle_build_not_found(uworker_output: uworker_io.UworkerOutput):
                                        uworker_output.error_message)
 
 
-def handle_revision_list_error(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_revision_list_error(
+    uworker_output: uworker_io.UworkerOutput):
   """Handles revision list errors, in which case the testcase is closed with
   error."""
   data_handler.close_testcase_with_error(uworker_output.testcase,
                                          'Failed to fetch revision list')
 
 
-def handle_crash_on_latest(uworker_output: uworker_io.UworkerOutput):
+def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
   """Handles crash on latest revision, or custom binary crashes. Saves the 
   crash info for non-custom binaries."""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -99,7 +101,8 @@ def handle_crash_on_latest(uworker_output: uworker_io.UworkerOutput):
       uworker_output.progression_task_output.crash_frames)
 
 
-def handle_bad_state(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_bad_state_min_max(
+    uworker_output: uworker_io.UworkerOutput):
   """Handles when we end up in a state having min and max 
   versions the same during a progression."""
   testcase = data_handler.get_testcase_by_id(
@@ -118,7 +121,7 @@ def handle_bad_state(uworker_output: uworker_io.UworkerOutput):
   bisection.request_bisection(testcase)
 
 
-def handle_no_crash(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
   """Expected crash version doesn't crash. Retries once to confirm the result
   otherwise marks unreproducible if the testcase is flaky."""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -144,7 +147,8 @@ def handle_no_crash(uworker_output: uworker_io.UworkerOutput):
   return
 
 
-def handle_build_setup_error(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_build_setup_error(
+    uworker_output: uworker_io.UworkerOutput):
   """Handles errors for scenarios where build setup fails."""
   # If we failed to setup a build, it is likely a bot error. We can retry
   # the task in this case.
@@ -158,7 +162,7 @@ def handle_build_setup_error(uworker_output: uworker_io.UworkerOutput):
       'progression', testcase_id, job_type, wait_time=build_fail_wait)
 
 
-def handle_bad_build(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_bad_build(uworker_output: uworker_io.UworkerOutput):
   """Handles unrecoverable bad build errors."""
   # Though bad builds when narrowing the range are recoverable, certain builds
   # being marked as bad may be unrecoverable. Recoverable ones should not
@@ -261,7 +265,8 @@ def _testcase_reproduces_in_revision(uworker_input,
                                      job_type,
                                      revision,
                                      update_metadata=False):
-  """Test to see if a test case reproduces in the specified revision."""
+  """Test to see if a test case reproduces in the specified revision.
+  Returns the crash result on success, None on error."""
   build_manager.setup_build(revision)
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
@@ -600,7 +605,7 @@ def utask_postprocess(output):
     return
 
   if output.progression_task_output.crash_on_latest:
-    handle_crash_on_latest(output)
+    crash_on_latest(output)
     return
 
   if output.progression_task_output.custom_binary:
@@ -623,8 +628,8 @@ def utask_postprocess(output):
         message='fixed on latest custom build')
     return
 
-  # TODO(alhijazi): This should probably be moved to the end of the [not yet
-  #  implemented] progression_bisection task.
+  # TODO(alhijazi): This should probably be moved to the end of the (not yet
+  #  implemented) progression_bisection task.
   # If there is a fine grained bisection service available, request it. Both
   # regression and fixed ranges are requested once. Regression is also requested
   # here as the bisection service may require details that are not yet available

@@ -64,19 +64,19 @@ def get_handle_all_errors_mapping():
       uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER:
           setup.handle_setup_testcase_error_invalid_fuzzer,
       uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR:
-          progression_task.handle_revision_list_error,
+          progression_task.handle_progression_revision_list_error,
       uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND:
-          progression_task.handle_build_not_found,
+          progression_task.handle_progression_build_not_found,
       uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
-          progression_task.handle_bad_state,
+          progression_task.handle_progression_bad_state_min_max,
       uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH:
-          progression_task.handle_no_crash,
+          progression_task.handle_progression_no_crash,
       uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:
           progression_task.handle_progression_timeout,
       uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
-          progression_task.handle_bad_build,
+          progression_task.handle_progression_bad_build,
       uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP:
-          progression_task.handle_build_setup_error,
+          progression_task.handle_progression_build_setup_error,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }
