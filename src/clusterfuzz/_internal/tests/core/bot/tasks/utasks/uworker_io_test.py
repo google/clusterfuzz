@@ -268,8 +268,8 @@ class RoundTripTest(unittest.TestCase):
                          downloaded_input.uworker_env)
     self.assertEqual(uworker_input.uworker_output_upload_url,
                      downloaded_input.uworker_output_upload_url)
-    self.assertEqual(uworker_input.testcase_download_url,
-                     downloaded_input.testcase_download_url)
+    self.assertEqual(uworker_input.setup_input.testcase_download_url,
+                     downloaded_input.setup_input.testcase_download_url)
 
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading uworker output works. This means
@@ -370,9 +370,9 @@ class RoundTripTest(unittest.TestCase):
     uworker_input = uworker_io.UworkerInput(setup_input=setup_input)
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(serialized)
-    update_input = deserialized.update_fuzzer_and_data_bundles_input
-    self.assertEqual(update_input.data_bundles[0].name, bundle1.name)
-    self.assertEqual(update_input.data_bundles[1].name, bundle2.name)
+    setup_input = deserialized.setup_task_input
+    self.assertEqual(setup_input.data_bundles[0].name, bundle1.name)
+    self.assertEqual(setup_input.data_bundles[1].name, bundle2.name)
 
   def test_additional_metadata(self):
     """Tests that additional_metadata field on Testcase is serialized and
