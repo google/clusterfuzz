@@ -218,7 +218,7 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None):
       testcase.put()
       raise
   else:
-    setup_input = uworker_msg_pb2.SetupInput()
+    setup_input = uworker_io.SetupInput()
   setup_input.testcase_download_url = get_signed_testcase_download_url(testcase)
   return setup_input
 
