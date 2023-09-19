@@ -331,7 +331,7 @@ def utask_main(uworker_input):
   testcase_file_path, output = setup_testcase_and_build(
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
       uworker_input.job_type, uworker_input.testcase_download_url,
-      uworker_input.bad_builds)
+      uworker_input.analyze_task_input.bad_builds)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
