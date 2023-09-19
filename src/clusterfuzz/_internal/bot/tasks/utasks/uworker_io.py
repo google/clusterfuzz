@@ -236,18 +236,6 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   return original_entity
 
 
-<<<<<<< Updated upstream
-=======
-def get_modified_attr_from_untrusted_entity(entity, attr):
-  modified = False
-  if attr in entity._wrapped_changed_attributes:  # pylint: disable=protected-access
-    modified = True
-
-  value = getattr(entity, attr)
-  return value, modified
-
-
->>>>>>> Stashed changes
 def proto_to_deserialized_msg_object(serialized_msg_proto, is_input):
   """Converts a |serialized_msg_proto| to a deserialized representation of its
   contents for use by code outside of this module. The deserialized object can
