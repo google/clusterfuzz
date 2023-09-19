@@ -453,17 +453,17 @@ class RegressionTaskInput(UworkerInput):
   PROTO_CLS = uworker_msg_pb2.RegressionTaskInput
 
 
-class AnalyzeTaskOutput(UworkerMsg):
+class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from analyze_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskOutput
 
 
-class MinimizeTaskOutput(UworkerMsg):
+class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from minimize_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
 
 
-class RegressionTaskOutput(UworkerMsg):
+class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from regression_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.RegressionTaskOutput
 
