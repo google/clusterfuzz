@@ -438,6 +438,31 @@ class AnalyzeTaskInput(UworkerInput):
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskInput
 
 
+class FuzzTaskInput(UworkerInput):
+  """Input for fuzz_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.FuzzTaskInput
+
+
+class MinimizeTaskInput(UworkerInput):
+  """Input for minimize_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.MinimizeTaskInput
+
+
+class RegressionTaskInput(UworkerInput):
+  """Input for regression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.RegressionTaskInput
+
+
+class MinimizeTaskOutput(UworkerMsg):
+  """Output from minimize_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
+
+
+class RegressionTaskOutput(UworkerMsg):
+  """Output from regression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.RegressionTaskOutput
+
+
 class UpdateFuzzerAndDataBundleInput(UworkerInput):
   """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
   PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput

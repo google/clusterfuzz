@@ -38,6 +38,19 @@ message AnalyzeTaskInput {
   optional string minidump_blob_keys = 2;
 }
 
+message FuzzTaskInput {
+  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
+message MinimizeTaskInput {
+  optional string testcase_upload_url = 1;
+  // TODO(pgrace): Finish this.
+}
+
+message RegressionTaskInput {
+  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
@@ -54,7 +67,12 @@ message Input {
   optional string fuzzer_name = 10;
   optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
   optional AnalyzeTaskInput analyze_task_input = 12;
-  optional string module_name = 13;
+  optional FuzzTaskInput fuzz_task_input = 13;
+  optional MinimizeTaskInput minimize_task_input = 14;
+  optional RegressionTaskInput regression_task_input = 15;
+  // Don't do progression as Ali is working on it already.
+  // TODO(Ali): Add an input for progression.
+  optional string module_name = 16;
 }
 
 message FuzzTaskOutput {
@@ -78,6 +96,14 @@ enum ErrorType {
   TESTCASE_SETUP_INVALID_FUZZER = 6;
 }
 
+message MinimizeTaskOutput {
+ // TODO(pgrace): Finish this.
+}
+
+message RegressionTaskOutput {
+// TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
 message Output {
   optional UworkerEntityWrapper testcase = 1;
   optional UworkerEntityWrapper testcase_upload_metadata = 2;
@@ -89,6 +115,11 @@ message Output {
   optional float test_timeout = 6;
   optional float crash_time = 7;
   optional string crash_stacktrace_output = 8;
+  // TODO(metzman): Add an input for analyze_task.
   optional FuzzTaskOutput fuzz_task_output = 9;
-  optional string error_message = 10;
+  optional MinimizeTaskOutput minimize_task_output = 10;
+  optional RegressionTaskOutput regression_task_output = 11;
+  // Don't do progression as Ali is working on it already.
+  // TODO(Ali): Add an input for progression.
+  optional string error_message = 12;
 }
