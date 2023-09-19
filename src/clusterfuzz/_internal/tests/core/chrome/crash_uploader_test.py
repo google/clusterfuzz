@@ -200,18 +200,23 @@ class CrashReportsTest(CrashBaseTest):
       os.environ['OS_OVERRIDE'] = TEST_OS
       self.fail('Expected none for non-Android.')
 
-  @mock.patch('clusterfuzz._internal.google_cloud_utils.blobs.write_blob')
-  def test_store_minidump(self, mock_write_testcase):
+  @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url')
+  @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url')
+  def test_store_minidump(self, mock_upload, mock_get_signed):
     """Tests (very roughly) minidump upload to blobstore: just check there /is/
        a blobstore ID returned."""
+    del mock_get_signed
     self.needs_file_delete = False
-    mock_write_testcase.return_value = '11111'
+    mock_upload.return_value = '11111'
 
     sample_report_info = crash_uploader.CrashReportInfo(
         minidump_path=EXPECTED_DMP_PATH,
         product='Chrome_Android',
         version='46.0.2482.0')
-    minidump_key = sample_report_info.store_minidump()
+    minidump_upload_url, key = crash_uploader.preprocess_store_minidump()
+    minidump_key = sample_report_info.store_minidump(key, minidump_upload_url)
     if not minidump_key:
       self.fail('Could not upload minidump to blobstore.')
 
