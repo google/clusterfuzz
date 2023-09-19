@@ -306,7 +306,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       job_type=job_type,
-      bad_builds=bad_builds,
       analyze_task_input=analyze_task_input,
       testcase_download_url=testcase_download_url)
 
