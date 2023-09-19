@@ -78,8 +78,8 @@ def handle_analyze_no_revisions_list_error(output):
   handle_build_setup_error(output)
 
 
-def setup_build(
-    testcase: data_types.Testcase, bad_builds) -> Optional[uworker_io.UworkerOutput]:
+def setup_build(testcase: data_types.Testcase,
+                bad_builds) -> Optional[uworker_io.UworkerOutput]:
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -130,8 +130,7 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 def setup_testcase_and_build(
     testcase, testcase_upload_metadata, job_type, testcase_download_url,
-    bad_builds
-) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
+    bad_builds) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
@@ -323,7 +322,8 @@ def utask_main(uworker_input):
 
   testcase_file_path, output = setup_testcase_and_build(
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
-      uworker_input.job_type, uworker_input.testcase_download_url, uworker_input.bad_builds)
+      uworker_input.job_type, uworker_input.testcase_download_url,
+      uworker_input.bad_builds)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:

@@ -41,7 +41,7 @@ def get_handle_all_errors_mapping():
           analyze_task.handle_noncrash,
       uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
           analyze_task.handle_build_setup_error,
-      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
+      uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:
           analyze_task.handle_analyze_no_revisions_list_error,
       uworker_msg_pb2.ErrorType.TESTCASE_SETUP:
           setup.handle_setup_testcase_error,
