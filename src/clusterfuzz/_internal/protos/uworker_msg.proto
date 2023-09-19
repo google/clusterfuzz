@@ -36,6 +36,7 @@ message UpdateFuzzerAndDataBundlesInput {
 message AnalyzeTaskInput {
   optional string minidump_upload_url = 1;
   optional string minidump_blob_keys = 2;
+  repeated google.datastore.v1.Entity bad_builds = 3;
 }
 
 message FuzzTaskInput {
@@ -75,19 +76,10 @@ message Input {
   optional string module_name = 16;
 }
 
-enum ErrorType {
-  NO_ERROR = 0;
-  ANALYZE_BUILD_SETUP = 1;
-  ANALYZE_NO_CRASH = 2;
-  TESTCASE_SETUP = 3;
-  UNHANDLED = 4;
-  VARIANT_BUILD_SETUP = 5;
-  TESTCASE_SETUP_INVALID_FUZZER = 6;
-}
-
 message AnalyzeTaskOutput {
  // TODO(metzman): Fill this out.
 }
+
 message FuzzTaskOutput {
   optional string fuzzer_name = 1;
   optional string crash_revision = 2;
@@ -105,6 +97,17 @@ message MinimizeTaskOutput {
 
 message RegressionTaskOutput {
 // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
+enum ErrorType {
+  NO_ERROR = 0;
+  ANALYZE_BUILD_SETUP = 1;
+  ANALYZE_NO_CRASH = 2;
+  ANALYZE_NO_REVISIONS_LIST = 3;
+  TESTCASE_SETUP = 4;
+  UNHANDLED = 5;
+  VARIANT_BUILD_SETUP = 6;
+  TESTCASE_SETUP_INVALID_FUZZER = 7;
 }
 
 message Output {

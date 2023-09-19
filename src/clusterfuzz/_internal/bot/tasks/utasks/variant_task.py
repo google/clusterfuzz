@@ -201,9 +201,8 @@ def handle_build_setup_error(output):
 
 HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
     uworker_msg_pb2.ErrorType.UNHANDLED
-]
+] + setup.HANDLED_ERRORS
 
 
 def utask_postprocess(output):

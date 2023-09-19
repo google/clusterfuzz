@@ -212,6 +212,12 @@ def handle_setup_testcase_error_invalid_fuzzer(
   testcase.put()
 
 
+HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER
+]
+
+
 def setup_testcase(testcase,
                    job_type,
                    fuzzer_override=None,
