@@ -237,6 +237,11 @@ def find_regression_range(testcase_id, job_type):
     return
 
   build_bucket_path = build_manager.get_primary_bucket_path()
+
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+  # preprocess.
+  bad_builds = build_manager.get_job_bad_builds()
+
   revision_list = build_manager.get_revisions_list(
       build_bucket_path, testcase=testcase)
   if not revision_list:

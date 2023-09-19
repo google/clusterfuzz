@@ -71,8 +71,15 @@ def _add_default_issue_metadata(testcase):
     testcase.set_metadata(key, new_value)
 
 
+def handle_analyze_no_revisions_list_error(output):
+  data_handler.update_testcase_comment(output.testcase,
+                                       data_types.TaskState.ERROR,
+                                       'Failed to fetch revision list')
+  handle_build_setup_error(output)
+
+
 def setup_build(
-    testcase: data_types.Testcase) -> Optional[uworker_io.UworkerOutput]:
+    testcase: data_types.Testcase, bad_builds) -> Optional[uworker_io.UworkerOutput]:
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -81,10 +88,11 @@ def setup_build(
   if revision and not build_manager.is_custom_binary():
     build_bucket_path = build_manager.get_primary_bucket_path()
     revision_list = build_manager.get_revisions_list(
-        build_bucket_path, testcase=testcase)
+        build_bucket_path, bad_builds, testcase=testcase)
     if not revision_list:
-      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                           'Failed to fetch revision list')
+      uworker_io.UworkerOutput(
+          testcase=testcase,
+          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
       return uworker_io.UworkerOutput(
           testcase=testcase,
           error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
@@ -121,7 +129,8 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 
 def setup_testcase_and_build(
-    testcase, testcase_upload_metadata, job_type, testcase_download_url
+    testcase, testcase_upload_metadata, job_type, testcase_download_url,
+    bad_builds
 ) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
@@ -135,7 +144,7 @@ def setup_testcase_and_build(
     return None, error
 
   # Set up build.
-  error = setup_build(testcase)
+  error = setup_build(testcase, bad_builds)
   if error:
     return None, error
 
@@ -292,12 +301,14 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   initialize_testcase_for_main(testcase, job_type)
 
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
+  bad_builds = build_manager.get_job_bad_builds()
   return uworker_io.UworkerInput(
       testcase_upload_metadata=testcase_upload_metadata,
       testcase=testcase,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       job_type=job_type,
+      bad_builds=bad_builds,
       testcase_download_url=testcase_download_url)
 
 
@@ -312,7 +323,7 @@ def utask_main(uworker_input):
 
   testcase_file_path, output = setup_testcase_and_build(
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
-      uworker_input.job_type, uworker_input.testcase_download_url)
+      uworker_input.job_type, uworker_input.testcase_download_url, uworker_input.bad_builds)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
@@ -408,6 +419,7 @@ def handle_build_setup_error(output):
 HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
     uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
     uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER,
     uworker_msg_pb2.ErrorType.UNHANDLED
