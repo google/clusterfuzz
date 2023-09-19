@@ -307,9 +307,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def get_analyze_task_input():
   analyze_input = uworker_io.AnalyzeTaskInput()
-  key, signed_upload_url = crash_uploader.preprocess_store_minidump()
-  analyze_input.minidump_blob_keys = key
+  signed_upload_url, key = crash_uploader.preprocess_store_minidump()
   analyze_input.minidump_upload_url = signed_upload_url
+  analyze_input.minidump_blob_keys = key
   return analyze_input
 
 

@@ -215,7 +215,7 @@ class CrashReportsTest(CrashBaseTest):
         minidump_path=EXPECTED_DMP_PATH,
         product='Chrome_Android',
         version='46.0.2482.0')
-    key, minidump_upload_url = crash_uploader.preprocess_store_minidump()
+    minidump_upload_url, key = crash_uploader.preprocess_store_minidump()
     minidump_key = sample_report_info.store_minidump(key, minidump_upload_url)
     if not minidump_key:
       self.fail('Could not upload minidump to blobstore.')

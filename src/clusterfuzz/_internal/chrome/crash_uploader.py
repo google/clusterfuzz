@@ -601,6 +601,6 @@ def save_crash_info_if_needed(testcase_id, crash_revision, job_type, crash_type,
 
 
 def preprocess_store_minidump():
-  minidump_blob_keys = blobs.generate_new_blob_name()
-  minidump_upload_url = blobs.get_signed_upload_url(minidump_blob_keys)
-  return minidump_blob_keys, minidump_upload_url
+  minidump_blob_key = blobs.generate_new_blob_name()
+  minidump_upload_url = blobs.get_signed_upload_url(minidump_blob_key)
+  return minidump_upload_url, minidump_blob_key

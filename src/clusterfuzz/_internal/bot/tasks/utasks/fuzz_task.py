@@ -900,8 +900,8 @@ def get_minidump_keys(crash_info):
   if crash_info:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
     # preprocess.
-    key, signed_url = crash_uploader.preprocess_store_minidump()
-    return crash_info.store_minidump(signed_url, key)
+    signed_upload_url, key = crash_uploader.preprocess_store_minidump()
+    return crash_info.store_minidump(signed_upload_url, key)
   return ''
 
 
