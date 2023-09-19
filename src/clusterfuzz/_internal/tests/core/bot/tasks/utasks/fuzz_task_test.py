@@ -1308,11 +1308,9 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     data_types.Trial(app_name='app_1', probability=0.5, app_args='-y').put()
     data_types.Trial(app_name='app_1', probability=0.2, app_args='-z').put()
 
-    uworker_env = {'TEST_TIMEOUT': 10}
-    uworker_input = mock.Mock(
-        fuzzer_name='fantasy_fuzz', job_type='asan_test', uworker_env=uworker_env)
+    uworker_input = mock.Mock(fuzzer_name='fantasy_fuzz', job_type='asan_test')
 
-    session = fuzz_task.FuzzingSession(uworker_input)
+    session = fuzz_task.FuzzingSession(uworker_input, 10)
     self.assertEqual(20, session.test_timeout)
 
     # Mock out actual test-case generation for 3 tests.
@@ -1398,10 +1396,10 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 
   def test_basic(self):
     """Test basic fuzzing session."""
-    uworker_env = {'TEST_TIMEOUT': 60}
     uworker_input = mock.Mock(
-        fuzzer_name='libFuzzer_fuzz', job_type='libfuzzer_asan_test', uworker_env=uworker_env)
-    session = fuzz_task.FuzzingSession(uworker_input)
+        fuzzer_name='libFuzzer_fuzz',
+        job_type='libfuzzer_asan_test')
+    session = fuzz_task.FuzzingSession(uworker_input, 60)
     session.testcase_directory = os.environ['FUZZ_INPUTS']
     session.data_directory = '/data_dir'
 
