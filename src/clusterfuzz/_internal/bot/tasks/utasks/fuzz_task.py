@@ -1286,9 +1286,10 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
 class FuzzingSession:
   """Class for orchestrating fuzzing sessions."""
 
-  def __init__(self, fuzzer_name, job_type, test_timeout):
+  def __init__(self, fuzzer_name, job_type, test_timeout, uworker_input):
     self.fuzzer_name = fuzzer_name
     self.job_type = job_type
+    self.uworker_input = uworker_input
 
     # Set up randomly selected fuzzing parameters.
     self.redzone = pick_redzone()
@@ -1924,13 +1925,15 @@ class FuzzingSession:
 
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
-  session = _make_session(uworker_input.fuzzer_name, uworker_input.job_type)
+  session = _make_session(uworker_input.fuzzer_name, uworker_input.job_type,
+                          uworker_input)
   return session.run()
 
 
-def _make_session(fuzzer_name, job_type):
-  test_timeout = environment.get_value('TEST_TIMEOUT')
-  return FuzzingSession(fuzzer_name, job_type, test_timeout)
+def _make_session(fuzzer_name, job_type, uworker_input):
+  test_timeout = environment.get_value('TEST_TIMEOUT',
+                                       env=uworker_input.uworker_env)
+  return FuzzingSession(fuzzer_name, job_type, test_timeout, uworker_input)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -1946,5 +1949,5 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 def utask_postprocess(output):
   session = _make_session(output.uworker_input.fuzzer_name,
-                          output.uworker_input.job_type)
+                          output.uworker_input.job_type, output.uworker_input)
   session.postprocess(output)
