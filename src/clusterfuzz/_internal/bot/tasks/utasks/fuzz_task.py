@@ -898,6 +898,8 @@ def get_minidump_keys(crash_info):
   # This is a new crash, so add its minidump to blobstore first and get the
   # blob key information.
   if crash_info:
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+    # preprocess.
     key, signed_url = crash_uploader.preprocess_store_minidump()
     return crash_info.store_minidump(signed_url, key)
   return ''
@@ -1760,7 +1762,7 @@ class FuzzingSession:
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
     # preprocess.
     update_fuzzer_and_data_bundles_input = (
         setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
