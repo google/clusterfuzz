@@ -299,7 +299,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       uworker_env=uworker_env,
       setup_input=setup_input,
       job_type=job_type,
-      analyze_task_input=analyze_task_input,)
+      analyze_task_input=analyze_task_input,
+  )
 
 
 def get_analyze_task_input():
