@@ -420,10 +420,8 @@ HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
     uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER,
     uworker_msg_pb2.ErrorType.UNHANDLED
-]
+] + setup.HANDLED_ERRORS
 
 
 def utask_postprocess(output):
