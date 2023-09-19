@@ -34,6 +34,11 @@ message SetupInput {
   optional string testcase_download_url = 6;
 }
 
+message AnalyzeTaskInput {
+  optional string minidump_upload_url = 1;
+  optional string minidump_blob_keys = 2;
+}
+
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
@@ -48,7 +53,8 @@ message Input {
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
   optional SetupInput setup_input = 11;
-  optional string module_name = 12;
+  optional AnalyzeTaskInput analyze_task_input = 12;
+  optional string module_name = 13;
 }
 
 message FuzzTaskOutput {
