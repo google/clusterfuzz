@@ -370,7 +370,7 @@ class RoundTripTest(unittest.TestCase):
     uworker_input = uworker_io.UworkerInput(setup_input=setup_input)
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(serialized)
-    setup_input = deserialized.setup_task_input
+    setup_input = deserialized.setup_input
     self.assertEqual(setup_input.data_bundles[0].name, bundle1.name)
     self.assertEqual(setup_input.data_bundles[1].name, bundle2.name)
 
