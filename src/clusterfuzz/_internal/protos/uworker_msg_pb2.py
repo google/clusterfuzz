@@ -35,7 +35,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xdc\x02\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\"\x84\x01\n\x10\x41nalyzeTaskInput\x12 \n\x13minidump_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1f\n\x12minidump_blob_keys\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\x16\n\x14_minidump_upload_urlB\x15\n\x13_minidump_blob_keys\"\xb9\x05\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x04\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x05\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x06\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\x08\x88\x01\x01\x12%\n\x0bsetup_input\x18\x0b \x01(\x0b\x32\x0b.SetupInputH\t\x88\x01\x01\x12\x32\n\x12\x61nalyze_task_input\x18\x0c \x01(\x0b\x32\x11.AnalyzeTaskInputH\n\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\r \x01(\tH\x0b\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x0e\n\x0c_module_name\"\xc3\x03\n\x0e\x46uzzTaskOutput\x12\x18\n\x0b\x66uzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1c\n\x0fnew_crash_count\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12\x1e\n\x11known_crash_count\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x05\x88\x01\x01\x12#\n\x0fjob_run_crashes\x18\x07 \x01(\x0b\x32\x05.JsonH\x06\x88\x01\x01\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x0e\n\x0c_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x12\n\x10_new_crash_countB\x14\n\x12_known_crash_countB\x15\n\x13_testcases_executedB\x12\n\x10_job_run_crashesB\x1e\n\x1c_fully_qualified_fuzzer_name\"\xc0\x04\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\t \x01(\x0b\x32\x0f.FuzzTaskOutputH\x08\x88\x01\x01\x12\x1a\n\rerror_message\x18\n \x01(\tH\t\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\x08\n\x06_errorB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x13\n\x11_fuzz_task_outputB\x10\n\x0e_error_message*\x84\x01\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x12\n\x0eTESTCASE_SETUP\x10\x03\x12\r\n\tUNHANDLED\x10\x04\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x05\x62\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xdc\x02\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\"\x84\x01\n\x10\x41nalyzeTaskInput\x12 \n\x13minidump_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1f\n\x12minidump_blob_keys\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\x16\n\x14_minidump_upload_urlB\x15\n\x13_minidump_blob_keys\"\xea\x05\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x04\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x05\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x06\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\x08\x88\x01\x01\x12%\n\x0bsetup_input\x18\x0b \x01(\x0b\x32\x0b.SetupInputH\t\x88\x01\x01\x12/\n\nbad_builds\x18\x0c \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x32\n\x12\x61nalyze_task_input\x18\r \x01(\x0b\x32\x11.AnalyzeTaskInputH\n\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x0e \x01(\tH\x0b\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x0e\n\x0c_module_name\"\xc3\x03\n\x0e\x46uzzTaskOutput\x12\x18\n\x0b\x66uzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1c\n\x0fnew_crash_count\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12\x1e\n\x11known_crash_count\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x05\x88\x01\x01\x12#\n\x0fjob_run_crashes\x18\x07 \x01(\x0b\x32\x05.JsonH\x06\x88\x01\x01\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x0e\n\x0c_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x12\n\x10_new_crash_countB\x14\n\x12_known_crash_countB\x15\n\x13_testcases_executedB\x12\n\x10_job_run_crashesB\x1e\n\x1c_fully_qualified_fuzzer_name\"\xc0\x04\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\t \x01(\x0b\x32\x0f.FuzzTaskOutputH\x08\x88\x01\x01\x12\x1a\n\rerror_message\x18\n \x01(\tH\t\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\x08\n\x06_errorB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x13\n\x11_fuzz_task_outputB\x10\n\x0e_error_message*\xa3\x01\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x1d\n\x19\x41NALYZE_NO_REVISIONS_LIST\x10\x03\x12\x12\n\x0eTESTCASE_SETUP\x10\x04\x12\r\n\tUNHANDLED\x10\x05\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x06\x62\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,])
 
@@ -62,25 +62,30 @@ _ERRORTYPE = _descriptor.EnumDescriptor(
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='TESTCASE_SETUP', index=3, number=3,
+      name='ANALYZE_NO_REVISIONS_LIST', index=3, number=3,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='UNHANDLED', index=4, number=4,
+      name='TESTCASE_SETUP', index=4, number=4,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
     _descriptor.EnumValueDescriptor(
-      name='VARIANT_BUILD_SETUP', index=5, number=5,
+      name='UNHANDLED', index=5, number=5,
+      serialized_options=None,
+      type=None,
+      create_key=_descriptor._internal_create_key),
+    _descriptor.EnumValueDescriptor(
+      name='VARIANT_BUILD_SETUP', index=6, number=6,
       serialized_options=None,
       type=None,
       create_key=_descriptor._internal_create_key),
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=2437,
-  serialized_end=2569,
+  serialized_start=2486,
+  serialized_end=2649,
 )
 _sym_db.RegisterEnumDescriptor(_ERRORTYPE)
 
@@ -88,9 +93,10 @@ ErrorType = enum_type_wrapper.EnumTypeWrapper(_ERRORTYPE)
 NO_ERROR = 0
 ANALYZE_BUILD_SETUP = 1
 ANALYZE_NO_CRASH = 2
-TESTCASE_SETUP = 3
-UNHANDLED = 4
-VARIANT_BUILD_SETUP = 5
+ANALYZE_NO_REVISIONS_LIST = 3
+TESTCASE_SETUP = 4
+UNHANDLED = 5
+VARIANT_BUILD_SETUP = 6
 
 
 
@@ -385,15 +391,22 @@ _INPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='analyze_task_input', full_name='Input.analyze_task_input', index=10,
-      number=12, type=11, cpp_type=10, label=1,
+      name='bad_builds', full_name='Input.bad_builds', index=10,
+      number=12, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='analyze_task_input', full_name='Input.analyze_task_input', index=11,
+      number=13, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='module_name', full_name='Input.module_name', index=11,
-      number=13, type=9, cpp_type=9, label=1,
+      name='module_name', full_name='Input.module_name', index=12,
+      number=14, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -471,7 +484,7 @@ _INPUT = _descriptor.Descriptor(
     fields=[]),
   ],
   serialized_start=704,
-  serialized_end=1401,
+  serialized_end=1450,
 )
 
 
@@ -591,8 +604,8 @@ _FUZZTASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1404,
-  serialized_end=1855,
+  serialized_start=1453,
+  serialized_end=1904,
 )
 
 
@@ -736,8 +749,8 @@ _OUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=1858,
-  serialized_end=2434,
+  serialized_start=1907,
+  serialized_end=2483,
 )
 
 _UWORKERENTITYWRAPPER.fields_by_name['entity'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
@@ -770,6 +783,7 @@ _INPUT.fields_by_name['testcase_upload_metadata'].message_type = google_dot_clou
 _INPUT.fields_by_name['uworker_env'].message_type = _JSON
 _INPUT.fields_by_name['variant'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['setup_input'].message_type = _SETUPINPUT
+_INPUT.fields_by_name['bad_builds'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _INPUT.fields_by_name['analyze_task_input'].message_type = _ANALYZETASKINPUT
 _INPUT.oneofs_by_name['_testcase'].fields.append(
   _INPUT.fields_by_name['testcase'])

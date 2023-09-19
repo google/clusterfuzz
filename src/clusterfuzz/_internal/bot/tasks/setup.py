@@ -196,6 +196,8 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
       wait_time=testcase_fail_wait)
 
 
+HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]
+
 def preprocess_setup_testcase(testcase, fuzzer_override=None):
   """Preprocessing for setup_testcase function."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
