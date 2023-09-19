@@ -90,12 +90,12 @@ def setup_build(testcase: data_types.Testcase,
     revision_list = build_manager.get_revisions_list(
         build_bucket_path, bad_builds, testcase=testcase)
     if not revision_list:
-      uworker_io.UworkerOutput(
-          testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)
+    return uworker_io.UworkerOutput(
+        testcase=testcase,
+        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
