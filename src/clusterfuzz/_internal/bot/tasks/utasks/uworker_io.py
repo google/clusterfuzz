@@ -264,6 +264,7 @@ def get_modified_attr_from_untrusted_entity(entity, attr):
   value = getattr(entity, attr)
   return value, modified
 
+
 def proto_to_deserialized_msg_object(serialized_msg_proto, is_input):
   """Converts a |serialized_msg_proto| to a deserialized representation of its
   contents for use by code outside of this module. The deserialized object can
