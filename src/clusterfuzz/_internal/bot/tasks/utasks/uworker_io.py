@@ -453,6 +453,11 @@ class RegressionTaskInput(UworkerInput):
   PROTO_CLS = uworker_msg_pb2.RegressionTaskInput
 
 
+class AnalyzeTaskOutput(UworkerMsg):
+  """Output from analyze_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.AnalyzeTaskOutput
+
+
 class MinimizeTaskOutput(UworkerMsg):
   """Output from minimize_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
