@@ -49,6 +49,12 @@ message Input {
   optional string fuzzer_name = 10;
   optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
   optional string module_name = 12;
+  optional AnalyzeTaskInput analyze_task_input = 13;
+}
+
+message AnalyzeTaskInput {
+  optional string minidump_upload_url = 1;
+  optional string minidump_blob_keys = 2;
 }
 
 message FuzzTaskOutput {
@@ -69,7 +75,9 @@ enum ErrorType {
   TESTCASE_SETUP = 3;
   UNHANDLED = 4;
   VARIANT_BUILD_SETUP = 5;
-  TESTCASE_SETUP_INVALID_FUZZER = 6;
+  FUZZ_TASK_BUILD_SETUP_FAILURE = 6;
+  FUZZ_TASK_NO_FUZZER = 7;
+  FUZZ_TASK_DATA_BUNDLE_SETUP_FAILURE = 8;
 }
 
 message Output {

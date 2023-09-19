@@ -208,25 +208,38 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  if output.testcase and environment.is_engine_fuzzer_job(
-      output.testcase.job_type):
-    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-    output.testcase.put = lambda: None
-
+  testcase_id = output.uworker_input.testcase_id
   if output.error is not None:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  if testcase and environment.is_engine_fuzzer_job(testcase.job_type):
+    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
+    testcase.put = lambda: None
+
   if output.uworker_input.original_job_type == output.uworker_input.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
-    output.testcase.last_tested_crash_stacktrace = (
+    testcase.last_tested_crash_stacktrace = (
         data_handler.filter_stacktrace(output.crash_stacktrace_output))
-    output.testcase.set_metadata(
+    testcase.set_metadata(
         'last_tested_crash_revision',
         output.variant.revision,
         update_testcase=True)
-  else:
-    # Explicitly skipping crash stacktrace for now as it make entities larger
-    # and we plan to use only crash paramaters in UI.
-    output.variant.put()
+    return
+  # Explicitly skipping crash stacktrace for now as it make entities larger
+  # and we plan to use only crash paramaters in UI.
+
+  trusted_attrs = [
+      'status', 'revision', 'crash_type', 'crash_state', 'security_flag',
+      'is_similar', 'platform'
+  ]
+  variant = output.uworker_input.variant.key.get()
+  untrusted_variant = output.variant
+  for trusted_attr in trusted_attrs:
+    attr_value, modified = uworker_io.get_modified_attr_from_untrusted_entity(
+        untrusted_variant, trusted_attr)
+    if not modified:
+      continue
+    setattr(variant, trusted_attr, attr_value)

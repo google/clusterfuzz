@@ -76,6 +76,8 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
         'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_url',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_download_url',
     ])
 
     os.environ['BOT_NAME'] = 'bot_name'
@@ -83,6 +85,8 @@ class RunCommandTest(unittest.TestCase):
     os.environ['FAIL_WAIT'] = '60'
     os.environ['TEST_TIMEOUT'] = '10'
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
+    self.mock.get_signed_upload_url.return_value = 'https://signed-upload'
+    self.mock.get_signed_download_url.return_value = 'https://signed-download'
 
   def test_run_command_postprocess(self):
     """Tests that the postprocess command is executed properly."""
@@ -94,12 +98,15 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
-    commands.run_command('fuzz', 'fuzzer', 'job', {})
+    fuzzer_name = 'fuzzer'
+    job_type = 'job'
+    data_types.Fuzzer(name=fuzzer_name).put()
+    commands.run_command('fuzz', fuzzer_name, job_type, {})
 
     uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
     self.assertEqual(1, self.mock.fuzz_utask_main.call_count)
-    self.assertEqual(uworker_input.fuzzer_name, 'fuzzer')
-    self.assertEqual(uworker_input.job_type, 'job')
+    self.assertEqual(uworker_input.fuzzer_name, fuzzer_name)
+    self.assertEqual(uworker_input.job_type, job_type)
 
     # Fuzz task should not create any TaskStatus entities.
     task_status_entities = list(data_types.TaskStatus.query())
