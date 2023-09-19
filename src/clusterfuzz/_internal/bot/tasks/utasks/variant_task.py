@@ -74,7 +74,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
-  setup_testcase_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase)
   testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   return uworker_io.UworkerInput(
@@ -85,7 +85,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       uworker_env=uworker_env,
       variant=variant,
       testcase_id=testcase_id,
-      setup_testcase_input=setup_testcase_input,
+      setup_input=setup_input,
   )
 
 
@@ -102,7 +102,7 @@ def utask_main(uworker_input):
   _, testcase_file_path, error = setup.setup_testcase(
       uworker_input.testcase,
       uworker_input.job_type,
-      uworker_input.setup_testcase_input,
+      uworker_input.setup_input,
       metadata=uworker_input.testcase_upload_metadata)
   if error:
     return error

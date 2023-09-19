@@ -202,16 +202,14 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None):
   testcase_id = testcase.key.id()
   if fuzzer_name:
     try:
-      setup_testcase_input = preprocess_update_fuzzer_and_data_bundles(
-          fuzzer_name)
+      setup_input = preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
     except errors.InvalidFuzzerError:
       # Close testcase and don't recreate tasks if this fuzzer is invalid.
       logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
                      (testcase_id, fuzzer_name))
       error_message = f'Fuzzer {fuzzer_name} no longer exists.'
       # First update comment.
-      testcase = data_handler.get_testcase_by_id(
-          uworker_output.uworker_input.testcase_id.testcase_id)
+      testcase = data_handler.get_testcase_by_id(testcase_id)
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
       testcase.open = False
@@ -220,13 +218,12 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None):
       testcase.put()
       raise
   else:
-    setup_testcase_input = uworker_msg_pb2.SetupInput()
-  setup_testcase_input.testcase_download_url = get_signed_testcase_download_url(
-      testcase)
-  return setup_testcase_input
+    setup_input = uworker_msg_pb2.SetupInput()
+  setup_input.testcase_download_url = get_signed_testcase_download_url(testcase)
+  return setup_input
 
 
-def setup_testcase(testcase, job_type, setup_testcase_input, metadata=None):
+def setup_testcase(testcase, job_type, setup_input, metadata=None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   testcase_id = testcase.key.id()
@@ -251,16 +248,16 @@ def setup_testcase(testcase, job_type, setup_testcase_input, metadata=None):
     _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
-  if setup_testcase_input.fuzzer_name:
-    update_successful = update_fuzzer_and_data_bundles(setup_testcase_input)
+  if setup_input.fuzzer_name:
+    update_successful = update_fuzzer_and_data_bundles(setup_input)
     if not update_successful:
-      error_message = f'Unable to setup fuzzer {setup_testcase_input.fuzzer_name}'
+      error_message = f'Unable to setup fuzzer {setup_input.fuzzer_name}'
       uworker_error_output.error_message = error_message
       return testcase_setup_error_result
 
   # Extract the testcase and any of its resources to the input directory.
   file_list, testcase_file_path = unpack_testcase(
-      testcase, setup_testcase_input.testcase_download_url)
+      testcase, setup_input.testcase_download_url)
   if not file_list:
     error_message = f'Unable to setup testcase {testcase_file_path}'
     uworker_error_output.error_message = error_message
@@ -521,8 +518,7 @@ def _set_fuzzer_env_vars(fuzzer):
 def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
   uworker_main. Returns a UpdateFuzzerAndDataBundleInput object."""
-  update_input = uworker_io.UpdateFuzzerAndDataBundleInput(
-      fuzzer_name=fuzzer_name)
+  update_input = uworker_io.SetupInput(fuzzer_name=fuzzer_name)
   update_input.fuzzer = data_types.Fuzzer.query(
       data_types.Fuzzer.name == fuzzer_name).get()
   if not update_input.fuzzer:

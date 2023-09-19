@@ -433,9 +433,10 @@ class UworkerInput(UworkerMsg):
     field.CopyFrom(entity_proto)
 
 
-class UpdateFuzzerAndDataBundleInput(UworkerInput):
-  """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
-  PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
+class SetupInput(UworkerInput):
+  """Input for setup.update_fuzzer_and_data_bundle and setup.setup_testcase in
+  uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.SetupInput
 
   def save_rich_type(self, attribute, value):
     field = getattr(self.proto, attribute)

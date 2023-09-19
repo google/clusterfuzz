@@ -121,16 +121,13 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 
 def setup_testcase_and_build(
-    testcase, testcase_upload_metadata, job_type, setup_testcase_input
-) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
+    testcase, testcase_upload_metadata, job_type,
+    setup_input) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
   _, testcase_file_path, error = setup.setup_testcase(
-      testcase,
-      job_type,
-      setup_testcase_input,
-      metadata=testcase_upload_metadata)
+      testcase, job_type, setup_input, metadata=testcase_upload_metadata)
   if error:
     return None, error
 
@@ -291,13 +288,13 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   initialize_testcase_for_main(testcase, job_type)
 
-  setup_testcase_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase)
   return uworker_io.UworkerInput(
       testcase_upload_metadata=testcase_upload_metadata,
       testcase=testcase,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
-      setup_testcase_input=setup_testcase_input,
+      setup_input=setup_input,
       job_type=job_type)
 
 
@@ -312,7 +309,7 @@ def utask_main(uworker_input):
 
   testcase_file_path, output = setup_testcase_and_build(
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
-      uworker_input.job_type, uworker_input.setup_testcase_input)
+      uworker_input.job_type, uworker_input.setup_input)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:

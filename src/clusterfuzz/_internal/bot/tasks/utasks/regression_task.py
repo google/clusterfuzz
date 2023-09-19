@@ -228,8 +228,9 @@ def find_regression_range(testcase_id, job_type):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  setup_testcase_input = setup.preprocess_setup_testcase(testcase)
-  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  setup_input = setup.preprocess_setup_testcase(testcase)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
+                                                      setup_input)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
     # regression is migrated.

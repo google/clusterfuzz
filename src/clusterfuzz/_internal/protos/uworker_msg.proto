@@ -25,7 +25,7 @@ message UworkerEntityWrapper {
   Json changed = 2;
 }
 
-message SetupTestcaseInput {
+message SetupInput {
   optional google.datastore.v1.Entity fuzzer = 1;
   optional string fuzzer_name = 2;
   repeated google.datastore.v1.Entity data_bundles = 3;
@@ -47,7 +47,7 @@ message Input {
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
-  optional SetupTestcaseInput setup_testcase_input = 11;
+  optional SetupInput setup_input = 11;
   optional string module_name = 12;
 }
 
