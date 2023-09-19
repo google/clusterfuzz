@@ -222,3 +222,10 @@ def get_signed_download_url(blob_key):
   to by |blob_key|."""
   gcs_path = get_gcs_path(blob_key)
   return storage.get_signed_download_url(gcs_path)
+
+
+def get_signed_upload_url(blob_key):
+  """Returns a signed download URL that can be used to download the blob pointed
+  to by |blob_key|."""
+  gcs_path = get_gcs_path(blob_key)
+  return storage.get_signed_upload_url(gcs_path)
