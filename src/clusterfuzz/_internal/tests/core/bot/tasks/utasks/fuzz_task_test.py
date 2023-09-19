@@ -1397,8 +1397,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
   def test_basic(self):
     """Test basic fuzzing session."""
     uworker_input = mock.Mock(
-        fuzzer_name='libFuzzer_fuzz',
-        job_type='libfuzzer_asan_test')
+        fuzzer_name='libFuzzer_fuzz', job_type='libfuzzer_asan_test')
     session = fuzz_task.FuzzingSession(uworker_input, 60)
     session.testcase_directory = os.environ['FUZZ_INPUTS']
     session.data_directory = '/data_dir'
