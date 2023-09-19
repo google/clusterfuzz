@@ -384,7 +384,7 @@ def utask_main(uworker_input):
       testcase, fuzzer_override=minimize_fuzzer_override)
 
   file_list, testcase_file_path, error = setup.setup_testcase(
-      testcase, uworker_input.job_type, setup_input=setup_input)
+      testcase, uworker_input.job_type, setup_input)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
     # minimize is migrated.

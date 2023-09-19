@@ -896,6 +896,8 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput()
 
   # Setup fuzzer and data bundle.
+  # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
+  # preprocess.
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
   if not setup.update_fuzzer_and_data_bundles(setup_input):
@@ -930,8 +932,6 @@ def utask_main(uworker_input):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
-  # preprocess.
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
