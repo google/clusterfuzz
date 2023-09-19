@@ -94,8 +94,7 @@ def setup_build(testcase: data_types.Testcase,
           testcase=testcase,
           error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)
     return uworker_io.UworkerOutput(
-        testcase=testcase,
-        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+        testcase=testcase, error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
