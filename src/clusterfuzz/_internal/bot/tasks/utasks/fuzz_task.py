@@ -898,7 +898,8 @@ def get_minidump_keys(crash_info):
   # This is a new crash, so add its minidump to blobstore first and get the
   # blob key information.
   if crash_info:
-    return crash_info.store_minidump()
+    key, signed_url = crash_uploader.preprocess_store_minidump()
+    return crash_info.store_minidump(signed_url, key)
   return ''
 
 

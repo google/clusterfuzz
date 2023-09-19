@@ -274,28 +274,21 @@ class CrashReportInfo(object):
       mode = 'staging'
     return post_with_retries(CRASH_REPORT_UPLOAD_URL[mode], params, files)
 
-  def store_minidump(self, signed_upload_url=None):
+  def store_minidump(self, signed_upload_url, minidump_key):
     """Store the crash minidump in appengine and return key."""
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Make
-    # signed_upload_url mandatory.
     if not self.minidump_info.path:
       return ''
 
-    minidump_key = ''
     logs.log('Storing minidump (%s) in blobstore.' % self.minidump_info.path)
     try:
-      minidump_key = ''
       with open(self.minidump_info.path, 'rb') as file_handle:
-        if signed_upload_url is not None:
-          storage.upload_signed_url(file_handle, signed_upload_url)
-          return None
-        minidump_key = blobs.write_blob(file_handle)
+        storage.upload_signed_url(file_handle, signed_upload_url)
     except:
       logs.log_error('Failed to store minidump.')
+      return None
 
-    if minidump_key:
-      self.minidump_info = FileMetadataInfo(
-          path=self.minidump_info.path, key=minidump_key)
+    self.minidump_info = FileMetadataInfo(
+        path=self.minidump_info.path, key=minidump_key)
 
     return minidump_key
 
@@ -605,3 +598,9 @@ def save_crash_info_if_needed(testcase_id, crash_revision, job_type, crash_type,
 
   logs.log('Created crash report entry for testcase %s.' % testcase_id)
   return crash_info
+
+
+def preprocess_store_minidump():
+  minidump_blob_keys = blobs.generate_new_blob_name()
+  minidump_upload_url = blobs.get_signed_upload_url(minidump_blob_keys)
+  return minidump_blob_keys, minidump_upload_url

@@ -32,7 +32,6 @@ from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
-from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
@@ -192,8 +191,8 @@ def save_minidump(testcase, state, application_command_line, gestures,
       crash_uploader.get_crash_info_and_stacktrace(
           application_command_line, state.crash_stacktrace, gestures))
   if crash_info:
-    crash_info.store_minidump(analyze_input.minidump_upload_url)
-    testcase.minidump_keys = analyze_input.minidump_blob_keys
+    testcase.minidump_keys = crash_info.store_minidump(
+        analyze_input.minidump_upload_url, analyze_input.minidump_keys)
 
 
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
@@ -308,9 +307,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def get_analyze_task_input():
   analyze_input = uworker_io.AnalyzeTaskInput()
-  analyze_input.minidump_blob_keys = blobs.generate_new_blob_name()
-  analyze_input.minidump_upload_url = blobs.get_signed_download_url(
-      analyze_input.minidump_blob_keys)
+  key, signed_upload_url = crash_uploader.preprocess_store_minidump()
+  analyze_input.minidump_blob_keys = key
+  analyze_input.minidump_upload_url = signed_upload_url
   return analyze_input
 
 
