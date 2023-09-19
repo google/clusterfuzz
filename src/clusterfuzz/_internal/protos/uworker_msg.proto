@@ -36,6 +36,20 @@ message UpdateFuzzerAndDataBundlesInput {
 message AnalyzeTaskInput {
   optional string minidump_upload_url = 1;
   optional string minidump_blob_keys = 2;
+  repeated google.datastore.v1.Entity bad_builds = 3;
+}
+
+message FuzzTaskInput {
+  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
+message MinimizeTaskInput {
+  optional string testcase_upload_url = 1;
+  // TODO(pgrace): Finish this.
+}
+
+message RegressionTaskInput {
+  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
@@ -53,9 +67,17 @@ message Input {
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
   optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
-  repeated google.datastore.v1.Entity bad_builds = 12;
-  optional AnalyzeTaskInput analyze_task_input = 13;
-  optional string module_name = 14;
+  optional AnalyzeTaskInput analyze_task_input = 12;
+  optional FuzzTaskInput fuzz_task_input = 13;
+  optional MinimizeTaskInput minimize_task_input = 14;
+  optional RegressionTaskInput regression_task_input = 15;
+  // Don't do progression as Ali is working on it already.
+  // TODO(Ali): Add an input for progression.
+  optional string module_name = 16;
+}
+
+message AnalyzeTaskOutput {
+ // TODO(metzman): Fill this out.
 }
 
 message FuzzTaskOutput {
@@ -67,6 +89,14 @@ message FuzzTaskOutput {
   optional int64 testcases_executed = 6;
   optional Json job_run_crashes = 7;
   optional string fully_qualified_fuzzer_name = 8;
+}
+
+message MinimizeTaskOutput {
+ // TODO(pgrace): Finish this.
+}
+
+message RegressionTaskOutput {
+// TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
 enum ErrorType {
@@ -91,6 +121,11 @@ message Output {
   optional float test_timeout = 6;
   optional float crash_time = 7;
   optional string crash_stacktrace_output = 8;
-  optional FuzzTaskOutput fuzz_task_output = 9;
-  optional string error_message = 10;
+  optional AnalyzeTaskOutput analyze_task_output = 9;
+  optional FuzzTaskOutput fuzz_task_output = 10;
+  optional MinimizeTaskOutput minimize_task_output = 11;
+  optional RegressionTaskOutput regression_task_output = 12;
+  // Don't do progression as Ali is working on it already.
+  // TODO(Ali): Add an input for progression.
+  optional string error_message = 13;
 }

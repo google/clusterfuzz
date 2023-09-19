@@ -299,7 +299,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   initialize_testcase_for_main(testcase, job_type)
 
   testcase_download_url = setup.get_signed_testcase_download_url(testcase)
-  bad_builds = build_manager.get_job_bad_builds()
   analyze_task_input = get_analyze_task_input()
   return uworker_io.UworkerInput(
       testcase_upload_metadata=testcase_upload_metadata,
@@ -307,7 +306,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       job_type=job_type,
-      bad_builds=bad_builds,
       analyze_task_input=analyze_task_input,
       testcase_download_url=testcase_download_url)
 
@@ -317,6 +315,7 @@ def get_analyze_task_input():
   signed_upload_url, key = crash_uploader.preprocess_store_minidump()
   analyze_input.minidump_upload_url = signed_upload_url
   analyze_input.minidump_blob_keys = key
+  analyze_input.bad_builds = build_manager.get_job_bad_builds()
   return analyze_input
 
 
@@ -332,7 +331,7 @@ def utask_main(uworker_input):
   testcase_file_path, output = setup_testcase_and_build(
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
       uworker_input.job_type, uworker_input.testcase_download_url,
-      uworker_input.bad_builds)
+      uworker_input.analyze_task_input.bad_builds)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
