@@ -221,6 +221,19 @@ def download_and_deserialize_uworker_output(output_url: str):
   return uworker_output
 
 
+def update_entity_from_worker(trusted_entity, untrusted_entity, trusted_attrs):
+  if not untrusted_entity:
+    return
+  assert trusted_entity
+
+  for trusted_attr in trusted_attrs:
+    attr_value, modified = get_modified_attr_from_untrusted_entity(
+        untrusted_entity, trusted_attr)
+    if not modified:
+      continue
+    setattr(trusted_entity, trusted_attr, attr_value)
+
+
 def deserialize_wrapped_entity(wrapped_entity_proto):
   """Deserializes a proto representing a db entity."""
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Don't do this

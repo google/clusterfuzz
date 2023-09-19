@@ -436,7 +436,7 @@ def utask_postprocess(output):
     return
   testcase = output.uworker_input.testcase.key.get(
       use_cache=False, use_memcache=False)
-  untrusted_testcase = output.uworker_input.testcase
+
   # Update testcase.
   trusted_attrs = [
       'absolute_path', 'minimized_arguments', 'minidump_keys', 'http_flag',
@@ -444,14 +444,11 @@ def utask_postprocess(output):
       'security_severity', 'crash_revision', 'crash_stacktrace',
       'one_time_crasher_flag'
   ]
-  for trusted_attr in trusted_attrs:
-    attr_value, modified = uworker_io.get_modified_attr_from_untrusted_entity(
-        untrusted_testcase, trusted_attr)
-    if not modified:
-      continue
-    setattr(testcase, trusted_attr, attr_value)
+  uworker_io.update_entity_from_worker(
+      trusted_entity=testcase, untrusted_entity=output.testcase, trusted_attrs=trusted_attrs)
 
-  testcase_upload_metadata = output.uworker_input.testcase_upload_metadata
+  testcase_upload_metadata = (
+      output.uworker_input.testcase_upload_metadata.key.get())
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
