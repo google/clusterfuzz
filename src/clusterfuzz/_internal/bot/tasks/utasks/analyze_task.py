@@ -445,7 +445,9 @@ def utask_postprocess(output):
       'one_time_crasher_flag'
   ]
   uworker_io.update_entity_from_worker(
-      trusted_entity=testcase, untrusted_entity=output.testcase, trusted_attrs=trusted_attrs)
+      trusted_entity=testcase,
+      untrusted_entity=output.testcase,
+      trusted_attrs=trusted_attrs)
 
   testcase_upload_metadata = (
       output.uworker_input.testcase_upload_metadata.key.get())

@@ -194,29 +194,6 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
       uworker_output.uworker_input.job_type,
       wait_time=testcase_fail_wait)
 
-def handle_setup_testcase_error_invalid_fuzzer(
-    uworker_output: uworker_io.UworkerOutput):
-  """Error handler for setup_testcase that is called by uworker_postprocess."""
-  # Logically, this should never happen, and really bad things could happen in
-  # variant task if it is True.
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
-  # assertion and make variant task more robust. Unfortunately variant task took
-  # a shortcut where it modifies the existing testcase in a way that things
-  # break if it is saved, it is only meant to be read.
-  assert not environment.is_engine_fuzzer_job(testcase.job_type)
-
-  # Get the testcase again because it is too hard to set the testcase for
-  # partially migrated tasks.
-  # First update comment.
-  testcase = data_handler.get_testcase_by_id(
-      uworker_output.uworker_input.testcase_id.testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       uworker_output.error_message)
-  testcase.open = False
-  testcase.fixed = 'NA'
-  testcase.set_metadata('fuzzer_was_deleted', True)
-  testcase.put()
-
 
 def setup_testcase(testcase,
                    job_type,
@@ -252,19 +229,27 @@ def setup_testcase(testcase,
   if fuzzer_name:
     try:
       update_fuzzer_and_data_bundles_input = (
-          preprocess_update_fuzzer_and_data_bundles(fuzzer_name))z
+          preprocess_update_fuzzer_and_data_bundles(fuzzer_name))
       update_successful = update_fuzzer_and_data_bundles(
           update_fuzzer_and_data_bundles_input)
     except errors.InvalidFuzzerError:
+      # Logically, this should never happen, and really bad things could happen
+      # in variant task if it is True.
+      # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
+      # assertion and make variant task more robust. Unfortunately variant task
+      # took a shortcut where it modifies the existing testcase in a way that
+      # things break if it is saved, it is only meant to be read.
+      assert not environment.is_engine_fuzzer_job(testcase.job_type)
       # Close testcase and don't recreate tasks if this fuzzer is invalid.
       logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
                      (testcase_id, fuzzer_name))
       error_message = f'Fuzzer {fuzzer_name} no longer exists.'
       data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                            error_message)
-      return None, None, uworker_io.UworkerOutput(
-          uworker_input=uworker_error_input,
-          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER)
+      testcase.open = False
+      testcase.fixed = 'NA'
+      testcase.set_metadata('fuzzer_was_deleted', True)
+      testcase.put()
 
     if not update_successful:
       error_message = f'Unable to setup fuzzer {fuzzer_name}'

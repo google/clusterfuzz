@@ -222,6 +222,7 @@ def download_and_deserialize_uworker_output(output_url: str):
 
 
 def update_entity_from_worker(trusted_entity, untrusted_entity, trusted_attrs):
+  """Updates entity with changes made on untrusted worker."""
   if not untrusted_entity:
     return
   assert trusted_entity
