@@ -222,7 +222,7 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
                    regression_testcase_url)
 
 
-def find_fixed_range(testcase_id, job_type):
+def find_fixed_range(testcase_id, job_type, setup_testcase_input):
   """Attempt to find the revision range where a testcase was fixed."""
   deadline = tasks.get_task_completion_deadline()
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -234,6 +234,7 @@ def find_fixed_range(testcase_id, job_type):
     return
 
   # Setup testcase and its dependencies.
+  setup_testcase_input = setup.preprocess_setup_testcase(testcase)
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when

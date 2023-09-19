@@ -45,8 +45,6 @@ def get_handle_all_errors_mapping():
           setup.handle_setup_testcase_error,
       uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP:
           variant_task.handle_build_setup_error,
-      uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER:
-          setup.handle_setup_testcase_error_invalid_fuzzer,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }

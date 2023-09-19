@@ -380,10 +380,13 @@ def utask_main(uworker_input):
   # Setup testcase and its dependencies. Also, allow setting up a different
   # fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
+  setup_testcase_input = setup.preprocess_setup_testcase(
+      testcase, fuzzer_override=minimize_fuzzer_override)
+
   file_list, testcase_file_path, error = setup.setup_testcase(
       testcase,
       uworker_input.job_type,
-      fuzzer_override=minimize_fuzzer_override)
+      setup_testcase_input=setup_testcase_input)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
     # minimize is migrated.

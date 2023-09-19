@@ -196,32 +196,40 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
       wait_time=testcase_fail_wait)
 
 
-def handle_setup_testcase_error_invalid_fuzzer(
-    uworker_output: uworker_io.UworkerOutput):
-  """Error handler for setup_testcase that is called by uworker_postprocess."""
-  # Get the testcase again because it is too hard to set the testcase for
-  # partially migrated tasks.
-  # First update comment.
-  testcase = data_handler.get_testcase_by_id(
-      uworker_output.uworker_input.testcase_id.testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       uworker_output.error_message)
-  testcase.open = False
-  testcase.fixed = 'NA'
-  testcase.set_metadata('fuzzer_was_deleted', True)
-  testcase.put()
-
-
-def setup_testcase(testcase,
-                   job_type,
-                   fuzzer_override=None,
-                   testcase_download_url=None,
-                   metadata=None):
-  """Sets up the testcase and needed dependencies like fuzzer,
-  data bundle, etc."""
+def preprocess_setup_testcase(testcase, fuzzer_override=None):
+  """Preprocessing for setup_testcase function."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
+  if fuzzer_name:
+    try:
+      setup_testcase_input = preprocess_update_fuzzer_and_data_bundles(
+          fuzzer_name)
+    except errors.InvalidFuzzerError:
+      # Close testcase and don't recreate tasks if this fuzzer is invalid.
+      logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
+                     (testcase_id, fuzzer_name))
+      error_message = f'Fuzzer {fuzzer_name} no longer exists.'
+      # First update comment.
+      testcase = data_handler.get_testcase_by_id(
+          uworker_output.uworker_input.testcase_id.testcase_id)
+      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                           error_message)
+      testcase.open = False
+      testcase.fixed = 'NA'
+      testcase.set_metadata('fuzzer_was_deleted', True)
+      testcase.put()
+      raise
+  else:
+    setup_testcase_input = uworker_msg_pb2.SetupInput()
+  setup_testcase_input.testcase_download_url = get_signed_testcase_download_url(
+      testcase)
+  return setup_testcase_input
 
+
+def setup_testcase(testcase, job_type, setup_testcase_input, metadata=None):
+  """Sets up the testcase and needed dependencies like fuzzer,
+  data bundle, etc."""
+  testcase_id = testcase.key.id()
   # Prepare an error result to return in case of error.
   # Only include uworker_input for callers that aren't deserializing the output
   # and thus, uworker_io is not adding the input to.
@@ -243,30 +251,16 @@ def setup_testcase(testcase,
     _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
-  if fuzzer_name:
-    try:
-      update_fuzzer_and_data_bundles_input = (
-          preprocess_update_fuzzer_and_data_bundles(fuzzer_name))
-      update_successful = update_fuzzer_and_data_bundles(
-          update_fuzzer_and_data_bundles_input)
-    except errors.InvalidFuzzerError:
-      # Close testcase and don't recreate tasks if this fuzzer is invalid.
-      logs.log_error('Closed testcase %d with invalid fuzzer %s.' %
-                     (testcase_id, fuzzer_name))
-      error_message = f'Fuzzer {fuzzer_name} no longer exists.'
-      return None, None, uworker_io.UworkerOutput(
-          uworker_input=uworker_error_input,
-          error_message=error_message,
-          error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER)
-
+  if setup_testcase_input.fuzzer_name:
+    update_successful = update_fuzzer_and_data_bundles(setup_testcase_input)
     if not update_successful:
-      error_message = f'Unable to setup fuzzer {fuzzer_name}'
+      error_message = f'Unable to setup fuzzer {setup_testcase_input.fuzzer_name}'
       uworker_error_output.error_message = error_message
       return testcase_setup_error_result
 
   # Extract the testcase and any of its resources to the input directory.
-  file_list, testcase_file_path = unpack_testcase(testcase,
-                                                  testcase_download_url)
+  file_list, testcase_file_path = unpack_testcase(
+      testcase, setup_testcase_input.testcase_download_url)
   if not file_list:
     error_message = f'Unable to setup testcase {testcase_file_path}'
     uworker_error_output.error_message = error_message
