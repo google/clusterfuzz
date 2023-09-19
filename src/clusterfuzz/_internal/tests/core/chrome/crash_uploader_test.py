@@ -201,10 +201,13 @@ class CrashReportsTest(CrashBaseTest):
       self.fail('Expected none for non-Android.')
 
   @mock.patch(
+      'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url')
+  @mock.patch(
       'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url')
-  def test_store_minidump(self, mock_upload):
+  def test_store_minidump(self, mock_upload, mock_get_signed):
     """Tests (very roughly) minidump upload to blobstore: just check there /is/
        a blobstore ID returned."""
+    del mock_get_signed
     self.needs_file_delete = False
     mock_upload.return_value = '11111'
 
