@@ -338,15 +338,12 @@ def _is_testcase_minimized(testcase):
   return testcase.minimized_keys and testcase.minimized_keys != 'NA'
 
 
-def download_testcase(key, testcase_download_url, dst):
-  # TODO(metzman): Clean this up when everyone is using signed URLs.
-  if testcase_download_url:
-    logs.log(f'Downloading testcase from: {testcase_download_url}')
-    return storage.download_signed_url_to_file(testcase_download_url, dst)
-  return blobs.read_blob_to_disk(key, dst)
+def download_testcase(testcase_download_url, dst):
+  logs.log(f'Downloading testcase from: {testcase_download_url}')
+  return storage.download_signed_url_to_file(testcase_download_url, dst)
 
 
-def unpack_testcase(testcase, testcase_download_url=None):
+def unpack_testcase(testcase, testcase_download_url):
   """Unpacks a testcase and returns all files it is composed of."""
   # Figure out where the testcase file should be stored.
   input_directory, testcase_file_path = _get_testcase_file_and_path(testcase)
@@ -361,7 +358,7 @@ def unpack_testcase(testcase, testcase_download_url=None):
   else:
     temp_filename = testcase_file_path
 
-  if not download_testcase(key, testcase_download_url, temp_filename):
+  if not download_testcase(testcase_download_url, temp_filename):
     logs.log(f'Couldn\'t download testcase {key} {testcase_download_url}.')
     return None, testcase_file_path
 
