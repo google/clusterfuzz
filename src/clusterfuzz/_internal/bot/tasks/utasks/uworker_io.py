@@ -422,6 +422,16 @@ class UworkerInput(UworkerMsg):
       save_json_field(field, value)
       return
 
+    if isinstance(field, collections.Sequence):
+      # This the way to tell if it's a repeated field.
+      # We can't get the type of the repeated field directly.
+      value = list(value)
+      if len(value) == 0:
+        return
+      assert isinstance(value[0], ndb.Model), value[0]
+      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      return
+
     if isinstance(value, UworkerMsg):
       field.CopyFrom(value.proto)
       return
@@ -441,20 +451,6 @@ class AnalyzeTaskInput(UworkerInput):
 class UpdateFuzzerAndDataBundleInput(UworkerInput):
   """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
   PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
-
-  def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
-    if isinstance(field, collections.Sequence):
-      # This the way to tell if it's a repeated field.
-      # We can't get the type of the repeated field directly.
-      value = list(value)
-      if len(value) == 0:
-        return
-      assert isinstance(value[0], ndb.Model), value[0]
-      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
-      return
-
-    super().save_rich_type(attribute, value)
 
 
 class DeserializedUworkerMsg:
