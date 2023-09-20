@@ -105,6 +105,10 @@ class MinimizeTaskTestUntrusted(
   def setUp(self):
     """Set up."""
     super().setUp()
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task.get_last_failing_result',
+    ])
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     patcher = mock.patch(
@@ -208,6 +212,76 @@ class MinimizeTaskTestUntrusted(
 
     with open(testcase_path, 'rb') as f:
       self.assertEqual(1, len(f.read()))
+
+  def test_minimize_with_returned_output(self):
+    """Test minimize where utask_main returns a UworkerOutput."""
+    from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
+
+    # Set up
+    helpers.patch(self, ['clusterfuzz._internal.base.utils.is_oss_fuzz'])
+    self.mock.is_oss_fuzz.return_value = True
+
+    testcase_file_path = os.path.join(self.temp_dir, 'testcase')
+    with open(testcase_file_path, 'wb') as f:
+      f.write(b'EEE')
+
+    with open(testcase_file_path) as f:
+      fuzzed_keys = blobs.write_blob(f)
+
+    testcase_path = os.path.join(self.temp_dir, 'testcase')
+
+    testcase = data_types.Testcase(
+        crash_type='Null-dereference WRITE',
+        crash_address='',
+        crash_state='Foo\n',
+        crash_stacktrace='',
+        crash_revision=1337,
+        fuzzed_keys=fuzzed_keys,
+        fuzzer_name='libFuzzer',
+        overridden_fuzzer_name='libFuzzer_test_fuzzer',
+        job_type='libfuzzer_asan_job',
+        absolute_path=testcase_path,
+        minimized_arguments='%TESTCASE% test_fuzzer')
+    testcase.put()
+
+    data_types.FuzzTarget(engine='libFuzzer', binary='test_fuzzer').put()
+
+    fuzzers_init.run()
+
+    self._setup_env(job_type='libfuzzer_asan_job')
+    environment.set_value('APP_ARGS', testcase.minimized_arguments)
+    environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
+    environment.set_value('UBSAN_OPTIONS',
+                          'unneeded_option=1:silence_unsigned_overflow=1')
+    uworker_input = uworker_io.DeserializedUworkerMsg(
+        job_type='libfuzzer_asan_job',
+        testcase=testcase,
+        testcase_id=str(testcase.key.id()))
+    stacktrace = (
+        '==14970==ERROR: AddressSanitizer: heap-buffer-overflow on address '
+        '0x61b00001f7d0 at pc 0x00000064801b bp 0x7ffce478dbd0 sp '
+        '0x7ffce478dbc8 READ of size 4 at 0x61b00001f7d0 thread T0\n'
+        '#0 0x64801a in frame0() src/test.cpp:1819:15\n'
+        '#1 0x647ac5 in frame1() src/test.cpp:1954:25\n'
+        '#2 0xb1dee7 in frame2() src/test.cpp:160:9\n'
+        '#3 0xb1ddd8 in frame3() src/test.cpp:148:34\n')
+    self.mock.last_failing_result.return_value = CrashResult(1, 1.0, stacktrace)
+    
+    # Run
+    uworker_output = minimize_task.utask_main(uworker_input)
+
+    # Assert
+    expected_last_crash_result_dict = {
+        'crash_type': 'Heap-buffer-overflow',
+        'crash_address': '0x61b00001f7d0',
+        'crash_state': 'frame0\nframe1\nframe2\n',
+        'crash_stacktrace':
+            '+----------------------------------------Release Build Stacktrace'
+            '----------------------------------------+\n%s' % stacktrace,
+    }
+    self.assertEqual(5, uworker_output.minimize_task_output.build_fail_wait)
+    self.assertEqual(expected_last_crash_result_dict,
+                     uworker_output.minimize_task_output.last_crash_result_dict)
 
 
 class ExtractCrashResultTest(unittest.TestCase):

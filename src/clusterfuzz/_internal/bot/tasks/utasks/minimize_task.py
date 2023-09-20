@@ -118,6 +118,10 @@ class TestRunner(object):
 
     self._previous_arguments = None
 
+  def get_last_failing_result(self):
+    """ public TODO for testing """
+    return self.last_failing_result
+
   def _get_profile_index(self):
     """Get the first available profile directory index."""
     with self._profile_lock:
@@ -411,11 +415,13 @@ def utask_main(uworker_input):
 
   if environment.is_libfuzzer_job():
     do_libfuzzer_minimization(testcase, testcase_file_path)
+    print("Hujj TODO(pgrace): delete this line 1")
     return None
 
   if environment.is_engine_fuzzer_job():
     # TODO(ochang): More robust check for engine minimization support.
     _skip_minimization(testcase, 'Engine does not support minimization.')
+    print("Hujj TODO(pgrace): delete this line 2")
     return None
 
   max_threads = utils.maximum_parallel_processes_allowed()
@@ -471,6 +477,7 @@ def utask_main(uworker_input):
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          'Unable to reproduce crash')
     task_creation.mark_unreproducible_if_flaky(testcase, True)
+    print("Hujj TODO(pgrace): delete this line 3")
     return None
 
   if flaky_stack:
@@ -490,6 +497,7 @@ def utask_main(uworker_input):
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     create_additional_tasks(testcase)
+    print("Hujj TODO(pgrace): delete this line 4")
     return None
 
   test_runner.set_test_expectations(testcase.security_flag, flaky_stack,
@@ -522,6 +530,7 @@ def utask_main(uworker_input):
       # TODO(pgrace): This will need to be handled in postprocess
       tasks.add_task('minimize', uworker_input.testcase_id,
                      uworker_input.job_type)
+      print("Hujj TODO(pgrace): delete this line 5")
       return None
 
   # Minimize the main file.
@@ -532,6 +541,7 @@ def utask_main(uworker_input):
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, uworker_input.testcase_id, uworker_input.job_type,
         input_directory, file_list, data, testcase_file_path):
+      print("Hujj TODO(pgrace): delete this line 6")
       return None
 
     testcase.set_metadata('minimization_phase', MinimizationPhase.FILE_LIST)
@@ -545,6 +555,7 @@ def utask_main(uworker_input):
       if check_deadline_exceeded_and_store_partial_minimized_testcase(
           deadline, uworker_input.testcase_id, uworker_input.job_type,
           input_directory, file_list, data, testcase_file_path):
+        print("Hujj TODO(pgrace): delete this line 7")
         return None
     else:
       logs.log('Skipping minimization of file list.')
@@ -561,6 +572,7 @@ def utask_main(uworker_input):
         if check_deadline_exceeded_and_store_partial_minimized_testcase(
             deadline, uworker_input.testcase_id, uworker_input.job_type,
             input_directory, file_list, data, testcase_file_path):
+          print("Hujj TODO(pgrace): delete this line 8")
           return None
     else:
       logs.log('Skipping minimization of resources.')
@@ -577,11 +589,12 @@ def utask_main(uworker_input):
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, uworker_input.testcase_id, uworker_input.job_type,
         input_directory, file_list, data, testcase_file_path):
+      print("Hujj TODO(pgrace): delete this line 9")
       return None
 
   command = testcase_manager.get_command_line_for_application(
       testcase_file_path, app_args=app_arguments, needs_http=testcase.http_flag)
-  last_crash_result = test_runner.last_failing_result
+  last_crash_result = test_runner.get_last_failing_result()
 
   store_minimized_testcase(testcase, input_directory, file_list, data,
                            testcase_file_path)
