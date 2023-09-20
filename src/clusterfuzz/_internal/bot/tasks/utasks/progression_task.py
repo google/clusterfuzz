@@ -234,7 +234,9 @@ def find_fixed_range(testcase_id, job_type):
     return
 
   # Setup testcase and its dependencies.
-  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  setup_input = setup.preprocess_setup_testcase(testcase)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
+                                                      setup_input)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
     # progression is migrated.

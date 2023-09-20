@@ -49,7 +49,7 @@ def format_address_to_dec(address, base=16):
 
 
 class StackFrameStructure(object):
-  """IR for fields a stackframe may contain/expect."""
+  """IR for fields a stackframe may conptain/expect."""
 
   def __init__(self,
                address=None,

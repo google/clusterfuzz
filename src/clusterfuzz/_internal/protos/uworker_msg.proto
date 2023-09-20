@@ -25,12 +25,13 @@ message UworkerEntityWrapper {
   Json changed = 2;
 }
 
-message UpdateFuzzerAndDataBundlesInput {
+message SetupInput {
   optional google.datastore.v1.Entity fuzzer = 1;
   optional string fuzzer_name = 2;
   repeated google.datastore.v1.Entity data_bundles = 3;
   optional string fuzzer_log_upload_url = 4;
   optional string fuzzer_download_url = 5;
+  optional string testcase_download_url = 6;
 }
 
 message AnalyzeTaskInput {
@@ -59,14 +60,13 @@ message Input {
   optional google.datastore.v1.Entity testcase_upload_metadata = 2;
   optional string testcase_id = 3;
   optional Json uworker_env = 4;
-  optional string testcase_download_url = 5;
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
   optional google.datastore.v1.Entity variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
-  optional UpdateFuzzerAndDataBundlesInput update_fuzzer_and_data_bundles_input = 11;
+  optional SetupInput setup_input = 11;
   optional AnalyzeTaskInput analyze_task_input = 12;
   optional FuzzTaskInput fuzz_task_input = 13;
   optional MinimizeTaskInput minimize_task_input = 14;
@@ -107,7 +107,6 @@ enum ErrorType {
   TESTCASE_SETUP = 4;
   UNHANDLED = 5;
   VARIANT_BUILD_SETUP = 6;
-  TESTCASE_SETUP_INVALID_FUZZER = 7;
 }
 
 message Output {
