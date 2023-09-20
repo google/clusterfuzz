@@ -204,6 +204,9 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None):
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
   if fuzzer_name:
+    # This branch is taken when we assume fuzzer needs to be set up for a
+    # testcase to be executed (i.e. when a testcase was found by a fuzzer).
+    # It's not the case for testcases uploaded by users.
     try:
       setup_input = preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
     except errors.InvalidFuzzerError:
