@@ -478,6 +478,14 @@ class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from minimize_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
 
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
 
 class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from regression_task.uworker_main."""
