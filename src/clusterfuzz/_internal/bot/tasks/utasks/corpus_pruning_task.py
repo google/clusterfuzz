@@ -877,7 +877,7 @@ def _save_coverage_information(context, result):
 
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = data_handler.get_fuzz_target(uworker_input.fuzzer_name)
+  fuzz_target = uworker_input.corpus_pruning_task_input.fuzz_target
   task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
                f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
