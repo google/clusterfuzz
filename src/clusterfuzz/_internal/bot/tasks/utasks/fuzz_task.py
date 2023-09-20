@@ -1757,12 +1757,8 @@ class FuzzingSession:
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-    # preprocess.
-    update_fuzzer_and_data_bundles_input = (
-        setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
-        update_fuzzer_and_data_bundles_input)
+        self.uworker_input.setup_input)
     if not self.fuzzer:
       _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
                                FuzzErrorCode.FUZZER_SETUP_FAILED)
@@ -1902,10 +1898,6 @@ class FuzzingSession:
             job_run_crashes=convert_groups_to_crashes(processed_groups),
         ),)
 
-  def preprocess(self):
-    """Handles preprocessing."""
-    # TODO(metzman): Finish this.
-
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
@@ -1932,6 +1924,8 @@ def _make_session(uworker_input):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  setup_input = (
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name))
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
@@ -1939,6 +1933,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
+      setup_input=setup_input,
   )
 
 
