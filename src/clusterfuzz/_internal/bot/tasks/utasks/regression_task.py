@@ -206,8 +206,10 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
   return True
 
 
-def find_regression_range(testcase_id, job_type):
+def find_regression_range(uworker_input):
   """Attempt to find when the testcase regressed."""
+  testcase_id = uworker_input.testcase_id
+  job_type = uworker_input.job_type
   deadline = tasks.get_task_completion_deadline()
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
@@ -228,9 +230,7 @@ def find_regression_range(testcase_id, job_type):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  setup_input = setup.preprocess_setup_testcase(testcase)
-  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
-                                                      setup_input)
+  _, testcase_file_path, error = setup.setup_testcase(uworker_input.setup_input)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
     # regression is migrated.
@@ -341,10 +341,13 @@ def find_regression_range(testcase_id, job_type):
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
+  testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
+  setup_input = setup.preprocess_setup_testcase(testcase)
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=str(testcase_id),
       uworker_env=uworker_env,
+      setup_input=setup_input,
   )
 
 
@@ -355,7 +358,7 @@ def utask_postprocess(output):
 def utask_main(uworker_input):
   """Run regression task and handle potential errors."""
   try:
-    find_regression_range(uworker_input.testcase_id, uworker_input.job_type)
+    find_regression_range(uworker_input.setup_input)
   except errors.BuildSetupError as error:
     # If we failed to setup a build, it is likely a bot error. We can retry
     # the task in this case.

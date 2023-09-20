@@ -454,6 +454,11 @@ class AnalyzeTaskInput(UworkerInput):
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskInput
 
 
+class CorpusPruningTaskTaskInput(UworkerInput):
+  """Input for corpus_pruning_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.CorpusPruningTaskInput
+
+
 class FuzzTaskInput(UworkerInput):
   """Input for fuzz_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.FuzzTaskInput
@@ -472,6 +477,11 @@ class RegressionTaskInput(UworkerInput):
 class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from analyze_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskOutput
+
+
+class CorpusPruningTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from corpus_pruning_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.CorpusPruningTaskOutput
 
 
 class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method

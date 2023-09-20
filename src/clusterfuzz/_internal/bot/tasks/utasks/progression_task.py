@@ -222,8 +222,10 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
                    regression_testcase_url)
 
 
-def find_fixed_range(testcase_id, job_type):
+def find_fixed_range(uworker_input):
   """Attempt to find the revision range where a testcase was fixed."""
+  testcase_id = uworker_input.testcase_id
+  job_type = uworker_input.job_type
   deadline = tasks.get_task_completion_deadline()
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
@@ -234,9 +236,8 @@ def find_fixed_range(testcase_id, job_type):
     return
 
   # Setup testcase and its dependencies.
-  setup_input = setup.preprocess_setup_testcase(testcase)
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
-                                                      setup_input)
+                                                      uworker_input.setup_input)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
     # progression is migrated.
@@ -437,10 +438,13 @@ def find_fixed_range(testcase_id, job_type):
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
+  testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
+  setup_input = setup.preprocess_setup_testcase(testcase)
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
+      setup_input=setup_input,
   )
 
 
@@ -451,7 +455,7 @@ def utask_postprocess(output):
 def utask_main(uworker_input):
   """Execute progression task."""
   try:
-    find_fixed_range(uworker_input.testcase_id, uworker_input.job_type)
+    find_fixed_range(uworker_input)
   except errors.BuildSetupError as error:
     # If we failed to setup a build, it is likely a bot error. We can retry
     # the task in this case.

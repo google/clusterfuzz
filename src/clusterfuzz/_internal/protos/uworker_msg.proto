@@ -40,6 +40,9 @@ message AnalyzeTaskInput {
   repeated google.datastore.v1.Entity bad_builds = 3;
 }
 
+message CorpusPruningTaskInput {
+}
+
 message FuzzTaskInput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
@@ -68,16 +71,21 @@ message Input {
   optional string fuzzer_name = 10;
   optional SetupInput setup_input = 11;
   optional AnalyzeTaskInput analyze_task_input = 12;
-  optional FuzzTaskInput fuzz_task_input = 13;
-  optional MinimizeTaskInput minimize_task_input = 14;
-  optional RegressionTaskInput regression_task_input = 15;
+  optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
+  optional FuzzTaskInput fuzz_task_input = 14;
+  optional MinimizeTaskInput minimize_task_input = 15;
+  optional RegressionTaskInput regression_task_input = 16;
   // Don't do progression as Ali is working on it already.
   // TODO(Ali): Add an input for progression.
-  optional string module_name = 16;
+  optional string module_name = 17;
 }
 
 message AnalyzeTaskOutput {
  // TODO(metzman): Fill this out.
+}
+
+message CorpusPruningTaskOutput {
+  google.datastore.v1.Entity fuzz_target = 1;
 }
 
 message FuzzTaskOutput {
@@ -124,10 +132,11 @@ message Output {
   optional float crash_time = 7;
   optional string crash_stacktrace_output = 8;
   optional AnalyzeTaskOutput analyze_task_output = 9;
-  optional FuzzTaskOutput fuzz_task_output = 10;
-  optional MinimizeTaskOutput minimize_task_output = 11;
-  optional RegressionTaskOutput regression_task_output = 12;
+  optional CorpusPruningTaskOutput corpus_pruning_task_output = 10;
+  optional FuzzTaskOutput fuzz_task_output = 11;
+  optional MinimizeTaskOutput minimize_task_output = 12;
+  optional RegressionTaskOutput regression_task_output = 13;
   // Don't do progression as Ali is working on it already.
   // TODO(Ali): Add an input for progression.
-  optional string error_message = 13;
+  optional string error_message = 14;
 }
