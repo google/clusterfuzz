@@ -607,7 +607,7 @@ def utask_postprocess(output):
 
   finalize_testcase(
       output.uworker_input.testcase_id,
-      output.last_crash_result_dict,
+      output.minimize_task_output.last_crash_result_dict,
       flaky_stack=output.flaky_stack)
 
 
