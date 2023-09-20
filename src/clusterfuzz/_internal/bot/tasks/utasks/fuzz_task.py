@@ -1762,14 +1762,13 @@ class FuzzingSession:
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
         self.uworker_input.setup_input)
     if not self.fuzzer:
-      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
-                               FuzzErrorCode.FUZZER_SETUP_FAILED)
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
 
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return None
+      return uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1917,6 +1916,10 @@ def handle_fuzz_task_build_setup_failure(output):
 def handle_data_bundle_setup_failure(output):
   _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
                            FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
+
+def handle_no_fuzzer(output):
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+                           FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
 def utask_main(uworker_input):
