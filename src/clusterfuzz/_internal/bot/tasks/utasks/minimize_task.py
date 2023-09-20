@@ -519,6 +519,7 @@ def utask_main(uworker_input):
     testcase.set_metadata('minimization_phase', MinimizationPhase.MAIN_FILE)
 
     if time.time() > test_runner.deadline:
+      # TODO(pgrace): This will need to be handled in postprocess
       tasks.add_task('minimize', uworker_input.testcase_id,
                      uworker_input.job_type)
       return None
@@ -585,12 +586,11 @@ def utask_main(uworker_input):
   store_minimized_testcase(testcase, input_directory, file_list, data,
                            testcase_file_path)
 
+  minimize_task_output = uworker_io.MinimizeTaskOutput(
+      last_crash_result_dict=_extract_crash_result(last_crash_result, command),
+      flaky_stack=flaky_stack)
   return uworker_io.UworkerOutput(
-      testcase=testcase,
-      minimize_task_output=uworker_io.MinimizeTaskOutput(
-          last_crash_result_json=_jsonify_crash_result(last_crash_result,
-                                                       command),
-          flaky_stack=flaky_stack))
+      testcase=testcase, minimize_task_output=minimize_task_output)
 
 
 HANDLED_ERRORS = [
@@ -608,14 +608,14 @@ def utask_postprocess(output):
 
   finalize_testcase(
       output.uworker_input.testcase_id,
-      output.last_crash_result_json,
+      output.last_crash_result_dict,
       flaky_stack=output.flaky_stack)
 
 
 def handle_minimize_setup_error(output):
   """Handles errors occuring during setup."""
 
-  if output.uworker_input.uworker_env['ORIGINAL_JOB_NAME']:
+  if environment.get_value('ORIGINAL_JOB_NAME'):
     _skip_minimization(output.uworker_input.testcase,
                        'Failed to setup build for overridden job.')
   else:
@@ -629,12 +629,12 @@ def handle_minimize_setup_error(output):
         wait_time=output.build_fail_wait)
 
 
-def finalize_testcase(testcase_id, last_crash_result_json, flaky_stack=False):
+def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
   """Perform final updates on a test case and prepare it for other tasks."""
   # Symbolize crash output if we have it.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if last_crash_result_json:
-    _update_crash_result(testcase, last_crash_result_json)
+  if last_crash_result_dict:
+    _update_crash_result(testcase, last_crash_result_dict)
   testcase.delete_metadata('redo_minimize', update_testcase=False)
 
   # Update remaining test case information.
@@ -1260,8 +1260,11 @@ def _run_libfuzzer_tool(tool_name,
   return output_file_path, crash_result
 
 
-def _jsonify_crash_result(crash_result, command):
+def _extract_crash_result(crash_result, command):
   """Extract necessary data from CrashResult."""
+  if not crash_result:
+    raise errors.BadStateError(
+        'No crash result was provided to _extract_crash_result')
   min_state = crash_result.get_symbolized_data()
   min_unsymbolized_crash_stacktrace = crash_result.get_stacktrace(
       symbolized=False)
@@ -1275,22 +1278,23 @@ def _jsonify_crash_result(crash_result, command):
   }
 
 
-def _update_crash_result(testcase, crash_result_json):
+def _update_crash_result(testcase, crash_result_dict):
   """Update testcase with crash result."""
-  testcase.crash_type = crash_result_json['crash_type']
-  testcase.crash_address = crash_result_json['crash_address']
-  testcase.crash_state = crash_result_json['crash_state']
-  testcase.crash_stacktrace = crash_result_json['crash_stacktrace']
+  testcase.crash_type = crash_result_dict['crash_type']
+  testcase.crash_address = crash_result_dict['crash_address']
+  testcase.crash_state = crash_result_dict['crash_state']
+  testcase.crash_stacktrace = crash_result_dict['crash_stacktrace']
 
 
 def _skip_minimization(testcase, message, crash_result=None, command=None):
   """Skip minimization for a testcase."""
+  # TODO(pgrace): _skip_minimization needs to migrate more to postprocess
   testcase = data_handler.get_testcase_by_id(testcase.key.id())
   testcase.minimized_keys = testcase.fuzzed_keys
 
   if crash_result:
-    crash_result_json = _jsonify_crash_result(crash_result, command)
-    _update_crash_result(testcase, crash_result_json)
+    crash_result_dict = _extract_crash_result(crash_result, command)
+    _update_crash_result(testcase, crash_result_dict)
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        message)
@@ -1413,10 +1417,10 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
   # Finalize the test case if we were able to reproduce it.
   repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
-  last_crash_result_json = _jsonify_crash_result(last_crash_result,
+  last_crash_result_dict = _extract_crash_result(last_crash_result,
                                                  repro_command)
   finalize_testcase(
-      testcase.key.id(), last_crash_result_json, flaky_stack=False)
+      testcase.key.id(), last_crash_result_dict, flaky_stack=False)
 
   # Clean up after we're done.
   shell.clear_testcase_directories()

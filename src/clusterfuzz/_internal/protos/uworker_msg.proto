@@ -92,9 +92,9 @@ message FuzzTaskOutput {
 }
 
 message MinimizeTaskOutput {
-  optional Json last_crash_result_json = 1;
+  optional Json last_crash_result_dict = 1;
   optional bool flaky_stack = 2;
-  optional string build_fail_wait = 3;
+  optional int64 build_fail_wait = 3;
 }
 
 message RegressionTaskOutput {
