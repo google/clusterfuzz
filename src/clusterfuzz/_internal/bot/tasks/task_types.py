@@ -84,8 +84,8 @@ class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
   """Represents an untrusted task. Executes the preprocess and main parts on
   this machine and causes postprocess to be executed on on other machines."""
 
-  # TODO(metzman): Delete this once we start using UTasks. It's only purpose
-  # is for incremental development.
+  # TODO(metzman): Delete this once we start using UTasks. Its only purpose is
+  # for incremental development.
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""

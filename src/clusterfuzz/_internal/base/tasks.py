@@ -161,7 +161,7 @@ def get_high_end_task():
 
 
 def initialize_task(messages):
-  """Creates a (non-postprocess) task from |messages|."""
+  """Creates a task from |messages|."""
   message = messages[0]
   if message.attributes.get('kind', None) != 'storage#object':
     return PubSubTask(message)
