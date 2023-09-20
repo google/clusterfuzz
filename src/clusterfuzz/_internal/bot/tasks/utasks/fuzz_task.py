@@ -1917,6 +1917,7 @@ def handle_data_bundle_setup_failure(output):
   _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
                            FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
 
+
 def handle_no_fuzzer(output):
   _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
                            FuzzErrorCode.FUZZER_SETUP_FAILED)
