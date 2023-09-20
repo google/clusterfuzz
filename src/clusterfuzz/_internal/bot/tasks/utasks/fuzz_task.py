@@ -44,7 +44,6 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import corpus_manager
-from clusterfuzz._internal.fuzzing import coverage_uploader
 from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.fuzzing import gesture_handler
 from clusterfuzz._internal.fuzzing import leak_blacklist
@@ -1498,11 +1497,6 @@ class FuzzingSession:
                              fuzzer_output, fuzzer_return_code, fuzzer_revision,
                              generated_testcase_count, testcase_count,
                              generated_testcase_string)
-
-    # Upload blackbox fuzzer test cases to GCS on a small number of runs.
-    coverage_uploader.upload_testcases_if_needed(
-        fuzzer.name, testcase_file_paths, self.testcase_directory,
-        self.data_directory)
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths
