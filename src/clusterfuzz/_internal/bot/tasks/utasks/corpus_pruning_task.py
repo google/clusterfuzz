@@ -928,8 +928,6 @@ def utask_main(uworker_input):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
-  # preprocess.
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
       fuzz_target=fuzz_target,)
