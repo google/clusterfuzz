@@ -34,6 +34,7 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.chrome import crash_uploader
@@ -55,6 +56,7 @@ from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
@@ -1781,9 +1783,8 @@ class FuzzingSession:
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
-      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
-                               FuzzErrorCode.BUILD_SETUP_FAILED)
-      return None
+       return uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
 
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
@@ -1803,17 +1804,16 @@ class FuzzingSession:
                                                         crash_revision)
     _track_build_run_result(self.job_type, crash_revision, is_bad_build)
     if is_bad_build:
-      return None
+      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
     self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
     if not self.data_directory:
-      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
-                               FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return None
+      return uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
     engine_impl = engine.get(self.fuzzer.name)
 
@@ -1832,7 +1832,7 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return None
+      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     logs.log('Finished processing test cases.')
 
@@ -1909,6 +1909,16 @@ class FuzzingSession:
         fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
 
 
+def handle_fuzz_task_build_setup_failure(output):
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+                           FuzzErrorCode.BUILD_SETUP_FAILED)
+
+
+def handle_data_bundle_setup_failure(output):
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+                           FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
+
+
 def utask_main(uworker_input):
   """Runs the given fuzzer for one round."""
   session = _make_session(uworker_input)
@@ -1921,6 +1931,14 @@ def _make_session(uworker_input):
       uworker_input,
       test_timeout,
   )
+
+
+HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.UNHANDLED,
+    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE,
+    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE,
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER,
+]
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -1937,5 +1955,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 def utask_postprocess(output):
+  if output.error is not None:
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    return
   session = _make_session(output.uworker_input)
   session.postprocess(output)
