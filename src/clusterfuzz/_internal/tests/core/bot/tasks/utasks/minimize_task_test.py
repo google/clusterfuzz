@@ -19,6 +19,7 @@ import unittest
 # pylint: disable=unused-argument
 from unittest import mock
 
+from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
@@ -207,3 +208,62 @@ class MinimizeTaskTestUntrusted(
 
     with open(testcase_path, 'rb') as f:
       self.assertEqual(1, len(f.read()))
+
+
+class ExtractCrashResultTest(unittest.TestCase):
+  """Test _extract_crash_result."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task.CrashResult.get_stacktrace',
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task.CrashResult.get_symbolized_data',
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task.data_handler.filter_stacktrace',
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task.utils.get_crash_stacktrace_output',
+    ])
+
+  def test_nonnull_crash_result_returns(self):
+    """Test a expected crash result input is extracted as expected."""
+    from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
+    from clusterfuzz.stacktraces import CrashInfo
+    stacktrace = (
+        '==14970==ERROR: AddressSanitizer: heap-buffer-overflow on address '
+        '0x61b00001f7d0 at pc 0x00000064801b bp 0x7ffce478dbd0 sp '
+        '0x7ffce478dbc8 READ of size 4 at 0x61b00001f7d0 thread T0\n'
+        '#0 0x64801a in frame0() src/test.cpp:1819:15\n'
+        '#1 0x647ac5 in frame1() src/test.cpp:1954:25\n'
+        '#2 0xb1dee7 in frame2() src/test.cpp:160:9\n'
+        '#3 0xb1ddd8 in frame3() src/test.cpp:148:34\n')
+    crash_result = CrashResult(1, 1.1, stacktrace)
+    mock_min_state = CrashInfo()
+    mock_min_state.crash_type = 'Heap-buffer-overflow'
+    mock_min_state.crash_address = '0x61b00001f7d0'
+    mock_min_state.crash_state = 'frame0\nframe1\nframe2\n'
+    mock_min_state.crash_stacktrace = \
+      '+----------------------------------------Release Build Stacktrace' \
+      '----------------------------------------+\n%s' % stacktrace
+    filtered_stacktrace = mock_min_state.crash_stacktrace
+
+    self.mock.get_stacktrace.return_value = None  # This return value does not matter
+    self.mock.get_crash_stacktrace_output.return_value = None  # This return value does not matter
+    self.mock.get_symbolized_data.return_value = mock_min_state
+    self.mock.filter_stacktrace.return_value = filtered_stacktrace
+    command = ''  # This value does not matter
+    expected = {
+        'crash_type': 'Heap-buffer-overflow',
+        'crash_address': '0x61b00001f7d0',
+        'crash_state': 'frame0\nframe1\nframe2\n',
+        'crash_stacktrace':
+            '+----------------------------------------Release Build Stacktrace'
+            '----------------------------------------+\n%s' % stacktrace,
+    }
+    self.assertEqual(expected,
+                     minimize_task._extract_crash_result(crash_result, command))  # pylint: disable=protected-access
+
+  def test_null_crash_result_raises(self):
+    """Test a null crash result input raises an error as expected."""
+    crash_result = None
+    command = ''
+
+    with self.assertRaises(errors.BadStateError):
+      minimize_task._extract_crash_result(crash_result, command)  # pylint: disable=protected-access
