@@ -1930,8 +1930,7 @@ def utask_main(uworker_input):
 
 
 def _make_session(uworker_input):
-  test_timeout = environment.get_value(
-      'TEST_TIMEOUT', env=uworker_input.uworker_env)
+  test_timeout = environment.get_value('TEST_TIMEOUT')
   return FuzzingSession(
       uworker_input,
       test_timeout,
