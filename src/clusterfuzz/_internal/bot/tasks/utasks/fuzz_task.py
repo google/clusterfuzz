@@ -1908,7 +1908,7 @@ class FuzzingSession:
         fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
 
 
-def handle_fuzz_task_build_setup_failure(output):
+def handle_fuzz_build_setup_failure(output):
   _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
                            FuzzErrorCode.BUILD_SETUP_FAILED)
 
