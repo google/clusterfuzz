@@ -15,6 +15,7 @@
 
 import os
 
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
@@ -33,6 +34,8 @@ def _extension(platform):
 def run():
   """Run custom platform specific init scripts."""
   platform = environment.platform().lower()
+  if tasks.SUBQUEUE_IDENTIFIER in platform:
+    platform = 'android'
   script_path = os.path.join(environment.get_config_directory(), SCRIPT_DIR,
                              platform + _extension(platform))
   if not os.path.exists(script_path):

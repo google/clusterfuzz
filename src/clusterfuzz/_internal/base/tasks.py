@@ -86,6 +86,7 @@ SELF_LINK_REGEX = re.compile(
 FILTERS_AND = 'AND'
 FILTERS_OR = 'OR'
 
+# See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
 

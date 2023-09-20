@@ -308,6 +308,7 @@ def process_command(task):
         # This can happen when you have different type of devices (e.g
         # android) on the same platform group. In this case, we just recreate
         # the task.
+        # TODO(@marktefftech): Add the github feature doc to this comment 
         if (task_name != 'variant' and testcase_platform_id and
             not utils.fields_match(testcase_platform_id, current_platform_id)):
           logs.log(
