@@ -454,7 +454,7 @@ class AnalyzeTaskInput(UworkerInput):
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskInput
 
 
-class CorpusPruningTaskTaskInput(UworkerInput):
+class CorpusPruningTaskInput(UworkerInput):
   """Input for corpus_pruning_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.CorpusPruningTaskInput
 

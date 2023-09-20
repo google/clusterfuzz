@@ -438,7 +438,7 @@ def find_fixed_range(uworker_input):
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
-  testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
+  testcase = data_handler.get_testcase_by_id(testcase_id)
   setup_input = setup.preprocess_setup_testcase(testcase)
   return uworker_io.UworkerInput(
       job_type=job_type,

@@ -896,7 +896,7 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput()
 
   # Setup fuzzer and data bundle.
-  if not setup.update_fuzzer_and_data_bundles(setup_input):
+  if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.
@@ -932,8 +932,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # preprocess.
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
-      fuzz_target=fuzz_target,
-  )
+      fuzz_target=fuzz_target,)
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
   return uworker_io.UworkerInput(
