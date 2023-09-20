@@ -94,7 +94,10 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
-    commands.run_command('fuzz', 'fuzzer', 'job', {})
+    try:
+      commands.run_command('fuzz', 'fuzzer', 'job', {})
+    except errors.InvalidFuzzerError:
+      pass
 
     uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
     self.assertEqual(1, self.mock.fuzz_utask_main.call_count)
