@@ -92,11 +92,13 @@ message FuzzTaskOutput {
 }
 
 message MinimizeTaskOutput {
- // TODO(pgrace): Finish this.
+  optional Json last_crash_result_dict = 1;
+  optional bool flaky_stack = 2;
+  optional int64 build_fail_wait = 3;
 }
 
 message RegressionTaskOutput {
-// TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
 enum ErrorType {
@@ -107,6 +109,7 @@ enum ErrorType {
   TESTCASE_SETUP = 4;
   UNHANDLED = 5;
   VARIANT_BUILD_SETUP = 6;
+  MINIMIZE_SETUP = 7;
 }
 
 message Output {
