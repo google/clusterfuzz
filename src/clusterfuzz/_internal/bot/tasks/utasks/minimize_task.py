@@ -405,7 +405,8 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput(
         testcase=testcase,
         job_type=uworker_input.job_type,
-        build_fail_wait=build_fail_wait,
+        minimize_task_output=uworker_io.MinimizeTaskOutput(
+            build_fail_wait=build_fail_wait),
         error=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
@@ -581,13 +582,15 @@ def utask_main(uworker_input):
       testcase_file_path, app_args=app_arguments, needs_http=testcase.http_flag)
   last_crash_result = test_runner.last_failing_result
 
+  store_minimized_testcase(testcase, input_directory, file_list, data,
+                           testcase_file_path)
+
   return uworker_io.UworkerOutput(
       testcase=testcase,
-      file_list=file_list,
-      testcase_data=data,
-      testcase_file_path=testcase_file_path,
-      last_crash_result_json=_jsonify_crash_result(last_crash_result, command),
-      flaky_stack=flaky_stack)
+      minimize_task_output=uworker_io.MinimizeTaskOutput(
+          last_crash_result_json=_jsonify_crash_result(last_crash_result,
+                                                       command),
+          flaky_stack=flaky_stack))
 
 
 HANDLED_ERRORS = [
@@ -604,9 +607,6 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
-  store_minimized_testcase(
-      output.testcase, output.uworker_input.uworker_env['FUZZ_INPUTS'],
-      output.file_list, output.testcase_data, output.testcase_file_path)
   finalize_testcase(
       output.uworker_input.testcase_id,
       output.last_crash_result_json,
