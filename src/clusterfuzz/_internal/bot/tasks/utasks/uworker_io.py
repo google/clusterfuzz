@@ -443,11 +443,17 @@ class UworkerInput(UworkerMsg):
     field.CopyFrom(entity_proto)
 
 
+class SetupInput(UworkerInput):
+  """Input for setup.update_fuzzer_and_data_bundle and setup.setup_testcase in
+  uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.SetupInput
+
+
 class AnalyzeTaskInput(UworkerInput):
   """Input for analyze_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskInput
 
-  
+
 class FuzzTaskInput(UworkerInput):
   """Input for fuzz_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.FuzzTaskInput
@@ -476,12 +482,6 @@ class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
 class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from regression_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.RegressionTaskOutput
-
-
-class UpdateFuzzerAndDataBundleInput(UworkerInput):
-  """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
-  PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
->>>>>>> master
 
 
 class DeserializedUworkerMsg:

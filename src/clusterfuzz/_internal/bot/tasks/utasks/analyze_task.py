@@ -296,7 +296,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   initialize_testcase_for_main(testcase, job_type)
 
   setup_input = setup.preprocess_setup_testcase(testcase)
-  bad_builds = build_manager.get_job_bad_builds()
   analyze_task_input = get_analyze_task_input()
   return uworker_io.UworkerInput(
       testcase_upload_metadata=testcase_upload_metadata,
