@@ -1924,8 +1924,7 @@ def _make_session(uworker_input):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
-  setup_input = (
-      setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name))
+  setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
