@@ -898,10 +898,9 @@ def utask_main(uworker_input):
   # Setup fuzzer and data bundle.
   # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
   # preprocess.
-  update_fuzzer_and_data_bundles_input = (
+  setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
-  if not setup.update_fuzzer_and_data_bundles(
-      update_fuzzer_and_data_bundles_input):
+  if not setup.update_fuzzer_and_data_bundles(setup_input):
     raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.
