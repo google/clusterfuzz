@@ -1783,7 +1783,7 @@ class FuzzingSession:
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
-       return uworker_io.UworkerOutput(
+      return uworker_io.UworkerOutput(
           error=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
 
     # Centipede requires separate binaries for sanitized targets.
