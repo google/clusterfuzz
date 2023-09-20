@@ -305,7 +305,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       uworker_env=uworker_env,
       setup_input=setup_input,
       job_type=job_type,
-      bad_builds=bad_builds,
       analyze_task_input=analyze_task_input,
   )
 
@@ -315,6 +314,7 @@ def get_analyze_task_input():
   signed_upload_url, key = crash_uploader.preprocess_store_minidump()
   analyze_input.minidump_upload_url = signed_upload_url
   analyze_input.minidump_blob_keys = key
+  analyze_input.bad_builds = build_manager.get_job_bad_builds()
   return analyze_input
 
 
