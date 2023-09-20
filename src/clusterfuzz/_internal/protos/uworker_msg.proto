@@ -92,11 +92,9 @@ message FuzzTaskOutput {
 }
 
 message MinimizeTaskOutput {
-  repeated string file_list = 1;
-  optional string testcase_data = 2;
-  optional string testcase_file_path = 3;
-  optional Json last_crash_result_json = 4;
-  optional bool flaky_stack = 5;
+  optional Json last_crash_result_json = 1;
+  optional bool flaky_stack = 2;
+  optional string build_fail_wait = 3;
 }
 
 message RegressionTaskOutput {
