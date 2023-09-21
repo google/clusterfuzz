@@ -267,3 +267,30 @@ class ExtractCrashResultTest(unittest.TestCase):
 
     with self.assertRaises(errors.BadStateError):
       minimize_task._extract_crash_result(crash_result, command)  # pylint: disable=protected-access
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UTaskMainTest(unittest.TestCase):
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  @mock.patch('clusterfuzz._internal.build_management.build_manager.check_app_path', return_value=False)
+  @mock.patch('clusterfuzz._internal.build_management.build_manager.setup_build')
+  @mock.patch('clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase')
+  @mock.patch('clusterfuzz._internal.bot.tasks.setup.setup_testcase')
+  def test_check_app_path_exit(self, setup_testcase, preprocess_setup_testcase, setup_build, check_app_path):
+    preprocess_setup_testcase.return_value = None
+    setup_testcase.return_value = ([], '/path', None)
+    del setup_build
+    del check_app_path
+    testcase = data_types.Testcase()
+    testcase.put()
+    testcase_id = testcase.key.id()
+    environment.set_value('FAIL_WAIT', '10')
+    uworker_input = uworker_io.UworkerInput(testcase=testcase)
+    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
+    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    uworker_output = minimize_task.utask_main(uworker_input)
+    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
+    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+    self.assertEqual(uworker_output.testcase.key.id(), testcase_id)
