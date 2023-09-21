@@ -403,7 +403,6 @@ def utask_main(uworker_input):
     logs.log_error('Unable to setup build for minimization.')
     build_fail_wait = environment.get_value('FAIL_WAIT')
     return uworker_io.UworkerOutput(
-        job_type=uworker_input.job_type,
         minimize_task_output=uworker_io.MinimizeTaskOutput(
             build_fail_wait=build_fail_wait),
         error=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
