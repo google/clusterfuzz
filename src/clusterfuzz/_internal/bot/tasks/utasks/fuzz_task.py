@@ -36,7 +36,6 @@ from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
-from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -892,18 +891,6 @@ def get_fixed_or_minimized_key(one_time_crasher_flag):
   return 'NA' if one_time_crasher_flag else ''
 
 
-def get_minidump_keys(crash_info):
-  """Get minidump_keys."""
-  # This is a new crash, so add its minidump to blobstore first and get the
-  # blob key information.
-  if crash_info:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-    # preprocess.
-    signed_upload_url, key = crash_uploader.preprocess_store_minidump()
-    return crash_info.store_minidump(signed_upload_url, key)
-  return ''
-
-
 def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout,
                                     thread_wait_timeout):
   """Get testcase timeout multiplier."""
@@ -939,7 +926,6 @@ def create_testcase(group, context):
       gestures=crash.gestures,
       redzone=context.redzone,
       disable_ubsan=context.disable_ubsan,
-      minidump_keys=get_minidump_keys(crash.crash_info),
       window_argument=context.window_argument,
       timeout_multiplier=get_testcase_timeout_multiplier(
           context.timeout_multiplier, crash, context.test_timeout,
@@ -979,14 +965,6 @@ def create_testcase(group, context):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashers (stack).
   task_creation.create_tasks(testcase)
-
-  # If this is a new reproducible crash, annotate for upload to Chromecrash.
-  if (not (group.one_time_crasher_flag or
-           group.has_existing_reproducible_testcase())):
-    crash.crash_info = crash_uploader.save_crash_info_if_needed(
-        testcase_id, context.crash_revision, context.job_type, crash.crash_type,
-        crash.crash_address, crash.crash_frames)
-
   return testcase
 
 
