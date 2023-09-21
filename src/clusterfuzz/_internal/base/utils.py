@@ -937,3 +937,7 @@ def cpu_count():
 
   return environment.get_value('CPU_COUNT_OVERRIDE',
                                multiprocessing.cpu_count())
+
+
+def use_untrusted_execution_env_for_utasks():
+  return local_config.Config(local_config.PROJECT_PATH).get('untrusted_utasks')
