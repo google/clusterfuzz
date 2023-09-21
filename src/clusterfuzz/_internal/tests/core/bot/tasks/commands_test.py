@@ -21,6 +21,7 @@ from google.cloud import ndb
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -76,6 +77,7 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
         'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles'
     ])
 
     os.environ['BOT_NAME'] = 'bot_name'
@@ -94,6 +96,8 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
+        uworker_io.SetupInput())
     commands.run_command('fuzz', 'fuzzer', 'job', {})
 
     uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
