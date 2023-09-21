@@ -27,6 +27,7 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -267,3 +268,43 @@ class ExtractCrashResultTest(unittest.TestCase):
 
     with self.assertRaises(errors.BadStateError):
       minimize_task._extract_crash_result(crash_result, command)  # pylint: disable=protected-access
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UTaskMainTest(unittest.TestCase):
+  """Tests for minimize_worker.UTaskMain."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  @mock.patch(
+      'clusterfuzz._internal.build_management.build_manager.check_app_path',
+      return_value=False)
+  @mock.patch(
+      'clusterfuzz._internal.build_management.build_manager.setup_build')
+  @mock.patch('clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase')
+  @mock.patch('clusterfuzz._internal.bot.tasks.setup.setup_testcase')
+  def test_check_app_path_exit(self, setup_testcase, preprocess_setup_testcase,
+                               setup_build, check_app_path):
+    """Tests that the path taken when check_app_path returns False, works as
+    expected."""
+    preprocess_setup_testcase.return_value = None
+    setup_testcase.return_value = ([], '/path', None)
+    del setup_build
+    del check_app_path
+    testcase = data_types.Testcase()
+    testcase.put()
+    testcase_id = testcase.key.id()
+    build_fail_wait = 10
+    environment.set_value('FAIL_WAIT', 10)
+    uworker_input = uworker_io.UworkerInput(testcase=testcase)
+    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
+    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    uworker_output = minimize_task.utask_main(uworker_input)
+    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
+    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+    self.assertEqual(uworker_output.testcase.key.id(), testcase_id)
+    self.assertEqual(uworker_output.minimize_task_output.build_fail_wait,
+                     build_fail_wait)
+    self.assertEqual(uworker_output.error,
+                     uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
