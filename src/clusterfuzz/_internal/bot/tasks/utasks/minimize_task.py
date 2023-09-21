@@ -587,8 +587,7 @@ def utask_main(uworker_input):
   minimize_task_output = uworker_io.MinimizeTaskOutput(
       last_crash_result_dict=_extract_crash_result(last_crash_result, command),
       flaky_stack=flaky_stack)
-  return uworker_io.UworkerOutput(
-      testcase=testcase, minimize_task_output=minimize_task_output)
+  return uworker_io.UworkerOutput(minimize_task_output=minimize_task_output)
 
 
 HANDLED_ERRORS = [
