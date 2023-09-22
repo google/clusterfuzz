@@ -261,13 +261,61 @@ class ExtractCrashResultTest(unittest.TestCase):
     self.assertEqual(expected,
                      minimize_task._extract_crash_result(crash_result, command))  # pylint: disable=protected-access
 
-  def test_null_crash_result_raises(self):
+  def test_null_crash_result_raises_error(self):
     """Test a null crash result input raises an error as expected."""
     crash_result = None
     command = ''
 
     with self.assertRaises(errors.BadStateError):
       minimize_task._extract_crash_result(crash_result, command)  # pylint: disable=protected-access
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UTaskPostprocessTest(unittest.TestCase):
+  """Tests for utask_postprocess."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task.finalize_testcase',
+    ])
+
+  def _get_generic_input(self):
+    testcase = data_types.Testcase()
+    uworker_input = uworker_io.UworkerInput(
+        job_type='job_type', testcase_id='testcase_id', testcase=testcase)
+    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
+    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    return uworker_input
+
+  def _create_output(self, uworker_input=None, **kwargs):
+    uworker_output = uworker_io.UworkerOutput(**kwargs)
+    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
+    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+    if uworker_input:
+      uworker_output.uworker_input = uworker_input
+    return uworker_output
+
+  def test_error_does_not_finalize_testcase(self):
+    """Checks that an output with an error does not finalize a testcase."""
+    uworker_output = self._create_output(
+        error=uworker_msg_pb2.ErrorType.UNHANDLED)
+    minimize_task.utask_postprocess(uworker_output)
+    self.assertFalse(self.mock.finalize_testcase.called)
+
+  def test_generic_output_finalizes_testcase(self):
+    """Checks that an output with all critical fields finalizes a testcase."""
+    self.mock.finalize_testcase.return_value = None
+    last_crash_result_dict = {'crash_type': 'placeholder'}
+    minimize_task_output = uworker_io.MinimizeTaskOutput(
+        last_crash_result_dict=last_crash_result_dict)
+    uworker_output = self._create_output(
+        uworker_input=self._get_generic_input(),
+        minimize_task_output=minimize_task_output)
+
+    minimize_task.utask_postprocess(uworker_output)
+
+    self.assertTrue(self.mock.finalize_testcase.called)
 
 
 @test_utils.with_cloud_emulators('datastore')
