@@ -382,7 +382,9 @@ def find_fixed_range(uworker_input):
   job_type = uworker_input.job_type
 
   # Setup testcase and its dependencies.
-  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  setup_input = setup.preprocess_setup_testcase(testcase)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
+                                                      setup_input)
   if error:
     return error
 

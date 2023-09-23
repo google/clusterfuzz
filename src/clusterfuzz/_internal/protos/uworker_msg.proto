@@ -150,5 +150,5 @@ message Output {
   optional MinimizeTaskOutput minimize_task_output = 11;
   optional RegressionTaskOutput regression_task_output = 12;
   optional ProgressionTaskOutput progresstion_task_output = 13;
-  optional string error_message = 13;
+  optional string error_message = 14;
 }
