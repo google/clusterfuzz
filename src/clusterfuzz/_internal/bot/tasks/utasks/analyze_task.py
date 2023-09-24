@@ -86,8 +86,6 @@ def setup_build(testcase: data_types.Testcase,
 
   if revision and not build_manager.is_custom_binary():
     build_bucket_path = build_manager.get_primary_bucket_path()
-    # TODO(https://github.com/google/clusterfuzz/issues/3008):
-    # get_revision_list performs database queries.
     revision_list = build_manager.get_revisions_list(
         build_bucket_path, bad_builds, testcase=testcase)
     if not revision_list:

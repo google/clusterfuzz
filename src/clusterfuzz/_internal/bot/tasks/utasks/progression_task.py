@@ -74,18 +74,19 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
   crash info for non-custom binaries."""
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
+  progression_task_output = uworker_output.progression_task_output
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   testcase.last_tested_crash_stacktrace = (
       uworker_output.testcase.last_tested_crash_stacktrace)
   data_handler.update_progression_completion_metadata(
       testcase,
-      uworker_output.progression_task_output.crash_revision,
+      progression_task_output.crash_revision,
       is_crash=True,
       message=uworker_output.error_message)
 
   # This means we are in a custom binary crash, we do not upload crash info.
-  if uworker_output.progression_task_output.custom_binary:
+  if progression_task_output.custom_binary:
     return
 
   # Since we've verified that the test case is still crashing, clear out any
@@ -95,10 +96,8 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
   # For chromium project, save latest crash information for later upload
   # to chromecrash/.
   crash_uploader.save_crash_info_if_needed(
-      testcase_id, uworker_output.progression_task_output.crash_revision,
-      job_type, uworker_output.progression_task_output.crash_type,
-      uworker_output.progression_task_output.crash_address,
-      uworker_output.progression_task_output.crash_frames)
+      testcase_id, progression_task_output.crash_revision, job_type,
+      progression_task_output.serialized_crash_stack_frames)
 
 
 def handle_progression_bad_state_min_max(
@@ -109,7 +108,7 @@ def handle_progression_bad_state_min_max(
       uworker_output.uworker_input.testcase_id)
   testcase.fixed = 'NA'
   testcase.open = False
-  message = (f'Fixed testing errored out (min and max revisions are both '
+  message = ('Fixed testing errored out (min and max revisions are both '
              f'{uworker_output.progression_task_output.min_revision}')
 
   data_handler.update_progression_completion_metadata(
@@ -201,7 +200,6 @@ def _check_fixed_for_custom_binary(uworker_input, testcase, testcase_file_path):
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
         error_message='Build setup failed for custom binary',
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP)
 
@@ -226,7 +224,6 @@ def _check_fixed_for_custom_binary(uworker_input, testcase, testcase_file_path):
         custom_binary=True, crash_on_latest=True, crash_revision=revision)
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
         progression_task_output=progression_task_output,
         error_message='Still crashes on latest custom build.')
 
@@ -241,7 +238,6 @@ def _check_fixed_for_custom_binary(uworker_input, testcase, testcase_file_path):
       custom_binary=True, crash_revision=revision)
   return uworker_io.UworkerOutput(
       testcase=testcase,
-      uworker_input=uworker_input,
       progression_task_output=progression_task_output)
 
 
@@ -266,13 +262,14 @@ def _testcase_reproduces_in_revision(uworker_input,
                                      revision,
                                      update_metadata=False):
   """Test to see if a test case reproduces in the specified revision.
-  Returns the crash result on success, None on error."""
+  Returns a tuple containing the (result, error) depending on whether
+  there was an error."""
   build_manager.setup_build(revision)
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
+        
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP)
 
   if testcase_manager.check_for_bad_build(job_type, revision):
@@ -280,7 +277,6 @@ def _testcase_reproduces_in_revision(uworker_input,
     log_message = f'Bad build at r{revision}. Skipping'
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
         error_message=log_message,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
 
@@ -403,7 +399,6 @@ def find_fixed_range(uworker_input):
   if not revision_list:
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR)
 
   # Use min, max_index to mark the start and end of revision list that is used
@@ -434,7 +429,7 @@ def find_fixed_range(uworker_input):
     error_message = f'Build {min_revision} no longer exists.'
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
+        
         error_message=error_message,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
@@ -442,7 +437,6 @@ def find_fixed_range(uworker_input):
     error_message = f'Build {max_revision} no longer exists.'
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
         error_message=error_message,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
 
@@ -476,16 +470,14 @@ def find_fixed_range(uworker_input):
         stacktrace)
 
     error_message = f'Still crashes on latest revision r{max_revision}.'
+    serialized_crash_stack_frames = crash_uploader.get_symbolized_stack_bytes(
+        state.crash_type, state.crash_address, state.frames)
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
-        crash_type=state.crash_type,
-        crash_address=state.crash_address,
-        # TODO(alhijazi): Check how to properly serialize the frames.
-        crash_frames=state.frames,
+        serialized_crash_stack_frames=serialized_crash_stack_frames,
         crash_revision=max_revision)
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
         progression_task_output=progression_task_output,
         error_message=error_message)
 
@@ -510,7 +502,7 @@ def find_fixed_range(uworker_input):
         crash_revision=max_revision)
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        uworker_input=uworker_input,
+        
         progression_task_output=progression_task_output,
         error_message=error_message,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
@@ -536,7 +528,6 @@ def find_fixed_range(uworker_input):
     if max_index - min_index < 1:
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          uworker_input=uworker_input,
           progression_task_output=uworker_io.ProgressionTaskOutput(
               min_revision=min_revision, max_revision=max_revision),
           error=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
@@ -578,7 +569,7 @@ def find_fixed_range(uworker_input):
   return uworker_io.UworkerOutput(
       testcase=testcase,
       error_message=error_message,
-      uworker_input=uworker_input,
+      
       error=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
 
 

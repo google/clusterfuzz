@@ -107,9 +107,7 @@ message ProgressionTaskOutput{
   optional bool crash_on_latest = 4;
   // Information passed back to trusted worker when we crash on latest.
   optional string crash_revision = 5;
-  optional string crash_type = 6;
-  optional string crash_address = 7;
-  optional string crash_frames = 8;
+  optional string serialized_crash_stack_frames = 6;
 }
 
 enum ErrorType {
