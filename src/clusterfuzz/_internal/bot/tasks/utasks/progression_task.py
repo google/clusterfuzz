@@ -192,7 +192,7 @@ def _log_output(revision, crash_result):
       output=crash_result.get_stacktrace(symbolized=True))
 
 
-def _check_fixed_for_custom_binary(uworker_input, testcase, testcase_file_path):
+def _check_fixed_for_custom_binary(testcase, testcase_file_path):
   """Simplified fixed check for test cases using custom binaries."""
   revision = environment.get_value('APP_REVISION')
 
@@ -237,8 +237,7 @@ def _check_fixed_for_custom_binary(uworker_input, testcase, testcase_file_path):
   progression_task_output = uworker_io.ProgressionTaskOutput(
       custom_binary=True, crash_revision=revision)
   return uworker_io.UworkerOutput(
-      testcase=testcase,
-      progression_task_output=progression_task_output)
+      testcase=testcase, progression_task_output=progression_task_output)
 
 
 def _update_issue_metadata(testcase):
@@ -255,8 +254,7 @@ def _update_issue_metadata(testcase):
       testcase.set_metadata(key, value)
 
 
-def _testcase_reproduces_in_revision(uworker_input,
-                                     testcase,
+def _testcase_reproduces_in_revision(testcase,
                                      testcase_file_path,
                                      job_type,
                                      revision,
@@ -269,7 +267,6 @@ def _testcase_reproduces_in_revision(uworker_input,
     # Let postprocess handle the failure and reschedule the task if needed.
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
-        
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP)
 
   if testcase_manager.check_for_bad_build(job_type, revision):
@@ -386,8 +383,7 @@ def find_fixed_range(uworker_input):
 
   # Custom binaries are handled as special cases.
   if build_manager.is_custom_binary():
-    return _check_fixed_for_custom_binary(uworker_input, testcase,
-                                          testcase_file_path)
+    return _check_fixed_for_custom_binary(testcase, testcase_file_path)
 
   build_bucket_path = build_manager.get_primary_bucket_path()
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
@@ -429,7 +425,6 @@ def find_fixed_range(uworker_input):
     error_message = f'Build {min_revision} no longer exists.'
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        
         error_message=error_message,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
@@ -445,7 +440,6 @@ def find_fixed_range(uworker_input):
   # Check to see if this testcase is still crashing now. If it is, then just
   # bail out.
   result, error = _testcase_reproduces_in_revision(
-      uworker_input,
       testcase,
       testcase_file_path,
       job_type,
@@ -490,8 +484,8 @@ def find_fixed_range(uworker_input):
 
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.
-  result, error = _testcase_reproduces_in_revision(
-      uworker_input, testcase, testcase_file_path, job_type, min_revision)
+  result, error = _testcase_reproduces_in_revision(testcase, testcase_file_path,
+                                                   job_type, min_revision)
   if error is not None:
     return error
 
@@ -502,7 +496,6 @@ def find_fixed_range(uworker_input):
         crash_revision=max_revision)
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        
         progression_task_output=progression_task_output,
         error_message=error_message,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
@@ -543,7 +536,7 @@ def find_fixed_range(uworker_input):
                                          log_message)
 
     result, error = _testcase_reproduces_in_revision(
-        uworker_input, testcase, testcase_file_path, job_type, middle_revision)
+        testcase, testcase_file_path, job_type, middle_revision)
     if error is not None:
       if error.error == uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
         # Skip this revision.
@@ -569,7 +562,6 @@ def find_fixed_range(uworker_input):
   return uworker_io.UworkerOutput(
       testcase=testcase,
       error_message=error_message,
-      
       error=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
 
 
