@@ -3597,6 +3597,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag)
 
   def test_crash_signal_and_timeout_stacktrace(self):
+    """Test dual UNKNOWN and Timeout crash_type stacktrace"""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
     data = self._read_test_data('unknown_crash_and_timeout.txt')
     expected_type = 'Timeout'
