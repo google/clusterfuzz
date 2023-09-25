@@ -183,7 +183,7 @@ class StackParser:
       state.crash_type = new_type
 
     if new_state is not None:
-        state.crash_state = new_state
+      state.crash_state = new_state
 
     if new_frame_count is not None:
       state.frame_count = new_frame_count
