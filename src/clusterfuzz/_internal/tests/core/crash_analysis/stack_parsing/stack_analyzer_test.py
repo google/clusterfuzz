@@ -70,7 +70,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self.assertEqual(actual_state.crash_type, expected_type)
     self.assertEqual(actual_state.crash_address, expected_address)
     self.assertEqual(actual_state.crash_state, expected_state)
-    
+
     self.assertEqual(actual_state.crash_stacktrace, expected_stacktrace)
     self.assertEqual(actual_security_flag, expected_security_flag)
 
