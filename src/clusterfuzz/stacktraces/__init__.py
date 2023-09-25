@@ -146,7 +146,7 @@ class StackParser:
       return True
 
     return False
-  
+
   def get_rank(self, crash_type):
     """Return the assignment priority of a given crash type."""
     if crash_type in ['Timeout']:
@@ -179,7 +179,8 @@ class StackParser:
       state.frame_count = 0
 
     # Direct updates.
-    if new_type is not None and self.get_rank(new_type) >= self.get_rank(state.crash_type):
+    if new_type is not None and self.get_rank(new_type) >= self.get_rank(
+        state.crash_type):
       state.crash_type = new_type
 
     if new_state is not None:
