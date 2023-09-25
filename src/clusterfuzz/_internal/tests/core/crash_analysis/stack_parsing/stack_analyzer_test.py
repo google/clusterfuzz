@@ -66,11 +66,11 @@ class StackAnalyzerTestcase(unittest.TestCase):
     actual_state = stack_analyzer.get_crash_data(data)
     actual_security_flag = crash_analyzer.is_security_issue(
         data, actual_state.crash_type, actual_state.crash_address)
+    print(actual_state.crash_state)
 
     self.assertEqual(actual_state.crash_type, expected_type)
     self.assertEqual(actual_state.crash_address, expected_address)
     self.assertEqual(actual_state.crash_state, expected_state)
-
     self.assertEqual(actual_state.crash_stacktrace, expected_stacktrace)
     self.assertEqual(actual_security_flag, expected_security_flag)
 
@@ -3591,6 +3591,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'fe_invert\nDiceSign\nDiceCoseSignAndEncodeSign1\n'
     expected_stacktrace = data
     expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+  
+  def test_crash_signal_and_timeout_stacktrace(self):
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    data = self._read_test_data('unknown_crash_and_timeout.txt')
+    expected_type = 'Timeout'
+    expected_address = ''
+    expected_state = ('gwp_asan::GuardedPoolAllocator::allocate\n'
+                      'android::hardware::bluetooth::V1_0::implementation::UartController::ReportSocFai\n'
+                      '__stpcpy_aarch64\n')
+    expected_stacktrace = data
+    expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
