@@ -1921,7 +1921,6 @@ class GenericProjectSetupTest(unittest.TestCase):
 
   def test_execute(self):
     """Tests executing of cron job."""
-    project_setup.main()
     pubsub_client = pubsub.PubSubClient()
     self.mock.get_application_id_2.return_value = 'clusterfuzz-external'
     app_id = utils.get_application_id()
@@ -1929,6 +1928,7 @@ class GenericProjectSetupTest(unittest.TestCase):
     other_topic_name = pubsub.topic_name(app_id, 'other')
     pubsub_client.create_topic(unmanaged_topic_name)
     pubsub_client.create_topic(other_topic_name)
+    project_setup.main()
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_a-b').get()
