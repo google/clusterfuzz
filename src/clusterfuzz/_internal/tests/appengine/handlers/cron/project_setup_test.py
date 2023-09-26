@@ -2161,7 +2161,6 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertIsNotNone(pubsub_client.get_topic(unmanaged_topic_name))
     self.assertIsNotNone(pubsub_client.get_topic(other_topic_name))
 
-
     libfuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == 'libFuzzer').get()
     self.assertCountEqual([
