@@ -39,6 +39,8 @@ from clusterfuzz._internal.system import environment
 
 from . import service_accounts
 
+ANDROID_CUTTLEFISH = 'ANDROID_X86'
+
 BUILD_BUCKET_PATH_TEMPLATE = (
     'gs://%BUCKET%/%PROJECT%/%PROJECT%-%SANITIZER%-([0-9]+).zip')
 
@@ -106,6 +108,8 @@ class JobInfo:
 # the earlier ones. An engine template may override vars set for a sanitizer.
 LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
                              ['libfuzzer', 'engine_asan', 'prune'])
+LIBFUZZER_HWASAN_JOB = JobInfo('libfuzzer_hwasan_', 'libfuzzer', 'address',
+                               ['libfuzzer', 'engine_asan', 'android'])
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
                              ['libfuzzer', 'engine_msan'])
 LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
@@ -159,11 +163,14 @@ JOB_MAP = {
             'address': LIBFUZZER_ASAN_I386_JOB,
             'none': LIBFUZZER_NONE_I386_JOB,
         },
+        'arm': {
+            'hardware': LIBFUZZER_HWASAN_JOB,
+        },
     },
     'afl': {
         'x86_64': {
             'address': AFL_ASAN_JOB,
-        }
+        },
     },
     'honggfuzz': {
         'x86_64': {
@@ -180,7 +187,7 @@ JOB_MAP = {
     'none': {
         'x86_64': {
             'address': NO_ENGINE_ASAN_JOB,
-        }
+        },
     },
     'centipede': {
         'x86_64': {
@@ -545,7 +552,15 @@ def create_project_settings(project, info, service_account):
 
 def create_pubsub_topics(project):
   """Create pubsub topics for tasks."""
-  for platform in PUBSUB_PLATFORMS:
+  platforms = PUBSUB_PLATFORMS
+  if 'android_' not in project:
+    platforms = PUBSUB_PLATFORMS
+  else:
+    platforms = [project.replace('android_', '')]
+    # Avoid the stutter in queue name
+    project = 'android'
+
+  for platform in platforms:
     name = untrusted.queue_name(project, platform)
     client = pubsub.PubSubClient()
     application_id = utils.get_application_id()
@@ -767,8 +782,12 @@ class ProjectSetup:
       job.name = job_name
       if self._segregate_projects:
         job.platform = untrusted.platform_name(project, 'linux')
+      elif 'android' in job.name:
+        if 'hwasan' in job.name:
+          job.platform = job_name.split('_')[-1].upper()
+        else:
+          job.platform = ANDROID_CUTTLEFISH
       else:
-        # TODO(ochang): Support other platforms?
         job.platform = 'LINUX'
 
       job.templates = template.cf_job_templates
@@ -863,6 +882,14 @@ class ProjectSetup:
 
       file_github_issue = info.get('file_github_issue', False)
       job.environment_string += f'FILE_GITHUB_ISSUE = {file_github_issue}\n'
+
+      # Android creates device-specific queues during project setup.
+      queue_id = info.get('queue_id', False)
+      if queue_id:
+        if 'android' not in job.templates:
+          job.templates.append('android')
+        job.queue = queue_id
+        create_pubsub_topics(project)
 
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and

@@ -24,6 +24,7 @@ import sys
 import yaml
 
 from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal.base import tasks
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
@@ -1107,7 +1108,7 @@ def is_android_kernel(plt=None):
 
 def is_android_real_device():
   """Return True if we are on a real android device."""
-  return platform() == 'ANDROID'
+  return platform() == 'ANDROID' or tasks.SUBQUEUE_IDENTIFIER in platform()
 
 
 def is_lib():

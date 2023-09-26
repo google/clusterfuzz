@@ -304,10 +304,9 @@ def process_command(task):
         current_platform_id = environment.get_platform_id()
         testcase_platform_id = testcase.platform_id
 
-        # This indicates we are trying to run this job on the wrong platform.
-        # This can happen when you have different type of devices (e.g
-        # android) on the same platform group. In this case, we just recreate
-        # the task.
+        # This indicates we are trying to run this job on the wrong platform
+        # and potentially blocks fuzzing. See the 'subqueues' feature for
+        # more details: https://github.com/google/clusterfuzz/issues/3347
         if (task_name != 'variant' and testcase_platform_id and
             not utils.fields_match(testcase_platform_id, current_platform_id)):
           logs.log(
