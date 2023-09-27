@@ -624,7 +624,7 @@ def handle_minimize_setup_error(output):
         'minimize',
         output.uworker_input.testcase_id,
         output.uworker_input.job_type,
-        wait_time=output.build_fail_wait)
+        wait_time=output.minimize_task_output.build_fail_wait)
 
 
 def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
