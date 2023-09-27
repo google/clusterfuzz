@@ -600,7 +600,7 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
-  if output.error is not None:
+  if output.error:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
