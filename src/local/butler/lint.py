@@ -54,6 +54,7 @@ _PY_INIT_FILENAME = '__init__.py'
 _YAML_EXCEPTIONS = ['bad.yaml']
 
 _error_occurred = False
+SRC_ROOT = os.path.abspath(os.path.join(__file__, '..', '..', '..', '..'))
 
 
 def _error(message=None):
@@ -65,9 +66,9 @@ def _error(message=None):
   _error_occurred = True
 
 
-def _execute_command_and_track_error(command):
+def _execute_command_and_track_error(command, cwd=None):
   """Executes command, tracks error state."""
-  returncode, output = common.execute(command, exit_on_error=False)
+  returncode, output = common.execute(command, exit_on_error=False, cwd=cwd)
   if returncode != 0:
     _error()
 
@@ -208,7 +209,9 @@ def execute(_):
       py_changed_nontests.append(file_path)
 
     if not os.path.abspath(file_path).startswith(module_path):
-      py_changed_noncf_module.append(file_path)
+      py_changed_noncf_module.append(os.path.abspath(file_path))
+
+  clusterfuzz_package_parent_dir = os.path.join(SRC_ROOT, 'clusterfuzz')
 
   # Use --score no to make output less noisy.
   base_pylint_cmd = 'pylint --score=no --jobs=0'
@@ -217,12 +220,14 @@ def execute(_):
   if py_changed_nontests:
     _execute_command_and_track_error(
         f'{base_pylint_cmd} --ignore=protos,tests,grammars clusterfuzz ' +
-        ' '.join(py_changed_noncf_module))
+        ' '.join(py_changed_noncf_module),
+        cwd=clusterfuzz_package_parent_dir)
 
   if py_changed_tests:
     _execute_command_and_track_error(
         f'{base_pylint_cmd} --ignore=protos,grammars --max-line-length=240 '
-        '--disable no-member clusterfuzz._internal.tests')
+        '--disable no-member clusterfuzz._internal.tests',
+        cwd=clusterfuzz_package_parent_dir)
 
   py_changed_file_paths = py_changed_nontests + py_changed_tests
   if py_changed_file_paths:
