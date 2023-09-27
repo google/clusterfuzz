@@ -369,9 +369,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
-  # Get deadline to finish this task.
   testcase = uworker_input.testcase
-  deadline = tasks.get_task_completion_deadline()
 
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -403,6 +401,7 @@ def utask_main(uworker_input):
     logs.log_error('Unable to setup build for minimization.')
     build_fail_wait = environment.get_value('FAIL_WAIT')
     return uworker_io.UworkerOutput(
+        testcase=testcase,
         minimize_task_output=uworker_io.MinimizeTaskOutput(
             build_fail_wait=build_fail_wait),
         error=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
@@ -431,6 +430,8 @@ def utask_main(uworker_input):
                                     additional_required_arguments)
 
   input_directory = environment.get_value('FUZZ_INPUTS')
+  # Get deadline to finish this task.
+  deadline = tasks.get_task_completion_deadline()
   test_runner = TestRunner(testcase, testcase_file_path, file_list,
                            input_directory, app_arguments, required_arguments,
                            max_threads, deadline)
@@ -599,7 +600,7 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
-  if output.error is not None:
+  if output.error:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
@@ -623,7 +624,7 @@ def handle_minimize_setup_error(output):
         'minimize',
         output.uworker_input.testcase_id,
         output.uworker_input.job_type,
-        wait_time=output.build_fail_wait)
+        wait_time=output.minimize_task_output.build_fail_wait)
 
 
 def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):

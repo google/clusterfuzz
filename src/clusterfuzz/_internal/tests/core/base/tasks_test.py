@@ -46,9 +46,11 @@ class InitializeTaskTest(unittest.TestCase):
 
   def test_initialize_untrusted_task(self):
     """Tests that an untrusted task is initialized properly."""
-    self_link = f'https://www.googleapis.com/storage/v1/b/{self.bucket}/o/{self.path}'
+    self_link = f'https://www.googleapis.com/storage/v1/b/{self.bucket}23/o/{self.path}23'
     self.message.attributes = {
         'kind': 'storage#object',
+        'bucket': self.bucket,
+        'name': self.path,
         'selfLink': self_link,
         'command': self.command,
         'argument': self.argument,
@@ -56,22 +58,10 @@ class InitializeTaskTest(unittest.TestCase):
     }
     task = tasks.initialize_task([self.message])
     self.assertFalse(isinstance(task, tasks.PubSubTask))
-    self.assertEqual(task.command, 'uworker_postprocess')
-    self.assertEqual(task.argument, '/mybucket/worker.output')
+    self.assertEqual(task.command, 'postprocess')
+    # !!! Is this bad for local development.
+    self.assertEqual(task.argument, 'gs://mybucket/worker.output')
     self.assertEqual(task.job, 'none')
-
-  def test_initialize_untrusted_from_reupload(self):
-    """Tests that an untrusted task is not initialized when the uworker output
-    was uploaded a second time. This tests checks that uworkers can't DoS or
-    worse by reuploading their output multiple times."""
-    # Test version 2 of an output.
-    self_link = f'https://www.googleapis.com/storage/v2/b/{self.bucket}/o/{self.path}'
-    self.message.attributes = {
-        'kind': 'storage#object',
-        'selfLink': self_link,
-    }
-    with self.assertRaises(tasks.Error):
-      tasks.initialize_task([self.message])
 
 
 class GetUtaskFiltersTest(unittest.TestCase):
@@ -83,7 +73,7 @@ class GetUtaskFiltersTest(unittest.TestCase):
     will be removed when the migration is complete."""
     # TOOD(metzman): Delete this test when it is no longer needed.
     filters = tasks.get_utask_filters(is_chromium=True, is_linux=True)
-    self.assertEqual(filters, 'attribute.name = uworker_postprocess')
+    self.assertEqual(filters, 'attribute.name = postprocess')
 
   def test_chromium_nonlinux(self):
     """Tests that the get_utask_filters only has linux bots in chrome
@@ -91,7 +81,7 @@ class GetUtaskFiltersTest(unittest.TestCase):
     will be removed when the migration is complete."""
     # TOOD(metzman): Delete this test when it is no longer needed.
     filters = tasks.get_utask_filters(is_chromium=True, is_linux=False)
-    self.assertEqual(filters, '-attribute.name = uworker_postprocess')
+    self.assertEqual(filters, '-attribute.name = postprocess')
 
   def test_external_linux(self):
     """Tests that the get_utask_filters only has linux bots in chrome

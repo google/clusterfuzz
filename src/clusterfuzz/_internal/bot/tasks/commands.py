@@ -53,7 +53,7 @@ _COMMAND_MODULE_MAP = {
     'regression': regression_task,
     'symbolize': symbolize_task,
     'unpack': unpack_task,
-    'uworker_postprocess': None,
+    'postprocess': None,
     'uworker_main': None,
     'variant': variant_task,
 }

@@ -16,7 +16,6 @@
 import contextlib
 import datetime
 import random
-import re
 import threading
 import time
 
@@ -28,6 +27,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
@@ -79,12 +79,10 @@ LEASE_RETRIES = 5
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
-SELF_LINK_REGEX = re.compile(
-    r'https\:\/\/www\.googleapis\.com\/storage\/v1\/b'
-    r'(?P<bucket>\/[a-zA-Z\_\-\.]+)\/o(?P<path>\/[a-zA-Z\_\-\.]+)')
-
 FILTERS_AND = 'AND'
 FILTERS_OR = 'OR'
+
+POSTPROCESS_QUEUE = 'postprocess'
 
 
 class Error(Exception):
@@ -169,17 +167,12 @@ def initialize_task(messages):
     return PubSubTask(message)
 
   # Handle postprocess task.
-  raw_self_link = message.attributes.get('selfLink')
-  match = SELF_LINK_REGEX.search(raw_self_link)
-  if match is None:
-    raise Error(f'{raw_self_link} cannot be parsed.')
-  groupdict = match.groupdict()
-  path = groupdict['path']
-  bucket = groupdict['bucket']
-  argument = f'{bucket}{path}'
-  command = 'uworker_postprocess'
+  name = message.attributes.get('name')
+  bucket = message.attributes.get('bucket')
+  output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
+  command = 'postprocess'
   job_type = 'none'
-  return Task(command, argument, job_type)
+  return Task(command, output_url_argument, job_type)
 
 
 def get_regular_task(queue=None):
@@ -190,8 +183,7 @@ def get_regular_task(queue=None):
   pubsub_client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
   while True:
-    messages = pubsub_client.pull_from_subscription(
-        pubsub.subscription_name(application_id, queue), max_messages=1)
+    messages = _get_messages(pubsub_client, application_id, queue)
 
     if not messages:
       return None
@@ -287,6 +279,30 @@ def get_machine_templates():
   return conf['instance_templates']
 
 
+def _get_messages(pubsub_client, application_id, queue):
+  return pubsub_client.pull_from_subscription(
+      pubsub.subscription_name(application_id, queue), max_messages=1)
+
+
+def get_postprocess_task():
+  """Gets a postprocess task if one exists."""
+  # This should only be run on non-preemptible bots.
+  if (environment.platform() != 'LINUX' or
+      not utils.use_untrusted_execution_env_for_utasks()):
+    return None
+  pubsub_client = pubsub.PubSubClient()
+  application_id = utils.get_application_id()
+  messages = _get_messages(pubsub_client, application_id, POSTPROCESS_QUEUE)
+  if not messages:
+    return None
+  try:
+    return initialize_task(messages)
+  except KeyError:
+    logs.log_error('Received an invalid task, discarding...')
+    messages[0].ack()
+    return None
+
+
 def get_task():
   """Get a task."""
   task = get_command_override()
@@ -295,6 +311,13 @@ def get_task():
 
   allow_all_tasks = not environment.get_value('PREEMPTIBLE')
   if allow_all_tasks:
+    # Postprocess tasks need to be executed on a non-preemptible otherwise we
+    # can lose the output of a task.
+    # Postprocess tasks get priority because they are so quick. They typically
+    # only involve a few DB writes and never run user code.
+    task = get_postprocess_task()
+    if task:
+      return task
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
