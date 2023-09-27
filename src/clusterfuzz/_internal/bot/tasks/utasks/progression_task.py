@@ -28,7 +28,6 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
-from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
@@ -330,13 +329,6 @@ def find_fixed_range(testcase_id, job_type):
     # Since we've verified that the test case is still crashing, clear out any
     # metadata indicating potential flake from previous runs.
     task_creation.mark_unreproducible_if_flaky(testcase, False)
-
-    # For chromium project, save latest crash information for later upload
-    # to chromecrash/.
-    state = result.get_symbolized_data()
-    crash_uploader.save_crash_info_if_needed(testcase_id, max_revision,
-                                             job_type, state.crash_type,
-                                             state.crash_address, state.frames)
     return
 
   if result.unexpected_crash:

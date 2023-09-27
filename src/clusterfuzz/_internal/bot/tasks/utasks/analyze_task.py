@@ -26,7 +26,6 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
-from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
@@ -191,19 +190,6 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.put()
 
 
-def save_minidump(testcase, state, application_command_line, gestures,
-                  analyze_input):
-  """Saves a minidump when on Windows."""
-  # Get crash info object with minidump info. Also, re-generate unsymbolized
-  # stacktrace if needed.
-  crash_info, _ = (
-      crash_uploader.get_crash_info_and_stacktrace(
-          application_command_line, state.crash_stacktrace, gestures))
-  if crash_info:
-    testcase.minidump_keys = crash_info.store_minidump(
-        analyze_input.minidump_upload_url, analyze_input.minidump_keys)
-
-
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   """Tests for a crash with retries. Tries with HTTP (with retries) if initial
   attempts fail. Returns the most recent crash result and the possibly updated
@@ -317,9 +303,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def get_analyze_task_input():
   analyze_input = uworker_io.AnalyzeTaskInput()
-  signed_upload_url, key = crash_uploader.preprocess_store_minidump()
-  analyze_input.minidump_upload_url = signed_upload_url
-  analyze_input.minidump_blob_keys = key
   analyze_input.bad_builds = build_manager.get_job_bad_builds()
   return analyze_input
 
@@ -343,7 +326,6 @@ def utask_main(uworker_input):
     return output
 
   # Initialize some variables.
-  gestures = uworker_input.testcase.gestures
   test_timeout = environment.get_value('TEST_TIMEOUT')
   result, http_flag = test_for_crash_with_retries(
       uworker_input.testcase, testcase_file_path, test_timeout)
@@ -358,8 +340,6 @@ def utask_main(uworker_input):
   crash_time = result.get_crash_time()
   state = result.get_symbolized_data()
 
-  save_minidump(uworker_input.testcase, state, application_command_line,
-                gestures, uworker_input.analyze_task_input)
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
   # In the general case, we will not attempt to symbolize if we do not detect

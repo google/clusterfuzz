@@ -35,9 +35,7 @@ message SetupInput {
 }
 
 message AnalyzeTaskInput {
-  optional string minidump_upload_url = 1;
-  optional string minidump_blob_keys = 2;
-  repeated google.datastore.v1.Entity bad_builds = 3;
+  repeated google.datastore.v1.Entity bad_builds = 1;
 }
 
 message FuzzTaskInput {

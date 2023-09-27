@@ -25,7 +25,6 @@ from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot.tasks import unpack_task
-from clusterfuzz._internal.bot.tasks import upload_reports_task
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
@@ -55,7 +54,6 @@ _COMMAND_MODULE_MAP = {
     'symbolize': symbolize_task,
     'unpack': unpack_task,
     'postprocess': None,
-    'upload_reports': upload_reports_task,
     'uworker_main': None,
     'variant': variant_task,
 }
