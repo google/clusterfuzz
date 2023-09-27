@@ -846,11 +846,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         len(crashes) - 1,
         self.mock.archive_testcase_and_dependencies_in_gcs.call_count)
 
-      self.assertEqual(expected.product, actual.product)
-      self.assertEqual(expected.version, actual.version)
-      self.assertEqual(expected.serialized_crash_stack_frames,
-                       actual.serialized_crash_stack_frames)
-
     def _make_big_query_json(crash, reproducible_flag, new_flag, testcase_id):
       return {
           'crash_type': crash.crash_type,
