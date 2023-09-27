@@ -109,9 +109,9 @@ def handle_analyze_no_revision_index(output):
   testcase = testcase = data_handler.get_testcase_by_id(
       output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(
-          testcase, data_types.TaskState.ERROR,
-          f'Build {testcase.job_type} r{testcase.crash_revision} '
-          'does not exist')
+      testcase, data_types.TaskState.ERROR,
+      f'Build {testcase.job_type} r{testcase.crash_revision} '
+      'does not exist')
   handle_build_setup_error(output)
 
 
