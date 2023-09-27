@@ -96,16 +96,23 @@ def setup_build(testcase: data_types.Testcase,
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
-      data_handler.update_testcase_comment(
-          testcase, data_types.TaskState.ERROR,
-          f'Build {testcase.job_type} r{revision} does not exist')
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
   return None
+
+
+def handle_analyze_no_revision_index(output):
+  testcase = testcase = data_handler.get_testcase_by_id(
+      output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(
+      testcase, data_types.TaskState.ERROR,
+      f'Build {testcase.job_type} r{testcase.crash_revision} '
+      'does not exist')
+  handle_build_setup_error(output)
 
 
 def prepare_env_for_main(testcase_upload_metadata):
@@ -426,7 +433,8 @@ HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
     uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
-    uworker_msg_pb2.ErrorType.UNHANDLED
+    uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX,
+    uworker_msg_pb2.ErrorType.UNHANDLED,
 ] + setup.HANDLED_ERRORS
 
 

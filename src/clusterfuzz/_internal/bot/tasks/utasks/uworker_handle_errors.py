@@ -48,6 +48,8 @@ def get_handle_all_errors_mapping():
           analyze_task.handle_build_setup_error,
       uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:
           analyze_task.handle_analyze_no_revisions_list_error,
+      uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX:
+          analyze_task.handle_analyze_no_revision_index,
       uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
           fuzz_task.handle_fuzz_no_fuzzer,
       uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
