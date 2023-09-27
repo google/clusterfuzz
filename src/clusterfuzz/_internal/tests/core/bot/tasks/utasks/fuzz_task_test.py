@@ -35,7 +35,6 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
-from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
@@ -274,7 +273,6 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for crash init test."""
     helpers.patch(self, [
-        'clusterfuzz._internal.chrome.crash_uploader.FileMetadataInfo',
         'clusterfuzz._internal.bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_analyzer.get_crash_data',
         'clusterfuzz._internal.bot.testcase_manager.get_additional_command_line_flags',
@@ -655,7 +653,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for process crashes test."""
     helpers.patch(self, [
-        'clusterfuzz._internal.chrome.crash_uploader.get_symbolized_stack_bytes',
         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.get_unsymbolized_crash_stacktrace',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.archive_testcase_and_dependencies_in_gcs',
@@ -693,7 +690,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     dummy_state.crash_stacktrace = 'orig_trace'
     dummy_state.crash_frames = ['frame 1', 'frame 2']
     self.mock.get_crash_data.return_value = dummy_state
-    self.mock.get_symbolized_stack_bytes.return_value = b'f00df00d'
     self.mock.get_crash_stacktrace_output.return_value = trace
     self.mock.get_unsymbolized_crash_stacktrace.return_value = trace
     self.mock.is_security_issue.return_value = True
@@ -849,29 +845,6 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(
         len(crashes) - 1,
         self.mock.archive_testcase_and_dependencies_in_gcs.call_count)
-
-    # Check only the desired testcases were saved.
-    actual_crash_infos = [group.main_crash.crash_info for group in groups]
-    if project_name != 'chromium':
-      expected_crash_infos = [None] * len(actual_crash_infos)
-    else:
-      expected_saved_crash_info = crash_uploader.CrashReportInfo(
-          product='Chrome_' + environment.platform().lower().capitalize(),
-          version='this.is.fake.ver',
-          serialized_crash_stack_frames=b'f00df00d')
-      expected_crash_infos = [
-          expected_saved_crash_info,  # r2 is main crash for group r1,r2,r3
-          expected_saved_crash_info,  # r4 is main crash for its own group
-          None,  # u1 is not reproducible
-          None,  # u2, u3 are not reproducible
-          None,  # u4 is not reproducible
-      ]
-
-    self.assertEqual(len(expected_crash_infos), len(actual_crash_infos))
-    for expected, actual in zip(expected_crash_infos, actual_crash_infos):
-      if not expected:
-        self.assertIsNone(actual)
-        continue
 
       self.assertEqual(expected.product, actual.product)
       self.assertEqual(expected.version, actual.version)

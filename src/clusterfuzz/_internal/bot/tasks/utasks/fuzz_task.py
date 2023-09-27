@@ -221,7 +221,7 @@ class Crash:
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
-    # self.crash_info gets populated in create_testcase; save what we need.
+    # self.crash_infoo gets populated in create_testcase; save what we need.
     self.crash_frames = state.frames
     self.crash_info = None
 

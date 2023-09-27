@@ -139,7 +139,6 @@ COMMAND_TYPES = {
     'symbolize': TrustedTask,
     'unpack': TrustedTask,
     'uworker_postprocess': PostprocessTask,
-    'upload_reports': TrustedTask,
     'uworker_main': UworkerMainTask,
     'variant': UTaskLocalExecutor,
 }
