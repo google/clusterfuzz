@@ -86,7 +86,7 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
       message=uworker_output.error_message)
 
   # This means we are in a custom binary crash, we do not upload crash info.
-  if progression_task_output.custom_binary:
+  if uworker_output.uworker_input.progression_task_input.custom_binary:
     return
 
   # Since we've verified that the test case is still crashing, clear out any
@@ -221,7 +221,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     testcase.last_tested_crash_stacktrace = data_handler.filter_stacktrace(
         stacktrace)
     progression_task_output = uworker_io.ProgressionTaskOutput(
-        custom_binary=True, crash_on_latest=True, crash_revision=revision)
+        crash_on_latest=True, crash_revision=revision)
     return uworker_io.UworkerOutput(
         testcase=testcase,
         progression_task_output=progression_task_output,
@@ -235,7 +235,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
         'crashes_on_unexpected_state', update_testcase=False)
 
   progression_task_output = uworker_io.ProgressionTaskOutput(
-      custom_binary=True, crash_revision=revision)
+      crash_revision=revision)
   return uworker_io.UworkerOutput(
       testcase=testcase, progression_task_output=progression_task_output)
 
@@ -358,11 +358,13 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # triage cron.
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
-
+  progression_input = uworker_io.ProgressionTaskInput()
+  progression_input.custom_binary = build_manager.is_custom_binary()
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
+      progression_task_input=progression_input,
       testcase=testcase,
   )
 
@@ -593,7 +595,7 @@ def utask_postprocess(output):
     crash_on_latest(output)
     return
 
-  if output.progression_task_output.custom_binary:
+  if output.uworker_input.progression_task_input.custom_binary:
     # Retry once on another bot to confirm our results and in case this bot is
     # in a bad state which we didn't catch through our usual means.
     testcase = output.testcase

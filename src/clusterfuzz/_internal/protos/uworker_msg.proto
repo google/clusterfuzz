@@ -51,6 +51,10 @@ message RegressionTaskInput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
+message ProgressionTaskInput {
+  optional bool custom_binary = 1;
+}
+
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
@@ -69,9 +73,8 @@ message Input {
   optional FuzzTaskInput fuzz_task_input = 13;
   optional MinimizeTaskInput minimize_task_input = 14;
   optional RegressionTaskInput regression_task_input = 15;
-  // Don't do progression as Ali is working on it already.
-  // TODO(Ali): Add an input for progression.
-  optional string module_name = 16;
+  optional ProgressionTaskInput progression_task_input = 16;
+  optional string module_name = 17;
 }
 
 message AnalyzeTaskOutput {
@@ -102,12 +105,11 @@ message RegressionTaskOutput {
 message ProgressionTaskOutput{
   optional string min_revision = 1;
   optional string max_revision = 2;
-  optional bool custom_binary = 3;
   // Set to true when latest revision or latest custom build still crash.
-  optional bool crash_on_latest = 4;
+  optional bool crash_on_latest = 3;
   // Information passed back to trusted worker when we crash on latest.
-  optional string crash_revision = 5;
-  optional string serialized_crash_stack_frames = 6;
+  optional string crash_revision = 4;
+  optional string serialized_crash_stack_frames = 5;
 }
 
 enum ErrorType {
