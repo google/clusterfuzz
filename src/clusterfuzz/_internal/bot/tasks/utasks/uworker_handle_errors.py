@@ -28,7 +28,8 @@ def noop(*args, **kwargs):
 def handle(output, handled_errors):
   """Handles the errors bubbled up from the uworker."""
   if output.error not in handled_errors:
-    raise RuntimeError('Can\'t handle ' + output.error)
+    error = '<None>' if output.error is None else output.error
+    raise RuntimeError('Can\'t handle ' + error)
   return get_handle_all_errors_mapping()[output.error](output)
 
 

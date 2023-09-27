@@ -1959,7 +1959,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 def utask_postprocess(output):
-  if not output.error:
+  if output.error:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   session = _make_session(output.uworker_input)
