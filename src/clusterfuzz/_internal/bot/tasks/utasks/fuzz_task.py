@@ -42,6 +42,7 @@ from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import fuzz_target_utils
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import fuzzer_selection
@@ -1490,7 +1491,7 @@ class FuzzingSession:
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
     # Record fuzz target.
-    fuzz_target_name = environment.get_value('FUZZ_TARGET')
+    fuzz_target_name = get_random_fuzz_target(self.job_type)
     if not fuzz_target_name:
       raise FuzzTaskError('No fuzz targets found.')
 
@@ -1750,13 +1751,8 @@ class FuzzingSession:
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    # Set up a custom or regular build based on revision. By default, fuzzing
-    # is done on trunk build (using revision=None). Otherwise, a job definition
-    # can provide a revision to use via |APP_REVISION|.
-    target_weights = fuzzer_selection.get_fuzz_target_weights()
-
-    build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'), target_weights=target_weights)
+    build_setup_result, fuzz_targets = build_manager.setup_build(
+        environment.get_value('APP_REVISION'))
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
@@ -1872,6 +1868,7 @@ class FuzzingSession:
             new_crash_count=new_crash_count,
             known_crash_count=known_crash_count,
             testcases_executed=testcases_executed,
+            fuzz_targets=fuzz_targets,
             job_run_crashes=convert_groups_to_crashes(processed_groups),
         ),)
 
@@ -1942,3 +1939,13 @@ def utask_postprocess(output):
     return
   session = _make_session(output.uworker_input)
   session.postprocess(output)
+
+
+def get_random_fuzz_target(job_type):
+  projection = ['fuzz_target_name', 'weight']
+  query = fuzz_target_utils.get_fuzz_target_jobs(
+      job=job_type).fetch(projection=projection)
+  fuzz_targets = list(query)
+  fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets)
+  environment.set_value('FUZZ_TARGET', fuzz_target.fuzz_target_name)
+  return fuzz_target.fuzz_target_name
