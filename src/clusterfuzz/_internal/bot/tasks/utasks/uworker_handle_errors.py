@@ -73,7 +73,7 @@ def get_handle_all_errors_mapping():
           progression_task.handle_progression_timeout,
       uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
           progression_task.handle_progression_bad_build,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP:
+      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR:
           progression_task.handle_progression_build_setup_error,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,

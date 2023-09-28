@@ -73,17 +73,16 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
   """Handles crash on latest revision, or custom binary crashes. Saves the 
   crash info for non-custom binaries."""
   testcase_id = uworker_output.uworker_input.testcase_id
-  job_type = uworker_output.uworker_input.job_type
   progression_task_output = uworker_output.progression_task_output
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   testcase.last_tested_crash_stacktrace = (
-      uworker_output.testcase.last_tested_crash_stacktrace)
+      progression_task_output.last_tested_crash_stacktrace)
   data_handler.update_progression_completion_metadata(
       testcase,
       progression_task_output.crash_revision,
       is_crash=True,
-      message=uworker_output.error_message)
+      message=progression_task_output.crash_on_latest_message)
 
   # This means we are in a custom binary crash, we do not upload crash info.
   if uworker_output.uworker_input.progression_task_input.custom_binary:
@@ -92,12 +91,6 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
   # Since we've verified that the test case is still crashing, clear out any
   # metadata indicating potential flake from previous runs.
   task_creation.mark_unreproducible_if_flaky(testcase, False)
-
-  # For chromium project, save latest crash information for later upload
-  # to chromecrash/.
-  crash_uploader.save_crash_info_if_needed(
-      testcase_id, progression_task_output.crash_revision, job_type,
-      progression_task_output.serialized_crash_stack_frames)
 
 
 def handle_progression_bad_state_min_max(
@@ -201,7 +194,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     return uworker_io.UworkerOutput(
         testcase=testcase,
         error_message='Build setup failed for custom binary',
-        error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP)
+        error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   result = testcase_manager.test_for_crash_with_retries(
@@ -218,14 +211,14 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
     stacktrace = utils.get_crash_stacktrace_output(
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
-    testcase.last_tested_crash_stacktrace = data_handler.filter_stacktrace(
-        stacktrace)
+    last_tested_crash_stacktrace = data_handler.filter_stacktrace(stacktrace)
     progression_task_output = uworker_io.ProgressionTaskOutput(
-        crash_on_latest=True, crash_revision=revision)
+        crash_on_latest=True,
+        crash_on_latest_message='Still crashes on latest custom build.',
+        crash_revision=revision,
+        last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
-        testcase=testcase,
-        progression_task_output=progression_task_output,
-        error_message='Still crashes on latest custom build.')
+        testcase=testcase, progression_task_output=progression_task_output)
 
   if result.unexpected_crash:
     testcase.set_metadata(
@@ -259,7 +252,7 @@ def _testcase_reproduces_in_revision(testcase,
                                      job_type,
                                      revision,
                                      update_metadata=False):
-  """Test to see if a test case reproduces in the specified revision.
+  """Tests to see if a test case reproduces in the specified revision.
   Returns a tuple containing the (result, error) depending on whether
   there was an error."""
   build_manager.setup_build(revision)
@@ -267,14 +260,14 @@ def _testcase_reproduces_in_revision(testcase,
     # Let postprocess handle the failure and reschedule the task if needed.
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
-        error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP)
+        error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
   if testcase_manager.check_for_bad_build(job_type, revision):
     # TODO(alhijazi): This is not logged for recoverable builds.
-    log_message = f'Bad build at r{revision}. Skipping'
+    error_message = f'Bad build at r{revision}. Skipping'
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
-        error_message=log_message,
+        error_message=error_message,
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
@@ -461,21 +454,17 @@ def find_fixed_range(uworker_input):
     stacktrace = utils.get_crash_stacktrace_output(
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
 
-    state = result.get_symbolized_data()
-    testcase.last_tested_crash_stacktrace = data_handler.filter_stacktrace(
-        stacktrace)
+    last_tested_crash_stacktrace = data_handler.filter_stacktrace(stacktrace)
 
-    error_message = f'Still crashes on latest revision r{max_revision}.'
-    serialized_crash_stack_frames = crash_uploader.get_symbolized_stack_bytes(
-        state.crash_type, state.crash_address, state.frames)
+    crash_on_latest_message = ('Still crashes on latest'
+                               f' revision r{max_revision}.')
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
-        serialized_crash_stack_frames=serialized_crash_stack_frames,
-        crash_revision=max_revision)
+        crash_on_latest_message=crash_on_latest_message,
+        crash_revision=max_revision,
+        last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
-        testcase=testcase,
-        progression_task_output=progression_task_output,
-        error_message=error_message)
+        testcase=testcase, progression_task_output=progression_task_output)
 
   # TODO(alhijazi): Check if these can be removed as they don't seem to be used
   # anywhere.
@@ -574,7 +563,7 @@ def utask_main(uworker_input):
 
 HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH,
-    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP,
+    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
     uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT,
     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
     uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR,

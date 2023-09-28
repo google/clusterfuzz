@@ -72,7 +72,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
         None, None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
     self.assertIs(worker_output.error,
-                  uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP,
+                  uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
                   "build setup is expected to fail")
 
 
