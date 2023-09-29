@@ -748,9 +748,9 @@ def parse_environment_definition(environment_string):
   return values
 
 
-def base_platform(platform):
+def base_platform(override):
   """Return the base platform when an override is provided."""
-  return platform.split(':')[0]
+  return override.split(':')[0]
 
 
 def platform():

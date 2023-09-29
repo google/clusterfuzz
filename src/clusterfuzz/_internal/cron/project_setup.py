@@ -554,6 +554,7 @@ def create_project_settings(project, info, service_account):
 
 
 def _create_pubsub_topic(name):
+  """Create a pubsub topic and subscription if needed."""
   client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
 
