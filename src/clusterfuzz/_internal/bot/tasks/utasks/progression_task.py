@@ -352,7 +352,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
   progression_input = uworker_io.ProgressionTaskInput()
-  progression_input.custom_binary = build_manager.is_custom_binary()
+  progression_input.custom_binary = (
+      build_manager.is_custom_binary() is not None)
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=testcase_id,
@@ -403,6 +404,7 @@ def find_fixed_range(uworker_input):
     # Clear these to avoid using them in next run. If this run fails, then we
     # should try next run without them to see it succeeds. If this run succeeds,
     # we should still clear them to avoid capping max revision in next run.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.delete_metadata('last_progression_min', update_testcase=False)
     testcase.delete_metadata('last_progression_max', update_testcase=False)
     # TODO(alhijazi): This cannot be done from a uworker.
@@ -580,7 +582,8 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
-  if output.progression_task_output.crash_on_latest:
+  if (output.progression_task_output is not None and
+      output.progression_task_output.crash_on_latest):
     crash_on_latest(output)
     return
 
