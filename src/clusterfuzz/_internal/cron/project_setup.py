@@ -108,8 +108,11 @@ class JobInfo:
 # the earlier ones. An engine template may override vars set for a sanitizer.
 LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
                              ['libfuzzer', 'engine_asan', 'prune'])
-LIBFUZZER_HWASAN_JOB = JobInfo('libfuzzer_hwasan_', 'libfuzzer', 'hardware',
-                               ['libfuzzer', 'engine_asan', 'android'], architecture='arm')
+LIBFUZZER_HWASAN_JOB = JobInfo(
+    'libfuzzer_hwasan_',
+    'libfuzzer',
+    'hardware', ['libfuzzer', 'engine_asan', 'android'],
+    architecture='arm')
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
                              ['libfuzzer', 'engine_msan'])
 LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
@@ -549,6 +552,7 @@ def create_project_settings(project, info, service_account):
         service_account=service_account['email'],
         ccs=ccs).put()
 
+
 def _create_pubsub_topic(name):
   client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
@@ -560,14 +564,14 @@ def _create_pubsub_topic(name):
   subscription_name = pubsub.subscription_name(application_id, name)
   if client.get_subscription(subscription_name) is None:
     client.create_subscription(subscription_name, topic_name)
-  
+
 
 def create_pubsub_topics_for_untrusted(project):
   """Create pubsub topics from untrusted sources for tasks."""
   for platform in PUBSUB_PLATFORMS:
     name = untrusted.queue_name(project, platform)
     _create_pubsub_topic(name)
-    
+
 
 def create_pubsub_topics_for_queue_id(queue_id):
   """Create pubsub topics from project configs for tasks."""

@@ -2074,49 +2074,6 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
 
-
-# if 'android' in path:
-#     return json.dumps({
-#         'projects': [{
-#             'build_path': 'gs://bucket-android/%ENGINE%/%SANITIZER%/'
-#                           '%TARGET%/([0-9]+).zip',
-#             'name': 'android_pixel7',
-#             'fuzzing_engines': ['libfuzzer'],
-#             'architectures': ['arm', 'x86_64'],
-#             'sanitizers': ['hardware'],
-#             'queue_id': 'android-pixel7'
-#         }, {
-#             'build_path':
-#                 'gs://bucket-android/a-b-android/%ENGINE%/%SANITIZER%/'
-#                 '%TARGET%/([0-9]+).zip',
-#             'name': 'android_pixel8',
-#             'fuzzing_engines': ['libfuzzer', 'afl'],
-#             'architectures': ['x86_64'],
-#             'sanitizers': ['address'],
-#             'queue_id': 'android-pixel8'
-#         }]
-    # job = data_types.Job.query(
-    #     data_types.Job.name == 'libfuzzer_asan_android_pixel7').get()
-    # print(job)
-    # self.assertEqual(
-    #     'FUZZ_TARGET_BUILD_BUCKET_PATH = '
-    #     'gs://bucket-android/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
-    #     'PROJECT_NAME = android_pixel7\n'
-    #     'SUMMARY_PREFIX = android_pixel7\n'
-    #     'MANAGED = True\n'
-    #     'DISABLE_DISCLOSURE = True\n'
-    #     'FILE_GITHUB_ISSUE = False\n'
-    #     'ASAN_VAR = VAL-android\n'
-    #     'BOOL_VAR = True\n'
-    #     'INT_VAR = 0\n'
-    #     'STRING_VAR = VAL-android\n', job.environment_string)
-    # self.assertCountEqual(['engine_asan', 'libfuzzer', 'prune', 'android'],
-    #                       job.templates)
-    # self.assertEqual(None, job.external_reproduction_topic)
-    # self.assertEqual(None, job.external_updates_subscription)
-    # self.assertFalse(job.is_external())
-    # self.assertEqual("ANDROID_X86", job.platform)
-
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_hwasan_android_pixel7').get()
     print(job)
@@ -2175,7 +2132,8 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-android\n', job.environment_string)
-    self.assertCountEqual(['libfuzzer', 'android', 'engine_asan', 'prune'], job.templates)
+    self.assertCountEqual(['libfuzzer', 'android', 'engine_asan', 'prune'],
+                          job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
