@@ -748,6 +748,11 @@ def parse_environment_definition(environment_string):
   return values
 
 
+def base_platform(platform):
+  """Return the base platform when an override is provided."""
+  return platform.split(':')[0]
+
+
 def platform():
   """Return the operating system type, unless an override is provided."""
   environment_override = get_value('OS_OVERRIDE')
