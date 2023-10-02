@@ -43,7 +43,7 @@ from . import tasks_impl
 SHUTDOWN_GRACE_SECONDS = 5
 
 
-class WorkerState(object):
+class WorkerState:
   """Worker's state."""
 
   def __init__(self):

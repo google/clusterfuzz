@@ -449,12 +449,12 @@ def _deploy_k8s(config_dir):
       f'--region={appengine.region(k8s_project)}')
   for workload in common.get_all_files(k8s_dir):
     # pylint:disable=anomalous-backslash-in-string
-    common.execute(f'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
+    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
 
   # Deploys cron jobs that are defined in the current instance configuration.
   for workload in common.get_all_files(k8s_instance_dir):
     # pylint:disable=anomalous-backslash-in-string
-    common.execute(f'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
+    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
 
 
 def execute(args):

@@ -20,7 +20,7 @@ import jira
 from clusterfuzz._internal.config import db_config
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager:
   """Issue tracker manager."""
 
   def __init__(self, project_name):

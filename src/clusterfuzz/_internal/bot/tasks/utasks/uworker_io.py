@@ -437,7 +437,7 @@ class UworkerInput(UworkerMsg):
       save_json_field(field, value)
       return
 
-    if isinstance(field, collections.Sequence):
+    if isinstance(field, collections.abc.Sequence):
       # This the way to tell if it's a repeated field.
       # We can't get the type of the repeated field directly.
       value = list(value)

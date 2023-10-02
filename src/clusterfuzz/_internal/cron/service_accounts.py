@@ -67,8 +67,8 @@ def get_service_account(iam, project_id, service_account_id):
   """Try to get a service account. Returns None if it does not exist."""
   try:
     request = iam.projects().serviceAccounts().get(
-        name='projects/{0}/serviceAccounts/{1}'.format(
-            project_id, _service_account_email(project_id, service_account_id)))
+        name=(f'projects/{project_id}/serviceAccounts/'
+              f'{_service_account_email(project_id, service_account_id)}'))
 
     return request.execute()
   except googleapiclient.errors.HttpError as e:

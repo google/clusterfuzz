@@ -101,7 +101,7 @@ def parse_datetime(date_string):
   return datetime_obj
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager:
   """Issue tracker manager."""
 
   CAN_ALL = 'all'

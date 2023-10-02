@@ -71,7 +71,7 @@ class SetOptionsTest(android_helpers.AndroidTest):
 
   def setUp(self):
     """Setup for set options test."""
-    super(SetOptionsTest, self).setUp()
+    super().setUp()
 
     test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
 
@@ -107,7 +107,7 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
 
   def setUp(self):
     """Setup for setup ASan if needed test."""
-    super(SetupASanIfNeededTest, self).setUp()
+    super().setUp()
 
     test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
 
