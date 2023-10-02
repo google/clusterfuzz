@@ -38,6 +38,9 @@ def get_all_handled_errors():
   return set(get_handle_all_errors_mapping().keys())
 
 
+# pylint: disable=no-member
+
+
 def get_handle_all_errors_mapping():
   """Returns a mapping of all uworker errors to their postprocess handlers."""
   mapping = {

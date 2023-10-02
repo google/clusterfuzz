@@ -145,7 +145,7 @@ class StackFrameStructure(object):
 
   def to_proto(self):
     """Convert StackFrame to process_state.proto format for upload to crash/."""
-    frame_proto = process_state_pb2.StackFrame()
+    frame_proto = process_state_pb2.StackFrame()  # pylint: disable=no-member
     if self.address is not None:
       frame_proto.instruction = unsigned_to_signed(self.address)
     if self.module_base is not None:

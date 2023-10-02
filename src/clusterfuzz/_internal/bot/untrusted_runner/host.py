@@ -178,7 +178,7 @@ def _do_heartbeat():
   while True:
     try:
       heartbeat_stub.Beat(
-          heartbeat_pb2.HeartbeatRequest(),
+          heartbeat_pb2.HeartbeatRequest(),  # pylint: disable=no-member
           timeout=config.HEARTBEAT_TIMEOUT_SECONDS)
     except grpc.RpcError as e:
       logs.log_warn('worker heartbeat failed: ' + repr(e))
@@ -301,7 +301,7 @@ def _check_state():
   """Check that the worker's state is consistent with the host's knowledge."""
   try:
     status = stub().GetStatus(
-        untrusted_runner_pb2.GetStatusRequest(),
+        untrusted_runner_pb2.GetStatusRequest(),  # pylint: disable=no-member
         timeout=config.GET_STATUS_TIMEOUT_SECONDS)
   except grpc.RpcError:
     logs.log_error('GetStatus failed.')
@@ -342,7 +342,7 @@ def update_worker():
   _host_state.expect_shutdown = True
   try:
     stub().UpdateSource(
-        untrusted_runner_pb2.UpdateSourceRequest(),
+        untrusted_runner_pb2.UpdateSourceRequest(),  # pylint: disable=no-member
         timeout=config.UPDATE_SOURCE_TIMEOUT_SECONDS)
   except grpc.RpcError:
     # Assume server got the shutdown request.

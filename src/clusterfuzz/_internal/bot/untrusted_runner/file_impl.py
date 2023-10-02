@@ -21,6 +21,8 @@ from clusterfuzz._internal.system import shell
 
 from . import file_utils
 
+# pylint: disable=no-member
+
 
 def create_directory(request, _):
   """Create a directory."""
