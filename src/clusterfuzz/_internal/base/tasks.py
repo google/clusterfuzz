@@ -288,7 +288,7 @@ def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
   if (environment.platform() != 'LINUX' or
-      not utils.use_untrusted_execution_env_for_utasks()):
+      not environment.get_value('REMOTE_UTASK_EXECUTION')):
     return None
   pubsub_client = pubsub.PubSubClient()
   application_id = utils.get_application_id()

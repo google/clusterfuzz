@@ -90,7 +90,7 @@ class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
     if (not is_production() or
-        not utils.use_untrusted_execution_env_for_utasks()):
+        not environment.get_value('REMOTE_UTASK_EXECUTION')):
       super().execute(task_argument, job_type, uworker_env)
       return
 
