@@ -196,7 +196,7 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
       wait_time=testcase_fail_wait)
 
 
-HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]
+HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]  # pylint: disable=no-member
 
 
 def preprocess_setup_testcase(testcase, fuzzer_override=None):
@@ -241,7 +241,7 @@ def setup_testcase(testcase, job_type, setup_input, metadata=None):
       testcase_id=str(testcase_id), job_type=job_type)
   uworker_error_output = uworker_io.UworkerOutput(
       uworker_input=uworker_error_input,
-      error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+      error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)  # pylint: disable=no-member
 
   testcase_setup_error_result = (None, None, uworker_error_output)
 

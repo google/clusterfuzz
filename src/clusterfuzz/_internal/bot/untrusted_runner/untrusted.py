@@ -42,6 +42,8 @@ from . import tasks_impl
 
 SHUTDOWN_GRACE_SECONDS = 5
 
+# pylint: disable=no-member
+
 
 class WorkerState(object):
   """Worker's state."""
