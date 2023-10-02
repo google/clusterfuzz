@@ -360,10 +360,16 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   if not testcase:
     return None
 
+  # Allow setting up a different fuzzer.
+  minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
+  setup_input = setup.preprocess_setup_testcase(
+      testcase, fuzzer_override=minimize_fuzzer_override)
+
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=str(testcase_id),
       testcase=testcase,
+      setup_input=setup_input,
       uworker_env=uworker_env)
 
 
@@ -374,13 +380,9 @@ def utask_main(uworker_input):
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  # Setup testcase and its dependencies. Also, allow setting up a different
-  # fuzzer.
-  minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
-  setup_input = setup.preprocess_setup_testcase(
-      testcase, fuzzer_override=minimize_fuzzer_override)
+  # Setup testcase and its dependencies.
   file_list, testcase_file_path, uworker_error_output = setup.setup_testcase(
-      testcase, uworker_input.job_type, setup_input)
+      testcase, uworker_input.job_type, uworker_input.setup_input)
   if uworker_error_output:
     return uworker_error_output
 
