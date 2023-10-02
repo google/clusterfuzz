@@ -112,7 +112,8 @@ sudo apt-get install -y \
     docker-ce \
     google-cloud-sdk \
     openjdk-11-jdk \
-    liblzma-dev
+    liblzma-dev \
+    pipenv
 
 # Install patchelf - latest version not available on some older distros so we
 # compile from source.
