@@ -178,9 +178,7 @@
             "version": "==1.8.0"
         },
         "google-api-core": {
-            "extras": [
-                "grpc"
-            ],
+            "extras": [],
             "hashes": [
                 "sha256:6fb380f49d19ee1d09a9722d0379042b7edb06c0112e4796c7a395078a043e71",
                 "sha256:7421474c39d396a74dfa317dddbc69188f2336835f526087c7648f91105e32ff"
@@ -1128,9 +1126,7 @@
             "version": "==1.1.2"
         },
         "google-api-core": {
-            "extras": [
-                "grpc"
-            ],
+            "extras": [],
             "hashes": [
                 "sha256:6fb380f49d19ee1d09a9722d0379042b7edb06c0112e4796c7a395078a043e71",
                 "sha256:7421474c39d396a74dfa317dddbc69188f2336835f526087c7648f91105e32ff"
