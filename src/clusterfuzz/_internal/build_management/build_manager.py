@@ -1448,7 +1448,7 @@ def setup_build(revision=0, target_weights=None):
 
 def is_custom_binary():
   """Determine if this is a custom or preinstalled system binary."""
-  return (environment.get_value('CUSTOM_BINARY') or
+  return bool(environment.get_value('CUSTOM_BINARY') or
           environment.get_value('SYSTEM_BINARY_DIR'))
 
 
