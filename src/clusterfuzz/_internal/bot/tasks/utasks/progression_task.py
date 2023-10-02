@@ -70,8 +70,8 @@ def handle_progression_revision_list_error(
 
 
 def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
-  """Handles crash on latest revision, or custom binary crashes. Saves the 
-  crash info for non-custom binaries."""
+  """Handles crash on latest revision, or custom binary crashes. Saves the crash
+  info for non-custom binaries."""
   testcase_id = uworker_output.uworker_input.testcase_id
   progression_task_output = uworker_output.progression_task_output
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -95,8 +95,8 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
 
 def handle_progression_bad_state_min_max(
     uworker_output: uworker_io.UworkerOutput):
-  """Handles when we end up in a state having min and max 
-  versions the same during a progression."""
+  """Handles when we end up in a state having min and max versions the same
+  during a progression."""
   testcase = data_handler.get_testcase_by_id(
       uworker_output.uworker_input.testcase_id)
   testcase.fixed = 'NA'
@@ -352,8 +352,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
   progression_input = uworker_io.ProgressionTaskInput()
-  progression_input.custom_binary = (
-      build_manager.is_custom_binary() is not None)
+  progression_input.custom_binary = build_manager.is_custom_binary()
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=testcase_id,
