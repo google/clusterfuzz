@@ -43,7 +43,6 @@ from clusterfuzz._internal.bot.fuzzers.afl import stats
 from clusterfuzz._internal.bot.fuzzers.afl.fuzzer import write_dummy_file
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
@@ -1671,7 +1670,6 @@ def main(argv):
   # same python process.
   logs.configure('run_fuzzer')
   _verify_system_config()
-  profiler.start_if_needed('afl_launcher')
 
   build_directory = environment.get_value('BUILD_DIR')
   fuzzer_path = engine_common.find_fuzzer_path(build_directory, target_name)
