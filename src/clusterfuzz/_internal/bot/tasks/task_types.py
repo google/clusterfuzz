@@ -14,7 +14,6 @@
 """Types of tasks. This needs to be seperate from commands.py because
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
-from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
