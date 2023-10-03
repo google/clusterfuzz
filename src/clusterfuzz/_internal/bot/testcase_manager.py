@@ -569,7 +569,7 @@ def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
   return result
 
 
-class TestcaseRunner(object):
+class TestcaseRunner:
   """Testcase runner."""
 
   def __init__(self,

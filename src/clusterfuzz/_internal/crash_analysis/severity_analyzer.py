@@ -98,7 +98,7 @@ def get_security_severity(crash_type, crash_output, job_name,
   return analyzer.analyze(crash_type, crash_output, requires_gestures)
 
 
-class SeverityAnalyzerSanitizer(object):
+class SeverityAnalyzerSanitizer:
   """Generic ASan severity analyzer."""
 
   def analyze(self, crash_type, crash_output, requires_gestures):

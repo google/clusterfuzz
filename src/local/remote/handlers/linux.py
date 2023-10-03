@@ -25,7 +25,7 @@ class Handler(posix.Handler):
     assert project, 'Need to specify a project via --project argument.'
     assert zone, 'Need to specify a zone via --zone argument.'
 
-    super(Handler, self).__init__(
+    super().__init__(
         instance_name=instance_name,
         platform='linux',
         project=project,

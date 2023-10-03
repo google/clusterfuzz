@@ -62,7 +62,7 @@ def create_generic_issue_comment(comment_body='Comment.',
 def create_issue_tracker_manager():
   """Create a fake issue tracker manager."""
 
-  class FakeIssueTrackerManager(object):
+  class FakeIssueTrackerManager:
     """Mock issue tracker manager."""
 
     def __init__(self):

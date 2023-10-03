@@ -22,11 +22,13 @@ from unittest import mock
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
+from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -187,9 +189,11 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
+    setup_input = setup.preprocess_setup_testcase(testcase)
     uworker_input = uworker_io.DeserializedUworkerMsg(
         job_type='libfuzzer_asan_job',
         testcase=testcase,
+        setup_input=setup_input,
         testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
 
@@ -260,10 +264,98 @@ class ExtractCrashResultTest(unittest.TestCase):
     self.assertEqual(expected,
                      minimize_task._extract_crash_result(crash_result, command))  # pylint: disable=protected-access
 
-  def test_null_crash_result_raises(self):
+  def test_null_crash_result_raises_error(self):
     """Test a null crash result input raises an error as expected."""
     crash_result = None
     command = ''
 
     with self.assertRaises(errors.BadStateError):
       minimize_task._extract_crash_result(crash_result, command)  # pylint: disable=protected-access
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UTaskPostprocessTest(unittest.TestCase):
+  """Tests for utask_postprocess."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.minimize_task.finalize_testcase',
+    ])
+
+  def _get_generic_input(self):
+    testcase = data_types.Testcase()
+    uworker_input = uworker_io.UworkerInput(
+        job_type='job_type', testcase_id='testcase_id', testcase=testcase)
+    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
+    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    return uworker_input
+
+  def _create_output(self, uworker_input=None, **kwargs):
+    uworker_output = uworker_io.UworkerOutput(**kwargs)
+    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
+    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+    if uworker_input:
+      uworker_output.uworker_input = uworker_input
+    return uworker_output
+
+  def test_error_does_not_finalize_testcase(self):
+    """Checks that an output with an error does not finalize a testcase."""
+    uworker_output = self._create_output(
+        error=uworker_msg_pb2.ErrorType.UNHANDLED)
+    minimize_task.utask_postprocess(uworker_output)
+    self.assertFalse(self.mock.finalize_testcase.called)
+
+  def test_generic_output_finalizes_testcase(self):
+    """Checks that an output with all critical fields finalizes a testcase."""
+    self.mock.finalize_testcase.return_value = None
+    last_crash_result_dict = {'crash_type': 'placeholder'}
+    minimize_task_output = uworker_io.MinimizeTaskOutput(
+        last_crash_result_dict=last_crash_result_dict)
+    uworker_output = self._create_output(
+        uworker_input=self._get_generic_input(),
+        minimize_task_output=minimize_task_output)
+
+    minimize_task.utask_postprocess(uworker_output)
+
+    self.assertTrue(self.mock.finalize_testcase.called)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UTaskMainTest(unittest.TestCase):
+  """Tests for minimize_worker.UTaskMain."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  @mock.patch(
+      'clusterfuzz._internal.build_management.build_manager.check_app_path',
+      return_value=False)
+  @mock.patch(
+      'clusterfuzz._internal.build_management.build_manager.setup_build')
+  @mock.patch('clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase')
+  @mock.patch('clusterfuzz._internal.bot.tasks.setup.setup_testcase')
+  def test_check_app_path_exit(self, setup_testcase, preprocess_setup_testcase,
+                               setup_build, check_app_path):
+    """Tests that the path taken when check_app_path returns False, works as
+    expected."""
+    preprocess_setup_testcase.return_value = None
+    setup_testcase.return_value = ([], '/path', None)
+    del setup_build
+    del check_app_path
+    testcase = data_types.Testcase()
+    testcase.put()
+    testcase_id = testcase.key.id()
+    build_fail_wait = 10
+    environment.set_value('FAIL_WAIT', 10)
+    uworker_input = uworker_io.UworkerInput(testcase=testcase)
+    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
+    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    uworker_output = minimize_task.utask_main(uworker_input)
+    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
+    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+    self.assertEqual(uworker_output.testcase.key.id(), testcase_id)
+    self.assertEqual(uworker_output.minimize_task_output.build_fail_wait,
+                     build_fail_wait)
+    self.assertEqual(uworker_output.error,
+                     uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)

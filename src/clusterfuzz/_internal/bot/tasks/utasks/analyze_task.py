@@ -26,7 +26,6 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
-from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
@@ -92,20 +91,27 @@ def setup_build(testcase: data_types.Testcase,
     if not revision_list:
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)
+          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
-      data_handler.update_testcase_comment(
-          testcase, data_types.TaskState.ERROR,
-          f'Build {testcase.job_type} r{revision} does not exist')
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
   return None
+
+
+def handle_analyze_no_revision_index(output):
+  testcase = testcase = data_handler.get_testcase_by_id(
+      output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(
+      testcase, data_types.TaskState.ERROR,
+      f'Build {testcase.job_type} r{testcase.crash_revision} '
+      'does not exist')
+  handle_build_setup_error(output)
 
 
 def prepare_env_for_main(testcase_upload_metadata):
@@ -148,7 +154,7 @@ def setup_testcase_and_build(
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         testcase_upload_metadata=testcase_upload_metadata,
-        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
 
   update_testcase_after_build_setup(testcase)
   testcase.absolute_path = testcase_file_path
@@ -182,19 +188,6 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.queue = tasks.default_queue()
   testcase.crash_state = ''
   testcase.put()
-
-
-def save_minidump(testcase, state, application_command_line, gestures,
-                  analyze_input):
-  """Saves a minidump when on Windows."""
-  # Get crash info object with minidump info. Also, re-generate unsymbolized
-  # stacktrace if needed.
-  crash_info, _ = (
-      crash_uploader.get_crash_info_and_stacktrace(
-          application_command_line, state.crash_stacktrace, gestures))
-  if crash_info:
-    testcase.minidump_keys = crash_info.store_minidump(
-        analyze_input.minidump_upload_url, analyze_input.minidump_keys)
 
 
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
@@ -310,9 +303,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def get_analyze_task_input():
   analyze_input = uworker_io.AnalyzeTaskInput()
-  signed_upload_url, key = crash_uploader.preprocess_store_minidump()
-  analyze_input.minidump_upload_url = signed_upload_url
-  analyze_input.minidump_blob_keys = key
   analyze_input.bad_builds = build_manager.get_job_bad_builds()
   return analyze_input
 
@@ -336,7 +326,6 @@ def utask_main(uworker_input):
     return output
 
   # Initialize some variables.
-  gestures = uworker_input.testcase.gestures
   test_timeout = environment.get_value('TEST_TIMEOUT')
   result, http_flag = test_for_crash_with_retries(
       uworker_input.testcase, testcase_file_path, test_timeout)
@@ -351,8 +340,6 @@ def utask_main(uworker_input):
   crash_time = result.get_crash_time()
   state = result.get_symbolized_data()
 
-  save_minidump(uworker_input.testcase, state, application_command_line,
-                gestures, uworker_input.analyze_task_input)
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
   # In the general case, we will not attempt to symbolize if we do not detect
@@ -368,7 +355,7 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput(
         testcase=uworker_input.testcase,
         testcase_upload_metadata=uworker_input.testcase_upload_metadata,
-        error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
+        error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
         test_timeout=test_timeout)
   # Update testcase crash parameters.
   update_testcase_after_crash(uworker_input.testcase, state,
@@ -422,12 +409,16 @@ def handle_build_setup_error(output):
       output.testcase, output.testcase_upload_metadata, 'Build setup failed')
 
 
+# pylint: disable=no-member
 HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
     uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
-    uworker_msg_pb2.ErrorType.UNHANDLED
+    uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX,
+    uworker_msg_pb2.ErrorType.UNHANDLED,
 ] + setup.HANDLED_ERRORS
+
+# pylint: enable=no-member
 
 
 def utask_postprocess(output):

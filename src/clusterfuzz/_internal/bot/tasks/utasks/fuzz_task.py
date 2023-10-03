@@ -34,9 +34,9 @@ from clusterfuzz._internal.bot.fuzzers.libFuzzer import stats as libfuzzer_stats
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
-from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -55,6 +55,7 @@ from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
@@ -222,7 +223,7 @@ class Crash:
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
-    # self.crash_info gets populated in create_testcase; save what we need.
+    # self.crash_infoo gets populated in create_testcase; save what we need.
     self.crash_frames = state.frames
     self.crash_info = None
 
@@ -892,18 +893,6 @@ def get_fixed_or_minimized_key(one_time_crasher_flag):
   return 'NA' if one_time_crasher_flag else ''
 
 
-def get_minidump_keys(crash_info):
-  """Get minidump_keys."""
-  # This is a new crash, so add its minidump to blobstore first and get the
-  # blob key information.
-  if crash_info:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-    # preprocess.
-    signed_upload_url, key = crash_uploader.preprocess_store_minidump()
-    return crash_info.store_minidump(signed_upload_url, key)
-  return ''
-
-
 def get_testcase_timeout_multiplier(timeout_multiplier, crash, test_timeout,
                                     thread_wait_timeout):
   """Get testcase timeout multiplier."""
@@ -939,7 +928,6 @@ def create_testcase(group, context):
       gestures=crash.gestures,
       redzone=context.redzone,
       disable_ubsan=context.disable_ubsan,
-      minidump_keys=get_minidump_keys(crash.crash_info),
       window_argument=context.window_argument,
       timeout_multiplier=get_testcase_timeout_multiplier(
           context.timeout_multiplier, crash, context.test_timeout,
@@ -979,14 +967,6 @@ def create_testcase(group, context):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashers (stack).
   task_creation.create_tasks(testcase)
-
-  # If this is a new reproducible crash, annotate for upload to Chromecrash.
-  if (not (group.one_time_crasher_flag or
-           group.has_existing_reproducible_testcase())):
-    crash.crash_info = crash_uploader.save_crash_info_if_needed(
-        testcase_id, context.crash_revision, context.job_type, crash.crash_type,
-        crash.crash_address, crash.crash_frames)
-
   return testcase
 
 
@@ -1757,21 +1737,16 @@ class FuzzingSession:
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-    # preprocess.
-    update_fuzzer_and_data_bundles_input = (
-        setup.preprocess_update_fuzzer_and_data_bundles(self.fuzzer_name))
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
-        update_fuzzer_and_data_bundles_input)
+        self.uworker_input.setup_input)
     if not self.fuzzer:
-      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
-                               FuzzErrorCode.FUZZER_SETUP_FAILED)
       logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
 
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return None
+      return uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1785,9 +1760,8 @@ class FuzzingSession:
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
-      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
-                               FuzzErrorCode.BUILD_SETUP_FAILED)
-      return None
+      return uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
 
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
@@ -1807,17 +1781,16 @@ class FuzzingSession:
                                                         crash_revision)
     _track_build_run_result(self.job_type, crash_revision, is_bad_build)
     if is_bad_build:
-      return None
+      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
     self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
     if not self.data_directory:
-      _track_fuzzer_run_result(self.fuzzer_name, 0, 0,
-                               FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return None
+      return uworker_io.UworkerOutput(
+          error=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
     engine_impl = engine.get(self.fuzzer.name)
 
@@ -1836,7 +1809,7 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return None
+      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     logs.log('Finished processing test cases.')
 
@@ -1902,10 +1875,6 @@ class FuzzingSession:
             job_run_crashes=convert_groups_to_crashes(processed_groups),
         ),)
 
-  def preprocess(self):
-    """Handles preprocessing."""
-    # TODO(metzman): Finish this.
-
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
@@ -1915,6 +1884,21 @@ class FuzzingSession:
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
         fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
+
+
+def handle_fuzz_build_setup_failure(output):
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+                           FuzzErrorCode.BUILD_SETUP_FAILED)
+
+
+def handle_fuzz_data_bundle_setup_failure(output):
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+                           FuzzErrorCode.DATA_BUNDLE_SETUP_FAILED)
+
+
+def handle_fuzz_no_fuzzer(output):
+  _track_fuzzer_run_result(output.uworker_input.fuzzer_name, 0, 0,
+                           FuzzErrorCode.FUZZER_SETUP_FAILED)
 
 
 def utask_main(uworker_input):
@@ -1931,7 +1915,16 @@ def _make_session(uworker_input):
   )
 
 
+HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.UNHANDLED,
+    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE,
+    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE,
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER,
+]
+
+
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
@@ -1939,9 +1932,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
+      setup_input=setup_input,
   )
 
 
 def utask_postprocess(output):
+  if output.error:
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    return
   session = _make_session(output.uworker_input)
   session.postprocess(output)

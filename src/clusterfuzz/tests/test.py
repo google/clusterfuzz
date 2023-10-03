@@ -25,7 +25,7 @@ TEST_DATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
 
 def _load_test_data(path):
   """Load test data."""
-  with open(os.path.join(TEST_DATA_DIR, path), 'r') as f:
+  with open(os.path.join(TEST_DATA_DIR, path)) as f:
     return f.read()
 
 

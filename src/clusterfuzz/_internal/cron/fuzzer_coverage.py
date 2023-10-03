@@ -27,7 +27,7 @@ from clusterfuzz._internal.metrics import logs
 
 def _latest_report_info_dir(bucket):
   """Returns a GCS URL to the latest report info for the given bucket."""
-  return 'gs://{0}/latest_report_info/'.format(bucket)
+  return f'gs://{bucket}/latest_report_info/'
 
 
 def _basename(gcs_path):

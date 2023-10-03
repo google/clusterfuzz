@@ -46,24 +46,21 @@ class TestcaseTest(unittest.TestCase):
     testcase = testcase.key.get()
 
     self.assertSetEqual(
-        set(['state', 'type', 'job', 'fuzzer', 'overfuzzer', 'windows']),
+        {'state', 'type', 'job', 'fuzzer', 'overfuzzer', 'windows'},
         set(testcase.keywords))
-    self.assertSetEqual(set(['333', '999']), set(testcase.bug_indices))
+    self.assertSetEqual({'333', '999'}, set(testcase.bug_indices))
     self.assertTrue(testcase.has_bug_flag)
-    self.assertSetEqual(
-        set(['fuzzer', 'Overfuzzer']), set(testcase.fuzzer_name_indices))
-    self.assertSetEqual(
-        set(['s', 's.1']), set(testcase.impact_stable_version_indices))
-    self.assertSetEqual(
-        set(['b', 'b.3']), set(testcase.impact_beta_version_indices))
-    self.assertSetEqual(
-        set(['es', 'es.1']),
-        set(testcase.impact_extended_stable_version_indices))
-    self.assertSetEqual(
-        set([
-            'es', 'es.1', 's', 's.1', 'b', 'b.3', 'stable', 'beta',
-            'extended_stable'
-        ]), set(testcase.impact_version_indices))
+    self.assertSetEqual({'fuzzer', 'Overfuzzer'},
+                        set(testcase.fuzzer_name_indices))
+    self.assertSetEqual({'s', 's.1'},
+                        set(testcase.impact_stable_version_indices))
+    self.assertSetEqual({'b', 'b.3'}, set(testcase.impact_beta_version_indices))
+    self.assertSetEqual({'es', 'es.1'},
+                        set(testcase.impact_extended_stable_version_indices))
+    self.assertSetEqual({
+        'es', 'es.1', 's', 's.1', 'b', 'b.3', 'stable', 'beta',
+        'extended_stable'
+    }, set(testcase.impact_version_indices))
 
   def test_put_head(self):
     """Tests put() when the impact is head."""
@@ -78,7 +75,7 @@ class TestcaseTest(unittest.TestCase):
 
     testcase = testcase.key.get()
 
-    self.assertSetEqual(set(['head']), set(testcase.impact_version_indices))
+    self.assertSetEqual({'head'}, set(testcase.impact_version_indices))
 
   def test_chromium_extended_stable(self):
     """Test put() when only impact_extended_stable_version is set."""
@@ -93,12 +90,10 @@ class TestcaseTest(unittest.TestCase):
 
     testcase = testcase.key.get()
 
-    self.assertSetEqual(
-        set(['es', 'es.1']),
-        set(testcase.impact_extended_stable_version_indices))
-    self.assertSetEqual(
-        set(['es', 'es.1', 'extended_stable']),
-        set(testcase.impact_version_indices))
+    self.assertSetEqual({'es', 'es.1'},
+                        set(testcase.impact_extended_stable_version_indices))
+    self.assertSetEqual({'es', 'es.1', 'extended_stable'},
+                        set(testcase.impact_version_indices))
 
   def test_non_chromium(self):
     """Test put(). It should tokenize certain fields."""

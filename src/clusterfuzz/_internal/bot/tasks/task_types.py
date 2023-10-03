@@ -16,6 +16,7 @@ base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import environment
 
 
 class BaseTask:
@@ -54,21 +55,11 @@ class UTask(BaseTask):
     # TODO(metzman): Execute main on other machines.
 
 
-class UTaskLocalPreprocessAndMain(BaseTask):
-  """Represents an untrusted task. Executes the preprocess and main parts on
-  this machine and causes postprocess to be executed on on other machines."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
-
-    if preprocess_result is None:
-      return
-
-    input_download_url, _ = preprocess_result
-    utasks.uworker_main(input_download_url)
-    logs.log('Utask: done with preprocess and main.')
+def is_production():
+  return not (environment.is_local_development() or
+              environment.get_value('UNTRUSTED_RUNNER_TESTS') or
+              environment.get_value('LOCAL_DEVELOPMENT') or
+              environment.get_value('UTASK_TESTS'))
 
 
 class UTaskLocalExecutor(BaseTask):
@@ -86,6 +77,31 @@ class UTaskLocalExecutor(BaseTask):
       return
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.log('Utask local: done.')
+
+
+class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
+  """Represents an untrusted task. Executes the preprocess and main parts on
+  this machine and causes postprocess to be executed on on other machines."""
+
+  # TODO(metzman): Delete this once we start using UTasks. Its only purpose is
+  # for incremental development.
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally."""
+    if (not is_production() or
+        not environment.get_value('REMOTE_UTASK_EXECUTION')):
+      super().execute(task_argument, job_type, uworker_env)
+      return
+
+    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
+                                                  job_type, uworker_env)
+
+    if preprocess_result is None:
+      return
+
+    input_download_url, _ = preprocess_result
+    utasks.uworker_main(input_download_url)
+    logs.log('Utask: done with preprocess and main.')
 
 
 class PostprocessTask(BaseTask):
@@ -128,7 +144,7 @@ class UworkerMainTask(BaseTask):
 
 COMMAND_TYPES = {
     # TODO(metzman): Change analyze task away from in-memory.
-    'analyze': UTaskLocalExecutor,
+    'analyze': UTaskLocalPreprocessAndMain,
     'blame': TrustedTask,
     'corpus_pruning': UTaskLocalExecutor,
     'fuzz': UTaskLocalExecutor,
@@ -138,8 +154,7 @@ COMMAND_TYPES = {
     'regression': UTaskLocalExecutor,
     'symbolize': TrustedTask,
     'unpack': TrustedTask,
-    'uworker_postprocess': PostprocessTask,
-    'upload_reports': TrustedTask,
+    'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
     'variant': UTaskLocalExecutor,
 }

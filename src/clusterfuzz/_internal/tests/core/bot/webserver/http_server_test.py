@@ -26,7 +26,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 class TestRequestHandler(http_server.RequestHandler):
   """Override methods which would be problematic for testing."""
 
-  class TestWFile(object):
+  class TestWFile:
 
     def __init__(self):
       self.contents = ''

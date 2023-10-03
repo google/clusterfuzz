@@ -76,7 +76,7 @@ MANDATORY_OSS_FUZZ_OPTIONS = [
 ]
 
 
-class MinimizationPhase(object):
+class MinimizationPhase:
   """Effectively an enum to represent the current phase of minimization."""
   GESTURES = 0
   MAIN_FILE = 1
@@ -85,7 +85,7 @@ class MinimizationPhase(object):
   ARGUMENTS = 4
 
 
-class TestRunner(object):
+class TestRunner:
   """Helper class for running the same test multiple times."""
 
   def __init__(self, testcase, file_path, files, input_directory, arguments,
@@ -360,24 +360,22 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   if not testcase:
     return None
 
-  # Allow setting up a different fuzzer. E.g. minimize and AFL testcase with
-  # libFuzzer.
+  # Allow setting up a different fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
   setup_input = setup.preprocess_setup_testcase(
       testcase, fuzzer_override=minimize_fuzzer_override)
+
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=str(testcase_id),
       testcase=testcase,
-      uworker_env=uworker_env,
-      setup_input=setup_input)
+      setup_input=setup_input,
+      uworker_env=uworker_env)
 
 
 def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
-  # Get deadline to finish this task.
   testcase = uworker_input.testcase
-  deadline = tasks.get_task_completion_deadline()
 
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -406,7 +404,6 @@ def utask_main(uworker_input):
     build_fail_wait = environment.get_value('FAIL_WAIT')
     return uworker_io.UworkerOutput(
         testcase=testcase,
-        job_type=uworker_input.job_type,
         minimize_task_output=uworker_io.MinimizeTaskOutput(
             build_fail_wait=build_fail_wait),
         error=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
@@ -435,6 +432,8 @@ def utask_main(uworker_input):
                                     additional_required_arguments)
 
   input_directory = environment.get_value('FUZZ_INPUTS')
+  # Get deadline to finish this task.
+  deadline = tasks.get_task_completion_deadline()
   test_runner = TestRunner(testcase, testcase_file_path, file_list,
                            input_directory, app_arguments, required_arguments,
                            max_threads, deadline)
@@ -591,8 +590,7 @@ def utask_main(uworker_input):
   minimize_task_output = uworker_io.MinimizeTaskOutput(
       last_crash_result_dict=_extract_crash_result(last_crash_result, command),
       flaky_stack=flaky_stack)
-  return uworker_io.UworkerOutput(
-      testcase=testcase, minimize_task_output=minimize_task_output)
+  return uworker_io.UworkerOutput(minimize_task_output=minimize_task_output)
 
 
 HANDLED_ERRORS = [
@@ -604,14 +602,14 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
-  if output.error is not None:
+  if output.error:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
   finalize_testcase(
       output.uworker_input.testcase_id,
-      output.last_crash_result_dict,
-      flaky_stack=output.flaky_stack)
+      output.minimize_task_output.last_crash_result_dict,
+      flaky_stack=output.minimize_task_output.flaky_stack)
 
 
 def handle_minimize_setup_error(output):
@@ -628,7 +626,7 @@ def handle_minimize_setup_error(output):
         'minimize',
         output.uworker_input.testcase_id,
         output.uworker_input.job_type,
-        wait_time=output.build_fail_wait)
+        wait_time=output.minimize_task_output.build_fail_wait)
 
 
 def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
@@ -829,7 +827,7 @@ def store_minimized_testcase(testcase, base_directory, file_list,
           testcase.absolute_path = os.path.join(base_directory,
                                                 os.path.basename(file_path))
           testcase.archive_state &= ~data_types.ArchiveStatus.MINIMIZED
-      except IOError:
+      except OSError:
         testcase.put()  # Preserve what we can.
         logs.log_error('Unable to open archive for blobstore write.')
         return

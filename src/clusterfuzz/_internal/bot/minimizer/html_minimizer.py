@@ -38,7 +38,7 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
      acts as a wrapper around other minimizers and passes pieces of the HTML
      file to those."""
 
-  class Token(object):
+  class Token:
     """Helper class to represent a single token."""
     TYPE_HTML = 0
     TYPE_SCRIPT = 1
@@ -47,7 +47,7 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
       self.data = data
       self.token_type = token_type
 
-  class TokenizerState(object):
+  class TokenizerState:
     """Enum for tokenizer states."""
     SEARCHING_FOR_SCRIPT = 0
     SEARCHING_FOR_TAG_END = 1
@@ -70,7 +70,7 @@ class HTMLMinimizer(minimizer.Minimizer):  # pylint:disable=abstract-method
   def __init__(self, test_function, *args, **kwargs):
     # The HTML minimizer will not be used directly. Instead, preserve its
     # arguments and pass them along when creating subminimizers.
-    super(HTMLMinimizer, self).__init__(lambda: False)
+    super().__init__(lambda: False)
 
     assert not args, 'Positional arguments not supported.'
     assert 'tokenizer' not in kwargs, 'Custom tokenizers not supported.'

@@ -127,6 +127,6 @@ def _complex_tokenize(s, limit):
     if count >= limit:
       break
 
-  tokens = set(t.lower() for t in tokens if t.strip())
+  tokens = {t.lower() for t in tokens if t.strip()}
   tokens |= _complex_tokenize(s[second_token_index:], limit=limit)
   return tokens

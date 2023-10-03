@@ -41,7 +41,7 @@ class BuildInfoTest(unittest.TestCase):
       if not match:
         return None
       res = []
-      with open(CD_ALL, 'r') as all_info:
+      with open(CD_ALL) as all_info:
         info_json = json.load(all_info)
         for info in info_json:
           if info['platform'] == match.group(1):
