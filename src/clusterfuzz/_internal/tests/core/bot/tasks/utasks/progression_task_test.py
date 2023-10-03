@@ -219,7 +219,10 @@ class UTaskPostprocessTest(unittest.TestCase):
     """Tests utask_postprocess behaviour for non_custom binaries in the absence of errors."""
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
-    uworker_output = self._create_output(uworker_input=uworker_input)
+    progression_task_output = uworker_io.ProgressionTaskOutput()
+    uworker_output = self._create_output(
+        uworker_input=uworker_input,
+        progression_task_output=progression_task_output)
 
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
