@@ -179,8 +179,8 @@ class UTaskPostprocessTest(unittest.TestCase):
     """Checks that an output with an error is handled properly."""
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
-    uworker_output = self._create_output(uworker_input=uworker_input,
-        error=uworker_msg_pb2.ErrorType.UNHANDLED)
+    uworker_output = self._create_output(
+        uworker_input=uworker_input, error=uworker_msg_pb2.ErrorType.UNHANDLED)
     progression_task.utask_postprocess(uworker_output)
     self.assertTrue(self.mock.handle.called)
 
@@ -190,7 +190,8 @@ class UTaskPostprocessTest(unittest.TestCase):
     uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True)
-    uworker_output = self._create_output(uworker_input=uworker_input,
+    uworker_output = self._create_output(
+        uworker_input=uworker_input,
         progression_task_output=progression_task_output)
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
@@ -200,7 +201,8 @@ class UTaskPostprocessTest(unittest.TestCase):
     """Tests utask_postprocess behaviour for custom binaries in the absence of errors."""
     progression_task_input = uworker_io.ProgressionTaskInput(custom_binary=True)
     testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()),
+    uworker_input = uworker_io.UworkerInput(
+        testcase_id=str(testcase.key.id()),
         progression_task_input=progression_task_input)
     self.assertEqual(testcase.fixed, '')
     self.assertTrue(testcase.open)
