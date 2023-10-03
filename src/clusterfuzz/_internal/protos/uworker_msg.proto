@@ -39,6 +39,7 @@ message AnalyzeTaskInput {
 }
 
 message CorpusPruningTaskInput {
+  google.datastore.v1.Entity fuzz_target = 1;
 }
 
 message FuzzTaskInput {
@@ -86,7 +87,7 @@ message AnalyzeTaskOutput {
 }
 
 message CorpusPruningTaskOutput {
-  google.datastore.v1.Entity fuzz_target = 1;
+  // TODO(metzman): Fill this out.
 }
 
 message FuzzTaskOutput {

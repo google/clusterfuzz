@@ -26,6 +26,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -165,8 +166,17 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
 
   def test_prune(self):
     """Basic pruning test."""
+    fuzzer_name = 'libFuzzer_test_fuzzer'
+    setup_input = setup.preprocess_update_fuzzer_and_data_bundles('libFuzzer')
+    fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+    corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
+        fuzz_target=fuzz_target)
     uworker_input = uworker_io.DeserializedUworkerMsg(
-        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+        job_type='libfuzzer_asan_job',
+        fuzzer_name=fuzzer_name,
+        setup_input=setup_input,
+        corpus_pruning_task_input=corpus_pruning_task_input,
+    )
     corpus_pruning_task.utask_main(uworker_input)
 
     quarantined = os.listdir(self.quarantine_dir)

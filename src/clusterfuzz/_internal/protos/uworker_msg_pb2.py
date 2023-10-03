@@ -35,7 +35,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xdc\x02\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\"C\n\x10\x41nalyzeTaskInput\x12/\n\nbad_builds\x18\x01 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\"\x18\n\x16\x43orpusPruningTaskInput\"\x0f\n\rFuzzTaskInput\"M\n\x11MinimizeTaskInput\x12 \n\x13testcase_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x16\n\x14_testcase_upload_url\"\x15\n\x13RegressionTaskInput\"D\n\x14ProgressionTaskInput\x12\x1a\n\rcustom_binary\x18\x01 \x01(\x08H\x00\x88\x01\x01\x42\x10\n\x0e_custom_binary\"\xd3\x08\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x04\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x05\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x06\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\x08\x88\x01\x01\x12%\n\x0bsetup_input\x18\x0b \x01(\x0b\x32\x0b.SetupInputH\t\x88\x01\x01\x12\x32\n\x12\x61nalyze_task_input\x18\x0c \x01(\x0b\x32\x11.AnalyzeTaskInputH\n\x88\x01\x01\x12?\n\x19\x63orpus_pruning_task_input\x18\r \x01(\x0b\x32\x17.CorpusPruningTaskInputH\x0b\x88\x01\x01\x12,\n\x0f\x66uzz_task_input\x18\x0e \x01(\x0b\x32\x0e.FuzzTaskInputH\x0c\x88\x01\x01\x12\x34\n\x13minimize_task_input\x18\x0f \x01(\x0b\x32\x12.MinimizeTaskInputH\r\x88\x01\x01\x12\x38\n\x15regression_task_input\x18\x10 \x01(\x0b\x32\x14.RegressionTaskInputH\x0e\x88\x01\x01\x12:\n\x16progression_task_input\x18\x11 \x01(\x0b\x32\x15.ProgressionTaskInputH\x0f\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x12 \x01(\tH\x10\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x1c\n\x1a_corpus_pruning_task_inputB\x12\n\x10_fuzz_task_inputB\x16\n\x14_minimize_task_inputB\x18\n\x16_regression_task_inputB\x19\n\x17_progression_task_inputB\x0e\n\x0c_module_name\"\x13\n\x11\x41nalyzeTaskOutput\"K\n\x17\x43orpusPruningTaskOutput\x12\x30\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\"\xc3\x03\n\x0e\x46uzzTaskOutput\x12\x18\n\x0b\x66uzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1c\n\x0fnew_crash_count\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12\x1e\n\x11known_crash_count\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x05\x88\x01\x01\x12#\n\x0fjob_run_crashes\x18\x07 \x01(\x0b\x32\x05.JsonH\x06\x88\x01\x01\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x0e\n\x0c_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x12\n\x10_new_crash_countB\x14\n\x12_known_crash_countB\x15\n\x13_testcases_executedB\x12\n\x10_job_run_crashesB\x1e\n\x1c_fully_qualified_fuzzer_name\"\xb7\x01\n\x12MinimizeTaskOutput\x12*\n\x16last_crash_result_dict\x18\x01 \x01(\x0b\x32\x05.JsonH\x00\x88\x01\x01\x12\x18\n\x0b\x66laky_stack\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\x1c\n\x0f\x62uild_fail_wait\x18\x03 \x01(\x03H\x02\x88\x01\x01\x42\x19\n\x17_last_crash_result_dictB\x0e\n\x0c_flaky_stackB\x12\n\x10_build_fail_wait\"\x16\n\x14RegressionTaskOutput\"\xdf\x02\n\x15ProgressionTaskOutput\x12\x19\n\x0cmin_revision\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cmax_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1c\n\x0f\x63rash_on_latest\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12$\n\x17\x63rash_on_latest_message\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x05 \x01(\tH\x04\x88\x01\x01\x12)\n\x1clast_tested_crash_stacktrace\x18\x06 \x01(\tH\x05\x88\x01\x01\x42\x0f\n\r_min_revisionB\x0f\n\r_max_revisionB\x12\n\x10_crash_on_latestB\x1a\n\x18_crash_on_latest_messageB\x11\n\x0f_crash_revisionB\x1f\n\x1d_last_tested_crash_stacktrace\"\xf2\x07\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x34\n\x13\x61nalyze_task_output\x18\t \x01(\x0b\x32\x12.AnalyzeTaskOutputH\x08\x88\x01\x01\x12\x41\n\x1a\x63orpus_pruning_task_output\x18\n \x01(\x0b\x32\x18.CorpusPruningTaskOutputH\t\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\x0b \x01(\x0b\x32\x0f.FuzzTaskOutputH\n\x88\x01\x01\x12\x36\n\x14minimize_task_output\x18\x0c \x01(\x0b\x32\x13.MinimizeTaskOutputH\x0b\x88\x01\x01\x12:\n\x16regression_task_output\x18\r \x01(\x0b\x32\x15.RegressionTaskOutputH\x0c\x88\x01\x01\x12<\n\x17progression_task_output\x18\x0e \x01(\x0b\x32\x16.ProgressionTaskOutputH\r\x88\x01\x01\x12\x1a\n\rerror_message\x18\x0f \x01(\tH\x0e\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\x08\n\x06_errorB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x16\n\x14_analyze_task_outputB\x1d\n\x1b_corpus_pruning_task_outputB\x13\n\x11_fuzz_task_outputB\x17\n\x15_minimize_task_outputB\x19\n\x17_regression_task_outputB\x1a\n\x18_progression_task_outputB\x10\n\x0e_error_message*\x86\x04\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x1d\n\x19\x41NALYZE_NO_REVISIONS_LIST\x10\x03\x12\x1d\n\x19\x41NALYZE_NO_REVISION_INDEX\x10\x04\x12\x12\n\x0eTESTCASE_SETUP\x10\x05\x12\r\n\tUNHANDLED\x10\x06\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x07\x12\x12\n\x0eMINIMIZE_SETUP\x10\x08\x12\x1c\n\x18\x46UZZ_BUILD_SETUP_FAILURE\x10\t\x12\"\n\x1e\x46UZZ_DATA_BUNDLE_SETUP_FAILURE\x10\n\x12\x12\n\x0e\x46UZZ_NO_FUZZER\x10\x0b\x12#\n\x1fPROGRESSION_REVISION_LIST_ERROR\x10\x0c\x12\x1f\n\x1bPROGRESSION_BUILD_NOT_FOUND\x10\r\x12\x18\n\x14PROGRESSION_NO_CRASH\x10\x0e\x12!\n\x1dPROGRESSION_BAD_STATE_MIN_MAX\x10\x0f\x12\x17\n\x13PROGRESSION_TIMEOUT\x10\x10\x12\x19\n\x15PROGRESSION_BAD_BUILD\x10\x11\x12!\n\x1dPROGRESSION_BUILD_SETUP_ERROR\x10\x12\x62\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xdc\x02\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\"C\n\x10\x41nalyzeTaskInput\x12/\n\nbad_builds\x18\x01 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\"J\n\x16\x43orpusPruningTaskInput\x12\x30\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\"\x0f\n\rFuzzTaskInput\"M\n\x11MinimizeTaskInput\x12 \n\x13testcase_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x16\n\x14_testcase_upload_url\"\x15\n\x13RegressionTaskInput\"D\n\x14ProgressionTaskInput\x12\x1a\n\rcustom_binary\x18\x01 \x01(\x08H\x00\x88\x01\x01\x42\x10\n\x0e_custom_binary\"\xd3\x08\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x04\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x05\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x06\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\x08\x88\x01\x01\x12%\n\x0bsetup_input\x18\x0b \x01(\x0b\x32\x0b.SetupInputH\t\x88\x01\x01\x12\x32\n\x12\x61nalyze_task_input\x18\x0c \x01(\x0b\x32\x11.AnalyzeTaskInputH\n\x88\x01\x01\x12?\n\x19\x63orpus_pruning_task_input\x18\r \x01(\x0b\x32\x17.CorpusPruningTaskInputH\x0b\x88\x01\x01\x12,\n\x0f\x66uzz_task_input\x18\x0e \x01(\x0b\x32\x0e.FuzzTaskInputH\x0c\x88\x01\x01\x12\x34\n\x13minimize_task_input\x18\x0f \x01(\x0b\x32\x12.MinimizeTaskInputH\r\x88\x01\x01\x12\x38\n\x15regression_task_input\x18\x10 \x01(\x0b\x32\x14.RegressionTaskInputH\x0e\x88\x01\x01\x12:\n\x16progression_task_input\x18\x11 \x01(\x0b\x32\x15.ProgressionTaskInputH\x0f\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x12 \x01(\tH\x10\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x1c\n\x1a_corpus_pruning_task_inputB\x12\n\x10_fuzz_task_inputB\x16\n\x14_minimize_task_inputB\x18\n\x16_regression_task_inputB\x19\n\x17_progression_task_inputB\x0e\n\x0c_module_name\"\x13\n\x11\x41nalyzeTaskOutput\"\x19\n\x17\x43orpusPruningTaskOutput\"\xc3\x03\n\x0e\x46uzzTaskOutput\x12\x18\n\x0b\x66uzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1c\n\x0fnew_crash_count\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12\x1e\n\x11known_crash_count\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x05\x88\x01\x01\x12#\n\x0fjob_run_crashes\x18\x07 \x01(\x0b\x32\x05.JsonH\x06\x88\x01\x01\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x0e\n\x0c_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x12\n\x10_new_crash_countB\x14\n\x12_known_crash_countB\x15\n\x13_testcases_executedB\x12\n\x10_job_run_crashesB\x1e\n\x1c_fully_qualified_fuzzer_name\"\xb7\x01\n\x12MinimizeTaskOutput\x12*\n\x16last_crash_result_dict\x18\x01 \x01(\x0b\x32\x05.JsonH\x00\x88\x01\x01\x12\x18\n\x0b\x66laky_stack\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\x1c\n\x0f\x62uild_fail_wait\x18\x03 \x01(\x03H\x02\x88\x01\x01\x42\x19\n\x17_last_crash_result_dictB\x0e\n\x0c_flaky_stackB\x12\n\x10_build_fail_wait\"\x16\n\x14RegressionTaskOutput\"\xdf\x02\n\x15ProgressionTaskOutput\x12\x19\n\x0cmin_revision\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cmax_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1c\n\x0f\x63rash_on_latest\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12$\n\x17\x63rash_on_latest_message\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x05 \x01(\tH\x04\x88\x01\x01\x12)\n\x1clast_tested_crash_stacktrace\x18\x06 \x01(\tH\x05\x88\x01\x01\x42\x0f\n\r_min_revisionB\x0f\n\r_max_revisionB\x12\n\x10_crash_on_latestB\x1a\n\x18_crash_on_latest_messageB\x11\n\x0f_crash_revisionB\x1f\n\x1d_last_tested_crash_stacktrace\"\xf2\x07\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12\x1e\n\x05\x65rror\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x34\n\x13\x61nalyze_task_output\x18\t \x01(\x0b\x32\x12.AnalyzeTaskOutputH\x08\x88\x01\x01\x12\x41\n\x1a\x63orpus_pruning_task_output\x18\n \x01(\x0b\x32\x18.CorpusPruningTaskOutputH\t\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\x0b \x01(\x0b\x32\x0f.FuzzTaskOutputH\n\x88\x01\x01\x12\x36\n\x14minimize_task_output\x18\x0c \x01(\x0b\x32\x13.MinimizeTaskOutputH\x0b\x88\x01\x01\x12:\n\x16regression_task_output\x18\r \x01(\x0b\x32\x15.RegressionTaskOutputH\x0c\x88\x01\x01\x12<\n\x17progression_task_output\x18\x0e \x01(\x0b\x32\x16.ProgressionTaskOutputH\r\x88\x01\x01\x12\x1a\n\rerror_message\x18\x0f \x01(\tH\x0e\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\x08\n\x06_errorB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x16\n\x14_analyze_task_outputB\x1d\n\x1b_corpus_pruning_task_outputB\x13\n\x11_fuzz_task_outputB\x17\n\x15_minimize_task_outputB\x19\n\x17_regression_task_outputB\x1a\n\x18_progression_task_outputB\x10\n\x0e_error_message*\x86\x04\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x1d\n\x19\x41NALYZE_NO_REVISIONS_LIST\x10\x03\x12\x1d\n\x19\x41NALYZE_NO_REVISION_INDEX\x10\x04\x12\x12\n\x0eTESTCASE_SETUP\x10\x05\x12\r\n\tUNHANDLED\x10\x06\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x07\x12\x12\n\x0eMINIMIZE_SETUP\x10\x08\x12\x1c\n\x18\x46UZZ_BUILD_SETUP_FAILURE\x10\t\x12\"\n\x1e\x46UZZ_DATA_BUNDLE_SETUP_FAILURE\x10\n\x12\x12\n\x0e\x46UZZ_NO_FUZZER\x10\x0b\x12#\n\x1fPROGRESSION_REVISION_LIST_ERROR\x10\x0c\x12\x1f\n\x1bPROGRESSION_BUILD_NOT_FOUND\x10\r\x12\x18\n\x14PROGRESSION_NO_CRASH\x10\x0e\x12!\n\x1dPROGRESSION_BAD_STATE_MIN_MAX\x10\x0f\x12\x17\n\x13PROGRESSION_TIMEOUT\x10\x10\x12\x19\n\x15PROGRESSION_BAD_BUILD\x10\x11\x12!\n\x1dPROGRESSION_BUILD_SETUP_ERROR\x10\x12\x62\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,])
 
@@ -375,6 +375,13 @@ _CORPUSPRUNINGTASKINPUT = _descriptor.Descriptor(
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
+    _descriptor.FieldDescriptor(
+      name='fuzz_target', full_name='CorpusPruningTaskInput.fuzz_target', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -388,7 +395,7 @@ _CORPUSPRUNINGTASKINPUT = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=637,
-  serialized_end=661,
+  serialized_end=711,
 )
 
 
@@ -412,8 +419,8 @@ _FUZZTASKINPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=663,
-  serialized_end=678,
+  serialized_start=713,
+  serialized_end=728,
 )
 
 
@@ -449,8 +456,8 @@ _MINIMIZETASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=680,
-  serialized_end=757,
+  serialized_start=730,
+  serialized_end=807,
 )
 
 
@@ -474,8 +481,8 @@ _REGRESSIONTASKINPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=759,
-  serialized_end=780,
+  serialized_start=809,
+  serialized_end=830,
 )
 
 
@@ -511,8 +518,8 @@ _PROGRESSIONTASKINPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=782,
-  serialized_end=850,
+  serialized_start=832,
+  serialized_end=900,
 )
 
 
@@ -740,8 +747,8 @@ _INPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=853,
-  serialized_end=1960,
+  serialized_start=903,
+  serialized_end=2010,
 )
 
 
@@ -765,8 +772,8 @@ _ANALYZETASKOUTPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1962,
-  serialized_end=1981,
+  serialized_start=2012,
+  serialized_end=2031,
 )
 
 
@@ -778,13 +785,6 @@ _CORPUSPRUNINGTASKOUTPUT = _descriptor.Descriptor(
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
-    _descriptor.FieldDescriptor(
-      name='fuzz_target', full_name='CorpusPruningTaskOutput.fuzz_target', index=0,
-      number=1, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -797,7 +797,7 @@ _CORPUSPRUNINGTASKOUTPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1983,
+  serialized_start=2033,
   serialized_end=2058,
 )
 
@@ -1330,6 +1330,7 @@ _SETUPINPUT.oneofs_by_name['_testcase_download_url'].fields.append(
   _SETUPINPUT.fields_by_name['testcase_download_url'])
 _SETUPINPUT.fields_by_name['testcase_download_url'].containing_oneof = _SETUPINPUT.oneofs_by_name['_testcase_download_url']
 _ANALYZETASKINPUT.fields_by_name['bad_builds'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
+_CORPUSPRUNINGTASKINPUT.fields_by_name['fuzz_target'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _MINIMIZETASKINPUT.oneofs_by_name['_testcase_upload_url'].fields.append(
   _MINIMIZETASKINPUT.fields_by_name['testcase_upload_url'])
 _MINIMIZETASKINPUT.fields_by_name['testcase_upload_url'].containing_oneof = _MINIMIZETASKINPUT.oneofs_by_name['_testcase_upload_url']
@@ -1398,7 +1399,6 @@ _INPUT.fields_by_name['progression_task_input'].containing_oneof = _INPUT.oneofs
 _INPUT.oneofs_by_name['_module_name'].fields.append(
   _INPUT.fields_by_name['module_name'])
 _INPUT.fields_by_name['module_name'].containing_oneof = _INPUT.oneofs_by_name['_module_name']
-_CORPUSPRUNINGTASKOUTPUT.fields_by_name['fuzz_target'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
 _FUZZTASKOUTPUT.fields_by_name['job_run_crashes'].message_type = _JSON
 _FUZZTASKOUTPUT.oneofs_by_name['_fuzzer_name'].fields.append(
   _FUZZTASKOUTPUT.fields_by_name['fuzzer_name'])
