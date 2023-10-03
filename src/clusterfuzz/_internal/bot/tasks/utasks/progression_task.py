@@ -335,16 +335,8 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
                    regression_testcase_url)
 
 
-<<<<<<< HEAD
-def find_fixed_range(uworker_input):
-  """Attempt to find the revision range where a testcase was fixed."""
-  testcase_id = uworker_input.testcase_id
-  job_type = uworker_input.job_type
-  deadline = tasks.get_task_completion_deadline()
-=======
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for progression task."""
->>>>>>> master
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
     return None
@@ -378,8 +370,9 @@ def find_fixed_range(uworker_input):
   job_type = uworker_input.job_type
 
   # Setup testcase and its dependencies.
+  setup_input = setup.preprocess_setup_testcase(testcase)
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
-                                                      uworker_input.setup_input)
+                                                      setup_input)
   if error:
     return error
 
@@ -556,65 +549,6 @@ def find_fixed_range(uworker_input):
 
   # If we've broken out of the loop, we've exceeded the deadline. Recreate the
   # task to pick up where we left off.
-<<<<<<< HEAD
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  error_message = ('Timed out, current range r%d:r%d' %
-                   (revision_list[min_index], revision_list[max_index]))
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       error_message)
-  tasks.add_task('progression', testcase_id, job_type)
-
-
-def utask_preprocess(testcase_id, job_type, uworker_env):
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  setup_input = setup.preprocess_setup_testcase(testcase)
-  return uworker_io.UworkerInput(
-      job_type=job_type,
-      testcase_id=testcase_id,
-      uworker_env=uworker_env,
-      setup_input=setup_input,
-  )
-
-
-def utask_postprocess(output):
-  del output
-
-
-def utask_main(uworker_input):
-  """Execute progression task."""
-  try:
-    find_fixed_range(uworker_input)
-  except errors.BuildSetupError as error:
-    # If we failed to setup a build, it is likely a bot error. We can retry
-    # the task in this case.
-    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
-    error_message = 'Build setup failed r%d' % error.revision
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         error_message)
-    build_fail_wait = environment.get_value('FAIL_WAIT')
-    tasks.add_task(
-        'progression',
-        uworker_input.testcase_id,
-        uworker_input.job_type,
-        wait_time=build_fail_wait)
-  except errors.BadBuildError:
-    # Though bad builds when narrowing the range are recoverable, certain builds
-    # being marked as bad may be unrecoverable. Recoverable ones should not
-    # reach this point.
-    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
-    error_message = 'Unable to recover from bad build'
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         error_message)
-  except errors.BuildNotFoundError as e:
-    # If an expected build no longer exists, we can't continue.
-    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
-    testcase.fixed = 'NA'
-    testcase.open = False
-    error_message = f'Build {e.revision} not longer exists'
-    data_handler.clear_progression_pending(testcase)
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         error_message)
-=======
   error_message = (f'Timed out, current range '
                    f'r{revision_list[min_index]}:r{revision_list[max_index]}')
   return uworker_io.UworkerOutput(
@@ -626,7 +560,6 @@ def utask_main(uworker_input):
 def utask_main(uworker_input):
   """Executes the untrusted part of progression_task."""
   return find_fixed_range(uworker_input)
->>>>>>> master
 
 
 HANDLED_ERRORS = [
