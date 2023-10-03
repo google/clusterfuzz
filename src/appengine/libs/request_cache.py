@@ -35,7 +35,7 @@ class _FifoRequestCache(memoize.FifoInMemory):
   """In memory caching engine scoped to a request."""
 
   def __init__(self, cache_key, capacity):
-    super(_FifoRequestCache, self).__init__(capacity)
+    super().__init__(capacity)
     self._cache_key = str(cache_key)
 
   @property

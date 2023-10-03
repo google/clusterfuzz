@@ -46,7 +46,7 @@ class ChangeList(list):
   """List that tracks changes for incremental updates."""
 
   def __init__(self, seq=()):
-    super(ChangeList, self).__init__(seq)
+    super().__init__(seq)
     self.added = set()
     self.removed = set()
 
@@ -74,7 +74,7 @@ class ChangeList(list):
     self.removed.clear()
 
 
-class Issue(object):
+class Issue:
   """Class representing a single issue."""
 
   def __init__(self):

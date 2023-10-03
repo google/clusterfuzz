@@ -22,6 +22,7 @@ from unittest import mock
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
+from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -188,9 +189,11 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
+    setup_input = setup.preprocess_setup_testcase(testcase)
     uworker_input = uworker_io.DeserializedUworkerMsg(
         job_type='libfuzzer_asan_job',
         testcase=testcase,
+        setup_input=setup_input,
         testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
 

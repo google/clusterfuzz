@@ -1083,8 +1083,8 @@ class GetJobsAndPlatformsForProjectTest(unittest.TestCase):
   def test(self):
     actual_projects_map = cleanup.get_jobs_and_platforms_for_project()
     expected_projects_map = {
-        'project5': cleanup.ProjectMap(set(['job5']), set(['LINUX'])),
-        'project6': cleanup.ProjectMap(set(['job6']), set(['MAC']))
+        'project5': cleanup.ProjectMap({'job5'}, {'LINUX'}),
+        'project6': cleanup.ProjectMap({'job6'}, {'MAC'})
     }
     self.assertEqual(actual_projects_map, expected_projects_map)
 

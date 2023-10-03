@@ -50,8 +50,7 @@ class JSONDecoder(json.JSONDecoder):
   _TYPES = {'datetime': datetime.datetime, 'date': datetime.date}
 
   def __init__(self, *args, **kwargs):
-    super(JSONDecoder, self).__init__(
-        object_hook=self.dict_to_object, *args, **kwargs)
+    super().__init__(object_hook=self.dict_to_object, *args, **kwargs)
 
   def dict_to_object(self, d):
     if '__type__' not in d:

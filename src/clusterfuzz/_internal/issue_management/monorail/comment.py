@@ -16,7 +16,7 @@
 import re
 
 
-class Comment(object):
+class Comment:
   """Class representing a single comment update."""
 
   def __init__(self):

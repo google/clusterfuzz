@@ -33,7 +33,7 @@ class ConfigurationError(Exception):
   """Base configuration error class."""
 
 
-class NewIssuePolicy(object):
+class NewIssuePolicy:
   """New issue policy."""
 
   def __init__(self):
@@ -48,7 +48,7 @@ def _to_str_list(values):
   return [str(value) for value in values]
 
 
-class IssueTrackerPolicy(object):
+class IssueTrackerPolicy:
   """Represents an issue tracker policy."""
 
   def __init__(self, data):
