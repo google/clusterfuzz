@@ -159,8 +159,6 @@ message Output {
   optional FuzzTaskOutput fuzz_task_output = 11;
   optional MinimizeTaskOutput minimize_task_output = 12;
   optional RegressionTaskOutput regression_task_output = 13;
-  // Don't do progression as Ali is working on it already.
-  // TODO(Ali): Add an input for progression.
   optional ProgressionTaskOutput progression_task_output = 14;
   optional string error_message = 15;
 }
