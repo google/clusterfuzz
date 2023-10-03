@@ -271,7 +271,7 @@ class GcsProvider(StorageProvider):
     try:
       bucket = client.bucket(bucket_name)
       blob = bucket.blob(path, chunk_size=self._chunk_size())
-      return blob.download_as_bytes()
+      return blob.download_as_string()
     except google.cloud.exceptions.GoogleCloudError as e:
       if e.code == 404:
         return None
