@@ -24,14 +24,14 @@ from clusterfuzz._internal.issue_management.jira import issue_tracker_manager
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
-class Config(object):
+class Config:
   """Dummy config."""
 
   def __init__(self):
     self.jira_url = 'https://jira.company.com'
 
 
-class Reporter(object):
+class Reporter:
   """Dummy reporter."""
 
   def __init__(self):
@@ -40,14 +40,14 @@ class Reporter(object):
     self.name = 'reporter'
 
 
-class Status(object):
+class Status:
   """Dummy status."""
 
   def __init__(self):
     self.name = 'NOT STARTED'
 
 
-class Fields(object):
+class Fields:
   """Dummy fields."""
 
   def __init__(self):
@@ -61,7 +61,7 @@ class Fields(object):
     self.resolutiondate = '2020-01-14T11:46:34.000-0000'
 
 
-class JiraIssue(object):
+class JiraIssue:
   """Dummy Jira issue."""
 
   def __init__(self, key):

@@ -45,7 +45,7 @@ SHUTDOWN_GRACE_SECONDS = 5
 # pylint: disable=no-member
 
 
-class WorkerState(object):
+class WorkerState:
   """Worker's state."""
 
   def __init__(self):

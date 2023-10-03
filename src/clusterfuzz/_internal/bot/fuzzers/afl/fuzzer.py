@@ -45,8 +45,7 @@ class Afl(builtin.EngineFuzzer):
     return ''
 
   def run(self, input_directory, output_directory, no_of_files):
-    result = super(Afl, self).run(input_directory, output_directory,
-                                  no_of_files)
+    result = super().run(input_directory, output_directory, no_of_files)
 
     write_dummy_file(result.corpus_directory)
     return result
