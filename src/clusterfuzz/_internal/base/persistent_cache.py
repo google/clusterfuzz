@@ -72,7 +72,7 @@ def get_value(key, default_value=None, constructor=None):
   try:
     with open(value_path, 'rb') as f:
       value_str = f.read()
-  except IOError:
+  except OSError:
     logs.log_error('Failed to read %s from persistent cache.' % key)
     return default_value
 
@@ -119,7 +119,7 @@ def set_value(key, value, persist_across_reboots=False):
   try:
     with open(value_path, 'wb') as f:
       f.write(value_str.encode())
-  except IOError:
+  except OSError:
     logs.log_error('Failed to write %s to persistent cache.' % key)
 
   if not persist_across_reboots:
@@ -131,6 +131,6 @@ def set_value(key, value, persist_across_reboots=False):
 
   try:
     open(persist_value_path, 'wb').close()
-  except IOError:
+  except OSError:
     logs.log_error(
         'Failed to write presistent metadata file for cache key %s' % key)

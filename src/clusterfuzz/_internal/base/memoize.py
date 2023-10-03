@@ -46,7 +46,7 @@ def _redis_client():
   return _local.redis
 
 
-class FifoInMemory(object):
+class FifoInMemory:
   """In-memory caching engine."""
 
   def __init__(self, capacity):
@@ -89,7 +89,7 @@ class FifoInMemory(object):
     return _default_key(func, args, kwargs)
 
 
-class FifoOnDisk(object):
+class FifoOnDisk:
   """On-disk caching engine."""
 
   def __init__(self, capacity):
@@ -122,7 +122,7 @@ class FifoOnDisk(object):
     return _default_key(func, args, kwargs)
 
 
-class Memcache(object):
+class Memcache:
   """Memcache caching engine."""
 
   def __init__(self, ttl_in_seconds, key_fn=None):

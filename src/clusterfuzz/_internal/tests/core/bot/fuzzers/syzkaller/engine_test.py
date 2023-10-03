@@ -46,7 +46,7 @@ class EngineTest(unittest.TestCase):
   """Tests for AndroidSyzkallerRunner."""
 
   def setUp(self):
-    super(EngineTest, self).setUp()
+    super().setUp()
     self.target = SyzkallerEngine()
     self.mock_runner_instances = self.setup_mock_runner_instances()
 

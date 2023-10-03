@@ -59,7 +59,7 @@ def sign_data(data):
     raise GcsError('Invalid response: ' + str(e))
 
 
-class SignedGcsHandler(object):
+class SignedGcsHandler:
   """Handler for signing and redirecting to a GCS object."""
 
   def serve_gcs_object(self, bucket, object_path, content_disposition=None):

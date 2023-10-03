@@ -70,8 +70,8 @@ def handle_progression_revision_list_error(
 
 
 def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
-  """Handles crash on latest revision, or custom binary crashes. Saves the 
-  crash info for non-custom binaries."""
+  """Handles crash on latest revision, or custom binary crashes. Saves the crash
+  info for non-custom binaries."""
   testcase_id = uworker_output.uworker_input.testcase_id
   progression_task_output = uworker_output.progression_task_output
   testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -95,8 +95,8 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
 
 def handle_progression_bad_state_min_max(
     uworker_output: uworker_io.UworkerOutput):
-  """Handles when we end up in a state having min and max 
-  versions the same during a progression."""
+  """Handles when we end up in a state having min and max versions the same
+  during a progression."""
   testcase = data_handler.get_testcase_by_id(
       uworker_output.uworker_input.testcase_id)
   testcase.fixed = 'NA'
@@ -215,7 +215,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message='Still crashes on latest custom build.',
-        crash_revision=revision,
+        crash_revision=str(revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
         testcase=testcase, progression_task_output=progression_task_output)
@@ -228,7 +228,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
         'crashes_on_unexpected_state', update_testcase=False)
 
   progression_task_output = uworker_io.ProgressionTaskOutput(
-      crash_revision=revision)
+      crash_revision=str(revision))
   return uworker_io.UworkerOutput(
       testcase=testcase, progression_task_output=progression_task_output)
 
@@ -352,8 +352,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
   progression_input = uworker_io.ProgressionTaskInput()
-  progression_input.custom_binary = (
-      build_manager.is_custom_binary() is not None)
+  progression_input.custom_binary = build_manager.is_custom_binary()
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=testcase_id,
@@ -463,7 +462,7 @@ def find_fixed_range(uworker_input):
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message=crash_on_latest_message,
-        crash_revision=max_revision,
+        crash_revision=str(max_revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
         testcase=testcase, progression_task_output=progression_task_output)
@@ -486,7 +485,7 @@ def find_fixed_range(uworker_input):
     error_message = (
         f'Known crash revision {known_crash_revision} did not crash')
     progression_task_output = uworker_io.ProgressionTaskOutput(
-        crash_revision=max_revision)
+        crash_revision=str(max_revision))
     return uworker_io.UworkerOutput(
         testcase=testcase,
         progression_task_output=progression_task_output,
@@ -515,7 +514,7 @@ def find_fixed_range(uworker_input):
       return uworker_io.UworkerOutput(
           testcase=testcase,
           progression_task_output=uworker_io.ProgressionTaskOutput(
-              min_revision=min_revision, max_revision=max_revision),
+              min_revision=str(min_revision), max_revision=str(max_revision)),
           error=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
 
     # Test the middle revision of our range.

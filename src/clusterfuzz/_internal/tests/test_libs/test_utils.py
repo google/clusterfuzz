@@ -140,7 +140,7 @@ def android_device_required(func):
   return unittest.skipIf(reason is not None, reason)(func)
 
 
-class EmulatorInstance(object):
+class EmulatorInstance:
   """Emulator instance."""
 
   def __init__(self, proc, port, read_thread, data_dir):
@@ -320,7 +320,7 @@ def with_cloud_emulators(*emulator_names):
             cls._context_generator = ndb_init.context()
             cls._context_generator.__enter__()
 
-        super(Wrapped, cls).setUpClass()
+        super().setUpClass()
 
       @classmethod
       def tearDownClass(cls):
@@ -329,7 +329,7 @@ def with_cloud_emulators(*emulator_names):
           if emulator_name == 'datastore':
             cls._context_generator.__exit__(None, None, None)
 
-        super(Wrapped, cls).tearDownClass()
+        super().tearDownClass()
 
       def setUp(self):
         for emulator in _emulators.values():
