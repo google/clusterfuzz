@@ -191,6 +191,7 @@ class MinimizeTaskTestUntrusted(
     uworker_input = uworker_io.DeserializedUworkerMsg(
         job_type='libfuzzer_asan_job',
         testcase=testcase,
+        setup_input=uworker_io.DeserializedUworkerMsg(),
         testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
 
