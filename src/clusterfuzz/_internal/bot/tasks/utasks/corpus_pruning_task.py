@@ -926,12 +926,18 @@ def utask_main(uworker_input):
   return uworker_io.UworkerOutput()
 
 
-def utask_preprocess(fuzzer_name, job_type, uworker_env):
+def preprocess_corpus_pruning_task_input(fuzzer_name):
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
       fuzz_target=fuzz_target,)
+  return corpus_pruning_task_input
+
+
+def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  corpus_pruning_task_input = preprocess_corpus_pruning_task_input(fuzzer_name)
   setup_input = (
-      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
+      setup.preprocess_update_fuzzer_and_data_bundles(
+          corpus_pruning_task_input.fuzz_target.engine))
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
