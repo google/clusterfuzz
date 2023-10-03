@@ -47,6 +47,7 @@ def _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output):
   if task_output.clear_min_max_metadata:
     testcase.delete_metadata('last_progression_min', update_testcase=False)
     testcase.delete_metadata('last_progression_max', update_testcase=False)
+    testcase.put()
 
 
 def _save_current_fixed_range_indices(testcase, uworker_output):
@@ -80,7 +81,6 @@ def handle_progression_build_not_found(
   clears progression_pending testcase metadata"""
   testcase_id = uworker_output.uworker_input.testcase_id
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output)
   testcase.fixed = 'NA'
   testcase.open = False
   data_handler.clear_progression_pending(testcase)
@@ -102,7 +102,6 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
   testcase_id = uworker_output.uworker_input.testcase_id
   progression_task_output = uworker_output.progression_task_output
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output)
 
   testcase.last_tested_crash_stacktrace = (
       progression_task_output.last_tested_crash_stacktrace)
@@ -127,7 +126,6 @@ def handle_progression_bad_state_min_max(
   during a progression."""
   testcase = data_handler.get_testcase_by_id(
       uworker_output.uworker_input.testcase_id)
-  _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output)
   _save_current_fixed_range_indices(testcase, uworker_output)
   testcase.fixed = 'NA'
   testcase.open = False
@@ -149,7 +147,6 @@ def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output)
   # Retry once on another bot to confirm our result.
   if data_handler.is_first_retry_for_task(testcase, reset_after_retry=True):
     tasks.add_task('progression', testcase_id, job_type)
@@ -177,7 +174,6 @@ def handle_progression_build_setup_error(
   testcase_id = uworker_output.uworker_input.testcase_id
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
   build_fail_wait = environment.get_value('FAIL_WAIT')
@@ -192,7 +188,6 @@ def handle_progression_bad_build(uworker_output: uworker_io.UworkerOutput):
   # reach this point.
   testcase_id = uworker_output.uworker_input.testcase_id
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output)
   error_message = 'Unable to recover from bad build'
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
@@ -602,6 +597,9 @@ HANDLED_ERRORS = [
 def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  _maybe_clear_progression_last_min_max_metadata(testcase, output)
+
   if output.error is not None:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
@@ -633,7 +631,6 @@ def utask_postprocess(output):
 
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   if output.progression_task_output.min_revision:
-    _maybe_clear_progression_last_min_max_metadata(testcase, output)
     _save_fixed_range(output.uworker_input.testcase_id,
                       output.progression_task_output.min_revision,
                       output.progression_task_output.max_revision)

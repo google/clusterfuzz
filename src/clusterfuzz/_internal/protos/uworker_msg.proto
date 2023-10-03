@@ -114,7 +114,7 @@ message ProgressionTaskOutput{
   optional string last_progression_min = 7;
   optional string last_progression_max = 8;
   // When set to True, we delete the metadata related to: last_progression_min
-  // and last_progression_max from the testcase on postprocess
+  // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
 }
 
