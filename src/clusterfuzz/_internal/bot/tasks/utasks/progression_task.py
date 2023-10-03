@@ -215,7 +215,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message='Still crashes on latest custom build.',
-        crash_revision=revision,
+        crash_revision=str(revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
         testcase=testcase, progression_task_output=progression_task_output)
@@ -228,7 +228,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
         'crashes_on_unexpected_state', update_testcase=False)
 
   progression_task_output = uworker_io.ProgressionTaskOutput(
-      crash_revision=revision)
+      crash_revision=str(revision))
   return uworker_io.UworkerOutput(
       testcase=testcase, progression_task_output=progression_task_output)
 
@@ -462,7 +462,7 @@ def find_fixed_range(uworker_input):
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message=crash_on_latest_message,
-        crash_revision=max_revision,
+        crash_revision=str(max_revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
         testcase=testcase, progression_task_output=progression_task_output)
@@ -485,7 +485,7 @@ def find_fixed_range(uworker_input):
     error_message = (
         f'Known crash revision {known_crash_revision} did not crash')
     progression_task_output = uworker_io.ProgressionTaskOutput(
-        crash_revision=max_revision)
+        crash_revision=str(max_revision))
     return uworker_io.UworkerOutput(
         testcase=testcase,
         progression_task_output=progression_task_output,
@@ -514,7 +514,7 @@ def find_fixed_range(uworker_input):
       return uworker_io.UworkerOutput(
           testcase=testcase,
           progression_task_output=uworker_io.ProgressionTaskOutput(
-              min_revision=min_revision, max_revision=max_revision),
+              min_revision=str(min_revision), max_revision=str(max_revision)),
           error=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
 
     # Test the middle revision of our range.

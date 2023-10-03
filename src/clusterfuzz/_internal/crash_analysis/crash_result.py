@@ -21,7 +21,7 @@ from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz.stacktraces import CrashInfo
 
 
-class CrashResult(object):
+class CrashResult:
   """Represents a crash result from a test run."""
 
   def __init__(self, return_code, crash_time, output, unexpected_crash=False):

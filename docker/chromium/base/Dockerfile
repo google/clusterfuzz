@@ -32,7 +32,6 @@ RUN dpkg --add-architecture i386 && \
         libdconf1 \
         libdconf1:i386 \
         libgconf-2-4:i386 \
-        libgm-dev:i386 \
         libgconf2-dev \
         libgles2-mesa \
         nfs-common \

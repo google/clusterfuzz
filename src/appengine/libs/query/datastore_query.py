@@ -52,7 +52,7 @@ def _combine(q1, q2):
   return result
 
 
-class _Run(object):
+class _Run:
   """Encapsulate a query and its run."""
 
   def __init__(self, query, **kwargs):
@@ -60,7 +60,7 @@ class _Run(object):
     self.result = query.iter(**kwargs)
 
 
-class _KeyQuery(object):
+class _KeyQuery:
   """Query only keys. It supports an OR condition."""
 
   def __init__(self, model):
@@ -281,8 +281,7 @@ class Query(base.Query):
     """Return the items, total_pages, total_items, and has_more."""
 
     # Validation check to convert all negative page numbers to 1.
-    if page < 1:
-      page = 1
+    page = max(page, 1)
 
     items, total_items, has_more = self.fetch(
         offset=(page - 1) * page_size,

@@ -115,8 +115,7 @@ class LoopingTimer(threading.Timer):
   """Extend Timer to loop every interval seconds."""
 
   def __init__(self, interval, function, args=None, kwargs=None):
-    super(LoopingTimer, self).__init__(
-        interval, function, args=args, kwargs=kwargs)
+    super().__init__(interval, function, args=args, kwargs=kwargs)
 
   def run(self):
     # loops until self.cancel()
@@ -200,7 +199,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       _type, log_index, log_dir = log_location.groups()  # pylint: disable=invalid-name
       try:
         reproducer_log_path = os.path.join(log_dir, f'reproducer{log_index}')
-        with open(reproducer_log_path, 'r') as f:
+        with open(reproducer_log_path) as f:
           logs.log('Successfully reproduced crash.')
           return engine.ReproduceResult(
               command=result.command,

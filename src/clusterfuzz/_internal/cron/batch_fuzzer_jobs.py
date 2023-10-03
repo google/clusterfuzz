@@ -33,9 +33,10 @@ def batch_fuzzer_jobs():
         data_types.FuzzerJob.query(data_types.FuzzerJob.platform == platform))
     fuzzer_jobs.sort(key=lambda item: item.job)
 
-    batches_to_remove = set(
+    batches_to_remove = {
         b.key for b in data_types.FuzzerJobs.query(
-            data_types.FuzzerJobs.platform == platform))
+            data_types.FuzzerJobs.platform == platform)
+    }
 
     batch_count = 0
     for i in range(0, len(fuzzer_jobs), FUZZER_JOB_BATCH_SIZE):

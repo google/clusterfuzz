@@ -13,7 +13,7 @@
 """Issue tracker interface."""
 
 
-class LabelStore(object):
+class LabelStore:
   """Label storage which tracks changes. Case insensitive, but preserves
   case."""
 
@@ -26,8 +26,7 @@ class LabelStore(object):
       self._backing[item.lower()] = item
 
   def __iter__(self):
-    for value in self._backing.values():
-      yield value
+    yield from self._backing.values()
 
   def __contains__(self, item):
     return item.lower() in self._backing
@@ -106,7 +105,7 @@ class LabelStore(object):
     return bool(next(self.get_by_pattern(re_pattern), None))
 
 
-class Issue(object):
+class Issue:
   """Represents an issue."""
 
   @property
@@ -204,7 +203,7 @@ class Issue(object):
     raise NotImplementedError
 
 
-class ChangeList(object):
+class ChangeList:
   """Records a change in a list."""
 
   def __init__(self):
@@ -212,7 +211,7 @@ class ChangeList(object):
     self.removed = []
 
 
-class Action(object):
+class Action:
   """Represents an action on an issue (e.g. a comment)."""
 
   @property
@@ -256,7 +255,7 @@ class Action(object):
     raise NotImplementedError
 
 
-class IssueTracker(object):
+class IssueTracker:
   """Issue tracker interface."""
 
   @property

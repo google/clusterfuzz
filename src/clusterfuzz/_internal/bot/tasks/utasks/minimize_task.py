@@ -76,7 +76,7 @@ MANDATORY_OSS_FUZZ_OPTIONS = [
 ]
 
 
-class MinimizationPhase(object):
+class MinimizationPhase:
   """Effectively an enum to represent the current phase of minimization."""
   GESTURES = 0
   MAIN_FILE = 1
@@ -85,7 +85,7 @@ class MinimizationPhase(object):
   ARGUMENTS = 4
 
 
-class TestRunner(object):
+class TestRunner:
   """Helper class for running the same test multiple times."""
 
   def __init__(self, testcase, file_path, files, input_directory, arguments,
@@ -825,7 +825,7 @@ def store_minimized_testcase(testcase, base_directory, file_list,
           testcase.absolute_path = os.path.join(base_directory,
                                                 os.path.basename(file_path))
           testcase.archive_state &= ~data_types.ArchiveStatus.MINIMIZED
-      except IOError:
+      except OSError:
         testcase.put()  # Preserve what we can.
         logs.log_error('Unable to open archive for blobstore write.')
         return

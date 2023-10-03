@@ -22,7 +22,7 @@ def file_chunk_generator(handle):
   """Yields chunks from handle."""
   data = handle.read(config.FILE_TRANSFER_CHUNK_SIZE)
   while data:
-    yield untrusted_runner_pb2.FileChunk(data=data)
+    yield untrusted_runner_pb2.FileChunk(data=data)  # pylint: disable=no-member
     data = handle.read(config.FILE_TRANSFER_CHUNK_SIZE)
 
 
@@ -31,7 +31,7 @@ def data_chunk_generator(data):
   index = 0
   while index < len(data):
     cur_chunk = data[index:index + config.FILE_TRANSFER_CHUNK_SIZE]
-    yield untrusted_runner_pb2.FileChunk(data=cur_chunk)
+    yield untrusted_runner_pb2.FileChunk(data=cur_chunk)  # pylint: disable=no-member
 
     index += config.FILE_TRANSFER_CHUNK_SIZE
 
