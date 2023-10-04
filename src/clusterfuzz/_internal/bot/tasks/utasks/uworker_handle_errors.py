@@ -16,7 +16,6 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
-from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
@@ -64,20 +63,6 @@ def get_handle_all_errors_mapping():
           setup.handle_setup_testcase_error,
       uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP:
           variant_task.handle_build_setup_error,
-      uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR:
-          progression_task.handle_progression_revision_list_error,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND:
-          progression_task.handle_progression_build_not_found,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
-          progression_task.handle_progression_bad_state_min_max,
-      uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH:
-          progression_task.handle_progression_no_crash,
-      uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:
-          progression_task.handle_progression_timeout,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
-          progression_task.handle_progression_bad_build,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR:
-          progression_task.handle_progression_build_setup_error,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }

@@ -377,21 +377,6 @@ class FuzzTaskOutput(UworkerMsg):
     raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
 
-class ProgressionTaskOutput(UworkerMsg):
-  """Class representing an unserialized ProgressionTaskOutput message from
-  fuzz_task."""
-
-  PROTO_CLS = uworker_msg_pb2.ProgressionTaskOutput
-
-  def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
-
 def save_json_field(field, value):
   serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
   field.CopyFrom(serialized_json)
@@ -482,11 +467,6 @@ class MinimizeTaskInput(UworkerInput):
 class RegressionTaskInput(UworkerInput):
   """Input for regression_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.RegressionTaskInput
-
-
-class ProgressionTaskInput(UworkerInput):
-  """Input for progression_task.uworker_main."""
-  PROTO_CLS = uworker_msg_pb2.ProgressionTaskInput
 
 
 class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
