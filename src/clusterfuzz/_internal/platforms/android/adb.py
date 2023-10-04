@@ -289,7 +289,7 @@ def extract_logcat_from_ramdump_and_reboot():
       'python ramoops_reader.py kernel.log > logcat.log',
       shell=True,
       check=False)
-  with open('logcat.log', 'r') as file:
+  with open('logcat.log') as file:
     logcat = file.read()
 
   files_to_delete = ['ramoops_reader.py', 'kernel.log', 'logcat.log']
@@ -612,7 +612,7 @@ def reset_usb():
   # adb root restarts.
   try:
     device_path = get_device_path()
-  except IOError:
+  except OSError:
     # We may reach this state if the device is no longer available.
     device_path = None
 

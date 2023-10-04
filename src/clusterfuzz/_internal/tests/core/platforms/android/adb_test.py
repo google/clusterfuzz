@@ -28,7 +28,7 @@ class CopyLocalDirectoryToRemoteTest(android_helpers.AndroidTest):
   """Tests copy_local_directory_to_remote."""
 
   def setUp(self):
-    super(CopyLocalDirectoryToRemoteTest, self).setUp()
+    super().setUp()
 
     # Clear and create temporary directory on device.
     self.device_temp_dir = constants.DEVICE_TMP_DIR
@@ -72,7 +72,7 @@ class CopyRemoteDirectoryToLocalTest(android_helpers.AndroidTest):
   """Tests copy_remote_directory_to_local."""
 
   def setUp(self):
-    super(CopyRemoteDirectoryToLocalTest, self).setUp()
+    super().setUp()
 
     # Clear and create temporary directory on device.
     self.device_temp_dir = constants.DEVICE_TMP_DIR
@@ -111,7 +111,7 @@ class ReadDataFromFileTest(android_helpers.AndroidTest):
   """Tests read_data_from_file."""
 
   def setUp(self):
-    super(ReadDataFromFileTest, self).setUp()
+    super().setUp()
 
     # Clear and create temporary directory on device.
     self.device_temp_dir = constants.DEVICE_TMP_DIR
@@ -136,7 +136,7 @@ class WriteDataToFileTest(android_helpers.AndroidTest):
   """Tests write_data_to_file."""
 
   def setUp(self):
-    super(WriteDataToFileTest, self).setUp()
+    super().setUp()
 
     # Clear and create temporary directory on device.
     self.device_temp_dir = constants.DEVICE_TMP_DIR
@@ -210,7 +210,7 @@ class ResetUsbTest(android_helpers.AndroidTest):
   """Tests for reset_usb."""
 
   def setUp(self):
-    super(ResetUsbTest, self).setUp()
+    super().setUp()
     test_helpers.patch(self, ['fcntl.ioctl'])
 
   def test_with_device(self):

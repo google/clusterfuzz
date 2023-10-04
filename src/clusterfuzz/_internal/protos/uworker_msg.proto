@@ -51,6 +51,10 @@ message RegressionTaskInput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
+message ProgressionTaskInput {
+  optional bool custom_binary = 1;
+}
+
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
@@ -69,9 +73,8 @@ message Input {
   optional FuzzTaskInput fuzz_task_input = 13;
   optional MinimizeTaskInput minimize_task_input = 14;
   optional RegressionTaskInput regression_task_input = 15;
-  // Don't do progression as Ali is working on it already.
-  // TODO(Ali): Add an input for progression.
-  optional string module_name = 16;
+  optional ProgressionTaskInput progression_task_input = 16;
+  optional string module_name = 17;
 }
 
 message AnalyzeTaskOutput {
@@ -99,6 +102,22 @@ message RegressionTaskOutput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
+message ProgressionTaskOutput{
+  optional int64 min_revision = 1;
+  optional int64 max_revision = 2;
+  // Set to true when latest revision or latest custom build still crash.
+  optional bool crash_on_latest = 3;
+  optional string crash_on_latest_message = 4;
+  // Information passed back to trusted worker when we crash on latest.
+  optional int64 crash_revision = 5;
+  optional string last_tested_crash_stacktrace = 6;
+  optional int64 last_progression_min = 7;
+  optional int64 last_progression_max = 8;
+  // When set to True, we delete the metadata related to: last_progression_min
+  // and last_progression_max from the testcase on postprocess.
+  optional bool clear_min_max_metadata = 9;
+}
+
 enum ErrorType {
   NO_ERROR = 0;
   ANALYZE_BUILD_SETUP = 1;
@@ -112,6 +131,13 @@ enum ErrorType {
   FUZZ_BUILD_SETUP_FAILURE = 9;
   FUZZ_DATA_BUNDLE_SETUP_FAILURE = 10;
   FUZZ_NO_FUZZER = 11;
+  PROGRESSION_REVISION_LIST_ERROR = 12;
+  PROGRESSION_BUILD_NOT_FOUND = 13;
+  PROGRESSION_NO_CRASH = 14;
+  PROGRESSION_BAD_STATE_MIN_MAX = 15;
+  PROGRESSION_TIMEOUT = 16;
+  PROGRESSION_BAD_BUILD = 17;
+  PROGRESSION_BUILD_SETUP_ERROR = 18;
 }
 
 message Output {
@@ -129,7 +155,6 @@ message Output {
   optional FuzzTaskOutput fuzz_task_output = 10;
   optional MinimizeTaskOutput minimize_task_output = 11;
   optional RegressionTaskOutput regression_task_output = 12;
-  // Don't do progression as Ali is working on it already.
-  // TODO(Ali): Add an input for progression.
-  optional string error_message = 13;
+  optional ProgressionTaskOutput progression_task_output = 13;
+  optional string error_message = 14;
 }

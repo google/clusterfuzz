@@ -49,7 +49,7 @@ DEADLINE_NOTE = (
     'become visible to the public.')
 
 
-class IssueTrackerManager(object):
+class IssueTrackerManager:
   """Mock issue tracker manager."""
 
   def __init__(self, project_name):

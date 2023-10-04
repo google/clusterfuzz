@@ -68,7 +68,7 @@ def main():
   try:
     with open(file_path, 'rb') as file_handle:
       data = file_handle.read()
-  except IOError:
+  except OSError:
     print('Unable to open input file %s.' % file_path)
     sys.exit(1)
 
@@ -79,7 +79,7 @@ def main():
   try:
     with open(output_file_path, 'wb') as file_handle:
       file_handle.write(minimized_output)
-  except IOError:
+  except OSError:
     print('Unable to write output file %s.' % output_file_path)
     sys.exit(1)
 

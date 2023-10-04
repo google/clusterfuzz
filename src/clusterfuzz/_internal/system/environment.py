@@ -821,7 +821,7 @@ def set_environment_parameters_from_file(file_path):
   if not os.path.exists(file_path):
     return
 
-  with open(file_path, 'r') as f:
+  with open(file_path) as f:
     file_data = f.read()
 
   for line in file_data.splitlines():
