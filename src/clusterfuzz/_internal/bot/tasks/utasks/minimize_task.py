@@ -395,6 +395,9 @@ def utask_main(uworker_input):
       'last_tested_crash_revision')
 
   crash_revision = last_tested_crash_revision or testcase.crash_revision
+  if crash_revision is not None:
+    # TODO(metzman): Remove this temporary measure.
+    crash_revision = int(crash_revision)
   build_manager.setup_build(crash_revision)
 
   # Check if we have an application path. If not, our build failed
