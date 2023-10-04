@@ -58,6 +58,16 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
+  def test_return_none(self):
+    module = mock.MagicMock()
+    module.utask_preprocess.return_value = None
+    self.assertIsNone(
+        utasks.tworker_preprocess(module, self.TASK_ARGUMENT, self.JOB_TYPE,
+                                  self.UWORKER_ENV))
+    self.assertIsNone(
+        utasks.tworker_preprocess_no_io(module, self.TASK_ARGUMENT,
+                                        self.JOB_TYPE, self.UWORKER_ENV))
+
 
 class SetUworkerEnvTest(unittest.TestCase):
   """Tests that set_uworker_env works as intended."""
