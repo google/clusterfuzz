@@ -353,7 +353,10 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     return None
 
   if testcase.fixed:
-    logs.log_error(f'Fixed range is already set as {testcase.fixed}, skip.')
+    error_message = f'Fixed range is already set as {testcase.fixed}, skip.'
+    logs.log_error(error_message)
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                         error_message)
     return None
 
   # TODO(alhijazi): Make sure this is always properly cleared on failure.
