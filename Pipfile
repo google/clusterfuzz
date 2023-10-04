@@ -7,7 +7,7 @@ name = "pypi"
 cryptography = "==3.4.8"
 crcmod = "==1.7"
 protobuf = "==3.20.3"
-psutil = "==5.7.0"
+psutil = "==5.9.5"
 
 [dev-packages]
 Fabric = "==1.14.1"
