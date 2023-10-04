@@ -38,7 +38,7 @@ from clusterfuzz._internal.system import environment
 
 
 def _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output):
-  """Clears last_progression_min and last_progression_max when 
+  """Clears last_progression_min and last_progression_max when
   clear_min_max_metadata is set to True"""
   task_output = uworker_output.progression_task_output
   if task_output is None:
@@ -567,13 +567,16 @@ def find_fixed_range(uworker_input):
   # task to pick up where we left off.
   error_message = (f'Timed out, current range '
                    f'r{revision_list[min_index]}:r{revision_list[max_index]}')
+  progression_task_output = uworker_io.ProgressionTaskOutput(
+      clear_min_max_metadata=clear_min_max_metadata)
+  if last_progression_min is not None:
+    progression_task_output.last_progression_min = last_progression_min
+  if last_progression_max is not None:
+    progression_task_output.last_progression_max = last_progression_max
   return uworker_io.UworkerOutput(
       testcase=testcase,
       error_message=error_message,
-      progression_task_output=uworker_io.ProgressionTaskOutput(
-          clear_min_max_metadata=clear_min_max_metadata,
-          last_progression_min=last_progression_min,
-          last_progression_max=last_progression_max),
+      progression_task_output=progression_task_output,
       error=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
 
 
