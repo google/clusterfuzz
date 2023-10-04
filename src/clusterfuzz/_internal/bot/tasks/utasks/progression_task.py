@@ -242,13 +242,13 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message='Still crashes on latest custom build.',
-        crash_revision=int(revision),
+        crash_revision=str(revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
         testcase=testcase, progression_task_output=progression_task_output)
 
   progression_task_output = uworker_io.ProgressionTaskOutput(
-      crash_revision=int(revision))
+      crash_revision=str(revision))
   return uworker_io.UworkerOutput(
       testcase=testcase, progression_task_output=progression_task_output)
 
@@ -472,7 +472,7 @@ def find_fixed_range(uworker_input):
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message=crash_on_latest_message,
-        crash_revision=int(max_revision),
+        crash_revision=str(max_revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace,
         clear_min_max_metadata=clear_min_max_metadata)
     return uworker_io.UworkerOutput(
@@ -493,7 +493,7 @@ def find_fixed_range(uworker_input):
     error_message = (
         f'Known crash revision {known_crash_revision} did not crash')
     progression_task_output = uworker_io.ProgressionTaskOutput(
-        crash_revision=int(max_revision),
+        crash_revision=str(max_revision),
         clear_min_max_metadata=clear_min_max_metadata)
     return uworker_io.UworkerOutput(
         testcase=testcase,
@@ -518,8 +518,8 @@ def find_fixed_range(uworker_input):
       return uworker_io.UworkerOutput(
           testcase=testcase,
           progression_task_output=uworker_io.ProgressionTaskOutput(
-              min_revision=int(min_revision),
-              max_revision=int(max_revision),
+              min_revision=str(min_revision),
+              max_revision=str(max_revision),
               clear_min_max_metadata=clear_min_max_metadata,
           ))
 
@@ -529,8 +529,8 @@ def find_fixed_range(uworker_input):
       return uworker_io.UworkerOutput(
           testcase=testcase,
           progression_task_output=uworker_io.ProgressionTaskOutput(
-              min_revision=int(min_revision),
-              max_revision=int(max_revision),
+              min_revision=str(min_revision),
+              max_revision=str(max_revision),
               last_progression_min=last_progression_min,
               last_progression_max=last_progression_max,
               clear_min_max_metadata=clear_min_max_metadata),
@@ -560,8 +560,8 @@ def find_fixed_range(uworker_input):
     else:
       max_index = middle_index
 
-    last_progression_min = int(revision_list[min_index])
-    last_progression_max = int(revision_list[max_index])
+    last_progression_min = str(revision_list[min_index])
+    last_progression_max = str(revision_list[max_index])
 
   # If we've broken out of the loop, we've exceeded the deadline. Recreate the
   # task to pick up where we left off.

@@ -245,7 +245,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     helpers.patch_environ(self, None)
     os.environ.clear()
     os.environ['CUSTOM_BINARY'] = 'some_value'
-    os.environ['APP_REVISION'] = '1234'
+    os.environ['APP_REVISION'] = 'app_revision'
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_build',
         'clusterfuzz._internal.build_management.build_manager.check_app_path',
@@ -295,7 +295,8 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
         testcase, testcase_file_path)
     self.assertTrue(result.progression_task_output.crash_on_latest)
-    self.assertEqual(result.progression_task_output.crash_revision, 1234)
+    self.assertEqual(result.progression_task_output.crash_revision,
+                     'app_revision')
     self.assertEqual(result.progression_task_output.crash_on_latest_message,
                      'Still crashes on latest custom build.')
 
@@ -317,7 +318,8 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
         testcase, testcase_file_path)
     self.assertFalse(result.progression_task_output.crash_on_latest)
-    self.assertEqual(result.progression_task_output.crash_revision, 1234)
+    self.assertEqual(result.progression_task_output.crash_revision,
+                     'app_revision')
     self.assertEqual(result.progression_task_output.crash_on_latest_message, '')
 
 

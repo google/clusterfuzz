@@ -103,16 +103,16 @@ message RegressionTaskOutput {
 }
 
 message ProgressionTaskOutput{
-  optional int64 min_revision = 1;
-  optional int64 max_revision = 2;
+  optional string min_revision = 1;
+  optional string max_revision = 2;
   // Set to true when latest revision or latest custom build still crash.
   optional bool crash_on_latest = 3;
   optional string crash_on_latest_message = 4;
   // Information passed back to trusted worker when we crash on latest.
-  optional int64 crash_revision = 5;
+  optional string crash_revision = 5;
   optional string last_tested_crash_stacktrace = 6;
-  optional int64 last_progression_min = 7;
-  optional int64 last_progression_max = 8;
+  optional string last_progression_min = 7;
+  optional string last_progression_max = 8;
   // When set to True, we delete the metadata related to: last_progression_min
   // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
