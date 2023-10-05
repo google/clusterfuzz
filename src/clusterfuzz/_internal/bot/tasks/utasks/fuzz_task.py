@@ -1863,8 +1863,8 @@ class FuzzingSession:
         testcases_executed=testcases_executed,
         job_run_crashes=convert_groups_to_crashes(processed_groups),
     )
-    if targets_count is not None:
-      fuzz_task_output.new_targets_count = targets_count
+    if new_targets_count is not None:
+      fuzz_task_output.new_targets_count = new_targets_count
     return uworker_io.UworkerOutput(fuzz_task_output=fuzz_task_output)
 
   def postprocess(self, uworker_output):
@@ -1879,7 +1879,9 @@ class FuzzingSession:
     uworker_input = uworker_output.uworker_input
     if not uworker_input.targets_count or (uworker_input.targets_count.count !=
                                            fuzz_task_output.new_targets_count):
-      data_types.FuzzTargetsCount(id=self.job_type, count=count).put()
+      data_types.FuzzTargetsCount(
+          id=uworker_input.job_type,
+          count=fuzz_task_output.new_targets_count).put()
 
 
 def handle_fuzz_build_setup_failure(output):
