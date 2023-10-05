@@ -182,6 +182,8 @@ class StackParser:
     # Direct updates.
     if new_type is not None and self.get_rank(new_type) >= self.get_rank(
         state.crash_type):
+      # Prioritize the crash type associated with the latest stack frame,
+      # unless explicit ordering is available.
       state.crash_type = new_type
 
     if new_state is not None:
