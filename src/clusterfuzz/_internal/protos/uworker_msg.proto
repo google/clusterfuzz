@@ -39,7 +39,9 @@ message AnalyzeTaskInput {
 }
 
 message FuzzTaskInput {
-  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  optional string sample_testcase_upload_keyw = 1;
+  optional string sample_testcase_upload_url = 2;
+  optional string script_log_upload_url = 3;
 }
 
 message MinimizeTaskInput {
@@ -81,6 +83,13 @@ message AnalyzeTaskOutput {
  // TODO(metzman): Fill this out.
 }
 
+message StoreFuzzerRunResultsOutput {
+  optional int32 fuzzer_return_code = 1;
+  optional string generated_testcase_string = 2;
+  optional string console_output = 3;
+  optional bool uploaded_sample_testcase = 4;
+}
+
 message FuzzTaskOutput {
   optional string fuzzer_name = 1;
   optional string crash_revision = 2;
@@ -90,6 +99,8 @@ message FuzzTaskOutput {
   optional int64 testcases_executed = 6;
   optional Json job_run_crashes = 7;
   optional string fully_qualified_fuzzer_name = 8;
+  optional StoreFuzzerRunResultsOutput store_fuzzer_run_results_output = 9;
+
 }
 
 message MinimizeTaskOutput {

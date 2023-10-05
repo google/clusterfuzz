@@ -362,6 +362,13 @@ class UworkerMsg:
     return self.proto.SerializeToString()
 
 
+class StoreFuzzerRunResultsOutput(UworkerMsg):
+  PROTO_CLS = uworker_msg_pb2.StoreFuzzerRunResultsOutput
+
+  def save_rich_type(self, attribute, value):
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
 class FuzzTaskOutput(UworkerMsg):
   """Class representing an unserialized FuzzTaskOutput message from
   fuzz_task."""
