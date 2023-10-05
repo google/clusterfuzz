@@ -32,6 +32,12 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
       self.skipTest('Minijail tests are only applicable for linux platform.')
 
     self.setUpPyfakefs()
+    # Make sure to add third_party/ since a delayed import will otherwise be
+    # broken by pyfakefs in Python3.11.
+    path_args = [__file__] + (['..'] * 6)
+    third_party = os.path.join(
+        os.path.abspath(os.path.join(*path_args)), 'third_party')
+    self.fs.add_real_directory(third_party)
     for subdir in ['dev', 'lib', 'lib32', 'lib64', 'proc']:
       self.fs.create_dir(os.path.join('/', subdir))
     self.fs.create_dir(os.path.join('/', 'usr', 'lib'))
@@ -136,6 +142,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
           '/usr/lib,/usr/lib,0', '-b', '/usr/lib32,/usr/lib32,0', 'bin/ls'
       ])
 
+  @mock.patch('tempfile.NamedTemporaryFile')
   @mock.patch('clusterfuzz._internal.system.minijail.subprocess.Popen')
   def test_minijail_env_vars(self, mock_popen):
     """Test passing of env vars."""
@@ -145,6 +152,8 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
     os.environ['UBSAN_OPTIONS'] = 'ubsan_option=1'
     os.environ['SECRET'] = 'secret'
     os.environ['OTHER'] = 'other'
+    tmp_file = '/tmp/s'
+    mock_named_temporary_file.return_value = mock.MagicMock(tmp_file=tmp_file)
 
     with minijail.MinijailChroot() as chroot:
       runner = minijail.MinijailProcessRunner(chroot, 'binary')
