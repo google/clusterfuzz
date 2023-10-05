@@ -77,10 +77,14 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
         ('progression_utask_preprocess',
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_preprocess'
-        ), 'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
+        ),
+        'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
-        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles'
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
     ])
+
+    self.mock.get_signed_upload_url.return_value = 'https://upload'
 
     os.environ['BOT_NAME'] = 'bot_name'
     os.environ['TASK_LEASE_SECONDS'] = '60'
