@@ -102,6 +102,7 @@ CorpusCrash = collections.namedtuple('CorpusCrash', [
     'crash_type',
     'crash_address',
     'crash_stacktrace',
+    'crash_subtypes',
     'unit_path',
     'security_flag',
 ])
@@ -454,7 +455,8 @@ class CorpusPruner:
             state.crash_stacktrace, state.crash_type, state.crash_address)
         crashes[state.crash_state] = CorpusCrash(
             state.crash_state, state.crash_type, state.crash_address,
-            state.crash_stacktrace, unit_path, security_flag)
+            state.crash_stacktrace, state.crash_subtypes, unit_path,
+            security_flag)
 
     logs.log('Found %d bad units, %d unique crashes.' % (num_bad_units,
                                                          len(crashes)))

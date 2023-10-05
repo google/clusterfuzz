@@ -748,6 +748,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.crash_address = crash.crash_address
   testcase.crash_state = utils.decode_to_unicode(crash.crash_state)
   testcase.crash_stacktrace = filter_stacktrace(crash.crash_stacktrace)
+  testcase.crash_subtypes = crash.crash_subtypes
   testcase.fuzzed_keys = fuzzed_keys
   testcase.minimized_keys = minimized_keys
   testcase.bug_information = ''

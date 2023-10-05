@@ -455,6 +455,11 @@ def file_issue(testcase,
 
   for cc in ccs:
     issue.ccs.add(cc)
+  # Add labels from crash metadata.
+  for crash_subtype in testcase.crash_subtypes:
+    crash_subtype_label = policy.label_for_crash_subtype(crash_subtype)
+    if crash_subtype_label:
+      issue.labels.add(crash_subtype_label)
 
   # Add additional labels and components from testcase metadata.
   metadata_labels = _get_from_metadata(testcase, 'issue_labels')

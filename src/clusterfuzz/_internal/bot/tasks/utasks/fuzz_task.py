@@ -216,6 +216,7 @@ class Crash:
     self.crash_stacktrace = utils.get_crash_stacktrace_output(
         self.application_command_line, state.crash_stacktrace,
         self.unsymbolized_crash_stacktrace)
+    self.crash_subtypes = state.crash_subtypes
     self.security_flag = crash_analyzer.is_security_issue(
         self.unsymbolized_crash_stacktrace, self.crash_type, self.crash_address)
     self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,

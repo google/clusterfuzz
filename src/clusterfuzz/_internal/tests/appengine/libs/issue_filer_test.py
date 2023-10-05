@@ -350,6 +350,9 @@ class IssueFilerTests(unittest.TestCase):
         'fuzzer_name': 'fuzzer',
     }
 
+    testcase_args_2 = testcase_args.copy()
+    testcase_args_2['crash_subtypes'] = {'Fuzzer-exit'}
+
     self.testcase1 = data_types.Testcase(job_type='job1', **testcase_args)
     self.testcase1.put()
 
@@ -388,6 +391,9 @@ class IssueFilerTests(unittest.TestCase):
 
     self.testcase7 = data_types.Testcase(job_type='ios_job4', **testcase_args)
     self.testcase7.put()
+
+    self.testcase8 = data_types.Testcase(job_type='job1', **testcase_args_2)
+    self.testcase8.put()
 
     data_types.ExternalUserPermission(
         email='user@example.com',
@@ -823,6 +829,37 @@ class IssueFilerTests(unittest.TestCase):
     issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
     issue_filer.file_issue(self.testcase1, issue_tracker)
     self.assertIn('Memory corruption', issue_tracker._itm.last_issue.labels)
+    self.assertNotIn('Resource Exhaustion',
+                     issue_tracker._itm.last_issue.labels)
+
+  def test_additional_crash_subtypes(self):
+    """Test filing of crash_subtypes."""
+    policy = issue_tracker_policy.IssueTrackerPolicy({
+        'status': {
+            'assigned': 'Assigned',
+            'duplicate': 'Duplicate',
+            'verified': 'Verified',
+            'new': 'Untriaged',
+            'wontfix': 'WontFix',
+            'fixed': 'Fixed'
+        },
+        'all': {
+            'status': 'new',
+        },
+        'non_security': {},
+        'labels': {
+            'crash_subtypes': {
+                'fuzzer-exit': 'Fuzzer-exit',
+            }
+        },
+        'security': {},
+        'existing': {},
+    })
+    self.mock.get.return_value = policy
+
+    issue_tracker = monorail.IssueTracker(IssueTrackerManager('chromium'))
+    issue_filer.file_issue(self.testcase8, issue_tracker)
+    self.assertIn('Fuzzer-exit', issue_tracker._itm.last_issue.labels)
     self.assertNotIn('Resource Exhaustion',
                      issue_tracker._itm.last_issue.labels)
 
