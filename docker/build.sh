@@ -28,6 +28,11 @@ IMAGES=(
   gcr.io/clusterfuzz-images/fuchsia
 )
 
+function docker_push {
+  docker push $image
+  docker push $image:$stamp
+}
+
 GIT_HASH=$1
 stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
 for image in "${IMAGES[@]}"; do
@@ -35,6 +40,8 @@ for image in "${IMAGES[@]}"; do
   docker tag $image $image:$stamp
   docker push $image
   docker push $image:$stamp
+  wait
+  docker_push &
 done
 
 echo Built and pushed images successfully with stamp $stamp
