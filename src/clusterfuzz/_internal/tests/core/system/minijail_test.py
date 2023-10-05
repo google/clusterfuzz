@@ -144,7 +144,7 @@ class MinijailTest(fake_filesystem_unittest.TestCase):
 
   @mock.patch('tempfile.NamedTemporaryFile')
   @mock.patch('clusterfuzz._internal.system.minijail.subprocess.Popen')
-  def test_minijail_env_vars(self, mock_popen):
+  def test_minijail_env_vars(self, mock_popen, mock_named_temporary_file):
     """Test passing of env vars."""
     os.environ['ASAN_OPTIONS'] = 'asan_option=1'
     os.environ['AFL_OPTION'] = 'afl_option=1'
