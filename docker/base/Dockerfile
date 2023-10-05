@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copy some commonly linked library versions from xenial for backwards
-# compatibility with older builds.
-FROM gcr.io/clusterfuzz-images/chromium/base:e0bf80e-202310051311 as i386libs
+# Copy some commonly linked library versions from an older image for backwards
+# compatibility with older builds. This older image copied the libraries from
+# xenial. We can't copy the libraries from xenial anymore because apt is broken
+# on Xenial, because xenial is long past EOL.
+FROM gcr.io/clusterfuzz-images/chromium/base:e0bf80e-202310051311 as xeniallibs
 FROM ubuntu:20.04
 
 RUN mkdir /data
@@ -56,11 +58,11 @@ RUN apt-get update && \
         zip \
         zlib1g-dev
 
-COPY --from=i386libs \
+COPY --from=xeniallibs \
     /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
     /lib/x86_64-linux-gnu/libssl.so.1.0.0 \
     /lib/x86_64-linux-gnu/
-COPY --from=i386libs \
+COPY --from=xeniallibs \
     /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.* \
     /usr/lib/x86_64-linux-gnu/libffi.so.6.* \
     /usr/lib/x86_64-linux-gnu/libnettle.so.* \
