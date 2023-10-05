@@ -214,9 +214,9 @@ def _log_output(revision, crash_result):
 
 def _check_fixed_for_custom_binary(testcase, testcase_file_path):
   """Simplified fixed check for test cases using custom binaries."""
-  revision = environment.get_value('APP_REVISION')
-
   build_manager.setup_build()
+  # 'APP_REVISION' is set during setup_build().
+  revision = environment.get_value('APP_REVISION')
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
         testcase=testcase,
