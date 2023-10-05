@@ -217,6 +217,10 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
   build_manager.setup_build()
   # 'APP_REVISION' is set during setup_build().
   revision = environment.get_value('APP_REVISION')
+  if revision is None:
+    logs.log_error('APP_REVISION is not set, setting revision to 0')
+    revision = 0
+
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
         testcase=testcase,
