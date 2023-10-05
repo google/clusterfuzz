@@ -97,10 +97,8 @@ class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
                                                 job_type, uworker_env)
 
     logs.log('Utask: done with preprocess.')
-    uworker_output = utasks.uworker_main(download_url)
+    utasks.uworker_main(download_url)
     logs.log('Utask: done with main.')
-    if uworker_output is None:
-      logs.log('No uworker_output.')
 
 
 class PostprocessTask(BaseTask):
