@@ -1867,7 +1867,6 @@ class FuzzingSession:
       fuzz_task_output.new_targets_count = targets_count
     return uworker_io.UworkerOutput(fuzz_task_output=fuzz_task_output)
 
-
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
@@ -1925,7 +1924,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
-  targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
+  targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
