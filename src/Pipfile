@@ -34,7 +34,7 @@ sendgrid = "==6.0.4"
 # since there is no support for custom package sets.
 
 [dev-packages]
-firebase-admin = "==2.16.0"
+firebase-admin = "==6.2.0"
 Flask = "==1.1.2"
 itsdangerous = "==2.0.1"
 Jinja2 = "==2.11.3"
