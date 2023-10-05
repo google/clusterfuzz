@@ -14,15 +14,7 @@
 
 # Copy some commonly linked library versions from xenial for backwards
 # compatibility with older builds.
-FROM ubuntu:16.04 as xenial
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && \
-    apt-get install -y \
-      libcurl3-gnutls \
-      libffi6 \
-      libnettle6 \
-      libssl1.0.0
-
+FROM gcr.io/clusterfuzz-images/chromium/base:e0bf80e-202310051311 as i386libs
 FROM ubuntu:20.04
 
 RUN mkdir /data
@@ -64,11 +56,11 @@ RUN apt-get update && \
         zip \
         zlib1g-dev
 
-COPY --from=xenial \
+COPY --from=i386libs \
     /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 \
     /lib/x86_64-linux-gnu/libssl.so.1.0.0 \
     /lib/x86_64-linux-gnu/
-COPY --from=xenial \
+COPY --from=i386libs \
     /usr/lib/x86_64-linux-gnu/libcurl-gnutls.so.* \
     /usr/lib/x86_64-linux-gnu/libffi.so.6.* \
     /usr/lib/x86_64-linux-gnu/libnettle.so.* \
