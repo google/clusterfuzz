@@ -39,7 +39,7 @@ message AnalyzeTaskInput {
 }
 
 message FuzzTaskInput {
-  optional string sample_testcase_upload_keyw = 1;
+  optional string sample_testcase_upload_key = 1;
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
 }
