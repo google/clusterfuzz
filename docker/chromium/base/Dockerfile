@@ -31,6 +31,7 @@ RUN dpkg --add-architecture i386 && \
         libdconf-dev \
         libdconf1 \
         libdconf1:i386 \
+        libgbm-dev:i386 \
         libgconf-2-4:i386 \
         libgconf2-dev \
         libgles2-mesa \
