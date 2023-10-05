@@ -1877,8 +1877,9 @@ class FuzzingSession:
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
         fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
     uworker_input = uworker_output.uworker_input
-    if not uworker_input.targets_count or (uworker_input.targets_count.count !=
-                                           fuzz_task_output.new_targets_count):
+    fuzz_task_input = uworker_input.fuzz_task_input
+    if (not fuzz_task_input.targets_count or fuzz_task_input.targets_count.count
+        != fuzz_task_output.new_targets_count):
       data_types.FuzzTargetsCount(
           id=uworker_input.job_type,
           count=fuzz_task_output.new_targets_count).put()
@@ -1927,12 +1928,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
+  fuzz_task_input = uworker_io.FuzzTaskInput(targets_count=targets_count)
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
       setup_input=setup_input,
-      targets_count=targets_count,
+      fuzz_task_input=fuzz_task_input,
   )
 
 
