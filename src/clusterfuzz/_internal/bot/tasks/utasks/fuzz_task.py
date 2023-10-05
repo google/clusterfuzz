@@ -814,10 +814,11 @@ def upload_job_run_stats(fuzzer_name, job_type, revision, timestamp,
 def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              fuzzer_output, fuzzer_return_code, fuzzer_revision,
                              generated_testcase_count, expected_testcase_count,
-                             generated_testcase_string):
+                             generated_testcase_string, fuzz_input):
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
-  fuzzer_logs.upload_script_log(fuzzer_output)
+  fuzzer_logs.upload_script_log(
+      fuzzer_output, signed_upload_url=fuzz_input.script_log_upload_url)
 
   # Save the test results for the following cases.
   # 1. There is no result yet.
@@ -836,19 +837,16 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
        fuzzer.return_code == 0 and ' 0/' not in fuzzer.result))
   # pylint: enable=consider-using-in
   if not save_test_results:
-    return
+    return None
 
   logs.log('Started storing results from fuzzer run.')
 
-  # Store the sample testcase in blobstore first. This can take some time, so
-  # do this operation before refreshing fuzzer object.
   sample_testcase = None
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
-      sample_testcase = blobs.write_blob(sample_testcase_file_handle)
-
-    if not sample_testcase:
-      logs.log_error('Could not save testcase from fuzzer run.')
+      sample_testcase_file = sample_testcase_file_handle.read()
+      storage.upload_signed_url(
+          sample_testcase_file, fuzz_input.sample_testcase_upload_url)
 
   # Store fuzzer console output.
   bot_name = environment.get_value('BOT_NAME')
@@ -860,22 +858,28 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                                                    data_types.ENTITY_SIZE_LIMIT)
   console_output = (f'{bot_name}: {fuzzer_return_code_string}\n{fuzzer_command}'
                     f'\n{truncated_fuzzer_output}')
+  fuzzer_run_results_output.console_output = console_output
+  fuzzer_run_results_output.generated_testcase_string = (
+      generated_testcase_string)
+  fuzzer_run_results_output.fuzzer_return_code = fuzzer_return_code
+  return fuzzer_run_results_output
 
-  # Refresh the fuzzer object.
-  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer.name).get()
 
-  # Make sure fuzzer is same as the latest revision.
+
+def postprocess_store_fuzzer_run_results(fuzzer_run_results_output, uworker_input):
+  fuzzer = data_types.Fuzzer.query(
+      data_types.Fuzzer.name == fuzzer_run_results_output.fuzzer_name).get()
   if not fuzzer:
     logs.log_fatal_and_exit('Fuzzer does not exist, exiting.')
-  if fuzzer.revision != fuzzer_revision:
+  if fuzzer.revision != fuzzer_run_results_output.fuzzer_revision:
     logs.log('Fuzzer was recently updated, skipping results from old version.')
     return
-
-  fuzzer.sample_testcase = sample_testcase
-  fuzzer.console_output = console_output
-  fuzzer.result = generated_testcase_string
+  fuzzer.sample_testcase = (
+      uworker_input.fuzz_task_input.sample_testcase_upload_url)
+  fuzzer.console_output = fuzzer_run_results_output.console_output
+  fuzzer.result = fuzzer_run_results_output.generated_testcase_string
   fuzzer.result_timestamp = datetime.datetime.utcnow()
-  fuzzer.return_code = fuzzer_return_code
+  fuzzer.return_code = fuzzer_run_results_output.fuzzer_return_code
   fuzzer.put()
 
   logs.log('Finished storing results from fuzzer run.')
@@ -1473,10 +1477,12 @@ class FuzzingSession:
             output=fuzzer_output)
 
     # Store fuzzer run results.
-    store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
-                             fuzzer_output, fuzzer_return_code, fuzzer_revision,
-                             generated_testcase_count, testcase_count,
-                             generated_testcase_string)
+    fuzzer_run_results_output = store_fuzzer_run_results(
+        testcase_file_paths, fuzzer, fuzzer_command,
+        fuzzer_output, fuzzer_return_code, fuzzer_revision,
+        generated_testcase_count, testcase_count,
+        generated_testcase_string)
+    self.output.fuzzer_run_results_output = fuzzer_run_results_output
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths
@@ -1821,7 +1827,7 @@ class FuzzingSession:
       # re-run of testcase. This is critical for reproducibility.
       environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')
 
-      # TODO(unassigned): Need to find a way to this efficiently before every
+      # TODO(unassigned): Need to find a way to do this efficiently before every
       # testcase is analyzed.
       android.device.initialize_device()
 
