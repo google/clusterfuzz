@@ -40,7 +40,7 @@ for image in "${IMAGES[@]}"; do
   docker tag $image $image:$stamp
   docker push $image
   docker push $image:$stamp
-  waitn
+  wait
   docker_push &
 done
 
