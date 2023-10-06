@@ -118,6 +118,9 @@ def get_testcase_by_id(testcase_id):
   except ValueError:
     raise errors.InvalidTestcaseError(testcase_id)
 
+  if parsed_id == 0:
+    raise errors.InvalidTestcaseError(0)
+
   testcase = ndb.Key(data_types.Testcase, parsed_id).get()
   if not testcase:
     raise errors.InvalidTestcaseError(parsed_id)
