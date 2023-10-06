@@ -177,16 +177,21 @@ class UTaskPostprocessTest(unittest.TestCase):
 
   def test_error_handling_called_on_error(self):
     """Checks that an output with an error is handled properly."""
+    testcase = test_utils.create_generic_testcase()
+    uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
     uworker_output = self._create_output(
-        error=uworker_msg_pb2.ErrorType.UNHANDLED)
+        uworker_input=uworker_input, error=uworker_msg_pb2.ErrorType.UNHANDLED)
     progression_task.utask_postprocess(uworker_output)
     self.assertTrue(self.mock.handle.called)
 
   def test_handle_crash_on_latest_revision(self):
     """Tests utask_postprocess behaviour when there is a crash on latest revision."""
+    testcase = test_utils.create_generic_testcase()
+    uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
     progression_task_output = uworker_io.ProgressionTaskOutput(
         crash_on_latest=True)
     uworker_output = self._create_output(
+        uworker_input=uworker_input,
         progression_task_output=progression_task_output)
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
@@ -195,9 +200,10 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_handle_custom_binary_postprocess(self):
     """Tests utask_postprocess behaviour for custom binaries in the absence of errors."""
     progression_task_input = uworker_io.ProgressionTaskInput(custom_binary=True)
-    uworker_input = uworker_io.UworkerInput(
-        progression_task_input=progression_task_input)
     testcase = test_utils.create_generic_testcase()
+    uworker_input = uworker_io.UworkerInput(
+        testcase_id=str(testcase.key.id()),
+        progression_task_input=progression_task_input)
     self.assertEqual(testcase.fixed, '')
     self.assertTrue(testcase.open)
     # TODO(alhijazi): Should we wrap the testcase entities passed to utask_main
@@ -219,7 +225,10 @@ class UTaskPostprocessTest(unittest.TestCase):
     """Tests utask_postprocess behaviour for non_custom binaries in the absence of errors."""
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
-    uworker_output = self._create_output(uworker_input=uworker_input)
+    progression_task_output = uworker_io.ProgressionTaskOutput()
+    uworker_output = self._create_output(
+        uworker_input=uworker_input,
+        progression_task_output=progression_task_output)
 
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
@@ -236,7 +245,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     helpers.patch_environ(self, None)
     os.environ.clear()
     os.environ['CUSTOM_BINARY'] = 'some_value'
-    os.environ['APP_REVISION'] = 'app_revision'
+    os.environ['APP_REVISION'] = '1234'
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_build',
         'clusterfuzz._internal.build_management.build_manager.check_app_path',
@@ -286,8 +295,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
         testcase, testcase_file_path)
     self.assertTrue(result.progression_task_output.crash_on_latest)
-    self.assertEqual(result.progression_task_output.crash_revision,
-                     'app_revision')
+    self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message,
                      'Still crashes on latest custom build.')
 
@@ -309,8 +317,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
         testcase, testcase_file_path)
     self.assertFalse(result.progression_task_output.crash_on_latest)
-    self.assertEqual(result.progression_task_output.crash_revision,
-                     'app_revision')
+    self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message, '')
 
 

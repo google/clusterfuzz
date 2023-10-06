@@ -43,7 +43,7 @@ message CorpusPruningTaskInput {
 }
 
 message FuzzTaskInput {
-  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  optional google.datastore.v1.Entity targets_count = 1;
 }
 
 message MinimizeTaskInput {
@@ -99,6 +99,7 @@ message FuzzTaskOutput {
   optional int64 testcases_executed = 6;
   optional Json job_run_crashes = 7;
   optional string fully_qualified_fuzzer_name = 8;
+  optional int32 new_targets_count = 9;
 }
 
 message MinimizeTaskOutput {
@@ -112,14 +113,19 @@ message RegressionTaskOutput {
 }
 
 message ProgressionTaskOutput{
-  optional int min_revision = 1;
-  optional int max_revision = 2;
+  optional int64 min_revision = 1;
+  optional int64 max_revision = 2;
   // Set to true when latest revision or latest custom build still crash.
   optional bool crash_on_latest = 3;
   optional string crash_on_latest_message = 4;
   // Information passed back to trusted worker when we crash on latest.
-  optional int crash_revision = 5;
+  optional int64 crash_revision = 5;
   optional string last_tested_crash_stacktrace = 6;
+  optional int64 last_progression_min = 7;
+  optional int64 last_progression_max = 8;
+  // When set to True, we delete the metadata related to: last_progression_min
+  // and last_progression_max from the testcase on postprocess.
+  optional bool clear_min_max_metadata = 9;
 }
 
 enum ErrorType {

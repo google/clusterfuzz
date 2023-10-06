@@ -60,8 +60,6 @@ def _get_variant_testcase_for_job(testcase, job_type):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return None
 
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
