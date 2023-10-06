@@ -289,7 +289,15 @@ def _testcase_reproduces_in_revision(testcase,
             clear_min_max_metadata=clear_min_max_metadata),
         error=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
-  if testcase_manager.check_for_bad_build(job_type, revision):
+  (is_bad_build, should_ignore_crash_result,
+   build_run_console_output) = testcase_manager.check_for_bad_build(
+       job_type, revision)
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+  # postprocess.
+  testcase_manager.update_build_metadata(job_type, revision, is_bad_build,
+                                         should_ignore_crash_result,
+                                         build_run_console_output)
+  if is_bad_build:
     # TODO(alhijazi): This is not logged for recoverable builds.
     error_message = f'Bad build at r{revision}. Skipping'
     return None, uworker_io.UworkerOutput(
