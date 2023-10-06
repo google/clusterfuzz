@@ -110,13 +110,20 @@ def get_domain():
 
 
 def get_testcase_by_id(testcase_id):
-  """Return the testcase with the given id, or None if it does not exist."""
-  if not testcase_id or not str(testcase_id).isdigit() or int(testcase_id) == 0:
-    raise errors.InvalidTestcaseError
+  """Return the testcase with the given id.
+  Raises InvalidTestcaseError if no such testcase exists.
+  """
+  try:
+    parsed_id = int(testcase_id)
+  except ValueError:
+    raise errors.InvalidTestcaseError(testcase_id)
 
-  testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
+  if parsed_id == 0:
+    raise errors.InvalidTestcaseError(0)
+
+  testcase = ndb.Key(data_types.Testcase, parsed_id).get()
   if not testcase:
-    raise errors.InvalidTestcaseError
+    raise errors.InvalidTestcaseError(parsed_id)
 
   return testcase
 

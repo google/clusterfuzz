@@ -357,8 +357,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   """Preprocess in a trusted bot."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return None
 
   # Allow setting up a different fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
