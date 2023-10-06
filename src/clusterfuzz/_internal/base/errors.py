@@ -50,8 +50,8 @@ class Error(Exception):
 class InvalidTestcaseError(Error):
   """Error thrown when there is an attempt to access an invalid test case."""
 
-  def __init__(self):
-    super().__init__('Invalid test case.')
+  def __init__(self, testcase_id):
+    super().__init__(f'Invalid test case {testcase_id!r}.')
 
 
 class InvalidFuzzerError(Error):
