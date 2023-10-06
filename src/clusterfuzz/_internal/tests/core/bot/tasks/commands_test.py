@@ -157,7 +157,8 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_invalid_testcase(self):
     """Test run_command with an invalid testcase exception."""
-    self.mock.progression_utask_preprocess.side_effect = errors.InvalidTestcaseError(123)
+    self.mock.progression_utask_preprocess.side_effect = errors.InvalidTestcaseError(
+        123)
     commands.run_command('progression', '123', 'job', {})
 
     task_status_entities = list(data_types.TaskStatus.query())
