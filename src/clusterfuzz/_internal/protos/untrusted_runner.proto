@@ -188,6 +188,7 @@ message CorpusCrash {
   optional string crash_stacktrace = 4;
   optional string unit_path = 5;
   optional bool security_flag = 6;
+  repeated string crash_subtypes = 7;
 }
 
 message CoverageInfo {
