@@ -115,8 +115,12 @@ def get_testcase_by_id(testcase_id):
   if not testcase_id or not str(testcase_id).isdigit() or int(testcase_id) == 0:
     print('no testcase_id or not id.isdigit: %s' % testcase_id)
     raise errors.InvalidTestcaseError
+  print('get_testcase_by_id testcase_id: %s' % testcase_id)
+  try:
+    testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
+  except Exception as e:
+    print('error in ndb.key: %s' % e)
 
-  testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
   if not testcase:
     print('not testcase')
     raise errors.InvalidTestcaseError
