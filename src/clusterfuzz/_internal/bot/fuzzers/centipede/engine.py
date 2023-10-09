@@ -23,23 +23,13 @@ from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+from clusterfuzz._internal.bot.fuzzers.centipede import constants
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
-_SERVER_COUNT = 1
-_RSS_LIMIT = 4096
-_ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT_FUZZ = 25
-_TIMEOUT_PER_INPUT_REPR = 60
-_DEFAULT_ARGUMENTS = {
-    'fork_server': _SERVER_COUNT,
-    'rss_limit_mb': _RSS_LIMIT,
-    'address_space_limit_mb': _ADDRESS_SPACE_LIMIT,
-    'timeout_per_input': _TIMEOUT_PER_INPUT_FUZZ,
-}
 
 CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
@@ -106,9 +96,9 @@ class Engine(engine.Engine):
 
     # We ignore this parameter in the options file because it doesn't really
     # make sense not to crash on errors.
-    arguments['exit_on_crash'] = 1
+    arguments[constants.EXIT_ON_CRASH_FLAGNAME] = 1
 
-    for key, val in _DEFAULT_ARGUMENTS.items():
+    for key, val in constants.get_default_arguments().items():
       if key not in arguments:
         arguments[key] = val
 
@@ -130,26 +120,27 @@ class Engine(engine.Engine):
     dict_path = pathlib.Path(
         dictionary_manager.get_default_dictionary_path(target_path))
     if dict_path.exists():
-      arguments['dictionary'] = str(dict_path)
+      arguments[constants.DICTIONARY_FLAGNAME] = str(dict_path)
 
     # Directory workdir saves:
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
     workdir = self._create_temp_dir('workdir')
-    arguments['workdir'] = str(workdir)
+    arguments[constants.WORKDIR_FLAGNAME] = str(workdir)
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
-    arguments['corpus_dir'] = corpus_dir
+    arguments[constants.CORPUS_DIR_FLAGNAME] = corpus_dir
 
     target_binaries = self._get_binary_paths(target_path)
     if target_binaries.unsanitized is None:
       # Assuming the only binary is always sanitized (e.g., from Chrome).
-      arguments['binary'] = str(target_binaries.sanitized)
+      arguments[constants.BINARY_FLAGNAME] = str(target_binaries.sanitized)
       logs.log_warn('Unable to find unsanitized target binary.')
     else:
-      arguments['binary'] = str(target_binaries.unsanitized)
-      arguments['extra_binaries'] = str(target_binaries.sanitized)
+      arguments[constants.BINARY_FLAGNAME] = str(target_binaries.unsanitized)
+      arguments[constants.EXTRA_BINARIES_FLAGNAME] = str(
+          target_binaries.sanitized)
 
     return engine.FuzzOptions(corpus_dir, arguments.list(), {})
 
@@ -270,9 +261,11 @@ class Engine(engine.Engine):
 
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
+      rss_limit = constants.RSS_LIMIT_MB_DEFAULT
+      timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-          f':rss_limit_mb={_RSS_LIMIT}'
-          f':timeout_per_input={_TIMEOUT_PER_INPUT_REPR}:')
+          f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
+          f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
 
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
