@@ -756,6 +756,9 @@ def _process_corpus_crashes(context, result):
     # instead of the local quarantine directory.
     absolute_testcase_path = os.path.join(
         environment.get_value('FUZZ_INPUTS'), 'testcase')
+    
+    print('process_corpus_crashes')
+    print('crash subtypes: %s' % crash.crash_subtypes)
 
     testcase_id = data_handler.store_testcase(
         crash=crash,
@@ -781,9 +784,12 @@ def _process_corpus_crashes(context, result):
         timeout_multiplier=1.0,
         minimized_arguments=minimized_arguments)
 
+    print('testcase_id: %s' % testcase_id)
     # Set fuzzer_binary_name in testcase metadata.
     testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.set_metadata('fuzzer_binary_name', result.fuzzer_binary_name)
+
+    print('testcase.crash.crash-subtypes: %s' % testcase.crash.crash_subtypes)
 
     issue_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
     if issue_metadata:

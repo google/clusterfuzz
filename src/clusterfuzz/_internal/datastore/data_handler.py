@@ -748,7 +748,10 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.crash_address = crash.crash_address
   testcase.crash_state = utils.decode_to_unicode(crash.crash_state)
   testcase.crash_stacktrace = filter_stacktrace(crash.crash_stacktrace)
+  print('data handler')
+  print('crash_subtypes: %s' % crash.crash_subtypes)
   testcase.crash_subtypes = crash.crash_subtypes
+  print('testcase crash_subtypes: %s' % testcase.crash_subtypes)
   testcase.fuzzed_keys = fuzzed_keys
   testcase.minimized_keys = minimized_keys
   testcase.bug_information = ''
@@ -854,8 +857,9 @@ def update_testcase_comment(testcase, task_state, message=None):
         format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
     testcase.comments = testcase.comments[
         -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
-
+  print('update_testcase_comment 1')
   testcase.put()
+  print('update testcase_comment 2')
 
   # Log the message in stackdriver after the testcase.put() call as otherwise
   # the testcase key might not available yet (i.e. for new testcase).
