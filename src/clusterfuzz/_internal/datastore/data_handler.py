@@ -761,7 +761,10 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.crash_stacktrace = filter_stacktrace(crash.crash_stacktrace)
   print('data handler')
   print('crash_subtypes: %s' % crash.crash_subtypes)
-  testcase.crash_subtypes = crash.crash_subtypes
+  try:
+    testcase.crash_subtypes = crash.crash_subtypes
+  except Exception as e:
+    print('assigning crash_subtypes faced exception %s' % e)
   print('testcase crash_subtypes: %s' % testcase.crash_subtypes)
   testcase.fuzzed_keys = fuzzed_keys
   testcase.minimized_keys = minimized_keys
