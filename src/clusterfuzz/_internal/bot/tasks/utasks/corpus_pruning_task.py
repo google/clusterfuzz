@@ -784,9 +784,10 @@ def _process_corpus_crashes(context, result):
         timeout_multiplier=1.0,
         minimized_arguments=minimized_arguments)
 
-    print('testcase_id: %s' % testcase_id)
+    print('process corpus crashes testcase_id: %s' % testcase_id)
     # Set fuzzer_binary_name in testcase metadata.
     testcase = data_handler.get_testcase_by_id(testcase_id)
+    print('datahandler.get_testcase_by_id crash_subtypes: %s' % testcase.crash.crash_subtypes)
     testcase.set_metadata('fuzzer_binary_name', result.fuzzer_binary_name)
 
     print('testcase.crash.crash-subtypes: %s' % testcase.crash.crash_subtypes)
@@ -800,6 +801,7 @@ def _process_corpus_crashes(context, result):
 
     # Create additional tasks for testcase (starting with minimization).
     testcase = data_handler.get_testcase_by_id(testcase_id)
+    print('testcase.crash.crash-subtypes 2: %s' % testcase.crash.crash_subtypes)
     task_creation.create_tasks(testcase)
 
 
