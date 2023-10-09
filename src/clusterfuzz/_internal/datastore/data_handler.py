@@ -127,7 +127,7 @@ def get_testcase_by_id(testcase_id):
   if not testcase:
     print('not testcase')
     raise errors.InvalidTestcaseError
-  print('get_testcase crash crashsubtypes %s:' % testcase.crash.crash_subtypes)
+  print('get_testcase crash crashsubtypes %s:' % testcase.crash_subtypes)
 
   return testcase
 
