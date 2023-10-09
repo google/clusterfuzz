@@ -855,7 +855,9 @@ def update_testcase_comment(testcase, task_state, message=None):
         format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
     testcase.comments = testcase.comments[
         -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
+
   testcase.put()
+
   # Log the message in stackdriver after the testcase.put() call as otherwise
   # the testcase key might not available yet (i.e. for new testcase).
   if message:
