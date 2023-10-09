@@ -111,23 +111,13 @@ def get_domain():
 
 def get_testcase_by_id(testcase_id):
   """Return the testcase with the given id, or None if it does not exist."""
-  print('inside method get_testcase_by_id')
   if not testcase_id or not str(testcase_id).isdigit() or int(testcase_id) == 0:
-    print('no testcase_id or not id.isdigit: %s' % testcase_id)
     raise errors.InvalidTestcaseError
-  print('get_testcase_by_id testcase_id: %s' % testcase_id)
-  try:
-    print('trying to ndb key')
-    testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
-    print('finished ndb.key')
-  except Exception as e:
-    print('error in ndb.key: %s' % e)
-  print('got testcase?')
+
+  testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
 
   if not testcase:
-    print('not testcase')
     raise errors.InvalidTestcaseError
-  print('get_testcase crash crashsubtypes %s:' % testcase.crash_subtypes)
 
   return testcase
 
@@ -759,10 +749,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.crash_address = crash.crash_address
   testcase.crash_state = utils.decode_to_unicode(crash.crash_state)
   testcase.crash_stacktrace = filter_stacktrace(crash.crash_stacktrace)
-  print('data handler')
-  print('crash_subtypes: %s' % crash.crash_subtypes)
   testcase.crash_subtypes = list(crash.crash_subtypes)
-  print('testcase crash_subtypes: %s' % testcase.crash_subtypes)
   testcase.fuzzed_keys = fuzzed_keys
   testcase.minimized_keys = minimized_keys
   testcase.bug_information = ''
@@ -868,10 +855,7 @@ def update_testcase_comment(testcase, task_state, message=None):
         format(testcase_id=testcase.key.id(), job_type=testcase.job_type))
     testcase.comments = testcase.comments[
         -data_types.TESTCASE_COMMENTS_LENGTH_LIMIT:]
-  print('update_testcase_comment 1')
   testcase.put()
-  print('update testcase_comment 2')
-
   # Log the message in stackdriver after the testcase.put() call as otherwise
   # the testcase key might not available yet (i.e. for new testcase).
   if message:

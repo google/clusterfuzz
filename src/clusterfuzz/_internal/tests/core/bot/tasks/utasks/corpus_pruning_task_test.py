@@ -436,7 +436,6 @@ class CorpusPruningTestUntrusted(
 
   def test_prune(self):
     """Test pruning."""
-    print('Testing print statement: ##########')
     self._setup_env(job_type='libfuzzer_asan_job')
     uworker_input = uworker_io.DeserializedUworkerMsg(
         job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
