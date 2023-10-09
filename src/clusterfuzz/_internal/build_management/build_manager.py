@@ -1104,7 +1104,7 @@ def get_primary_bucket_path():
       'needs to be defined.')
 
 
-def get_revisions_list(bucket_path, testcase=None):
+def get_revisions_list(bucket_path, bad_builds, testcase=None):
   """Returns a sorted ascending list of revisions from a bucket path, excluding
   bad build revisions and testcase crash revision (if any)."""
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
@@ -1122,12 +1122,6 @@ def get_revisions_list(bucket_path, testcase=None):
       revision = revisions.convert_revision_to_integer(match.group(1))
       revision_list.append(revision)
 
-  # Remove revisions for bad builds from the revision list.
-  job_type = environment.get_value('JOB_NAME')
-  bad_builds = ndb_utils.get_all_from_query(
-      data_types.BuildMetadata.query(
-          ndb_utils.is_true(data_types.BuildMetadata.bad_build),
-          data_types.BuildMetadata.job_type == job_type))
   for bad_build in bad_builds:
     # Don't remove testcase revision even if it is in bad build list. This
     # usually happens when a bad bot sometimes marks a particular revision as
@@ -1139,6 +1133,16 @@ def get_revisions_list(bucket_path, testcase=None):
       revision_list.remove(bad_build.revision)
 
   return revision_list
+
+
+def get_job_bad_builds():
+  job_type = environment.get_value('JOB_NAME')
+  bad_builds = list(
+      ndb_utils.get_all_from_query(
+          data_types.BuildMetadata.query(
+              ndb_utils.is_true(data_types.BuildMetadata.bad_build),
+              data_types.BuildMetadata.job_type == job_type)))
+  return bad_builds
 
 
 def _base_fuzz_target_name(target_name):
@@ -1444,8 +1448,9 @@ def setup_build(revision=0, target_weights=None):
 
 def is_custom_binary():
   """Determine if this is a custom or preinstalled system binary."""
-  return (environment.get_value('CUSTOM_BINARY') or
-          environment.get_value('SYSTEM_BINARY_DIR'))
+  return bool(
+      environment.get_value('CUSTOM_BINARY') or
+      environment.get_value('SYSTEM_BINARY_DIR'))
 
 
 def has_symbolized_builds():

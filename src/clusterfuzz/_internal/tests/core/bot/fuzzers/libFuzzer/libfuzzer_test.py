@@ -59,7 +59,7 @@ def create_mock_popen(output,
                       return_code=0):
   """Creates a mock subprocess.Popen."""
 
-  class MockPopen(object):
+  class MockPopen:
     """Mock subprocess.Popen."""
     commands = []
     testcases_written = []

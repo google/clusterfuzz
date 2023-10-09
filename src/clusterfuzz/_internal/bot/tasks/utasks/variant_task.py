@@ -60,8 +60,6 @@ def _get_variant_testcase_for_job(testcase, job_type):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return None
 
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
@@ -74,7 +72,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   variant = data_handler.get_or_create_testcase_variant(testcase_id, job_type)
-  testcase_download_url = setup.get_signed_testcase_download_url(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase)
   testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   return uworker_io.UworkerInput(
@@ -85,7 +83,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       uworker_env=uworker_env,
       variant=variant,
       testcase_id=testcase_id,
-      testcase_download_url=testcase_download_url,
+      setup_input=setup_input,
   )
 
 
@@ -102,8 +100,8 @@ def utask_main(uworker_input):
   _, testcase_file_path, error = setup.setup_testcase(
       uworker_input.testcase,
       uworker_input.job_type,
-      metadata=uworker_input.testcase_upload_metadata,
-      testcase_download_url=uworker_input.testcase_download_url)
+      uworker_input.setup_input,
+      metadata=uworker_input.testcase_upload_metadata)
   if error:
     return error
 
@@ -113,13 +111,13 @@ def utask_main(uworker_input):
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
+    return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
+        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
         testcase=uworker_input.testcase)
 
   # Disable gestures if we're running on a different platform from that of
@@ -200,10 +198,9 @@ def handle_build_setup_error(output):
 
 
 HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-    uworker_msg_pb2.ErrorType.UNHANDLED
-]
+    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.UNHANDLED  # pylint: disable=no-member
+] + setup.HANDLED_ERRORS
 
 
 def utask_postprocess(output):

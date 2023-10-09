@@ -70,8 +70,7 @@ class RemoteProcessRunner(new_process.ProcessRunner):
   """Remote child process."""
 
   def __init__(self, executable_path, default_args=None):
-    super(RemoteProcessRunner, self).__init__(
-        executable_path, default_args=default_args)
+    super().__init__(executable_path, default_args=default_args)
 
   def run(self, **kwargs):  # pylint: disable=arguments-differ
     # TODO(ochang): This can be implemented, but isn't necessary yet.
@@ -103,7 +102,8 @@ class RemoteProcessRunner(new_process.ProcessRunner):
         max_stdout_len=max_stdout_len)
 
     request.default_args.extend(self.default_args)
-    request.additional_args.extend(additional_args)
+    if additional_args is not None:
+      request.additional_args.extend(additional_args)
 
     if 'bufsize' in popen_args:
       request.popen_args.bufsize = popen_args['bufsize']

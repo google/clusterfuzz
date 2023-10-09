@@ -21,6 +21,7 @@ from google.cloud import ndb
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -74,8 +75,11 @@ class RunCommandTest(unittest.TestCase):
          'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.utask_main'),
         ('progression_utask_main',
          'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
-        'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
+        ('progression_utask_preprocess',
+         'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_preprocess'
+        ), 'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles'
     ])
 
     os.environ['BOT_NAME'] = 'bot_name'
@@ -89,11 +93,13 @@ class RunCommandTest(unittest.TestCase):
     worker_output_url = '/worker-output'
     with mock.patch('clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess'
                    ) as postprocess:
-      commands.run_command('uworker_postprocess', worker_output_url, 'none', {})
+      commands.run_command('postprocess', worker_output_url, 'none', {})
     postprocess.assert_called_with(worker_output_url)
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
+        uworker_io.SetupInput())
     commands.run_command('fuzz', 'fuzzer', 'job', {})
 
     uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
@@ -107,6 +113,9 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_progression(self):
     """Test run_command with a progression task."""
+
+    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
+        job_type='job', testcase_id='123', uworker_env={})
     commands.run_command('progression', '123', 'job', {})
 
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
@@ -148,7 +157,8 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_invalid_testcase(self):
     """Test run_command with an invalid testcase exception."""
-    self.mock.progression_utask_main.side_effect = errors.InvalidTestcaseError
+    self.mock.progression_utask_preprocess.side_effect = errors.InvalidTestcaseError(
+        123)
     commands.run_command('progression', '123', 'job', {})
 
     task_status_entities = list(data_types.TaskStatus.query())
@@ -194,6 +204,8 @@ class RunCommandTest(unittest.TestCase):
         time=datetime.datetime(1970, 1, 1),
         status='started').put()
 
+    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
+        job_type='job', testcase_id='123', uworker_env={})
     commands.run_command('progression', '123', 'job', {})
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
 

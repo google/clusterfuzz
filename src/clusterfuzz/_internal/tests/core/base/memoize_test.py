@@ -24,7 +24,7 @@ from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-class CacheTestClass(object):
+class CacheTestClass:
   """Test cache class."""
 
   def __init__(self):
@@ -194,7 +194,7 @@ class FifoOnDiskTest(fake_filesystem_unittest.TestCase):
       self.assertEqual('a', self.cache.get(i))
 
 
-class _MockRedis(object):
+class _MockRedis:
   """Mock redis client."""
 
   def __init__(self):

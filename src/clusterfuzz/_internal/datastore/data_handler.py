@@ -110,14 +110,20 @@ def get_domain():
 
 
 def get_testcase_by_id(testcase_id):
-  """Return the testcase with the given id, or None if it does not exist."""
-  if not testcase_id or not str(testcase_id).isdigit() or int(testcase_id) == 0:
-    raise errors.InvalidTestcaseError
+  """Return the testcase with the given id.
+  Raises InvalidTestcaseError if no such testcase exists.
+  """
+  try:
+    parsed_id = int(testcase_id)
+  except ValueError:
+    raise errors.InvalidTestcaseError(testcase_id)
 
-  testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
+  if parsed_id == 0:
+    raise errors.InvalidTestcaseError(0)
 
+  testcase = ndb.Key(data_types.Testcase, parsed_id).get()
   if not testcase:
-    raise errors.InvalidTestcaseError
+    raise errors.InvalidTestcaseError(parsed_id)
 
   return testcase
 
@@ -730,8 +736,8 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    one_time_crasher_flag, crash_revision, comment,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
                    job_type, archived, archive_filename, http_flag, gestures,
-                   redzone, disable_ubsan, minidump_keys, window_argument,
-                   timeout_multiplier, minimized_arguments):
+                   redzone, disable_ubsan, window_argument, timeout_multiplier,
+                   minimized_arguments):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -772,7 +778,6 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.gestures = gestures
   testcase.redzone = redzone
   testcase.disable_ubsan = disable_ubsan
-  testcase.minidump_keys = minidump_keys
   testcase.window_argument = window_argument
   testcase.timeout_multiplier = float(timeout_multiplier)
   testcase.minimized_arguments = minimized_arguments

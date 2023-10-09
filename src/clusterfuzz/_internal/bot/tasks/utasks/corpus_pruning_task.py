@@ -776,7 +776,6 @@ def _process_corpus_crashes(context, result):
         gestures=None,
         redzone=DEFAULT_REDZONE,
         disable_ubsan=False,
-        minidump_keys=None,
         window_argument=None,
         timeout_multiplier=1.0,
         minimized_arguments=minimized_arguments)
@@ -900,10 +899,9 @@ def utask_main(uworker_input):
   # Setup fuzzer and data bundle.
   # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
   # preprocess.
-  update_fuzzer_and_data_bundles_input = (
+  setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
-  if not setup.update_fuzzer_and_data_bundles(
-      update_fuzzer_and_data_bundles_input):
+  if not setup.update_fuzzer_and_data_bundles(setup_input):
     raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.

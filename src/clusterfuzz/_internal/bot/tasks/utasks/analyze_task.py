@@ -26,7 +26,6 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
-from clusterfuzz._internal.chrome import crash_uploader
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis import severity_analyzer
 from clusterfuzz._internal.datastore import data_handler
@@ -71,8 +70,15 @@ def _add_default_issue_metadata(testcase):
     testcase.set_metadata(key, new_value)
 
 
-def setup_build(
-    testcase: data_types.Testcase) -> Optional[uworker_io.UworkerOutput]:
+def handle_analyze_no_revisions_list_error(output):
+  data_handler.update_testcase_comment(output.testcase,
+                                       data_types.TaskState.ERROR,
+                                       'Failed to fetch revision list')
+  handle_build_setup_error(output)
+
+
+def setup_build(testcase: data_types.Testcase,
+                bad_builds) -> Optional[uworker_io.UworkerOutput]:
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -81,26 +87,31 @@ def setup_build(
   if revision and not build_manager.is_custom_binary():
     build_bucket_path = build_manager.get_primary_bucket_path()
     revision_list = build_manager.get_revisions_list(
-        build_bucket_path, testcase=testcase)
+        build_bucket_path, bad_builds, testcase=testcase)
     if not revision_list:
-      data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                           'Failed to fetch revision list')
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
-      data_handler.update_testcase_comment(
-          testcase, data_types.TaskState.ERROR,
-          f'Build {testcase.job_type} r{revision} does not exist')
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
   return None
+
+
+def handle_analyze_no_revision_index(output):
+  testcase = testcase = data_handler.get_testcase_by_id(
+      output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(
+      testcase, data_types.TaskState.ERROR,
+      f'Build {testcase.job_type} r{testcase.crash_revision} '
+      'does not exist')
+  handle_build_setup_error(output)
 
 
 def prepare_env_for_main(testcase_upload_metadata):
@@ -121,21 +132,18 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 
 def setup_testcase_and_build(
-    testcase, testcase_upload_metadata, job_type, testcase_download_url
-) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
+    testcase, testcase_upload_metadata, job_type, setup_input,
+    bad_builds) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
   _, testcase_file_path, error = setup.setup_testcase(
-      testcase,
-      job_type,
-      testcase_download_url=testcase_download_url,
-      metadata=testcase_upload_metadata)
+      testcase, job_type, setup_input, metadata=testcase_upload_metadata)
   if error:
     return None, error
 
   # Set up build.
-  error = setup_build(testcase)
+  error = setup_build(testcase, bad_builds)
   if error:
     return None, error
 
@@ -146,7 +154,7 @@ def setup_testcase_and_build(
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         testcase_upload_metadata=testcase_upload_metadata,
-        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
 
   update_testcase_after_build_setup(testcase)
   testcase.absolute_path = testcase_file_path
@@ -180,17 +188,6 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.queue = tasks.default_queue()
   testcase.crash_state = ''
   testcase.put()
-
-
-def save_minidump(testcase, state, application_command_line, gestures):
-  """Saves a minidump when on Windows."""
-  # Get crash info object with minidump info. Also, re-generate unsymbolized
-  # stacktrace if needed.
-  crash_info, _ = (
-      crash_uploader.get_crash_info_and_stacktrace(
-          application_command_line, state.crash_stacktrace, gestures))
-  if crash_info:
-    testcase.minidump_keys = crash_info.store_minidump()
 
 
 def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
@@ -268,12 +265,8 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
-
-  # Locate the testcase associated with the id.
+  # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return None
-
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
@@ -291,14 +284,23 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   initialize_testcase_for_main(testcase, job_type)
 
-  testcase_download_url = setup.get_signed_testcase_download_url(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase)
+  analyze_task_input = get_analyze_task_input()
   return uworker_io.UworkerInput(
       testcase_upload_metadata=testcase_upload_metadata,
       testcase=testcase,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
+      setup_input=setup_input,
       job_type=job_type,
-      testcase_download_url=testcase_download_url)
+      analyze_task_input=analyze_task_input,
+  )
+
+
+def get_analyze_task_input():
+  analyze_input = uworker_io.AnalyzeTaskInput()
+  analyze_input.bad_builds = build_manager.get_job_bad_builds()
+  return analyze_input
 
 
 def utask_main(uworker_input):
@@ -312,14 +314,14 @@ def utask_main(uworker_input):
 
   testcase_file_path, output = setup_testcase_and_build(
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
-      uworker_input.job_type, uworker_input.testcase_download_url)
+      uworker_input.job_type, uworker_input.setup_input,
+      uworker_input.analyze_task_input.bad_builds)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
     return output
 
   # Initialize some variables.
-  gestures = uworker_input.testcase.gestures
   test_timeout = environment.get_value('TEST_TIMEOUT')
   result, http_flag = test_for_crash_with_retries(
       uworker_input.testcase, testcase_file_path, test_timeout)
@@ -334,8 +336,6 @@ def utask_main(uworker_input):
   crash_time = result.get_crash_time()
   state = result.get_symbolized_data()
 
-  save_minidump(uworker_input.testcase, state, application_command_line,
-                gestures)
   unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
 
   # In the general case, we will not attempt to symbolize if we do not detect
@@ -351,7 +351,7 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput(
         testcase=uworker_input.testcase,
         testcase_upload_metadata=uworker_input.testcase_upload_metadata,
-        error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
+        error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
         test_timeout=test_timeout)
   # Update testcase crash parameters.
   update_testcase_after_crash(uworker_input.testcase, state,
@@ -405,13 +405,16 @@ def handle_build_setup_error(output):
       output.testcase, output.testcase_upload_metadata, 'Build setup failed')
 
 
+# pylint: disable=no-member
 HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP_INVALID_FUZZER,
-    uworker_msg_pb2.ErrorType.UNHANDLED
-]
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
+    uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX,
+    uworker_msg_pb2.ErrorType.UNHANDLED,
+] + setup.HANDLED_ERRORS
+
+# pylint: enable=no-member
 
 
 def utask_postprocess(output):

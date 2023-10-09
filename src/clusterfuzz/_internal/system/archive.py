@@ -34,7 +34,7 @@ ARCHIVE_FILE_EXTENSIONS = (
     ZIP_FILE_EXTENSIONS + TAR_FILE_EXTENSIONS + LZMA_FILE_EXTENSIONS)
 
 
-class ArchiveType(object):
+class ArchiveType:
   """Type of the archive."""
   UNKNOWN = 0
   ZIP = 1
@@ -42,7 +42,7 @@ class ArchiveType(object):
   TAR_LZMA = 3
 
 
-class ArchiveFile(object):
+class ArchiveFile:
   """File in an archive."""
 
   def __init__(self, name, size, handle):

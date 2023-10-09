@@ -216,7 +216,7 @@ class RoundTripTest(unittest.TestCase):
     uworker_input = uworker_io.UworkerInput(
         testcase=self.testcase,
         uworker_env=self.env,
-        testcase_download_url=self.FAKE_URL,
+        setup_input=uworker_io.SetupInput(testcase_download_url=self.FAKE_URL),
     )
 
     # Create a mocked version of write_data so that when we upload the uworker
@@ -268,8 +268,8 @@ class RoundTripTest(unittest.TestCase):
                          downloaded_input.uworker_env)
     self.assertEqual(uworker_input.uworker_output_upload_url,
                      downloaded_input.uworker_output_upload_url)
-    self.assertEqual(uworker_input.testcase_download_url,
-                     downloaded_input.testcase_download_url)
+    self.assertEqual(uworker_input.setup_input.testcase_download_url,
+                     downloaded_input.setup_input.testcase_download_url)
 
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading uworker output works. This means
@@ -366,15 +366,40 @@ class RoundTripTest(unittest.TestCase):
     bundle1.put()
     bundle2.put()
     data_bundles = [bundle1, bundle2]
-    update_input = uworker_io.UpdateFuzzerAndDataBundleInput(
-        data_bundles=data_bundles)
-    uworker_input = uworker_io.UworkerInput(
-        update_fuzzer_and_data_bundles_input=update_input)
+    setup_input = uworker_io.SetupInput(data_bundles=data_bundles)
+    uworker_input = uworker_io.UworkerInput(setup_input=setup_input)
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(serialized)
-    update_input = deserialized.update_fuzzer_and_data_bundles_input
-    self.assertEqual(update_input.data_bundles[0].name, bundle1.name)
-    self.assertEqual(update_input.data_bundles[1].name, bundle2.name)
+    setup_input = deserialized.setup_input
+    self.assertEqual(setup_input.data_bundles[0].name, bundle1.name)
+    self.assertEqual(setup_input.data_bundles[1].name, bundle2.name)
+
+  def test_minimization_output_serialization(self):
+    """Tests that we can serialize and deserialize MinimizeTaskOutput."""
+    expected_last_crash_result_dict = {
+      'crash_type': 'test-use-after-free',
+      'crash_address': '0x61b00001f7d0',
+      'crash_state': 'test crash state',
+      'crash_stacktrace': 'test stacktrace --------+' \
+        '#0 0x64801a in frame0() src/test.cpp:1819:15' ,
+    }
+    expected_flaky_stack = True
+    expected_build_fail_wait = 321
+    pre_serialized_minimize_task_output = uworker_io.MinimizeTaskOutput(
+        last_crash_result_dict=expected_last_crash_result_dict,
+        flaky_stack=expected_flaky_stack,
+        build_fail_wait=expected_build_fail_wait)
+    uworker_output = uworker_io.UworkerOutput(
+        minimize_task_output=pre_serialized_minimize_task_output)
+    serialized = uworker_io.serialize_uworker_output(uworker_output)
+    deserialized = uworker_io.deserialize_uworker_output(serialized)
+    deserialized_minimize_task_output = deserialized.minimize_task_output
+    self.assertEqual(deserialized_minimize_task_output.last_crash_result_dict,
+                     expected_last_crash_result_dict)
+    self.assertEqual(deserialized_minimize_task_output.flaky_stack,
+                     expected_flaky_stack)
+    self.assertEqual(deserialized_minimize_task_output.build_fail_wait,
+                     expected_build_fail_wait)
 
   def test_additional_metadata(self):
     """Tests that additional_metadata field on Testcase is serialized and

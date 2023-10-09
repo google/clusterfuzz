@@ -228,7 +228,9 @@ def find_regression_range(testcase_id, job_type):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type)
+  setup_input = setup.preprocess_setup_testcase(testcase)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
+                                                      setup_input)
   if error:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
     # regression is migrated.
@@ -237,8 +239,13 @@ def find_regression_range(testcase_id, job_type):
     return
 
   build_bucket_path = build_manager.get_primary_bucket_path()
+
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+  # preprocess.
+  bad_builds = build_manager.get_job_bad_builds()
+
   revision_list = build_manager.get_revisions_list(
-      build_bucket_path, testcase=testcase)
+      build_bucket_path, bad_builds, testcase=testcase)
   if not revision_list:
     data_handler.close_testcase_with_error(testcase,
                                            'Failed to fetch revision list')

@@ -377,6 +377,21 @@ class FuzzTaskOutput(UworkerMsg):
     raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
 
+class ProgressionTaskOutput(UworkerMsg):
+  """Class representing an unserialized ProgressionTaskOutput message from
+  fuzz_task."""
+
+  PROTO_CLS = uworker_msg_pb2.ProgressionTaskOutput
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
 def save_json_field(field, value):
   serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
   field.CopyFrom(serialized_json)
@@ -422,6 +437,16 @@ class UworkerInput(UworkerMsg):
       save_json_field(field, value)
       return
 
+    if isinstance(field, collections.abc.Sequence):
+      # This the way to tell if it's a repeated field.
+      # We can't get the type of the repeated field directly.
+      value = list(value)
+      if len(value) == 0:
+        return
+      assert isinstance(value[0], ndb.Model), value[0]
+      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      return
+
     if isinstance(value, UworkerMsg):
       field.CopyFrom(value.proto)
       return
@@ -433,23 +458,58 @@ class UworkerInput(UworkerMsg):
     field.CopyFrom(entity_proto)
 
 
-class UpdateFuzzerAndDataBundleInput(UworkerInput):
-  """Input for setup.update_fuzzer_and_data_bundle in uworker_main."""
-  PROTO_CLS = uworker_msg_pb2.UpdateFuzzerAndDataBundlesInput
+class SetupInput(UworkerInput):
+  """Input for setup.update_fuzzer_and_data_bundle and setup.setup_testcase in
+  uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.SetupInput
+
+
+class AnalyzeTaskInput(UworkerInput):
+  """Input for analyze_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.AnalyzeTaskInput
+
+
+class FuzzTaskInput(UworkerInput):
+  """Input for fuzz_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.FuzzTaskInput
+
+
+class MinimizeTaskInput(UworkerInput):
+  """Input for minimize_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.MinimizeTaskInput
+
+
+class RegressionTaskInput(UworkerInput):
+  """Input for regression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.RegressionTaskInput
+
+
+class ProgressionTaskInput(UworkerInput):
+  """Input for progression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.ProgressionTaskInput
+
+
+class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from analyze_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.AnalyzeTaskOutput
+
+
+class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from minimize_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
 
   def save_rich_type(self, attribute, value):
     field = getattr(self.proto, attribute)
-    if isinstance(field, collections.Sequence):
-      # This the way to tell if it's a repeated field.
-      # We can't get the type of the repeated field directly.
-      value = list(value)
-      if len(value) == 0:
-        return
-      assert isinstance(value[0], ndb.Model), value[0]
-      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
       return
 
-    super().save_rich_type(attribute, value)
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
+class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from regression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.RegressionTaskOutput
 
 
 class DeserializedUworkerMsg:

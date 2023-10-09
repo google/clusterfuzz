@@ -20,7 +20,7 @@ class Error(Exception):
   """Engine error."""
 
 
-class FuzzOptions(object):
+class FuzzOptions:
   """Represents options passed to the engine. Can be overridden to provide more
   options."""
 
@@ -30,7 +30,7 @@ class FuzzOptions(object):
     self.strategies = strategies
 
 
-class Crash(object):
+class Crash:
   """Represents a crash found by the fuzzing engine."""
 
   def __init__(self, input_path, stacktrace, reproduce_args, crash_time):
@@ -40,7 +40,7 @@ class Crash(object):
     self.crash_time = crash_time
 
 
-class FuzzResult(object):
+class FuzzResult:
   """Represents a result of a fuzzing session: a list of crashes found and the
   stats generated."""
 
@@ -59,7 +59,7 @@ class FuzzResult(object):
     self.timed_out = timed_out
 
 
-class ReproduceResult(object):
+class ReproduceResult:
   """Results from running syz-crush, syz-repro against a testcase."""
 
   def __init__(self, command, return_code, time_executed, output):
@@ -69,7 +69,7 @@ class ReproduceResult(object):
     self.output = output
 
 
-class Engine(object):
+class Engine:
   """Base interface for a grey box fuzzing engine."""
 
   def __init__(self):
