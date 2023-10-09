@@ -369,13 +369,15 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   progression_input = uworker_io.ProgressionTaskInput()
   progression_input.custom_binary = build_manager.is_custom_binary()
   progression_input.bad_builds = build_manager.get_job_bad_builds()
+  # Setup testcase and its dependencies.
+  setup_input = setup.preprocess_setup_testcase(testcase)
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       progression_task_input=progression_input,
       testcase=testcase,
-  )
+      setup_input=setup_input)
 
 
 def find_fixed_range(uworker_input):
@@ -383,9 +385,8 @@ def find_fixed_range(uworker_input):
   deadline = tasks.get_task_completion_deadline()
   testcase = uworker_input.testcase
   job_type = uworker_input.job_type
+  setup_input = uworker_input.setup_input
 
-  # Setup testcase and its dependencies.
-  setup_input = setup.preprocess_setup_testcase(testcase)
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
   if error:
