@@ -117,13 +117,17 @@ def get_testcase_by_id(testcase_id):
     raise errors.InvalidTestcaseError
   print('get_testcase_by_id testcase_id: %s' % testcase_id)
   try:
+    print('trying to ndb key')
     testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
+    print('finished ndb.key')
   except Exception as e:
     print('error in ndb.key: %s' % e)
+  print('got testcase?')
 
   if not testcase:
     print('not testcase')
     raise errors.InvalidTestcaseError
+  print('get_testcase crash crashsubtypes %s:' % testcase.crash.crash_subtypes)
 
   return testcase
 
