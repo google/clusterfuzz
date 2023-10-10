@@ -83,7 +83,7 @@ class Issue(issue_tracker.Issue):
     self._changed = set()
 
   def _reset_tracking(self):
-    """Reset diff tracking."""
+    """Resets diff tracking."""
     self._changed.clear()
     self._ccs.reset_tracking()
     self._labels.reset_tracking()
@@ -206,7 +206,7 @@ class Issue(issue_tracker.Issue):
 
   @property
   def actions(self):
-    """Get the issue actions."""
+    """Gets the issue actions."""
     page_token = None
     while True:
       result = self.issue_tracker._execute(self.issue_tracker.client.issues()
@@ -240,7 +240,7 @@ class Issue(issue_tracker.Issue):
                          field_name,
                          api_field_name,
                          modifier=None):
-    """Prepare a single field update."""
+    """Prepares a single field update."""
     if field_name not in self._changed:
       return
     new_value = getattr(self, field_name)
@@ -259,7 +259,7 @@ class Issue(issue_tracker.Issue):
                              field_name,
                              api_field_name,
                              modifier=None):
-    """Prepare a collection field update."""
+    """Prepares a collection field update."""
     collection = getattr(self, field_name)
     collection_added = list(collection.added)
     if collection_added:
@@ -275,7 +275,7 @@ class Issue(issue_tracker.Issue):
       update_body["remove"][api_field_name] = collection_removed
 
   def _update_issue(self, new_comment=None, notify=True):
-    """Update an existing issue."""
+    """Updates an existing issue."""
     update_body = {
         "add": {},
         "addMask": "",
@@ -346,7 +346,7 @@ class Issue(issue_tracker.Issue):
     return result
 
   def _override_priority_and_type(self):
-    """Whether if we should override the priority and type."""
+    """Determines whether if we should override the priority and type."""
     if "1680101" in self.labels:
       # Unreproducible hotlist.
       return False
@@ -364,7 +364,7 @@ class Issue(issue_tracker.Issue):
     return True
 
   def save(self, new_comment=None, notify=True):
-    """Save the issue."""
+    """Saves the issue."""
     if self._is_new:
       priority = _extract_label(self.labels, "Pri-")
       issue_type = _extract_label(self.labels, "Type-") or "BUG"
@@ -420,7 +420,7 @@ class Action(issue_tracker.Action):
     self._data = data
 
   def _get_actual_value(self, value):
-    """Get the actual value of a field update google.protobuf.Any value."""
+    """Gets the actual value of a field update google.protobuf.Any value."""
     if value is None:
       return None
     if "emailAddress" in value:
@@ -430,13 +430,13 @@ class Action(issue_tracker.Action):
     raise IssueTrackerError("Unknown value type: " + value["type"])
 
   def _get_actual_values(self, values):
-    """Get the actual values of field update values."""
+    """Gets the actual values of field update values."""
     if values is None:
       return None
     return [self._get_actual_value(value) for value in values]
 
   def _get_field_update(self, field_name):
-    """Get the FieldUpdate for a field name."""
+    """Gets the FieldUpdate for a field name."""
     if "fieldUpdates" not in self._data:
       return None
     return next(
@@ -446,7 +446,7 @@ class Action(issue_tracker.Action):
     )
 
   def _get_field_update_single(self, field_name):
-    """Get a single field update."""
+    """Gets a single field update."""
     update = self._get_field_update(field_name)
     if not update:
       return None, None
@@ -459,7 +459,7 @@ class Action(issue_tracker.Action):
     )
 
   def _get_field_update_changes(self, field_name):
-    """Get a collection field update."""
+    """Gets a collection field update."""
     update = self._get_field_update(field_name)
     if not update:
       return None, None
@@ -555,7 +555,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     return self._client
 
   def _execute(self, request):
-    """Execute a request."""
+    """Executes a request."""
     http = None
     for _ in range(2):
       try:
@@ -573,11 +573,11 @@ class IssueTracker(issue_tracker.IssueTracker):
 
   @property
   def project(self):
-    """Get the project name of this issue tracker."""
+    """Gets the project name of this issue tracker."""
     return self._project
 
   def new_issue(self):
-    """Create an unsaved new issue."""
+    """Creates an unsaved new issue."""
     data = {
         "issueState": {
             "componentId": self._default_component_id,
@@ -588,7 +588,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     return Issue(data, True, self)
 
   def get_issue(self, issue_id):
-    """Get the issue with the given ID."""
+    """Gets the issue with the given ID."""
     try:
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
       return Issue(issue, False, self)
@@ -599,7 +599,7 @@ class IssueTracker(issue_tracker.IssueTracker):
       return None
 
   def find_issues(self, keywords=None, only_open=None):
-    """Find issues."""
+    """Finds issues."""
     page_token = None
     while True:
       issues = self._execute(self.client.issues().list(
@@ -613,13 +613,13 @@ class IssueTracker(issue_tracker.IssueTracker):
         break
 
   def find_issues_url(self, keywords=None, only_open=None):
-    """Find issues (web URL)."""
+    """Finds issues (web URL)."""
     return (_ISSUE_TRACKER_URL + "?" + urllib.parse.urlencode({
         "q": _get_query(keywords, only_open),
     }))
 
   def issue_url(self, issue_id):
-    """Return the issue URL with the given ID."""
+    """Returns the issue URL with the given ID."""
     return _ISSUE_TRACKER_URL + "/" + str(issue_id)
 
   @property
@@ -633,19 +633,19 @@ class IssueTracker(issue_tracker.IssueTracker):
 
 
 def _make_user(email):
-  """Make a User."""
+  """Makes a User."""
   return {
       "emailAddress": email,
   }
 
 
 def _make_users(emails):
-  """Make a User."""
+  """Makes a User."""
   return [_make_user(email) for email in emails]
 
 
 def _parse_datetime(date_string):
-  """Parse a datetime."""
+  """Parses a datetime."""
   datetime_obj, _, microseconds_string = date_string.rstrip("Z").partition(".")
   datetime_obj = datetime.datetime.strptime(datetime_obj, "%Y-%m-%dT%H:%M:%S")
   if microseconds_string:
@@ -655,7 +655,7 @@ def _parse_datetime(date_string):
 
 
 def _get_query(keywords, only_open):
-  """Get a search query."""
+  """Gets a search query."""
   query = " ".join('"{}"'.format(keyword) for keyword in keywords)
   if only_open:
     query += " status:open"
@@ -663,5 +663,5 @@ def _get_query(keywords, only_open):
 
 
 def get(project, config, issue_tracker_client=None):
-  """Get an IssueTracker for the project."""
+  """Gets an IssueTracker for the project."""
   return IssueTracker(project, issue_tracker_client, config)
