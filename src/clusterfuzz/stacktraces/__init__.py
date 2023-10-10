@@ -34,7 +34,7 @@ class CrashInfo:
     self.crash_address = ''
     self.crash_state = ''
     self.crash_stacktrace = ''
-    self.crash_subtypes = set()
+    self.crash_categories = set()
     self.frame_count = 0
     self.process_name = 'NULL'
     self.process_died = False
@@ -1174,7 +1174,7 @@ class StackParser:
 
       # Check if stacktrace indicates crash location in a fuzzer library.
       if FUZZER_EXIT_REGEX.match(line):
-        state.crash_subtypes.add('Fuzzer-exit')
+        state.crash_categories.add('Fuzzer-exit')
 
       # Check cases with unusual stack start markers.
       self.update_state_on_match(

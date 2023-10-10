@@ -79,7 +79,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     self.assertEqual(actual_state.crash_stacktrace, expected_stacktrace)
     self.assertEqual(actual_security_flag, expected_security_flag)
     if expected_subtypes:
-      self.assertEqual(actual_state.crash_subtypes, expected_subtypes)
+      self.assertEqual(actual_state.crash_categories, expected_subtypes)
 
   def test_symbolized_asan_null_dereference(self):
     """Test for a Null-dereference derived from a simple symbolized ASan
@@ -3651,7 +3651,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag, expected_subtypes)
 
-  def test_fuzzer_exit_crash_subtype(self):
+  def test_fuzzer_exit_crash_category(self):
     """Test Fuzzer-exit subtype"""
     data = self._read_test_data('fuzzer_exit_tag_mismatch.txt')
     expected_type = 'Tag-mismatch\nREAD 1'

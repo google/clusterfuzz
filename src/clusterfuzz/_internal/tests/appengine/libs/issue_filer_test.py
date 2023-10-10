@@ -351,7 +351,6 @@ class IssueFilerTests(unittest.TestCase):
     }
 
     testcase_args_2 = testcase_args.copy()
-    testcase_args_2['crash_subtypes'] = {'Fuzzer-exit'}
 
     self.testcase1 = data_types.Testcase(job_type='job1', **testcase_args)
     self.testcase1.put()
@@ -393,6 +392,7 @@ class IssueFilerTests(unittest.TestCase):
     self.testcase7.put()
 
     self.testcase8 = data_types.Testcase(job_type='job1', **testcase_args_2)
+    self.testcase8.set_metadata('crash_categories', ['Fuzzer-exit'])
     self.testcase8.put()
 
     data_types.ExternalUserPermission(
@@ -832,8 +832,8 @@ class IssueFilerTests(unittest.TestCase):
     self.assertNotIn('Resource Exhaustion',
                      issue_tracker._itm.last_issue.labels)
 
-  def test_additional_crash_subtypes(self):
-    """Test filing of crash_subtypes."""
+  def test_additional_crash_categories(self):
+    """Test filing of crash_categories."""
     policy = issue_tracker_policy.IssueTrackerPolicy({
         'status': {
             'assigned': 'Assigned',
@@ -848,7 +848,7 @@ class IssueFilerTests(unittest.TestCase):
         },
         'non_security': {},
         'labels': {
-            'crash_subtypes': {
+            'crash_categories': {
                 'fuzzer-exit': 'Fuzzer-exit',
             }
         },

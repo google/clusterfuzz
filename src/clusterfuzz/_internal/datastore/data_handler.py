@@ -755,7 +755,6 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.crash_address = crash.crash_address
   testcase.crash_state = utils.decode_to_unicode(crash.crash_state)
   testcase.crash_stacktrace = filter_stacktrace(crash.crash_stacktrace)
-  testcase.crash_subtypes = list(crash.crash_subtypes)
   testcase.fuzzed_keys = fuzzed_keys
   testcase.minimized_keys = minimized_keys
   testcase.bug_information = ''
@@ -785,6 +784,10 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Set metadata fields (e.g. build url, build key, platform string, etc).
   set_initial_testcase_metadata(testcase)
+
+  # Set crash metadata.
+  if crash.crash_categories:
+    testcase.set_metadata('crash_categories', list(crash.crash_categories))
 
   # Update the comment and save testcase.
   update_testcase_comment(testcase, data_types.TaskState.NA, comment)
