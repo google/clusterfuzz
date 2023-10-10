@@ -81,7 +81,6 @@ def do_corpus_pruning(context, last_execution_failed, revision):
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
           crash_stacktrace=crash.crash_stacktrace,
-          crash_subtypes=crash.crash_subtypes,
           unit_path=crash.unit_path,
           security_flag=crash.security_flag,
       ) for crash in response.crashes
