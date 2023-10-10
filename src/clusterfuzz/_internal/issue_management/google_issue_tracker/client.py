@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Get a Google Issue Tracker HTTP client."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""Gets a Google Issue Tracker HTTP client."""
 
 import os
 import urllib
@@ -40,7 +36,7 @@ def user():
 
 
 def _request_urllib_for_testing(url, body, method, headers):
-  """Make the request with urllib2 for testing purposes."""
+  """Makes the request with urllib2 for testing purposes."""
   # For testing locally with ssolib.
   from urllib import request
 
@@ -86,7 +82,7 @@ class _UberProxyHttp(httplib2.Http):
       redirections=httplib2.DEFAULT_MAX_REDIRECTS,
       connection_type=None,
   ):
-    """Make a request."""
+    """Makes a request."""
     if headers is None:
       headers = {}
     if self.cookie:
@@ -104,7 +100,7 @@ class _UberProxyHttp(httplib2.Http):
 
 
 def build_http(api="issuetracker", oauth_token=None, uberproxy_cookie=None):
-  """Build a httplib2.Http."""
+  """Builds a httplib2.Http."""
   # if uberproxy_cookie is None:
   #     uberproxy_client = corplogin_client_jwt.AppEngineCorpLoginClient(
   #         _ROLE_ACCOUNT, _UBERPROXY_SERVICE
@@ -127,7 +123,7 @@ def build_http(api="issuetracker", oauth_token=None, uberproxy_cookie=None):
 
 
 def build(api="issuetracker", http=None):
-  """Build a google api client for buganizer."""
+  """Builds a google api client for buganizer."""
   if not http:
     http = build_http(api)
   return googleapiclient.discovery.build(
