@@ -81,6 +81,9 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'jazzer_driver',
     'jazzer_driver_with_sanitizer',
     'llvm-symbolizer',
+    # crbug.com/1471427: chrome_crashpad_handler is needed for fuzzers that are
+    # spawning the full chrome browser.
+    'chrome_crashpad_handler',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
