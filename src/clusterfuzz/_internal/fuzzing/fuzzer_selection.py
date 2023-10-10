@@ -124,8 +124,7 @@ def get_fuzz_task_payload(platform=None):
     mappings = list(ndb_utils.get_all_from_query(query))
   else:
     query = data_types.FuzzerJobs.query()
-    query = query.filter(
-        data_types.FuzzerJobs.platform.IN(platforms))
+    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
     mappings = []
     for entity in query:

@@ -886,7 +886,8 @@ class ProjectSetup:
       # Device-specific queues created during project setup.
       queue_id = info.get('queue_id', False)
       if queue_id:
-        platform = info.get('platform', 'ANDROID').upper() + ':' + queue_id.upper()
+        platform = info.get('platform',
+                            'ANDROID').upper() + ':' + queue_id.upper()
         job.platform = platform
         if platform.startswith('ANDROID'):
           job.templates.append('android')
