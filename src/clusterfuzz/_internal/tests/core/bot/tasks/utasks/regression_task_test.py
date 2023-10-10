@@ -21,7 +21,6 @@ import unittest
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
-from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -181,7 +180,7 @@ class ValidateRegressionRangeTest(unittest.TestCase):
         testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4)
     self.assertFalse(result)
 
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    testcase = testcase.key.get()
     self.assertEqual(testcase.regression, 'NA')
 
   def test_valid_range(self):
@@ -232,7 +231,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     self.assertIsNone(
         regression_task.utask_preprocess(testcase.key.id(), None, None))
 
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    testcase = testcase.key.get()
     self.assertEqual(testcase.regression, 'NA')
     self.assertRegex(testcase.comments, 'Not applicable for custom binaries.$')
 
@@ -258,7 +257,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     self.assertEqual(uworker_input.job_type, job_type)
     self.assertTrue(uworker_input.HasField("regression_task_input"))
 
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    testcase = testcase.key.get()
     self.assertRegex(testcase.comments, 'started.$')
     self.assertEqual(uworker_input.setup_input.fuzzer_name, fuzzer_name)
     self.assertEqual(uworker_input.uworker_env, uworker_env)
