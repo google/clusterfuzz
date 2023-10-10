@@ -39,8 +39,6 @@ from clusterfuzz._internal.system import environment
 
 from . import service_accounts
 
-ANDROID_CUTTLEFISH = 'ANDROID_X86'
-
 BUILD_BUCKET_PATH_TEMPLATE = (
     'gs://%BUCKET%/%PROJECT%/%PROJECT%-%SANITIZER%-([0-9]+).zip')
 
@@ -111,7 +109,7 @@ LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
 LIBFUZZER_HWASAN_JOB = JobInfo(
     'libfuzzer_hwasan_',
     'libfuzzer',
-    'hardware', ['libfuzzer', 'engine_asan', 'android'],
+    'hardware', ['libfuzzer', 'engine_asan'],
     architecture='arm')
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
                              ['libfuzzer', 'engine_msan'])
@@ -574,10 +572,10 @@ def create_pubsub_topics_for_untrusted(project):
     _create_pubsub_topic(name)
 
 
-def create_pubsub_topics_for_queue_id(queue_id):
+def create_pubsub_topics_for_queue_id(queue_id, platform):
   """Create pubsub topics from project configs for tasks."""
-  project, platform = queue_id.split('-')
-  name = untrusted.queue_name(project, platform)
+  platform = environment.base_platform(platform)
+  name = untrusted.queue_name(platform, queue_id)
   _create_pubsub_topic(name)
 
 
@@ -885,16 +883,15 @@ class ProjectSetup:
       file_github_issue = info.get('file_github_issue', False)
       job.environment_string += f'FILE_GITHUB_ISSUE = {file_github_issue}\n'
 
-      # Android creates device-specific queues during project setup.
+      # Device-specific queues created during project setup.
       queue_id = info.get('queue_id', False)
       if queue_id:
-        if 'android' not in job.templates:
+        platform = info.get('platform', 'ANDROID').upper() + ':' + queue_id.upper()
+        job.platform = platform
+        if platform.startswith('ANDROID'):
           job.templates.append('android')
-        if template.architecture == 'arm':
-          job.platform = queue_id.split('-')[1].upper()
-        else:
-          job.platform = ANDROID_CUTTLEFISH
-        create_pubsub_topics_for_queue_id(queue_id)
+
+        create_pubsub_topics_for_queue_id(queue_id, job.platform)
 
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and

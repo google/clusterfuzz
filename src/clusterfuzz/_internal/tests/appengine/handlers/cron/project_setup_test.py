@@ -1730,7 +1730,8 @@ def _mock_read_data(path):
             'fuzzing_engines': ['libfuzzer'],
             'architectures': ['arm'],
             'sanitizers': ['hardware'],
-            'queue_id': 'android-pixel7'
+            'platform': 'ANDROID',
+            'queue_id': 'pixel7'
         }, {
             'build_path':
                 'gs://bucket-android/a-b-android/%ENGINE%/%SANITIZER%/'
@@ -1739,7 +1740,8 @@ def _mock_read_data(path):
             'fuzzing_engines': ['libfuzzer', 'afl'],
             'architectures': ['x86_64'],
             'sanitizers': ['address'],
-            'queue_id': 'android-pixel8'
+            'platform': 'ANDROID_X86',
+            'queue_id': 'pixel8'
         }]
     })
 
@@ -2093,7 +2095,7 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
-    self.assertEqual("PIXEL7", job.platform)
+    self.assertEqual("ANDROID:PIXEL7", job.platform)
 
     job = data_types.Job.query(
         data_types.Job.name == 'afl_asan_android_pixel8').get()
@@ -2115,7 +2117,7 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
-    self.assertEqual("ANDROID_X86", job.platform)
+    self.assertEqual("ANDROID_X86:PIXEL8", job.platform)
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_android_pixel8').get()
@@ -2137,13 +2139,13 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
-    self.assertEqual("ANDROID_X86", job.platform)
+    self.assertEqual("ANDROID_X86:PIXEL8", job.platform)
 
     expected_topics = [
         'projects/clusterfuzz-external/topics/jobs-linux',
         'projects/clusterfuzz-external/topics/other',
         'projects/clusterfuzz-external/topics/jobs-android-pixel7',
-        'projects/clusterfuzz-external/topics/jobs-android-pixel8',
+        'projects/clusterfuzz-external/topics/jobs-android-x86-pixel8',
     ]
     self.assertCountEqual(expected_topics,
                           list(pubsub_client.list_topics('projects/' + app_id)))
@@ -2154,9 +2156,9 @@ class GenericProjectSetupTest(unittest.TestCase):
             'projects/clusterfuzz-external/topics/jobs-android-pixel7'))
 
     self.assertCountEqual(
-        ['projects/clusterfuzz-external/subscriptions/jobs-android-pixel8'],
+        ['projects/clusterfuzz-external/subscriptions/jobs-android-x86-pixel8'],
         pubsub_client.list_topic_subscriptions(
-            'projects/clusterfuzz-external/topics/jobs-android-pixel8'))
+            'projects/clusterfuzz-external/topics/jobs-android-x86-pixel8'))
 
     self.assertIsNotNone(pubsub_client.get_topic(unmanaged_topic_name))
     self.assertIsNotNone(pubsub_client.get_topic(other_topic_name))

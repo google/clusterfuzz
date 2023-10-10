@@ -100,9 +100,8 @@ class InvalidRedoTask(Error):
 
 def queue_suffix_for_platform(platform):
   """Get the queue suffix for a platform."""
-  if SUBQUEUE_IDENTIFIER in platform:
-    return '-' + platform.lower().replace(':', '-')
-
+  # Handle the case where a subqueue is used.
+  platform = platform.lower().replace(':', '-')
   return '-' + platform.lower().replace('_', '-')
 
 
