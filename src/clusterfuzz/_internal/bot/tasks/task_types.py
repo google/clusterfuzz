@@ -93,15 +93,12 @@ class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
       super().execute(task_argument, job_type, uworker_env)
       return
 
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
+    download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
+                                                job_type, uworker_env)
 
-    if preprocess_result is None:
-      return
-
-    input_download_url, _ = preprocess_result
-    utasks.uworker_main(input_download_url)
-    logs.log('Utask: done with preprocess and main.')
+    logs.log('Utask: done with preprocess.')
+    utasks.uworker_main(download_url)
+    logs.log('Utask: done with main.')
 
 
 class PostprocessTask(BaseTask):

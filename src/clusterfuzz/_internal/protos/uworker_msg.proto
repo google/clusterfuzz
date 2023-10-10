@@ -39,7 +39,7 @@ message AnalyzeTaskInput {
 }
 
 message FuzzTaskInput {
-  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  optional google.datastore.v1.Entity targets_count = 1;
 }
 
 message MinimizeTaskInput {
@@ -90,6 +90,7 @@ message FuzzTaskOutput {
   optional int64 testcases_executed = 6;
   optional Json job_run_crashes = 7;
   optional string fully_qualified_fuzzer_name = 8;
+  optional int32 new_targets_count = 9;
 }
 
 message MinimizeTaskOutput {

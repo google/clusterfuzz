@@ -265,12 +265,8 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
-
-  # Locate the testcase associated with the id.
+  # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return None
-
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
