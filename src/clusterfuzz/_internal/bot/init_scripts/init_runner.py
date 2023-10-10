@@ -15,7 +15,6 @@
 
 import os
 
-from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler

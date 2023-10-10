@@ -17,7 +17,6 @@ import collections
 
 from google.cloud import ndb
 
-from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import fuzz_target_utils
