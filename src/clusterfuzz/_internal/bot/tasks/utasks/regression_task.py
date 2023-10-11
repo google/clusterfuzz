@@ -106,7 +106,15 @@ def _testcase_reproduces_in_revision(testcase,
   if not build_manager.check_app_path():
     raise errors.BuildSetupError(revision, job_type)
 
-  if testcase_manager.check_for_bad_build(job_type, revision):
+  (is_bad_build, should_ignore_crash_result,
+   build_run_console_output) = testcase_manager.check_for_bad_build(
+       job_type, revision)
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+  # postprocess.
+  testcase_manager.update_build_metadata(job_type, revision, is_bad_build,
+                                         should_ignore_crash_result,
+                                         build_run_console_output)
+  if is_bad_build:
     log_message = 'Bad build at r%d. Skipping' % revision
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     data_handler.update_testcase_comment(testcase, data_types.TaskState.WIP,
