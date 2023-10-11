@@ -17,6 +17,7 @@
 .idea
 /.project
 /.pydevproject
+/.python-version
 /ENV
 /bot/*
 /coverage

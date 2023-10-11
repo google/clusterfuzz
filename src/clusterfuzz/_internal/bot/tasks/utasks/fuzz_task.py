@@ -1331,16 +1331,6 @@ class FuzzingSession:
           'Failed to sync corpus for fuzzer %s (job %s).' %
           (self.fuzz_target.project_qualified_name(), self.job_type))
 
-  def _save_fuzz_targets_count(self):
-    """Save fuzz targets count."""
-    count = environment.get_value('FUZZ_TARGET_COUNT')
-    if count is None:
-      return
-
-    targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
-    if not targets_count or targets_count.count != count:
-      data_types.FuzzTargetsCount(id=self.job_type, count=count).put()
-
   def _file_size(self, file_path):
     """Return file size depending on whether file is local or remote (untrusted
     worker)."""
@@ -1798,7 +1788,7 @@ class FuzzingSession:
         logs.log_error('Failed to set up sanitized_target_build.')
 
     # Save fuzz targets count to aid with CPU weighting.
-    self._save_fuzz_targets_count()
+    new_targets_count = environment.get_value('FUZZ_TARGET_COUNT')
 
     # Check if we have a bad build, i.e. one that crashes on startup.
     # If yes, bail out.
@@ -1900,6 +1890,9 @@ class FuzzingSession:
         testcases_executed=testcases_executed,
         job_run_crashes=convert_groups_to_crashes(processed_groups),
     )
+    if new_targets_count is not None:
+      fuzz_task_output.new_targets_count = new_targets_count
+    return uworker_io.UworkerOutput(fuzz_task_output=fuzz_task_output)
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
@@ -1911,6 +1904,13 @@ class FuzzingSession:
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
         fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
+    uworker_input = uworker_output.uworker_input
+    fuzz_task_input = uworker_input.fuzz_task_input
+    if (not fuzz_task_input.targets_count or fuzz_task_input.targets_count.count
+        != fuzz_task_output.new_targets_count):
+      data_types.FuzzTargetsCount(
+          id=uworker_input.job_type,
+          count=fuzz_task_output.new_targets_count).put()
 
 
 def handle_fuzz_build_setup_failure(output):
@@ -1956,8 +1956,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
-  fuzz_task_input = uworker_io.FuzzTaskInput()
-  uworker_input = uworker_io.UworkerInput(
+  targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
+  fuzz_task_input = uworker_io.FuzzTaskInput(targets_count=targets_count)
+  return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,

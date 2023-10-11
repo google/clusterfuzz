@@ -42,6 +42,7 @@ message FuzzTaskInput {
   optional string sample_testcase_upload_key = 1;
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
+  optional google.datastore.v1.Entity targets_count = 4;
 }
 
 message MinimizeTaskInput {
@@ -55,6 +56,7 @@ message RegressionTaskInput {
 
 message ProgressionTaskInput {
   optional bool custom_binary = 1;
+  repeated google.datastore.v1.Entity bad_builds = 2;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
@@ -100,7 +102,7 @@ message FuzzTaskOutput {
   optional Json job_run_crashes = 7;
   optional string fully_qualified_fuzzer_name = 8;
   optional StoreFuzzerRunResultsOutput store_fuzzer_run_results_output = 9;
-
+  optional int32 new_targets_count = 10;
 }
 
 message MinimizeTaskOutput {

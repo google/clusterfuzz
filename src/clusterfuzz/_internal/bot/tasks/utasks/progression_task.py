@@ -368,6 +368,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
   progression_input = uworker_io.ProgressionTaskInput()
   progression_input.custom_binary = build_manager.is_custom_binary()
+  progression_input.bad_builds = build_manager.get_job_bad_builds()
   return uworker_io.UworkerInput(
       job_type=job_type,
       testcase_id=testcase_id,
@@ -395,9 +396,7 @@ def find_fixed_range(uworker_input):
     return _check_fixed_for_custom_binary(testcase, testcase_file_path)
 
   build_bucket_path = build_manager.get_primary_bucket_path()
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-  # preprocess.
-  bad_builds = build_manager.get_job_bad_builds()
+  bad_builds = uworker_input.progression_task_input.bad_builds
 
   revision_list = build_manager.get_revisions_list(
       build_bucket_path, bad_builds, testcase=testcase)
