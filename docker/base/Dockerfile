@@ -113,8 +113,8 @@ RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
 # Set up google-fluentd
 # We ignore errors in install-logging-agent.sh as it always fails to start
 # after installation without a metadata server.
-RUN curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh && \
-    bash install-logging-agent.sh || true && \
+RUN curl -sSO https://dl.google.com/cloudagents/add-logging-agent-repo.sh && \
+    bash add-logging-agent-repo.sh --also-install --version=1.10.1 || true && \
     sed -i 's/flush_interval 5s/flush_interval 60s/' /etc/google-fluentd/google-fluentd.conf
 COPY clusterfuzz-fluentd.conf /etc/google-fluentd/config.d/clusterfuzz.conf
 
