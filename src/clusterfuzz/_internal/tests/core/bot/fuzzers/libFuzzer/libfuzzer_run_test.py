@@ -16,6 +16,9 @@
 import os
 import unittest
 
+import psutil
+
+from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.core.bot.fuzzers import builtin_test
@@ -50,8 +53,12 @@ class GenerateArgumentsTests(unittest.TestCase):
     libfuzzer = fuzzer.LibFuzzer()
     arguments = libfuzzer.generate_arguments(fuzzer_path)
 
+    # we expect the fuzzer to set the maximum value possible when rss_limit_mb
+    # is too large.
+    max_memory_limit = psutil.virtual_memory().total - constants.MEMORY_OVERHEAD
+    rss_limit = min(12345, max_memory_limit)
     expected_arguments = (
-        '-max_len=31337 -timeout=11 -runs=9999999 -rss_limit_mb=2560')
+        f'-max_len=31337 -timeout=11 -runs=9999999 -rss_limit_mb={rss_limit}')
     self.assertEqual(arguments, expected_arguments)
 
 
