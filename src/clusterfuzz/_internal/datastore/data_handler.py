@@ -784,9 +784,9 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Set metadata fields (e.g. build url, build key, platform string, etc).
   set_initial_testcase_metadata(testcase)
-  print('store_testcase line 787 %s' % crash.crash_categories)
+  print('store_testcase line 787')
   # Set crash metadata.
-  if crash.crash_categories:
+  if hasattr(crash, 'crash_categories') and crash.crash_categories:
     testcase.set_metadata('crash_categories', list(crash.crash_categories))
 
   print('store_testcase line 782')
