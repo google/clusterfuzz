@@ -888,7 +888,7 @@ def postprocess_store_fuzzer_run_results(output):
     logs.log_fatal_and_exit('Fuzzer does not exist, exiting.')
 
   fuzzer_run_results_output = output.fuzz_task_output.fuzzer_run_results_output
-  if fuzzer.revision != uworker_input.fuzzer.revision:
+  if fuzzer.revision != output.fuzz_task_output.revision:
     logs.log('Fuzzer was recently updated, skipping results from old version.')
     return
   fuzzer.sample_testcase = (
@@ -1881,6 +1881,8 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
+    if new_targets_count is not None:
+      fuzz_task_output.new_targets_count = new_targets_count
     return self._get_output(
         fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
         crash_revision=str(crash_revision),
@@ -1889,10 +1891,8 @@ class FuzzingSession:
         known_crash_count=known_crash_count,
         testcases_executed=testcases_executed,
         job_run_crashes=convert_groups_to_crashes(processed_groups),
+        fuzzer_revision=self.revision,
     )
-    if new_targets_count is not None:
-      fuzz_task_output.new_targets_count = new_targets_count
-    return uworker_io.UworkerOutput(fuzz_task_output=fuzz_task_output)
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
