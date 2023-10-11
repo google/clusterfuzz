@@ -1891,7 +1891,7 @@ class FuzzingSession:
         known_crash_count=known_crash_count,
         testcases_executed=testcases_executed,
         job_run_crashes=convert_groups_to_crashes(processed_groups),
-        fuzzer_revision=self.revision,
+        fuzzer_revision=self.fuzzer.revision,
     )
 
   def postprocess(self, uworker_output):
