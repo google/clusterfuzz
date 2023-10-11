@@ -63,7 +63,6 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_build',
         'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
-        'clusterfuzz._internal.bot.testcase_manager.update_build_metadata',
         'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
         'clusterfuzz._internal.build_management.build_manager.check_app_path'
     ])
@@ -85,7 +84,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = True, False, None
+    self.mock.check_for_bad_build.return_value = True
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
@@ -96,7 +95,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = False, False, None
+    self.mock.check_for_bad_build.return_value = False
     testcase = data_types.Testcase()
     testcase = uworker_io.UworkerEntityWrapper(testcase)
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
