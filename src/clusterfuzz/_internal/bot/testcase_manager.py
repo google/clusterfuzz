@@ -1113,10 +1113,12 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
 
 
 def check_for_bad_build(job_type, crash_revision):
-  """Return true if the build is bad, i.e. crashes on startup."""
+  """Returns result of bad build check i.e. crashes on startup. Results include
+  whether the build is bad, whether the crash should be ignored, the
+  build_run_console_output."""
   # Check the bad build check flag to see if we want do this.
   if not environment.get_value('BAD_BUILD_CHECK'):
-    return False
+    return False, False, None
 
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
