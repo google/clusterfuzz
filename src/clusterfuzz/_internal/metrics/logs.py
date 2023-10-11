@@ -103,6 +103,8 @@ def get_logging_config_dict(name):
   logging_handler = {
       'run_bot':
           get_handler_config('bot/logs/bot.log', 3),
+      'run_cron':
+          get_handler_config('bot/logs/run_cron.log', 3),
       'run':
           get_handler_config('bot/logs/run.log', 1),
       'run_heartbeat':
@@ -129,12 +131,6 @@ def get_logging_config_dict(name):
       },
       'handlers': {
           'handler': logging_handler[name],
-          'fluentd': {
-              'class': 'clusterfuzz._internal.metrics.logs.JsonSocketHandler',
-              'level': logging.INFO,
-              'host': '127.0.0.1',
-              'port': 5170,
-          }
       },
       'loggers': {
           name: {
@@ -143,7 +139,6 @@ def get_logging_config_dict(name):
       },
       'root': {
           'level': logging.INFO,
-          'handlers': ['fluentd']
       }
   }
 
@@ -158,46 +153,6 @@ def truncate(msg, limit):
       msg[:half],
       '...%d characters truncated...' % (len(msg) - limit), msg[-half:]
   ])
-
-
-def format_record(record: logging.LogRecord) -> str:
-  """Format LogEntry into JSON string."""
-  entry = {
-      'message':
-          truncate(record.getMessage(), STACKDRIVER_LOG_MESSAGE_LIMIT),
-      'created': (
-          datetime.datetime.utcfromtimestamp(record.created).isoformat() + 'Z'),
-      'severity':
-          record.levelname,
-      'bot_name':
-          os.getenv('BOT_NAME'),
-      'task_payload':
-          os.getenv('TASK_PAYLOAD'),
-      'name':
-          record.name,
-  }
-
-  entry['location'] = getattr(record, 'location', {'error': True})
-  entry['extras'] = getattr(record, 'extras', {})
-  update_entry_with_exc(entry, record.exc_info)
-
-  if not entry['extras']:
-    del entry['extras']
-
-  worker_bot_name = os.environ.get('WORKER_BOT_NAME')
-  if worker_bot_name:
-    entry['worker_bot_name'] = worker_bot_name
-
-  fuzz_target = os.getenv('FUZZ_TARGET')
-  if fuzz_target:
-    entry['fuzz_target'] = fuzz_target
-
-  # Log bot shutdown cases as WARNINGs since this is expected for preemptibles.
-  if (entry['severity'] in ['ERROR', 'CRITICAL'] and
-      'IOError: [Errno 4] Interrupted function call' in entry['message']):
-    entry['severity'] = 'WARNING'
-
-  return json.dumps(entry, default=_handle_unserializable)
 
 
 def _handle_unserializable(unserializable: Any) -> str:
@@ -239,16 +194,6 @@ def update_entry_with_exc(entry, exc_info):
     }
 
 
-class JsonSocketHandler(logging.handlers.SocketHandler):
-  """Format log into JSON string before sending it to fluentd. We need this
-    because SocketHandler doesn't respect the formatter attribute."""
-
-  def makePickle(self, record: logging.LogRecord):
-    """Format LogEntry into JSON string."""
-    # \n is the recognized delimiter by fluentd's in_tcp. Don't remove.
-    return (format_record(record) + '\n').encode('utf-8')
-
-
 def uncaught_exception_handler(exception_type, exception_value,
                                exception_traceback):
   """Handles any exception that are uncaught by logging an error and calling
@@ -274,24 +219,15 @@ def uncaught_exception_handler(exception_type, exception_value,
   sys.__excepthook__(exception_type, exception_value, exception_traceback)
 
 
-def configure_appengine():
-  """Configure logging for App Engine."""
-  logging.getLogger().setLevel(logging.INFO)
-
+def configure_cloud_logging(logger, name):
+  """Configure Cloud logging."""
   if os.getenv('LOCAL_DEVELOPMENT') or os.getenv('PY_UNITTESTS'):
     return
 
   import google.cloud.logging
   client = google.cloud.logging.Client()
-  handler = client.get_default_handler()
-  logging.getLogger().addHandler(handler)
+  logger.addHandler(client.get_default_handler())
 
-
-def configure_k8s():
-  """Configure logging for K8S and reporting errors."""
-  import google.cloud.logging
-  client = google.cloud.logging.Client()
-  client.setup_logging()
   old_factory = logging.getLogRecordFactory()
 
   def record_factory(*args, **kwargs):
@@ -301,6 +237,30 @@ def configure_k8s():
     if not hasattr(record, 'json_fields'):
       record.json_fields = {}
 
+    record.json_fields.update({
+        'bot_name': os.getenv('BOT_NAME'),
+        'task_payload': os.getenv('TASK_PAYLOAD'),
+        'name': record.name,
+        'location': getattr(record, 'location', {'error': True}),
+    })
+
+    extras = getattr(record, 'extras', {})
+    if extras:
+      record.json_fields['extras'] = extras
+
+    worker_bot_name = os.environ.get('WORKER_BOT_NAME')
+    if worker_bot_name:
+      record.json_fields['worker_bot_name'] = worker_bot_name
+
+    fuzz_target = os.getenv('FUZZ_TARGET')
+    if fuzz_target:
+      record.json_fields['fuzz_target'] = fuzz_target
+
+    # Log bot shutdown cases as WARNINGs since this is expected for preemptibles.
+    if (record.levelno >= logging.ERROR and
+        'IOError: [Errno 4] Interrupted function call' in record.getMessage()):
+      record.levelno = logging.WARNING
+
     # Add jsonPayload fields to logs that don't contain stack traces to enable
     # capturing and grouping by error reporting.
     # https://cloud.google.com/error-reporting/docs/formatting-error-messages#log-text
@@ -309,7 +269,7 @@ def configure_k8s():
           '@type':
               'type.googleapis.com/google.devtools.clouderrorreporting.v1beta1.ReportedErrorEvent',  # pylint: disable=line-too-long
           'serviceContext': {
-              'service': 'k8s',
+              'service': name,
           },
           'context': {
               'reportLocation': {
@@ -323,7 +283,6 @@ def configure_k8s():
     return record
 
   logging.setLogRecordFactory(record_factory)
-  logging.getLogger().setLevel(logging.INFO)
 
 
 def configure(name, extras=None):
@@ -332,14 +291,6 @@ def configure(name, extras=None):
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
 
-  if _is_runnging_on_k8s():
-    configure_k8s()
-    return
-
-  if _is_running_on_app_engine():
-    configure_appengine()
-    return
-
   if _console_logging_enabled():
     logging.basicConfig()
   else:
@@ -347,6 +298,8 @@ def configure(name, extras=None):
 
   logger = logging.getLogger(name)
   logger.setLevel(logging.INFO)
+  configure_cloud_logging(logger, name)
+
   set_logger(logger)
 
   # Set _default_extras so they can be used later.
@@ -365,11 +318,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine() or _is_runnging_on_k8s():
-    # Running on App Engine.
-    set_logger(logging.getLogger())
-
-  elif _console_logging_enabled():
+  if _console_logging_enabled():
     # Force a logger when console logging is enabled.
     configure('root')
 
