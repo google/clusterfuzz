@@ -63,10 +63,10 @@ _TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
 _TIMEOUT_PER_INPUT_TEST = 1  # For testing timeout only.
 _DEFAULT_ARGUMENTS = [
-    '--exit_on_crash=1',
-    f'--fork_server={_SERVER_COUNT}',
-    f'--rss_limit_mb={_RSS_LIMIT}',
-    f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
+    '-exit_on_crash=1',
+    f'-fork_server={_SERVER_COUNT}',
+    f'-rss_limit_mb={_RSS_LIMIT}',
+    f'-address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
 ]
 
 
@@ -74,8 +74,12 @@ def setup_testcase(testcase, test_paths):
   """Sets up testcase and corpus."""
 
   src_testcase_path = test_paths.data / testcase
+  src_testcase_options_path = test_paths.data / f'{testcase}.options'
   copied_testcase_path = test_paths.corpus / testcase
+  copied_testcase_options_path = test_paths.corpus / f'{testcase}.options'
   shutil.copy(src_testcase_path, copied_testcase_path)
+  if src_testcase_options_path.exists():
+    shutil.copy(src_testcase_options_path, copied_testcase_options_path)
 
   return copied_testcase_path
 
@@ -119,7 +123,11 @@ class IntegrationTest(unittest.TestCase):
 
   def compare_arguments(self, expected, actual):
     """Compares expected arguments."""
-    self.assertListEqual(expected, actual)
+    # First, compare that the binary is the first element of the list
+    self.assertListEqual(expected[:1], actual[:1], "binary argument differ")
+
+    # The other arguments for centipede are not positional, so we do not really care about ordering.
+    self.assertListEqual(sorted(expected[1:]), sorted(actual[1:]))
 
   def _test_reproduce(self,
                       regex,
@@ -187,6 +195,15 @@ class IntegrationTest(unittest.TestCase):
     else:
       os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
 
+  def test_options_arguments(self):
+    """Tests that the options file is correctly taken into account when querying for arguments."""
+    testcase_path = setup_testcase('fuzzer_arguments', self.test_paths)
+    engine_impl = engine.Engine()
+    # pylint: disable=protected-access
+    arguments = engine_impl._get_arguments(str(testcase_path))
+    args = arguments.list()
+    self.assertIn('-rss_limit_mb=1234', args)
+
   @patch('clusterfuzz._internal.bot.fuzzers.centipede.engine._CLEAN_EXIT_SECS',
          5)
   def _run_centipede(self,
@@ -210,14 +227,14 @@ class IntegrationTest(unittest.TestCase):
                                   self.test_paths.data)
     # For testing oom only.
     options.arguments = [
-        f'--rss_limit_mb={rss_limit}'
-        if flag == f'--rss_limit_mb={_RSS_LIMIT}' else flag
+        f'-rss_limit_mb={rss_limit}'
+        if flag == f'-rss_limit_mb={_RSS_LIMIT}' else flag
         for flag in options.arguments
     ]
     # For testing timeout only.
     if timeout_flag:
       options.arguments = [
-          timeout_flag if '--timeout' in flag else flag
+          timeout_flag if '-timeout' in flag else flag
           for flag in options.arguments
       ]
 
@@ -226,29 +243,29 @@ class IntegrationTest(unittest.TestCase):
 
     expected_command = [self.test_paths.centipede]
     if dictionary:
-      expected_command.append(f'--dictionary={dictionary}')
+      expected_command.append(f'-dictionary={dictionary}')
     expected_command.extend([
-        f'--workdir={work_dir}',
-        f'--corpus_dir={self.test_paths.corpus}',
-        f'--binary={target_path}',
-        f'--extra_binaries={sanitized_target_path}',
-        f'--timeout_per_input={_TIMEOUT_PER_INPUT}',
+        f'-workdir={work_dir}',
+        f'-corpus_dir={self.test_paths.corpus}',
+        f'-binary={target_path}',
+        f'-extra_binaries={sanitized_target_path}',
+        f'-timeout_per_input={_TIMEOUT_PER_INPUT}',
     ] + _DEFAULT_ARGUMENTS)
     expected_command = [
-        f'--rss_limit_mb={rss_limit}'
-        if flag == f'--rss_limit_mb={_RSS_LIMIT}' else flag
+        f'-rss_limit_mb={rss_limit}'
+        if flag == f'-rss_limit_mb={_RSS_LIMIT}' else flag
         for flag in expected_command
     ]
     # For testing timeout only.
     if timeout_flag:
       expected_command = [
-          timeout_flag if '--timeout' in flag else flag
+          timeout_flag if '-timeout' in flag else flag
           for flag in expected_command
       ]
 
     # Only one binary is provided.
     if str(target_path) == str(sanitized_target_path):
-      expected_command.remove(f'--extra_binaries={sanitized_target_path}')
+      expected_command.remove(f'-extra_binaries={sanitized_target_path}')
 
     self.compare_arguments(expected_command, results.command)
     return results
@@ -343,7 +360,7 @@ class IntegrationTest(unittest.TestCase):
     self._test_crash_log_regex(
         constants.CENTIPEDE_TIMEOUT_REGEX,
         'slo',
-        timeout_flag=f'--timeout_per_input={_TIMEOUT_PER_INPUT_TEST}')
+        timeout_flag=f'-timeout_per_input={_TIMEOUT_PER_INPUT_TEST}')
 
 
 class GetRunnerTest(unittest.TestCase):
@@ -370,7 +387,8 @@ class UnshareIntegrationTest(IntegrationTest):
     unshare_path = (
         pathlib.Path(environment.get_value('ROOT_DIR')) / 'resources' /
         'platform' / 'linux' / 'unshare')
-    self.assertListEqual([str(unshare_path), '-c', '-n'] + expected, actual)
+    super().compare_arguments([str(unshare_path), '-c', '-n'] + expected,
+                              actual)
 
   def setUp(self):
     super().setUp()

@@ -21,6 +21,7 @@ import shutil
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -33,12 +34,12 @@ _RSS_LIMIT = 4096
 _ADDRESS_SPACE_LIMIT = 4096
 _TIMEOUT_PER_INPUT_FUZZ = 25
 _TIMEOUT_PER_INPUT_REPR = 60
-_DEFAULT_ARGUMENTS = [
-    '--exit_on_crash=1',
-    f'--fork_server={_SERVER_COUNT}',
-    f'--rss_limit_mb={_RSS_LIMIT}',
-    f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
-]
+_DEFAULT_ARGUMENTS = {
+    'fork_server': _SERVER_COUNT,
+    'rss_limit_mb': _RSS_LIMIT,
+    'address_space_limit_mb': _ADDRESS_SPACE_LIMIT,
+    'timeout_per_input': _TIMEOUT_PER_INPUT_FUZZ,
+}
 
 CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
@@ -88,6 +89,31 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
+  def _get_arguments(self, fuzzer_path):
+    """Gets the fuzzer arguments.
+    Returns default arguments and arguments specified by the options field.
+    Args:
+      fuzzer_path: Path to the main target in a string.
+
+    Returns:
+      A FuzzerArguments object.
+    """
+    arguments = fuzzer_options.FuzzerArguments({})
+    options = fuzzer_options.get_fuzz_target_options(fuzzer_path)
+
+    if options:
+      arguments = options.get_engine_arguments('centipede')
+
+    # We ignore this parameter in the options file because it doesn't really
+    # make sense not to crash on errors.
+    arguments['exit_on_crash'] = 1
+
+    for key, val in _DEFAULT_ARGUMENTS.items():
+      if key not in arguments:
+        arguments[key] = val
+
+    return arguments
+
   # pylint: disable=unused-argument
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepares for a fuzzing session, by generating options.
@@ -100,36 +126,32 @@ class Engine(engine.Engine):
     Returns:
       A FuzzOptions object.
    """
-    arguments = []
+    arguments = self._get_arguments(target_path)
     dict_path = pathlib.Path(
         dictionary_manager.get_default_dictionary_path(target_path))
     if dict_path.exists():
-      arguments.append(f'--dictionary={dict_path}')
+      arguments['dictionary'] = str(dict_path)
 
     # Directory workdir saves:
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
     workdir = self._create_temp_dir('workdir')
-    arguments.append(f'--workdir={workdir}')
+    arguments['workdir'] = str(workdir)
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
-    arguments.append(f'--corpus_dir={corpus_dir}')
+    arguments['corpus_dir'] = corpus_dir
 
     target_binaries = self._get_binary_paths(target_path)
     if target_binaries.unsanitized is None:
       # Assuming the only binary is always sanitized (e.g., from Chrome).
-      arguments.append(f'--binary={target_binaries.sanitized}')
+      arguments['binary'] = str(target_binaries.sanitized)
       logs.log_warn('Unable to find unsanitized target binary.')
     else:
-      arguments.append(f'--binary={target_binaries.unsanitized}')
-      arguments.append(f'--extra_binaries={target_binaries.sanitized}')
+      arguments['binary'] = str(target_binaries.unsanitized)
+      arguments['extra_binaries'] = str(target_binaries.sanitized)
 
-    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT_FUZZ}')
-
-    arguments.extend(_DEFAULT_ARGUMENTS)
-
-    return engine.FuzzOptions(corpus_dir, arguments, {})
+    return engine.FuzzOptions(corpus_dir, arguments.list(), {})
 
   def _get_binary_paths(self, target_path):
     """Gets the paths to the main and auxiliary binaries based on |target_path|
