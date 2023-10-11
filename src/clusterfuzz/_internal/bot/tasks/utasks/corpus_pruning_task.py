@@ -576,6 +576,7 @@ def _record_cross_pollination_stats(stats):
 
 def do_corpus_pruning(context, last_execution_failed, revision):
   """Run corpus pruning."""
+  print('do_corpus_pruning method')
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
   environment.set_value('FUZZ_TARGET', context.fuzz_target.binary)
@@ -716,6 +717,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
 
 def _process_corpus_crashes(context, result):
   """Process crashes found in the corpus."""
+  print('process corpus crashes method')
   # Default Testcase entity values.
   crash_revision = result.revision
   job_type = environment.get_value('JOB_NAME')
@@ -756,7 +758,7 @@ def _process_corpus_crashes(context, result):
     # instead of the local quarantine directory.
     absolute_testcase_path = os.path.join(
         environment.get_value('FUZZ_INPUTS'), 'testcase')
-
+    print('process_corpus_crashes line 761')
     testcase_id = data_handler.store_testcase(
         crash=crash,
         fuzzed_keys=key,
@@ -779,6 +781,7 @@ def _process_corpus_crashes(context, result):
         window_argument=None,
         timeout_multiplier=1.0,
         minimized_arguments=minimized_arguments)
+    print('process_corpus_crashes line 784. testcase_id: %s' % testcase_id)
 
     # Set fuzzer_binary_name in testcase metadata.
     testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -786,11 +789,15 @@ def _process_corpus_crashes(context, result):
 
     issue_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
     if issue_metadata:
+      print('issue metadata, line 792')
+      print('issue_metadata.items(): %s' % issue_metadata.items())
       for key, value in issue_metadata.items():
+        print('key, value: %s %s' % (key, value))
         testcase.set_metadata(key, value, update_testcase=False)
+        print('set_metadata worked. next key.')
 
       testcase.put()
-
+    print('process_corpus_crashes end')
     # Create additional tasks for testcase (starting with minimization).
     testcase = data_handler.get_testcase_by_id(testcase_id)
     task_creation.create_tasks(testcase)

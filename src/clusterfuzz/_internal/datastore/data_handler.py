@@ -784,10 +784,13 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Set metadata fields (e.g. build url, build key, platform string, etc).
   set_initial_testcase_metadata(testcase)
-
+  print('store_testcase line 787 %s' % crash.crash_categories)
   # Set crash metadata.
   if crash.crash_categories:
     testcase.set_metadata('crash_categories', list(crash.crash_categories))
+
+  print('store_testcase line 782')
+  print('testcase.get_metadata %s' % testcase.get_metadata('crash_categories'))
 
   # Update the comment and save testcase.
   update_testcase_comment(testcase, data_types.TaskState.NA, comment)
