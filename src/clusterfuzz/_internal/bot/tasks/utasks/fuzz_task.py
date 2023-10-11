@@ -1882,7 +1882,7 @@ class FuzzingSession:
     utils.python_gc()
 
     if new_targets_count is not None:
-      fuzz_task_output.new_targets_count = new_targets_count
+      self.fuzz_task_output.new_targets_count = new_targets_count
     return self._get_output(
         fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
         crash_revision=str(crash_revision),
@@ -1958,6 +1958,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
                         uworker_env)
   targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
   fuzz_task_input = uworker_io.FuzzTaskInput(targets_count=targets_count)
+  preprocess_store_fuzzer_run_results(fuzz_task_input)
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
@@ -1965,8 +1966,6 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       setup_input=setup_input,
       fuzz_task_input=fuzz_task_input,
   )
-  preprocess_store_fuzzer_run_results(fuzz_task_input)
-  return uworker_input
 
 
 def utask_postprocess(output):
