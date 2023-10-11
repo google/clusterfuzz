@@ -1113,12 +1113,10 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
 
 
 def check_for_bad_build(job_type, crash_revision):
-  """Returns result of bad build check i.e. crashes on startup. Results include
-  whether the build is bad, whether the crash should be ignored, the
-  build_run_console_output."""
+  """Return true if the build is bad, i.e. crashes on startup."""
   # Check the bad build check flag to see if we want do this.
   if not environment.get_value('BAD_BUILD_CHECK'):
-    return False, False, None
+    return False
 
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
@@ -1173,22 +1171,18 @@ def check_for_bad_build(job_type, crash_revision):
 
   # Any of the conditions below indicate that bot is in a bad state and it is
   # not caused by the build itself. In that case, just exit.
+  build_state = data_handler.get_build_state(job_type, crash_revision)
   if is_bad_build and utils.sub_string_exists_in(BAD_STATE_HINTS, output):
     logs.log_fatal_and_exit(
         'Bad bot environment detected, exiting.',
         output=build_run_console_output,
         snapshot=process_handler.get_runtime_snapshot())
 
-  return is_bad_build, crash_result.should_ignore(), build_run_console_output
-
-
-def update_build_metadata(job_type, crash_revision, is_bad_build,
-                          should_ignore_crash_result, build_run_console_output):
-  """Updates the corresponding build metadata."""
-  build_state = data_handler.get_build_state(job_type, crash_revision)
   # If none of the other bots have added information about this build,
   # then add it now.
   if (build_state == data_types.BuildState.UNMARKED and
-      not should_ignore_crash_result):
+      not crash_result.should_ignore()):
     data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
                                     build_run_console_output)
+
+  return is_bad_build
