@@ -582,11 +582,14 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   environment.set_value('FUZZ_TARGET', context.fuzz_target.binary)
 
   if environment.is_trusted_host():
+    print('environment is trusted host')
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
     return tasks_host.do_corpus_pruning(context, last_execution_failed,
                                         revision)
 
+  print('do_corpus_pruning checkpoint 0.1')
   if not build_manager.setup_build(revision=revision):
+    print('build manager not setup, failed to setup build')
     raise CorpusPruningError('Failed to setup build.')
 
   print('do_corpus_pruning checkpoint 1')
@@ -934,8 +937,8 @@ def utask_main(uworker_input):
     print('utask main save coverage finished')
     _process_corpus_crashes(context, result)
     print('utask main process corpus crashes finished')
-  except Exception:
-    print('Corpus pruning failed')
+  except Exception as e:
+    print('Corpus pruning failed: %s' % repr(e))
     logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
     return uworker_io.UworkerOutput()

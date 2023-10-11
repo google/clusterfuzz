@@ -41,6 +41,7 @@ def _fuzz_target_to_proto(fuzz_target):
 
 def do_corpus_pruning(context, last_execution_failed, revision):
   """Do corpus pruning on untrusted worker."""
+  print('task host do_corpus_pruning method')
   cross_pollinate_fuzzers = [
       untrusted_runner_pb2.CrossPollinateFuzzer(
           fuzz_target=_fuzz_target_to_proto(cpf.fuzz_target),
@@ -49,6 +50,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       ) for cpf in context.cross_pollinate_fuzzers
   ]
 
+  print('task host checkpoint 1')
   request = untrusted_runner_pb2.PruneCorpusRequest(
       fuzz_target=_fuzz_target_to_proto(context.fuzz_target),
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
@@ -57,6 +59,7 @@ def do_corpus_pruning(context, last_execution_failed, revision):
 
   response = host.stub().PruneCorpus(request)
 
+  print('task host checkpoint 2')
   project_qualified_name = context.fuzz_target.project_qualified_name()
   today_date = datetime.datetime.utcnow().date()
   coverage_info = data_types.CoverageInformation(
@@ -75,16 +78,19 @@ def do_corpus_pruning(context, last_execution_failed, revision):
       response.coverage_info.quarantine_size_bytes)
   coverage_info.quarantine_location = response.coverage_info.quarantine_location
 
+  print('task host checkpoint 3')
   crashes = [
       corpus_pruning_task.CorpusCrash(
           crash_state=crash.crash_state,
           crash_type=crash.crash_type,
           crash_address=crash.crash_address,
           crash_stacktrace=crash.crash_stacktrace,
+          crash_categories=crash.crash_categories,
           unit_path=crash.unit_path,
           security_flag=crash.security_flag,
       ) for crash in response.crashes
   ]
+  print('task host checkpoint 4')
 
   result_stats = response.cross_pollination_stats
   pollination_stats = corpus_pruning_task.CrossPollinationStats(
