@@ -460,6 +460,7 @@ class CorpusPruningTestUntrusted(
                           os.listdir(quarantine_dir))
 
     testcases = list(data_types.Testcase.query())
+    print('end of test, assert statement')
     self.assertEqual(1, len(testcases))
     self.assertEqual('Null-dereference WRITE', testcases[0].crash_type)
     self.assertEqual('Foo\ntest_fuzzer.cc\n', testcases[0].crash_state)
