@@ -23,7 +23,7 @@ import httplib2
 
 _ROLE_ACCOUNT = "cluster-fuzz-google-issue-tracker"
 _DISCOVERY_URL = "https://issuetracker.googleapis.com/$discovery/rest?version=v1"
-_ISSUE_TRACKER_URL = "https://issuetracker.corp.googleapis.com"
+_ISSUE_TRACKER_URL = "https://issuetracker.googleapis.com"
 _UBERPROXY_SERVICE = "up.corp.googleapis.com/"
 _O_AUTH_SCOPE = "https://www.googleapis.com/auth/buganizer"
 _REQUEST_TIMEOUT = 60
@@ -66,57 +66,8 @@ def _request_urllib_for_testing(url, body, method, headers):
     )
 
 
-class _UberProxyHttp(httplib2.Http):
-  """httplib2.Http which attaches UberProxy cookies."""
-
-  def __init__(self, cookie, *args, **kwargs):
-    self.cookie = cookie
-    super(_UberProxyHttp, self).__init__(*args, **kwargs)
-
-  def request(
-      self,
-      url,
-      method="GET",
-      body=None,
-      headers=None,
-      redirections=httplib2.DEFAULT_MAX_REDIRECTS,
-      connection_type=None,
-  ):
-    """Makes a request."""
-    if headers is None:
-      headers = {}
-    if self.cookie:
-      headers["Cookie"] = self.cookie
-    if os.getenv("USE_URLLIB"):
-      return _request_urllib_for_testing(url, body, method, headers)
-    return super(_UberProxyHttp, self).request(
-        url,
-        method=method,
-        body=body,
-        headers=headers,
-        redirections=redirections,
-        connection_type=connection_type,
-    )
-
-
 def build_http(api="issuetracker", oauth_token=None, uberproxy_cookie=None):
   """Builds a httplib2.Http."""
-  # if uberproxy_cookie is None:
-  #     uberproxy_client = corplogin_client_jwt.AppEngineCorpLoginClient(
-  #         _ROLE_ACCOUNT, _UBERPROXY_SERVICE
-  #     )
-  #     uberproxy_cookie = uberproxy_client.GetUberProxyCookie(
-  #         _ISSUE_TRACKER_URL.format(api=api)
-  #     )
-  # if oauth_token is None:
-  #     oauth_client = corplogin_client_jwt.OAuthClientForGoogle(user(), _O_AUTH_SCOPE)
-  #     oauth_token = oauth_client.GetToken()
-  # credentials = google.oauth2.credentials.Credentials(oauth_token)
-  # return google_auth_httplib2.AuthorizedHttp(
-  #     credentials,
-  #     http=_UberProxyHttp(cookie=uberproxy_cookie, timeout=_REQUEST_TIMEOUT),
-  # )
-
   credentials = google.oauth2.credentials.get_default(scopes=[_O_AUTH_SCOPE])[0]
   return google_auth_httplib2.AuthorizedHttp(
       credentials, http=httplib2.Http(timeout=_REQUEST_TIMEOUT))
