@@ -235,6 +235,13 @@ def _get_file_match_callback():
      with one of the |blocklisted_extensions|.
     """
     path_components = os.path.normpath(filepath).split(os.sep)
+
+    # The first component is the root directory name, which is controlled by
+    # the packaging tool. It doesn't really make sense matching against it, or
+    # otherwise we'd either match nothing, or match all files, which defeats
+    # the purpose of this callback.
+    if len(path_components) > 1:
+      path_components = path_components[1:]
     # Is it an allowlisted binary?
     if any(
         component.startswith(allowlisted_names)
