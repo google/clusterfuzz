@@ -107,6 +107,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class UtaskPreprocessTest(unittest.TestCase):
   """Tests progression_task.utask_preprocess."""
+
   def setUp(self):
     helpers.patch(
         self,
