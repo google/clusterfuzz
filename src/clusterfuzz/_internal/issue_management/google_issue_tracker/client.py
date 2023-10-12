@@ -18,8 +18,8 @@ import google_auth_httplib2
 import googleapiclient
 import httplib2
 
-_DISCOVERY_URL = "https://issuetracker.googleapis.com/$discovery/rest?version=v1"
-_O_AUTH_SCOPE = "https://www.googleapis.com/auth/buganizer"
+_DISCOVERY_URL = 'https://issuetracker.googleapis.com/$discovery/rest?version=v1'
+_O_AUTH_SCOPE = 'https://www.googleapis.com/auth/buganizer'
 _REQUEST_TIMEOUT = 60
 HttpError = googleapiclient.errors.HttpError
 from clusterfuzz._internal.google_cloud_utils import credentials
@@ -33,7 +33,7 @@ def build_http(api='issuetracker', oauth_token=None, uberproxy_cookie=None):
     )
 
 
-def build(api="issuetracker", http=None):
+def build(api='issuetracker', http=None):
     """Builds a google api client for buganizer."""
     if not http:
         http = build_http(api)
