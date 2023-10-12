@@ -108,6 +108,12 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 class UtaskPreprocessTest(unittest.TestCase):
   """Tests progression_task.utask_preprocess."""
 
+  def setUp(self):
+    helpers.patch(
+        self,
+        ['clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase'])
+    self.mock.preprocess_setup_testcase.return_value = uworker_io.SetupInput()
+
   def test_inexistant_testcase(self):
     """Verifies that an InvalidTestcaseError is raised when we try to
     fetch an inexistant testcase."""
