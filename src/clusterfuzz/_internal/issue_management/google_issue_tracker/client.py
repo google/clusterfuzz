@@ -18,49 +18,11 @@ import google_auth_httplib2
 import googleapiclient
 import httplib2
 
-_ROLE_ACCOUNT = "cluster-fuzz-google-issue-tracker"
 _DISCOVERY_URL = "https://issuetracker.googleapis.com/$discovery/rest?version=v1"
 _O_AUTH_SCOPE = "https://www.googleapis.com/auth/buganizer"
 _REQUEST_TIMEOUT = 60
 HttpError = googleapiclient.errors.HttpError
 from clusterfuzz._internal.google_cloud_utils import credentials
-
-
-def user():
-    return _ROLE_ACCOUNT + '@google.com'
-
-
-def _request_urllib_for_testing(url, body, method, headers):
-    """Makes the request with urllib2 for testing purposes."""
-    # For testing locally with ssolib.
-    from urllib import request
-
-    # Don't accept gzip.
-    if 'accept-encoding' in headers:
-        del headers['accept-encoding']
-    # Pass request to urllib (best effort), which had an opener installed by
-    # ssolib.
-    req = request.Request(url, data=body, headers=headers)
-    req.get_method = lambda: method
-    try:
-        response = request.urlopen(req)
-        content = response.read()
-        info = {
-            'status': response.getcode(),
-            'reason': 'OK',
-        }
-        info.update(response.info().items())
-        return httplib2.Response(info), content
-    except Exception as e:
-        return (
-            httplib2.Response(
-                {
-                    'status': e.code,
-                    'reason': e.reason,
-                }
-            ),
-            e.read(),
-        )
 
 
 def build_http(api='issuetracker', oauth_token=None, uberproxy_cookie=None):
