@@ -754,6 +754,7 @@ def _process_corpus_crashes(context, result):
     # instead of the local quarantine directory.
     absolute_testcase_path = os.path.join(
         environment.get_value('FUZZ_INPUTS'), 'testcase')
+
     testcase_id = data_handler.store_testcase(
         crash=crash,
         fuzzed_keys=key,
@@ -787,6 +788,7 @@ def _process_corpus_crashes(context, result):
         testcase.set_metadata(key, value, update_testcase=False)
 
       testcase.put()
+
     # Create additional tasks for testcase (starting with minimization).
     testcase = data_handler.get_testcase_by_id(testcase_id)
     task_creation.create_tasks(testcase)
