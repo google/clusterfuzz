@@ -286,8 +286,8 @@ class UtaskMainTest(unittest.TestCase):
 
     self.mock.setup_testcase.return_value = (
         None, None,
-        uworker_io.UworkerOutput(error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
-    )
+        uworker_io.UworkerOutput(
+            error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP))
 
     output = regression_task.utask_main(uworker_input)
     output.error_type = uworker_msg_pb2.ErrorType.TESTCASE_SETUP

@@ -208,25 +208,25 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
   return True
 
 
-def find_regression_range(
-    testcase_id: str,
-    testcase: uworker_io.UworkerEntityWrapper,
-    job_type: str,
-    setup_input: uworker_io.SetupInput,
-    task_input: uworker_io.RegressionTaskInput,
-) -> Optional[uworker_io.UworkerOutput]:
+def find_regression_range(uworker_input: uworker_io.UworkerInput
+                         ) -> Optional[uworker_io.UworkerOutput]:
   """Attempt to find when the testcase regressed."""
+  testcase = uworker_input.testcase
+  job_type = uworker_input.job_type
+
   deadline = tasks.get_task_completion_deadline()
 
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
-                                                      setup_input)
+                                                      uworker_input.setup_input)
   if error:
     return error
 
   build_bucket_path = build_manager.get_primary_bucket_path()
   revision_list = build_manager.get_revisions_list(
-      build_bucket_path, task_input.bad_revisions, testcase=testcase)
+      build_bucket_path,
+      uworker_input.regression_task_input.bad_revisions,
+      testcase=testcase)
   if not revision_list:
     data_handler.close_testcase_with_error(testcase,
                                            'Failed to fetch revision list')
@@ -254,7 +254,7 @@ def find_regression_range(
   crashes_in_max_revision = _testcase_reproduces_in_revision(
       testcase, testcase_file_path, job_type, max_revision, should_log=False)
   if not crashes_in_max_revision:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = testcase.key.get()
     error_message = f'Known crash revision {max_revision} did not crash'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
@@ -284,7 +284,7 @@ def find_regression_range(
                                        revision_list, min_index):
         return None
 
-      save_regression_range(testcase_id, min_revision, max_revision)
+      save_regression_range(testcase.key.id(), min_revision, max_revision)
       return None
 
     middle_index = (min_index + max_index) // 2
@@ -309,16 +309,16 @@ def find_regression_range(
       min_index = middle_index
 
     _save_current_regression_range_indices(
-        testcase_id, revision_list[min_index], revision_list[max_index])
+        testcase.key.id(), revision_list[min_index], revision_list[max_index])
 
   # If we've broken out of the above loop, we timed out. We'll finish by
   # running another regression task and picking up from this point.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  testcase = testcase.key.get()
   error_message = 'Timed out, current range r%d:r%d' % (
       revision_list[min_index], revision_list[max_index])
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
-  tasks.add_task('regression', testcase_id, job_type)
+  tasks.add_task('regression', testcase.key.id(), job_type)
   return None
 
 
@@ -381,10 +381,7 @@ def utask_main(uworker_input: uworker_io.UworkerInput
   Runs on an untrusted worker.
   """
   try:
-    return find_regression_range(uworker_input.testcase_id,
-                                 uworker_input.testcase, uworker_input.job_type,
-                                 uworker_input.setup_input,
-                                 uworker_input.regression_task_input)
+    return find_regression_range(uworker_input)
   except errors.BuildSetupError as error:
     # If we failed to setup a build, it is likely a bot error. We can retry
     # the task in this case.
