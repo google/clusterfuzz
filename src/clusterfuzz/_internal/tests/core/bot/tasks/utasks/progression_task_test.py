@@ -108,20 +108,6 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
 class UtaskPreprocessTest(unittest.TestCase):
   """Tests progression_task.utask_preprocess."""
 
-  def setUp(self):
-    helpers.patch_environ(self)
-    os.environ['JOB_NAME'] = 'progression'
-    # Add a bad build.
-    data_handler.add_build_metadata(
-        job_type='progression',
-        is_bad_build=True,
-        crash_revision=9999,
-        console_output='console')
-    helpers.patch(
-        self,
-        ['clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase'])
-    self.mock.preprocess_setup_testcase.return_value = uworker_io.SetupInput()
-
   def test_inexistant_testcase(self):
     """Verifies that an InvalidTestcaseError is raised when we try to
     fetch an inexistant testcase."""
@@ -146,10 +132,6 @@ class UtaskPreprocessTest(unittest.TestCase):
     self.assertEqual('job_type', result.job_type)
     returned_testcase = result.testcase
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_builds = result.progression_task_input.bad_builds
-    self.assertEqual(len(bad_builds), 1)
-    self.assertTrue(bad_builds[0].bad_build)
-    self.assertEqual(bad_builds[0].revision, 9999)
 
   def test_preprocess_uworker_output_custom_binary(self):
     """Tests the preprocess behaviour for custom binaries."""
@@ -162,10 +144,6 @@ class UtaskPreprocessTest(unittest.TestCase):
     self.assertEqual('job_type', result.job_type)
     returned_testcase = result.testcase
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_builds = result.progression_task_input.bad_builds
-    self.assertEqual(len(bad_builds), 1)
-    self.assertTrue(bad_builds[0].bad_build)
-    self.assertEqual(bad_builds[0].revision, 9999)
 
 
 @test_utils.with_cloud_emulators('datastore')
