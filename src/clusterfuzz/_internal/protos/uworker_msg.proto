@@ -53,7 +53,6 @@ message RegressionTaskInput {
 
 message ProgressionTaskInput {
   optional bool custom_binary = 1;
-  repeated google.datastore.v1.Entity bad_builds = 2;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
