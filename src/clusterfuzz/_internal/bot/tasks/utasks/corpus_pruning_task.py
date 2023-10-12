@@ -454,8 +454,7 @@ class CorpusPruner:
             state.crash_stacktrace, state.crash_type, state.crash_address)
         crashes[state.crash_state] = CorpusCrash(
             state.crash_state, state.crash_type, state.crash_address,
-            state.crash_stacktrace, unit_path,
-            security_flag)
+            state.crash_stacktrace, unit_path, security_flag)
 
     logs.log('Found %d bad units, %d unique crashes.' % (num_bad_units,
                                                          len(crashes)))
@@ -575,23 +574,18 @@ def _record_cross_pollination_stats(stats):
 
 def do_corpus_pruning(context, last_execution_failed, revision):
   """Run corpus pruning."""
-  print('do_corpus_pruning method')
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
   environment.set_value('FUZZ_TARGET', context.fuzz_target.binary)
 
   if environment.is_trusted_host():
-    print('environment is trusted host')
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
     return tasks_host.do_corpus_pruning(context, last_execution_failed,
                                         revision)
 
-  print('do_corpus_pruning checkpoint 0.1')
   if not build_manager.setup_build(revision=revision):
-    print('build manager not setup, failed to setup build')
     raise CorpusPruningError('Failed to setup build.')
 
-  print('do_corpus_pruning checkpoint 1')
   build_directory = environment.get_value('BUILD_DIR')
   start_time = datetime.datetime.utcnow()
   runner = Runner(build_directory, context)
@@ -646,14 +640,13 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   logs.log('Corpus pruned from %d to %d units.' % (initial_corpus_size,
                                                    minimized_corpus_size_units))
 
-  print('do_corpus_pruning checkpoint 2')
   # Process bad units found during merge.
   # Mapping of crash state -> CorpusCrash
   crashes = {}
   pruner.process_bad_units(context.bad_units_path,
                            context.quarantine_corpus_path, crashes)
   context.quarantine_corpus.rsync_from_disk(context.quarantine_corpus_path)
-  print('do_corpus_pruning checkpoint 3')
+
   # Store corpus stats into CoverageInformation entity.
   project_qualified_name = context.fuzz_target.project_qualified_name()
   today = datetime.datetime.utcnow().date()
@@ -721,7 +714,6 @@ def do_corpus_pruning(context, last_execution_failed, revision):
 
 def _process_corpus_crashes(context, result):
   """Process crashes found in the corpus."""
-  print('process corpus crashes method')
   # Default Testcase entity values.
   crash_revision = result.revision
   job_type = environment.get_value('JOB_NAME')
@@ -762,7 +754,6 @@ def _process_corpus_crashes(context, result):
     # instead of the local quarantine directory.
     absolute_testcase_path = os.path.join(
         environment.get_value('FUZZ_INPUTS'), 'testcase')
-    print('process_corpus_crashes line 761')
     testcase_id = data_handler.store_testcase(
         crash=crash,
         fuzzed_keys=key,
@@ -785,7 +776,6 @@ def _process_corpus_crashes(context, result):
         window_argument=None,
         timeout_multiplier=1.0,
         minimized_arguments=minimized_arguments)
-    print('process_corpus_crashes line 784. testcase_id: %s' % testcase_id)
 
     # Set fuzzer_binary_name in testcase metadata.
     testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -793,15 +783,10 @@ def _process_corpus_crashes(context, result):
 
     issue_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
     if issue_metadata:
-      print('issue metadata, line 792')
-      print('issue_metadata.items(): %s' % issue_metadata.items())
       for key, value in issue_metadata.items():
-        print('key, value: %s %s' % (key, value))
         testcase.set_metadata(key, value, update_testcase=False)
-        print('set_metadata worked. next key.')
 
       testcase.put()
-    print('process_corpus_crashes end')
     # Create additional tasks for testcase (starting with minimization).
     testcase = data_handler.get_testcase_by_id(testcase_id)
     task_creation.create_tasks(testcase)
@@ -929,15 +914,10 @@ def utask_main(uworker_input):
 
   try:
     result = do_corpus_pruning(context, last_execution_failed, revision)
-    print('utask main corpus pruning finished')
     _record_cross_pollination_stats(result.cross_pollination_stats)
-    print('utask main cross pollination finished')
     _save_coverage_information(context, result)
-    print('utask main save coverage finished')
     _process_corpus_crashes(context, result)
-    print('utask main process corpus crashes finished')
-  except Exception as e:
-    print('Corpus pruning failed: %s' % repr(e))
+  except Exception:
     logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
     return uworker_io.UworkerOutput()
