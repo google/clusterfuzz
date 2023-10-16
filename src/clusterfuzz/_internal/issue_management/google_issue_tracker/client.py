@@ -12,35 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Gets a Google Issue Tracker HTTP client."""
-
-import google.oauth2.credentials
 import google_auth_httplib2
 import googleapiclient
 import httplib2
 
 _ROLE_ACCOUNT = "cluster-fuzz-google-issue-tracker"
-_DISCOVERY_URL = 'https://issuetracker.googleapis.com/$discovery/rest?version=v1'
+_DISCOVERY_URL = 'https://issuetracker.googleapis.com/',\
+  '$discovery/rest?version=v1'
 _O_AUTH_SCOPE = 'https://www.googleapis.com/auth/buganizer'
 _REQUEST_TIMEOUT = 60
 HttpError = googleapiclient.errors.HttpError
-from clusterfuzz._internal.google_cloud_utils import credentials
 
 
 def user():
   return _ROLE_ACCOUNT + '@google.com'
 
 
-def build_http(api='issuetracker', oauth_token=None, uberproxy_cookie=None):
+def build_http():
   """Builds a httplib2.Http."""
-  credentials = google.oauth2.credentials.get_default(scopes=[_O_AUTH_SCOPE])[0]
+  # TODO(rmistry): Add real implementation
+  creds = None
   return google_auth_httplib2.AuthorizedHttp(
-      credentials, http=httplib2.Http(timeout=_REQUEST_TIMEOUT))
+      creds, http=httplib2.Http(timeout=_REQUEST_TIMEOUT))
 
 
 def build(api='issuetracker', http=None):
   """Builds a google api client for buganizer."""
   if not http:
-    http = build_http(api)
+    http = build_http()
   return googleapiclient.discovery.build(
       api,
       'v1',

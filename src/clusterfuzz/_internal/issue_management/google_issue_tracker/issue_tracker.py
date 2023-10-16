@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+# pylint: disable=protected-access
+
 """Google issue tracker implementation."""
 
 import datetime
@@ -563,7 +567,8 @@ class IssueTracker(issue_tracker.IssueTracker):
       except exceptions.RefreshError:
         # Rebuild client and retry request.
         http = client.build_http()
-        self._client = client.build(http=http)
+        self._client = client.build('issuetracker', http=http)
+        return request.execute(num_retries=_NUM_RETRIES, http=http)
       except client.HttpError as e:
         if e.resp.status == 404:
           raise IssueTrackerNotFoundError(str(e))
