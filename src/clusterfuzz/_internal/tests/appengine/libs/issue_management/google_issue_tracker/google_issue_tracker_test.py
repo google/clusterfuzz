@@ -63,7 +63,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
 
   def setUp(self):
     self.client_patcher = mock.patch(
-        'clusterfuzz._internal.issue_management.google_issue_tracker.client.build'
+        'clusterfuzz._internal.issue_management.' +
+        'google_issue_tracker.client.build'
     )
     self.client_patcher.start()
     self.client = client.build()
