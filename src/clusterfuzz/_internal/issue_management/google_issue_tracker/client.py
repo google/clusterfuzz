@@ -18,12 +18,15 @@ import google_auth_httplib2
 import googleapiclient
 import httplib2
 
+_ROLE_ACCOUNT = "cluster-fuzz-google-issue-tracker"
 _DISCOVERY_URL = 'https://issuetracker.googleapis.com/$discovery/rest?version=v1'
 _O_AUTH_SCOPE = 'https://www.googleapis.com/auth/buganizer'
 _REQUEST_TIMEOUT = 60
 HttpError = googleapiclient.errors.HttpError
 from clusterfuzz._internal.google_cloud_utils import credentials
 
+def user():
+    return _ROLE_ACCOUNT + '@google.com'
 
 def build_http(api='issuetracker', oauth_token=None, uberproxy_cookie=None):
     """Builds a httplib2.Http."""
