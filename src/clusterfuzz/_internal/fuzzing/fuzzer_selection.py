@@ -117,12 +117,12 @@ def get_fuzz_task_payload(platform=None):
   # Generalized queue for platforms with a base platform (e.g. ANDROID)
   if base_platform != platform:
     platforms.append(base_platform)
+
+  query = data_types.FuzzerJobs.query()
   if environment.is_local_development():
-    query = data_types.FuzzerJob.query()
-    query = query.filter(data_types.FuzzerJobs.platform == platform)
+    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))[0]
     mappings = list(ndb_utils.get_all_from_query(query))
   else:
-    query = data_types.FuzzerJobs.query()
     query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
     mappings = []

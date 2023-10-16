@@ -551,9 +551,8 @@ def create_project_settings(project, info, service_account):
         ccs=ccs).put()
 
 
-def _create_pubsub_topic(name):
+def _create_pubsub_topic(name, client):
   """Create a pubsub topic and subscription if needed."""
-  client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
 
   topic_name = pubsub.topic_name(application_id, name)
@@ -567,16 +566,18 @@ def _create_pubsub_topic(name):
 
 def create_pubsub_topics_for_untrusted(project):
   """Create pubsub topics from untrusted sources for tasks."""
+  client = pubsub.PubSubClient()
   for platform in PUBSUB_PLATFORMS:
     name = untrusted.queue_name(project, platform)
-    _create_pubsub_topic(name)
+    _create_pubsub_topic(name, client)
 
 
-def create_pubsub_topics_for_queue_id(queue_id, platform):
+def create_pubsub_topics_for_queue_id(platform):
   """Create pubsub topics from project configs for tasks."""
-  platform = environment.base_platform(platform)
+  platform, queue_id = platform.split(tasks.SUBQUEUE_IDENTIFIER)
   name = untrusted.queue_name(platform, queue_id)
-  _create_pubsub_topic(name)
+  client = pubsub.PubSubClient()
+  _create_pubsub_topic(name, client)
 
 
 def cleanup_pubsub_topics(project_names):
@@ -892,7 +893,7 @@ class ProjectSetup:
         if platform.startswith('ANDROID'):
           job.templates.append('android')
 
-        create_pubsub_topics_for_queue_id(queue_id, job.platform)
+        create_pubsub_topics_for_queue_id(job.platform)
 
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and

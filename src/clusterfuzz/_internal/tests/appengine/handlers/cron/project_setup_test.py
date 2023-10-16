@@ -2078,7 +2078,6 @@ class GenericProjectSetupTest(unittest.TestCase):
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_hwasan_android_pixel7').get()
-    print(job)
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-android/libfuzzer/hardware/%TARGET%/([0-9]+).zip\n'
@@ -2099,7 +2098,6 @@ class GenericProjectSetupTest(unittest.TestCase):
 
     job = data_types.Job.query(
         data_types.Job.name == 'afl_asan_android_pixel8').get()
-    print(job)
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-android/a-b-android/afl/address/%TARGET%/([0-9]+).zip\n'
@@ -2121,7 +2119,6 @@ class GenericProjectSetupTest(unittest.TestCase):
 
     job = data_types.Job.query(
         data_types.Job.name == 'libfuzzer_asan_android_pixel8').get()
-    print(job)
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-android/a-b-android/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
