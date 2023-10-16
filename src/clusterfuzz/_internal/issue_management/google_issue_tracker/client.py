@@ -25,21 +25,25 @@ _REQUEST_TIMEOUT = 60
 HttpError = googleapiclient.errors.HttpError
 from clusterfuzz._internal.google_cloud_utils import credentials
 
+
 def user():
-    return _ROLE_ACCOUNT + '@google.com'
+  return _ROLE_ACCOUNT + '@google.com'
+
 
 def build_http(api='issuetracker', oauth_token=None, uberproxy_cookie=None):
-    """Builds a httplib2.Http."""
-    credentials = google.oauth2.credentials.get_default(scopes=[_O_AUTH_SCOPE])[0]
-    return google_auth_httplib2.AuthorizedHttp(
-        credentials, http=httplib2.Http(timeout=_REQUEST_TIMEOUT)
-    )
+  """Builds a httplib2.Http."""
+  credentials = google.oauth2.credentials.get_default(scopes=[_O_AUTH_SCOPE])[0]
+  return google_auth_httplib2.AuthorizedHttp(
+      credentials, http=httplib2.Http(timeout=_REQUEST_TIMEOUT))
 
 
 def build(api='issuetracker', http=None):
-    """Builds a google api client for buganizer."""
-    if not http:
-        http = build_http(api)
-    return googleapiclient.discovery.build(
-        api, 'v1', discoveryServiceUrl=_DISCOVERY_URL, http=http, cache_discovery=False
-    )
+  """Builds a google api client for buganizer."""
+  if not http:
+    http = build_http(api)
+  return googleapiclient.discovery.build(
+      api,
+      'v1',
+      discoveryServiceUrl=_DISCOVERY_URL,
+      http=http,
+      cache_discovery=False)
