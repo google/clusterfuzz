@@ -352,8 +352,6 @@ class Issue(issue_tracker.Issue):
     if self._is_new:
       priority = _extract_label(self.labels, 'Pri-')
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
-      issue_type = 'BUG'
-      priority = None
       self._data['issueState']['type'] = issue_type
       if priority:
         self._data['issueState']['priority'] = priority
