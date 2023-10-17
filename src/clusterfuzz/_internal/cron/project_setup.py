@@ -888,7 +888,7 @@ class ProjectSetup:
       queue_id = info.get('queue_id', False)
       if queue_id:
         platform = info.get('platform',
-                            'ANDROID').upper() + ':' + queue_id.upper()
+                            'LINUX').upper() + ':' + queue_id.upper()
         job.platform = platform
         if platform.startswith('ANDROID'):
           job.templates.append('android')
