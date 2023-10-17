@@ -74,6 +74,10 @@ class Issue(issue_tracker.Issue):
     ccs = data['issueState'].get('ccs', [])
     self._ccs = issue_tracker.LabelStore(
         [user['emailAddress'] for user in ccs if 'emailAddress' in user])
+    collaborators = data['issueState'].get('collaborators', [])
+    self._collaborators = issue_tracker.LabelStore([
+        user['emailAddress'] for user in collaborators if 'emailAddress' in user
+    ])
     labels = [
         str(hotlist_id)
         for hotlist_id in data['issueState'].get('hotlistIds', [])
@@ -88,6 +92,7 @@ class Issue(issue_tracker.Issue):
     """Resets diff tracking."""
     self._changed.clear()
     self._ccs.reset_tracking()
+    self._collaborators.reset_tracking()
     self._labels.reset_tracking()
     self._components.reset_tracking()
 
@@ -197,6 +202,11 @@ class Issue(issue_tracker.Issue):
     return self._ccs
 
   @property
+  def collaborators(self):
+    """The issue collaborators list."""
+    return self._collaborators
+
+  @property
   def labels(self):
     """The issue labels list."""
     return self._labels
@@ -304,6 +314,8 @@ class Issue(issue_tracker.Issue):
     self._add_update_single(update_body, added, removed, 'title', 'title')
     self._add_update_collection(update_body, added, removed, 'ccs', 'ccs',
                                 _make_users)
+    self._add_update_collection(update_body, added, removed, 'collaborators',
+                                'collaborators', _make_users)
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -383,6 +395,9 @@ class Issue(issue_tracker.Issue):
       ccs = list(self._ccs)
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
+      collaborators = list(self._collaborators)
+      if collaborators:
+        self._data['issueState']['collaborators'] = _make_users(collaborators)
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
       ]
@@ -515,6 +530,17 @@ class Action(issue_tracker.Action):
     return change_list
 
   @property
+  def collaborators(self):
+    """The issue collaborators change list."""
+    removed, added = self._get_field_update_changes('collaborators')
+    change_list = issue_tracker.ChangeList()
+    if added:
+      change_list.added.extend(added)
+    if removed:
+      change_list.removed.extend(removed)
+    return change_list
+
+  @property
   def labels(self):
     """The issue labels change list."""
     # We need to use the snake_case version of the field here, as that's the
@@ -585,6 +611,7 @@ class IssueTracker(issue_tracker.IssueTracker):
         'issueState': {
             'componentId': self._default_component_id,
             'ccs': [],
+            'collaborators': [],
             'hotlistIds': [],
         }
     }
