@@ -35,7 +35,7 @@ message SetupInput {
 }
 
 message AnalyzeTaskInput {
-  repeated google.datastore.v1.Entity bad_builds = 1;
+  repeated int64 bad_revisions = 1;
 }
 
 message FuzzTaskInput {

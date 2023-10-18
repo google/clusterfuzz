@@ -1107,7 +1107,7 @@ def get_primary_bucket_path():
       'needs to be defined.')
 
 
-def get_revisions_list(bucket_path, bad_builds, testcase=None):
+def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   """Returns a sorted ascending list of revisions from a bucket path, excluding
   bad build revisions and testcase crash revision (if any)."""
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
@@ -1125,27 +1125,28 @@ def get_revisions_list(bucket_path, bad_builds, testcase=None):
       revision = revisions.convert_revision_to_integer(match.group(1))
       revision_list.append(revision)
 
-  for bad_build in bad_builds:
+  for bad_revision in bad_revisions:
     # Don't remove testcase revision even if it is in bad build list. This
     # usually happens when a bad bot sometimes marks a particular revision as
     # bad due to flakiness.
-    if testcase and bad_build.revision == testcase.crash_revision:
+    if testcase and bad_revision == testcase.crash_revision:
       continue
 
-    if bad_build.revision in revision_list:
-      revision_list.remove(bad_build.revision)
+    if bad_revision in revision_list:
+      revision_list.remove(bad_revision)
 
   return revision_list
 
 
-def get_job_bad_builds():
+def get_job_bad_revisions():
   job_type = environment.get_value('JOB_NAME')
   bad_builds = list(
       ndb_utils.get_all_from_query(
           data_types.BuildMetadata.query(
               ndb_utils.is_true(data_types.BuildMetadata.bad_build),
               data_types.BuildMetadata.job_type == job_type)))
-  return bad_builds
+  bad_revisions = [build.revision for build in bad_builds]
+  return bad_revisions
 
 
 def _base_fuzz_target_name(target_name):
