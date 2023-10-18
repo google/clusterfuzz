@@ -17,6 +17,7 @@ from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.issue_management import google_issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import jira
 from clusterfuzz._internal.issue_management import monorail
@@ -25,7 +26,8 @@ from clusterfuzz._internal.system import environment
 _ISSUE_TRACKER_CACHE_CAPACITY = 8
 _ISSUE_TRACKER_CONSTRUCTORS = {
     'monorail': monorail.get_issue_tracker,
-    'jira': jira.get_issue_tracker
+    'jira': jira.get_issue_tracker,
+    'google_issue_tracker': google_issue_tracker.get_issue_tracker,
 }
 
 

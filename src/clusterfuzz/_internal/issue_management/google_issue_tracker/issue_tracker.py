@@ -663,8 +663,3 @@ def _get_query(keywords, only_open):
   if only_open:
     query += ' status:open'
   return query
-
-
-def get(project, config, issue_tracker_client=None):
-  """Gets an IssueTracker for the project."""
-  return IssueTracker(project, issue_tracker_client, config)
