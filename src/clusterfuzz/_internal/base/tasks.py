@@ -84,6 +84,9 @@ FILTERS_OR = 'OR'
 
 POSTPROCESS_QUEUE = 'postprocess'
 
+# See https://github.com/google/clusterfuzz/issues/3347 for usage
+SUBQUEUE_IDENTIFIER = ':'
+
 
 class Error(Exception):
   """Base exception class."""
@@ -97,6 +100,8 @@ class InvalidRedoTask(Error):
 
 def queue_suffix_for_platform(platform):
   """Get the queue suffix for a platform."""
+  # Handle the case where a subqueue is used.
+  platform = platform.lower().replace(SUBQUEUE_IDENTIFIER, '-')
   return '-' + platform.lower().replace('_', '-')
 
 
