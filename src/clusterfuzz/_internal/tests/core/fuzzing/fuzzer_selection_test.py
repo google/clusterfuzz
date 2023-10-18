@@ -255,16 +255,23 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     self.assertEqual(
         (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
-    linux_mapping = data_types.FuzzerJob()
-    linux_mapping.fuzzer = 'right_fuzzer'
-    linux_mapping.job = 'job_2'
-    linux_mapping.platform = 'linux'
-    linux_mapping.put()
+    linux_mapping_1 = data_types.FuzzerJob()
+    linux_mapping_1.fuzzer = 'right_fuzzer_1'
+    linux_mapping_1.job = 'job_2'
+    linux_mapping_1.platform = 'linux'
+    linux_mapping_1.put()
 
-    data_types.FuzzerJobs(platform='linux', fuzzer_jobs=[linux_mapping]).put()
+    linux_mapping_2 = data_types.FuzzerJob()
+    linux_mapping_2.fuzzer = 'right_fuzzer_2'
+    linux_mapping_2.job = 'job_3'
+    linux_mapping_2.platform = 'linux'
+    linux_mapping_2.put()
+
+    data_types.FuzzerJobs(platform='linux', fuzzer_jobs=[linux_mapping_1]).put()
+    data_types.FuzzerJobs(platform='linux', fuzzer_jobs=[linux_mapping_2]).put()
 
     argument, job = fuzzer_selection.get_fuzz_task_payload('linux')
-    self.assertEqual(('right_fuzzer', 'job_2'), (argument, job))
+    self.assertEqual(('right_fuzzer_1', 'job_2'), (argument, job))
 
 
 @test_utils.with_cloud_emulators('datastore')
