@@ -28,6 +28,28 @@ class InitRunnerTest(unittest.TestCase):
         'clusterfuzz._internal.system.process_handler.run_process',
     ])
 
+  def test_android(self):
+    """Test android."""
+    self.mock.platform.return_value = 'ANDROID'
+    init_runner.run()
+    self.mock.run_process.assert_called_with(
+        './configs/test/bot/init/android.bash',
+        ignore_children=True,
+        need_shell=True,
+        testcase_run=False,
+        timeout=1800)
+
+  def test_android_subqueue(self):
+    """Test android with subqueue identifier."""
+    self.mock.platform.return_value = 'ANDROID:PIXEL8'
+    init_runner.run()
+    self.mock.run_process.assert_called_with(
+        './configs/test/bot/init/android.bash',
+        ignore_children=True,
+        need_shell=True,
+        testcase_run=False,
+        timeout=1800)
+
   def test_windows(self):
     """Test windows."""
     self.mock.platform.return_value = 'WINDOWS'

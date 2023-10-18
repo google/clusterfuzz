@@ -747,6 +747,11 @@ def parse_environment_definition(environment_string):
   return values
 
 
+def base_platform(override):
+  """Return the base platform when an override is provided."""
+  return override.split(':')[0]
+
+
 def platform():
   """Return the operating system type, unless an override is provided."""
   environment_override = get_value('OS_OVERRIDE')
@@ -1106,7 +1111,7 @@ def is_android_kernel(plt=None):
 
 def is_android_real_device():
   """Return True if we are on a real android device."""
-  return platform() == 'ANDROID'
+  return base_platform(platform()) == 'ANDROID'
 
 
 def is_lib():
