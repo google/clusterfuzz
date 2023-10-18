@@ -202,11 +202,6 @@ class Issue(issue_tracker.Issue):
     return self._ccs
 
   @property
-  def collaborators(self):
-    """The issue collaborators list."""
-    return self._collaborators
-
-  @property
   def labels(self):
     """The issue labels list."""
     return self._labels
@@ -314,7 +309,7 @@ class Issue(issue_tracker.Issue):
     self._add_update_single(update_body, added, removed, 'title', 'title')
     self._add_update_collection(update_body, added, removed, 'ccs', 'ccs',
                                 _make_users)
-    self._add_update_collection(update_body, added, removed, 'collaborators',
+    self._add_update_collection(update_body, added, removed, '_collaborators',
                                 'collaborators', _make_users)
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
@@ -522,17 +517,6 @@ class Action(issue_tracker.Action):
   def ccs(self):
     """The issue CC change list."""
     removed, added = self._get_field_update_changes('ccs')
-    change_list = issue_tracker.ChangeList()
-    if added:
-      change_list.added.extend(added)
-    if removed:
-      change_list.removed.extend(removed)
-    return change_list
-
-  @property
-  def collaborators(self):
-    """The issue collaborators change list."""
-    removed, added = self._get_field_update_changes('collaborators')
     change_list = issue_tracker.ChangeList()
     if added:
       change_list.added.extend(added)

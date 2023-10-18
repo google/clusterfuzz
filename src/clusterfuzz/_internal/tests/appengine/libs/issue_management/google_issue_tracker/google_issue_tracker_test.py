@@ -111,7 +111,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.assertCountEqual([], issue.labels)
     self.assertCountEqual(['29002'], issue.components)
     self.assertCountEqual([], issue.ccs)
-    self.assertCountEqual([], issue.collaborators)
     self.assertEqual('test body', issue.body)
 
   def test_closed(self):
@@ -214,44 +213,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         issue.ccs,
     )
 
-  def test_get_collaborators(self):
-    """Test getting collaborators."""
-    self.client.issues().get().execute.return_value = {
-        'issueId': '68823253',
-        'issueState': {
-            'componentId':
-                '29002',
-            'type':
-                'BUG',
-            'status':
-                'NEW',
-            'priority':
-                'P2',
-            'severity':
-                'S2',
-            'title':
-                'test',
-            'collaborators': [
-                {
-                    'emailAddress': 'collaborator1@google.com',
-                    'userGaiaStatus': 'ACTIVE'
-                },
-                {
-                    'emailAddress': 'collaborator2@google.com',
-                    'userGaiaStatus': 'ACTIVE'
-                },
-            ],
-        },
-    }
-    issue = self.issue_tracker.get_issue(68823253)
-    self.assertCountEqual(
-        [
-            'collaborator1@google.com',
-            'collaborator2@google.com',
-        ],
-        issue.collaborators,
-    )
-
   def test_new_issue(self):
     """Test basic new issue creation."""
     issue = self.issue_tracker.new_issue()
@@ -259,7 +220,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.assignee = 'assignee@google.com'
     issue.body = 'issue body'
     issue.ccs.add('cc@google.com')
-    issue.collaborators.add('collaborator@google.com')
     issue.components.add('9001')
     issue.labels.add('12345')
     issue.status = 'ASSIGNED'
@@ -272,27 +232,21 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'comment': 'issue body'
                 },
                 'issueState': {
-                    'status':
-                        'ASSIGNED',
+                    'status': 'ASSIGNED',
                     'reporter': {
                         'emailAddress': 'reporter@google.com'
                     },
-                    'title':
-                        'issue title',
+                    'title': 'issue title',
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
-                    'collaborators': [{
-                        'emailAddress': 'collaborator@google.com'
-                    }],
+                    'collaborators': [],
                     'assignee': {
                         'emailAddress': 'assignee@google.com'
                     },
-                    'componentId':
-                        9001,
+                    'componentId': 9001,
                     'hotlistIds': [12345],
-                    'type':
-                        'BUG',
+                    'type': 'BUG',
                 },
             },
             templateOptions_applyTemplate=True,
@@ -332,9 +286,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                 'emailAddress': 'cc@google.com',
                 'userGaiaStatus': 'ACTIVE'
             },],
-            'collaborators': [{
-                'emailAddress': 'collaborator@google.com'
-            }],
             'hotlistIds': ['12345',],
         },
         'createdTime': '2019-06-25T01:29:30.021Z',
@@ -352,7 +303,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.reporter = 'reporter@google.com'
     issue.assignee = 'assignee2@google.com'
     issue.ccs.add('cc@google.com')
-    issue.collaborators.add('collaborator@google.com')
     issue.components.add('9001')
     issue.labels.add('12345')
     issue.status = 'ASSIGNED'
@@ -363,25 +313,20 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call(
             body={
                 'add': {
-                    'status':
-                        'ASSIGNED',
+                    'status': 'ASSIGNED',
                     'assignee': {
                         'emailAddress': 'assignee2@google.com'
                     },
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
-                    'collaborators': [{
-                        'emailAddress': 'collaborator@google.com'
-                    }],
                     'reporter': {
                         'emailAddress': 'reporter@google.com'
                     },
-                    'title':
-                        'issue title2',
+                    'title': 'issue title2',
                 },
                 'removeMask': '',
-                'addMask': 'status,assignee,reporter,title,ccs,collaborators',
+                'addMask': 'status,assignee,reporter,title,ccs',
                 'remove': {},
                 'significanceOverride': 'MAJOR',
             },
