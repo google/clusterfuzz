@@ -16,6 +16,7 @@
 """Google issue tracker implementation."""
 
 import datetime
+import enum
 import urllib.parse
 
 from google.auth import exceptions
@@ -26,6 +27,13 @@ from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.googleapis.com/v1/issues'
+
+
+class IssueAccessLevel(enum.Enum):
+  LIMIT_NONE = 0
+  LIMIT_VIEW = 1
+  LIMIT_APPEND = 2
+  LIMIT_VIEW_TRUSTED = 3
 
 
 class IssueTrackerError(Exception):
@@ -87,6 +95,7 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
+    self._issue_access_level = IssueAccessLevel.LIMIT_NONE
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -311,6 +320,8 @@ class Issue(issue_tracker.Issue):
                                 _make_users)
     self._add_update_collection(update_body, added, removed, '_collaborators',
                                 'collaborators', _make_users)
+    self._add_update_single(update_body, added, removed, '_issue_access_level',
+                            'issue_access_level')
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -393,6 +404,9 @@ class Issue(issue_tracker.Issue):
       collaborators = list(self._collaborators)
       if collaborators:
         self._data['issueState']['collaborators'] = _make_users(collaborators)
+      issue_access_level = self._issue_access_level
+      if issue_access_level:
+        self._data['issueState']['issue_access_level'] = issue_access_level
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
       ]
@@ -597,6 +611,7 @@ class IssueTracker(issue_tracker.IssueTracker):
             'ccs': [],
             'collaborators': [],
             'hotlistIds': [],
+            'issue_access_level': IssueAccessLevel.LIMIT_NONE,
         }
     }
     return Issue(data, True, self)
