@@ -1140,12 +1140,13 @@ def get_revisions_list(bucket_path, bad_revisions, testcase=None):
 
 def get_job_bad_revisions():
   job_type = environment.get_value('JOB_NAME')
-  bad_builds = list(
-      ndb_utils.get_all_from_query(
+
+  bad_revisions = list(
+      build.revision for build in ndb_utils.get_all_from_query(
           data_types.BuildMetadata.query(
               ndb_utils.is_true(data_types.BuildMetadata.bad_build),
-              data_types.BuildMetadata.job_type == job_type)))
-  bad_revisions = [build.revision for build in bad_builds]
+              data_types.BuildMetadata.job_type == job_type),
+          projection=[data_types.BuildMetadata.revision]))
   return bad_revisions
 
 

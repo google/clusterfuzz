@@ -299,7 +299,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def get_analyze_task_input():
   analyze_input = uworker_io.AnalyzeTaskInput()
-  analyze_input.bad_revisions = build_manager.get_job_bad_revisions()
+  analyze_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
   return analyze_input
 
 
