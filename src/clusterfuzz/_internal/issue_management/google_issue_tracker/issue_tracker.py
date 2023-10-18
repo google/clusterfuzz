@@ -388,6 +388,9 @@ class Issue(issue_tracker.Issue):
     if self._is_new:
       priority = _extract_label(self.labels, 'Pri-')
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
+      if issue_type == 'Bug-Security':
+        self._issue_access_level = IssueAccessLevel.LIMIT_VIEW
+        self._collaborators.add('security@chromium.org')
       if not self._override_priority_and_type():
         # Reset to default.
         issue_type = 'BUG'
