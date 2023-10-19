@@ -232,15 +232,15 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'comment': 'issue body'
                 },
                 'issueState': {
-                    'status':
-                        'ASSIGNED',
+                    'status': 'ASSIGNED',
                     'reporter': {
                         'emailAddress': 'reporter@google.com'
                     },
-                    'title':
-                        'issue title',
-                    'issue_access_level':
-                        issue_tracker.IssueAccessLevel.LIMIT_NONE,
+                    'title': 'issue title',
+                    'access_limit': {
+                        'access_level':
+                            issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    },
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
@@ -248,11 +248,9 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'assignee': {
                         'emailAddress': 'assignee@google.com'
                     },
-                    'componentId':
-                        9001,
+                    'componentId': 9001,
                     'hotlistIds': [12345],
-                    'type':
-                        'BUG',
+                    'type': 'BUG',
                 },
             },
             templateOptions_applyTemplate=True,
@@ -278,8 +276,9 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                 'S2',
             'title':
                 'issue title2',
-            'issue_access_level':
-                issue_tracker.IssueAccessLevel.LIMIT_NONE,
+            'access_limit': {
+                'access_level': issue_tracker.IssueAccessLevel.LIMIT_NONE
+            },
             'reporter': {
                 'emailAddress': 'reporter@google.com',
                 'userGaiaStatus': 'ACTIVE',

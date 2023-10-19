@@ -95,7 +95,7 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
-    self._issue_access_level = IssueAccessLevel.LIMIT_NONE
+    self._access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -320,8 +320,8 @@ class Issue(issue_tracker.Issue):
                                 _make_users)
     self._add_update_collection(update_body, added, removed, '_collaborators',
                                 'collaborators', _make_users)
-    self._add_update_single(update_body, added, removed, '_issue_access_level',
-                            'issue_access_level')
+    self._add_update_single(update_body, added, removed, '_access_limit',
+                            'access_limit')
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -404,9 +404,9 @@ class Issue(issue_tracker.Issue):
       collaborators = list(self._collaborators)
       if collaborators:
         self._data['issueState']['collaborators'] = _make_users(collaborators)
-      issue_access_level = self._issue_access_level
-      if issue_access_level:
-        self._data['issueState']['issue_access_level'] = issue_access_level
+      access_limit = self._access_limit
+      if access_limit:
+        self._data['issueState']['access_limit'] = access_limit
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
       ]
@@ -611,7 +611,9 @@ class IssueTracker(issue_tracker.IssueTracker):
             'ccs': [],
             'collaborators': [],
             'hotlistIds': [],
-            'issue_access_level': IssueAccessLevel.LIMIT_NONE,
+            'access_limit': {
+                'access_level': IssueAccessLevel.LIMIT_NONE
+            },
         }
     }
     return Issue(data, True, self)
