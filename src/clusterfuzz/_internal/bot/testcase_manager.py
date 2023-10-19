@@ -1113,10 +1113,14 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
 
 
 def check_for_bad_build(job_type, crash_revision):
-  """Return true if the build is bad, i.e. crashes on startup."""
+  """Returns result of bad build check i.e. crashes on startup. Results include
+  whether the build is bad, whether the crash should be ignored, the
+  build_run_console_output."""
   # Check the bad build check flag to see if we want do this.
   if not environment.get_value('BAD_BUILD_CHECK'):
-    return False
+    # should_ignore_crash_result set to True because build metadata does not
+    # need to be updated in this case.
+    return False, True, None
 
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
@@ -1183,10 +1187,12 @@ def check_for_bad_build(job_type, crash_revision):
 def update_build_metadata(job_type, crash_revision, is_bad_build,
                           should_ignore_crash_result, build_run_console_output):
   """Updates the corresponding build metadata."""
+  if should_ignore_crash_result:
+    return
+
   build_state = data_handler.get_build_state(job_type, crash_revision)
   # If none of the other bots have added information about this build,
   # then add it now.
-  if (build_state == data_types.BuildState.UNMARKED and
-      not should_ignore_crash_result):
+  if build_state == data_types.BuildState.UNMARKED:
     data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
                                     build_run_console_output)
