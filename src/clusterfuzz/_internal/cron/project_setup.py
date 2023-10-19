@@ -106,6 +106,11 @@ class JobInfo:
 # the earlier ones. An engine template may override vars set for a sanitizer.
 LIBFUZZER_ASAN_JOB = JobInfo('libfuzzer_asan_', 'libfuzzer', 'address',
                              ['libfuzzer', 'engine_asan', 'prune'])
+LIBFUZZER_HWASAN_JOB = JobInfo(
+    'libfuzzer_hwasan_',
+    'libfuzzer',
+    'hardware', ['libfuzzer', 'engine_asan'],
+    architecture='arm')
 LIBFUZZER_MSAN_JOB = JobInfo('libfuzzer_msan_', 'libfuzzer', 'memory',
                              ['libfuzzer', 'engine_msan'])
 LIBFUZZER_UBSAN_JOB = JobInfo('libfuzzer_ubsan_', 'libfuzzer', 'undefined',
@@ -159,11 +164,14 @@ JOB_MAP = {
             'address': LIBFUZZER_ASAN_I386_JOB,
             'none': LIBFUZZER_NONE_I386_JOB,
         },
+        'arm': {
+            'hardware': LIBFUZZER_HWASAN_JOB,
+        },
     },
     'afl': {
         'x86_64': {
             'address': AFL_ASAN_JOB,
-        }
+        },
     },
     'honggfuzz': {
         'x86_64': {
@@ -180,7 +188,7 @@ JOB_MAP = {
     'none': {
         'x86_64': {
             'address': NO_ENGINE_ASAN_JOB,
-        }
+        },
     },
     'centipede': {
         'x86_64': {
@@ -543,20 +551,33 @@ def create_project_settings(project, info, service_account):
         ccs=ccs).put()
 
 
-def create_pubsub_topics(project):
-  """Create pubsub topics for tasks."""
+def _create_pubsub_topic(name, client):
+  """Create a pubsub topic and subscription if needed."""
+  application_id = utils.get_application_id()
+
+  topic_name = pubsub.topic_name(application_id, name)
+  if client.get_topic(topic_name) is None:
+    client.create_topic(topic_name)
+
+  subscription_name = pubsub.subscription_name(application_id, name)
+  if client.get_subscription(subscription_name) is None:
+    client.create_subscription(subscription_name, topic_name)
+
+
+def create_pubsub_topics_for_untrusted(project):
+  """Create pubsub topics from untrusted sources for tasks."""
+  client = pubsub.PubSubClient()
   for platform in PUBSUB_PLATFORMS:
     name = untrusted.queue_name(project, platform)
-    client = pubsub.PubSubClient()
-    application_id = utils.get_application_id()
+    _create_pubsub_topic(name, client)
 
-    topic_name = pubsub.topic_name(application_id, name)
-    if client.get_topic(topic_name) is None:
-      client.create_topic(topic_name)
 
-    subscription_name = pubsub.subscription_name(application_id, name)
-    if client.get_subscription(subscription_name) is None:
-      client.create_subscription(subscription_name, topic_name)
+def create_pubsub_topics_for_queue_id(platform):
+  """Create pubsub topics from project configs for tasks."""
+  platform, queue_id = platform.split(tasks.SUBQUEUE_IDENTIFIER)
+  name = untrusted.queue_name(platform, queue_id)
+  client = pubsub.PubSubClient()
+  _create_pubsub_topic(name, client)
 
 
 def cleanup_pubsub_topics(project_names):
@@ -768,7 +789,6 @@ class ProjectSetup:
       if self._segregate_projects:
         job.platform = untrusted.platform_name(project, 'linux')
       else:
-        # TODO(ochang): Support other platforms?
         job.platform = 'LINUX'
 
       job.templates = template.cf_job_templates
@@ -863,6 +883,17 @@ class ProjectSetup:
 
       file_github_issue = info.get('file_github_issue', False)
       job.environment_string += f'FILE_GITHUB_ISSUE = {file_github_issue}\n'
+
+      # Device-specific queues created during project setup.
+      queue_id = info.get('queue_id', False)
+      if queue_id:
+        platform = info.get('platform',
+                            'LINUX').upper() + ':' + queue_id.upper()
+        job.platform = platform
+        if platform.startswith('ANDROID'):
+          job.templates.append('android')
+
+        create_pubsub_topics_for_queue_id(job.platform)
 
       if (template.engine == 'libfuzzer' and
           template.architecture == 'x86_64' and
@@ -959,7 +990,7 @@ class ProjectSetup:
         self.sync_user_permissions(project, info)
 
         # Create Pub/Sub topics for tasks.
-        create_pubsub_topics(project)
+        create_pubsub_topics_for_untrusted(project)
 
         # Set up projects settings (such as CPU distribution settings).
         if not info.get('disabled', False):
@@ -1045,6 +1076,7 @@ def main():
         engine_build_buckets={
             'libfuzzer': bucket_config.get('libfuzzer'),
             'libfuzzer-i386': bucket_config.get('libfuzzer_i386'),
+            'libfuzzer-arm': bucket_config.get('libfuzzer_arm'),
             'afl': bucket_config.get('afl'),
             'honggfuzz': bucket_config.get('honggfuzz'),
             'googlefuzztest': bucket_config.get('googlefuzztest'),
