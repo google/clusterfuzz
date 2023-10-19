@@ -604,22 +604,22 @@ def process_sanitizer_options_overrides(fuzzer_path):
   hwasan_options = environment.get_memory_tool_options('HWASAN_OPTIONS', {})
 
   asan_overrides = fuzzer_options.get_asan_options()
-  if asan_options and asan_overrides:
+  if asan_overrides:
     asan_options.update(asan_overrides)
     environment.set_memory_tool_options('ASAN_OPTIONS', asan_options)
 
   msan_overrides = fuzzer_options.get_msan_options()
-  if msan_options and msan_overrides:
+  if msan_overrides:
     msan_options.update(msan_overrides)
     environment.set_memory_tool_options('MSAN_OPTIONS', msan_options)
 
   ubsan_overrides = fuzzer_options.get_ubsan_options()
-  if ubsan_options and ubsan_overrides:
+  if ubsan_overrides:
     ubsan_options.update(ubsan_overrides)
     environment.set_memory_tool_options('UBSAN_OPTIONS', ubsan_options)
 
   hwasan_overrides = fuzzer_options.get_hwasan_options()
-  if hwasan_options and hwasan_overrides:
+  if hwasan_overrides:
     hwasan_options.update(hwasan_overrides)
     environment.set_memory_tool_options('HWASAN_OPTIONS', hwasan_options)
 

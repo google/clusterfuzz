@@ -148,7 +148,7 @@ class EngineFuzzerTest(BaseEngineFuzzerTest):
 
     self.assertEqual('fake_option1=1:fake_option2=1',
                      environment.get_value('ASAN_OPTIONS'))
-    self.assertEqual(None, environment.get_value('MSAN_OPTIONS'))
+    self.assertEqual('fake_options3=1', environment.get_value('MSAN_OPTIONS'))
 
 
 class GetFuzzerPath(unittest.TestCase):
