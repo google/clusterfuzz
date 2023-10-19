@@ -91,13 +91,13 @@ def setup_build(testcase: data_types.Testcase,
     if not revision_list:
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
       return uworker_io.UworkerOutput(
           testcase=testcase,
-          error=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
@@ -154,7 +154,7 @@ def setup_testcase_and_build(
     return None, uworker_io.UworkerOutput(
         testcase=testcase,
         testcase_upload_metadata=testcase_upload_metadata,
-        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
 
   update_testcase_after_build_setup(testcase)
   testcase.absolute_path = testcase_file_path
@@ -351,7 +351,7 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput(
         testcase=uworker_input.testcase,
         testcase_upload_metadata=uworker_input.testcase_upload_metadata,
-        error=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
         test_timeout=test_timeout)
   # Update testcase crash parameters.
   update_testcase_after_crash(uworker_input.testcase, state,
@@ -368,7 +368,7 @@ def utask_main(uworker_input):
     return uworker_io.UworkerOutput(
         testcase=uworker_input.testcase,
         testcase_upload_metadata=uworker_input.testcase_upload_metadata,
-        error=uworker_msg_pb2.ErrorType.UNHANDLED)
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   test_for_reproducibility(uworker_input.testcase, testcase_file_path, state,
                            test_timeout)
@@ -420,7 +420,7 @@ HANDLED_ERRORS = [
 def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
-  if output.error is not None:
+  if output.error_type is not None:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   testcase = output.testcase
