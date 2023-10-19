@@ -36,7 +36,10 @@
   {% if message %}
     <p>{{message}}</p>
   {% endif %}
-  <p>Please contact {{contact_string}}.</p>
+  {% if is_chromium %}
+    <!--TODO(pgrace) remove this comment in Jan 2024 when we have moved to Buganizer -->
+    <p>If you reached here via a crbug link, please confirm that you have been manually cc'ed. Otherwise, Please contact chrome-fuzzing-core@google.com.</p>
+  {% endif %}
   <p>
     <a href="{{switch_account_url}}">Switch account</a><br />
     <a href="{{logout_url}}">Logout</a>

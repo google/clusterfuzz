@@ -171,7 +171,6 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
   # Enable stack use-after-return.
   asan_options['detect_stack_use_after_return'] = 1
-  asan_options['max_uar_stack_size_log'] = 16
 
   # Other less important default options for all cases.
   asan_options.update({
@@ -748,6 +747,11 @@ def parse_environment_definition(environment_string):
   return values
 
 
+def base_platform(override):
+  """Return the base platform when an override is provided."""
+  return override.split(':')[0]
+
+
 def platform():
   """Return the operating system type, unless an override is provided."""
   environment_override = get_value('OS_OVERRIDE')
@@ -1107,7 +1111,7 @@ def is_android_kernel(plt=None):
 
 def is_android_real_device():
   """Return True if we are on a real android device."""
-  return platform() == 'ANDROID'
+  return base_platform(platform()) == 'ANDROID'
 
 
 def is_lib():
