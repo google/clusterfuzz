@@ -365,24 +365,6 @@ class Issue(issue_tracker.Issue):
                                       issueId=str(self.id)))
     return result
 
-  def _override_priority_and_type(self):
-    """Determines whether if we should override the priority and type."""
-    if '1680101' in self.labels:
-      # Unreproducible hotlist.
-      return False
-    if '5075787' in self.labels:
-      # Targets marked explicitly as non-security relevant.
-      return False
-    # 347144: Language Platforms>Software Analysis>SunDew>Target Generation -
-    # FUDGE>Target Crashes
-    # 1056691: Security>ISE>TPS>Autofuzz>ClusterFuzz>Unreproducible
-    if self._components.get_single() in ('347144', '1056691'):
-      return False
-    if '//security/laser/sundew/targetgen' in self.title:
-      # Noisy targets.
-      return False
-    return True
-
   def save(self, new_comment=None, notify=True):
     """Saves the issue."""
     if self._is_new:
@@ -697,3 +679,27 @@ def _get_query(keywords, only_open):
 def get(project, config, issue_tracker_client=None):
   """Gets an IssueTracker for the project."""
   return IssueTracker(project, issue_tracker_client, config)
+
+
+# Uncomment for local testing. Will need access to a service account for these
+# steps to work. List of steps taken (for posterity)-
+# 1. gcloud iam service-accounts keys create --iam-account=${service_account} \
+#    --key-file-type=json /tmp/sa-key
+# 2. pipenv shell
+# 3. GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa-key PYTHONPATH=$PYTHONPATH:src/ \
+#    python src/clusterfuzz/_internal/issue_management/google_issue_tracker/\
+#    issue_tracker.py
+
+# if __name__ == '__main__':
+#   it = get('chromium', {'default_component_id': 1434846}, None)
+#
+#   # Test issue creation.
+#   issue = it.new_issue()
+#   issue.title = 'test issue'
+#   issue.assignee = 'rmistry@google.com'
+#   issue.status = 'ASSIGNED'
+#   issue.save(new_comment='testing')
+#
+#   # Test issue query.
+#   queried_issue = it.get_issue(306010501)
+#   print(queried_issue._data)
