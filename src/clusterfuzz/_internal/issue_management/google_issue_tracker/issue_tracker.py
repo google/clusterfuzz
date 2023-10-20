@@ -27,6 +27,7 @@ from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.googleapis.com/v1/issues'
+CHROME_SECURITY_EMAIL = 'security@chromium.org'
 
 
 class IssueAccessLevel(enum.Enum):
@@ -83,7 +84,7 @@ class Issue(issue_tracker.Issue):
     self._ccs = issue_tracker.LabelStore(
         [user['emailAddress'] for user in ccs if 'emailAddress' in user])
     collaborators = data['issueState'].get('collaborators', [])
-    self._collaborators = issue_tracker.LabelStore([
+    self._ext_collaborators = issue_tracker.LabelStore([
         user['emailAddress'] for user in collaborators if 'emailAddress' in user
     ])
     labels = [
@@ -95,15 +96,23 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
-    self._access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
+    self._ext_access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
 
   def _reset_tracking(self):
     """Resets diff tracking."""
     self._changed.clear()
     self._ccs.reset_tracking()
-    self._collaborators.reset_tracking()
+    self._ext_collaborators.reset_tracking()
     self._labels.reset_tracking()
     self._components.reset_tracking()
+
+  def set_extension_fields(self, policy):
+    # Extension fields are ones defined by the config for a single tracker
+    if policy.security:
+      # Collaborators may be added to an issue to provide access and visibility
+      self._ext_collaborators = policy.security.ext_collaborators or []
+      # The issue's access limit may be updated to restrict access
+      self._ext_issue_access_limit = policy.security.ext_issue_access_limit or []
 
   @property
   def issue_tracker(self):
@@ -318,9 +327,10 @@ class Issue(issue_tracker.Issue):
     self._add_update_single(update_body, added, removed, 'title', 'title')
     self._add_update_collection(update_body, added, removed, 'ccs', 'ccs',
                                 _make_users)
-    self._add_update_collection(update_body, added, removed, '_collaborators',
-                                'collaborators', _make_users)
-    self._add_update_single(update_body, added, removed, '_access_limit',
+    self._add_update_collection(update_body, added, removed,
+                                '_ext_collaborators', 'collaborators',
+                                _make_users)
+    self._add_update_single(update_body, added, removed, '_ext_access_limit',
                             'access_limit')
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
@@ -379,10 +389,10 @@ class Issue(issue_tracker.Issue):
       ccs = list(self._ccs)
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
-      collaborators = list(self._collaborators)
+      collaborators = list(self._ext_collaborators)
       if collaborators:
         self._data['issueState']['collaborators'] = _make_users(collaborators)
-      access_limit = self._access_limit
+      access_limit = self._ext_access_limit
       if access_limit:
         self._data['issueState']['access_limit'] = access_limit
       self._data['issueState']['hotlistIds'] = [
@@ -550,6 +560,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._project = project
     self._client = http_client
     self._default_component_id = config['default_component_id']
+    self._type = config.type if hasattr(config, 'type') else None
 
   @property
   def client(self):
@@ -580,6 +591,11 @@ class IssueTracker(issue_tracker.IssueTracker):
   def project(self):
     """Gets the project name of this issue tracker."""
     return self._project
+
+  @property
+  def type(self):
+    """The type of the tracker - e.g. monorail, google-issue-tracker, etc."""
+    return self._type
 
   def new_issue(self):
     """Creates an unsaved new issue."""

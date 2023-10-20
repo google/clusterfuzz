@@ -23,6 +23,7 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import client
 
 TEST_CONFIG = {
     'default_component_id': 1337,
+    'type': 'google-issue-tracker',
 }
 
 BASIC_ISSUE = {

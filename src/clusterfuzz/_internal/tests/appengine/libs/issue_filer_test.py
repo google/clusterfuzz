@@ -27,6 +27,8 @@ from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
 from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.google_issue_tracker import \
+    issue_tracker as google_issue_tracker
 from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
 from clusterfuzz._internal.issue_management.monorail.issue import \
     Issue as MonorailIssue
@@ -68,7 +70,11 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'restrict_view': 'Restrict-View-SecurityTeam'
     },
     'security': {
-        'labels': ['Type-Bug-Security']
+        'labels': ['Type-Bug-Security'],
+        'ext_collaborators': [google_issue_tracker.CHROME_SECURITY_EMAIL],
+        'ext_issue_access_limit': {
+            'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_VIEW
+        }
     },
     'existing': {
         'labels': ['Stability-%SANITIZER%']
@@ -110,7 +116,11 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
         'restrict_view': 'Restrict-View-SecurityTeam'
     },
     'security': {
-        'labels': ['Type-Bug-Security']
+        'labels': ['Type-Bug-Security'],
+        'ext_collaborators': [google_issue_tracker.CHROME_SECURITY_EMAIL],
+        'ext_issue_access_limit': {
+            'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_VIEW
+        }
     },
     'existing': {
         'labels': ['Stability-%SANITIZER%']
