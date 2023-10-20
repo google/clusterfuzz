@@ -112,7 +112,8 @@ class Issue(issue_tracker.Issue):
       # Collaborators may be added to an issue to provide access and visibility
       self._ext_collaborators = policy.security.ext_collaborators or []
       # The issue's access limit may be updated to restrict access
-      self._ext_issue_access_limit = policy.security.ext_issue_access_limit or []
+      self._ext_issue_access_limit = \
+        policy.security.ext_issue_access_limit or []
 
   @property
   def issue_tracker(self):
