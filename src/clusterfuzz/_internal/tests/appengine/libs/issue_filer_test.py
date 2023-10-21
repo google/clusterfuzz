@@ -71,8 +71,8 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     },
     'security': {
         'labels': ['Type-Bug-Security'],
-        'ext_collaborators': [google_issue_tracker.CHROME_SECURITY_EMAIL],
-        'ext_issue_access_limit': {
+        '_ext_collaborators': [google_issue_tracker.CHROME_SECURITY_EMAIL],
+        '_ext_issue_access_limit': {
             'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_VIEW
         }
     },
@@ -117,8 +117,8 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
     },
     'security': {
         'labels': ['Type-Bug-Security'],
-        'ext_collaborators': [google_issue_tracker.CHROME_SECURITY_EMAIL],
-        'ext_issue_access_limit': {
+        '_ext_collaborators': [google_issue_tracker.CHROME_SECURITY_EMAIL],
+        '_ext_issue_access_limit': {
             'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_VIEW
         }
     },

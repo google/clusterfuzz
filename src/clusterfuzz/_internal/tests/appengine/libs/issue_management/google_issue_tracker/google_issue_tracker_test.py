@@ -21,6 +21,12 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
 
+SECURITY_POLICY = {
+    'security': {
+        '_ext_collaborators': ['security@chromium.org'],
+        '_ext_issue_access_limit': issue_tracker.IssueAccessLevel.LIMIT_VIEW
+    }
+}
 TEST_CONFIG = {
     'default_component_id': 1337,
     'type': 'google-issue-tracker',
@@ -257,6 +263,62 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             templateOptions_applyTemplate=True,
         ),
         mock.call().execute(http=None, num_retries=3),
+    ])
+
+  def test_new_security_issue(self):
+    """Test creation of security issue."""
+    issue = self.issue_tracker.new_issue()
+
+    # Mimic issue_filer's action in setting up the issue
+    issue.set_extension_fields(SECURITY_POLICY)
+
+    issue.labels.add('Type-Bug-Security')
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee@google.com'
+    issue.body = 'issue body'
+    issue.ccs.add('cc@google.com')
+    issue.components.add('9001')
+    issue.labels.add('12345')
+    issue.labels.add('67890')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title'
+    issue.save()
+
+    self.client.issues().create.assert_has_calls([
+        mock.call(
+            body={
+                'issueState': {
+                    'componentId':
+                        9001,
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'collaborators': [{
+                        'emailAddress': 'security@chromium.org'
+                    }],
+                    'hotlistIds': [12345, 67890],
+                    'access_limit':
+                        issue_tracker.IssueAccessLevel.LIMIT_VIEW,
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'assignee': {
+                        'emailAddress': 'assignee@google.com'
+                    },
+                    'status':
+                        'ASSIGNED',
+                    'title':
+                        'issue title',
+                    'type':
+                        'Bug-Security',
+                },
+                'issueComment': {
+                    'comment': 'issue body'
+                },
+            },
+            templateOptions_applyTemplate=True,
+        ),
+        mock.call().execute(num_retries=3, http=None),
     ])
 
   def test_update_issue(self):

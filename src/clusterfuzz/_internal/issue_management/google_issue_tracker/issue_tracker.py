@@ -96,7 +96,7 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
-    self._ext_access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
+    self._ext_issue_access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -108,12 +108,14 @@ class Issue(issue_tracker.Issue):
 
   def set_extension_fields(self, policy):
     # Extension fields are ones defined by the config for a single tracker
-    if policy.security:
+    if policy['security']:
       # Collaborators may be added to an issue to provide access and visibility
-      self._ext_collaborators = policy.security.ext_collaborators or []
+      for collaborator in policy['security']['_ext_collaborators']:
+        self._ext_collaborators.add(collaborator)
       # The issue's access limit may be updated to restrict access
       self._ext_issue_access_limit = \
-        policy.security.ext_issue_access_limit or []
+        policy['security']['_ext_issue_access_limit'] or \
+        {'access_level': IssueAccessLevel.LIMIT_NONE}
 
   @property
   def issue_tracker(self):
@@ -331,8 +333,8 @@ class Issue(issue_tracker.Issue):
     self._add_update_collection(update_body, added, removed,
                                 '_ext_collaborators', 'collaborators',
                                 _make_users)
-    self._add_update_single(update_body, added, removed, '_ext_access_limit',
-                            'access_limit')
+    self._add_update_single(update_body, added, removed,
+                            '_ext_issue_access_limit', 'access_limit')
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -393,7 +395,7 @@ class Issue(issue_tracker.Issue):
       collaborators = list(self._ext_collaborators)
       if collaborators:
         self._data['issueState']['collaborators'] = _make_users(collaborators)
-      access_limit = self._ext_access_limit
+      access_limit = self._ext_issue_access_limit
       if access_limit:
         self._data['issueState']['access_limit'] = access_limit
       self._data['issueState']['hotlistIds'] = [
@@ -561,7 +563,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._project = project
     self._client = http_client
     self._default_component_id = config['default_component_id']
-    self._type = config.type if hasattr(config, 'type') else None
+    self._type = config['type'] if hasattr(config, 'type') else None
 
   @property
   def client(self):
