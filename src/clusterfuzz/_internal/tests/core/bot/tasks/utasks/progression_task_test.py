@@ -77,7 +77,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
-    self.assertIs(worker_output.error,
+    self.assertIs(worker_output.error_type,
                   uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
                   "build setup is expected to fail")
 
@@ -88,7 +88,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
-    self.assertEqual(worker_output.error,
+    self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
     self.assertEqual(worker_output.error_message, 'Bad build at r1. Skipping')
 
@@ -186,7 +186,8 @@ class UTaskPostprocessTest(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
     uworker_output = self._create_output(
-        uworker_input=uworker_input, error=uworker_msg_pb2.ErrorType.UNHANDLED)
+        uworker_input=uworker_input,
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     progression_task.utask_postprocess(uworker_output)
     self.assertTrue(self.mock.handle.called)
 
@@ -273,7 +274,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
         testcase, testcase_file_path)
     self.assertEqual(result.error_message,
                      'Build setup failed for custom binary')
-    self.assertEqual(result.error,
+    self.assertEqual(result.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
   def test_crash_on_latest(self):

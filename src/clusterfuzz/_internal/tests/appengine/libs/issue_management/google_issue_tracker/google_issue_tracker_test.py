@@ -17,6 +17,7 @@ import datetime
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.issue_management import google_issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
@@ -73,7 +74,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                                      'google_issue_tracker.client.build')
     self.client_patcher.start()
     self.client = client.build()
-    self.issue_tracker = issue_tracker.get('google-issue-tracker', TEST_CONFIG)
+    self.issue_tracker = google_issue_tracker.get_issue_tracker(
+        'google-issue-tracker', TEST_CONFIG)
 
   def tearDown(self):
     self.client_patcher.stop()

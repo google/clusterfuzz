@@ -404,7 +404,7 @@ def utask_main(uworker_input):
         testcase=testcase,
         minimize_task_output=uworker_io.MinimizeTaskOutput(
             build_fail_wait=build_fail_wait),
-        error=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
+        error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
     do_libfuzzer_minimization(testcase, testcase_file_path)
@@ -600,7 +600,7 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
-  if output.error:
+  if output.error_type:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 

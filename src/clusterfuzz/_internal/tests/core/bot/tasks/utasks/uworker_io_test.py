@@ -165,11 +165,11 @@ class UworkerOutputTest(unittest.TestCase):
     set."""
     # Test that these can be accessed without an attribute error.
     self.output.testcase  # pylint: disable=pointless-statement
-    self.output.error  # pylint: disable=pointless-statement
+    self.output.error_type  # pylint: disable=pointless-statement
     error_value = 1
-    self.output.error = error_value
-    self.assertEqual(self.output.error, error_value)
-    self.assertEqual(self.output.proto.error, error_value)
+    self.output.error_type = error_value
+    self.assertEqual(self.output.error_type, error_value)
+    self.assertEqual(self.output.proto.error_type, error_value)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -284,7 +284,7 @@ class RoundTripTest(unittest.TestCase):
     # (de)serialization.
     crash_time = 1
     output = uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     output.crash_time = crash_time
     output.testcase = testcase
 
@@ -341,7 +341,7 @@ class RoundTripTest(unittest.TestCase):
     self.assertEqual(downloaded_output.testcase.key.serialized(),
                      self.testcase.key.serialized())
     self.assertEqual(downloaded_output.crash_time, 1)
-    self.assertEqual(downloaded_output.error,
+    self.assertEqual(downloaded_output.error_type,
                      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
     self.assertEqual(downloaded_output.uworker_input.testcase_id,
                      uworker_input.testcase_id)
@@ -352,7 +352,7 @@ class RoundTripTest(unittest.TestCase):
     """Tests that errors can be returned by the tasks."""
     test_timeout = 1337
     output = uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
+        error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
         test_timeout=test_timeout)
     serialized = uworker_io.serialize_uworker_output(output)
     processed_output = uworker_io.deserialize_uworker_output(serialized)
