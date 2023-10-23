@@ -51,6 +51,50 @@ class EnvironmentTest(unittest.TestCase):
     self.assertEqual(environment.get_value('VERSION_PATTERN'), '')
     self.assertEqual(environment.get_value('WATCH_FOR_PROCESS_EXIT'), False)
 
+  def test_expand_environment_variables(self):
+    """Tests that variable expansion works correctly."""
+    environment.set_value('CUSTOM_PATH', '/path/to/some/dir')
+    environment.set_value('INTERNAL_PATH', '%CUSTOM_PATH%/data')
+
+    environment.expand()
+
+    self.assertEqual(
+        environment.get_value('INTERNAL_PATH'), '/path/to/some/dir/data')
+
+  def test_expand_nested_environment_variables(self):
+    """Tests that variable exansion will manage nested variables correctly."""
+    environment.set_value('NAME', 'Joe')
+    environment.set_value('GREET', 'Hi %NAME%')
+    environment.set_value('ASK_QUESTION', '%GREET%, how are you doing?')
+
+    environment.expand()
+
+    self.assertEqual(environment.get_value('NAME'), 'Joe')
+    self.assertEqual(environment.get_value('GREET'), 'Hi Joe')
+    self.assertEqual(
+        environment.get_value('ASK_QUESTION'), 'Hi Joe, how are you doing?')
+
+  def test_expand_non_existent_variables(self):
+    """Tests that non existing variable will not get expanded."""
+    environment.set_value('INTERNAL_PATH', '%CUSTOM_PATH%/data')
+
+    environment.expand()
+
+    self.assertEqual(
+        environment.get_value('INTERNAL_PATH'), '%CUSTOM_PATH%/data')
+
+  def test_expand_cyclic_variables(self):
+    """Tests that we don't get bitten by cyclic variable expansion."""
+    environment.set_value('ONE', '1%TWO%')
+    environment.set_value('TWO', '2%THREE%')
+    environment.set_value('THREE', '2%ONE%')
+
+    environment.expand()
+
+    self.assertRegex(environment.get_value('ONE'), r'(\%([A-Za-z_0-9]+)\%)')
+    self.assertRegex(environment.get_value('TWO'), r'(\%([A-Za-z_0-9]+)\%)')
+    self.assertRegex(environment.get_value('THREE'), r'(\%([A-Za-z_0-9]+)\%)')
+
 
 class GetExecutableFileNameTest(unittest.TestCase):
   """Tests for get_executable_filename."""

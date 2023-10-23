@@ -332,6 +332,10 @@ class ProcessRunner:
     if extra_env is not None:
       env.update(extra_env)
 
+    # Some environment variables are set by users, and they might depend on
+    # ClusterFuzz internal environment variables to set theirs properly.
+    environment.expand(env)
+
     return ChildProcess(
         subprocess.Popen(
             command,

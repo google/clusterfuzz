@@ -24,6 +24,7 @@ import sys
 import yaml
 
 from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal.metrics import logs
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
@@ -50,6 +51,8 @@ COMMON_SANITIZER_OPTIONS = {
     'print_summary': 1,
     'use_sigaltstack': 1,
 }
+
+VARIABLE_EXPANSION_REGEX = re.compile(r'(\%([A-Za-z_0-9]+)\%)')
 
 
 def _eval_value(value_string):
@@ -1130,3 +1133,37 @@ def if_redis_available(func):
     return None
 
   return wrapper
+
+
+def expand(env=None):
+  """Expands environment variables. The only accepted substitution pattern is
+  %VAR% where VAR is composed of uppercase, lowercase, digit and underscore.
+
+  Args:
+    env: A dictionary reprensenting the environment variables. If None, this
+    will default to os.environ.
+  """
+  if env is None:
+    env = os.environ
+  for var, value in env.items():
+    expanded_var = []
+    while True:
+      m = VARIABLE_EXPANSION_REGEX.search(value)
+
+      # No more matches, we can stop here.
+      if m is None:
+        break
+      matched_var = m.groups()[0][1:-1]
+
+      # Cycle detected, let's stop.
+      if matched_var in expanded_var:
+        logs.log_error(f'Cycle detected while expanding {var}.')
+        break
+
+      expanded_var.append(matched_var)
+      requested_value = env.get(matched_var)
+      if requested_value is None:
+        break
+      value = value.replace(m.groups()[0], requested_value)
+    env[var] = value
+    expanded_var.clear()
