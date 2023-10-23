@@ -145,7 +145,7 @@ message Output {
   optional UworkerEntityWrapper testcase = 1;
   optional UworkerEntityWrapper testcase_upload_metadata = 2;
   optional UworkerEntityWrapper variant = 3;
-  optional ErrorType error = 4;
+  optional ErrorType error_type = 4;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
   optional Input uworker_input = 5;
