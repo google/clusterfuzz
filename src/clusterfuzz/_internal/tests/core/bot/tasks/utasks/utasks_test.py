@@ -121,6 +121,8 @@ class UworkerMainTest(unittest.TestCase):
 
 
 class GetUtaskModuleTest(unittest.TestCase):
-
   def test_get_utask_module(self):
-    self.assertEqual(utasks.get_utask_module('analyze_task'), analyze_task)
+    module_name = 'clusterfuzz._internal.bot.tasks.utasks.analyze_task'
+    self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
+    module_name = analyze_task.__name__
+    self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
