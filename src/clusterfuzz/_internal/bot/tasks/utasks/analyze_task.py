@@ -78,7 +78,7 @@ def handle_analyze_no_revisions_list_error(output):
 
 
 def setup_build(testcase: data_types.Testcase,
-                bad_builds) -> Optional[uworker_io.UworkerOutput]:
+                bad_revisions) -> Optional[uworker_io.UworkerOutput]:
   """Set up a custom or regular build based on revision. For regular builds,
   if a provided revision is not found, set up a build with the
   closest revision <= provided revision."""
@@ -87,7 +87,7 @@ def setup_build(testcase: data_types.Testcase,
   if revision and not build_manager.is_custom_binary():
     build_bucket_path = build_manager.get_primary_bucket_path()
     revision_list = build_manager.get_revisions_list(
-        build_bucket_path, bad_builds, testcase=testcase)
+        build_bucket_path, bad_revisions, testcase=testcase)
     if not revision_list:
       return uworker_io.UworkerOutput(
           testcase=testcase,
@@ -133,7 +133,7 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 def setup_testcase_and_build(
     testcase, testcase_upload_metadata, job_type, setup_input,
-    bad_builds) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
+    bad_revisions) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
@@ -143,7 +143,7 @@ def setup_testcase_and_build(
     return None, error
 
   # Set up build.
-  error = setup_build(testcase, bad_builds)
+  error = setup_build(testcase, bad_revisions)
   if error:
     return None, error
 
@@ -299,7 +299,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def get_analyze_task_input():
   analyze_input = uworker_io.AnalyzeTaskInput()
-  analyze_input.bad_builds = build_manager.get_job_bad_builds()
+  analyze_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
   return analyze_input
 
 
@@ -315,7 +315,7 @@ def utask_main(uworker_input):
   testcase_file_path, output = setup_testcase_and_build(
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
       uworker_input.job_type, uworker_input.setup_input,
-      uworker_input.analyze_task_input.bad_builds)
+      uworker_input.analyze_task_input.bad_revisions)
   uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:
