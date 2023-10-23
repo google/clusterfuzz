@@ -51,6 +51,7 @@ FLASH_IMAGE_FILES = [
     ('dtbo', 'dtbo.img'),
     ('userdata', 'userdata.img'),
 ]
+FLASH_DEFAULT_BUILD_TARGET = '-next-userdebug'
 FLASH_INTERVAL = 1 * 24 * 60 * 60
 FLASH_RETRIES = 3
 FLASH_REBOOT_BOOTLOADER_WAIT = 15
@@ -121,10 +122,9 @@ def flash_to_latest_build_if_needed():
   branch = environment.get_value('BUILD_BRANCH')
   target = environment.get_value('BUILD_TARGET')
   if not target:
-    # We default to userdebug configuration.
     build_params = settings.get_build_parameters()
     if build_params:
-      target = build_params.get('target') + '-userdebug'
+      target = build_params.get('target') + FLASH_DEFAULT_BUILD_TARGET
 
       # Cache target in environment. This is also useful for cases when
       # device is bricked and we don't have this information available.
