@@ -43,7 +43,11 @@ class NewIssuePolicy:
     self.ccs = []
     self.labels = []
     self.issue_body_footer = ''
+
+    # Extension fields are fields that are only used in a single tracker.
+    # ext_collaborators is used in google_issue_tracker.
     self.ext_collaborators = []
+    # ext_issue_access_limit is used in google_issue_tracker.
     self.ext_issue_access_limit = {
         'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_NONE
     }
@@ -171,13 +175,12 @@ class IssueTrackerPolicy:
       if non_crash_labels:
         policy.labels.extend(_to_str_list(non_crash_labels))
 
-    ## extension fields are fields that are only used in a single tracker
-    # ext_collaborators is used in google_issue_tracker
+    # ext_collaborators is used in google_issue_tracker.
     ext_collaborators = issue_type.get('ext_collaborators')
     if ext_collaborators:
       policy.ext_collaborators.extend(_to_str_list(ext_collaborators))
 
-    # ext_issue_access_limit is used in google_issue_tracker
+    # ext_issue_access_limit is used in google_issue_tracker.
     ext_issue_access_limit = issue_type.get('ext_issue_access_limit')
     if ext_issue_access_limit:
       policy.ext_issue_access_limit = ext_issue_access_limit

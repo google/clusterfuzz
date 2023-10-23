@@ -27,7 +27,9 @@ from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.googleapis.com/v1/issues'
-CHROME_SECURITY_EMAIL = 'security@chromium.org'
+# TODO(micahbales, rmistry): Update below with the actual security group that
+# will be used as a trusted collaborator.
+CHROME_SECURITY_EMAIL = 'chromium-security-members@google.com'
 
 
 class IssueAccessLevel(enum.Enum):
@@ -107,15 +109,18 @@ class Issue(issue_tracker.Issue):
     self._components.reset_tracking()
 
   def set_extension_fields(self, policy):
-    # Extension fields are ones defined by the config for a single tracker
-    if policy['security']:
-      # Collaborators may be added to an issue to provide access and visibility
-      for collaborator in policy['security']['_ext_collaborators']:
-        self._ext_collaborators.add(collaborator)
-      # The issue's access limit may be updated to restrict access
-      self._ext_issue_access_limit = \
-        policy['security']['_ext_issue_access_limit'] or \
-        {'access_level': IssueAccessLevel.LIMIT_NONE}
+    """Sets extension fields which are defined for a single tracker."""
+    if not policy['security']:
+      return
+
+    # Collaborators may be added to an issue to provide access and visibility
+    for collaborator in policy['security']['_ext_collaborators']:
+      self._ext_collaborators.add(collaborator)
+    # The issue's access limit may be updated to restrict access
+    self._ext_issue_access_limit = (
+        policy['security']['_ext_issue_access_limit'] or {
+            'access_level': IssueAccessLevel.LIMIT_NONE
+        })
 
   @property
   def issue_tracker(self):
