@@ -111,13 +111,14 @@ def utask_main(uworker_input):
     build_manager.setup_build()
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
-    return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
+    return uworker_io.UworkerOutput(
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        error=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
         testcase=uworker_input.testcase)
 
   # Disable gestures if we're running on a different platform from that of
@@ -210,7 +211,7 @@ def utask_postprocess(output):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     output.testcase.put = lambda: None
 
-  if output.error is not None:
+  if output.error_type is not None:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 

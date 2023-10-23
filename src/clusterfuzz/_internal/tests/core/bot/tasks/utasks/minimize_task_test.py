@@ -302,7 +302,7 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_error_does_not_finalize_testcase(self):
     """Checks that an output with an error does not finalize a testcase."""
     uworker_output = self._create_output(
-        error=uworker_msg_pb2.ErrorType.UNHANDLED)
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     minimize_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.finalize_testcase.called)
 
@@ -357,5 +357,5 @@ class UTaskMainTest(unittest.TestCase):
     self.assertEqual(uworker_output.testcase.key.id(), testcase_id)
     self.assertEqual(uworker_output.minimize_task_output.build_fail_wait,
                      build_fail_wait)
-    self.assertEqual(uworker_output.error,
+    self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)

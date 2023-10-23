@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """libFuzzer fuzzer."""
+import psutil
+
 from clusterfuzz._internal.bot.fuzzers import builtin
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
@@ -69,11 +71,12 @@ def get_arguments(fuzzer_path):
     arguments.append(
         '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
   else:
-    # Custom rss_limit_mb value shouldn't be greater than the default value.
-    if rss_limit_mb > constants.DEFAULT_RSS_LIMIT_MB:
+    max_memory_limit = psutil.virtual_memory().total - constants.MEMORY_OVERHEAD
+    # Custom rss_limit_mb value shouldn't be greater than the actual memory
+    # allocated on the machine.
+    if rss_limit_mb > max_memory_limit:
       arguments.remove('%s%d' % (constants.RSS_LIMIT_FLAG, rss_limit_mb))
-      arguments.append(
-          '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
+      arguments.append('%s%d' % (constants.RSS_LIMIT_FLAG, max_memory_limit))
 
   return arguments
 

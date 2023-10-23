@@ -59,6 +59,9 @@ VALUE_PROFILE_ARGUMENT = '-use_value_profile=1'
 # Default value for rss_limit_mb flag to catch OOM.s
 DEFAULT_RSS_LIMIT_MB = 2560
 
+# Memory overhead we want to keep to ensure we're not going OOM.s
+MEMORY_OVERHEAD = 1024  # 1 GB
+
 # Default value for timeout flag to catch timeouts.
 DEFAULT_TIMEOUT_LIMIT = 25
 
