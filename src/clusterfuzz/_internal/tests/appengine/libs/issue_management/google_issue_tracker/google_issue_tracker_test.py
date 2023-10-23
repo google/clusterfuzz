@@ -240,6 +240,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
+                    'collaborators': [],
                     'assignee': {
                         'emailAddress': 'assignee@google.com'
                     },
