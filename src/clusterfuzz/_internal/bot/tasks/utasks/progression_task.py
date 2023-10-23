@@ -398,10 +398,10 @@ def find_fixed_range(uworker_input):
   build_bucket_path = build_manager.get_primary_bucket_path()
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
   # preprocess.
-  bad_builds = build_manager.get_job_bad_builds()
+  bad_revisions = build_manager.get_job_bad_revisions()
 
   revision_list = build_manager.get_revisions_list(
-      build_bucket_path, bad_builds, testcase=testcase)
+      build_bucket_path, bad_revisions, testcase=testcase)
   if not revision_list:
     return uworker_io.UworkerOutput(
         testcase=testcase,
