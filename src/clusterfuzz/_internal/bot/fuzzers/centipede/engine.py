@@ -13,20 +13,18 @@
 # limitations under the License.
 """Centipede engine interface."""
 
-from collections import namedtuple
 import os
 import pathlib
 import re
 import shutil
+from collections import namedtuple
 
-from clusterfuzz._internal.bot.fuzzers import dictionary_manager
-from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import dictionary_manager, engine_common
 from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.centipede import constants
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.system import new_process
+from clusterfuzz._internal.system import environment, new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
