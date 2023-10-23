@@ -924,7 +924,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   """Runs preprocessing for corpus pruning task."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
 
-  task_name = f'corpus_pruning_{fuzzer_name}_' f'{job_type}'
+  task_name = f'corpus_pruning_{fuzzer_name}_{job_type}'
 
   # Get status of last execution.
   last_execution_metadata = data_handler.get_task_status(task_name)
