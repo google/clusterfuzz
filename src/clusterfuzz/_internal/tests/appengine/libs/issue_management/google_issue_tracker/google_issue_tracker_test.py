@@ -18,6 +18,8 @@ import unittest
 from unittest import mock
 
 from clusterfuzz._internal.issue_management import google_issue_tracker
+from clusterfuzz._internal.issue_management.google_issue_tracker import \
+    issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
 
 TEST_CONFIG = {
