@@ -1113,14 +1113,26 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
 
 
 def check_for_bad_build(job_type, crash_revision):
-  """Returns result of bad build check i.e. crashes on startup. Results include
-  whether the build is bad, whether the crash should be ignored, the
-  build_run_console_output."""
+  """
+  Checks whether the target binary fails to execute at the given revision.
+
+  Arguments:
+    job_type (str): The type of job we are executing on.
+    crash_revision (int): The revision at which the target was built.
+
+  Returns a triple consisting of:
+    is_bad_build (bool): Whether the target build is bad. If True, the target
+      cannot be used for executing testcases.
+    should_ignore_crash (bool): True iff the target crashed, but we should
+      ignore it.
+    build_run_console_output (Optional[str]): The build run output, containing
+      crash stacktraces (if any).
+  """
   # Check the bad build check flag to see if we want do this.
   if not environment.get_value('BAD_BUILD_CHECK'):
     # should_ignore_crash_result set to True because build metadata does not
     # need to be updated in this case.
-    return False, True, None
+    return False, True, ''
 
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
@@ -1186,7 +1198,23 @@ def check_for_bad_build(job_type, crash_revision):
 
 def update_build_metadata(job_type, crash_revision, is_bad_build,
                           should_ignore_crash_result, build_run_console_output):
-  """Updates the corresponding build metadata."""
+  """
+  Updates the corresponding build metadata.
+
+  This method is intended to be called (from a trusted worker) on the result of
+  check_for_bad_build. It adds the corresponding build metadata if ncecessary.
+
+  Arguments:
+    job_type (str): The type of job we are executing on.
+    crash_revision (int): The revision at which the target was built.
+    is_bad_build (bool): Whether the target build is bad. If True, the target
+      cannot be used for executing testcases.
+    should_ignore_crash_result (bool): True iff the target crashed, but we
+      should ignore it. In this case, the function returns early and no build
+      metadata is not added.
+    build_run_console_output (str): The build run output, containing
+      crash stacktraces (if any).
+  """
   if should_ignore_crash_result:
     return
 
