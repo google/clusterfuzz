@@ -24,7 +24,10 @@ import unittest
 from unittest.mock import patch
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+from clusterfuzz._internal.bot.fuzzers.centipede import \
+    constants as centipede_constants
 from clusterfuzz._internal.bot.fuzzers.centipede import engine
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
@@ -56,18 +59,8 @@ TEST_PATH = pathlib.Path(__file__).parent
 MAX_TIME = 3
 
 # Centipede's runtime args for testing.
-_SERVER_COUNT = 1
-_RSS_LIMIT = 4096
-_ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT = 25
 _RSS_LIMIT_TEST = 2
 _TIMEOUT_PER_INPUT_TEST = 1  # For testing timeout only.
-_DEFAULT_ARGUMENTS = [
-    '-exit_on_crash=1',
-    f'-fork_server={_SERVER_COUNT}',
-    f'-rss_limit_mb={_RSS_LIMIT}',
-    f'-address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
-]
 
 
 def setup_testcase(testcase, test_paths):
@@ -209,8 +202,8 @@ class IntegrationTest(unittest.TestCase):
   def _run_centipede(self,
                      target_name,
                      dictionary=None,
-                     timeout_flag=None,
-                     rss_limit=_RSS_LIMIT,
+                     timeout_per_input=None,
+                     rss_limit=centipede_constants.RSS_LIMIT_MB_DEFAULT,
                      centipede_bin=None,
                      sanitized_target_dir=None):
     """Run Centipede for other unittest."""
@@ -225,47 +218,40 @@ class IntegrationTest(unittest.TestCase):
 
     options = engine_impl.prepare(self.test_paths.corpus, target_path,
                                   self.test_paths.data)
-    # For testing oom only.
-    options.arguments = [
-        f'-rss_limit_mb={rss_limit}'
-        if flag == f'-rss_limit_mb={_RSS_LIMIT}' else flag
-        for flag in options.arguments
-    ]
-    # For testing timeout only.
-    if timeout_flag:
-      options.arguments = [
-          timeout_flag if '-timeout' in flag else flag
-          for flag in options.arguments
-      ]
 
+    arguments = fuzzer_options.FuzzerArguments.from_list(options.arguments)
+    self.assertListEqual(arguments.list(), options.arguments)
+
+    # For testing oom only.
+    arguments[centipede_constants.RSS_LIMIT_MB_FLAGNAME] = rss_limit
+
+    # For testing timeout only.
+    if timeout_per_input:
+      arguments[
+          centipede_constants.TIMEOUT_PER_INPUT_FLAGNAME] = timeout_per_input
+
+    options.arguments = arguments.list()
     results = engine_impl.fuzz(target_path, options, self.test_paths.crashes,
                                MAX_TIME)
 
     expected_command = [self.test_paths.centipede]
+    expected_args = fuzzer_options.FuzzerArguments(
+        centipede_constants.get_default_arguments())
     if dictionary:
-      expected_command.append(f'-dictionary={dictionary}')
-    expected_command.extend([
-        f'-workdir={work_dir}',
-        f'-corpus_dir={self.test_paths.corpus}',
-        f'-binary={target_path}',
-        f'-extra_binaries={sanitized_target_path}',
-        f'-timeout_per_input={_TIMEOUT_PER_INPUT}',
-    ] + _DEFAULT_ARGUMENTS)
-    expected_command = [
-        f'-rss_limit_mb={rss_limit}'
-        if flag == f'-rss_limit_mb={_RSS_LIMIT}' else flag
-        for flag in expected_command
-    ]
-    # For testing timeout only.
-    if timeout_flag:
-      expected_command = [
-          timeout_flag if '-timeout' in flag else flag
-          for flag in expected_command
-      ]
+      expected_args[centipede_constants.DICTIONARY_FLAGNAME] = str(dictionary)
+    expected_args[centipede_constants.WORKDIR_FLAGNAME] = str(work_dir)
+    expected_args[centipede_constants.CORPUS_DIR_FLAGNAME] = str(
+        self.test_paths.corpus)
+    expected_args[centipede_constants.BINARY_FLAGNAME] = str(target_path)
+    if str(target_path) != str(sanitized_target_path):
+      expected_args[centipede_constants.EXTRA_BINARIES_FLAGNAME] = str(
+          sanitized_target_path)
+    if timeout_per_input:
+      expected_args[
+          centipede_constants.TIMEOUT_PER_INPUT_FLAGNAME] = timeout_per_input
+    expected_args[centipede_constants.RSS_LIMIT_MB_FLAGNAME] = rss_limit
 
-    # Only one binary is provided.
-    if str(target_path) == str(sanitized_target_path):
-      expected_command.remove(f'-extra_binaries={sanitized_target_path}')
+    expected_command.extend(expected_args.list())
 
     self.compare_arguments(expected_command, results.command)
     return results
@@ -290,8 +276,8 @@ class IntegrationTest(unittest.TestCase):
   def _test_crash_log_regex(self,
                             crash_regex,
                             content,
-                            timeout_flag=None,
-                            rss_limit=_RSS_LIMIT,
+                            timeout_per_input=None,
+                            rss_limit=centipede_constants.RSS_LIMIT_MB_DEFAULT,
                             centipede_bin=None,
                             target_name='clusterfuzz_format_target',
                             sanitized_target_dir=None):
@@ -300,7 +286,7 @@ class IntegrationTest(unittest.TestCase):
       centipede_bin = self.test_paths.centipede
     results = self._run_centipede(
         target_name=target_name,
-        timeout_flag=timeout_flag,
+        timeout_per_input=timeout_per_input,
         rss_limit=rss_limit,
         centipede_bin=centipede_bin,
         sanitized_target_dir=sanitized_target_dir)
@@ -360,7 +346,7 @@ class IntegrationTest(unittest.TestCase):
     self._test_crash_log_regex(
         constants.CENTIPEDE_TIMEOUT_REGEX,
         'slo',
-        timeout_flag=f'-timeout_per_input={_TIMEOUT_PER_INPUT_TEST}')
+        timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
 
 class GetRunnerTest(unittest.TestCase):

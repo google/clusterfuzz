@@ -36,6 +36,8 @@ class FuzzerOptionsError(Exception):
 class FuzzerArguments:
   """Fuzzer flags."""
 
+  PARSING_REGEX = re.compile(r'^[-]{1,2}([a-zA-Z_]+)(=|\ )(.*)$')
+
   def __init__(self, flags):
     self.flags = flags
 
@@ -47,6 +49,9 @@ class FuzzerArguments:
 
   def __setitem__(self, key, value):
     self.flags[key] = value
+
+  def __delitem__(self, key):
+    del self.flags[key]
 
   def get(self, key, default=None, constructor=None):
     """Return value for |key|, calling the |constructor| on it, or |default| if
@@ -69,6 +74,16 @@ class FuzzerArguments:
   def list(self):
     """Return arguments as a list."""
     return [f'-{key}={value}' for key, value in self.flags.items()]
+
+  @staticmethod
+  def from_list(arguments):
+    res = FuzzerArguments({})
+    for arg in arguments:
+      match = FuzzerArguments.PARSING_REGEX.match(arg)
+      if not match:
+        return None
+      res[match.groups()[0]] = match.groups()[2]
+    return res
 
 
 class FuzzerOptions:

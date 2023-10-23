@@ -11,3 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Google issue tracker."""
+
+# pylint: disable=line-too-long
+from clusterfuzz._internal.issue_management.google_issue_tracker.issue_tracker import \
+    IssueTracker
+
+
+def get_issue_tracker(project, config, issue_tracker_client=None):
+  """Gets an IssueTracker for the project."""
+  return IssueTracker(project, issue_tracker_client, config)

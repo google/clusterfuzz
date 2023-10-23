@@ -385,6 +385,7 @@ class Issue(issue_tracker.Issue):
       access_limit = self._access_limit
       if access_limit:
         self._data['issueState']['access_limit'] = access_limit
+
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
       ]
@@ -671,11 +672,6 @@ def _get_query(keywords, only_open):
   return query
 
 
-def get(project, config, issue_tracker_client=None):
-  """Gets an IssueTracker for the project."""
-  return IssueTracker(project, issue_tracker_client, config)
-
-
 # Uncomment for local testing. Will need access to a service account for these
 # steps to work. List of steps taken (for posterity)-
 # 1. gcloud iam service-accounts keys create --iam-account=${service_account} \
@@ -686,7 +682,7 @@ def get(project, config, issue_tracker_client=None):
 #    issue_tracker.py
 
 # if __name__ == '__main__':
-#   it = get('chromium', {'default_component_id': 1434846}, None)
+#   it = IssueTracker('chromium', None, {'default_component_id': 1434846})
 #
 #   # Test issue creation.
 #   issue = it.new_issue()
