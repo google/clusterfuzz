@@ -300,6 +300,28 @@ class Engine(engine.Engine):
     """
     raise NotImplementedError
 
+  def _get_smallest_crasher(self, workdir_path):
+    """Returns the path to the smallest crash in Centipede's |workdir_path|."""
+    if not os.path.isdir(workdir_path):
+      logs.log_error(f'Work directory does not exist: {workdir_path}')
+      return None
+    crashes_path = os.path.join(workdir_path, 'crashes')
+    if not os.path.isdir(crashes_path):
+      logs.log_error(f'Crashes directory does not exist: {crashes_path}')
+      return None
+
+    testcases = [
+        os.path.join(crashes_path, t)
+        for t in os.listdir(crashes_path)
+        if os.path.isfile(os.path.join(crashes_path, t))
+    ]
+    if not testcases:
+      logs.log_error(f'No crash testcases under: {crashes_path}')
+      return None
+
+    minimum_testcase = min(testcases, key=os.path.getsize)
+    return minimum_testcase
+
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
     """Minimizes a testcase.
@@ -314,7 +336,23 @@ class Engine(engine.Engine):
     Raises:
       TimeoutError: If the testcase minimization exceeds max_time.
     """
-    raise NotImplementedError
+    runner = _get_runner(target_path)
+    workdir = self._create_temp_dir('workdir')
+    args = [
+        f'--binary={target_path}',
+        f'--workdir={workdir}',
+        f'--minimize_crash={input_path}',
+        f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
+        '--seed=1',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    if result.timed_out:
+      logs.log_error('Minimization timed out.', fuzzer_output=result.output)
+    minimum_testcase = self._get_smallest_crasher(workdir)
+    if minimum_testcase:
+      shutil.copyfile(minimum_testcase, output_path)
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Cleanses a testcase.

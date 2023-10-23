@@ -348,6 +348,22 @@ class IntegrationTest(unittest.TestCase):
         'slo',
         timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
+  def test_minimize_testcase(self):
+    """Tests minimizing a testcase."""
+    unminimized_crash = setup_testcase('unmin_crash', self.test_paths)
+    self.assertTrue(os.path.isfile(unminimized_crash))
+    minimized_crash = self.test_paths.data / 'min_crash'
+    engine_impl, target_path, _ = setup_centipede('minimize_me_fuzz_target',
+                                                  self.test_paths)
+    result = engine_impl.minimize_testcase(target_path, [], unminimized_crash,
+                                           minimized_crash, MAX_TIME)
+    self.assertTrue(result)
+
+    self.assertTrue(os.path.isfile(minimized_crash))
+    with open(minimized_crash, encoding='utf-8') as f:
+      result = f.read()
+      self.assertEqual('?fuz?', result)
+
 
 class GetRunnerTest(unittest.TestCase):
   """Tests that _get_runner works as intended."""
