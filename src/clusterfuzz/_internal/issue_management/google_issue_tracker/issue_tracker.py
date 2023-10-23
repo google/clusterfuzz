@@ -86,6 +86,8 @@ class Issue(issue_tracker.Issue):
     self._ccs = issue_tracker.LabelStore(
         [user['emailAddress'] for user in ccs if 'emailAddress' in user])
     collaborators = data['issueState'].get('collaborators', [])
+    # _ext_collaborators is an extension field that is used in
+    # google_issue_tracker.
     self._ext_collaborators = issue_tracker.LabelStore([
         user['emailAddress'] for user in collaborators if 'emailAddress' in user
     ])
@@ -98,6 +100,8 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
+    # _ext_issue_access_limit is an extension field that is used in
+    # google_issue_tracker.
     self._ext_issue_access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
 
   def _reset_tracking(self):
