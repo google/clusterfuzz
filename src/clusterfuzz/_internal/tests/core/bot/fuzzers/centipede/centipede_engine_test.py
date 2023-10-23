@@ -358,7 +358,6 @@ class IntegrationTest(unittest.TestCase):
     result = engine_impl.minimize_testcase(target_path, [], unminimized_crash,
                                            minimized_crash, MAX_TIME)
     self.assertTrue(result)
-
     self.assertTrue(os.path.isfile(minimized_crash))
     with open(minimized_crash, encoding='utf-8') as f:
       result = f.read()
