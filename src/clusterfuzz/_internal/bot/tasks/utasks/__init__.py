@@ -123,8 +123,7 @@ def uworker_main(input_download_url) -> None:
 
 
 def get_utask_module(module_name):
-  full_module_name = f'clusterfuzz._internal.bot.tasks.utasks.{module_name}'
-  return importlib.import_module(full_module_name)
+  return importlib.import_module(module_name)
 
 
 def uworker_bot_main():
