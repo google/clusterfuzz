@@ -1109,7 +1109,8 @@ def get_primary_bucket_path():
 
 def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   """Returns a sorted ascending list of revisions from a bucket path, excluding
-  bad build revisions and testcase crash revision (if any)."""
+  bad build revisions. Testcase crash revision is not excluded from the list
+  even if it appears in the bad_revisions list."""
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
       bucket_path)
 
