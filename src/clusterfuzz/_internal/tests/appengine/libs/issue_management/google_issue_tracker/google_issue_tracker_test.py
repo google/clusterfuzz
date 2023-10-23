@@ -237,6 +237,10 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'emailAddress': 'reporter@google.com'
                     },
                     'title': 'issue title',
+                    'access_limit': {
+                        'access_level':
+                            issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    },
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
@@ -272,6 +276,9 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                 'S2',
             'title':
                 'issue title2',
+            'access_limit': {
+                'access_level': issue_tracker.IssueAccessLevel.LIMIT_NONE
+            },
             'reporter': {
                 'emailAddress': 'reporter@google.com',
                 'userGaiaStatus': 'ACTIVE',
