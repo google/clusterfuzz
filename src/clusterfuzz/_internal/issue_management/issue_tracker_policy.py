@@ -28,6 +28,8 @@ EXPECTED_STATUSES = [
     'new',
 ]
 
+EXTENSION_PREFIX = '_ext_'
+
 
 class ConfigurationError(Exception):
   """Base configuration error class."""
@@ -174,7 +176,7 @@ class IssueTrackerPolicy:
 
     # Find all _ext_ keys and add to extension_fields
     for k, v in self._data.items():
-      if k.startswith('_ext_'):
+      if k.startswith(EXTENSION_PREFIX):
         policy.extension_fields[k] = v
 
   def get_existing_issue_properties(self):
