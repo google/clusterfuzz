@@ -373,12 +373,10 @@ def file_issue(testcase,
     issue.labels.add(crash_type_label)
 
   # Add labels from crash metadata.
-  crash_categories = testcase.get_metadata('crash_categories')
-  if crash_categories:
-    for crash_category in crash_categories:
-      crash_category_label = policy.label_for_crash_category(crash_category)
-      if crash_category_label:
-        issue.labels.add(crash_category_label)
+  for crash_categories in testcase.get_metadata('crash_categories', []):
+    crash_category_label = policy.label_for_crash_category(crash_category)
+    if crash_category_label:
+      issue.labels.add(crash_category_label)
 
   # Add additional components from the job definition and fuzzer.
   automatic_components = data_handler.get_additional_values_for_variable(

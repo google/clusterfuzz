@@ -786,6 +786,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   set_initial_testcase_metadata(testcase)
 
   # Set crash metadata.
+  # TODO(https://github.com/google/clusterfuzz/pull/3333#discussion_r1369199761)
   if hasattr(crash, 'crash_categories') and crash.crash_categories:
     testcase.set_metadata('crash_categories', list(crash.crash_categories))
 
