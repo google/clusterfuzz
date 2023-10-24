@@ -28,6 +28,8 @@ EXPECTED_STATUSES = [
     'new',
 ]
 
+EXTENSION_PREFIX = '_ext_'
+
 
 class ConfigurationError(Exception):
   """Base configuration error class."""
@@ -41,6 +43,9 @@ class NewIssuePolicy:
     self.ccs = []
     self.labels = []
     self.issue_body_footer = ''
+
+    # Contains _ext_ prefixed extension fields. Eg: _ext_collaborators.
+    self.extension_fields = {}
 
 
 def _to_str_list(values):
@@ -67,6 +72,10 @@ class IssueTrackerPolicy:
   def status(self, status_type):
     """Get the actual status string for the given type."""
     return self._data['status'][status_type]
+
+  def extension_fields(self):
+    """Returns all _ext_ prefixed data items."""
+    return self.extension_fields
 
   def label(self, label_type):
     """Get the actual label string for the given type."""
@@ -164,6 +173,11 @@ class IssueTrackerPolicy:
       non_crash_labels = issue_type.get('non_crash_labels')
       if non_crash_labels:
         policy.labels.extend(_to_str_list(non_crash_labels))
+
+    # Find all _ext_ keys and add to extension_fields
+    for k, v in self._data.items():
+      if k.startswith(EXTENSION_PREFIX):
+        policy.extension_fields[k] = v
 
   def get_existing_issue_properties(self):
     """Get the properties to apply to a new issue."""
