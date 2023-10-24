@@ -22,11 +22,9 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
 
-SECURITY_POLICY = {
-    'security': {
-        '_ext_collaborators': ['security@chromium.org'],
-        '_ext_issue_access_limit': issue_tracker.IssueAccessLevel.LIMIT_VIEW
-    }
+EXTENSION_FIELDS = {
+    '_ext_collaborators': ['security@chromium.org'],
+    '_ext_issue_access_limit': issue_tracker.IssueAccessLevel.LIMIT_VIEW,
 }
 TEST_CONFIG = {
     'default_component_id': 1337,
@@ -272,7 +270,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue = self.issue_tracker.new_issue()
 
     # Mimic issue_filer's action in setting up the issue
-    issue.set_extension_fields(SECURITY_POLICY)
+    issue.apply_extension_fields(EXTENSION_FIELDS)
 
     issue.labels.add('Type-Bug-Security')
     issue.reporter = 'reporter@google.com'

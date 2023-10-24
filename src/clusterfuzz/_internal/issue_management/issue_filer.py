@@ -356,11 +356,6 @@ def file_issue(testcase,
 
       update_issue_impact_labels(testcase, issue)
 
-      # Set extension fields for Chromium on Google Issue Tracker
-      if hasattr(issue_tracker,
-                 'type') and issue_tracker.type == 'google-issue-tracker':
-        issue.set_extension_fields(policy)
-
     # Check for MiraclePtr in stacktrace.
     miracle_label = check_miracleptr_status(testcase)
     if miracle_label:
@@ -460,6 +455,9 @@ def file_issue(testcase,
 
   for cc in ccs:
     issue.ccs.add(cc)
+
+  # Apply extension fields.
+  issue.apply_extension_fields(policy.extension_fields)
 
   # Add additional labels and components from testcase metadata.
   metadata_labels = _get_from_metadata(testcase, 'issue_labels')

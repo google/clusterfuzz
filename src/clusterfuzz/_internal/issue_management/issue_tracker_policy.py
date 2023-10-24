@@ -15,8 +15,6 @@
 from collections import namedtuple
 
 from clusterfuzz._internal.config import local_config
-from clusterfuzz._internal.issue_management.google_issue_tracker import \
-    issue_tracker as google_issue_tracker
 
 Status = namedtuple('Status',
                     ['assigned', 'duplicate', 'wontfix', 'fixed', 'verified'])
@@ -44,13 +42,8 @@ class NewIssuePolicy:
     self.labels = []
     self.issue_body_footer = ''
 
-    # Extension fields are fields that are only used in a single tracker.
-    # ext_collaborators is used in google_issue_tracker.
-    self.ext_collaborators = []
-    # ext_issue_access_limit is used in google_issue_tracker.
-    self.ext_issue_access_limit = {
-        'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_NONE
-    }
+    # Contains ext_ prefixed extension fields. Eg: ext_collaborators.
+    self.extension_fields = {}
 
 
 def _to_str_list(values):
@@ -77,6 +70,10 @@ class IssueTrackerPolicy:
   def status(self, status_type):
     """Get the actual status string for the given type."""
     return self._data['status'][status_type]
+
+  def extension_fields(self):
+    """Returns all _ext_ prefixed data items."""
+    return self.extension_fields
 
   def label(self, label_type):
     """Get the actual label string for the given type."""
@@ -175,15 +172,10 @@ class IssueTrackerPolicy:
       if non_crash_labels:
         policy.labels.extend(_to_str_list(non_crash_labels))
 
-    # ext_collaborators is used in google_issue_tracker.
-    ext_collaborators = issue_type.get('ext_collaborators')
-    if ext_collaborators:
-      policy.ext_collaborators.extend(_to_str_list(ext_collaborators))
-
-    # ext_issue_access_limit is used in google_issue_tracker.
-    ext_issue_access_limit = issue_type.get('ext_issue_access_limit')
-    if ext_issue_access_limit:
-      policy.ext_issue_access_limit = ext_issue_access_limit
+    # Find all _ext_ keys and add to extension_fields
+    for k, v in self._data.items():
+      if k.startswith('_ext_'):
+        policy.extension_fields[k] = v
 
   def get_existing_issue_properties(self):
     """Get the properties to apply to a new issue."""
