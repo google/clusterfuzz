@@ -15,7 +15,6 @@
 
 import base64
 import collections
-import dataclasses
 import datetime
 import os
 import re
@@ -23,6 +22,7 @@ import zlib
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -1113,13 +1113,6 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
                              extension_config_file_path)
 
 
-@dataclasses.dataclass(frozen=True)
-class BuildData:
-  is_bad_build: bool
-  should_ignore_crash_result: bool
-  build_run_console_output: str
-
-
 def check_for_bad_build(job_type, crash_revision):
   """
   Checks whether the target binary fails to execute at the given revision.
@@ -1140,7 +1133,10 @@ def check_for_bad_build(job_type, crash_revision):
   if not environment.get_value('BAD_BUILD_CHECK'):
     # should_ignore_crash_result set to True because build metadata does not
     # need to be updated in this case.
-    return BuildData(False, True, '')
+    return uworker_io.BuildData(
+        is_bad_build=False,
+        should_ignore_crash_result=True,
+        build_run_console_output='')
 
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
@@ -1200,9 +1196,10 @@ def check_for_bad_build(job_type, crash_revision):
         'Bad bot environment detected, exiting.',
         output=build_run_console_output,
         snapshot=process_handler.get_runtime_snapshot())
-
-  return BuildData(is_bad_build, crash_result.should_ignore(),
-                   build_run_console_output)
+  return uworker_io.BuildData(
+      is_bad_build=is_bad_build,
+      should_ignore_crash_result=crash_result.should_ignore(),
+      build_run_console_output=build_run_console_output)
 
 
 def update_build_metadata(job_type, crash_revision, build_data):

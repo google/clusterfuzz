@@ -426,6 +426,20 @@ class UworkerOutput(UworkerMsg):
     field.CopyFrom(wrapped_entity_proto)
 
 
+class BuildData(UworkerMsg):
+  """Class representing an unserialized ProgressionTaskOutput message from
+  fuzz_task."""
+  PROTO_CLS = uworker_msg_pb2.BuildData
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
 class UworkerInput(UworkerMsg):
   """Class representing an unserialized UworkerInput message from
   utask_preprocess."""

@@ -20,7 +20,6 @@ import unittest
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -86,8 +85,10 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = testcase_manager.BuildData(
-        True, False, '')
+    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+        is_bad_build=True,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
@@ -98,8 +99,10 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = testcase_manager.BuildData(
-        False, False, '')
+    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
     testcase = data_types.Testcase()
     testcase = uworker_io.UworkerEntityWrapper(testcase)
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
