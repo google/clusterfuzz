@@ -23,7 +23,7 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import \
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
 
 EXTENSION_FIELDS = {
-    '_ext_collaborators': ['security@chromium.org'],
+    '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
     '_ext_issue_access_limit': issue_tracker.IssueAccessLevel.LIMIT_VIEW,
 }
 TEST_CONFIG = {
@@ -293,9 +293,14 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
-                    'collaborators': [{
-                        'emailAddress': 'security@chromium.org'
-                    }],
+                    'collaborators': [
+                        {
+                            'emailAddress': 'superman@krypton.com'
+                        },
+                        {
+                            'emailAddress': 'batman@gotham.com'
+                        },
+                    ],
                     'hotlistIds': [12345, 67890],
                     'access_limit':
                         issue_tracker.IssueAccessLevel.LIMIT_VIEW,

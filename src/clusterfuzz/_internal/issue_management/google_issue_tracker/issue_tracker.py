@@ -27,9 +27,6 @@ from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.googleapis.com/v1/issues'
-# TODO(micahbales, rmistry): Update below with the actual security group that
-# will be used as a trusted collaborator.
-CHROME_SECURITY_EMAIL = 'chromium-security-members@google.com'
 
 
 class IssueAccessLevel(enum.Enum):
