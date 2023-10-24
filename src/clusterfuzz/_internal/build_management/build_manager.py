@@ -1146,8 +1146,7 @@ def get_job_bad_revisions():
       ndb_utils.get_all_from_query(
           data_types.BuildMetadata.query(
               ndb_utils.is_true(data_types.BuildMetadata.bad_build),
-              data_types.BuildMetadata.job_type == job_type,
-              projection=[data_types.BuildMetadata.revision])))
+              data_types.BuildMetadata.job_type == job_type)))
   return [build.revision for build in bad_builds]
 
 
