@@ -53,6 +53,12 @@ message RegressionTaskInput {
 
 message ProgressionTaskInput {
   optional bool custom_binary = 1;
+  repeated int64 bad_revisions = 2;
+}
+
+message CorpusPruningTaskInput {
+  optional google.datastore.v1.Entity fuzz_target = 1;
+  optional bool last_execution_failed = 2;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
@@ -70,11 +76,12 @@ message Input {
   optional string fuzzer_name = 10;
   optional SetupInput setup_input = 11;
   optional AnalyzeTaskInput analyze_task_input = 12;
-  optional FuzzTaskInput fuzz_task_input = 13;
-  optional MinimizeTaskInput minimize_task_input = 14;
-  optional RegressionTaskInput regression_task_input = 15;
-  optional ProgressionTaskInput progression_task_input = 16;
-  optional string module_name = 17;
+  optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
+  optional FuzzTaskInput fuzz_task_input = 14;
+  optional MinimizeTaskInput minimize_task_input = 15;
+  optional RegressionTaskInput regression_task_input = 16;
+  optional ProgressionTaskInput progression_task_input = 17;
+  optional string module_name = 18;
 }
 
 message AnalyzeTaskOutput {

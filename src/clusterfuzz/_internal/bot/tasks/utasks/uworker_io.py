@@ -489,6 +489,11 @@ class ProgressionTaskInput(UworkerInput):
   PROTO_CLS = uworker_msg_pb2.ProgressionTaskInput
 
 
+class CorpusPruningTaskInput(UworkerInput):
+  """Input for corpus_pruning_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.CorpusPruningTaskInput
+
+
 class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from analyze_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskOutput
