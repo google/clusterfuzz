@@ -95,7 +95,7 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
-    self._issue_access_limit = {'accessLevel': IssueAccessLevel.LIMIT_NONE}
+    self._issue_access_limit = IssueAccessLevel.LIMIT_NONE
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -111,9 +111,7 @@ class Issue(issue_tracker.Issue):
       for collaborator in extension_fields['_ext_collaborators']:
         self._collaborators.add(collaborator)
     self._issue_access_limit = extension_fields.get(
-        '_ext_issue_access_limit') or ({
-            'accessLevel': IssueAccessLevel.LIMIT_NONE
-        })
+        '_ext_issue_access_limit') or IssueAccessLevel.LIMIT_NONE
 
   @property
   def issue_tracker(self):
