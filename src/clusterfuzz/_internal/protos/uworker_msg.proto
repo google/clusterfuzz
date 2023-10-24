@@ -53,6 +53,7 @@ message RegressionTaskInput {
 
 message ProgressionTaskInput {
   optional bool custom_binary = 1;
+  repeated int64 bad_revisions = 2;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
