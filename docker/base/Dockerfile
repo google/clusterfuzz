@@ -143,5 +143,9 @@ ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
 COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
-CMD ["bash", "-ex", "/data/start.sh"]
+RUN cd /data && \
+    # Make pip3.7 the default so that pipenv install --system works.
+    mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
+    pipenv install --deploy --system
 
+CMD ["bash", "-ex", "/data/start.sh"]
