@@ -42,7 +42,7 @@ class NewIssuePolicy:
     self.labels = []
     self.issue_body_footer = ''
 
-    # Contains ext_ prefixed extension fields. Eg: ext_collaborators.
+    # Contains _ext_ prefixed extension fields. Eg: _ext_collaborators.
     self.extension_fields = {}
 
 
