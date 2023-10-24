@@ -9,6 +9,8 @@ crcmod = "==1.7"
 future = "==0.17.1"
 protobuf = "==4.23.4"
 psutil = "==5.9.4"
+pyright = "*"
+mypy-protobuf = "*"
 
 [dev-packages]
 Fabric = "==1.14.1"
