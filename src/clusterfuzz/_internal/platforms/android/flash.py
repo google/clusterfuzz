@@ -123,7 +123,7 @@ def flash_to_latest_build_if_needed():
   target = environment.get_value('BUILD_TARGET')
   if not target:
     build_params = settings.get_build_parameters()
-    if build_params:
+    if build_params and environment.is_android_cuttlefish():
       target = build_params.get('target') + FLASH_DEFAULT_BUILD_TARGET
 
       # Cache target in environment. This is also useful for cases when
