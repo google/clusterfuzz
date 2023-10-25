@@ -84,6 +84,9 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     # crbug.com/1471427: chrome_crashpad_handler is needed for fuzzers that are
     # spawning the full chrome browser.
     'chrome_crashpad_handler',
+    # This is part of the chrome archives. This directory contains all sort of
+    # data needed by tests that initially exist in the source tree.
+    'src_root',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
