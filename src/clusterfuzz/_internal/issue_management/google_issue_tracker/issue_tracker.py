@@ -95,7 +95,7 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
-    self._access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
+    self._issue_access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -104,6 +104,16 @@ class Issue(issue_tracker.Issue):
     self._collaborators.reset_tracking()
     self._labels.reset_tracking()
     self._components.reset_tracking()
+
+  def apply_extension_fields(self, extension_fields):
+    """Applies _ext_ prefixed extension fields."""
+    if extension_fields.get('_ext_collaborators'):
+      for collaborator in extension_fields['_ext_collaborators']:
+        self._collaborators.add(collaborator)
+    self._issue_access_limit = extension_fields.get(
+        '_ext_issue_access_limit') or ({
+            'access_level': IssueAccessLevel.LIMIT_NONE
+        })
 
   @property
   def issue_tracker(self):
@@ -320,7 +330,7 @@ class Issue(issue_tracker.Issue):
                                 _make_users)
     self._add_update_collection(update_body, added, removed, '_collaborators',
                                 'collaborators', _make_users)
-    self._add_update_single(update_body, added, removed, '_access_limit',
+    self._add_update_single(update_body, added, removed, '_issue_access_limit',
                             'access_limit')
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
@@ -382,10 +392,9 @@ class Issue(issue_tracker.Issue):
       collaborators = list(self._collaborators)
       if collaborators:
         self._data['issueState']['collaborators'] = _make_users(collaborators)
-      access_limit = self._access_limit
+      access_limit = self._issue_access_limit
       if access_limit:
         self._data['issueState']['access_limit'] = access_limit
-
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
       ]
@@ -551,6 +560,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._project = project
     self._client = http_client
     self._default_component_id = config['default_component_id']
+    self._type = config['type'] if hasattr(config, 'type') else None
 
   @property
   def client(self):
@@ -581,6 +591,11 @@ class IssueTracker(issue_tracker.IssueTracker):
   def project(self):
     """Gets the project name of this issue tracker."""
     return self._project
+
+  @property
+  def type(self):
+    """The type of the tracker - e.g. monorail, google-issue-tracker, etc."""
+    return self._type
 
   def new_issue(self):
     """Creates an unsaved new issue."""

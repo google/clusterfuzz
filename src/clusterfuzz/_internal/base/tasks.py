@@ -15,6 +15,7 @@
 
 import contextlib
 import datetime
+import json
 import random
 import threading
 import time
@@ -168,12 +169,15 @@ def get_high_end_task():
 def initialize_task(messages):
   """Creates a task from |messages|."""
   message = messages[0]
-  if message.attributes.get('kind', None) != 'storage#object':
+  if message.attributes.get('eventType', None) != 'OBJECT_FINALIZE':
     return PubSubTask(message)
 
   # Handle postprocess task.
-  name = message.attributes.get('name')
-  bucket = message.attributes.get('bucket')
+  # The google cloud API for pub/sub notifications uses the data field unlike
+  # ClusterFuzz which uses attributes more.
+  data = json.loads(message.data)
+  name = data['name']
+  bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
   return PostprocessPubSubTask(output_url_argument, message)
 
@@ -295,10 +299,12 @@ def get_postprocess_task():
     return None
   pubsub_client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
+  logs.log('Pulling from postprocess queue')
   messages = _get_messages(pubsub_client, application_id, POSTPROCESS_QUEUE)
   if not messages:
     return None
   try:
+    logs.log('Pulled postprocess queue.')
     return initialize_task(messages)
   except KeyError:
     logs.log_error('Received an invalid task, discarding...')
