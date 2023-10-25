@@ -72,7 +72,7 @@ class InitializeTaskTest(unittest.TestCase):
         b'''182630721865&alt=media",\n  "contentLanguage": "en",\n  "crc32c": "AAAAAA==",\n  "etag": "CMmS36PPj4IDEAE="\n}\n'''
     )
     task = tasks.initialize_task([self.message])
-    self.assertFalse(isinstance(task, tasks.PubSubTask))
+    self.assertIsInstance(task, tasks.PostprocessPubSubTask)
     self.assertEqual(task.command, 'postprocess')
     self.assertEqual(task.argument, 'gs://uworker-output/worker.output')
     self.assertEqual(task.job, 'none')
