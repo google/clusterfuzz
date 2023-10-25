@@ -26,7 +26,6 @@ class InitializeTaskTest(unittest.TestCase):
     self.command = 'symbolize'
     self.argument = 'blah'
     self.job = 'linux_asan_chrome_mp'
-    self.bucket = 'mybucket'
     self.path = 'worker.output'
     self.message = mock.MagicMock()
 
@@ -46,21 +45,36 @@ class InitializeTaskTest(unittest.TestCase):
 
   def test_initialize_untrusted_task(self):
     """Tests that an untrusted task is initialized properly."""
-    self_link = f'https://www.googleapis.com/storage/v1/b/{self.bucket}23/o/{self.path}23'
     self.message.attributes = {
-        'kind': 'storage#object',
-        'bucket': self.bucket,
-        'name': self.path,
-        'selfLink': self_link,
-        'command': self.command,
-        'argument': self.argument,
-        'job': self.job,
+        'eventType':
+            'OBJECT_FINALIZE',
+        'objectGeneration':
+            '1698182630721865',
+        'eventTime':
+            '2023-10-24T21:23:50.761055Z',
+        'payloadFormat':
+            'JSON_API_V1',
+        'bucketId':
+            'uworker-output',
+        'notificationConfig':
+            'projects/_/buckets/uworker-output/notificationConfigs/4',
+        'objectId':
+            'm9'
     }
+    self.message.data = (
+        b'''{\n  "kind": "storage#object",\n  "id": "uworker-output/uworker.output/1698182630721865",\n  '''
+        b'''"selfLink": "https://www.googleapis.com/storage/v1/b/uworker-output/o/uworker.output",\n  '''
+        b'''"name": "worker.output",\n  "bucket": "uworker-output",\n  "generation": "1698182630721865",\n'''
+        b'''"metageneration": "1",\n  "contentType": "application/octet-stream",\n  "timeCreated": "2023-10-24T21:23:50.761Z",\n'''
+        b''' "updated": "2023-10-24T21:23:50.761Z",\n  "storageClass": "STANDARD",\n  '''
+        b'''"timeStorageClassUpdated": "2023-10-24T21:23:50.761Z",\n  "size": "0",\n  "md5Hash": "1B2M2Y8AsgTpgAmY7PhCfg==",\n'''
+        b'''"mediaLink": "https://storage.googleapis.com/download/storage/v1/b/uworker-output/o/uworker.output?generation=1698'''
+        b'''182630721865&alt=media",\n  "contentLanguage": "en",\n  "crc32c": "AAAAAA==",\n  "etag": "CMmS36PPj4IDEAE="\n}\n'''
+    )
     task = tasks.initialize_task([self.message])
     self.assertFalse(isinstance(task, tasks.PubSubTask))
     self.assertEqual(task.command, 'postprocess')
-    # !!! Is this bad for local development.
-    self.assertEqual(task.argument, 'gs://mybucket/worker.output')
+    self.assertEqual(task.argument, 'gs://uworker-output/worker.output')
     self.assertEqual(task.job, 'none')
 
 
