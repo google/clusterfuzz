@@ -70,7 +70,10 @@ def setup_testcase(testcase, test_paths):
   src_testcase_options_path = test_paths.data / f'{testcase}.options'
   copied_testcase_path = test_paths.corpus / testcase
   copied_testcase_options_path = test_paths.corpus / f'{testcase}.options'
-  shutil.copy(src_testcase_path, copied_testcase_path)
+  if os.path.isfile(src_testcase_path):
+    shutil.copy(src_testcase_path, copied_testcase_path)
+  if os.path.isdir(src_testcase_path):
+    shutil.copytree(src_testcase_path, copied_testcase_path)
   if src_testcase_options_path.exists():
     shutil.copy(src_testcase_options_path, copied_testcase_options_path)
 
@@ -347,6 +350,43 @@ class IntegrationTest(unittest.TestCase):
         constants.CENTIPEDE_TIMEOUT_REGEX,
         'slo',
         timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
+
+  def test_minimize_corpus(self):
+    """Tests minimizing a corpus."""
+    unminimized_corpus = setup_testcase('unmin_corpus', self.test_paths)
+    print(unminimized_corpus)
+    self.assertTrue(os.path.isdir(unminimized_corpus))
+
+    minimized_corpus = self.test_paths.data / 'min_corpus'
+    crash_corpus = self.test_paths.data / 'crash_corpus'
+    engine_impl, target_path, _ = setup_centipede('minimize_me_fuzz_target',
+                                                  self.test_paths)
+    result = engine_impl.minimize_corpus(target_path, [], [unminimized_corpus],
+                                         minimized_corpus, crash_corpus,
+                                         MAX_TIME)
+    print(result.command)
+    print(result.return_code)
+    print(result.output)
+    self.assertTrue(result)
+    self.assertTrue(os.path.isdir(minimized_corpus))
+    self.assertTrue(
+        len(os.listdir(unminimized_corpus)) > len(os.listdir(minimized_corpus)))
+    print(f'Before: {os.listdir(unminimized_corpus)}')
+    print(f'After : {os.listdir(minimized_corpus)}')
+    print(f'After crashes : {os.listdir(crash_corpus)}')
+    for file in os.listdir(minimized_corpus):
+      with open(os.path.join(minimized_corpus, file)) as testcase:
+        print(f'Testcase: {testcase.read()}')
+    for file in os.listdir(crash_corpus):
+      result = engine_impl.reproduce(target_path, file, [], MAX_TIME)
+      print(result.output)
+      try:
+        with open(os.path.join(crash_corpus, file)) as testcase:
+          print(f'Crashes: {testcase.read()}')
+      except:
+        print('Crashes: Unkown encoding')
+
+    self.assertTrue(False)
 
   def test_minimize_testcase(self):
     """Tests minimizing a testcase."""

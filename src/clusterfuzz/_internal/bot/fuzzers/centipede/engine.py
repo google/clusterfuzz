@@ -300,7 +300,47 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    raise NotImplementedError
+    runner = _get_runner(target_path)
+    workdir = self._create_temp_dir('workdir')
+
+    os.makedirs(output_dir, exist_ok=True)
+    corpus_dirs = f'{output_dir},' + ','.join([str(dir) for dir in input_dirs])
+    args = [
+        f'--binary={target_path}',
+        f'--workdir={workdir}',
+        '--distill',
+        f'--corpus_dir={corpus_dirs}',
+        f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
+        '--require_pc_table=0',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    if result.timed_out:
+      logs.log_error(
+          'Corpus minimization timed out.', fuzzer_output=result.output)
+
+    print(' '.join(result.command))
+    os.makedirs(reproducers_dir, exist_ok=True)
+    print(f'WorkDir: {os.listdir(workdir)}')
+    crashes_dir = os.path.join(workdir, 'crashes')
+    #print(f'Crash: {os.listdir(crashes_dir)}')
+    # Copy crash files to reproducers_dir in case it is not empty.
+    if os.path.isdir(crashes_dir):
+      for crash in os.listdir(crashes_dir):
+        result = self.reproduce(target_path, crash, [], 3)
+        print(result.output)
+        shutil.copy(os.path.join(crashes_dir, crash), reproducers_dir)
+        shutil.copy(
+            os.path.join(crashes_dir, crash),
+            '/usr/local/google/home/donggeliu/Code/clusterfuzz/src/clusterfuzz/_internal/tests/core/bot/fuzzers/centipede/test_data/crashes'
+        )
+
+    # print(f'TMP workdir: {os.listdir(os.path.join(workdir, "crashes"))}')
+    # for file in os.listdir(os.path.join(workdir, "crashes")):
+    #   with open(os.path.join(workdir, "crashes", file)) as testcase:
+    #     print(f'Crash: {testcase.read()}')
+
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def _get_smallest_crasher(self, workdir_path):
     """Returns the path to the smallest crash in Centipede's |workdir_path|."""
