@@ -26,6 +26,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -50,9 +51,12 @@ def _get_deserialized_uworker_input(job_type, fuzzer_name):
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
       fuzz_target=fuzz_target)
+  setup_input = (
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
   uworker_input = uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
+      setup_input=setup_input,
       corpus_pruning_task_input=corpus_pruning_task_input)
   uworker_input = uworker_input.serialize()
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
