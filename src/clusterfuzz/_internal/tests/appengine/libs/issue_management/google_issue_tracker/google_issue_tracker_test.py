@@ -522,8 +522,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         issue_tracker.IssueAccessLevel.LIMIT_VIEW,
                 },
                 'addMask':
-                    'status,assignee,reporter,title,'
-                    + 'ccs,collaborators,access_limit',
+                    'status,assignee,reporter,title,' +
+                    'ccs,collaborators,access_limit',
                 'remove': {},
                 'removeMask':
                     '',
