@@ -179,9 +179,7 @@ def initialize_task(messages):
   name = data['name']
   bucket = data['bucket']
   output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  command = 'postprocess'
-  job_type = 'none'
-  return Task(command, output_url_argument, job_type)
+  return PostprocessPubSubTask(output_url_argument, message)
 
 
 def get_regular_task(queue=None):
@@ -421,6 +419,48 @@ class PubSubTask(Task):
     self._pubsub_message.modify_ack_deadline(
         min(pubsub.MAX_ACK_DEADLINE, time_until_eta))
     return True
+
+  @contextlib.contextmanager
+  def lease(self, _event=None):  # pylint: disable=arguments-differ
+    """Maintain a lease for the task."""
+    task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
+        self.command, get_task_lease_timeout())
+
+    environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
+    track_task_start(self, task_lease_timeout)
+
+    if _event is None:
+      _event = threading.Event()
+
+    leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
+                                        task_lease_timeout)
+    leaser_thread.start()
+    try:
+      yield leaser_thread
+    finally:
+      _event.set()
+      leaser_thread.join()
+
+    # If we get here the task succeeded in running. Acknowledge the message.
+    self._pubsub_message.ack()
+    track_task_end()
+
+
+class PostprocessPubSubTask(PubSubTask):
+  """A postprocess task received over pub/sub."""
+
+  def __init__(self,
+               output_url_argument,
+               pubsub_message,
+               is_command_override=False):
+    command = 'postprocess'
+    job_type = 'none'
+    eta = None
+    high_end = False
+    grandparent_class = super(PubSubTask, self)
+    grandparent_class.__init__(command, output_url_argument, job_type, eta,
+                               is_command_override, high_end)
+    self._pubsub_message = pubsub_message
 
   @contextlib.contextmanager
   def lease(self, _event=None):  # pylint: disable=arguments-differ
