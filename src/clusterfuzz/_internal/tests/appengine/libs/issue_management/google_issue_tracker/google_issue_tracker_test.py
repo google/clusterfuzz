@@ -492,7 +492,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.save()
     self.assertEqual(68828938, issue.id)
     self.client.issues().modify.assert_has_calls([
-        mock.call(),
         mock.call(
             issueId='68828938',
             body={
