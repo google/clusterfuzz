@@ -1777,7 +1777,8 @@ class FuzzingSession:
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
     if build_data.is_bad_build:
-      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return uworker_io.UworkerOutput(
+          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.

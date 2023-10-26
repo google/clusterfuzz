@@ -535,8 +535,8 @@ class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
 
 class DeserializedUworkerMsg:
 
-  def __init__(self, testcase=None, error=None, **kwargs):
+  def __init__(self, testcase=None, error_type=None, **kwargs):
     self.testcase = testcase
-    self.error = error
+    self.error_type = error_type
     for key, value in kwargs.items():
       setattr(self, key, value)
