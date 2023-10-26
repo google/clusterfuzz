@@ -175,7 +175,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_handle_errors.handle',
         'clusterfuzz._internal.bot.tasks.utasks.progression_task.crash_on_latest',
-        'clusterfuzz._internal.datastore.data_handler.is_first_retry_for_task',
+        'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.base.bisection.request_bisection'
     ])
 
@@ -233,11 +233,11 @@ class UTaskPostprocessTest(unittest.TestCase):
     uworker_output = self._create_output(
         uworker_input=uworker_input, testcase=testcase)
     self.assertTrue(testcase.open)
-    self.mock.is_first_retry_for_task.return_value = False
+    self.mock.is_first_attempt_for_task.return_value = False
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
     self.assertFalse(self.mock.crash_on_latest.called)
-    self.assertTrue(self.mock.is_first_retry_for_task.called)
+    self.assertTrue(self.mock.is_first_attempt_for_task.called)
     updated_testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertEqual(updated_testcase.fixed, 'Yes')
     self.assertFalse(updated_testcase.open)
@@ -254,7 +254,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
     self.assertFalse(self.mock.crash_on_latest.called)
-    self.assertFalse(self.mock.is_first_retry_for_task.called)
+    self.assertFalse(self.mock.is_first_attempt_for_task.called)
     self.assertTrue(self.mock.request_bisection.called)
 
 

@@ -224,7 +224,7 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
 
 
 def is_first_analyze_attempt(testcase):
-  return data_handler.is_first_retry_for_task(testcase, task_name='analyze')
+  return data_handler.is_first_attempt_for_task('analyze', testcase)
 
 
 def handle_noncrash(output):

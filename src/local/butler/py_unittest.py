@@ -128,6 +128,7 @@ def run_one_test_parallel(args):
 
 def run_tests_single_core(args, test_directory, top_level_dir):
   """Run tests (single CPU)."""
+  import coverage
   suites = unittest.loader.TestLoader().discover(
       test_directory, pattern=args.pattern, top_level_dir=top_level_dir)
 
@@ -280,7 +281,6 @@ def execute(args):
     args.pattern = '*_test.py'
 
   if args.parallel:
-    # TODO(tanin): Support coverage.
     run_tests_parallel(args, test_directory, top_level_dir)
   else:
     run_tests_single_core(args, test_directory, top_level_dir)
