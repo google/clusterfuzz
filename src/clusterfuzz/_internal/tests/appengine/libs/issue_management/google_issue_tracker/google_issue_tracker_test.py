@@ -244,9 +244,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'emailAddress': 'reporter@google.com'
                     },
                     'title': 'issue title',
-                    'access_limit': {
-                        'access_level':
-                            issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    'accessLimit': {
+                        'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
                     },
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
@@ -302,8 +301,10 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         },
                     ],
                     'hotlistIds': [12345, 67890],
-                    'access_limit':
-                        issue_tracker.IssueAccessLevel.LIMIT_VIEW,
+                    'accessLimit': {
+                        'accessLevel':
+                            issue_tracker.IssueAccessLevel.LIMIT_VIEW,
+                    },
                     'reporter': {
                         'emailAddress': 'reporter@google.com'
                     },
@@ -344,8 +345,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                 'S2',
             'title':
                 'issue title2',
-            'access_limit': {
-                'access_level': issue_tracker.IssueAccessLevel.LIMIT_NONE
+            'accessLimit': {
+                'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
             },
             'reporter': {
                 'emailAddress': 'reporter@google.com',
