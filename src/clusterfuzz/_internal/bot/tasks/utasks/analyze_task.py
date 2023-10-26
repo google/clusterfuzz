@@ -397,7 +397,7 @@ def handle_build_setup_error(output):
       output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
   if is_first_analyze_attempt(output.testcase):
-    task_name = environment.get_value('TASK_NAME')
+    task_name = 'analyze'
     testcase_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
         task_name,
