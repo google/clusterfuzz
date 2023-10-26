@@ -1135,6 +1135,7 @@ def check_for_bad_build(job_type: str,
     # should_ignore_crash_result set to True because build metadata does not
     # need to be updated in this case.
     return uworker_msg_pb2.BuildData(
+        revision=crash_revision,
         is_bad_build=False,
         should_ignore_crash_result=True,
         build_run_console_output='')
@@ -1198,13 +1199,13 @@ def check_for_bad_build(job_type: str,
         output=build_run_console_output,
         snapshot=process_handler.get_runtime_snapshot())
   return uworker_msg_pb2.BuildData(
+      revision=crash_revision,
       is_bad_build=is_bad_build,
       should_ignore_crash_result=crash_result.should_ignore(),
       build_run_console_output=build_run_console_output)
 
 
-def update_build_metadata(job_type: str, crash_revision: int,
-                          build_data: uworker_msg_pb2.BuildData):
+def update_build_metadata(job_type: str, build_data: uworker_msg_pb2.BuildData):
   """
   Updates the corresponding build metadata.
 
@@ -1213,16 +1214,16 @@ def update_build_metadata(job_type: str, crash_revision: int,
 
   Arguments:
     job_type (str): The type of job we are executing on.
-    crash_revision (int): The revision at which the target was built.
     build_data (BuildData): the result of check_for_bad_build call.
   """
   if build_data.should_ignore_crash_result:
     return
 
-  build_state = data_handler.get_build_state(job_type, crash_revision)
+  build_state = data_handler.get_build_state(job_type,
+                                             build_data.crash_revision)
   # If none of the other bots have added information about this build,
   # then add it now.
   if build_state == data_types.BuildState.UNMARKED:
-    data_handler.add_build_metadata(job_type, crash_revision,
+    data_handler.add_build_metadata(job_type, build_data.crash_revision,
                                     build_data.is_bad_build,
                                     build_data.build_run_console_output)
