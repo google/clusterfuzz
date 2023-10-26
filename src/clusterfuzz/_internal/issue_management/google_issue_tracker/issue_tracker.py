@@ -108,10 +108,12 @@ class Issue(issue_tracker.Issue):
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
     if extension_fields.get('_ext_collaborators'):
+      self._changed.add('_ext_collaborators')
       for collaborator in extension_fields['_ext_collaborators']:
         self._collaborators.add(collaborator)
-    self._issue_access_limit = extension_fields.get(
-        '_ext_issue_access_limit') or IssueAccessLevel.LIMIT_NONE
+    if extension_fields.get('_ext_issue_access_limit'):
+      self._changed.add('_issue_access_limit')
+      self._issue_access_limit = extension_fields.get('_ext_issue_access_limit')
 
   @property
   def issue_tracker(self):
