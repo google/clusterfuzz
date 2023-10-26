@@ -17,6 +17,7 @@ import os
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
@@ -127,3 +128,19 @@ class GetUtaskModuleTest(unittest.TestCase):
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
     module_name = analyze_task.__name__
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
+
+
+class GetCommandFromModuleTest(unittest.TestCase):
+  """Tests for get_command_from_module."""
+
+  def test_get_command_from_module(self):
+    # pylint: disbale=protected-access
+    """Tests that get_command_from_module returns the correct command."""
+    for command, module in commands._COMMAND_MODULE_MAP.items():
+      if command in {'postprocess', 'uworker_main'}:
+        continue
+      self.assertEqual(command, utasks.get_command_from_module(module.__name__))
+    with self.assertRaises(ValueError):
+      utasks.get_command_from_module('postprocess')
+    with self.assertRaises(ValueError):
+      utasks.get_command_from_module('uworker_main')

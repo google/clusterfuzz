@@ -79,8 +79,8 @@ message Input {
   optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
   optional FuzzTaskInput fuzz_task_input = 14;
   optional MinimizeTaskInput minimize_task_input = 15;
-  optional RegressionTaskInput regression_task_input = 16;
-  optional ProgressionTaskInput progression_task_input = 17;
+  optional ProgressionTaskInput progression_task_input = 16;
+  optional RegressionTaskInput regression_task_input = 17;
   optional string module_name = 18;
 }
 
