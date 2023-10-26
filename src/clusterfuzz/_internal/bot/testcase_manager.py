@@ -1121,7 +1121,7 @@ def check_for_bad_build(job_type, crash_revision):
     job_type (str): The type of job we are executing on.
     crash_revision (int): The revision at which the target was built.
 
-  Returns a dataclass with the following attributes:
+  Returns a UworkerMsg with the following attributes:
     is_bad_build (bool): Whether the target build is bad. If True, the target
       cannot be used for executing testcases.
     should_ignore_crash (bool): True iff the target crashed, but we should
