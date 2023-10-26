@@ -204,6 +204,8 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 def download_input_based_on_output_url(output_url):
   input_url = uworker_output_path_to_input_path(output_url)
   serialized_uworker_input = storage.read_data(input_url)
+  if serialized_uworker_input is None:
+    logs.log_error(f'No corresponding input for output: {output_url}.')
   return deserialize_uworker_input(serialized_uworker_input)
 
 
@@ -487,6 +489,11 @@ class RegressionTaskInput(UworkerInput):
 class ProgressionTaskInput(UworkerInput):
   """Input for progression_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.ProgressionTaskInput
+
+
+class CorpusPruningTaskInput(UworkerInput):
+  """Input for corpus_pruning_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.CorpusPruningTaskInput
 
 
 class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method

@@ -84,6 +84,9 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     # crbug.com/1471427: chrome_crashpad_handler is needed for fuzzers that are
     # spawning the full chrome browser.
     'chrome_crashpad_handler',
+    # This is part of the chrome archives. This directory contains all sort of
+    # data needed by tests that initially exist in the source tree.
+    'src_root',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
@@ -1146,8 +1149,7 @@ def get_job_bad_revisions():
       ndb_utils.get_all_from_query(
           data_types.BuildMetadata.query(
               ndb_utils.is_true(data_types.BuildMetadata.bad_build),
-              data_types.BuildMetadata.job_type == job_type,
-              projection=[data_types.BuildMetadata.revision])))
+              data_types.BuildMetadata.job_type == job_type)))
   return [build.revision for build in bad_builds]
 
 

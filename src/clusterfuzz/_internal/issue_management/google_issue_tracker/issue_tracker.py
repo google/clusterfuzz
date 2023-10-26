@@ -29,11 +29,11 @@ _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.googleapis.com/v1/issues'
 
 
-class IssueAccessLevel(enum.Enum):
-  LIMIT_NONE = 0
-  LIMIT_VIEW = 1
-  LIMIT_APPEND = 2
-  LIMIT_VIEW_TRUSTED = 3
+class IssueAccessLevel(str, enum.Enum):
+  LIMIT_NONE = 'LIMIT_NONE'
+  LIMIT_VIEW = 'LIMIT_VIEW'
+  LIMIT_APPEND = 'LIMIT_APPEND'
+  LIMIT_VIEW_TRUSTED = 'LIMIT_VIEW_TRUSTED'
 
 
 class IssueTrackerError(Exception):
@@ -95,7 +95,7 @@ class Issue(issue_tracker.Issue):
     self._components = _SingleComponentStore(components)
     self._body = None
     self._changed = set()
-    self._access_limit = {'access_level': IssueAccessLevel.LIMIT_NONE}
+    self._issue_access_limit = IssueAccessLevel.LIMIT_NONE
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -104,6 +104,14 @@ class Issue(issue_tracker.Issue):
     self._collaborators.reset_tracking()
     self._labels.reset_tracking()
     self._components.reset_tracking()
+
+  def apply_extension_fields(self, extension_fields):
+    """Applies _ext_ prefixed extension fields."""
+    if extension_fields.get('_ext_collaborators'):
+      for collaborator in extension_fields['_ext_collaborators']:
+        self._collaborators.add(collaborator)
+    self._issue_access_limit = extension_fields.get(
+        '_ext_issue_access_limit') or IssueAccessLevel.LIMIT_NONE
 
   @property
   def issue_tracker(self):
@@ -320,7 +328,7 @@ class Issue(issue_tracker.Issue):
                                 _make_users)
     self._add_update_collection(update_body, added, removed, '_collaborators',
                                 'collaborators', _make_users)
-    self._add_update_single(update_body, added, removed, '_access_limit',
+    self._add_update_single(update_body, added, removed, '_issue_access_limit',
                             'access_limit')
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
@@ -382,10 +390,9 @@ class Issue(issue_tracker.Issue):
       collaborators = list(self._collaborators)
       if collaborators:
         self._data['issueState']['collaborators'] = _make_users(collaborators)
-      access_limit = self._access_limit
+      access_limit = self._issue_access_limit
       if access_limit:
-        self._data['issueState']['access_limit'] = access_limit
-
+        self._data['issueState']['accessLimit'] = {'accessLevel': access_limit}
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
       ]
@@ -551,6 +558,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     self._project = project
     self._client = http_client
     self._default_component_id = config['default_component_id']
+    self._type = config['type'] if hasattr(config, 'type') else None
 
   @property
   def client(self):
@@ -582,6 +590,11 @@ class IssueTracker(issue_tracker.IssueTracker):
     """Gets the project name of this issue tracker."""
     return self._project
 
+  @property
+  def type(self):
+    """The type of the tracker - e.g. monorail, google-issue-tracker, etc."""
+    return self._type
+
   def new_issue(self):
     """Creates an unsaved new issue."""
     data = {
@@ -590,8 +603,8 @@ class IssueTracker(issue_tracker.IssueTracker):
             'ccs': [],
             'collaborators': [],
             'hotlistIds': [],
-            'access_limit': {
-                'access_level': IssueAccessLevel.LIMIT_NONE
+            'accessLimit': {
+                'accessLevel': IssueAccessLevel.LIMIT_NONE
             },
         }
     }
@@ -689,8 +702,14 @@ def _get_query(keywords, only_open):
 #   issue.title = 'test issue'
 #   issue.assignee = 'rmistry@google.com'
 #   issue.status = 'ASSIGNED'
+#   issue.apply_extension_fields({
+#       '_ext_collaborators': [
+#           'rmistry@google.com',
+#           'skia-npm-audit-mirror@skia-public.iam.gserviceaccount.com'],
+#       '_ext_issue_access_limit': IssueAccessLevel.LIMIT_VIEW_TRUSTED,
+#   })
 #   issue.save(new_comment='testing')
 #
 #   # Test issue query.
-#   queried_issue = it.get_issue(306010501)
+#   queried_issue = it.get_issue(307559515)
 #   print(queried_issue._data)

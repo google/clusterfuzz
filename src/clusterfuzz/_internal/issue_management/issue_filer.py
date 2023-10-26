@@ -456,6 +456,9 @@ def file_issue(testcase,
   for cc in ccs:
     issue.ccs.add(cc)
 
+  # Apply extension fields.
+  issue.apply_extension_fields(policy.extension_fields)
+
   # Add additional labels and components from testcase metadata.
   metadata_labels = _get_from_metadata(testcase, 'issue_labels')
   for label in metadata_labels:
