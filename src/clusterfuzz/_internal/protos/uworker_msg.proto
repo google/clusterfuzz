@@ -48,7 +48,7 @@ message MinimizeTaskInput {
 }
 
 message RegressionTaskInput {
-  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  repeated int64 bad_revisions = 1;
 }
 
 message ProgressionTaskInput {
@@ -108,6 +108,12 @@ message MinimizeTaskOutput {
 
 message RegressionTaskOutput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
+message BuildData{
+  optional bool is_bad_build = 1;
+  optional bool should_ignore_crash_result = 2;
+  optional string build_run_console_output = 3;
 }
 
 message ProgressionTaskOutput{
