@@ -48,7 +48,7 @@ message MinimizeTaskInput {
 }
 
 message RegressionTaskInput {
-  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  repeated int64 bad_revisions = 1;
 }
 
 message ProgressionTaskInput {

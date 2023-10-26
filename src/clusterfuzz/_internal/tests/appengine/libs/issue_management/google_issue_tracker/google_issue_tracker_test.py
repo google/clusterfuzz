@@ -22,8 +22,13 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import \
     issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
 
+EXTENSION_FIELDS = {
+    '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
+    '_ext_issue_access_limit': issue_tracker.IssueAccessLevel.LIMIT_VIEW,
+}
 TEST_CONFIG = {
     'default_component_id': 1337,
+    'type': 'google-issue-tracker',
 }
 
 BASIC_ISSUE = {
@@ -239,9 +244,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'emailAddress': 'reporter@google.com'
                     },
                     'title': 'issue title',
-                    'access_limit': {
-                        'access_level':
-                            issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    'accessLimit': {
+                        'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
                     },
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
@@ -258,6 +262,69 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             templateOptions_applyTemplate=True,
         ),
         mock.call().execute(http=None, num_retries=3),
+    ])
+
+  def test_new_security_issue(self):
+    """Test creation of security issue."""
+    issue = self.issue_tracker.new_issue()
+
+    # Mimic issue_filer's action in setting up the issue
+    issue.apply_extension_fields(EXTENSION_FIELDS)
+
+    issue.labels.add('Type-Bug-Security')
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee@google.com'
+    issue.body = 'issue body'
+    issue.ccs.add('cc@google.com')
+    issue.components.add('9001')
+    issue.labels.add('12345')
+    issue.labels.add('67890')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title'
+    issue.save()
+
+    self.client.issues().create.assert_has_calls([
+        mock.call(
+            body={
+                'issueState': {
+                    'componentId':
+                        9001,
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'collaborators': [
+                        {
+                            'emailAddress': 'superman@krypton.com'
+                        },
+                        {
+                            'emailAddress': 'batman@gotham.com'
+                        },
+                    ],
+                    'hotlistIds': [12345, 67890],
+                    'accessLimit': {
+                        'accessLevel':
+                            issue_tracker.IssueAccessLevel.LIMIT_VIEW,
+                    },
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'assignee': {
+                        'emailAddress': 'assignee@google.com'
+                    },
+                    'status':
+                        'ASSIGNED',
+                    'title':
+                        'issue title',
+                    'type':
+                        'Bug-Security',
+                },
+                'issueComment': {
+                    'comment': 'issue body'
+                },
+            },
+            templateOptions_applyTemplate=True,
+        ),
+        mock.call().execute(num_retries=3, http=None),
     ])
 
   def test_update_issue(self):
@@ -278,8 +345,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                 'S2',
             'title':
                 'issue title2',
-            'access_limit': {
-                'access_level': issue_tracker.IssueAccessLevel.LIMIT_NONE
+            'accessLimit': {
+                'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
             },
             'reporter': {
                 'emailAddress': 'reporter@google.com',
