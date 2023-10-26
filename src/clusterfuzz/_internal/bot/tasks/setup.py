@@ -188,12 +188,12 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
                                        uworker_output.error_message)
 
   # Then reschedule the task.
-  utasks.utasks.get_command_from_module(
+  command = utasks.get_command_from_module(
       uworker_output.uworker_input.module_name)
 
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
   tasks.add_task(
-      task_name,
+      command,
       uworker_output.uworker_input.testcase_id,
       uworker_output.uworker_input.job_type,
       wait_time=testcase_fail_wait)

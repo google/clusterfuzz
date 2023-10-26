@@ -134,7 +134,7 @@ class GetCommandFromModuleTest(unittest.TestCase):
   """Tests for get_command_from_module."""
 
   def test_get_command_from_module(self):
-    # pylint: disbale=protected-access
+    # pylint: disable=protected-access
     """Tests that get_command_from_module returns the correct command."""
     for command, module in commands._COMMAND_MODULE_MAP.items():
       if command in {'postprocess', 'uworker_main'}:
