@@ -202,6 +202,11 @@ class Issue:
     """Save the issue."""
     raise NotImplementedError
 
+  # pylint: disable=unused-argument
+  def apply_extension_fields(self, extension_fields):
+    """Applies _ext_ prefixed extension fields to the issue."""
+    return
+
 
 class ChangeList:
   """Records a change in a list."""

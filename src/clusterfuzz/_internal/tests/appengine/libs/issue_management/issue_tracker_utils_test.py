@@ -16,6 +16,7 @@
 import unittest
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import google_issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.issue_management import monorail
@@ -64,9 +65,9 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     issue_tracker_utils.get_issue_url(testcase)
     self.assertEqual(0, self.mock.issue_url.call_count)
 
-  def test_get_issue_tracker(self):
+  def test_get_issue_tracker_monorail(self):
     # pylint: disable=protected-access
-    """Test for get issue tracker."""
+    """Test for get monorail issue tracker."""
     test_helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
         'clusterfuzz._internal.issue_management.monorail._get_issue_tracker_manager_for_project'
@@ -75,6 +76,25 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
     self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
     issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
         'monorail': monorail.get_issue_tracker
+    }
+
+    constructor = issue_tracker_utils.get_issue_tracker()
+    self.assertIsNotNone(constructor)
+
+  def test_get_issue_tracker_google(self):
+    # pylint: disable=protected-access
+    """Test for get google issue tracker."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.issue_management.monorail._get_issue_tracker_manager_for_project'
+    ])
+    self.mock.get.return_value = {
+        'type': 'google_issue_tracker',
+        'default_component_id': 123
+    }
+    self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
+    issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
+        'google_issue_tracker': google_issue_tracker.get_issue_tracker
     }
 
     constructor = issue_tracker_utils.get_issue_tracker()

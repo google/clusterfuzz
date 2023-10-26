@@ -1763,7 +1763,7 @@ class FuzzingSession:
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
       return uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
@@ -1778,7 +1778,7 @@ class FuzzingSession:
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
       return uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
 
     # Centipede requires separate binaries for sanitized targets.
     if environment.is_centipede_fuzzer_job():
@@ -1794,11 +1794,18 @@ class FuzzingSession:
     # If yes, bail out.
     logs.log('Checking for bad build.')
     crash_revision = environment.get_value('APP_REVISION')
-    is_bad_build = testcase_manager.check_for_bad_build(self.job_type,
-                                                        crash_revision)
-    _track_build_run_result(self.job_type, crash_revision, is_bad_build)
-    if is_bad_build:
-      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
+
+    build_data = testcase_manager.check_for_bad_build(self.job_type,
+                                                      crash_revision)
+    # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+    # postprocess.
+    testcase_manager.update_build_metadata(self.job_type, crash_revision,
+                                           build_data)
+    _track_build_run_result(self.job_type, crash_revision,
+                            build_data.is_bad_build)
+    if build_data.is_bad_build:
+      return uworker_io.UworkerOutput(
+          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     # Data bundle directories can also have testcases which are kept in-place
     # because of dependencies.
@@ -1807,7 +1814,7 @@ class FuzzingSession:
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
       return uworker_io.UworkerOutput(
-          error=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
+          error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
     engine_impl = engine.get(self.fuzzer.name)
 
@@ -1826,7 +1833,8 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return uworker_io.UworkerOutput(error=uworker_msg_pb2.ErrorType.UNHANDLED)
+      return uworker_io.UworkerOutput(
+          error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     logs.log('Finished processing test cases.')
 
@@ -1969,8 +1977,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 def utask_postprocess(output):
-  """Postprocess untrusted task."""
-  if output.error:
+  if output.error_type:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   session = _make_session(output.uworker_input)

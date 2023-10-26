@@ -63,6 +63,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_build',
         'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
+        'clusterfuzz._internal.bot.testcase_manager.update_build_metadata',
         'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
         'clusterfuzz._internal.build_management.build_manager.check_app_path'
     ])
@@ -77,25 +78,31 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
-    self.assertIs(worker_output.error,
+    self.assertIs(worker_output.error_type,
                   uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
                   "build setup is expected to fail")
 
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = True
+    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+        is_bad_build=True,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
-    self.assertEqual(worker_output.error,
+    self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
     self.assertEqual(worker_output.error_message, 'Bad build at r1. Skipping')
 
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = False
+    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
     testcase = data_types.Testcase()
     testcase = uworker_io.UworkerEntityWrapper(testcase)
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
@@ -110,6 +117,10 @@ class UtaskPreprocessTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
+    helpers.patch(
+        self,
+        ['clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase'])
+    self.mock.preprocess_setup_testcase.return_value = uworker_io.SetupInput()
     os.environ['JOB_NAME'] = 'progression'
     # Add a bad build.
     data_handler.add_build_metadata(
@@ -142,10 +153,9 @@ class UtaskPreprocessTest(unittest.TestCase):
     self.assertEqual('job_type', result.job_type)
     returned_testcase = result.testcase
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_builds = result.progression_task_input.bad_builds
-    self.assertEqual(len(bad_builds), 1)
-    self.assertTrue(bad_builds[0].bad_build)
-    self.assertEqual(bad_builds[0].revision, 9999)
+    bad_revisions = result.progression_task_input.bad_revisions
+    self.assertEqual(len(bad_revisions), 1)
+    self.assertEqual(bad_revisions[0], 9999)
 
   def test_preprocess_uworker_output_custom_binary(self):
     """Tests the preprocess behaviour for custom binaries."""
@@ -158,10 +168,9 @@ class UtaskPreprocessTest(unittest.TestCase):
     self.assertEqual('job_type', result.job_type)
     returned_testcase = result.testcase
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_builds = result.progression_task_input.bad_builds
-    self.assertEqual(len(bad_builds), 1)
-    self.assertTrue(bad_builds[0].bad_build)
-    self.assertEqual(bad_builds[0].revision, 9999)
+    bad_revisions = result.progression_task_input.bad_revisions
+    self.assertEqual(len(bad_revisions), 1)
+    self.assertEqual(bad_revisions[0], 9999)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -198,7 +207,8 @@ class UTaskPostprocessTest(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
     uworker_output = self._create_output(
-        uworker_input=uworker_input, error=uworker_msg_pb2.ErrorType.UNHANDLED)
+        uworker_input=uworker_input,
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     progression_task.utask_postprocess(uworker_output)
     self.assertTrue(self.mock.handle.called)
 
@@ -285,7 +295,7 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
         testcase, testcase_file_path)
     self.assertEqual(result.error_message,
                      'Build setup failed for custom binary')
-    self.assertEqual(result.error,
+    self.assertEqual(result.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
   def test_crash_on_latest(self):

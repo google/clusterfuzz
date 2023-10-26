@@ -16,6 +16,8 @@
 
 import random
 import time
+from typing import Dict
+from typing import Optional
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
@@ -106,7 +108,11 @@ def _testcase_reproduces_in_revision(testcase,
   if not build_manager.check_app_path():
     raise errors.BuildSetupError(revision, job_type)
 
-  if testcase_manager.check_for_bad_build(job_type, revision):
+  build_data = testcase_manager.check_for_bad_build(job_type, revision)
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
+  # postprocess.
+  testcase_manager.update_build_metadata(job_type, revision, build_data)
+  if build_data.is_bad_build:
     log_message = 'Bad build at r%d. Skipping' % revision
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     data_handler.update_testcase_comment(testcase, data_types.TaskState.WIP,
@@ -206,50 +212,29 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
   return True
 
 
-def find_regression_range(testcase_id, job_type):
+def find_regression_range(uworker_input: uworker_io.UworkerInput
+                         ) -> Optional[uworker_io.UworkerOutput]:
   """Attempt to find when the testcase regressed."""
+  testcase = uworker_input.testcase
+  job_type = uworker_input.job_type
+
   deadline = tasks.get_task_completion_deadline()
-  testcase = data_handler.get_testcase_by_id(testcase_id)
-  if not testcase:
-    return
-
-  if testcase.regression:
-    logs.log_error(
-        'Regression range is already set as %s, skip.' % testcase.regression)
-    return
-
-  # This task is not applicable for custom binaries.
-  if build_manager.is_custom_binary():
-    testcase.regression = 'NA'
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         'Not applicable for custom binaries')
-    return
-
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  setup_input = setup.preprocess_setup_testcase(testcase)
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
-                                                      setup_input)
+                                                      uworker_input.setup_input)
   if error:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Change this when
-    # regression is migrated.
-    all_errors = uworker_handle_errors.get_all_handled_errors()
-    uworker_handle_errors.handle(error, all_errors)
-    return
+    return error
 
   build_bucket_path = build_manager.get_primary_bucket_path()
-
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-  # preprocess.
-  bad_builds = build_manager.get_job_bad_builds()
-
   revision_list = build_manager.get_revisions_list(
-      build_bucket_path, bad_builds, testcase=testcase)
+      build_bucket_path,
+      uworker_input.regression_task_input.bad_revisions,
+      testcase=testcase)
   if not revision_list:
     data_handler.close_testcase_with_error(testcase,
                                            'Failed to fetch revision list')
-    return
+    return None
 
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
@@ -273,12 +258,12 @@ def find_regression_range(testcase_id, job_type):
   crashes_in_max_revision = _testcase_reproduces_in_revision(
       testcase, testcase_file_path, job_type, max_revision, should_log=False)
   if not crashes_in_max_revision:
-    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase = testcase.key.get()
     error_message = f'Known crash revision {max_revision} did not crash'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     task_creation.mark_unreproducible_if_flaky(testcase, True)
-    return
+    return None
 
   # If we've made it this far, the test case appears to be reproducible. Clear
   # metadata from previous runs had it been marked as potentially flaky.
@@ -289,7 +274,7 @@ def find_regression_range(testcase_id, job_type):
   if first_run and found_regression_near_extreme_revisions(
       testcase, testcase_file_path, job_type, revision_list, min_index,
       max_index):
-    return
+    return None
 
   while time.time() < deadline:
     min_revision = revision_list[min_index]
@@ -301,10 +286,10 @@ def find_regression_range(testcase_id, job_type):
       # Verify that the regression range seems correct, and save it if so.
       if not validate_regression_range(testcase, testcase_file_path, job_type,
                                        revision_list, min_index):
-        return
+        return None
 
-      save_regression_range(testcase_id, min_revision, max_revision)
-      return
+      save_regression_range(testcase.key.id(), min_revision, max_revision)
+      return None
 
     middle_index = (min_index + max_index) // 2
     middle_revision = revision_list[middle_index]
@@ -328,34 +313,79 @@ def find_regression_range(testcase_id, job_type):
       min_index = middle_index
 
     _save_current_regression_range_indices(
-        testcase_id, revision_list[min_index], revision_list[max_index])
+        testcase.key.id(), revision_list[min_index], revision_list[max_index])
 
   # If we've broken out of the above loop, we timed out. We'll finish by
   # running another regression task and picking up from this point.
-  testcase = data_handler.get_testcase_by_id(testcase_id)
+  testcase = testcase.key.get()
   error_message = 'Timed out, current range r%d:r%d' % (
       revision_list[min_index], revision_list[max_index])
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
-  tasks.add_task('regression', testcase_id, job_type)
+  tasks.add_task('regression', testcase.key.id(), job_type)
+  return None
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(testcase_id: str, job_type: str,
+                     uworker_env: Dict) -> Optional[uworker_io.UworkerInput]:
+  """Prepares inputs for `utask_main()` to run on an untrusted worker.
+
+  Runs on a trusted worker.
+  """
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+
+  if testcase.regression:
+    logs.log_error(
+        f'Regression range is already set as {testcase.regression}, skip.')
+    return None
+
+  # This task is not applicable for custom binaries.
+  if build_manager.is_custom_binary():
+    testcase.regression = 'NA'
+    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                         'Not applicable for custom binaries')
+    return None
+
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+
+  setup_input = setup.preprocess_setup_testcase(testcase)
+
+  task_input = uworker_io.RegressionTaskInput()
+  task_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
+
   return uworker_io.UworkerInput(
+      testcase_id=testcase_id,
+      testcase=testcase,
       job_type=job_type,
-      testcase_id=str(testcase_id),
       uworker_env=uworker_env,
+      setup_input=setup_input,
+      regression_task_input=task_input,
   )
 
 
-def utask_postprocess(output):
-  del output
+_HANDLED_ERRORS = setup.HANDLED_ERRORS
 
 
-def utask_main(uworker_input):
-  """Run regression task and handle potential errors."""
+def utask_postprocess(output: uworker_io.UworkerOutput) -> None:
+  """Handles the output of `utask_main()` run on an untrusted worker.
+
+  Runs on a trusted worker.
+  """
+  if output.error_type is not None:
+    uworker_handle_errors.handle(output, _HANDLED_ERRORS)
+    return
+
+  # TODO: migrate more stuff out of `utask_main()`.
+
+
+def utask_main(uworker_input: uworker_io.UworkerInput
+              ) -> Optional[uworker_io.UworkerOutput]:
+  """Runs regression task and handles potential errors.
+
+  Runs on an untrusted worker.
+  """
   try:
-    find_regression_range(uworker_input.testcase_id, uworker_input.job_type)
+    return find_regression_range(uworker_input)
   except errors.BuildSetupError as error:
     # If we failed to setup a build, it is likely a bot error. We can retry
     # the task in this case.
@@ -385,3 +415,5 @@ def utask_main(uworker_input):
     error_message = f'Build {e.revision} not longer exists'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
+
+  return None

@@ -38,8 +38,7 @@ stamp=$GIT_HASH-$(date -u +%Y%m%d%H%M)
 for image in "${IMAGES[@]}"; do
   docker build -t $image ${image#gcr.io/clusterfuzz-images/}
   docker tag $image $image:$stamp
-  wait -n
-  docker_push &
+  docker_push
 done
 
 echo Built and pushed images successfully with stamp $stamp

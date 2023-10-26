@@ -21,7 +21,7 @@ spec:
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
-      activeDeadlineSeconds: 1200  # 20 minutes.
+      activeDeadlineSeconds: 3600  # 1 hour.
       template:
         spec:
           containers:
