@@ -277,12 +277,12 @@ def find_regression_range(testcase_id, job_type):
     error_message = f'Known crash revision {max_revision} did not crash'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    task_creation.mark_unreproducible_if_flaky(testcase, True)
+    task_creation.mark_unreproducible_if_flaky(testcase, 'regression', True)
     return
 
   # If we've made it this far, the test case appears to be reproducible. Clear
   # metadata from previous runs had it been marked as potentially flaky.
-  task_creation.mark_unreproducible_if_flaky(testcase, False)
+  task_creation.mark_unreproducible_if_flaky(testcase, 'regression', False)
 
   # On the first run, check to see if we regressed near either the min or max
   # revision.

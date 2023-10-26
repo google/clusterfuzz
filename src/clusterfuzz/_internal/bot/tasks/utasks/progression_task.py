@@ -117,7 +117,7 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
 
   # Since we've verified that the test case is still crashing, clear out any
   # metadata indicating potential flake from previous runs.
-  task_creation.mark_unreproducible_if_flaky(testcase, False)
+  task_creation.mark_unreproducible_if_flaky(testcase, 'progression', False)
 
 
 def handle_progression_bad_state_min_max(
@@ -163,7 +163,7 @@ def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
   data_handler.clear_progression_pending(testcase)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
-  task_creation.mark_unreproducible_if_flaky(testcase, True)
+  task_creation.mark_unreproducible_if_flaky(testcase, 'progression', True)
   return
 
 
