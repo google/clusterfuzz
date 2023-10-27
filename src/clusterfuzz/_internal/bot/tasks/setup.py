@@ -24,7 +24,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -188,7 +188,7 @@ def handle_setup_testcase_error(uworker_output: uworker_io.UworkerOutput):
                                        uworker_output.error_message)
 
   # Then reschedule the task.
-  command = utasks.get_command_from_module(
+  command = utask_utils.get_command_from_module(
       uworker_output.uworker_input.module_name)
 
   testcase_fail_wait = environment.get_value('FAIL_WAIT')

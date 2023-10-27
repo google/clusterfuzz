@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cloud Batch helpers."""
-
+import collections
 import threading
 import uuid
 
@@ -22,12 +22,16 @@ from google.cloud import batch_v1 as batch
 # TODO(metzman): Change to from . import credentials when we are done
 # developing.
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks import utask_utils
+from clusterfuzz._internal.config import local_config
 
 _local = threading.local()
 
 MAX_DURATION = '3600s'
 RETRY_COUNT = 2
 TASK_COUNT = 1
+
+collections.namedtuple('BatchJobSpecs', [])
 
 
 def _create_batch_client_new():
@@ -107,6 +111,37 @@ def create_job(email,
   create_request.parent = f'projects/{project_id}/locations/{region}'
 
   return _batch_client().create_job(create_request)
+
+
+def get_specs(full_module_name, job):
+  platform = job.platform
+  command = utask_utils.get_command_from_module(full_module)
+  if command != 'fuzz':
+    platform += '-HIGH-END'
+  machine_type_config = local_config.MachineTypeConfig()
+  cluster_name = machine_type_config.get('mapping').get(platform, None)
+  if cluster_name is None:
+    return None
+  project_name = machine_type_config.get('project')
+  clusters_config = local_config.GCEClustersConfig()
+  project_specs = clusters_config.get(project_name)
+  templates = project_specs['instance_templates']
+  cluster = project_specs['clusters'][instance_template]
+  for template in templates:
+    if templates['name'] != template_name:
+      continue
+    template =
+  return template, project
+
+
+def get_instance_specs(full_module_name, job):
+  template_and_project_id = get_specs(full_module_name, job)
+
+  if template_and_project_id is None:
+    # !!!
+    pass
+
+  template_and_project_id
 
 
 def main():

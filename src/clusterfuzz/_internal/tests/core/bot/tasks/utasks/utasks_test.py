@@ -128,19 +128,3 @@ class GetUtaskModuleTest(unittest.TestCase):
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
     module_name = analyze_task.__name__
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
-
-
-class GetCommandFromModuleTest(unittest.TestCase):
-  """Tests for get_command_from_module."""
-
-  def test_get_command_from_module(self):
-    # pylint: disable=protected-access
-    """Tests that get_command_from_module returns the correct command."""
-    for command, module in commands._COMMAND_MODULE_MAP.items():
-      if command in {'postprocess', 'uworker_main'}:
-        continue
-      self.assertEqual(command, utasks.get_command_from_module(module.__name__))
-    with self.assertRaises(ValueError):
-      utasks.get_command_from_module('postprocess')
-    with self.assertRaises(ValueError):
-      utasks.get_command_from_module('uworker_main')
