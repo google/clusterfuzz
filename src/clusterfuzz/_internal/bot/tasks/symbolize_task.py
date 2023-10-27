@@ -53,9 +53,10 @@ def execute_task(testcase_id, job_type):
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
   if error:
-    # TODO(metzman): Assert trusted.
+    # TODO(metzman): Fix all this, symbolize task needs to become a utask.
     # Because this is trusted, we can trust the error.
     all_errors = uworker_handle_errors.get_all_handled_errors()
+    error.uworker_input.module_name = __name__
     uworker_handle_errors.handle(error, all_errors)
     return
 
