@@ -204,6 +204,8 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 def download_input_based_on_output_url(output_url):
   input_url = uworker_output_path_to_input_path(output_url)
   serialized_uworker_input = storage.read_data(input_url)
+  if serialized_uworker_input is None:
+    logs.log_error(f'No corresponding input for output: {output_url}.')
   return deserialize_uworker_input(serialized_uworker_input)
 
 
@@ -426,6 +428,20 @@ class UworkerOutput(UworkerMsg):
     field.CopyFrom(wrapped_entity_proto)
 
 
+class BuildData(UworkerMsg):
+  """Class representing an unserialized ProgressionTaskOutput message from
+  fuzz_task."""
+  PROTO_CLS = uworker_msg_pb2.BuildData
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
 class UworkerInput(UworkerMsg):
   """Class representing an unserialized UworkerInput message from
   utask_preprocess."""
@@ -519,8 +535,8 @@ class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
 
 class DeserializedUworkerMsg:
 
-  def __init__(self, testcase=None, error=None, **kwargs):
+  def __init__(self, testcase=None, error_type=None, **kwargs):
     self.testcase = testcase
-    self.error = error
+    self.error_type = error_type
     for key, value in kwargs.items():
       setattr(self, key, value)
