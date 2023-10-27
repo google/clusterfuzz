@@ -223,6 +223,10 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   return result, http_flag
 
 
+def is_first_analyze_attempt(testcase):
+  return data_handler.is_first_attempt_for_task('analyze', testcase)
+
+
 def handle_noncrash(output):
   """Handles a non-crashing testcase. Either deletes the testcase or schedules
   another, final analysis."""
@@ -235,7 +239,7 @@ def handle_noncrash(output):
   # For an unreproducible testcase, retry once on another bot to confirm
   # our results and in case this bot is in a bad state which we didn't catch
   # through our usual means.
-  if data_handler.is_first_retry_for_task(output.testcase):
+  if is_first_analyze_attempt(output.testcase):
     output.testcase.status = 'Unreproducible, retrying'
     output.testcase.put()
 
@@ -392,8 +396,8 @@ def handle_build_setup_error(output):
   data_handler.update_testcase_comment(
       output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
 
-  if data_handler.is_first_retry_for_task(output.testcase):
-    task_name = environment.get_value('TASK_NAME')
+  if is_first_analyze_attempt(output.testcase):
+    task_name = 'analyze'
     testcase_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
         task_name,
@@ -468,6 +472,7 @@ def utask_postprocess(output):
   testcase_upload_metadata.put()
 
   _add_default_issue_metadata(testcase)
+  logs.log('Creating post-analyze tasks.')
 
   # Create tasks to
   # 1. Minimize testcase (minimize).

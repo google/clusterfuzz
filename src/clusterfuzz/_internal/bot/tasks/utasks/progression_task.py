@@ -117,7 +117,7 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
 
   # Since we've verified that the test case is still crashing, clear out any
   # metadata indicating potential flake from previous runs.
-  task_creation.mark_unreproducible_if_flaky(testcase, False)
+  task_creation.mark_unreproducible_if_flaky(testcase, 'progression', False)
 
 
 def handle_progression_bad_state_min_max(
@@ -148,7 +148,8 @@ def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
   job_type = uworker_output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
   # Retry once on another bot to confirm our result.
-  if data_handler.is_first_retry_for_task(testcase, reset_after_retry=True):
+  if data_handler.is_first_attempt_for_task(
+      'progression', testcase, reset_after_retry=True):
     tasks.add_task('progression', testcase_id, job_type)
     error_message = (
         uworker_output.error_message +
@@ -162,7 +163,7 @@ def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
   data_handler.clear_progression_pending(testcase)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        uworker_output.error_message)
-  task_creation.mark_unreproducible_if_flaky(testcase, True)
+  task_creation.mark_unreproducible_if_flaky(testcase, 'progression', True)
   return
 
 
@@ -624,7 +625,8 @@ def utask_postprocess(output):
     # Retry once on another bot to confirm our results and in case this bot is
     # in a bad state which we didn't catch through our usual means.
     testcase = output.testcase
-    if data_handler.is_first_retry_for_task(testcase, reset_after_retry=True):
+    if data_handler.is_first_attempt_for_task(
+        'progression', testcase, reset_after_retry=True):
       tasks.add_task('progression', output.uworker_input.testcase_id,
                      output.uworker_input.job_type)
       data_handler.update_progression_completion_metadata(

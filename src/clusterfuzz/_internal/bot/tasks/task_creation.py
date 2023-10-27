@@ -23,9 +23,8 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
-def mark_unreproducible_if_flaky(testcase, potentially_flaky):
+def mark_unreproducible_if_flaky(testcase, task_name, potentially_flaky):
   """Check to see if a test case appears to be flaky."""
-  task_name = environment.get_value('TASK_NAME')
 
   # If this run does not suggest that we are flaky, clear the flag and assume
   # that we are reproducible.

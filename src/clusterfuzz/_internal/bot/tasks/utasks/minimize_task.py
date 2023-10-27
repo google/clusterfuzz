@@ -469,7 +469,7 @@ def utask_main(uworker_input):
     testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          'Unable to reproduce crash')
-    task_creation.mark_unreproducible_if_flaky(testcase, True)
+    task_creation.mark_unreproducible_if_flaky(testcase, 'minimize', True)
     return None
 
   if flaky_stack:
@@ -1309,7 +1309,7 @@ def do_libfuzzer_minimization(testcase, testcase_file_path):
     if is_overriden_job:
       _skip_minimization(testcase, 'Unreproducible on overridden job')
     else:
-      task_creation.mark_unreproducible_if_flaky(testcase, True)
+      task_creation.mark_unreproducible_if_flaky(testcase, 'minimize', True)
 
   timeout = environment.get_value('LIBFUZZER_MINIMIZATION_TIMEOUT', 600)
   rounds = environment.get_value('LIBFUZZER_MINIMIZATION_ROUNDS', 5)
