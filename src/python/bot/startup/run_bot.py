@@ -33,16 +33,16 @@ from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 
 
-class _Monitor(object):
+class _Monitor:
   """Monitor one task."""
 
   def __init__(self, task, time_module=time):
@@ -85,6 +85,9 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
+      if environment.is_uworker():
+        # Batch tasks only run one at a time.
+        sys.exit(utasks.uworker_bot_main())
       task = tasks.get_task()
       if not task:
         continue
@@ -95,8 +98,8 @@ def task_loop():
           commands.process_command(task)
     except SystemExit as e:
       exception_occurred = True
-      clean_exit = (e.code == 0)
-      if not clean_exit and not isinstance(e, untrusted.HostException):
+      clean_exit = e.code == 0
+      if not clean_exit and not isinstance(e, untrusted.HostError):
         logs.log_error('SystemExit occurred while working on task.')
 
       stacktrace = traceback.format_exc()
@@ -131,9 +134,6 @@ def main():
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
   monitor.initialize()
-
-  if not profiler.start_if_needed('python_profiler_bot'):
-    sys.exit(-1)
 
   fuzzers_init.run()
 
@@ -194,6 +194,8 @@ if __name__ == '__main__':
     exit_code = 0
   except Exception:
     traceback.print_exc()
+    sys.stdout.flush()
+    sys.stderr.flush()
     exit_code = 1
 
   monitor.stop()

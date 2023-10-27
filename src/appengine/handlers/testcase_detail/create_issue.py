@@ -15,11 +15,11 @@
 
 from flask import request
 
+from clusterfuzz._internal.issue_management import issue_filer
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
 from libs import helpers
-from libs.issue_management import issue_filer
 
 
 class Handler(base_handler.Handler):
@@ -47,7 +47,7 @@ class Handler(base_handler.Handler):
         additional_ccs=additional_ccs)
 
     if not issue_id:
-      raise helpers.EarlyExitException('Unable to create new issue.', 500)
+      raise helpers.EarlyExitError('Unable to create new issue.', 500)
 
   @handler.post(handler.JSON, handler.JSON)
   @handler.require_csrf_token

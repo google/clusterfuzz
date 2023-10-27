@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
@@ -48,8 +49,14 @@ def execute_task(testcase_id, job_type):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  file_list, _, testcase_file_path = setup.setup_testcase(testcase, job_type)
-  if not file_list:
+  setup_input = setup.preprocess_setup_testcase(testcase)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
+                                                      setup_input)
+  if error:
+    # TODO(metzman): Assert trusted.
+    # Because this is trusted, we can trust the error.
+    all_errors = uworker_handle_errors.get_all_handled_errors()
+    uworker_handle_errors.handle(error, all_errors)
     return
 
   # Initialize variables.

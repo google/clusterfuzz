@@ -80,7 +80,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     """Return a bytesio representing a GCS object."""
     data = storage.read_data(gcs_path)
     if not data:
-      raise helpers.EarlyExitException('Failed to read uploaded archive.', 500)
+      raise helpers.EarlyExitError('Failed to read uploaded archive.', 500)
 
     return io.BytesIO(data)
 
@@ -116,7 +116,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     launcher_script = archive.get_first_file_matching(launcher_script, reader,
                                                       upload_info.filename)
     if not launcher_script:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Specified launcher script was not found in archive!', 400)
 
     return launcher_script
@@ -130,19 +130,18 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
     try:
       value = int(value)
     except (ValueError, TypeError):
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           '{key} must be an integer.'.format(key=key), 400)
 
     if value <= 0:
-      raise helpers.EarlyExitException(
-          '{key} must be > 0.'.format(key=key), 400)
+      raise helpers.EarlyExitError('{key} must be > 0.'.format(key=key), 400)
 
     return value
 
   def apply_fuzzer_changes(self, fuzzer, upload_info):
     """Apply changes to a fuzzer."""
     if upload_info and not archive.is_archive(upload_info.filename):
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Sorry, only zip, tgz, tar.gz, tbz, and tar.bz2 archives are '
           'allowed!', 400)
 
@@ -155,7 +154,7 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
       # Executable path is required for non-builtin fuzzers and if it is not
       # already set.
       if not fuzzer.executable_path and not executable_path:
-        raise helpers.EarlyExitException(
+        raise helpers.EarlyExitError(
             'Please enter the path to the executable, or if the archive you '
             'uploaded is less than 16MB, ensure that the executable file has '
             '"run" in its name.', 400)
@@ -215,21 +214,21 @@ class CreateHandler(BaseEditHandler):
     """Handle a post request."""
     name = request.get('name')
     if not name:
-      raise helpers.EarlyExitException('Please give the fuzzer a name!', 400)
+      raise helpers.EarlyExitError('Please give the fuzzer a name!', 400)
 
     if not data_types.Fuzzer.VALID_NAME_REGEX.match(name):
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Fuzzer name can only contain letters, numbers, dashes and '
           'underscores.', 400)
 
     existing_fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == name)
     if existing_fuzzer.get():
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'Fuzzer already exists. Please use the EDIT button for changes.', 400)
 
     upload_info = self.get_upload()
     if not upload_info:
-      raise helpers.EarlyExitException('Need to upload an archive.', 400)
+      raise helpers.EarlyExitError('Need to upload an archive.', 400)
 
     fuzzer = data_types.Fuzzer()
     fuzzer.name = name
@@ -249,7 +248,7 @@ class EditHandler(BaseEditHandler):
 
     fuzzer = ndb.Key(data_types.Fuzzer, key).get()
     if not fuzzer:
-      raise helpers.EarlyExitException('Fuzzer not found.', 400)
+      raise helpers.EarlyExitError('Fuzzer not found.', 400)
 
     upload_info = self.get_upload()
     return self.apply_fuzzer_changes(fuzzer, upload_info)
@@ -267,7 +266,7 @@ class DeleteHandler(base_handler.Handler):
 
     fuzzer = ndb.Key(data_types.Fuzzer, key).get()
     if not fuzzer:
-      raise helpers.EarlyExitException('Fuzzer not found.', 400)
+      raise helpers.EarlyExitError('Fuzzer not found.', 400)
 
     fuzzer_selection.update_mappings_for_fuzzer(fuzzer, mappings=[])
     fuzzer.key.delete()
@@ -286,7 +285,7 @@ class LogHandler(base_handler.Handler):
     fuzzer = data_types.Fuzzer.query(
         data_types.Fuzzer.name == fuzzer_name).get()
     if not fuzzer:
-      raise helpers.EarlyExitException('Fuzzer not found.', 400)
+      raise helpers.EarlyExitError('Fuzzer not found.', 400)
 
     return self.render('viewer.html', {
         'title': 'Output for ' + fuzzer.name,

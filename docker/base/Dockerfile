@@ -78,7 +78,8 @@ COPY --from=xenial \
 RUN curl -sS https://releases.nixos.org/patchelf/patchelf-0.9/patchelf-0.9.tar.bz2 | tar -C /tmp -xj && \
     cd /tmp/patchelf-*/ && \
     ./configure --prefix=/usr && \
-    make install
+    make install && \
+    rm -rf /tmp/patchelf-*
 
 # Install OpenJDK 15 for Jazzer (Java fuzzer).
 # Copied from gcr.io/oss-fuzz-base/base-runner.
@@ -96,7 +97,11 @@ RUN curl -sS https://www.python.org/ftp/python/3.7.7/Python-3.7.7.tgz | tar -C /
     cd /tmp/Python-3.7.7 && \
     ./configure --enable-optimizations --enable-loadable-sqlite-extensions && make altinstall && \
     rm -rf /tmp/Python-3.7.7
-RUN pip3.7 install pipenv
+RUN pip3.7 --no-cache-dir install pipenv==2022.8.5
+
+# Install Node.js
+COPY setup_19.x /data
+RUN bash setup_19.x && apt-get update -y && apt-get install -y nodejs
 
 RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
     | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
@@ -108,8 +113,8 @@ RUN echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
 # Set up google-fluentd
 # We ignore errors in install-logging-agent.sh as it always fails to start
 # after installation without a metadata server.
-RUN curl -sSO https://dl.google.com/cloudagents/install-logging-agent.sh && \
-    bash install-logging-agent.sh || true && \
+RUN curl -sSO https://dl.google.com/cloudagents/add-logging-agent-repo.sh && \
+    bash add-logging-agent-repo.sh --also-install --version=1.10.1 || true && \
     sed -i 's/flush_interval 5s/flush_interval 60s/' /etc/google-fluentd/google-fluentd.conf
 COPY clusterfuzz-fluentd.conf /etc/google-fluentd/config.d/clusterfuzz.conf
 
@@ -137,13 +142,10 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV PYTHONIOENCODING UTF-8
 
-COPY setup_common.sh setup_clusterfuzz.sh setup_nfs.sh start_clusterfuzz.sh setup_mock_metadata.sh start.sh Pipfile Pipfile.lock /data/
+COPY setup_common.sh setup_clusterfuzz.sh start_clusterfuzz.sh setup_mock_metadata.sh Pipfile Pipfile.lock start.sh /data/
 RUN cd /data && \
     # Make pip3.7 the default so that pipenv install --system works.
     mv /usr/local/bin/pip3.7 /usr/local/bin/pip && \
-    pipenv install --deploy --system && \
-    # Install tensorflow here as it's not included in the Pipfile due to
-    # strict python version requirements.
-    pip install tensorflow==2.3.0
-CMD ["bash", "-ex", "/data/start.sh"]
+    pipenv install --deploy --system
 
+CMD ["bash", "-ex", "/data/start.sh"]

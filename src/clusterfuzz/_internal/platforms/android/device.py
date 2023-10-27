@@ -18,8 +18,6 @@ import datetime
 import os
 import time
 
-import six
-
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.config import db_config
@@ -211,7 +209,7 @@ def configure_system_build_properties():
 
   # Write new build.prop.
   new_build_prop_path = os.path.join(bot_tmp_directory, 'new.prop')
-  old_build_prop_file_content = open(old_build_prop_path, 'r')
+  old_build_prop_file_content = open(old_build_prop_path)
   new_build_prop_file_content = open(new_build_prop_path, 'w')
   new_content_notification = '### CHANGED OR ADDED PROPERTIES ###'
   for line in old_build_prop_file_content:
@@ -223,7 +221,7 @@ def configure_system_build_properties():
     new_build_prop_file_content.write(line)
 
   new_build_prop_file_content.write(new_content_notification + '\n')
-  for flag, value in six.iteritems(BUILD_PROPERTIES):
+  for flag, value in BUILD_PROPERTIES.items():
     new_build_prop_file_content.write('%s=%s\n' % (flag, value))
   old_build_prop_file_content.close()
   new_build_prop_file_content.close()

@@ -22,10 +22,10 @@ import webtest
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers import download
-from libs.issue_management import issue_tracker
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -50,7 +50,7 @@ class DownloadTest(unittest.TestCase):
         'libs.access.has_access',
         'libs.gcs.get_signed_url',
         'libs.helpers.get_user_email',
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
     ])
     self.mock.is_oss_fuzz.return_value = False
@@ -334,7 +334,7 @@ class DownloadTest(unittest.TestCase):
         testcase_id=self.testcase.key.id(),
         expect_filename=expect_filename)
 
-    expect_filename = ('clusterfuzz-testcase-%s.ext' % self.testcase.key.id())
+    expect_filename = 'clusterfuzz-testcase-%s.ext' % self.testcase.key.id()
     self._test_download(
         self.fuzzed_key,
         testcase_id=self.testcase.key.id(),

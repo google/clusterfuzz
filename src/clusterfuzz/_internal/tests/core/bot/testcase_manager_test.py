@@ -17,8 +17,8 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
-import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz import stacktraces
@@ -59,11 +59,11 @@ class CreateTestcaseListFileTest(fake_filesystem_unittest.TestCase):
     testcase_list_file_path = '/test/aa/files.info'
     self.assertTrue(os.path.exists(testcase_list_file_path))
 
-    expected_files_list = set([
+    expected_files_list = {
         'bb.txt',
         'cc.txt',
         'aa/dd.txt',
-    ])
+    }
     actual_files_list = set(
         open(testcase_list_file_path, encoding='utf-8').read().splitlines())
     self.assertEqual(expected_files_list, actual_files_list)
@@ -363,14 +363,13 @@ class GetResourcePathsTest(unittest.TestCase):
 
     result = testcase_manager.get_resource_paths(output)
     self.assertEqual(5, len(result))
-    self.assertEqual(
-        set([
-            'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js',
-            'file:///projects/chromium/src/third_party/WebKit/LayoutTests/resources/test-harness.js',
-            'http://127.0.0.1:8000/fuzzer-common-data-bundles/webkit/layouttests/fast/canvas/fuzz-http-11.html',
-            'https://en.m.wikipedia.org',
-            'file:///tmp/test.js',
-        ]), set(result))
+    self.assertEqual({
+        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js',
+        'file:///projects/chromium/src/third_party/WebKit/LayoutTests/resources/test-harness.js',
+        'http://127.0.0.1:8000/fuzzer-common-data-bundles/webkit/layouttests/fast/canvas/fuzz-http-11.html',
+        'https://en.m.wikipedia.org',
+        'file:///tmp/test.js',
+    }, set(result))
     self.mock.convert_dependency_url_to_local_path.assert_has_calls([
         mock.call(
             'file:///projects/chromium/src/third_party/WebKit/LayoutTests/paint/invalidation/resources/text-based-repaint.js'
@@ -418,7 +417,7 @@ def mock_get_crash_data(output, symbolize_flag=True):  # pylint: disable=unused-
 class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   """Tests for running testcases."""
 
-  GREYBOX_FUZZER_NO_CRASH = ('Command: cmd\nTime ran: 0\n\noutput')
+  GREYBOX_FUZZER_NO_CRASH = 'Command: cmd\nTime ran: 0\n\noutput'
   GREYBOX_FUZZER_CRASH = 'Command: cmd\nTime ran: 1\n\ncrash'
 
   def setUp(self):

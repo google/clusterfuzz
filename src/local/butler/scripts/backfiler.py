@@ -16,7 +16,7 @@
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
-from libs.issue_management import oss_fuzz_github
+from clusterfuzz._internal.issue_management import oss_fuzz_github
 
 
 def execute(args):

@@ -13,20 +13,20 @@
 # limitations under the License.
 """access tests."""
 import unittest
-
 # pylint: disable=protected-access
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail import \
+    issue_tracker_manager
+from clusterfuzz._internal.issue_management.monorail import issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
 from libs import access
 from libs import auth
 from libs import helpers
-from libs.issue_management import monorail
-from libs.issue_management.monorail import issue
-from libs.issue_management.monorail import issue_tracker_manager
 
 
 class GetUserJobTypeTest(unittest.TestCase):
@@ -247,10 +247,10 @@ class CanUserAccessTestcaseTest(unittest.TestCase):
         'libs.access._is_domain_allowed',
         'libs.auth.get_current_user',
         'clusterfuzz._internal.config.db_config.get',
-        'libs.issue_management.issue_tracker.IssueTracker.get_original_issue',
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_tracker.IssueTracker.get_original_issue',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
-        'libs.issue_management.monorail.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.monorail.issue_tracker_manager.'
         'IssueTrackerManager',
     ])
     self.itm = issue_tracker_manager.IssueTrackerManager('test')
@@ -442,7 +442,7 @@ class CheckAccessAndGetTestcase(unittest.TestCase):
   def test_not_logged_in(self):
     """Test not logged in."""
     self.mock.get_user_email.return_value = ''
-    with self.assertRaises(helpers.UnauthorizedException):
+    with self.assertRaises(helpers.UnauthorizedError):
       access.check_access_and_get_testcase(self.testcase.key.id())
 
   def test_privileged(self):
@@ -450,6 +450,6 @@ class CheckAccessAndGetTestcase(unittest.TestCase):
     self.mock.has_access.return_value = True
     access.check_access_and_get_testcase(self.testcase.key.id())
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       access.check_access_and_get_testcase(self.testcase.key.id() + 1)
     self.assertEqual(404, cm.exception.status)

@@ -64,7 +64,7 @@ LSAN_ANALYSIS_TIME = 1
 THREAD_FINISH_WAIT_TIME = 5
 
 
-class ProcessStatus(object):
+class ProcessStatus:
   """Process exited notification."""
 
   def __init__(self):
@@ -394,8 +394,7 @@ def get_runtime_snapshot():
           ppid=process_info['ppid'])
       process_cmd_line = process_info['cmdline']
       if process_cmd_line:
-        process_string += ': {cmd_line}'.format(
-            cmd_line=(' '.join(process_cmd_line)))
+        process_string += f': {" ".join(process_cmd_line)}'
       process_strings.append(process_string)
     except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
       # Ignore the error, use whatever info is available for access.

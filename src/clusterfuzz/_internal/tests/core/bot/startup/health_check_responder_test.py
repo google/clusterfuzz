@@ -16,8 +16,8 @@
 from http.server import HTTPServer
 import threading
 import unittest
+from unittest import mock
 
-import mock
 import requests
 
 from python.bot.startup.health_check_responder import EXPECTED_SCRIPTS
@@ -26,6 +26,7 @@ from python.bot.startup.health_check_responder import RESPONDER_IP
 from python.bot.startup.health_check_responder import RESPONDER_PORT
 
 RESPONDER_ADDR = f'http://{RESPONDER_IP}:{RESPONDER_PORT}'
+HTTP_REQUEST_TIMEOUT = 15
 
 
 class HealthCheckResponderTest(unittest.TestCase):
@@ -58,7 +59,10 @@ class HealthCheckResponderTest(unittest.TestCase):
         self.mock_run_process, self.mock_run_bot_process
     ]
 
-    self.assertEqual(200, requests.get(f'{RESPONDER_ADDR}').status_code)
+    self.assertEqual(
+        200,
+        requests.get(f'{RESPONDER_ADDR}',
+                     timeout=HTTP_REQUEST_TIMEOUT).status_code)
 
   @mock.patch(
       'python.bot.startup.health_check_responder.process_handler.psutil')
@@ -66,7 +70,10 @@ class HealthCheckResponderTest(unittest.TestCase):
     """Testcase for only the run script is running."""
     mock_psutil.process_iter.return_value = [self.mock_run_process]
 
-    self.assertEqual(500, requests.get(f'{RESPONDER_ADDR}').status_code)
+    self.assertEqual(
+        500,
+        requests.get(f'{RESPONDER_ADDR}',
+                     timeout=HTTP_REQUEST_TIMEOUT).status_code)
 
   @mock.patch(
       'python.bot.startup.health_check_responder.process_handler.psutil')
@@ -74,11 +81,17 @@ class HealthCheckResponderTest(unittest.TestCase):
     """Testcase for only the run_bot script is running."""
     mock_psutil.process_iter.return_value = [self.mock_run_bot_process]
 
-    self.assertEqual(500, requests.get(f'{RESPONDER_ADDR}').status_code)
+    self.assertEqual(
+        500,
+        requests.get(f'{RESPONDER_ADDR}',
+                     timeout=HTTP_REQUEST_TIMEOUT).status_code)
 
   @mock.patch(
       'python.bot.startup.health_check_responder.process_handler.psutil')
   def test_both_terminated(self, mock_psutil):
     """Testcase for neither script is running."""
     mock_psutil.process_iter.return_value = []
-    self.assertEqual(500, requests.get(f'{RESPONDER_ADDR}').status_code)
+    self.assertEqual(
+        500,
+        requests.get(f'{RESPONDER_ADDR}',
+                     timeout=HTTP_REQUEST_TIMEOUT).status_code)

@@ -23,13 +23,13 @@ from . import protobuf_utils
 
 def process_result_to_proto(process_result):
   """Convert new_process.ProcessResult to proto."""
-  process_result_proto = untrusted_runner_pb2.ProcessResult(
+  process_result_proto = untrusted_runner_pb2.ProcessResult(  # pylint: disable=no-member
       return_code=process_result.return_code,
       output=process_result.output,
       time_executed=process_result.time_executed,
       timed_out=process_result.timed_out)
 
-  process_result_proto.command.extend(process_result.command)
+  process_result_proto.command.extend(process_result.command)  # pylint: disable=no-member
 
   return process_result_proto
 
@@ -58,7 +58,7 @@ def run_and_wait(request, _):
 
   logs.log('Running command: %s' % process_runner.get_command())
 
-  return untrusted_runner_pb2.RunAndWaitResponse(
+  return untrusted_runner_pb2.RunAndWaitResponse(  # pylint: disable=no-member
       result=process_result_to_proto(process_runner.run_and_wait(**args)))
 
 
@@ -80,7 +80,9 @@ def run_process(request, _):
   protobuf_utils.get_protobuf_field(args, request, 'ignore_children')
 
   return_code, execution_time, output = process_handler.run_process(**args)
-  response = untrusted_runner_pb2.RunProcessResponse(
-      return_code=return_code, execution_time=execution_time, output=output)
+  response = untrusted_runner_pb2.RunProcessResponse(  # pylint: disable=no-member
+      return_code=return_code,
+      execution_time=execution_time,
+      output=output)
 
   return response

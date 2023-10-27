@@ -55,7 +55,7 @@ def _setup_args_for_remote(parser):
       '-i',
       '--instance-name',
       required=True,
-      help=('The instance name (e.g. clusterfuzz-linux-0005).'))
+      help='The instance name (e.g. clusterfuzz-linux-0005).')
   parser.add_argument('--project', help='The Project ID.')
   parser.add_argument('--zone', help='The Project Zone.')
 
@@ -157,7 +157,7 @@ def main():
   parser_deploy.add_argument(
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
-      '--targets', nargs='*', default=['appengine', 'zips'])
+      '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')
@@ -211,11 +211,11 @@ def main():
       'running normally.')
 
   parser_remote = subparsers.add_parser(
-      'remote', help=('Run command-line tasks on a remote bot.'))
+      'remote', help='Run command-line tasks on a remote bot.')
   _setup_args_for_remote(parser_remote)
 
   parser_clean_indexes = subparsers.add_parser(
-      'clean_indexes', help=('Clean up undefined indexes (in index.yaml).'))
+      'clean_indexes', help='Clean up undefined indexes (in index.yaml).')
   parser_clean_indexes.add_argument(
       '-c', '--config-dir', required=True, help='Path to application config.')
 
@@ -252,11 +252,11 @@ def main():
   args = parser.parse_args()
   if not args.command:
     parser.print_help()
-    return
+    return 0
 
   _setup()
   command = importlib.import_module(f'local.butler.{args.command}')
-  command.execute(args)
+  return command.execute(args)
 
 
 def _setup():
@@ -270,4 +270,4 @@ def _setup():
 
 
 if __name__ == '__main__':
-  main()
+  sys.exit(main())

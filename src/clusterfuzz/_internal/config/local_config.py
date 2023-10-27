@@ -15,7 +15,6 @@
 
 import os
 
-import six
 import yaml
 
 from clusterfuzz._internal.base import errors
@@ -134,7 +133,7 @@ def _search_key(search_path, full_key_name, value_is_relative_path):
                                 value_is_relative_path)
 
 
-class Config(object):
+class Config:
   """Config class helper."""
 
   def __init__(self, root=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
@@ -195,7 +194,7 @@ class ProjectConfig(Config):
   """Project Config class helper."""
 
   def __init__(self):
-    super(ProjectConfig, self).__init__(PROJECT_PATH)
+    super().__init__(PROJECT_PATH)
 
   def set_environment(self):
     """Sets environment vars from project config."""
@@ -203,7 +202,7 @@ class ProjectConfig(Config):
     if not env_variable_values:
       return
 
-    for variable, value in six.iteritems(env_variable_values):
+    for variable, value in env_variable_values.items():
       if variable in os.environ:
         # Don't override existing values.
         continue
@@ -215,25 +214,25 @@ class AuthConfig(Config):
   """Authentication config."""
 
   def __init__(self):
-    super(AuthConfig, self).__init__(GAE_AUTH_PATH)
+    super().__init__(GAE_AUTH_PATH)
 
 
 class GAEConfig(Config):
   """GAE config."""
 
   def __init__(self):
-    super(GAEConfig, self).__init__(GAE_CONFIG_PATH)
+    super().__init__(GAE_CONFIG_PATH)
 
 
 class MonitoringRegionsConfig(Config):
   """Monitoring regions config."""
 
   def __init__(self):
-    super(MonitoringRegionsConfig, self).__init__(MONITORING_REGIONS_PATH)
+    super().__init__(MONITORING_REGIONS_PATH)
 
 
 class IssueTrackerConfig(Config):
   """Issue tracker config."""
 
   def __init__(self):
-    super(IssueTrackerConfig, self).__init__(ISSUE_TRACKERS_PATH)
+    super().__init__(ISSUE_TRACKERS_PATH)

@@ -384,6 +384,7 @@ def _staging_deployment_helper(python3=True):
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
+                            deploy_k8s=True,
                             python3=True):
   """Helper for production deployment."""
   config = local_config.Config()
@@ -419,7 +420,41 @@ def _prod_deployment_helper(config_dir,
   if deploy_appengine:
     common.execute('python butler.py run setup --config-dir {config_dir} '
                    '--non-dry-run'.format(config_dir=config_dir))
+
+  if deploy_k8s:
+    _deploy_terraform(config_dir)
+    _deploy_k8s(config_dir)
   print('Production deployment finished.')
+
+
+def _deploy_terraform(config_dir):
+  """Deploys GKE cluster via terraform."""
+  terraform_dir = os.path.join(config_dir, 'terraform')
+  terraform = f'terraform -chdir={terraform_dir}'
+  common.execute(f'{terraform} init')
+  common.execute(f'{terraform} apply -target=module.clusterfuzz -auto-approve')
+  common.execute(f'rm -rf {terraform_dir}/.terraform*')
+
+
+def _deploy_k8s(config_dir):
+  """Deploys all k8s workloads."""
+  k8s_dir = os.path.join('infra', 'k8s')
+  k8s_instance_dir = os.path.join(config_dir, 'k8s')
+  k8s_project = local_config.ProjectConfig().get('env.K8S_PROJECT')
+  redis_host = _get_redis_ip(k8s_project)
+  os.environ['REDIS_HOST'] = redis_host
+  common.execute(f'gcloud config set project {k8s_project}')
+  common.execute(
+      'gcloud container clusters get-credentials clusterfuzz-cronjobs-gke '
+      f'--region={appengine.region(k8s_project)}')
+  for workload in common.get_all_files(k8s_dir):
+    # pylint:disable=anomalous-backslash-in-string
+    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
+
+  # Deploys cron jobs that are defined in the current instance configuration.
+  for workload in common.get_all_files(k8s_instance_dir):
+    # pylint:disable=anomalous-backslash-in-string
+    common.execute(fr'envsubst \$REDIS_HOST < {workload} | kubectl apply -f -')
 
 
 def execute(args):
@@ -479,6 +514,7 @@ def execute(args):
 
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
+  deploy_k8s = 'k8s' in args.targets
 
   is_python3 = sys.version_info.major == 3
   package_zip_paths = []
@@ -509,6 +545,7 @@ def execute(args):
         args.config_dir,
         package_zip_paths,
         deploy_appengine,
+        deploy_k8s,
         python3=is_python3)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:

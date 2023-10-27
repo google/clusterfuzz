@@ -17,7 +17,6 @@ import os
 import unittest
 
 from pyfakefs import fake_filesystem_unittest
-import six
 
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -27,7 +26,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 class TestRequestHandler(http_server.RequestHandler):
   """Override methods which would be problematic for testing."""
 
-  class TestWFile(object):
+  class TestWFile:
 
     def __init__(self):
       self.contents = ''
@@ -40,7 +39,7 @@ class TestRequestHandler(http_server.RequestHandler):
     self.wfile = self.TestWFile()
     self.path = path
 
-  def send_response(self, response_code, _=None):  # pylint: disable=arguments-differ
+  def send_response(self, response_code, _=None):  # pylint: disable=arguments-differ,arguments-renamed
     self.response_code = response_code
 
   def send_header(self, *_):  # pylint: disable=arguments-differ
@@ -102,7 +101,7 @@ class GuessMimeTypeTest(unittest.TestCase):
         'file.css': 'text/css',
         'file.jpg': 'image/jpeg',
     }
-    for filename, expected_value in six.iteritems(expected_types_map):
+    for filename, expected_value in expected_types_map.items():
       self.assertEqual(http_server.guess_mime_type(filename), expected_value)
 
   def test_invalid_type(self):

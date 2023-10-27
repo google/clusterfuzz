@@ -22,6 +22,7 @@ import zlib
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -569,7 +570,7 @@ def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
   return result
 
 
-class TestcaseRunner(object):
+class TestcaseRunner:
   """Testcase runner."""
 
   def __init__(self,
@@ -1113,10 +1114,29 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
 
 
 def check_for_bad_build(job_type, crash_revision):
-  """Return true if the build is bad, i.e. crashes on startup."""
+  """
+  Checks whether the target binary fails to execute at the given revision.
+
+  Arguments:
+    job_type (str): The type of job we are executing on.
+    crash_revision (int): The revision at which the target was built.
+
+  Returns a UworkerMsg with the following attributes:
+    is_bad_build (bool): Whether the target build is bad. If True, the target
+      cannot be used for executing testcases.
+    should_ignore_crash (bool): True iff the target crashed, but we should
+      ignore it.
+    build_run_console_output (Optional[str]): The build run output, containing
+      crash stacktraces (if any).
+  """
   # Check the bad build check flag to see if we want do this.
   if not environment.get_value('BAD_BUILD_CHECK'):
-    return False
+    # should_ignore_crash_result set to True because build metadata does not
+    # need to be updated in this case.
+    return uworker_io.BuildData(
+        is_bad_build=False,
+        should_ignore_crash_result=True,
+        build_run_console_output='')
 
   # Create a blank command line with no file to run and no http.
   command = get_command_line_for_application(file_to_run='', needs_http=False)
@@ -1171,18 +1191,36 @@ def check_for_bad_build(job_type, crash_revision):
 
   # Any of the conditions below indicate that bot is in a bad state and it is
   # not caused by the build itself. In that case, just exit.
-  build_state = data_handler.get_build_state(job_type, crash_revision)
   if is_bad_build and utils.sub_string_exists_in(BAD_STATE_HINTS, output):
     logs.log_fatal_and_exit(
         'Bad bot environment detected, exiting.',
         output=build_run_console_output,
         snapshot=process_handler.get_runtime_snapshot())
+  return uworker_io.BuildData(
+      is_bad_build=is_bad_build,
+      should_ignore_crash_result=crash_result.should_ignore(),
+      build_run_console_output=build_run_console_output)
 
+
+def update_build_metadata(job_type, crash_revision, build_data):
+  """
+  Updates the corresponding build metadata.
+
+  This method is intended to be called (from a trusted worker) on the result of
+  check_for_bad_build. It adds the corresponding build metadata if ncecessary.
+
+  Arguments:
+    job_type (str): The type of job we are executing on.
+    crash_revision (int): The revision at which the target was built.
+    build_data (BuildData): the result of check_for_bad_build call.
+  """
+  if build_data.should_ignore_crash_result:
+    return
+
+  build_state = data_handler.get_build_state(job_type, crash_revision)
   # If none of the other bots have added information about this build,
   # then add it now.
-  if (build_state == data_types.BuildState.UNMARKED and
-      not crash_result.should_ignore()):
-    data_handler.add_build_metadata(job_type, crash_revision, is_bad_build,
-                                    build_run_console_output)
-
-  return is_bad_build
+  if build_state == data_types.BuildState.UNMARKED:
+    data_handler.add_build_metadata(job_type, crash_revision,
+                                    build_data.is_bad_build,
+                                    build_data.build_run_console_output)

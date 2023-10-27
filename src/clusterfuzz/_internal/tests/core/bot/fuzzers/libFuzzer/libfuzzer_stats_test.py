@@ -26,7 +26,7 @@ class PerformanceStatsTest(unittest.TestCase):
 
   def setUp(self):
     """Prepare test data and necessary env variables."""
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
     test_helpers.patch_environ(self)
     self.data_directory = os.path.join(
@@ -90,21 +90,16 @@ class PerformanceStatsTest(unittest.TestCase):
         'new_edges': 0,
         'new_features': 0,
         'oom_count': 0,
-        'recommended_dict_size': 0,
         'slow_unit_count': 0,
         'slow_units_count': 0,
         'startup_crash_count': 0,
         'strategy_dataflow_tracing': 0,
         'strategy_extra_sanitizers': 0,
         'strategy_corpus_mutations_radamsa': 1,
-        'strategy_corpus_mutations_ml_rnn': 0,
         'strategy_corpus_subset': 50,
         'strategy_fork': 1,
-        'strategy_mutator_plugin_radamsa': 0,
         'strategy_peach_grammar_mutation': '',
-        'strategy_mutator_plugin': 1,
         'strategy_random_max_len': 1,
-        'strategy_recommended_dict': 0,
         'strategy_selection_method': 'default',
         'strategy_value_profile': 0,
         'timeout_count': 0

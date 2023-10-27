@@ -33,8 +33,6 @@ import re
 import subprocess
 import sys
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
@@ -61,14 +59,17 @@ symbolizers = {}
 
 # 0 0x7f6e35cf2e45  (/blah/foo.so+0x11fe45)
 STACK_TRACE_LINE_REGEX = re.compile(
-    '^( *#([0-9]+) *)(0x[0-9a-f]+) *\(([^+]*)\+(0x[0-9a-f]+)\)')
+    r'^( *#([0-9]+) *)(0x[0-9a-f]+) *\(([^+]*)\+(0x[0-9a-f]+)\)')
 # [    0.058680] #0 [<0x000000000062a66a>] print_address_description+0x6a/0x5c0
 STACK_TRACE_LINE_REGEX_LKL = re.compile(
     r'^\[ *\d+\.\d+\]( *#([0-9]+) *)\[\<([x0-9a-fA-F]+)\>\] *'
     r'\(?(([\w]+)\+([\w]+)/[\w]+)\)?')
+# uSP+0x7c80: 0x00000000000922a8 libc_start_main_stage2+0x3c/0x40
+STACK_TRACE_LINE_TRUSTY = re.compile(
+    r'(^kSP|^uSP)\+([a-zA-Z0-9]{6}): (0x[a-fA-F0-9]{16})')
 
 
-class LineBuffered(object):
+class LineBuffered:
   """Disable buffering on a file object."""
 
   def __init__(self, stream):
@@ -210,7 +211,7 @@ def guess_arch(address):
     return 'i386'
 
 
-class Symbolizer(object):
+class Symbolizer:
 
   def __init__(self):
     pass
@@ -234,7 +235,7 @@ class Symbolizer(object):
 class LLVMSymbolizer(Symbolizer):
 
   def __init__(self, symbolizer_path, default_arch, system, dsym_hints=[]):
-    super(LLVMSymbolizer, self).__init__()
+    super().__init__()
     self.symbolizer_path = symbolizer_path
     self.default_arch = default_arch
     self.system = system
@@ -264,7 +265,7 @@ class LLVMSymbolizer(Symbolizer):
     # FIXME: Since we are not using process_handler.run_process here, we can run
     # into issues with unicode environment variable and values. Add this
     # explicit hack to convert these into strings.
-    env_copy = {str(key): str(value) for key, value in six.iteritems(env_copy)}
+    env_copy = {str(key): str(value) for key, value in env_copy.items()}
 
     # Run the symbolizer.
     pipe = subprocess.Popen(
@@ -309,7 +310,7 @@ def LLVMSymbolizerFactory(system, default_arch, dsym_hints=[]):
 class Addr2LineSymbolizer(Symbolizer):
 
   def __init__(self, binary):
-    super(Addr2LineSymbolizer, self).__init__()
+    super().__init__()
     self.binary = binary
     self.pipe = self.open_addr2line()
 
@@ -342,7 +343,7 @@ class Addr2LineSymbolizer(Symbolizer):
     return [get_stack_frame(binary, addr, function_name, file_name)]
 
 
-class UnbufferedLineConverter(object):
+class UnbufferedLineConverter:
   """Wrap a child process that responds to each line of input with one line of output.
 
   Uses pty to trick the child into providing unbuffered output.
@@ -376,7 +377,7 @@ class UnbufferedLineConverter(object):
 class DarwinSymbolizer(Symbolizer):
 
   def __init__(self, addr, binary, arch):
-    super(DarwinSymbolizer, self).__init__()
+    super().__init__()
     self.binary = binary
     self.arch = arch
     self.open_atos()
@@ -396,10 +397,10 @@ class DarwinSymbolizer(Symbolizer):
         atos_line = self.atos.readline()
       # A well-formed atos response looks like this:
       #   foo(type1, type2) (in object.name) (filename.cc:80)
-      match = re.match('^(.*) \(in (.*)\) \((.*:\d*)\)$', atos_line)
+      match = re.match(r'^(.*) \(in (.*)\) \((.*:\d*)\)$', atos_line)
       if match:
         function_name = match.group(1)
-        function_name = re.sub('\(.*?\)', '', function_name)
+        function_name = re.sub(r'\(.*?\)', '', function_name)
         file_name = match.group(3)
         return [get_stack_frame(binary, addr, function_name, file_name)]
       else:
@@ -415,7 +416,7 @@ class DarwinSymbolizer(Symbolizer):
 class ChainSymbolizer(Symbolizer):
 
   def __init__(self, symbolizer_list):
-    super(ChainSymbolizer, self).__init__()
+    super().__init__()
     self.symbolizer_list = symbolizer_list
 
   def symbolize(self, addr, binary, offset):
@@ -438,7 +439,7 @@ def SystemSymbolizerFactory(system, addr, binary, arch):
     return Addr2LineSymbolizer(binary)
 
 
-class SymbolizationLoop(object):
+class SymbolizationLoop:
 
   def __init__(self, binary_path_filter=None, dsym_hint_producer=None):
     # Used by clients who may want to supply a different binary name.
@@ -448,7 +449,7 @@ class SymbolizationLoop(object):
     self.system = sys.platform
     self.llvm_symbolizers = {}
     self.last_llvm_symbolizer = None
-    self.dsym_hints = set([])
+    self.dsym_hints = set()
     self.lkl_binary_name = None
 
   def symbolize_address(self, addr, binary, offset, arch):
@@ -525,9 +526,81 @@ class SymbolizationLoop(object):
 
     return None, None, None, None, None
 
+  def _trusty_line_parser(self, line):
+    """Parses line for memory_space, offset, and addr."""
+    match = STACK_TRACE_LINE_TRUSTY.match(line)
+    if match:
+      memory_space, offset, addr = match.groups()
+      return memory_space, offset, addr
+
+    return None, None, None
+
+  def _extract_trusty_app_name(self, stacktrace):
+    """Returns the name of the crashed Trusted App."""
+    #(app: keymaster)
+    match = re.compile(r'\(app:\s(\w+)\)').search(stacktrace)
+    if match:
+      return match.group(1)
+
+    return ''
+
+  def _extract_trusty_bid(self, stacktrace):
+    """Returns the build of the crashed Trusted App."""
+    #, Build: 1234567
+    match = re.compile(r',\sBuild:\s(\d+),\sBuilt:').search(stacktrace)
+    if match:
+      return match.group(1)
+
+    return ''
+
+  def _close_pipes(self):
+    """Closes any open pipes."""
+    for pipe in pipes:
+      pipe.stdin.close()
+      pipe.stdout.close()
+      try:
+        pipe.kill()
+      except ProcessLookupError:
+        pass
+
+  def process_trusty_stacktrace(self, unsymbolized_crash_stacktrace):
+    """Adds debug line information to a Trusted App stacktrace."""
+    symbols_dir = environment.get_value('SYMBOLS_DIR')
+    trusty_app = self._extract_trusty_app_name(unsymbolized_crash_stacktrace)
+    trusty_bid = self._extract_trusty_bid(unsymbolized_crash_stacktrace)
+
+    symbols_downloader.download_trusty_symbols_if_needed(
+        symbols_dir, trusty_app, trusty_bid)
+    kernel_binary = f'{symbols_dir}/lk.elf'
+    trusty_binary = f'{symbols_dir}/{trusty_app}.syms.elf'
+
+    symbolized_stacktrace = ''
+    unsymbolized_crash_stacktrace_lines = \
+      unsymbolized_crash_stacktrace.splitlines()
+    for line in unsymbolized_crash_stacktrace_lines:
+      line = line.strip()
+      memory_space, offset, addr = self._trusty_line_parser(line)
+      if memory_space == 'kSP':
+        addr2line = Addr2LineSymbolizer(kernel_binary)
+        symbolized_stacktrace += '{}+{}: {}\n'.format(
+            memory_space, offset,
+            addr2line.symbolize(addr, kernel_binary, addr)[0])
+      elif memory_space == 'uSP':
+        addr2line = Addr2LineSymbolizer(trusty_binary)
+        symbolized_stacktrace += '{}+{}: {}\n'.format(
+            memory_space, offset,
+            addr2line.symbolize(addr, trusty_binary, addr)[0])
+      else:
+        symbolized_stacktrace += '%s\n' % line
+
+    self._close_pipes()
+
+    return symbolized_stacktrace
+
   def process_stacktrace(self, unsymbolized_crash_stacktrace):
+    """Symbolizes a crash stacktrace."""
     self.frame_no = 0
-    symbolized_crash_stacktrace = u''
+    symbolized_crash_stacktrace = ''
     unsymbolized_crash_stacktrace_lines = \
       unsymbolized_crash_stacktrace.splitlines()
     if lkl.is_lkl_stack_trace(unsymbolized_crash_stacktrace):
@@ -545,7 +618,7 @@ class SymbolizationLoop(object):
       self.current_line = utils.decode_to_unicode(line.rstrip())
       frameno_str, addr, binary, offset, arch = line_parser(line)
       if not binary or not offset:
-        symbolized_crash_stacktrace += u'%s\n' % self.current_line
+        symbolized_crash_stacktrace += '%s\n' % self.current_line
         continue
 
       if frameno_str == '0':
@@ -561,18 +634,14 @@ class SymbolizationLoop(object):
                                                    offset, arch)
 
       if not symbolized_line:
-        symbolized_crash_stacktrace += u'%s\n' % self.current_line
+        symbolized_crash_stacktrace += '%s\n' % self.current_line
       else:
         for symbolized_frame in symbolized_line:
-          symbolized_crash_stacktrace += u'%s\n' % (
+          symbolized_crash_stacktrace += '%s\n' % (
               '    #' + str(self.frame_no) + ' ' + symbolized_frame.rstrip())
           self.frame_no += 1
 
-    # Close any left-over open pipes.
-    for pipe in pipes:
-      pipe.stdin.close()
-      pipe.stdout.close()
-      pipe.kill()
+    self._close_pipes()
 
     return symbolized_crash_stacktrace
 
@@ -642,6 +711,10 @@ def symbolize_stacktrace(unsymbolized_crash_stacktrace,
   loop = SymbolizationLoop(
       binary_path_filter=filter_binary_path,
       dsym_hint_producer=chrome_dsym_hints)
+  if environment.is_android_emulator():
+    symbolized_crash_stacktrace = loop.process_trusty_stacktrace(
+        unsymbolized_crash_stacktrace)
+
   symbolized_crash_stacktrace = loop.process_stacktrace(
       unsymbolized_crash_stacktrace)
 

@@ -13,42 +13,36 @@
 # limitations under the License.
 """Centipede engine interface."""
 
-from pathlib import Path
+from collections import namedtuple
+import os
+import pathlib
 import re
 import shutil
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+from clusterfuzz._internal.bot.fuzzers.centipede import constants
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
-_TIMEOUT = 25
-_SERVER_COUNT = 1
-_RSS_LIMIT = 4096
-_RLIMIT_AS = 5120
-_ADDRESS_SPACE_LIMIT = 0
-_DEFAULT_ARGUMENTS = [
-    '--exit_on_crash=1',
-    f'--timeout={_TIMEOUT}',
-    f'--fork_server={_SERVER_COUNT}',
-    f'--rss_limit_mb={_RSS_LIMIT}',
-    f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
-]
 
-_CRASH_REGEX = re.compile(r'Crash detected, saving input to (.*)')
+CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
+_CRASH_LOG_PREFIX = 'CRASH LOG: '
+TargetBinaries = namedtuple('TargetBinaries', ['unsanitized', 'sanitized'])
 
 
 class CentipedeError(Exception):
   """Base exception class."""
 
 
-def _get_runner():
+def _get_runner(target_path):
   """Gets the Centipede runner."""
-  centipede_path = Path(environment.get_value('BUILD_DIR'), 'centipede')
+  centipede_path = pathlib.Path(target_path).parent / 'centipede'
   if not centipede_path.exists():
     raise CentipedeError('Centipede not found in build')
 
@@ -60,13 +54,22 @@ def _get_runner():
 
 def _get_reproducer_path(log, reproducers_dir):
   """Gets the reproducer path, if any."""
-  crash_match = _CRASH_REGEX.search(log)
+  crash_match = CRASH_REGEX.search(log)
   if not crash_match:
     return None
-  tmp_crash_path = Path(crash_match.group(1))
-  crash_path = Path(reproducers_dir) / tmp_crash_path.name
+  tmp_crash_path = pathlib.Path(crash_match.group(1))
+  crash_path = pathlib.Path(reproducers_dir) / tmp_crash_path.name
   shutil.copy(tmp_crash_path, crash_path)
   return crash_path
+
+
+def _set_sanitizer_options(fuzzer_path):
+  """Sets sanitizer options based on .options file overrides."""
+  engine_common.process_sanitizer_options_overrides(fuzzer_path)
+  sanitizer_options_var = environment.get_current_memory_tool_var()
+  sanitizer_options = environment.get_memory_tool_options(
+      sanitizer_options_var, {})
+  environment.set_memory_tool_options(sanitizer_options_var, sanitizer_options)
 
 
 class Engine(engine.Engine):
@@ -76,6 +79,32 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
+  def _get_arguments(self, fuzzer_path):
+    """Gets the fuzzer arguments.
+    Returns default arguments and arguments specified by the options field.
+    Args:
+      fuzzer_path: Path to the main target in a string.
+
+    Returns:
+      A FuzzerArguments object.
+    """
+    arguments = fuzzer_options.FuzzerArguments({})
+    options = fuzzer_options.get_fuzz_target_options(fuzzer_path)
+
+    if options:
+      arguments = options.get_engine_arguments('centipede')
+
+    # We ignore this parameter in the options file because it doesn't really
+    # make sense not to crash on errors.
+    arguments[constants.EXIT_ON_CRASH_FLAGNAME] = 1
+
+    for key, val in constants.get_default_arguments().items():
+      if key not in arguments:
+        arguments[key] = val
+
+    return arguments
+
+  # pylint: disable=unused-argument
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepares for a fuzzing session, by generating options.
 
@@ -86,37 +115,86 @@ class Engine(engine.Engine):
 
     Returns:
       A FuzzOptions object.
-    """
-    arguments = []
-    dict_path = Path(
+   """
+    arguments = self._get_arguments(target_path)
+    dict_path = pathlib.Path(
         dictionary_manager.get_default_dictionary_path(target_path))
     if dict_path.exists():
-      arguments.append(f'--dictionary={dict_path}')
+      arguments[constants.DICTIONARY_FLAGNAME] = str(dict_path)
 
     # Directory workdir saves:
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
     workdir = self._create_temp_dir('workdir')
-    arguments.append(f'--workdir={workdir}')
+    arguments[constants.WORKDIR_FLAGNAME] = str(workdir)
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
-    arguments.append(f'--corpus_dir={corpus_dir}')
+    arguments[constants.CORPUS_DIR_FLAGNAME] = corpus_dir
 
-    # The unsanitized binary, Centipede requires it to be the main fuzz target.
-    arguments.append(f'--binary={target_path}')
-
-    # Extra sanitized binaries, Centipede requires to build them separately.
-    # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
-    sanitized_target_name = Path(target_path).name
-    sanitized_target_path = Path(build_dir, fuzzer_utils.EXTRA_BUILD_DIR,
-                                 sanitized_target_name)
-    if sanitized_target_path.exists():
-      arguments.append(f'--extra_binaries={sanitized_target_path}')
+    target_binaries = self._get_binary_paths(target_path)
+    if target_binaries.unsanitized is None:
+      # Assuming the only binary is always sanitized (e.g., from Chrome).
+      arguments[constants.BINARY_FLAGNAME] = str(target_binaries.sanitized)
+      logs.log_warn('Unable to find unsanitized target binary.')
     else:
-      logs.log_warn('Unable to find sanitized target binary.')
+      arguments[constants.BINARY_FLAGNAME] = str(target_binaries.unsanitized)
+      arguments[constants.EXTRA_BINARIES_FLAGNAME] = str(
+          target_binaries.sanitized)
 
-    return engine.FuzzOptions(corpus_dir, arguments, {})
+    return engine.FuzzOptions(corpus_dir, arguments.list(), {})
+
+  def _get_binary_paths(self, target_path):
+    """Gets the paths to the main and auxiliary binaries based on |target_path|
+    Args:
+      target_path: Path to the main target in a string.
+
+    Returns:
+      A named tuple containing paths to both target binaries as pathlib.Path.
+    """
+    # Centipede expects one or two target binaries:
+    # |-------------------------------------------------------|
+    # |            | main target path | auxiliary target path |
+    # |-------------------------------------------------------|
+    # | 1 binary   | sanitized        | -                     |
+    # |-------------------------------------------------------|
+    # | 2 binaries | unsanitized      | sanitized             |
+    # |-------------------------------------------------------|
+
+    main_target_path = pathlib.Path(target_path)
+    auxiliary_target_path = self._get_auxiliary_target_path(target_path)
+
+    if main_target_path.exists() and auxiliary_target_path.exists():
+      # 2 binaries were provided.
+      target_binaries = TargetBinaries(main_target_path, auxiliary_target_path)
+    elif main_target_path.exists():
+      # 1 binary was provided.
+      target_binaries = TargetBinaries(None, main_target_path)
+    else:
+      assert not auxiliary_target_path.exists()
+      raise RuntimeError('No fuzz target: Centipede cannot find main target '
+                         f'{main_target_path}, or auxiliary target '
+                         f'{auxiliary_target_path}.')
+
+    return target_binaries
+
+  def _get_auxiliary_target_path(self, target_path):
+    """Gets the auxiliary target path based on the main |target_path|.
+    When exists, it points to the sanitized binary, which is required by fuzzing
+    (as an auxiliary) and crash reproduction.
+
+    Args:
+      target_path: Path to the main target in a string.
+
+    Returns:
+      Path to the auxiliary binary as a pathlib.Path.
+    """
+    # Assuming they will be in child dirs named by fuzzer_utils.EXTRA_BUILD_DIR.
+    build_dir = environment.get_value('BUILD_DIR')
+    auxiliary_target_name = pathlib.Path(target_path).name
+    auxiliary_target_path = pathlib.Path(
+        build_dir, fuzzer_utils.EXTRA_BUILD_DIR, auxiliary_target_name)
+    return auxiliary_target_path
 
   def fuzz(self, target_path, options, reproducers_dir, max_time):  # pylint: disable=unused-argument
     """Runs a fuzz session.
@@ -131,13 +209,12 @@ class Engine(engine.Engine):
    Returns:
       A FuzzResult object.
     """
-    runner = _get_runner()
-    arguments = _DEFAULT_ARGUMENTS.copy()
-    arguments.extend(options.arguments)
-
+    runner = _get_runner(target_path)
+    _set_sanitizer_options(target_path)
     timeout = max_time + _CLEAN_EXIT_SECS
     fuzz_result = runner.run_and_wait(
-        additional_args=arguments, timeout=timeout)
+        additional_args=options.arguments, timeout=timeout)
+    fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
     crashes = []
@@ -152,6 +229,20 @@ class Engine(engine.Engine):
     return engine.FuzzResult(fuzz_result.output, fuzz_result.command, crashes,
                              stats, fuzz_result.time_executed)
 
+  @staticmethod
+  def trim_logs(fuzz_log):
+    """Strips the 'CRASH LOG:' prefix that breaks stacktrace parsing.
+
+    Args:
+      fuzz_result: The ProcessResult returned by running fuzzer binary.
+    """
+    trimmed_log_lines = [
+        line[len(_CRASH_LOG_PREFIX):]
+        if line.startswith(_CRASH_LOG_PREFIX) else line
+        for line in fuzz_log.splitlines()
+    ]
+    return '\n'.join(trimmed_log_lines)
+
   def reproduce(self, target_path, input_path, arguments, max_time):  # pylint: disable=unused-argument
     """Reproduces a crash given an input.
 
@@ -164,15 +255,33 @@ class Engine(engine.Engine):
     Returns:
       A ReproduceResult.
     """
-    runner = new_process.UnicodeProcessRunner(target_path, [input_path])
+    _set_sanitizer_options(target_path)
+    target_binaries = self._get_binary_paths(target_path)
+    sanitized_target = str(target_binaries.sanitized)
+
+    existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
+    if not existing_runner_flags:
+      rss_limit = constants.RSS_LIMIT_MB_DEFAULT
+      timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
+      os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
+          f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
+          f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
+
+    runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
+
+    if existing_runner_flags:
+      os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
+    else:
+      os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
+    result.output = Engine.trim_logs(result.output)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
   def _create_temp_dir(self, name):
     """Creates temporary directory for fuzzing."""
-    new_directory = Path(fuzzer_utils.get_temp_dir(), name)
+    new_directory = pathlib.Path(fuzzer_utils.get_temp_dir(), name)
     engine_common.recreate_directory(new_directory)
     return new_directory
 

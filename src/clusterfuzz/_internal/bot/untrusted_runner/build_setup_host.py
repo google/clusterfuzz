@@ -63,12 +63,12 @@ class RemoteRegularBuild(build_manager.RegularBuild):
   """Remote regular build."""
 
   def setup(self):
-    request = untrusted_runner_pb2.SetupRegularBuildRequest(
+    request = untrusted_runner_pb2.SetupRegularBuildRequest(  # pylint: disable=no-member
         base_build_dir=self.base_build_dir,
         revision=self.revision,
         build_url=self.build_url,
         build_prefix=self.build_prefix)
     if self.target_weights:
-      request.target_weights.update(self.target_weights)
+      request.target_weights.update(self.target_weights)  # pylint:disable=no-member
 
     return _handle_response(self, host.stub().SetupRegularBuild(request))

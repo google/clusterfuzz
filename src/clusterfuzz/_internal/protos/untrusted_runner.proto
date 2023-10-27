@@ -229,9 +229,7 @@ message StatRequest {
 
 message CrossPollinationStats {
   optional string project_qualified_name = 1;
-  optional string method = 2;
   optional string sources = 3;
-  optional string tags = 4;
   optional int32 initial_corpus_size = 5;
   optional int32 corpus_size = 6;
   optional int32 initial_edge_coverage = 7;

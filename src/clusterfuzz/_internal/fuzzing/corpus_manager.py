@@ -13,13 +13,19 @@
 # limitations under the License.
 """Functions for corpus synchronization with GCS."""
 
+import contextlib
+import datetime
+import io
 import os
 import re
 import shutil
+import uuid
+import zipfile
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
@@ -40,10 +46,17 @@ LATEST_BACKUP_TIMESTAMP = 'latest'
 PUBLIC_BACKUP_TIMESTAMP = 'public'
 REGRESSIONS_GCS_PATH_SUFFIX = '_regressions'
 
+ZIPPED_PATH_PREFIX = 'zipped'
+PARTIAL_ZIPCORPUS_PREFIX = 'partial'
+BASE_ZIPCORPUS_PREFIX = 'base'
+
 RSYNC_ERROR_REGEX = (br'CommandException:\s*(\d+)\s*files?/objects? '
                      br'could not be copied/removed')
 
 MAX_SYNC_ERRORS = 10
+
+# Default used by shutil.
+COPY_BUFFER_SIZE = 16 * 1024
 
 
 def _rsync_errors_below_threshold(gsutil_result, max_errors):
@@ -140,8 +153,8 @@ def gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
   Returns:
     A string giving the GCS URL.
   """
-  return 'gs://%s/corpus/%s/%s/' % (backup_bucket_name, fuzzer_name,
-                                    project_qualified_target_name)
+  return (f'gs://{backup_bucket_name}/corpus/{fuzzer_name}/'
+          f'{project_qualified_target_name}/')
 
 
 def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
@@ -154,16 +167,12 @@ def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
   backup_dir = gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
                                             project_qualified_target_name)
   backup_file = str(date) + os.extsep + BACKUP_ARCHIVE_FORMAT
-  return '%s/%s' % (backup_dir.rstrip('/'), backup_file)
+  return f'{backup_dir.rstrip("/")}/{backup_file}'
 
 
 def legalize_filenames(file_paths):
   """Convert the name of every file in |file_paths| a name that is legal on
   Windows. Returns list of legally named files."""
-  # TODO(metzman): Support legalizing filenames when called on trusted host, but
-  # file paths exist on untrusted workers. This is fine for now since Linux is
-  # the only supported platform on OSS-Fuzz and this functionality is not needed
-  # in OSS-Fuzz.
   if environment.is_trusted_host():
     return file_paths
 
@@ -202,14 +211,15 @@ def legalize_corpus_files(directory):
   legalize_filenames(files_list)
 
 
-class GcsCorpus(object):
+class GcsCorpus:
   """Google Cloud Storage corpus."""
 
+  # TODO(metzman): Consider merging this with FuzzTargetCorpus.
   def __init__(self,
                bucket_name,
                bucket_path='/',
                log_results=True,
-               _gsutil_runner=DEFAULT_GSUTIL_RUNNER):
+               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
     """Inits the GcsCorpus.
 
     Args:
@@ -219,7 +229,7 @@ class GcsCorpus(object):
     self._bucket_name = bucket_name
     self._bucket_path = bucket_path
     self._log_results = log_results
-    self._gsutil_runner = _gsutil_runner()
+    self._gsutil_runner = gsutil_runner_func()
 
   @property
   def bucket_name(self):
@@ -234,13 +244,29 @@ class GcsCorpus(object):
     Returns:
       A string giving the GCS URL.
     """
-    url = 'gs://%s' % self.bucket_name + self.bucket_path + suffix
+    # TODO(metzman): Delete this after we are done migrating to the zipcorpus
+    # format.
+    url = f'gs://{self.bucket_name}{self.bucket_path}{suffix}'
     if not url.endswith('/'):
       # Ensure that the bucket path is '/' terminated. Without this, when a
       # single file is being uploaded, it is renamed to the trailing non-/
       # terminated directory name instead.
       url += '/'
 
+    return url
+
+  def get_zipcorpus_gcs_dir_url(self):
+    """Build zipcorpus GCS URL for gsutil.
+    Returns:
+      A string giving the GCS URL.
+    """
+    url = storage.get_cloud_storage_file_path(
+        self.bucket_name, f'{ZIPPED_PATH_PREFIX}{self.bucket_path}')
+    if not url.endswith('/'):
+      # Ensure that the bucket path is '/' terminated. Without this, when a
+      # single file is being uploaded, it is renamed to the trailing non-/
+      # terminated directory name instead.
+      url += '/'
     return url
 
   def rsync_from_disk(self,
@@ -259,11 +285,56 @@ class GcsCorpus(object):
     """
     corpus_gcs_url = self.get_gcs_url()
     legalize_corpus_files(directory)
-    result = self._gsutil_runner.rsync(directory, corpus_gcs_url, timeout,
-                                       delete)
+    result = self._gsutil_runner.rsync(
+        directory, corpus_gcs_url, timeout, delete=delete)
+
+    # Upload zipcorpus.
+    # TODO(metzman): Get rid of the rest of this function when migration is
+    # complete.
+    filenames = shell.get_files_list(directory)
+    self._upload_to_zipcorpus(filenames, partial=False)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
+
+  def get_zipcorpora_gcs_urls(self, max_partial_corpora=float('inf')):
+    """Generates a sequence of GCS paths containing the base corpus and at most
+    |max_partial_corpora| (all of them by default) of the most recent partial
+    corpora. Note that this function can return a non-existent base zipcorpus,
+    so callers must ensure the zipcorpus exists before copying it."""
+    yield self.get_zipcorpus_gcs_url(partial=False)
+    partial_corpora_gcs_url = (
+        f'{self.get_zipcorpus_gcs_dir_url()}/{PARTIAL_ZIPCORPUS_PREFIX}*')
+    partial_corpora = reversed(
+        list(storage.list_blobs(partial_corpora_gcs_url)))
+    for idx, partial_corpus in enumerate(partial_corpora):
+      if idx > max_partial_corpora:
+        break
+      yield partial_corpus
+
+  def download_zipcorpora(self, dst_dir):
+    """Downloads zipcorpora, unzips their contents, and stores them in
+    |dst_dir|"""
+    for zipcorpus_url in self.get_zipcorpora_gcs_urls():
+      # TODO(metzman): Find out what's the tradeoff between writing the file to
+      # disk first or unpacking it in-memory.
+      with get_temp_zip_filename() as temp_zip_filename:
+        if not storage.exists(zipcorpus_url):
+          # This is expected to happen in two scenarios:
+          # 1. When a fuzzer is new, get_zipcorpora_gcs_urls() will always
+          # return the base zipcorpus even if it doesn't exist.
+          # 2. When this function is executed concurrently with a corpus prune,
+          # the intermediate corpus may be deleted.
+          if zipcorpus_url.endswith(f'{BASE_ZIPCORPUS_PREFIX}.zip'):
+            logs.log_warn(f'Base zipcorpus {zipcorpus_url} does not exist.')
+          else:
+            logs.log_error(
+                f'Zipcorpus {zipcorpus_url} was expected to exist but does not.'
+            )
+          continue
+        if not storage.copy_file_from(zipcorpus_url, temp_zip_filename):
+          continue
+        archive.unpack(temp_zip_filename, dst_dir)
 
   def rsync_to_disk(self,
                     directory,
@@ -285,6 +356,8 @@ class GcsCorpus(object):
     result = self._gsutil_runner.rsync(corpus_gcs_url, directory, timeout,
                                        delete)
 
+    # TODO(metzman): Download zipcorpora.
+
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
 
@@ -297,6 +370,7 @@ class GcsCorpus(object):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
+    # TODO(metzman): Merge this with rsync from disk when migration is complete.
     if not file_paths:
       return True
 
@@ -304,8 +378,108 @@ class GcsCorpus(object):
     # legal on Windows.
     file_paths = legalize_filenames(file_paths)
     gcs_url = self.get_gcs_url()
-    return self._gsutil_runner.upload_files_to_url(
+    result = self._gsutil_runner.upload_files_to_url(
         file_paths, gcs_url, timeout=timeout)
+
+    # Upload zipcorpus.
+    # TODO(metzman): Get rid of the rest of this function when migration is
+    # complete.
+    self._upload_to_zipcorpus(file_paths, partial=True)
+    return result
+
+  def get_zipcorpus_gcs_url(self, partial):
+    """Returns a zipcorpus URL for a partial zipcorpus if |partial|, or for a
+    base corpus if not."""
+    zipcorpus_url = self.get_zipcorpus_gcs_dir_url()
+    if partial:
+      timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+      prefix = f'{PARTIAL_ZIPCORPUS_PREFIX}-{timestamp}'
+    else:
+      prefix = BASE_ZIPCORPUS_PREFIX
+
+    filename = f'{prefix}.zip'
+    return zipcorpus_url + filename
+
+  def _upload_to_zipcorpus(self, file_paths, partial):
+    """Uploads |file_paths| to the zipcorpus on GCS. Uploads them as part of a
+    partial corpus if |partial| is True."""
+    gcs_url = self.get_zipcorpus_gcs_url(partial)
+    zip_file_generator = zip_in_memory(file_paths)
+    storage.write_stream(zip_file_generator, gcs_url)
+
+
+def _get_unique_filename(filename, seen_filenames):
+  """Returns a unique filename instead of |filename|."""
+  # Because of the way this function is used we will probably only ever get
+  # file_paths from one directory. But if we were to get files from different
+  # directories, it's possible there are name collisions. So do a low effort, no
+  # cost attempt to avoid this problem that preserves the original name for
+  # humans readers.
+  filename = os.path.basename(filename)
+  if filename not in seen_filenames:
+    seen_filenames.add(filename)
+    return filename
+  new_filename = f'{filename}-{str(uuid.uuid4()).lower()}'
+  # Assume no collisions
+  # https://stackoverflow.com/questions/24876188/how-big-is-the-chance-to-get-a-java-uuid-randomuuid-collision
+  seen_filenames.add(new_filename)
+  return new_filename
+
+
+@contextlib.contextmanager
+def _compressed_version_of_file(zip_file, file_path, arcname=None, mode='w'):
+  """Context manager yielding the zipped version of |file_path| in |zip_file|.
+  The zipped version will use arcname."""
+  zipinfo = zipfile.ZipInfo.from_file(file_path, arcname=arcname)
+  with zip_file.open(zipinfo, mode=mode) as zipped_file:
+    yield zipped_file
+
+
+def chunked_file_copy(file1, file2):
+  """Copies contents of |file1| to |file2| in chunks, yielding after each chunk.
+  To copy the whole file, iterate all the way through."""
+  copy_buffer = file1.read(COPY_BUFFER_SIZE)
+  while copy_buffer:
+    file2.write(copy_buffer)
+    yield
+    copy_buffer = file1.read(COPY_BUFFER_SIZE)
+
+
+def chunked_file_zipper(file_path, zipped_file):
+  """Compresses and writes |file_path| to |zipped_file| in chunks, yielding
+  after each chunk. To compress and write the whole file, iterate all the way
+  through."""
+  with open(file_path, 'rb') as file_to_archive:
+    for _ in chunked_file_copy(file_to_archive, zipped_file):
+      yield
+
+
+def _add_files_to_zip(file_paths, zip_file):
+  """Generator that adds each file in |file_paths| to |zip_file| in chunks,
+  yielding after each chunk. To write all files, iterate all the way through."""
+  seen_filenames = set()
+  for file_path in file_paths:
+    arcname = _get_unique_filename(file_path, seen_filenames)
+    try:
+      with _compressed_version_of_file(
+          zip_file, file_path, arcname, mode='w') as zipped_file:
+        for _ in chunked_file_zipper(file_path, zipped_file):
+          yield
+    except FileNotFoundError:
+      logs.log_warn(f'Could not find {file_path}.')
+
+
+def zip_in_memory(file_paths):
+  """Yields an in-memory file storing a zip file that contains |file_paths|. The
+  zipfile will compress the files one-by-one in memory as it is read. It does
+  not support seeking because all read data is discarded so that arbitrarily
+  large zips an be uploaded."""
+  write_buffer = HoldAsNeededFile()
+  with zipfile.ZipFile(write_buffer, mode='w') as zip_file:
+    for _ in _add_files_to_zip(file_paths, zip_file):
+      yield write_buffer.destructive_read()
+  # Do one last read on after closure of the whole zipfile.
+  yield write_buffer.destructive_read()
 
 
 class FuzzTargetCorpus(GcsCorpus):
@@ -317,7 +491,7 @@ class FuzzTargetCorpus(GcsCorpus):
                quarantine=False,
                log_results=True,
                include_regressions=False,
-               _gsutil_runner=DEFAULT_GSUTIL_RUNNER):
+               gsutil_runner_func=DEFAULT_GSUTIL_RUNNER):
     """Inits the FuzzTargetCorpus.
 
     Args:
@@ -346,17 +520,17 @@ class FuzzTargetCorpus(GcsCorpus):
     GcsCorpus.__init__(
         self,
         sync_corpus_bucket_name,
-        '/%s/%s' % (self._engine, self._project_qualified_target_name),
+        f'/{self._engine}/{self._project_qualified_target_name}',
         log_results=log_results,
-        _gsutil_runner=_gsutil_runner,
+        gsutil_runner_func=gsutil_runner_func,
     )
 
     self._regressions_corpus = GcsCorpus(
         sync_corpus_bucket_name,
-        '/%s/%s%s' % (self._engine, self._project_qualified_target_name,
-                      REGRESSIONS_GCS_PATH_SUFFIX),
+        f'/{self._engine}/{self._project_qualified_target_name}'
+        f'{REGRESSIONS_GCS_PATH_SUFFIX}',
         log_results=log_results,
-        _gsutil_runner=_gsutil_runner) if include_regressions else None
+        gsutil_runner_func=gsutil_runner_func) if include_regressions else None
 
   @property
   def engine(self):
@@ -382,8 +556,7 @@ class FuzzTargetCorpus(GcsCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    result = GcsCorpus.rsync_from_disk(
-        self, directory, timeout=timeout, delete=delete)
+    result = super().rsync_from_disk(directory, timeout=timeout, delete=delete)
 
     num_files = _count_corpus_files(directory)
     if self._log_results:
@@ -408,8 +581,7 @@ class FuzzTargetCorpus(GcsCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    result = GcsCorpus.rsync_to_disk(
-        self, directory, timeout=timeout, delete=delete)
+    result = super().rsync_to_disk(directory, timeout=timeout, delete=delete)
     if not result:
       return False
 
@@ -429,3 +601,27 @@ class FuzzTargetCorpus(GcsCorpus):
   def get_regressions_corpus_gcs_url(self):
     """Return gcs path to directory containing crash regressions."""
     return self.get_gcs_url(suffix=REGRESSIONS_GCS_PATH_SUFFIX)
+
+
+class HoldAsNeededFile(io.RawIOBase):
+  """In-memory file object that when read (using destructive_read) discards
+  previously written data."""
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    self._buf_list = []
+
+  def write(self, data):
+    """Normal behaving write method."""
+    self._buf_list.append(data)
+    return len(data)
+
+  def destructive_read(self):
+    """Returns all the data we have and discards it."""
+    old_buf = b''.join(self._buf_list)
+    self._buf_list = []
+    return old_buf
+
+
+def get_temp_zip_filename():
+  return shell.get_tempfile(suffix='.zip')

@@ -23,7 +23,6 @@ if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
   exit 1
 fi
 
-NFS_ROOT=  # Fill in NFS information if available.
 GOOGLE_CLOUD_SDK=google-cloud-sdk
 GOOGLE_CLOUD_SDK_ARCHIVE=google-cloud-sdk-232.0.0-darwin-x86_64.tar.gz
 INSTALL_DIRECTORY=${INSTALL_DIRECTORY:-${HOME}}
@@ -91,6 +90,6 @@ pipenv sync
 source "$(pipenv --venv)/bin/activate"
 
 echo "Running ClusterFuzz."
-NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &
+GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$ROOT_DIR" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" python $ROOT_DIR/src/python/bot/startup/run.py &
 
 echo "Success!"

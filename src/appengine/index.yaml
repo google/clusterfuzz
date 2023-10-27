@@ -87,6 +87,16 @@ indexes:
   - name: entity_name
   - name: entity_kind
 
+- kind: FiledBug
+  properties:
+  - name: timestamp
+  - name: job_type
+
+- kind: FiledBug
+  properties:
+  - name: timestamp
+  - name: project_name
+
 - kind: FuzzTarget
   properties:
   - name: engine

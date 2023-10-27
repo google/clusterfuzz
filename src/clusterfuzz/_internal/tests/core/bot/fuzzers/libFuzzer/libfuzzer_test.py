@@ -14,7 +14,6 @@
 """Tests for libFuzzer script."""
 # pylint: disable=unused-argument
 
-import copy
 import os
 import shutil
 import unittest
@@ -25,7 +24,6 @@ from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.fuzzing import strategy
-from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -61,7 +59,7 @@ def create_mock_popen(output,
                       return_code=0):
   """Creates a mock subprocess.Popen."""
 
-  class MockPopen(object):
+  class MockPopen:
     """Mock subprocess.Popen."""
     commands = []
     testcases_written = []
@@ -136,139 +134,6 @@ def set_strategy_pool(strategies=None):
     for strategy_tuple in strategies:
       strategy_pool.add_strategy(strategy_tuple)
   return strategy_pool
-
-
-class RecommendedDictionaryTest(fake_fs_unittest.TestCase):
-  """Tests for dictionary processing."""
-
-  def assert_compare_dictionaries(self, dict1, dict2):
-    """Asserts that two given dictionaries contain the same elements."""
-    # Order of elements in a merged dictionary is not guaranteed. Due to that,
-    # we verify sizes of dictionaries and sets of their elements.
-    self.assertEqual(len(dict1), len(dict2))
-    self.assertEqual(set(dict1.splitlines()), set(dict2.splitlines()))
-
-  def mock_download_recommended_dictionary_from_gcs(self, _,
-                                                    local_dictionary_path):
-    """Mock for DictionaryManager.download_recommended_dictionary_from_gcs."""
-    engine_common.write_data_to_file(self.fake_gcs_dictionary_data,
-                                     local_dictionary_path)
-    return True
-
-  def setUp(self):
-    """Setup for recommended dictionary test."""
-    # FIXME: Add support for Windows.
-    if not environment.is_posix():
-      self.skipTest('Process tests are only applicable for posix platforms.')
-
-    self.data_directory = os.path.join(os.path.dirname(__file__), 'data')
-    dictionaries_directory = os.path.join(self.data_directory, 'dictionaries')
-    self.dictionary_from_repository_data = read_data_from_file(
-        os.path.join(dictionaries_directory, 'dictionary_from_repository.dict'))
-    self.expected_merged_dictionary_data = read_data_from_file(
-        os.path.join(dictionaries_directory, 'expected_merged_dictionary.dict'))
-    self.expected_gcs_only_merged_dictionary_data = read_data_from_file(
-        os.path.join(dictionaries_directory,
-                     'expected_gcs_only_merged_dictionary.dict'))
-    self.fake_gcs_dictionary_data = read_data_from_file(
-        os.path.join(dictionaries_directory, 'fake_gcs_dictionary.dict'))
-
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.bot.fuzzers.dictionary_manager.DictionaryManager.'
-        'download_recommended_dictionary_from_gcs',
-        'os.getpid',
-    ])
-    self.mock.download_recommended_dictionary_from_gcs.side_effect = (
-        self.mock_download_recommended_dictionary_from_gcs)
-    self.mock.getpid.return_value = 1337
-
-    test_utils.set_up_pyfakefs(self)
-    self.work_directory_path = '/fake/fuzzers/'
-    self.fuzz_inputs_path = '/fake/fuzzers/inputs'
-    self.fuzz_inputs_disk_path = '/fake/fuzzers/inputs-disk'
-    self.fs.create_dir(self.work_directory_path)
-    self.fs.create_dir(self.fuzz_inputs_path)
-    self.fs.create_dir(self.fuzz_inputs_disk_path)
-    self.local_dictionaries_dir = os.path.join(self.work_directory_path,
-                                               'dicts')
-    self.fs.create_dir(self.local_dictionaries_dir)
-    self.fuzzer_name = 'test_fuzzer'
-    self.fuzzer_path = os.path.join(self.work_directory_path, self.fuzzer_name)
-
-    test_helpers.patch_environ(self)
-    environment.set_value('FAIL_RETRIES', '1')
-    environment.set_value('FUZZ_INPUTS', self.fuzz_inputs_path)
-    environment.set_value('FUZZ_INPUTS_DISK', self.fuzz_inputs_disk_path)
-
-  def test_add_recommended_dictionary_no_merge(self):
-    """Test dictionary processing when there is no local dictionary."""
-    arguments = [
-        '-max_len=80', '-rss_limit_mb=2048', '-timeout=25',
-        '-artifact_prefix=/fake/', '-max_total_time=2950',
-        '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
-        '/fake/corpus_basic'
-    ]
-
-    libfuzzer.add_recommended_dictionary(arguments, self.fuzzer_name,
-                                         self.fuzzer_path)
-
-    expected_dictionary_path = '%s.dict.merged' % self.fuzzer_path
-
-    # Check '-dict' argument that should be added by
-    # add_recommended_dictionary().
-    expected_dictionary_argument = '-dict=%s' % expected_dictionary_path
-    self.assertTrue(expected_dictionary_argument in arguments)
-
-    # Check the dictionary contents.
-    dictionary_data = read_data_from_file(expected_dictionary_path)
-    self.assert_compare_dictionaries(
-        dictionary_data, self.expected_gcs_only_merged_dictionary_data)
-
-  def test_add_recommended_dictionary_with_merge(self):
-    """Test dictionary processing when there is a local dictionary."""
-    dictionary_path = os.path.join(self.work_directory_path,
-                                   'dictionary_from_repository.dict')
-    self.fs.create_file(
-        dictionary_path, contents=self.dictionary_from_repository_data)
-
-    dictionary_argument = '-dict=%s' % dictionary_path
-    expected_arguments = [
-        '-max_len=80', '-rss_limit_mb=2048', '-timeout=25', dictionary_argument,
-        '-artifact_prefix=/fake/', '-max_total_time=2950',
-        '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
-        '/fake/corpus_basic'
-    ]
-
-    actual_arguments = copy.deepcopy(expected_arguments)
-
-    # The function call below is expected to modify actual_arguments list.
-    libfuzzer.add_recommended_dictionary(actual_arguments, self.fuzzer_name,
-                                         self.fuzzer_path)
-
-    # The dictionary argument is expected to be removed and added to the end.
-    expected_arguments.remove(dictionary_argument)
-    expected_arguments.append(dictionary_argument + '.merged')
-    self.assertEqual(actual_arguments, expected_arguments)
-
-    # The dictionary should content merged data.
-    updated_dictionary_data = read_data_from_file(dictionary_path + '.merged')
-    self.assert_compare_dictionaries(updated_dictionary_data,
-                                     self.expected_merged_dictionary_data)
-
-  def test_download_recommended_dictionary_with_merge(self):
-    """Test downloading of recommended dictionary."""
-    arguments = [
-        '-max_len=80', '-rss_limit_mb=2048', '-timeout=25',
-        '-artifact_prefix=/fake/', '-max_total_time=2950',
-        '-print_final_stats=1', '/fake/inputs-disk/temp-1337/new',
-        '/fake/corpus_basic'
-    ]
-
-    libfuzzer.add_recommended_dictionary(arguments, self.fuzzer_name,
-                                         self.fuzzer_path)
-    self.assertIn(
-        '/fake/fuzzers/inputs-disk/temp-1337/recommended_dictionary.dict',
-        self.mock.download_recommended_dictionary_from_gcs.call_args[0])
 
 
 class IsSha1HashTest(unittest.TestCase):

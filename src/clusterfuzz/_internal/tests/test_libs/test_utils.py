@@ -25,7 +25,6 @@ import threading
 import unittest
 
 import requests
-import six
 
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
@@ -141,7 +140,7 @@ def android_device_required(func):
   return unittest.skipIf(reason is not None, reason)(func)
 
 
-class EmulatorInstance(object):
+class EmulatorInstance:
   """Emulator instance."""
 
   def __init__(self, proc, port, read_thread, data_dir):
@@ -159,7 +158,7 @@ class EmulatorInstance(object):
 
   def reset(self):
     """Reset emulator state."""
-    req = requests.post('http://localhost:{}/reset'.format(self._port))
+    req = requests.post(f'http://localhost:{self._port}/reset', timeout=10)
     req.raise_for_status()
 
 
@@ -321,7 +320,7 @@ def with_cloud_emulators(*emulator_names):
             cls._context_generator = ndb_init.context()
             cls._context_generator.__enter__()
 
-        super(Wrapped, cls).setUpClass()
+        super().setUpClass()
 
       @classmethod
       def tearDownClass(cls):
@@ -330,10 +329,10 @@ def with_cloud_emulators(*emulator_names):
           if emulator_name == 'datastore':
             cls._context_generator.__exit__(None, None, None)
 
-        super(Wrapped, cls).tearDownClass()
+        super().tearDownClass()
 
       def setUp(self):
-        for emulator in six.itervalues(_emulators):
+        for emulator in _emulators.values():
           emulator.reset()
 
         super().setUp()

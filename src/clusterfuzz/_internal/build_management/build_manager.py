@@ -14,9 +14,9 @@
 """Build manager."""
 
 from collections import namedtuple
-from distutils import spawn
 import os
 import re
+import shutil
 import subprocess
 import time
 
@@ -81,6 +81,12 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'jazzer_driver',
     'jazzer_driver_with_sanitizer',
     'llvm-symbolizer',
+    # crbug.com/1471427: chrome_crashpad_handler is needed for fuzzers that are
+    # spawning the full chrome browser.
+    'chrome_crashpad_handler',
+    # This is part of the chrome archives. This directory contains all sort of
+    # data needed by tests that initially exist in the source tree.
+    'src_root',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
@@ -93,7 +99,7 @@ TARGETS_LIST_FILENAME = 'targets.list'
 BuildUrls = namedtuple('BuildUrls', ['bucket_path', 'urls_list'])
 
 
-class BuildManagerException(Exception):
+class BuildManagerError(Exception):
   """Build manager exceptions."""
 
 
@@ -123,8 +129,8 @@ def _make_space(requested_size, current_build_dir=None):
 
   builds_directory = environment.get_value('BUILDS_DIR')
 
-  error_message = 'Need at least %d GB of free disk space.' % ((
-      (min_free_disk_space + requested_size) // 1024**3))
+  error_message = 'Need at least %d GB of free disk space.' % (
+      (min_free_disk_space + requested_size) // 1024**3)
   for _ in range(MAX_EVICTED_BUILDS):
     free_disk_space = shell.get_free_disk_space(builds_directory)
     if free_disk_space is None:
@@ -255,7 +261,7 @@ def _get_file_match_callback():
 def _remove_scheme(bucket_path):
   """Remove scheme from the bucket path."""
   if '://' not in bucket_path:
-    raise BuildManagerException('Invalid bucket path: ' + bucket_path)
+    raise BuildManagerError('Invalid bucket path: ' + bucket_path)
 
   return bucket_path.split('://')[1]
 
@@ -275,7 +281,7 @@ def _get_build_directory(bucket_path, job_name):
     file_pattern = utils.remove_sub_strings(file_pattern, BUILD_TYPE_SUBSTRINGS)
 
     file_pattern_hash = utils.string_hash(file_pattern)
-    job_directory = '%s_%s' % (bucket_path, file_pattern_hash)
+    job_directory = f'{bucket_path}_{file_pattern_hash}'
   else:
     job_directory = job_name
 
@@ -340,7 +346,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
   app_directory = None
 
   # Chromium specific folder to ignore.
-  initialexe_folder_path = '%sinitialexe' % os.path.sep
+  initialexe_folder_path = f'{os.path.sep}initialexe'
 
   for search_directory in search_directories:
     for root, _, files in shell.walk(search_directory):
@@ -494,15 +500,11 @@ class Build(BaseBuild):
       _handle_unrecoverable_error_on_windows()
       return False
 
-    # Decide whether to use cache build archives or not.
-    use_cache = environment.get_value('CACHE_STORE', False)
-
     # Download build archive locally.
     build_local_archive = os.path.join(build_dir, os.path.basename(build_url))
 
     # Make the disk space necessary for the archive available.
-    archive_size = storage.get_download_file_size(
-        build_url, build_local_archive, use_cache=True)
+    archive_size = storage.get_object_size(build_url)
     if archive_size is not None and not _make_space(archive_size,
                                                     base_build_dir):
       shell.clear_data_directories()
@@ -512,8 +514,7 @@ class Build(BaseBuild):
 
     logs.log('Downloading build from url %s.' % build_url)
     try:
-      storage.copy_file_from(
-          build_url, build_local_archive, use_cache=use_cache)
+      storage.copy_file_from(build_url, build_local_archive)
     except:
       logs.log_error('Unable to download build url %s.' % build_url)
       return False
@@ -619,7 +620,7 @@ class Build(BaseBuild):
     """Check if build already exists."""
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     if os.path.exists(revision_file):
-      with open(revision_file, 'r') as file_handle:
+      with open(revision_file) as file_handle:
         try:
           current_revision = int(file_handle.read())
         except ValueError:
@@ -908,45 +909,6 @@ class SymbolizedBuild(Build):
     return True
 
 
-class ProductionBuild(Build):
-  """Production build."""
-
-  def __init__(self, base_build_dir, version, build_url, build_type):
-    super().__init__(base_build_dir, version)
-    self.build_url = build_url
-    self.build_type = build_type
-    self._build_dir = os.path.join(self.base_build_dir, self.build_type)
-
-  @property
-  def build_dir(self):
-    return self._build_dir
-
-  def setup(self):
-    """Sets up build with a particular revision."""
-    self._pre_setup()
-    logs.log('Retrieving %s branch (%s).' % (self.build_type, self.revision))
-    environment.set_value('BUILD_URL', self.build_url)
-
-    version_file = os.path.join(self.build_dir, 'VERSION')
-    build_update = revisions.needs_update(version_file, self.revision)
-
-    if build_update:
-      if not self._unpack_build(self.base_build_dir, self.build_dir,
-                                self.build_url):
-        return False
-
-      revisions.write_revision_to_revision_file(version_file, self.revision)
-      logs.log('Retrieved %s branch (%s).' % (self.build_type, self.revision))
-    else:
-      logs.log('Build already exists.')
-
-    self._setup_application_path(build_update=build_update)
-
-    # 'VERSION' file already written.
-    self._post_setup_success(update_revision=False)
-    return True
-
-
 class CustomBuild(Build):
   """Custom binary."""
 
@@ -1048,7 +1010,7 @@ class SystemBuild(Build):
     return True
 
   def delete(self):
-    raise BuildManagerException('Cannot delete system build.')
+    raise BuildManagerError('Cannot delete system build.')
 
 
 def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
@@ -1061,9 +1023,7 @@ def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
   base_path_with_seperator = base_path + '/' if base_path else ''
 
   for build_url in build_urls:
-    match_pattern = '{base_path_with_seperator}({file_pattern})'.format(
-        base_path_with_seperator=base_path_with_seperator,
-        file_pattern=file_pattern)
+    match_pattern = f'{base_path_with_seperator}({file_pattern})'
     match = re.match(match_pattern, build_url)
     if match:
       filename = match.group(1)
@@ -1141,18 +1101,19 @@ def get_primary_bucket_path():
   if fuzz_target_build_bucket_path:
     fuzz_target = environment.get_value('FUZZ_TARGET')
     if not fuzz_target:
-      raise BuildManagerException('FUZZ_TARGET is not defined.')
+      raise BuildManagerError('FUZZ_TARGET is not defined.')
 
     return _full_fuzz_target_path(fuzz_target_build_bucket_path, fuzz_target)
 
-  raise BuildManagerException(
+  raise BuildManagerError(
       'RELEASE_BUILD_BUCKET_PATH or FUZZ_TARGET_BUILD_BUCKET_PATH '
       'needs to be defined.')
 
 
-def get_revisions_list(bucket_path, testcase=None):
+def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   """Returns a sorted ascending list of revisions from a bucket path, excluding
-  bad build revisions and testcase crash revision (if any)."""
+  bad build revisions. Testcase crash revision is not excluded from the list
+  even if it appears in the bad_revisions list."""
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
       bucket_path)
 
@@ -1168,23 +1129,28 @@ def get_revisions_list(bucket_path, testcase=None):
       revision = revisions.convert_revision_to_integer(match.group(1))
       revision_list.append(revision)
 
-  # Remove revisions for bad builds from the revision list.
-  job_type = environment.get_value('JOB_NAME')
-  bad_builds = ndb_utils.get_all_from_query(
-      data_types.BuildMetadata.query(
-          ndb_utils.is_true(data_types.BuildMetadata.bad_build),
-          data_types.BuildMetadata.job_type == job_type))
-  for bad_build in bad_builds:
+  for bad_revision in bad_revisions:
     # Don't remove testcase revision even if it is in bad build list. This
     # usually happens when a bad bot sometimes marks a particular revision as
     # bad due to flakiness.
-    if testcase and bad_build.revision == testcase.crash_revision:
+    if testcase and bad_revision == testcase.crash_revision:
       continue
 
-    if bad_build.revision in revision_list:
-      revision_list.remove(bad_build.revision)
+    if bad_revision in revision_list:
+      revision_list.remove(bad_revision)
 
   return revision_list
+
+
+def get_job_bad_revisions():
+  job_type = environment.get_value('JOB_NAME')
+
+  bad_builds = list(
+      ndb_utils.get_all_from_query(
+          data_types.BuildMetadata.query(
+              ndb_utils.is_true(data_types.BuildMetadata.bad_build),
+              data_types.BuildMetadata.job_type == job_type)))
+  return [build.revision for build in bad_builds]
 
 
 def _base_fuzz_target_name(target_name):
@@ -1204,9 +1170,10 @@ def _get_targets_list(bucket_path):
 
   # Filter out targets which are not yet built.
   targets = data.decode('utf-8').splitlines()
-  listed_targets = set(
+  listed_targets = {
       os.path.basename(path.rstrip('/'))
-      for path in storage.list_blobs(bucket_dir_path, recursive=False))
+      for path in storage.list_blobs(bucket_dir_path, recursive=False)
+  }
   return [t for t in targets if _base_fuzz_target_name(t) in listed_targets]
 
 
@@ -1219,13 +1186,13 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   """Set up targets build."""
   targets_list = _get_targets_list(bucket_path)
   if not targets_list:
-    raise BuildManagerException(
+    raise BuildManagerError(
         'No targets found in targets.list (path=%s).' % bucket_path)
 
   fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
   if not fuzz_target:
-    raise BuildManagerException(
+    raise BuildManagerError(
         'Failed to choose a fuzz target (path=%s).' % bucket_path)
 
   if fuzz_target not in targets_list:
@@ -1389,7 +1356,7 @@ def setup_symbolized_builds(revision):
   build_class = SymbolizedBuild
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteSymbolizedBuild
+    build_class = build_setup_host.RemoteSymbolizedBuild  # pylint: disable=no-member
 
   build = build_class(base_build_dir, revision, sym_release_build_url,
                       sym_debug_build_url)
@@ -1430,51 +1397,6 @@ def setup_custom_binary(target_weights=None):
   # Revert back the actual job name.
   if share_build_job_type:
     environment.set_value('JOB_NAME', old_job_name)
-
-  if build.setup():
-    return build
-
-  return None
-
-
-def setup_production_build(build_type):
-  """Sets up build with a particular revision."""
-  # Bail out if there are not extended stable, stable and beta build urls.
-  if build_type == 'extended_stable':
-    build_bucket_path = environment.get_value(
-        'EXTENDED_STABLE_BUILD_BUCKET_PATH')
-  elif build_type == 'stable':
-    build_bucket_path = environment.get_value('STABLE_BUILD_BUCKET_PATH')
-  elif build_type == 'beta':
-    build_bucket_path = environment.get_value('BETA_BUILD_BUCKET_PATH')
-  else:
-    logs.log_error('Unknown build type %s.' % build_type)
-    return None
-
-  build_urls = get_build_urls_list(build_bucket_path)
-  if not build_urls:
-    logs.log_error(
-        'Error getting list of build urls from %s.' % build_bucket_path)
-    return None
-
-  # First index is the latest build for that version.
-  build_url = build_urls[0]
-  version_pattern = environment.get_value('VERSION_PATTERN')
-  v_match = re.match(version_pattern, build_url)
-  if not v_match:
-    logs.log_error(
-        'Unable to find version information from the build url %s.' % build_url)
-    return None
-
-  version = v_match.group(1)
-  base_build_dir = _base_build_dir(build_bucket_path)
-
-  build_class = ProductionBuild
-  if environment.is_trusted_host():
-    from clusterfuzz._internal.bot.untrusted_runner import build_setup_host
-    build_class = build_setup_host.RemoteProductionBuild
-
-  build = build_class(base_build_dir, version, build_url, build_type)
 
   if build.setup():
     return build
@@ -1534,16 +1456,9 @@ def setup_build(revision=0, target_weights=None):
 
 def is_custom_binary():
   """Determine if this is a custom or preinstalled system binary."""
-  return (environment.get_value('CUSTOM_BINARY') or
-          environment.get_value('SYSTEM_BINARY_DIR'))
-
-
-def has_production_builds():
-  """Return a bool on if job type has build urls for extended stable, stable and
-  beta builds."""
-  return (environment.get_value('STABLE_BUILD_BUCKET_PATH') and
-          environment.get_value('BETA_BUILD_BUCKET_PATH') and
-          environment.get_value('EXTENDED_STABLE_BUILD_BUCKET_PATH'))
+  return bool(
+      environment.get_value('CUSTOM_BINARY') or
+      environment.get_value('SYSTEM_BINARY_DIR'))
 
 
 def has_symbolized_builds():
@@ -1557,7 +1472,7 @@ def _set_rpaths_chrpath(binary_path, rpaths):
   """Set rpaths using chrpath."""
   chrpath = environment.get_default_tool_path('chrpath')
   if not chrpath:
-    raise BuildManagerException('Failed to find chrpath')
+    raise BuildManagerError('Failed to find chrpath')
 
   subprocess.check_output(
       [chrpath, '-r', ':'.join(rpaths), binary_path], stderr=subprocess.PIPE)
@@ -1565,9 +1480,9 @@ def _set_rpaths_chrpath(binary_path, rpaths):
 
 def _set_rpaths_patchelf(binary_path, rpaths):
   """Set rpaths using patchelf."""
-  patchelf = spawn.find_executable('patchelf')
+  patchelf = shutil.which('patchelf')
   if not patchelf:
-    raise BuildManagerException('Failed to find patchelf')
+    raise BuildManagerError('Failed to find patchelf')
 
   subprocess.check_output(
       [patchelf, '--force-rpath', '--set-rpath', ':'.join(rpaths), binary_path],
@@ -1590,7 +1505,7 @@ def get_rpaths(binary_path):
   """Get rpath of a binary."""
   chrpath = environment.get_default_tool_path('chrpath')
   if not chrpath:
-    raise BuildManagerException('Failed to find chrpath')
+    raise BuildManagerError('Failed to find chrpath')
 
   try:
     rpaths = subprocess.check_output(

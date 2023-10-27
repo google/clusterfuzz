@@ -16,8 +16,6 @@
 import os
 import re
 
-import six
-
 try:
   from clusterfuzz._internal.protos import untrusted_runner_pb2
 
@@ -34,7 +32,6 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
         r'^ASAN_OPTIONS$',
         r'^BACKUP_BUCKET$',
         r'^CORPUS_BUCKET$',
-        r'^MUTATOR_PLUGINS_BUCKET$',
         r'^FUZZ_CORPUS_DIR$',
         r'^FUZZER_DIR$',
         r'^FUZZER_NAME_REGEX$',
@@ -63,9 +60,9 @@ FORWARDED_ENVIRONMENT_VARIABLES = [
     )
 ]
 
-REBASED_ENVIRONMENT_VARIABLES = set([
+REBASED_ENVIRONMENT_VARIABLES = {
     'FUZZER_DIR',
-])
+}
 
 
 def is_forwarded_environment_variable(environment_variable):
@@ -83,13 +80,13 @@ def should_rebase_environment_value(environment_variable):
 def update_environment(env):
   """Update worker's environment."""
   processed_env = {}
-  for key, value in six.iteritems(env):
+  for key, value in env.items():
     if should_rebase_environment_value(key):
       value = file_host.rebase_to_worker_root(value)
 
     processed_env[key] = value
 
-  request = untrusted_runner_pb2.UpdateEnvironmentRequest(env=processed_env)
+  request = untrusted_runner_pb2.UpdateEnvironmentRequest(env=processed_env)  # pylint: disable=no-member
   host.stub().UpdateEnvironment(request)
 
 
@@ -98,7 +95,7 @@ def set_environment_vars(env, source_env):
   if not source_env:
     return
 
-  for name, value in six.iteritems(source_env):
+  for name, value in source_env.items():
     if is_forwarded_environment_variable(name):
       # Avoid creating circular dependencies from importing environment by
       # using os.getenv.
@@ -129,5 +126,5 @@ def forward_environment_variable(key, value):
 
 def reset_environment():
   """Reset environment variables."""
-  request = untrusted_runner_pb2.ResetEnvironmentRequest()
+  request = untrusted_runner_pb2.ResetEnvironmentRequest()  # pylint: disable=no-member
   host.stub().ResetEnvironment(request)

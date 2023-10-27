@@ -17,22 +17,21 @@ import datetime
 import unittest
 
 import pytz
-import six
 
+from clusterfuzz._internal.issue_management import jira
+from clusterfuzz._internal.issue_management.jira import Issue
+from clusterfuzz._internal.issue_management.jira import issue_tracker_manager
 from clusterfuzz._internal.tests.test_libs import helpers
-from libs.issue_management import jira
-from libs.issue_management.jira import Issue
-from libs.issue_management.jira import issue_tracker_manager
 
 
-class Config(object):
+class Config:
   """Dummy config."""
 
   def __init__(self):
     self.jira_url = 'https://jira.company.com'
 
 
-class Reporter(object):
+class Reporter:
   """Dummy reporter."""
 
   def __init__(self):
@@ -41,14 +40,14 @@ class Reporter(object):
     self.name = 'reporter'
 
 
-class Status(object):
+class Status:
   """Dummy status."""
 
   def __init__(self):
     self.name = 'NOT STARTED'
 
 
-class Fields(object):
+class Fields:
   """Dummy fields."""
 
   def __init__(self):
@@ -62,7 +61,7 @@ class Fields(object):
     self.resolutiondate = '2020-01-14T11:46:34.000-0000'
 
 
-class JiraIssue(object):
+class JiraIssue:
   """Dummy Jira issue."""
 
   def __init__(self, key):
@@ -79,14 +78,14 @@ class JiraTests(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'libs.issue_management.jira.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.jira.issue_tracker_manager.'
         'IssueTrackerManager.get_watchers',
-        'libs.issue_management.jira.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.jira.issue_tracker_manager.'
         'IssueTrackerManager.get_issues',
-        'libs.issue_management.jira.IssueTracker.get_issue',
-        'libs.issue_management.jira.IssueTracker.new_issue',
+        'clusterfuzz._internal.issue_management.jira.IssueTracker.get_issue',
+        'clusterfuzz._internal.issue_management.jira.IssueTracker.new_issue',
         'clusterfuzz._internal.config.db_config.get',
-        'libs.issue_management.jira.issue_tracker_manager.'
+        'clusterfuzz._internal.issue_management.jira.issue_tracker_manager.'
         'IssueTrackerManager.client'
     ])
 
@@ -119,15 +118,15 @@ class JiraTests(unittest.TestCase):
     self.assertEqual('reporter', issue.reporter)
     self.assertEqual('NOT STARTED', issue.status)
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'label1',
         'label2',
     ], issue.labels)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'A>B',
         'C>D',
     ], issue.components)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         'cc@cc.com',
     ], issue.ccs)
 
@@ -143,7 +142,7 @@ class JiraTests(unittest.TestCase):
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.labels.add('Label3')
     issue.labels.remove('laBel1')
-    six.assertCountEqual(self, ['label2', 'Label3'], issue.labels)
+    self.assertCountEqual(['label2', 'Label3'], issue.labels)
 
   def test_modify_components(self):
     """Test modifying components."""
@@ -151,13 +150,13 @@ class JiraTests(unittest.TestCase):
     issue = self.issue_tracker.get_issue('VSEC-3112')
     issue.components.add('Y>Z')
     issue.components.remove('a>B')
-    six.assertCountEqual(self, ['C>D', 'Y>Z'], issue.components)
+    self.assertCountEqual(['C>D', 'Y>Z'], issue.components)
 
   def test_find_issues(self):
     """Test find_issues."""
     self.mock.get_issues.return_value = [self.jira_issue]
     issues = self.issue_tracker.find_issues(keywords=['body'], only_open=True)
-    six.assertCountEqual(self, ['VSEC-3112'], [issue.key for issue in issues])
+    self.assertCountEqual(['VSEC-3112'], [issue.key for issue in issues])
 
   def test_issue_url(self):
     """Test issue_url."""

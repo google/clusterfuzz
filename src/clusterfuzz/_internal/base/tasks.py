@@ -15,6 +15,7 @@
 
 import contextlib
 import datetime
+import json
 import random
 import threading
 import time
@@ -22,10 +23,12 @@ import time
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
@@ -37,9 +40,6 @@ HIGH_END_JOBS_PREFIX = 'high-end-jobs'
 # different platforms with the platform name added as suffix later.
 JOBS_TASKQUEUE = JOBS_PREFIX
 HIGH_END_JOBS_TASKQUEUE = HIGH_END_JOBS_PREFIX
-
-# ML job is currently supported on Linux only.
-ML_JOBS_TASKQUEUE = 'ml-jobs-linux'
 
 # Limits on number of tasks leased at once and in total.
 MAX_LEASED_TASKS_LIMIT = 1000
@@ -80,6 +80,14 @@ LEASE_RETRIES = 5
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
+FILTERS_AND = 'AND'
+FILTERS_OR = 'OR'
+
+POSTPROCESS_QUEUE = 'postprocess'
+
+# See https://github.com/google/clusterfuzz/issues/3347 for usage
+SUBQUEUE_IDENTIFIER = ':'
+
 
 class Error(Exception):
   """Base exception class."""
@@ -93,6 +101,8 @@ class InvalidRedoTask(Error):
 
 def queue_suffix_for_platform(platform):
   """Get the queue suffix for a platform."""
+  # Handle the case where a subqueue is used.
+  platform = platform.lower().replace(SUBQUEUE_IDENTIFIER, '-')
   return '-' + platform.lower().replace('_', '-')
 
 
@@ -156,6 +166,22 @@ def get_high_end_task():
   return task
 
 
+def initialize_task(messages):
+  """Creates a task from |messages|."""
+  message = messages[0]
+  if message.attributes.get('eventType', None) != 'OBJECT_FINALIZE':
+    return PubSubTask(message)
+
+  # Handle postprocess task.
+  # The google cloud API for pub/sub notifications uses the data field unlike
+  # ClusterFuzz which uses attributes more.
+  data = json.loads(message.data)
+  name = data['name']
+  bucket = data['bucket']
+  output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
+  return PostprocessPubSubTask(output_url_argument, message)
+
+
 def get_regular_task(queue=None):
   """Get a regular task."""
   if not queue:
@@ -164,14 +190,15 @@ def get_regular_task(queue=None):
   pubsub_client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
   while True:
-    messages = pubsub_client.pull_from_subscription(
-        pubsub.subscription_name(application_id, queue), max_messages=1)
+    messages = _get_messages(pubsub_client, application_id, queue)
 
     if not messages:
       return None
 
     try:
-      task = PubSubTask(messages[0])
+      task = initialize_task(messages)
+      if task is None:
+        continue
     except KeyError:
       logs.log_error('Received an invalid task, discarding...')
       messages[0].ack()
@@ -183,18 +210,123 @@ def get_regular_task(queue=None):
       return task
 
 
+# TODO(metzman): Use this function so that linux bots can execute preprocess and
+# postprocess of every utask.
+def get_utask_filters(is_chromium, is_linux):
+  """Returns a string containing filters for pubsub commands. If |is_chromium|
+  and |is_linux| the filters filter out all commands that are not the trusted
+  portions (preprocess and postprocess of utasks). The filter should be used to
+  read from non-linux queues so linux bots can do the trusted preprocess step of
+  non-linux utasks. Otherwise the filters should be used when reading from the
+  bot's "normal" queue to filter out these preprocess/postprocess steps."""
+  if not is_chromium:
+    # Execute all tasks on one machine outside of chrome for now.
+    return None
+
+  # Import here to avoid import errors on webapp.
+  from clusterfuzz._internal.bot.tasks import task_types
+
+  # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
+  # syntax.
+  utask_trusted_portions = task_types.get_utask_trusted_portions()
+  if is_linux:
+    pubsub_filters = [
+        f'attribute.name = {task}' for task in utask_trusted_portions
+    ]
+  else:
+    pubsub_filters = [
+        f'-attribute.name = {task}' for task in utask_trusted_portions
+    ]
+  pubsub_filter = FILTERS_AND.join(pubsub_filters)
+  return pubsub_filter
+
+
+def get_ttask_commands_queues():
+  """Get queues tworkers should be querying for ttask commands. (i.e. tworkers
+  on Linux will need to know about the Windows and Mac queues)."""
+
+
+def get_machine_template_for_queue(queue_name):
+  """Gets the machine template for the instance used to execute a task from
+  |queue_name|. This will be used by tworkers to schedule the appropriate
+  machine using batch to execute the utask_main part of a utask."""
+  initial_queue_name = queue_name
+
+  # Handle it being high-end (preemptible) or not.
+  if queue_name.startswith(JOBS_PREFIX):
+    is_high_end = False
+    prefix = JOBS_PREFIX
+  else:
+    assert queue_name.startswith(HIGH_END_JOBS_PREFIX)
+    is_high_end = True
+    prefix = HIGH_END_JOBS_PREFIX
+  # Add 1 for hyphen.
+  queue_name = queue_name[len(prefix) + 1:]
+
+  template_name = f'clusterfuzz-{queue_name}'
+  if not is_high_end:
+    template_name = f'{template_name}-pre'
+
+  templates = get_machine_templates()
+  for template in templates:
+    if template['name'] == template_name:
+      logs.log(
+          f'Found machine template for {initial_queue_name}',
+          machine_template=template)
+      return template
+  return None
+
+
+def get_machine_templates():
+  """Returns machine templates."""
+  # TODO(metzman): Cache this.
+  clusters_config = local_config.Config(local_config.GCE_CLUSTERS_PATH).get()
+  project = utils.get_application_id()
+  conf = clusters_config[project]
+  return conf['instance_templates']
+
+
+def _get_messages(pubsub_client, application_id, queue):
+  return pubsub_client.pull_from_subscription(
+      pubsub.subscription_name(application_id, queue), max_messages=1)
+
+
+def get_postprocess_task():
+  """Gets a postprocess task if one exists."""
+  # This should only be run on non-preemptible bots.
+  if (environment.platform() != 'LINUX' or
+      not environment.get_value('REMOTE_UTASK_EXECUTION')):
+    return None
+  pubsub_client = pubsub.PubSubClient()
+  application_id = utils.get_application_id()
+  logs.log('Pulling from postprocess queue')
+  messages = _get_messages(pubsub_client, application_id, POSTPROCESS_QUEUE)
+  if not messages:
+    return None
+  try:
+    logs.log('Pulled postprocess queue.')
+    return initialize_task(messages)
+  except KeyError:
+    logs.log_error('Received an invalid task, discarding...')
+    messages[0].ack()
+    return None
+
+
 def get_task():
   """Get a task."""
   task = get_command_override()
   if task:
     return task
 
-  # TODO(unassigned): Remove this hack.
-  if environment.get_value('ML'):
-    return get_regular_task(queue=ML_JOBS_TASKQUEUE)
-
   allow_all_tasks = not environment.get_value('PREEMPTIBLE')
   if allow_all_tasks:
+    # Postprocess tasks need to be executed on a non-preemptible otherwise we
+    # can lose the output of a task.
+    # Postprocess tasks get priority because they are so quick. They typically
+    # only involve a few DB writes and never run user code.
+    task = get_postprocess_task()
+    if task:
+      return task
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
@@ -214,7 +346,7 @@ def get_task():
   return task
 
 
-class Task(object):
+class Task:
   """Represents a task."""
 
   def __init__(self,
@@ -287,6 +419,48 @@ class PubSubTask(Task):
     self._pubsub_message.modify_ack_deadline(
         min(pubsub.MAX_ACK_DEADLINE, time_until_eta))
     return True
+
+  @contextlib.contextmanager
+  def lease(self, _event=None):  # pylint: disable=arguments-differ
+    """Maintain a lease for the task."""
+    task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
+        self.command, get_task_lease_timeout())
+
+    environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
+    track_task_start(self, task_lease_timeout)
+
+    if _event is None:
+      _event = threading.Event()
+
+    leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
+                                        task_lease_timeout)
+    leaser_thread.start()
+    try:
+      yield leaser_thread
+    finally:
+      _event.set()
+      leaser_thread.join()
+
+    # If we get here the task succeeded in running. Acknowledge the message.
+    self._pubsub_message.ack()
+    track_task_end()
+
+
+class PostprocessPubSubTask(PubSubTask):
+  """A postprocess task received over pub/sub."""
+
+  def __init__(self,
+               output_url_argument,
+               pubsub_message,
+               is_command_override=False):
+    command = 'postprocess'
+    job_type = 'none'
+    eta = None
+    high_end = False
+    grandparent_class = super(PubSubTask, self)
+    grandparent_class.__init__(command, output_url_argument, job_type, eta,
+                               is_command_override, high_end)
+    self._pubsub_message = pubsub_message
 
   @contextlib.contextmanager
   def lease(self, _event=None):  # pylint: disable=arguments-differ

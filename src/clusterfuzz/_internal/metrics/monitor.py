@@ -24,8 +24,6 @@ import re
 import threading
 import time
 
-import six
-
 try:
   from google.cloud import monitoring_v3
 except (ImportError, RuntimeError):
@@ -62,7 +60,7 @@ _retry_wrap = retry.Retry(
     deadline=RETRY_DEADLINE_SECONDS)
 
 
-class _MockMetric(object):
+class _MockMetric:
   """Mock metric object, used for when monitoring isn't available."""
 
   def _mock_method(self, *args, **kwargs):  # pylint: disable=unused-argument
@@ -76,7 +74,7 @@ class _FlusherThread(threading.Thread):
   """Flusher thread."""
 
   def __init__(self):
-    super(_FlusherThread, self).__init__()
+    super().__init__()
     self.daemon = True
     self.stop_event = threading.Event()
 
@@ -98,7 +96,7 @@ class _FlusherThread(threading.Thread):
               monitoring_v3.enums.MetricDescriptor.MetricKind.GAUGE):
             start_time = end_time
 
-          series = monitoring_v3.types.TimeSeries()
+          series = monitoring_v3.types.TimeSeries()  # pylint: disable=no-member
           metric.monitoring_v3_time_series(series, labels, start_time, end_time,
                                            value)
           time_series.append(series)
@@ -121,7 +119,7 @@ _StoreValue = collections.namedtuple(
     '_StoreValue', ['metric', 'labels', 'start_time', 'value'])
 
 
-class _MetricsStore(object):
+class _MetricsStore:
   """In-process metrics store."""
 
   def __init__(self):
@@ -131,7 +129,7 @@ class _MetricsStore(object):
   def _get_key(self, metric_name, labels):
     """Get the key used for storing values."""
     if labels:
-      normalized_labels = tuple(sorted(six.iteritems(labels)))
+      normalized_labels = tuple(sorted(labels.items()))
     else:
       normalized_labels = None
 
@@ -139,8 +137,7 @@ class _MetricsStore(object):
 
   def iter_values(self):
     with self._lock:
-      for value in six.itervalues(self._store):
-        yield value
+      yield from self._store.values()
 
   def get(self, metric, labels):
     """Get the stored value for the metric."""
@@ -179,7 +176,7 @@ class _MetricsStore(object):
       self._store.clear()
 
 
-class _Field(object):
+class _Field:
   """_Field is the base class used for field specs."""
 
   def __init__(self, name):
@@ -214,7 +211,7 @@ class IntegerField(_Field):
     return monitoring_v3.enums.LabelDescriptor.ValueType.INT64
 
 
-class Metric(object):
+class Metric:
   """Base metric class."""
 
   def __init__(self, name, description, field_spec):
@@ -251,7 +248,7 @@ class Metric(object):
     if not labels:
       return metric
 
-    for key, value in six.iteritems(labels):
+    for key, value in labels.items():
       metric.labels[key] = str(value)
 
     # Default labels.
@@ -340,8 +337,11 @@ class _GaugeMetric(Metric):
     point.int64_value = value
 
 
-class _Bucketer(object):
+class _Bucketer:
   """Bucketer."""
+
+  def __init__(self):
+    self._lower_bounds = None
 
   def bucket_for_value(self, value):
     """Get the bucket index for the given value."""
@@ -356,6 +356,7 @@ class FixedWidthBucketer(_Bucketer):
   """Fixed width bucketer."""
 
   def __init__(self, width, num_finite_buckets=100):
+    super().__init__()
     self.width = width
     self.num_finite_buckets = num_finite_buckets
 
@@ -369,6 +370,7 @@ class GeometricBucketer(_Bucketer):
   """Geometric bucketer."""
 
   def __init__(self, growth_factor=10**0.2, num_finite_buckets=100, scale=1.0):
+    super().__init__()
     self.growth_factor = growth_factor
     self.num_finite_buckets = num_finite_buckets
     self.scale = scale
@@ -380,7 +382,7 @@ class GeometricBucketer(_Bucketer):
         [scale * growth_factor**i for i in range(num_finite_buckets + 1)])
 
 
-class _Distribution(object):
+class _Distribution:
   """Holds a distribution."""
 
   def __init__(self, bucketer):
@@ -427,8 +429,7 @@ class _CumulativeDistributionMetric(Metric):
   """Cumulative distribution metric."""
 
   def __init__(self, name, description, bucketer, field_spec=None):
-    super(_CumulativeDistributionMetric, self).__init__(
-        name, description=description, field_spec=field_spec)
+    super().__init__(name, description=description, field_spec=field_spec)
     self.bucketer = bucketer
 
   @property
@@ -489,7 +490,7 @@ def stub_unavailable(module):
 def _initialize_monitored_resource():
   """Monitored resources."""
   global _monitored_resource
-  _monitored_resource = monitoring_v3.types.MonitoredResource()
+  _monitored_resource = monitoring_v3.types.MonitoredResource()  # pylint: disable=no-member
 
   # TODO(ochang): Use generic_node when that is available.
   _monitored_resource.type = 'gce_instance'

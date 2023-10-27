@@ -334,7 +334,7 @@ class GetTestcaseTest(unittest.TestCase):
         'clusterfuzz._internal.config.db_config.get_value_for_job',
         'clusterfuzz._internal.datastore.data_handler.get_stacktrace',
         'handlers.testcase_detail.show.filter_stacktrace',
-        'libs.issue_management.issue_tracker_utils.get_issue_url',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_url',
         'libs.access.can_user_access_testcase',
         'libs.access.has_access',
         'libs.auth.is_current_user_admin',
@@ -370,7 +370,7 @@ class GetTestcaseTest(unittest.TestCase):
 
   def test_no_testcase_id(self):
     """Test no testcase id."""
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       show.get_testcase_detail_by_id(None)
 
     self.assertEqual(cm.exception.status, 404)
@@ -378,7 +378,7 @@ class GetTestcaseTest(unittest.TestCase):
 
   def test_no_testcase(self):
     """Test invalid testcase."""
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       show.get_testcase_detail_by_id(1)
 
     self.assertEqual(cm.exception.status, 404)
@@ -389,7 +389,7 @@ class GetTestcaseTest(unittest.TestCase):
     self.mock.can_user_access_testcase.return_value = False
     data_types.Testcase().put()
 
-    with self.assertRaises(helpers.EarlyExitException) as cm:
+    with self.assertRaises(helpers.EarlyExitError) as cm:
       show.get_testcase_detail_by_id(2)
 
     self.assertEqual(cm.exception.status, 403)
@@ -487,7 +487,7 @@ class GetTestcaseTest(unittest.TestCase):
                                      ('fully_qualified_name', 'fuzzer1')]),
     }
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     self.assertDictContainsSubset(expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 
@@ -597,7 +597,7 @@ class GetTestcaseTest(unittest.TestCase):
                                          'libFuzzer_test_fuzzer')]),
     }
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
     self.assertDictContainsSubset(expected_subset, result)
     self.assertEqual(result['testcase'].key.id(), testcase.key.id())
 

@@ -14,9 +14,9 @@
 """Used to download Android symbols."""
 
 import os
+import zipfile
 
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms.android import adb
 from clusterfuzz._internal.platforms.android import fetch_artifact
@@ -47,16 +47,12 @@ def download_artifact_if_needed(
   # Delete existing symbols directory first.
   shell.remove_directory(artifact_directory, recreate=True)
 
-  # Fetch symbol file from cloud storage cache (if available).
-  found_in_cache = storage.get_file_from_cache_if_exists(
-      artifact_archive_path, update_modification_time_on_access=False)
-  if not found_in_cache:
-    for target_with_type_and_san in targets_with_type_and_san:
-      # Fetch the artifact now.
-      fetch_artifact.get(build_id, target_with_type_and_san, artifact_file_name,
-                         artifact_directory, output_filename_override)
-      if os.path.exists(artifact_archive_path):
-        break
+  for target_with_type_and_san in targets_with_type_and_san:
+    # Fetch the artifact now.
+    fetch_artifact.get(build_id, target_with_type_and_san, artifact_file_name,
+                       artifact_directory, output_filename_override)
+    if os.path.exists(artifact_archive_path):
+      break
 
 
 def check_symbols_cached(build_params_check_path, build_params):
@@ -94,7 +90,6 @@ def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
     return
 
   # Store the artifact for later use or for use by other bots.
-  storage.store_file_in_cache(symbols_archive_path)
   utils.write_data_to_file(build_params, build_params_check_path)
 
 
@@ -170,13 +165,39 @@ def download_system_symbols_if_needed(symbols_directory):
         'Unable to locate symbols archive %s.' % symbols_archive_path)
     return
 
-  # Store the artifact for later use or for use by other bots.
-  storage.store_file_in_cache(symbols_archive_path)
-
   archive.unpack(symbols_archive_path, symbols_directory, trusted=True)
   shell.remove_file(symbols_archive_path)
 
   utils.write_data_to_file(build_params, build_params_check_path)
+
+
+def download_trusty_symbols_if_needed(symbols_directory, app_name, bid):
+  """Downloads and extracts Trusted App ELF files"""
+  ab_target = ''
+  device = settings.get_build_parameters().get('target')
+  if device in ['cheetah', 'panther']:
+    ab_target = 'cloudripper-fuzz-test-debug'
+  if device in ['oriole', 'raven', 'bluejay']:
+    ab_target = 'slider-fuzz-test-debug'
+
+  branch = 'polygon-trusty-whitechapel-master'
+  if not bid:
+    bid = fetch_artifact.get_latest_artifact_info(branch, ab_target)['bid']
+
+  artifact_filename = f'{ab_target}-{bid}.syms.zip'
+  symbols_archive_path = os.path.join(symbols_directory, artifact_filename)
+
+  download_artifact_if_needed(bid, symbols_directory, symbols_archive_path,
+                              [ab_target], artifact_filename, None)
+
+  with zipfile.ZipFile(symbols_archive_path, 'r') as symbols_zipfile:
+    for filepath in symbols_zipfile.namelist():
+      if f'{app_name}.syms.elf' in filepath:
+        symbols_zipfile.extract(filepath, symbols_directory)
+        os.rename(f'{symbols_directory}/{filepath}',
+                  f'{symbols_directory}/{app_name}.syms.elf')
+      if 'lk.elf' == filepath:
+        symbols_zipfile.extract(filepath, symbols_directory)
 
 
 def _get_binary_from_build_or_device(binary_path):

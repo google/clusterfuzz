@@ -42,9 +42,6 @@ TIMEOUT_FLAG = '-timeout='
 
 EXACT_ARTIFACT_PATH_FLAG = '-exact_artifact_path='
 
-# libFuzzer arguments.
-ANALYZE_DICT_ARGUMENT = '-analyze_dict=1'
-
 CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
 
 MERGE_ARGUMENT = '-merge=1'
@@ -62,6 +59,9 @@ VALUE_PROFILE_ARGUMENT = '-use_value_profile=1'
 # Default value for rss_limit_mb flag to catch OOM.s
 DEFAULT_RSS_LIMIT_MB = 2560
 
+# Memory overhead we want to keep to ensure we're not going OOM.s
+MEMORY_OVERHEAD = 1024  # 1 GB
+
 # Default value for timeout flag to catch timeouts.
 DEFAULT_TIMEOUT_LIMIT = 25
 
@@ -78,6 +78,8 @@ RUNS_TO_REPRODUCE = 100
 TARGET_ERROR_EXITCODE = 77
 
 NONCRASH_RETURN_CODES = {
+    # Code when LibFuzzer exits due to SIGTERM cancellation (timeout exceeded).
+    -15,
     0,
     # pylint: disable=line-too-long
     # Code when we interrupt libFuzzer (https://github.com/llvm/llvm-project/blob/1f161919065fbfa2b39b8f373553a64b89f826f8/compiler-rt/lib/fuzzer/FuzzerOptions.h#L25)

@@ -21,7 +21,7 @@ from libs import auth
 from libs import helpers
 
 
-class TestNotFoundException(Exception):
+class TestNotFoundError(Exception):
   """Serve as a testing exception."""
 
 
@@ -65,13 +65,19 @@ class GetOrExitTest(unittest.TestCase):
 
   def test_get_or_exit_valid(self):
     """Ensure it gets value."""
-    fn = lambda: 'test'
+
+    def fn():
+      return 'test'
+
     self.assertEqual(helpers.get_or_exit(fn, 'not_found', 'error'), 'test')
 
   def test_get_or_exit_none(self):
     """Ensure it raises 404 when the value is None."""
-    fn = lambda: None
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+
+    def fn():
+      return None
+
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(fn, 'not_found', 'error')
 
     self.assertEqual(catched.exception.status, 404)
@@ -79,8 +85,11 @@ class GetOrExitTest(unittest.TestCase):
 
   def test_get_or_exit_tuple_none(self):
     """Ensure it raises 404 when the value is a tuple of None."""
-    fn = lambda: (None, None)
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+
+    def fn():
+      return (None, None)
+
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(fn, 'not_found', 'error')
 
     self.assertEqual(catched.exception.status, 404)
@@ -90,11 +99,11 @@ class GetOrExitTest(unittest.TestCase):
     """Ensure it raises 404 when `fn` throws a recognised exception."""
 
     def fn():
-      raise TestNotFoundException()
+      raise TestNotFoundError()
 
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(
-          fn, 'not_found', 'error', not_found_exception=TestNotFoundException)
+          fn, 'not_found', 'error', not_found_exception=TestNotFoundError)
 
     self.assertEqual(catched.exception.status, 404)
     self.assertEqual(str(catched.exception), 'not_found')
@@ -103,9 +112,9 @@ class GetOrExitTest(unittest.TestCase):
     """Ensure it raises 500 when `fn` throws an unknown exception."""
 
     def fn():
-      raise Exception('message')
+      raise Exception('message')  # pylint: disable=broad-exception-raised
 
-    with self.assertRaises(helpers.EarlyExitException) as catched:
+    with self.assertRaises(helpers.EarlyExitError) as catched:
       helpers.get_or_exit(fn, 'not_found', 'other')
 
     self.assertEqual(catched.exception.status, 500)
@@ -122,7 +131,7 @@ class GetUserEmailTest(unittest.TestCase):
 
   def test_get_user_email_success(self):
     """Ensure it gets the email when a user is valid."""
-    self.mock.get_current_user.return_value = (auth.User('TeSt@Test.com'))
+    self.mock.get_current_user.return_value = auth.User('TeSt@Test.com')
     self.assertEqual(helpers.get_user_email(), 'TeSt@Test.com')
 
   def test_get_user_email_failure(self):

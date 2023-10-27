@@ -33,27 +33,25 @@ class Handler(base_handler.Handler):
 
     if revision:
       if not revision.isdigit():
-        raise helpers.EarlyExitException('Revision is not an integer.', 400)
+        raise helpers.EarlyExitError('Revision is not an integer.', 400)
       start_revision = end_revision = revision
     elif revision_range:
       try:
         start_revision, end_revision = revision_range.split(':')
       except:
-        raise helpers.EarlyExitException('Bad revision range.', 400)
+        raise helpers.EarlyExitError('Bad revision range.', 400)
 
       if not start_revision.isdigit():
-        raise helpers.EarlyExitException('Start revision is not an integer.',
-                                         400)
+        raise helpers.EarlyExitError('Start revision is not an integer.', 400)
       if not end_revision.isdigit():
-        raise helpers.EarlyExitException('End revision is not an integer.', 400)
+        raise helpers.EarlyExitError('End revision is not an integer.', 400)
     else:
-      raise helpers.EarlyExitException('No revision specified.', 400)
+      raise helpers.EarlyExitError('No revision specified.', 400)
 
     component_revisions_list = revisions.get_component_range_list(
         start_revision, end_revision, job_type)
     if not component_revisions_list:
-      raise helpers.EarlyExitException('Failed to get component revisions.',
-                                       400)
+      raise helpers.EarlyExitError('Failed to get component revisions.', 400)
 
     return self.render(
         'revisions-info.html',

@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cloud credential helpers."""
+import os
 
+from google.auth import compute_engine
 from google.auth import credentials
+from google.auth.transport import requests
+from google.oauth2 import service_account
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.system import environment
@@ -32,7 +36,8 @@ FAIL_WAIT = 10
 def _use_anonymous_credentials():
   """Returns whether or not to use anonymous credentials."""
   if (environment.get_value('INTEGRATION') or
-      environment.get_value('UNTRUSTED_RUNNER_TESTS')):
+      environment.get_value('UNTRUSTED_RUNNER_TESTS') or
+      environment.get_value('UTASK_TESTS')):
     # Integration tests need real credentials.
     return False
 
@@ -50,3 +55,29 @@ def get_default(scopes=None):
     return credentials.AnonymousCredentials(), ''
 
   return google.auth.default(scopes=scopes)
+
+
+@retry.wrap(
+    retries=FAIL_RETRIES,
+    delay=FAIL_WAIT,
+    function='google_cloud_utils.credentials.get_signing_credentials')
+def get_signing_credentials():
+  """Returns signing credentials for signing URLs."""
+  if _use_anonymous_credentials():
+    return None
+
+  google_application_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS',
+                                             None)
+  if google_application_credentials is None:
+    # The normal case, when we are on GCE.
+    creds, _ = get_default()
+    request = requests.Request()
+    creds.refresh(request)
+    signing_creds = compute_engine.IDTokenCredentials(
+        request, '', service_account_email=creds.service_account_email)
+  else:
+    # Handle cases like android and Mac where bots are run outside of Google
+    # Cloud Platform and don't have access to metadata server.
+    signing_creds = service_account.Credentials.from_service_account_file(
+        google_application_credentials)
+  return signing_creds

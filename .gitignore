@@ -17,6 +17,7 @@
 .idea
 /.project
 /.pydevproject
+/.python-version
 /ENV
 /bot/*
 /coverage
@@ -50,3 +51,6 @@ bazel-*
 /src/clusterfuzz/lib-config
 .DS_Store
 .vscode
+*.tfstate*
+*.lock.hcl
+**/.terraform/*

@@ -66,7 +66,7 @@ def get_string(value):
   return value.strip()
 
 
-class Filter(object):
+class Filter:
   """Base filter."""
 
   def add(self, query, params):
@@ -96,15 +96,14 @@ class SimpleFilter(Filter):
     value = params.get(self.param_key)
     if is_empty(value):
       if self.required:
-        raise helpers.EarlyExitException("'%s' is required." % self.param_key,
-                                         400)
+        raise helpers.EarlyExitError("'%s' is required." % self.param_key, 400)
       return
 
     try:
       for transformer in self.transformers:
         value = transformer(value)
     except ValueError:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           "Invalid '%s': %s" % (self.param_key, sys.exc_info()[1]), 400)
 
     query.filter(self.field, value, **self.extras)
@@ -146,7 +145,7 @@ class Keyword(SimpleFilter):
 
   def __init__(self, keyword_filters, field, param_key):
     self.keyword_filters = keyword_filters
-    super(Keyword, self).__init__(field, param_key, required=False)
+    super().__init__(field, param_key, required=False)
 
   def add(self, query, params):
     """Add filter."""

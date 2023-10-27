@@ -20,15 +20,9 @@ import re
 import shlex
 import time
 
-import six
-
-try:
-  from shlex import quote
-except ImportError:
-  from pipes import quote
-
 from google.cloud import ndb
 
+from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
@@ -116,13 +110,20 @@ def get_domain():
 
 
 def get_testcase_by_id(testcase_id):
-  """Return the testcase with the given id, or None if it does not exist."""
-  if not testcase_id or not str(testcase_id).isdigit() or int(testcase_id) == 0:
-    raise errors.InvalidTestcaseError
+  """Return the testcase with the given id.
+  Raises InvalidTestcaseError if no such testcase exists.
+  """
+  try:
+    parsed_id = int(testcase_id)
+  except ValueError:
+    raise errors.InvalidTestcaseError(testcase_id)
 
-  testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
+  if parsed_id == 0:
+    raise errors.InvalidTestcaseError(0)
+
+  testcase = ndb.Key(data_types.Testcase, parsed_id).get()
   if not testcase:
-    raise errors.InvalidTestcaseError
+    raise errors.InvalidTestcaseError(parsed_id)
 
   return testcase
 
@@ -131,16 +132,37 @@ def find_testcase(project_name,
                   crash_type,
                   crash_state,
                   security_flag,
-                  testcase_to_exclude=None):
+                  testcase_to_exclude=None,
+                  fuzz_target=None):
   """Find an open test case matching certain parameters."""
   # Prepare the query.
-  query = data_types.Testcase.query(
+  query_args = [
       data_types.Testcase.project_name == project_name,
       data_types.Testcase.crash_type == crash_type,
       data_types.Testcase.crash_state == crash_state,
       data_types.Testcase.security_flag == security_flag,
       data_types.Testcase.status == 'Processed',
-      ndb_utils.is_true(data_types.Testcase.open))
+      ndb_utils.is_true(data_types.Testcase.open)
+  ]
+  if fuzz_target and environment.get_value('DEDUP_ONLY_SAME_TARGET'):
+    culprit_engine = None
+    target_without_engine = None
+    for engine in fuzzing.PUBLIC_ENGINES:
+      if fuzz_target.startswith(f'{engine}_'):
+        culprit_engine = engine
+        target_without_engine = fuzz_target[len(culprit_engine) + 1:]
+        break
+      target_with_different_engines = []
+      assert culprit_engine
+
+    target_with_different_engines = [
+        f'{engine}_{target_without_engine}' for engine in fuzzing.PUBLIC_ENGINES
+    ]
+    query_args.append(
+        data_types.Testcase.overridden_fuzzer_name.IN(
+            target_with_different_engines))
+
+  query = data_types.Testcase.query(*query_args)
 
   # Return any open (not fixed) test cases if they exist.
   testcases = ndb_utils.get_all_from_query(query)
@@ -343,7 +365,7 @@ def _get_memory_tool_options(testcase):
     return []
 
   result = []
-  for options_name, options_value in sorted(six.iteritems(env)):
+  for options_name, options_value in sorted(env.items()):
     # Strip symbolize flag, use default symbolize=1.
     options_value.pop('symbolize', None)
     if not options_value:
@@ -351,7 +373,7 @@ def _get_memory_tool_options(testcase):
 
     options_string = environment.join_memory_tool_options(options_value)
     result.append('{options_name}="{options_string}"'.format(
-        options_name=options_name, options_string=quote(options_string)))
+        options_name=options_name, options_string=shlex.quote(options_string)))
 
   return result
 
@@ -360,10 +382,10 @@ def _get_bazel_test_args(arguments, sanitizer_options):
   """Return arguments to pass to a bazel test."""
   result = []
   for sanitizer_option in sanitizer_options:
-    result.append('--test_env=%s' % sanitizer_option)
+    result.append(f'--test_env={sanitizer_option}')
 
   for argument in shlex.split(arguments):
-    result.append('--test_arg=%s' % quote(argument))
+    result.append(f'--test_arg={shlex.quote(argument)}')
 
   return ' '.join(result)
 
@@ -614,7 +636,8 @@ def handle_duplicate_entry(testcase):
       testcase.crash_type,
       testcase.crash_state,
       testcase.security_flag,
-      testcase_to_exclude=testcase)
+      testcase_to_exclude=testcase,
+      fuzz_target=testcase.fuzzer_name)
   if not existing_testcase:
     return
 
@@ -660,11 +683,10 @@ def handle_duplicate_entry(testcase):
              (existing_testcase_id, testcase_id))
 
 
-def is_first_retry_for_task(testcase, reset_after_retry=False):
+def is_first_attempt_for_task(task_name, testcase, reset_after_retry=False):
   """Returns true if this task is tried atleast once. Only applicable for
   analyze and progression tasks."""
-  task_name = environment.get_value('TASK_NAME')
-  retry_key = '%s_retry' % task_name
+  retry_key = f'{task_name}_retry'
   retry_flag = testcase.get_metadata(retry_key)
   if not retry_flag:
     # Update the metadata key since now we have tried it once.
@@ -712,9 +734,9 @@ def _get_security_severity(crash, job_type, gestures):
 def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    one_time_crasher_flag, crash_revision, comment,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
-                   job_type, archived, archive_filename, binary_flag, http_flag,
-                   gestures, redzone, disable_ubsan, minidump_keys,
-                   window_argument, timeout_multiplier, minimized_arguments):
+                   job_type, archived, archive_filename, http_flag, gestures,
+                   redzone, disable_ubsan, window_argument, timeout_multiplier,
+                   minimized_arguments):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -749,13 +771,11 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.queue = tasks.default_queue()
   testcase.archive_state = archive_state
   testcase.archive_filename = archive_filename
-  testcase.binary_flag = binary_flag
   testcase.http_flag = http_flag
   testcase.timestamp = datetime.datetime.utcnow()
   testcase.gestures = gestures
   testcase.redzone = redzone
   testcase.disable_ubsan = disable_ubsan
-  testcase.minidump_keys = minidump_keys
   testcase.window_argument = window_argument
   testcase.timeout_multiplier = float(timeout_multiplier)
   testcase.minimized_arguments = minimized_arguments
@@ -769,11 +789,10 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Get testcase id from newly created testcase.
   testcase_id = testcase.key.id()
-  logs.log(
-      ('Created new testcase %d (reproducible:%s, security:%s, binary:%s).\n'
-       'crash_type: %s\ncrash_state:\n%s\n') %
-      (testcase_id, not testcase.one_time_crasher_flag, testcase.security_flag,
-       testcase.binary_flag, testcase.crash_type, testcase.crash_state))
+  logs.log(('Created new testcase %d (reproducible:%s, security:%s).\n'
+            'crash_type: %s\ncrash_state:\n%s\n') %
+           (testcase_id, not testcase.one_time_crasher_flag,
+            testcase.security_flag, testcase.crash_type, testcase.crash_state))
 
   # Update global blacklist to avoid finding this leak again (if needed).
   is_lsan_enabled = environment.get_value('LSAN')
@@ -795,9 +814,9 @@ def set_initial_testcase_metadata(testcase):
     testcase.set_metadata('build_url', build_url, update_testcase=False)
 
   gn_args_path = environment.get_value('GN_ARGS_PATH', '')
-  if gn_args_path and os.path.exists(gn_args_path):
+  if gn_args_path:
     gn_args = utils.read_data_from_file(
-        gn_args_path, eval_data=False, default='').decode('utf-8')
+        gn_args_path, eval_data=False, default='is_msan = true').decode('utf-8')
 
     # Remove goma_dir from gn args since it is only relevant to the machine that
     # did the build.
@@ -1329,7 +1348,7 @@ def create_user_uploaded_testcase(key,
         'fuzzer_binary_name', fuzzer_binary_name, update_testcase=False)
 
   if additional_metadata:
-    for metadata_key, metadata_value in six.iteritems(additional_metadata):
+    for metadata_key, metadata_value in additional_metadata.items():
       testcase.set_metadata(metadata_key, metadata_value, update_testcase=False)
 
   testcase.timestamp = utils.utcnow()
@@ -1405,9 +1424,13 @@ def check_uploaded_testcase_duplicate(testcase, metadata):
 
 
 def close_invalid_uploaded_testcase(testcase, metadata, status):
+  testcase.open = False
+  mark_invalid_uploaded_testcase(testcase, metadata, status)
+
+
+def mark_invalid_uploaded_testcase(testcase, metadata, status):
   """Closes an invalid testcase and updates metadata."""
   testcase.status = status
-  testcase.open = False
   testcase.minimized_keys = 'NA'
   testcase.regression = 'NA'
   testcase.set_impacts_as_na()
@@ -1677,9 +1700,8 @@ def get_coverage_information(fuzzer_name, date, create_if_needed=False):
   return coverage_info
 
 
-def close_testcase_with_error(testcase_id, error_message):
+def close_testcase_with_error(testcase, error_message):
   """Close testcase (fixed=NA) with an error message."""
-  testcase = get_testcase_by_id(testcase_id)
   update_testcase_comment(testcase, data_types.TaskState.ERROR, error_message)
   testcase.fixed = 'NA'
   testcase.open = False

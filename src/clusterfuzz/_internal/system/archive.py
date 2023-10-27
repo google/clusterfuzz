@@ -34,7 +34,7 @@ ARCHIVE_FILE_EXTENSIONS = (
     ZIP_FILE_EXTENSIONS + TAR_FILE_EXTENSIONS + LZMA_FILE_EXTENSIONS)
 
 
-class ArchiveType(object):
+class ArchiveType:
   """Type of the archive."""
   UNKNOWN = 0
   ZIP = 1
@@ -42,7 +42,7 @@ class ArchiveType(object):
   TAR_LZMA = 3
 
 
-class ArchiveFile(object):
+class ArchiveFile:
   """File in an archive."""
 
   def __init__(self, name, size, handle):
@@ -60,7 +60,11 @@ def iterator(archive_path,
   archive_type = get_archive_type(archive_path)
 
   if not file_match_callback:
-    file_match_callback = lambda _: True
+
+    def file_match_callback_fallback(_):
+      return True
+
+    file_match_callback = file_match_callback_fallback
 
   def maybe_extract(extract_func, info):
     """Returns an extracted file or None if it is not supposed to be extracted.

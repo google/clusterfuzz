@@ -16,9 +16,7 @@
 import copy
 import os
 import unittest
-
-import mock
-import six
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers.afl import launcher
@@ -69,7 +67,7 @@ class StatsGetterTests(unittest.TestCase):
     self.mock.is_lpm_fuzz_target.return_value = True
     self.strategies = launcher.FuzzingStrategies(None)
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def test_set_afl_stats(self):
     """Tests that set_afl_stats() parses a fuzzer_stats file properly."""
@@ -266,7 +264,7 @@ class StatsGetterTests(unittest.TestCase):
     same as the default ones."""
     default_stats = copy.copy(self.stats_getter.stats)
     actual_stats = self._set_stats()
-    for stat_key, stat_value in six.iteritems(default_stats):
+    for stat_key, stat_value in default_stats.items():
       self.assertEqual(type(stat_value), type(actual_stats[stat_key]))
 
   def test_set_strategy_stats(self):
@@ -284,12 +282,6 @@ class StatsGetterTests(unittest.TestCase):
     self.assertEqual(
         actual_stats['strategy_' +
                      strategy.CORPUS_MUTATION_RADAMSA_STRATEGY.name], 1)
-
-    self.strategies.generator_strategy = engine_common.Generator.ML_RNN
-    actual_stats = self._set_stats()
-    self.assertEqual(
-        actual_stats['strategy_' +
-                     strategy.CORPUS_MUTATION_ML_RNN_STRATEGY.name], 1)
 
   def test_set_output_stats_bad_instrumentation(self):
     """Tests that set_output_stats sets bad_instrumentation properly."""

@@ -368,7 +368,7 @@
                     <span class="help" title="Time of deletion, applicable to unreproducible testcases with no associated bug.">Deletion:</span>
                   </td>
                   <td class="value">
-                    Will be auto-deleted on [[formatDate(info.auto_delete_timestamp)]] if flaky crash no longer seen
+                    Will be auto-deleted after [[formatDate(info.auto_delete_timestamp)]] if flaky crash no longer seen
                   </td>
                 </template>
                 <template is="dom-if" if="[[info.auto_close_timestamp]]">
@@ -376,7 +376,7 @@
                     <span class="help" title="Time of closure, applicable to unreproducible testcases with an associated bug.">Closure:</span>
                   </td>
                   <td class="value">
-                    Will be auto-closed on [[formatDate(info.auto_close_timestamp)]] if flaky crash no longer seen
+                    Will be auto-closed after [[formatDate(info.auto_close_timestamp)]] if flaky crash no longer seen
                   </td>
                 </template>
                 <template is="dom-if" if="[[info.show_impact]]">

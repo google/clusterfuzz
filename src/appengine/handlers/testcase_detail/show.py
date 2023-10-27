@@ -29,6 +29,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.metrics import crash_stats
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
@@ -37,7 +38,6 @@ from libs import auth
 from libs import form
 from libs import handler
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 
 FIND_SIMILAR_ISSUES_OPTIONS = [{
     'type': 'open',
@@ -194,10 +194,11 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   crash_stacktrace = _truncate_stacktrace(crash_stacktrace)
 
   filtered_crash_lines = []
+  linkifier = source_mapper.StackFrameLinkifier(revisions_dict)
   for line in crash_stacktrace.splitlines():
     # Html escape line content to prevent XSS.
     line = html.escape(line, quote=True)
-    line = source_mapper.linkify_stack_frame(line, revisions_dict)
+    line = linkifier.linkify_stack_frame(line)
 
     if 'android' in platform or environment.is_lkl_job(job_type):
       line = _linkify_android_kernel_stack_frame_if_needed(line)
@@ -212,7 +213,7 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
   return highlight_common_stack_frames(filtered_crash_stacktrace)
 
 
-class Line(object):
+class Line:
   """Represent a stacktrace line."""
 
   def __init__(self, line_number, content, important):
@@ -239,7 +240,7 @@ class Line(object):
     }
 
 
-class Gap(object):
+class Gap:
   """Represent a gap in a previewed stacktrace."""
 
   def __init__(self, size):
@@ -628,7 +629,7 @@ class DeprecatedHandler(base_handler.Handler):
     """Serve the redirect to the current test case detail page."""
     testcase_id = request.args.get('key')
     if not testcase_id:
-      raise helpers.EarlyExitException('No testcase key provided.', 400)
+      raise helpers.EarlyExitError('No testcase key provided.', 400)
 
     return self.redirect('/testcase-detail/%s' % testcase_id)
 

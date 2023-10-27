@@ -37,18 +37,6 @@ test-clusterfuzz:
     #   instance_template: clusterfuzz-linux-high-end
     #   distribute: False
 
-    # clusterfuzz-linux-ml-with-gpu:
-    #   gce_zone: gce-zone
-    #   instance_count: 1
-    #   instance_template: clusterfuzz-linux-ml-with-gpu
-    #   distribute: False
-
-    # clusterfuzz-linux-profile:
-    #   gce_zone: gce-zone
-    #   instance_count: 1
-    #   instance_template: clusterfuzz-linux-profile
-    #   distribute: False
-
     # clusterfuzz-windows:
     #   gce_zone: gce-zone
     #   instance_count: 1
@@ -159,41 +147,6 @@ test-clusterfuzz:
             accessConfigs:
               - type: ONE_TO_ONE_NAT
                 name: 'External NAT'
-
-    - name: clusterfuzz-linux-ml-with-gpu
-      description: '{"version": 1}'
-      properties:
-        machineType: n1-standard-2
-        disks:
-          - boot: true
-            autoDelete: true
-            initializeParams:
-              sourceImage: projects/cos-cloud/global/images/family/cos-stable
-              diskSizeGb: 100
-              diskType: pd-standard
-        metadata:
-          items:
-            - key: docker-image
-              value: gcr.io/clusterfuzz-images/ml-with-gpu:a2f4dd6-202202070654
-            - key: user-data
-              value: file://linux-init-ml-with-gpu.yaml
-        serviceAccounts:
-          - email: test-clusterfuzz-service-account-email
-            scopes:
-              - https://www.googleapis.com/auth/cloud-platform
-              - https://www.googleapis.com/auth/prodxmon
-        networkInterfaces:
-          - network: global/networks/default
-            accessConfigs:
-              - type: ONE_TO_ONE_NAT
-                name: 'External NAT'
-        guestAccelerators:
-          - acceleratorCount: 1
-            acceleratorType: nvidia-tesla-p100
-        scheduling:
-          automaticRestart: true
-          onHostMaintenance: TERMINATE
-          preemptible: false
 
     - name: clusterfuzz-windows
       description: '{"version": 1}'

@@ -20,8 +20,6 @@ import subprocess
 import sys
 import tempfile
 
-import six
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
@@ -52,8 +50,7 @@ def _dirs_equal(dircmp):
   if dircmp.left_only or dircmp.right_only or dircmp.diff_files:
     return False
 
-  return all(
-      _dirs_equal(sub_dircmp) for sub_dircmp in six.itervalues(dircmp.subdirs))
+  return all(_dirs_equal(sub_dircmp) for sub_dircmp in dircmp.subdirs.values())
 
 
 class UntrustedRunnerIntegrationTest(
@@ -66,7 +63,7 @@ class UntrustedRunnerIntegrationTest(
 
   def setUp(self):
     """Set up."""
-    super(UntrustedRunnerIntegrationTest, self).setUp()
+    super().setUp()
     data_types.Config().put()
 
     environment_string = ('APP_NAME = app\n'
@@ -84,8 +81,7 @@ class UntrustedRunnerIntegrationTest(
 
     data_types.Fuzzer(name='fuzzer', data_bundle_name='bundle').put()
 
-    data_types.DataBundle(
-        name='bundle', is_local=True, sync_to_worker=True).put()
+    data_types.DataBundle(name='bundle', sync_to_worker=True).put()
 
   def test_run_process(self):
     """Tests remote run_process."""
@@ -175,13 +171,13 @@ class UntrustedRunnerIntegrationTest(
     with open(os.path.join(fuzz_inputs, 'c', 'c'), 'w') as f:
       f.write('')
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         os.path.join(fuzz_inputs, 'a'),
         os.path.join(fuzz_inputs, 'b'),
         os.path.join(fuzz_inputs, 'c'),
     ], file_host.list_files(fuzz_inputs))
 
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         os.path.join(fuzz_inputs, 'a'),
         os.path.join(fuzz_inputs, 'b'),
         os.path.join(fuzz_inputs, 'c', 'c'),
@@ -429,13 +425,14 @@ class UntrustedRunnerIntegrationTest(
 
     testcase.put()
 
-    file_list, input_directory, testcase_file_path = (
-        setup.setup_testcase(testcase, job_type))
+    setup_input = setup.preprocess_setup_testcase(testcase)
+    file_list, testcase_file_path, error = setup.setup_testcase(
+        testcase, job_type, setup_input)
 
-    six.assertCountEqual(self, file_list, [
+    self.assertIsNone(error)
+    self.assertCountEqual(file_list, [
         testcase.absolute_path,
     ])
-    self.assertEqual(input_directory, fuzz_inputs)
     self.assertEqual(testcase_file_path, testcase.absolute_path)
 
     worker_fuzz_inputs = file_host.rebase_to_worker_root(fuzz_inputs)
@@ -484,8 +481,8 @@ class UntrustedRunnerIntegrationTest(
 
     try:
       self.assertTrue(corpus.rsync_to_disk(test_corpus_directory))
-      six.assertCountEqual(self, os.listdir(test_corpus_directory),
-                           ['123', '456', 'abc'])
+      self.assertCountEqual(
+          os.listdir(test_corpus_directory), ['123', '456', 'abc'])
     finally:
       if os.path.exists(test_corpus_directory):
         shutil.rmtree(test_corpus_directory, ignore_errors=True)
@@ -512,18 +509,25 @@ class UntrustedRunnerIntegrationTest(
   def test_update_data_bundle(self):
     """Test update_data_bundle."""
     self.mock.get_data_bundle_bucket_name.return_value = TEST_BUNDLE_BUCKET
+
+    # Get a blobstore key for the fuzzer.
     fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == 'fuzzer').get()
+    # This file is as good as any.
+    fuzzer.blobstore_key = blobs.write_blob(__file__)
+    fuzzer.put()
+
+    setup_input = setup.preprocess_update_fuzzer_and_data_bundles('fuzzer')
     bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == 'bundle').get()
 
-    self.assertTrue(setup.update_data_bundle(fuzzer, bundle))
+    self.assertTrue(setup.update_data_bundle(setup_input, bundle))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
         setup.get_data_bundle_directory('fuzzer'))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'a')))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'b')))
 
-    self.assertTrue(setup.update_data_bundle(fuzzer, bundle))
+    self.assertTrue(setup.update_data_bundle(setup_input, bundle))
 
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""
@@ -532,7 +536,7 @@ class UntrustedRunnerIntegrationTest(
         worker_root, 'src', 'clusterfuzz', '_internal', 'tests', 'core', 'bot',
         'untrusted_runner', 'test_data', 'test_build')
     fuzz_target_paths = file_host.get_fuzz_targets(worker_test_build_dir)
-    six.assertCountEqual(self, [
+    self.assertCountEqual([
         os.path.join(worker_test_build_dir, 'do_stuff_fuzzer'),
         os.path.join(worker_test_build_dir, 'target'),
     ], fuzz_target_paths)

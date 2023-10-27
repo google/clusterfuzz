@@ -18,13 +18,11 @@ import functools
 import json
 import threading
 
-import six
-
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system.environment import appengine_noop
-from clusterfuzz._internal.system.environment import bot_noop
+from clusterfuzz._internal.system.environment import if_redis_available
 from clusterfuzz._internal.system.environment import local_noop
 
 # Thead local globals.
@@ -48,7 +46,7 @@ def _redis_client():
   return _local.redis
 
 
-class FifoInMemory(object):
+class FifoInMemory:
   """In-memory caching engine."""
 
   def __init__(self, capacity):
@@ -91,7 +89,7 @@ class FifoInMemory(object):
     return _default_key(func, args, kwargs)
 
 
-class FifoOnDisk(object):
+class FifoOnDisk:
   """On-disk caching engine."""
 
   def __init__(self, capacity):
@@ -124,7 +122,7 @@ class FifoOnDisk(object):
     return _default_key(func, args, kwargs)
 
 
-class Memcache(object):
+class Memcache:
   """Memcache caching engine."""
 
   def __init__(self, ttl_in_seconds, key_fn=None):
@@ -132,7 +130,7 @@ class Memcache(object):
     self.key_fn = key_fn or _default_key
 
   @local_noop
-  @bot_noop
+  @if_redis_available
   def put(self, key, value):
     """Put (key, value) into cache."""
     import redis
@@ -143,7 +141,7 @@ class Memcache(object):
       logs.log_error('Failed to store key in cache.', key=key, value=value)
 
   @local_noop
-  @bot_noop
+  @if_redis_available
   def get(self, key):
     """Get the value from cache."""
     import redis
@@ -170,7 +168,7 @@ def _default_key(func, args, kwargs):
 
   kwargs = {
       key: value if not isinstance(value, str) else str(value)
-      for key, value in six.iteritems(kwargs)
+      for key, value in kwargs.items()
   }
 
   return 'memoize:%s' % [func.__name__, args, sorted(kwargs.items())]

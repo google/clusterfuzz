@@ -13,6 +13,7 @@
 # limitations under the License.
 """Shell related functions."""
 
+import contextlib
 import os
 import re
 import shlex
@@ -20,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import uuid
 
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.metrics import logs
@@ -105,11 +107,6 @@ def clear_data_bundles_directory():
   remove_directory(environment.get_value('DATA_BUNDLES_DIR'), recreate=True)
 
 
-def clear_mutator_plugins_directory():
-  """Clears the mutator plugins directory."""
-  remove_directory(environment.get_value('MUTATOR_PLUGINS_DIR'), recreate=True)
-
-
 def clear_data_directories():
   """Clear all data directories."""
   clear_build_directory()
@@ -120,7 +117,6 @@ def clear_data_directories():
   clear_fuzzers_directories()
   clear_temp_directory()
   clear_testcase_directories()
-  clear_mutator_plugins_directory()
 
   persistent_cache.clear_values(clear_all=True)
 
@@ -441,6 +437,23 @@ def remove_file(file_path):
     pass
 
 
+def _get_random_filename():
+  return str(uuid.uuid4()).lower()
+
+
+@contextlib.contextmanager
+def get_tempfile(prefix='', suffix=''):
+  """Returns path to a temporary file."""
+  tempdir = environment.get_value('BOT_TMPDIR', '/tmp')
+  os.makedirs(tempdir, exist_ok=True)
+  basename = _get_random_filename()
+  filename = f'{prefix}{basename}{suffix}'
+  filepath = os.path.join(tempdir, filename)
+  yield filepath
+  if os.path.exists(filepath):
+    os.remove(filepath)
+
+
 def remove_directory(directory, recreate=False, ignore_errors=False):
   """Removes a directory tree."""
   # Log errors as warnings if |ignore_errors| is set.
@@ -509,76 +522,3 @@ def remove_directory(directory, recreate=False, ignore_errors=False):
 def walk(directory, **kwargs):
   """Wrapper around walk to resolve compatibility issues."""
   return os.walk(directory, **kwargs)
-
-
-# Copy of shutil.which from Python 3.3 (unavailable in Python 2.7).
-# pylint: disable=bad-inline-option,g-inconsistent-quotes,redefined-builtin
-# yapf: disable
-def which(cmd, mode=os.F_OK | os.X_OK, path=None):
-  """Given a command, mode, and a PATH string, return the path which
-  conforms to the given mode on the PATH, or None if there is no such
-  file.
-  `mode` defaults to os.F_OK | os.X_OK. `path` defaults to the result
-  of os.environ.get("PATH"), or can be overridden with a custom search
-  path.
-  Note: This function was backported from the Python 3 source code.
-  """
-
-  # Check that a given file can be accessed with the correct mode.
-  # Additionally check that `file` is not a directory, as on Windows
-  # directories pass the os.access check.
-
-  def _access_check(fn, mode):
-    return (
-        os.path.exists(fn) and os.access(fn, mode) and not os.path.isdir(fn)
-    )
-
-  # If we're given a path with a directory part, look it up directly
-  # rather than referring to PATH directories. This includes checking
-  # relative to the current directory, e.g. ./script
-  if os.path.dirname(cmd):
-    if _access_check(cmd, mode):
-      return cmd
-
-    return None
-
-  if path is None:
-    path = os.environ.get("PATH", os.defpath)
-  if not path:
-    return None
-
-  path = path.split(os.pathsep)
-
-  if sys.platform == "win32":
-    # The current directory takes precedence on Windows.
-    if os.curdir not in path:
-      path.insert(0, os.curdir)
-
-    # PATHEXT is necessary to check on Windows.
-    pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
-    # See if the given file matches any of the expected path
-    # extensions. This will allow us to short circuit when given
-    # "python.exe". If it does match, only test that one, otherwise we
-    # have to try others.
-    if any(cmd.lower().endswith(ext.lower()) for ext in pathext):
-      files = [cmd]
-    else:
-      files = [cmd + ext for ext in pathext]
-  else:
-    # On other platforms you don't have things like PATHEXT to tell you
-    # what file suffixes are executable, so just pass on cmd as-is.
-    files = [cmd]
-
-  seen = set()
-  for dir in path:
-    normdir = os.path.normcase(dir)
-    if normdir not in seen:
-      seen.add(normdir)
-      for thefile in files:
-        name = os.path.join(dir, thefile)
-        if _access_check(name, mode):
-          return name
-
-  return None
-# pylint: enable=bad-inline-option,g-inconsistent-quotes,redefined-builtin
-# yapf: enable

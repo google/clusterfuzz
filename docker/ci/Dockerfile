@@ -13,22 +13,21 @@
 # limitations under the License.
 FROM gcr.io/clusterfuzz-images/base
 
-# Use nodesource nodejs packages.
-RUN curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-
 # TOOD(ochang):Also need libnss3 libfreetype6 libfontconfig1 libgconf-2-4 xvfb for chrome-driver.
 RUN apt-get update && \
     apt-get install -y \
+        gettext-base \
         git \
         golang-go \
         google-cloud-sdk-app-engine-go \
         google-cloud-sdk-app-engine-python \
         google-cloud-sdk-app-engine-python-extras \
         google-cloud-sdk-datastore-emulator \
+        google-cloud-sdk-gke-gcloud-auth-plugin \
         google-cloud-sdk-pubsub-emulator=312.0.0-0 \
+        kubectl \
         liblzma-dev \
-        nodejs \
-        openjdk-8-jdk
+        openjdk-11-jdk
 
 # Install Bazel as per https://docs.bazel.build/versions/master/install-ubuntu.html#using-bazel-custom-apt-repository.
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | tee /etc/apt/sources.list.d/bazel.list && \
@@ -42,6 +41,12 @@ RUN npm install -g bower polymer-bundler
 RUN curl -s https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
     echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
     apt-get update && apt-get install -y google-chrome-stable
+
+# Install terraform.
+RUN wget https://releases.hashicorp.com/terraform/1.5.6/terraform_1.5.6_linux_amd64.zip && \
+    echo "3de5135eecbdb882c7c941920846cc63b0685209f9f8532c6fc1460d9c58e347  terraform_1.5.6_linux_amd64.zip" | sha256sum --check --status && \
+    unzip terraform_1.5.6_linux_amd64.zip -d /usr/local/bin && \
+    rm terraform_1.5.6_linux_amd64.zip
 
 # Container Builder mount.
 VOLUME /workspace

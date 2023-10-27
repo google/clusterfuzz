@@ -19,9 +19,9 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from libs import auth
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 
 
 def _is_privileged_user(email):
@@ -72,7 +72,7 @@ def _is_domain_allowed(email):
   return False
 
 
-class UserAccess(object):
+class UserAccess:
   Allowed, Denied, Redirected = list(range(3))  # pylint: disable=invalid-name
 
 
@@ -167,17 +167,17 @@ def can_user_access_testcase(testcase):
 def check_access_and_get_testcase(testcase_id):
   """Check the failed attempt count and get the testcase."""
   if not helpers.get_user_email():
-    raise helpers.UnauthorizedException()
+    raise helpers.UnauthorizedError()
 
   if not testcase_id:
-    raise helpers.EarlyExitException('No test case specified!', 404)
+    raise helpers.EarlyExitError('No test case specified!', 404)
 
   try:
     testcase = data_handler.get_testcase_by_id(testcase_id)
   except errors.InvalidTestcaseError:
-    raise helpers.EarlyExitException('Invalid test case!', 404)
+    raise helpers.EarlyExitError('Invalid test case!', 404)
 
   if not can_user_access_testcase(testcase):
-    raise helpers.AccessDeniedException()
+    raise helpers.AccessDeniedError()
 
   return testcase

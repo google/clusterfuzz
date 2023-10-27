@@ -15,7 +15,7 @@
 
 import unittest
 
-from handlers.cron import service_accounts
+from clusterfuzz._internal.cron import service_accounts
 
 
 class ServiceAccountIdTest(unittest.TestCase):

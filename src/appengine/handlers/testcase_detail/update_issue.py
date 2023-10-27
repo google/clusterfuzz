@@ -16,12 +16,12 @@
 from flask import request
 
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.issue_management import issue_filer
+from clusterfuzz._internal.issue_management import issue_tracker_policy
 from handlers import base_handler
 from handlers.testcase_detail import show
 from libs import handler
 from libs import helpers
-from libs.issue_management import issue_filer
-from libs.issue_management import issue_tracker_policy
 
 
 class Handler(base_handler.Handler):
@@ -40,12 +40,12 @@ class Handler(base_handler.Handler):
                                 Exception)
 
     if not issue.is_open:
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           ('The issue (%d) is already closed and further updates are not'
            ' allowed. Please file a new issue instead!') % issue_id, 400)
 
     if not testcase.is_crash():
-      raise helpers.EarlyExitException(
+      raise helpers.EarlyExitError(
           'This is not a crash testcase, so issue update is not applicable.',
           400)
 

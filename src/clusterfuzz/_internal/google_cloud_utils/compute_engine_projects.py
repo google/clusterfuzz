@@ -16,15 +16,13 @@
 from collections import namedtuple
 import os
 
-import six
-
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.system import environment
 
 FILE_SCHEME = 'file://'
 
 
-class Project(object):
+class Project:
   """Project."""
 
   def __init__(self, project_id, clusters, instance_templates,
@@ -77,7 +75,7 @@ def _config_to_project(name, config):
   """Read a project config."""
   clusters = []
 
-  for cluster_name, zone in six.iteritems(config['clusters']):
+  for cluster_name, zone in config['clusters'].items():
     clusters.append(
         Cluster(
             name=cluster_name,
@@ -110,7 +108,7 @@ def _project_configs():
 
 def get_projects():
   projects = []
-  for name, project in six.iteritems(_project_configs()):
+  for name, project in _project_configs().items():
     projects.append(_config_to_project(name, project))
 
   return projects

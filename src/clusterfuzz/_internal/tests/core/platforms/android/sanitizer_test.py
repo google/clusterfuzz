@@ -34,9 +34,9 @@ class GetOptionsFilePathTest(android_helpers.AndroidTest):
     """Test that options file path is returned inside device temp dir when
     device has ASan setup with partial instrumentation using asan_device_setup
     script."""
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.platforms.android.settings.get_sanitizer_tool_name'
-    ])
+    test_helpers.patch(self,
+                       [('clusterfuzz._internal.platforms.android.settings.'
+                         'get_sanitizer_tool_name')])
     self.mock.get_sanitizer_tool_name.return_value = None
 
     self.assertEqual('/data/local/tmp/asan.options',
@@ -45,9 +45,9 @@ class GetOptionsFilePathTest(android_helpers.AndroidTest):
   def test_system_asan_build(self):
     """Test that options file path is returned inside /system when device is
     setup with a full-system ASan build."""
-    test_helpers.patch(self, [
-        'clusterfuzz._internal.platforms.android.settings.get_sanitizer_tool_name'
-    ])
+    test_helpers.patch(self,
+                       [('clusterfuzz._internal.platforms.android.settings.'
+                         'get_sanitizer_tool_name')])
     self.mock.get_sanitizer_tool_name.return_value = 'asan'
 
     self.assertEqual('/system/asan.options',
@@ -71,7 +71,7 @@ class SetOptionsTest(android_helpers.AndroidTest):
 
   def setUp(self):
     """Setup for set options test."""
-    super(SetOptionsTest, self).setUp()
+    super().setUp()
 
     test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
 
@@ -107,7 +107,7 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
 
   def setUp(self):
     """Setup for setup ASan if needed test."""
-    super(SetupASanIfNeededTest, self).setUp()
+    super().setUp()
 
     test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
 

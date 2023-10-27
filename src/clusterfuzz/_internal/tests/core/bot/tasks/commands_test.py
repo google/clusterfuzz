@@ -15,12 +15,13 @@
 import datetime
 import os
 import unittest
+from unittest import mock
 
 from google.cloud import ndb
-import mock
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -36,7 +37,7 @@ def dummy(_):
 @commands.set_task_payload
 def dummy_exception(_):
   """A dummy function."""
-  raise Exception(os.environ['TASK_PAYLOAD'])
+  raise RuntimeError(os.environ['TASK_PAYLOAD'])
 
 
 class SetTaskPayloadTest(unittest.TestCase):
@@ -70,24 +71,41 @@ class RunCommandTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        ('fuzz_execute_task',
-         'clusterfuzz._internal.bot.tasks.fuzz_task.execute_task'),
-        ('progression_execute_task',
-         'clusterfuzz._internal.bot.tasks.progression_task.execute_task'),
+        ('fuzz_utask_main',
+         'clusterfuzz._internal.bot.tasks.utasks.fuzz_task.utask_main'),
+        ('progression_utask_main',
+         'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_main'),
+        ('progression_utask_preprocess',
+         'clusterfuzz._internal.bot.tasks.utasks.progression_task.utask_preprocess'
+        ), 'clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess_no_io',
         'clusterfuzz._internal.base.utils.utcnow',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles'
     ])
 
     os.environ['BOT_NAME'] = 'bot_name'
     os.environ['TASK_LEASE_SECONDS'] = '60'
     os.environ['FAIL_WAIT'] = '60'
+    os.environ['TEST_TIMEOUT'] = '10'
     self.mock.utcnow.return_value = test_utils.CURRENT_TIME
+
+  def test_run_command_postprocess(self):
+    """Tests that the postprocess command is executed properly."""
+    worker_output_url = '/worker-output'
+    with mock.patch('clusterfuzz._internal.bot.tasks.utasks.tworker_postprocess'
+                   ) as postprocess:
+      commands.run_command('postprocess', worker_output_url, 'none', {})
+    postprocess.assert_called_with(worker_output_url)
 
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
-    commands.run_command('fuzz', 'fuzzer', 'job')
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
+        uworker_io.SetupInput())
+    commands.run_command('fuzz', 'fuzzer', 'job', {})
 
-    self.assertEqual(1, self.mock.fuzz_execute_task.call_count)
-    self.mock.fuzz_execute_task.assert_called_with('fuzzer', 'job')
+    uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
+    self.assertEqual(1, self.mock.fuzz_utask_main.call_count)
+    self.assertEqual(uworker_input.fuzzer_name, 'fuzzer')
+    self.assertEqual(uworker_input.job_type, 'job')
 
     # Fuzz task should not create any TaskStatus entities.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -95,10 +113,15 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_progression(self):
     """Test run_command with a progression task."""
-    commands.run_command('progression', '123', 'job')
 
-    self.assertEqual(1, self.mock.progression_execute_task.call_count)
-    self.mock.progression_execute_task.assert_called_with('123', 'job')
+    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
+        job_type='job', testcase_id='123', uworker_env={})
+    commands.run_command('progression', '123', 'job', {})
+
+    self.assertEqual(1, self.mock.progression_utask_main.call_count)
+    uworker_input = self.mock.progression_utask_main.call_args_list[0][0][0]
+    self.assertEqual(uworker_input.testcase_id, '123')
+    self.assertEqual(uworker_input.job_type, 'job')
 
     # TaskStatus should indicate success.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -116,10 +139,10 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_exception(self):
     """Test run_command with an exception."""
-    self.mock.progression_execute_task.side_effect = Exception
+    self.mock.progression_utask_main.side_effect = Exception
 
     with self.assertRaises(Exception):
-      commands.run_command('progression', '123', 'job')
+      commands.run_command('progression', '123', 'job', {})
 
     # TaskStatus should indicate failure.
     task_status_entities = list(data_types.TaskStatus.query())
@@ -134,8 +157,9 @@ class RunCommandTest(unittest.TestCase):
 
   def test_run_command_invalid_testcase(self):
     """Test run_command with an invalid testcase exception."""
-    self.mock.progression_execute_task.side_effect = errors.InvalidTestcaseError
-    commands.run_command('progression', '123', 'job')
+    self.mock.progression_utask_preprocess.side_effect = errors.InvalidTestcaseError(
+        123)
+    commands.run_command('progression', '123', 'job', {})
 
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))
@@ -157,9 +181,9 @@ class RunCommandTest(unittest.TestCase):
         status='started').put()
 
     with self.assertRaises(commands.AlreadyRunningError):
-      commands.run_command('progression', '123', 'job')
+      commands.run_command('progression', '123', 'job', {})
 
-    self.assertEqual(0, self.mock.progression_execute_task.call_count)
+    self.assertEqual(0, self.mock.progression_utask_main.call_count)
 
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))
@@ -180,8 +204,10 @@ class RunCommandTest(unittest.TestCase):
         time=datetime.datetime(1970, 1, 1),
         status='started').put()
 
-    commands.run_command('progression', '123', 'job')
-    self.assertEqual(1, self.mock.progression_execute_task.call_count)
+    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
+        job_type='job', testcase_id='123', uworker_env={})
+    commands.run_command('progression', '123', 'job', {})
+    self.assertEqual(1, self.mock.progression_utask_main.call_count)
 
     task_status_entities = list(data_types.TaskStatus.query())
     self.assertEqual(1, len(task_status_entities))

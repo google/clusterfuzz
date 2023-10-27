@@ -16,9 +16,11 @@
 import unittest
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import google_issue_tracker
+from clusterfuzz._internal.issue_management import issue_tracker
+from clusterfuzz._internal.issue_management import issue_tracker_utils
+from clusterfuzz._internal.issue_management import monorail
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
-from libs.issue_management import issue_tracker
-from libs.issue_management import issue_tracker_utils
 
 
 class IssueTrackerUtilsUrlTest(unittest.TestCase):
@@ -26,9 +28,9 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
-        'libs.issue_management.issue_tracker.IssueTracker.issue_url',
+        'clusterfuzz._internal.issue_management.issue_tracker.IssueTracker.issue_url',
     ])
 
   def test_get_issue_url(self):
@@ -62,3 +64,38 @@ class IssueTrackerUtilsUrlTest(unittest.TestCase):
 
     issue_tracker_utils.get_issue_url(testcase)
     self.assertEqual(0, self.mock.issue_url.call_count)
+
+  def test_get_issue_tracker_monorail(self):
+    # pylint: disable=protected-access
+    """Test for get monorail issue tracker."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.issue_management.monorail._get_issue_tracker_manager_for_project'
+    ])
+    self.mock.get.return_value = {'type': 'monorail'}
+    self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
+    issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
+        'monorail': monorail.get_issue_tracker
+    }
+
+    constructor = issue_tracker_utils.get_issue_tracker()
+    self.assertIsNotNone(constructor)
+
+  def test_get_issue_tracker_google(self):
+    # pylint: disable=protected-access
+    """Test for get google issue tracker."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.issue_management.monorail._get_issue_tracker_manager_for_project'
+    ])
+    self.mock.get.return_value = {
+        'type': 'google_issue_tracker',
+        'default_component_id': 123
+    }
+    self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
+    issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
+        'google_issue_tracker': google_issue_tracker.get_issue_tracker
+    }
+
+    constructor = issue_tracker_utils.get_issue_tracker()
+    self.assertIsNotNone(constructor)

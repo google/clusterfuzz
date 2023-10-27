@@ -1,0 +1,174 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+import "google/cloud/datastore_v1/proto/entity.proto";
+
+message Json {
+  string serialized = 1;
+}
+
+message UworkerEntityWrapper {
+  google.datastore.v1.Entity entity = 1;
+  Json changed = 2;
+}
+
+message SetupInput {
+  optional google.datastore.v1.Entity fuzzer = 1;
+  optional string fuzzer_name = 2;
+  repeated google.datastore.v1.Entity data_bundles = 3;
+  optional string fuzzer_log_upload_url = 4;
+  optional string fuzzer_download_url = 5;
+  optional string testcase_download_url = 6;
+}
+
+message AnalyzeTaskInput {
+  repeated int64 bad_revisions = 1;
+}
+
+message FuzzTaskInput {
+  optional google.datastore.v1.Entity targets_count = 1;
+}
+
+message MinimizeTaskInput {
+  optional string testcase_upload_url = 1;
+  // TODO(pgrace): Finish this.
+}
+
+message RegressionTaskInput {
+  repeated int64 bad_revisions = 1;
+}
+
+message ProgressionTaskInput {
+  optional bool custom_binary = 1;
+  repeated int64 bad_revisions = 2;
+}
+
+message CorpusPruningTaskInput {
+  optional google.datastore.v1.Entity fuzz_target = 1;
+  optional bool last_execution_failed = 2;
+}
+
+// TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
+// field was unset or set to None.
+message Input {
+  optional google.datastore.v1.Entity testcase = 1;
+  optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+  optional string testcase_id = 3;
+  optional Json uworker_env = 4;
+  optional string job_type = 6;
+  // uworker_io is the only module that should be using this.
+  optional string uworker_output_upload_url = 7;
+  optional google.datastore.v1.Entity variant = 8;
+  optional string original_job_type = 9;
+  optional string fuzzer_name = 10;
+  optional SetupInput setup_input = 11;
+  optional AnalyzeTaskInput analyze_task_input = 12;
+  optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
+  optional FuzzTaskInput fuzz_task_input = 14;
+  optional MinimizeTaskInput minimize_task_input = 15;
+  optional ProgressionTaskInput progression_task_input = 16;
+  optional RegressionTaskInput regression_task_input = 17;
+  optional string module_name = 18;
+}
+
+message AnalyzeTaskOutput {
+ // TODO(metzman): Fill this out.
+}
+
+message FuzzTaskOutput {
+  optional string fuzzer_name = 1;
+  optional string crash_revision = 2;
+  optional float job_run_timestamp = 3;
+  optional int64 new_crash_count = 4;
+  optional int64 known_crash_count = 5;
+  optional int64 testcases_executed = 6;
+  optional Json job_run_crashes = 7;
+  optional string fully_qualified_fuzzer_name = 8;
+  optional int32 new_targets_count = 9;
+}
+
+message MinimizeTaskOutput {
+  optional Json last_crash_result_dict = 1;
+  optional bool flaky_stack = 2;
+  optional int64 build_fail_wait = 3;
+}
+
+message RegressionTaskOutput {
+  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
+message BuildData{
+  optional bool is_bad_build = 1;
+  optional bool should_ignore_crash_result = 2;
+  optional string build_run_console_output = 3;
+}
+
+message ProgressionTaskOutput{
+  optional int64 min_revision = 1;
+  optional int64 max_revision = 2;
+  // Set to true when latest revision or latest custom build still crash.
+  optional bool crash_on_latest = 3;
+  optional string crash_on_latest_message = 4;
+  // Information passed back to trusted worker when we crash on latest.
+  optional int64 crash_revision = 5;
+  optional string last_tested_crash_stacktrace = 6;
+  optional int64 last_progression_min = 7;
+  optional int64 last_progression_max = 8;
+  // When set to True, we delete the metadata related to: last_progression_min
+  // and last_progression_max from the testcase on postprocess.
+  optional bool clear_min_max_metadata = 9;
+}
+
+enum ErrorType {
+  NO_ERROR = 0;
+  ANALYZE_BUILD_SETUP = 1;
+  ANALYZE_NO_CRASH = 2;
+  ANALYZE_NO_REVISIONS_LIST = 3;
+  ANALYZE_NO_REVISION_INDEX = 4;
+  TESTCASE_SETUP = 5;
+  UNHANDLED = 6;
+  VARIANT_BUILD_SETUP = 7;
+  MINIMIZE_SETUP = 8;
+  FUZZ_BUILD_SETUP_FAILURE = 9;
+  FUZZ_DATA_BUNDLE_SETUP_FAILURE = 10;
+  FUZZ_NO_FUZZER = 11;
+  PROGRESSION_REVISION_LIST_ERROR = 12;
+  PROGRESSION_BUILD_NOT_FOUND = 13;
+  PROGRESSION_NO_CRASH = 14;
+  PROGRESSION_BAD_STATE_MIN_MAX = 15;
+  PROGRESSION_TIMEOUT = 16;
+  PROGRESSION_BAD_BUILD = 17;
+  PROGRESSION_BUILD_SETUP_ERROR = 18;
+}
+
+message Output {
+  optional UworkerEntityWrapper testcase = 1;
+  optional UworkerEntityWrapper testcase_upload_metadata = 2;
+  optional UworkerEntityWrapper variant = 3;
+  optional ErrorType error_type = 4;
+  // This is only to be used by code that needs to be called by utasks and
+  // nonutasks.
+  optional Input uworker_input = 5;
+  optional float test_timeout = 6;
+  optional float crash_time = 7;
+  optional string crash_stacktrace_output = 8;
+  optional AnalyzeTaskOutput analyze_task_output = 9;
+  optional FuzzTaskOutput fuzz_task_output = 10;
+  optional MinimizeTaskOutput minimize_task_output = 11;
+  optional RegressionTaskOutput regression_task_output = 12;
+  optional ProgressionTaskOutput progression_task_output = 13;
+  optional string error_message = 14;
+}

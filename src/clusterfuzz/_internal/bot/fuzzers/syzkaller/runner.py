@@ -34,6 +34,8 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
+GET_TIMEOUT_SECONDS = 120
+
 LOCAL_HOST = '127.0.0.1'
 RAWCOVER_RETRIEVE_INTERVAL = 180  # retrieve rawcover every 180 seconds
 
@@ -113,8 +115,7 @@ class LoopingTimer(threading.Timer):
   """Extend Timer to loop every interval seconds."""
 
   def __init__(self, interval, function, args=None, kwargs=None):
-    super(LoopingTimer, self).__init__(
-        interval, function, args=args, kwargs=kwargs)
+    super().__init__(interval, function, args=args, kwargs=kwargs)
 
   def run(self):
     # loops until self.cancel()
@@ -198,7 +199,7 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       _type, log_index, log_dir = log_location.groups()  # pylint: disable=invalid-name
       try:
         reproducer_log_path = os.path.join(log_dir, f'reproducer{log_index}')
-        with open(reproducer_log_path, 'r') as f:
+        with open(reproducer_log_path) as f:
           logs.log('Successfully reproduced crash.')
           return engine.ReproduceResult(
               command=result.command,
@@ -245,7 +246,8 @@ class AndroidSyzkallerRunner(new_process.UnicodeProcessRunner):
       return
 
     try:
-      rawcover = requests.get(f'http://localhost:{port}/rawcover').text
+      rawcover = requests.get(
+          f'http://localhost:{port}/rawcover', timeout=GET_TIMEOUT_SECONDS).text
     except requests.exceptions.RequestException:
       logs.log_warn('Connection to Syzkaller Failed')
       return

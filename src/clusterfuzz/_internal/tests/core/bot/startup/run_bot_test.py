@@ -15,8 +15,7 @@
 # pylint: disable=protected-access
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -70,7 +69,7 @@ class MonitorTest(unittest.TestCase):
     with self.assertRaises(Exception):
       with run_bot._Monitor(task, time_module=self.time):
         self.time.advance(5)
-        raise Exception('test')
+        raise RuntimeError('test')
 
     self.assertEqual(
         1, monitoring_metrics.TASK_COUNT.get({

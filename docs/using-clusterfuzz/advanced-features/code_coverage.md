@@ -51,7 +51,7 @@ As a result, the builder should produce the following artifacts:
 2. JSON file with coverage stats for the whole project.
 3. HTML report for the whole project.
 
-[Here](https://github.com/google/oss-fuzz/blob/master/infra/gcb/build_and_run_coverage.py)
+[Here](https://github.com/google/oss-fuzz/blob/master/infra/build/functions/build_and_run_coverage.py)
 is an example of OSS-Fuzz code coverage job definition for
 [Google Cloud Build](https://cloud.google.com/cloud-build/). It also uses
 [coverage_utils.py](https://cs.chromium.org/chromium/src/tools/code_coverage/coverage_utils.py)

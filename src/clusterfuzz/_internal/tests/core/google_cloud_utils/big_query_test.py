@@ -15,8 +15,7 @@
 
 import datetime
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
@@ -181,7 +180,7 @@ class ConvertTest(unittest.TestCase):
         'fields': [{
             'name': 'name',
             'type': 'STRING',
-            'mode': u'NULLABLE'
+            'mode': 'NULLABLE'
         }, {
             'fields': [{
                 'name': 'hour',
@@ -190,7 +189,7 @@ class ConvertTest(unittest.TestCase):
             }, {
                 'name': 'count',
                 'type': 'INTEGER',
-                'mode': u'NULLABLE'
+                'mode': 'NULLABLE'
             }],
             'type':
                 'RECORD',

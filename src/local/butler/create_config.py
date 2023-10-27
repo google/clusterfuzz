@@ -27,6 +27,8 @@ import httplib2
 from local.butler import appengine
 from local.butler import common
 
+# pylint: disable=no-member
+
 _REQUIRED_SERVICES = (
     'appengineflex.googleapis.com',
     'bigquery-json.googleapis.com',
@@ -63,7 +65,7 @@ _NUM_RETRIES = 2
 _ENABLE_SERVICE_BATCH_SIZE = 19
 
 
-class DomainVerifier(object):
+class DomainVerifier:
   """Domain verifier."""
 
   def __init__(self, oauth_client_secrets_path):
@@ -264,8 +266,6 @@ def execute(args):
       ('test-shared-corpus-bucket',
        project_bucket(args.project_id, 'shared-corpus')),
       ('test-fuzz-logs-bucket', project_bucket(args.project_id, 'fuzz-logs')),
-      ('test-mutator-plugins-bucket',
-       project_bucket(args.project_id, 'mutator-plugins')),
   )
 
   # Write new configs.

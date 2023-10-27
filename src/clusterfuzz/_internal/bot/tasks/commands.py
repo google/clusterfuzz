@@ -17,24 +17,21 @@ import functools
 import sys
 import time
 
-import six
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import analyze_task
 from clusterfuzz._internal.bot.tasks import blame_task
-from clusterfuzz._internal.bot.tasks import corpus_pruning_task
-from clusterfuzz._internal.bot.tasks import fuzz_task
 from clusterfuzz._internal.bot.tasks import impact_task
-from clusterfuzz._internal.bot.tasks import minimize_task
-from clusterfuzz._internal.bot.tasks import progression_task
-from clusterfuzz._internal.bot.tasks import regression_task
 from clusterfuzz._internal.bot.tasks import symbolize_task
-from clusterfuzz._internal.bot.tasks import train_rnn_generator_task
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot.tasks import unpack_task
-from clusterfuzz._internal.bot.tasks import upload_reports_task
-from clusterfuzz._internal.bot.tasks import variant_task
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import minimize_task
+from clusterfuzz._internal.bot.tasks.utasks import progression_task
+from clusterfuzz._internal.bot.tasks.utasks import regression_task
+from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.bot.webserver import http_server
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -43,23 +40,29 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 
-COMMAND_MAP = {
+TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
+
+_COMMAND_MODULE_MAP = {
     'analyze': analyze_task,
     'blame': blame_task,
     'corpus_pruning': corpus_pruning_task,
     'fuzz': fuzz_task,
     'impact': impact_task,
     'minimize': minimize_task,
-    'train_rnn_generator': train_rnn_generator_task,
     'progression': progression_task,
     'regression': regression_task,
     'symbolize': symbolize_task,
     'unpack': unpack_task,
-    'upload_reports': upload_reports_task,
+    'postprocess': None,
+    'uworker_main': None,
     'variant': variant_task,
 }
 
-TASK_RETRY_WAIT_LIMIT = 5 * 60  # 5 minutes.
+assert set(_COMMAND_MODULE_MAP.keys()) == set(task_types.COMMAND_TYPES.keys())
+COMMAND_MAP = {
+    command: task_cls(_COMMAND_MODULE_MAP[command])
+    for command, task_cls in task_types.COMMAND_TYPES.items()
+}
 
 
 class Error(Exception):
@@ -111,16 +114,16 @@ def is_supported_cpu_arch_for_job():
 def update_environment_for_job(environment_string):
   """Process the environment variable string included with a job."""
   # Now parse the job's environment definition.
-  environment_values = (
-      environment.parse_environment_definition(environment_string))
-
-  for key, value in six.iteritems(environment_values):
+  env = environment.parse_environment_definition(environment_string)
+  uworker_env = env.copy()
+  for key, value in env.items():
     environment.set_value(key, value)
 
   # If we share the build with another job type, force us to be a custom binary
   # job type.
   if environment.get_value('SHARE_BUILD_WITH_JOB_TYPE'):
     environment.set_value('CUSTOM_BINARY', True)
+    uworker_env['CUSTOM_BINARY'] = 'True'
 
   # Allow the default FUZZ_TEST_TIMEOUT and MAX_TESTCASES to be overridden on
   # machines that are preempted more often.
@@ -128,16 +131,20 @@ def update_environment_for_job(environment_string):
       'FUZZ_TEST_TIMEOUT_OVERRIDE')
   if fuzz_test_timeout_override:
     environment.set_value('FUZZ_TEST_TIMEOUT', fuzz_test_timeout_override)
+    uworker_env['FUZZ_TEST_TIMEOUT'] = fuzz_test_timeout_override
 
   max_testcases_override = environment.get_value('MAX_TESTCASES_OVERRIDE')
   if max_testcases_override:
     environment.set_value('MAX_TESTCASES', max_testcases_override)
+    uworker_env['MAX_TESTCASES'] = max_testcases_override
 
+  uworker_env['JOB_NAME'] = environment.get_value('JOB_NAME')
   if environment.is_trusted_host():
-    environment_values['JOB_NAME'] = environment.get_value('JOB_NAME')
+    env['JOB_NAME'] = environment.get_value('JOB_NAME')
     from clusterfuzz._internal.bot.untrusted_runner import \
         environment as worker_environment
-    worker_environment.update_environment(environment_values)
+    worker_environment.update_environment(env)
+  return uworker_env
 
 
 def set_task_payload(func):
@@ -184,13 +191,12 @@ def start_web_server_if_needed():
     logs.log_error('Failed to start web server, skipping.')
 
 
-def run_command(task_name, task_argument, job_name):
+def run_command(task_name, task_argument, job_name, uworker_env):
   """Run the command."""
-  if task_name not in COMMAND_MAP:
+  task = COMMAND_MAP.get(task_name)
+  if not task:
     logs.log_error("Unknown command '%s'" % task_name)
     return
-
-  task_module = COMMAND_MAP[task_name]
 
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
@@ -202,7 +208,7 @@ def run_command(task_name, task_argument, job_name):
       raise AlreadyRunningError
 
   try:
-    task_module.execute_task(task_argument, job_name)
+    task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -227,11 +233,12 @@ def run_command(task_name, task_argument, job_name):
 @set_task_payload
 def process_command(task):
   """Figures out what to do with the given task and executes the command."""
-  logs.log("Executing command '%s'" % task.payload())
+  logs.log(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
     logs.log_error('Empty task received.')
     return
 
+  uworker_env = None
   # Parse task payload.
   task_name = task.command
   task_argument = task.argument
@@ -295,10 +302,9 @@ def process_command(task):
         current_platform_id = environment.get_platform_id()
         testcase_platform_id = testcase.platform_id
 
-        # This indicates we are trying to run this job on the wrong platform.
-        # This can happen when you have different type of devices (e.g
-        # android) on the same platform group. In this case, we just recreate
-        # the task.
+        # This indicates we are trying to run this job on the wrong platform
+        # and potentially blocks fuzzing. See the 'subqueues' feature for
+        # more details: https://github.com/google/clusterfuzz/issues/3347
         if (task_name != 'variant' and testcase_platform_id and
             not utils.fields_match(testcase_platform_id, current_platform_id)):
           logs.log(
@@ -366,7 +372,7 @@ def process_command(task):
       environment_string += additional_variables_for_job
 
     # Update environment for the job.
-    update_environment_for_job(environment_string)
+    uworker_env = update_environment_for_job(environment_string)
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
@@ -386,7 +392,7 @@ def process_command(task):
   start_web_server_if_needed()
 
   try:
-    run_command(task_name, task_argument, job_name)
+    run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
     cleanup_task_state()

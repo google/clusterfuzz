@@ -22,6 +22,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
+from handlers import auth
 from handlers import base_handler
 from handlers import bots
 from handlers import commit_range
@@ -46,27 +47,9 @@ from handlers import revisions_info
 from handlers import testcase_list
 from handlers import upload_testcase
 from handlers import viewer
-from handlers.cron import backup
-from handlers.cron import batch_fuzzer_jobs
-from handlers.cron import build_crash_stats
 from handlers.cron import cleanup
-from handlers.cron import corpus_backup
-from handlers.cron import fuzz_strategy_selection
-from handlers.cron import fuzzer_and_job_weights
-from handlers.cron import fuzzer_coverage
-from handlers.cron import load_bigquery_stats
-from handlers.cron import manage_vms
-from handlers.cron import ml_train
-from handlers.cron import oss_fuzz_apply_ccs
-from handlers.cron import oss_fuzz_build_status
-from handlers.cron import oss_fuzz_generate_certs
 from handlers.cron import predator_pull
-from handlers.cron import project_setup
-from handlers.cron import recurring_tasks
-from handlers.cron import schedule_corpus_pruning
-from handlers.cron import sync_admins
 from handlers.cron import triage
-from handlers.performance_report import show as show_performance_report
 from handlers.testcase_detail import crash_stats as crash_stats_on_testcase
 from handlers.testcase_detail import create_issue
 from handlers.testcase_detail import delete
@@ -127,38 +110,19 @@ base_handler.add_menu('Documentation', '/docs')
 
 # We need to separate routes for cron to avoid redirection.
 cron_routes = [
-    ('/backup', backup.Handler),
-    ('/batch-fuzzer-jobs', batch_fuzzer_jobs.Handler),
-    ('/build-crash-stats', build_crash_stats.Handler),
     ('/cleanup', cleanup.Handler),
-    ('/corpus-backup/make-public', corpus_backup.MakePublicHandler),
     ('/external-update', external_update.Handler),
-    ('/fuzzer-and-job-weights', fuzzer_and_job_weights.Handler),
-    ('/fuzzer-coverage', fuzzer_coverage.Handler),
     ('/fuzzer-stats/cache', fuzzer_stats.RefreshCacheHandler),
     ('/fuzzer-stats/preload', fuzzer_stats.PreloadHandler),
-    ('/fuzz-strategy-selection', fuzz_strategy_selection.Handler),
     ('/home-cache', home.RefreshCacheHandler),
-    ('/load-bigquery-stats', load_bigquery_stats.Handler),
-    ('/manage-vms', manage_vms.Handler),
-    ('/oss-fuzz-apply-ccs', oss_fuzz_apply_ccs.Handler),
-    ('/oss-fuzz-build-status', oss_fuzz_build_status.Handler),
-    ('/oss-fuzz-generate-certs', oss_fuzz_generate_certs.Handler),
-    ('/project-setup', project_setup.Handler),
     ('/predator-pull', predator_pull.Handler),
-    ('/schedule-corpus-pruning', schedule_corpus_pruning.Handler),
-    ('/schedule-impact-tasks', recurring_tasks.ImpactTasksScheduler),
-    ('/schedule-ml-train-tasks', ml_train.Handler),
-    ('/schedule-progression-tasks', recurring_tasks.ProgressionTasksScheduler),
-    ('/schedule-upload-reports-tasks',
-     recurring_tasks.UploadReportsTaskScheduler),
-    ('/sync-admins', sync_admins.Handler),
     ('/testcases/cache', testcase_list.CacheHandler),
     ('/triage', triage.Handler),
 ]
 
 handlers = [
     ('/', home.Handler if _is_oss_fuzz else testcase_list.Handler),
+    ('/__/auth/<path:extra>', auth.Handler),
     ('/add-external-user-permission', configuration.AddExternalUserPermission),
     ('/bots', bots.Handler),
     ('/bots/dead', bots.DeadBotsHandler),
@@ -200,9 +164,6 @@ handlers = [
     ('/jobs/delete-job', jobs.DeleteJobHandler),
     ('/login', login.Handler),
     ('/logout', login.LogoutHandler),
-    ('/performance-report', show_performance_report.Handler),
-    ('/performance-report/<fuzzer_name>/<job_type>/<logs_date>',
-     show_performance_report.Handler),
     ('/report-bug', help_redirector.ReportBugHandler),
     ('/report-csp-failure', report_csp_failure.ReportCspFailureHandler),
     ('/revisions', revisions_info.Handler),

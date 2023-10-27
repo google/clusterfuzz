@@ -18,11 +18,9 @@ import json
 import os
 import re
 import unittest
+from unittest import mock
 
-import mock
-import six
-
-from clusterfuzz._internal.bot.tasks import fuzz_task
+from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -146,8 +144,7 @@ class FuzzerStatsTest(unittest.TestCase):
             'upload.json'),
     ]
 
-    six.assertCountEqual(self, self.mock.write_data.call_args_list,
-                         expected_calls)
+    self.assertCountEqual(self.mock.write_data.call_args_list, expected_calls)
 
   def test_upload_job_run(self):
     """Tests uploading of JobRun."""
@@ -257,7 +254,8 @@ class FuzzerStatsTest(unittest.TestCase):
     groups[1].is_new.return_value = True
 
     fuzz_task.upload_job_run_stats('fuzzer', 'job', 123, 1472846341.017923, 1,
-                                   2, 1337, groups)
+                                   2, 1337,
+                                   fuzz_task.convert_groups_to_crashes(groups))
     self.assertEqual(1, self.mock.write_data.call_count)
     self.assertEqual({
         'kind':
@@ -1097,7 +1095,7 @@ class BigQueryStatsTests(unittest.TestCase):
                      'sum(j.known_crashes) as known_crashes, '
                      'avg(t.average_exec_per_sec) as average_exec_per_sec ')
 
-    with self.assertRaises(fuzzer_stats.FuzzerStatsException):
+    with self.assertRaises(fuzzer_stats.FuzzerStatsError):
       fuzzer_stats.TableQuery('fuzzer_n\'ame$', ['job_type'], stats_columns,
                               fuzzer_stats.QueryGroupBy.GROUP_BY_DAY,
                               datetime.date(2016, 10, 1),
@@ -1367,38 +1365,3 @@ class BuiltinFieldTests(unittest.TestCase):
     data = logs_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_JOB, 'job2')
     self.assertEqual(data.value, 'Logs')
     self.assertEqual(data.link, 'gs://bucket2/fuzzer1/job2')
-
-  def test_performance_field_by_fuzzer(self):
-    """Test performance field (group by fuzzer)."""
-    ctx = fuzzer_stats.FuzzerRunLogsContext('fuzzer1', ['job1'])
-    performance_field = (
-        fuzzer_stats.BuiltinFieldSpecifier('_PERFORMANCE_REPORT').create(ctx))
-
-    data = performance_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_FUZZER,
-                                 'fuzzer_child1')
-    self.assertEqual(data.value, 'Performance')
-    expected_link = '/performance-report/fuzzer_child1/job1/latest'
-    self.assertEqual(data.link, expected_link)
-
-  def test_performance_field_by_day(self):
-    """Test performance field (group by day)."""
-    ctx = fuzzer_stats.FuzzerRunLogsContext('fuzzer1', ['job1'])
-    performance_field = (
-        fuzzer_stats.BuiltinFieldSpecifier('_PERFORMANCE_REPORT').create(ctx))
-
-    data = performance_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_DAY,
-                                 datetime.date(2016, 11, 18))
-    self.assertEqual(data.value, 'Performance')
-    expected_link = '/performance-report/fuzzer1/job1/2016-11-18'
-    self.assertEqual(data.link, expected_link)
-
-  def test_performance_field_by_job(self):
-    """Test performance field (group by job)."""
-    ctx = fuzzer_stats.FuzzerRunLogsContext('fuzzer1', ['blah'])
-    performance_field = (
-        fuzzer_stats.BuiltinFieldSpecifier('_PERFORMANCE_REPORT').create(ctx))
-
-    data = performance_field.get(fuzzer_stats.QueryGroupBy.GROUP_BY_JOB, 'job2')
-    self.assertEqual(data.value, 'Performance')
-    expected_link = '/performance-report/fuzzer1/job2/latest'
-    self.assertEqual(data.link, expected_link)

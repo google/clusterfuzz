@@ -18,8 +18,7 @@ import logging
 import os
 import sys
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -109,8 +108,8 @@ class UpdateEntryWithExc(unittest.TestCase):
       # We do this because we need the traceback instance.
       exc_info = sys.exc_info()
 
-    logs.update_entry_with_exc(entry, exc_info)
-    self.maxDiff = None  # pylint: disable=invalid-name
+    logs.update_entry_with_exc(entry, exc_info)  # pylint: disable=used-before-assignment
+    self.maxDiff = None
 
     self.assertEqual({
         'extras': {
@@ -138,7 +137,7 @@ class FormatRecordTest(unittest.TestCase):
                   ['clusterfuzz._internal.metrics.logs.update_entry_with_exc'])
     helpers.patch_environ(self)
 
-    self.maxDiff = None  # pylint: disable=invalid-name
+    self.maxDiff = None
 
   def get_record(self):
     """Make a fake record."""

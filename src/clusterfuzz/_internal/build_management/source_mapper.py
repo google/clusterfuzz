@@ -16,6 +16,7 @@
 import re
 
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.config import local_config
 
 DRIVE_LETTER_REGEX = re.compile(r'^[a-zA-Z]:\\')
 RANGE_LIMIT = 10000
@@ -23,9 +24,12 @@ SOURCE_START_ID = 'src/'
 SOURCE_STRIP_REGEX = re.compile(r'^[/]?src[/]?')
 STACK_FRAME_PATH_LINE_REGEX = re.compile(
     r'(?<=\[|\(|\s)([a-zA-Z/.][^\s]*?)\s*(:|@)\s*(\d+)(?=\]$|\)$|:\d+$|$)')
+JAVA_STACK_FRAME_REGEX = re.compile(
+    r'at (?P<path>[a-zA-Z0-9\.\/]+)\.(?P<method>[a-zA-Z0-9\.\/]+)\([a-zA-Z0-9]+'
+    r'\.java\:(?P<line>\d+)\)')
 
 
-class ComponentPath(object):
+class ComponentPath:
 
   def __init__(self, source=None, relative_path=None, display_path=None):
     self.source = source
@@ -38,7 +42,7 @@ class ComponentPath(object):
             self.display_path == other.display_path)
 
 
-class VCSViewer(object):
+class VCSViewer:
   """Base viewer class."""
   VCS_URL_REGEX = None
   VCS_REVISION_SUB = None
@@ -97,7 +101,7 @@ class FreeDesktopVCS(VCSViewer):
 class GitHubVCS(VCSViewer):
   VCS_URL_REGEX = re.compile(r'(https://github\.com/(.*?))(\.git)?$')
   VCS_REVISION_SUB = r'\1/commit/{revision}'
-  VCS_REVISION_DIFF_SUB = (r'\1/compare/{start_revision}...{end_revision}')
+  VCS_REVISION_DIFF_SUB = r'\1/compare/{start_revision}...{end_revision}'
   VCS_REVISION_PATH_LINE_SUB = r'\1/blob/{revision}/{path}#L{line}'
 
 
@@ -122,6 +126,16 @@ class GoogleVCS(VCSViewer):
       r'https://cs.corp.google.com/\1/{path}?rcl={revision}&l={line}')
 
 
+class AndroidVCS(VCSViewer):
+  VCS_URL_REGEX = re.compile(r'^<android-internal>/(.*)$')
+  VCS_REVISION_SUB = (r'https://source.corp.google.com/h/googleplex-android/'
+                      r'platform/superproject/main/+/main:\1;drc={revision}')
+  VCS_REVISION_PATH_LINE_SUB = (
+      r'https://source.corp.google.com/h/googleplex-'
+      r'android/platform/superproject/main/+/main:\1/{path};drc={revision};'
+      r'l={line}')
+
+
 class MercurialVCS(VCSViewer):
   VCS_URL_REGEX = re.compile(r'(https?://hg\.(.*))')
   VCS_REVISION_SUB = r'\1/rev/{revision}'
@@ -137,6 +151,7 @@ VCS_LIST = [
     GoogleSourceVCS,
     GoogleVCS,
     MercurialVCS,
+    AndroidVCS,
 ]
 
 
@@ -183,39 +198,68 @@ def get_vcs_viewer_for_url(url):
   return None
 
 
-def linkify_stack_frame(stack_frame, revisions_dict):
-  """Linkify a stack frame with source links to its repo."""
-  match = STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
-  if not match:
-    # If this stack frame does not contain a path and line, bail out.
-    return stack_frame
+def should_linkify_java_stack_frames():
+  return local_config.Config(local_config.PROJECT_PATH).get('linkify_java')
 
-  path = match.group(1)
-  line = match.group(3)
 
-  component_path = get_component_source_and_relative_path(path, revisions_dict)
-  if not component_path.source:
-    # Can't find any matching component source in revisions dict, bail out.
-    return stack_frame
+class StackFrameLinkifier:
+  """Class for converting stackframes to clickable links to the source code."""
 
-  source_dict = revisions_dict[component_path.source]
-  repo_url = source_dict['url']
-  revision = source_dict['rev']
-  vcs_viewer = get_vcs_viewer_for_url(repo_url)
-  if not vcs_viewer:
-    # If we don't support the vcs, bail out.
-    return stack_frame
+  def __init__(self, revisions_dict):
+    self.revisions_dict = revisions_dict
+    # Make this a class so we're not requerying the config so often.
+    self.should_linkify_java_stack_frames = should_linkify_java_stack_frames()
 
-  link_html = r'<a href="{url}">{path}:{line}</a>'.format(
-      url=vcs_viewer.get_source_url_for_revision_path_and_line(
-          revision, component_path.relative_path, line),
-      path=component_path.display_path,
-      line=line)
+  def convert_java_stack_frame(self, stack_frame):
+    """Converts a Java |stack_frame| to a more C-like one so the rest of our
+    magic works on it. Returns |stack_frame| if not Java."""
+    if not self.should_linkify_java_stack_frames:
+      return stack_frame
+    match = JAVA_STACK_FRAME_REGEX.search(stack_frame)
+    if not match:
+      return stack_frame
+    group_dict = match.groupdict()
+    path = group_dict['path']
+    line = group_dict['line']
+    method = group_dict['method']
+    path = path.replace('.', '/')
+    return f' in {method} {path}.java:{line}'
 
-  linkified_stack_frame = STACK_FRAME_PATH_LINE_REGEX.sub(
-      link_html, stack_frame)
+  def linkify_stack_frame(self, stack_frame):
+    """Linkify a stack frame with source links to its repo."""
+    stack_frame = self.convert_java_stack_frame(stack_frame)
+    match = STACK_FRAME_PATH_LINE_REGEX.search(stack_frame)
+    if not match:
+      # If this stack frame does not contain a path and line, bail out.
+      return stack_frame
 
-  return linkified_stack_frame
+    path = match.group(1)
+    line = match.group(3)
+
+    component_path = get_component_source_and_relative_path(
+        path, self.revisions_dict)
+    if not component_path.source:
+      # Can't find any matching component source in revisions dict, bail out.
+      return stack_frame
+
+    source_dict = self.revisions_dict[component_path.source]
+    repo_url = source_dict['url']
+    revision = source_dict['rev']
+    vcs_viewer = get_vcs_viewer_for_url(repo_url)
+    if not vcs_viewer:
+      # If we don't support the vcs, bail out.
+      return stack_frame
+
+    link_html = r'<a href="{url}">{path}:{line}</a>'.format(
+        url=vcs_viewer.get_source_url_for_revision_path_and_line(
+            revision, component_path.relative_path, line),
+        path=component_path.display_path,
+        line=line)
+
+    linkified_stack_frame = STACK_FRAME_PATH_LINE_REGEX.sub(
+        link_html, stack_frame)
+
+    return linkified_stack_frame
 
 
 def normalize_source_path(path):

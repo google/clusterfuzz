@@ -21,7 +21,6 @@ import socket
 import subprocess
 import sys
 
-import six
 import yaml
 
 from clusterfuzz._internal import fuzzing
@@ -65,8 +64,7 @@ def _eval_value(value_string):
 def join_memory_tool_options(options):
   """Joins a dict holding memory tool options into a string that can be set in
   the environment."""
-  return ':'.join('%s=%s' % (key, str(value))
-                  for key, value in sorted(six.iteritems(options)))
+  return ':'.join(f'{key}={str(val)}' for key, val in sorted(options.items()))
 
 
 def _maybe_convert_to_int(value):
@@ -173,7 +171,6 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
   # Enable stack use-after-return.
   asan_options['detect_stack_use_after_return'] = 1
-  asan_options['max_uar_stack_size_log'] = 16
 
   # Other less important default options for all cases.
   asan_options.update({
@@ -603,9 +600,11 @@ def get_value_string(environment_variable, default_value=None):
   return os.getenv(environment_variable, default_value)
 
 
-def get_value(environment_variable, default_value=None):
+def get_value(environment_variable, default_value=None, env=None):
   """Return an environment variable value."""
-  value_string = os.getenv(environment_variable)
+  if env is None:
+    env = os.environ
+  value_string = env.get(environment_variable)
 
   # value_string will be None if the variable is not defined.
   if value_string is None:
@@ -709,6 +708,12 @@ def is_untrusted_worker():
   return get_value('UNTRUSTED_WORKER')
 
 
+def is_uworker():
+  """Return whether or not the current bot is a uworker. This is not the same as
+  OSS-Fuzz's untrusted worker."""
+  return get_value('UWORKER')
+
+
 def is_running_on_app_engine():
   """Return True if we are running on appengine (local or production)."""
   return (os.getenv('GAE_ENV') or is_running_on_app_engine_development() or
@@ -740,6 +745,11 @@ def parse_environment_definition(environment_string):
         values[key] = value
 
   return values
+
+
+def base_platform(override):
+  """Return the base platform when an override is provided."""
+  return override.split(':')[0]
 
 
 def platform():
@@ -815,7 +825,7 @@ def set_environment_parameters_from_file(file_path):
   if not os.path.exists(file_path):
     return
 
-  with open(file_path, 'r') as f:
+  with open(file_path) as f:
     file_data = f.read()
 
   for line in file_data.splitlines():
@@ -914,7 +924,7 @@ def set_default_vars():
     env_file_contents = file_handle.read()
 
   env_vars_and_values = yaml.safe_load(env_file_contents)
-  for variable, value in six.iteritems(env_vars_and_values):
+  for variable, value in env_vars_and_values.items():
     # We cannot call set_value here.
     os.environ[variable] = str(value)
 
@@ -953,8 +963,6 @@ def set_bot_environment():
   os.environ['FUZZ_INPUTS_MEMORY'] = os.environ['FUZZ_INPUTS']
   os.environ['FUZZ_INPUTS_DISK'] = os.path.join(inputs_dir,
                                                 'fuzzer-testcases-disk')
-  os.environ['MUTATOR_PLUGINS_DIR'] = os.path.join(inputs_dir,
-                                                   'mutator-plugins')
   os.environ['FUZZ_DATA'] = os.path.join(inputs_dir,
                                          'fuzzer-common-data-bundles')
   os.environ['IMAGES_DIR'] = os.path.join(inputs_dir, 'images')
@@ -1006,12 +1014,14 @@ def set_tsan_max_history_size():
   set_value('TSAN_OPTIONS', tsan_options)
 
 
-def set_value(environment_variable, value):
+def set_value(environment_variable, value, env=None):
   """Set an environment variable."""
+  if env is None:
+    env = os.environ
   value_str = str(value)
   environment_variable_str = str(environment_variable)
   value_str = value_str.replace('%ROOT_DIR%', os.getenv('ROOT_DIR', ''))
-  os.environ[environment_variable_str] = value_str
+  env[environment_variable_str] = value_str
 
   if is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import \
@@ -1089,6 +1099,11 @@ def is_android_cuttlefish(plt=None):
   return 'ANDROID_X86' in (plt or platform())
 
 
+def is_android_emulator():
+  """Return True if we are on android emulator platform."""
+  return 'ANDROID_EMULATOR' in get_platform_group()
+
+
 def is_android_kernel(plt=None):
   """Return True if we are on android kernel platform groups."""
   return 'ANDROID_KERNEL' in (plt or get_platform_group())
@@ -1096,7 +1111,7 @@ def is_android_kernel(plt=None):
 
 def is_android_real_device():
   """Return True if we are on a real android device."""
-  return platform() == 'ANDROID'
+  return base_platform(platform()) == 'ANDROID'
 
 
 def is_lib():
@@ -1106,3 +1121,16 @@ def is_lib():
 
 def is_i386(job_type):
   return '_i386' in job_type
+
+
+def if_redis_available(func):
+  """Wrap a function if redis is available and return None if not."""
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    if get_value('REDIS_HOST'):
+      return func(*args, **kwargs)
+
+    return None
+
+  return wrapper

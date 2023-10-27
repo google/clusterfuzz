@@ -13,11 +13,9 @@
 # limitations under the License.
 """impact_task tests."""
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import impact_task
-from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.core.bot.tasks.component_revision_patching_test import \
     ComponentRevisionPatchingTest
@@ -33,10 +31,8 @@ class ExecuteTaskTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.base.utils.is_chromium',
         'clusterfuzz._internal.bot.tasks.impact_task.get_impacts_from_url',
-        'clusterfuzz._internal.bot.tasks.impact_task.get_impacts_on_prod_builds',
         'clusterfuzz._internal.bot.tasks.setup.setup_testcase',
         'clusterfuzz._internal.build_management.build_manager.is_custom_binary',
-        'clusterfuzz._internal.build_management.build_manager.has_production_builds',
         'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
         'clusterfuzz._internal.base.tasks.add_task',
     ])
@@ -48,10 +44,8 @@ class ExecuteTaskTest(unittest.TestCase):
         head=impact_task.Impact('head', False, 'trace-head'))
     self.mock.is_chromium.return_value = True
     self.mock.is_custom_binary.return_value = False
-    self.mock.has_production_builds.return_value = True
     self.mock.get_impacts_from_url.return_value = impacts
-    self.mock.setup_testcase.return_value = (['a'], None, 'path')
-    self.mock.get_impacts_on_prod_builds.return_value = impacts
+    self.mock.setup_testcase.return_value = (['a'], 'path', None)
 
     self.testcase = data_types.Testcase()
     self.testcase.is_impact_set_flag = False
@@ -130,59 +124,15 @@ class ExecuteTaskTest(unittest.TestCase):
     self.testcase.one_time_crasher_flag = False
     self.testcase.regression = ''
     self.testcase.put()
-    self.mock.has_production_builds.return_value = False
     impact_task.execute_task(self.testcase.key.id(), 'job')
     self.expect_unchanged()
 
   def test_non_prod_build(self):
     """Test getting impact for non-prod build."""
-    self.mock.has_production_builds.return_value = False
     impact_task.execute_task(self.testcase.key.id(), 'job')
     self.expect_changed()
     self.mock.get_impacts_from_url.assert_has_calls(
         [mock.call(self.testcase.regression, self.testcase.job_type)])
-
-  def test_bail_out_setup_testcase(self):
-    """Test bailing out when setting up testcase fails."""
-    self.mock.has_production_builds.return_value = True
-    self.mock.setup_testcase.return_value = ([], None, 'path')
-    impact_task.execute_task(self.testcase.key.id(), 'job')
-    self.expect_unchanged()
-
-  def test_build_failed_exception(self):
-    """Test when BuildFailedException occurs."""
-    self.mock.get_impacts_on_prod_builds.side_effect = (
-        impact_task.BuildFailedException('error-from-build'))
-    impact_task.execute_task(self.testcase.key.id(), 'job')
-
-    self.expect_unchanged()
-    self.assertIn('error-from-build', self.testcase.comments)
-    self.assertIn(data_types.TaskState.ERROR, self.testcase.comments)
-    self.mock.add_task.assert_has_calls(
-        [mock.call('impact', self.testcase.key.id(), 'job', wait_time=None)])
-
-  def test_prod_build(self):
-    """Test getting impact for prod build."""
-    impact_task.execute_task(self.testcase.key.id(), 'job')
-    self.expect_changed()
-    self.assertIn(data_types.TaskState.FINISHED, self.testcase.comments)
-    self.assertNotIn('trace-stable', self.testcase.crash_stacktrace)
-    self.assertNotIn('trace-beta', self.testcase.crash_stacktrace)
-    self.mock.get_impacts_on_prod_builds.assert_has_calls(
-        [mock.call(mock.ANY, 'path')])
-
-  def test_prod_build_unreproducible(self):
-    """Test getting impact for prod build (unreproducible)."""
-    self.testcase.status = 'Unreproducible'
-    self.testcase.put()
-    impact_task.execute_task(self.testcase.key.id(), 'job')
-
-    self.expect_changed()
-    self.assertIn(data_types.TaskState.FINISHED, self.testcase.comments)
-    self.assertIn('trace-stable', self.testcase.crash_stacktrace)
-    self.assertIn('trace-beta', self.testcase.crash_stacktrace)
-    self.mock.get_impacts_on_prod_builds.assert_has_calls(
-        [mock.call(mock.ANY, 'path')])
 
 
 class GetImpactsFromUrlTest(ComponentRevisionPatchingTest):
@@ -664,231 +614,6 @@ class GetImpactTest(unittest.TestCase):
     self.assertEqual('50', impact.version)
     self.assertTrue(impact.likely)
     self.assertEqual('', impact.extra_trace)
-
-
-class GetImpactsOnProdBuilds(unittest.TestCase):
-  """Test get_impacts_on_prod_builds."""
-
-  def setUp(self):
-    helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.impact_task.get_impact_on_build',
-        'clusterfuzz._internal.bot.tasks.impact_task.get_impacts_from_url',
-        'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
-        'clusterfuzz._internal.chrome.build_info.get_build_to_revision_mappings',
-    ])
-    self.mock.get_build_to_revision_mappings.return_value = {
-        'stable': {
-            'revision': '398287',
-            'version': '74.0.1345.34'
-        },
-        'beta': {
-            'revision': '399171',
-            'version': '75.0.1353.43'
-        },
-        'canary': {
-            'revision': '400000',
-            'version': '76.0.1234.43'
-        }
-    }
-    self.impacts = impact_task.Impacts(
-        stable=impact_task.Impact('s', False),
-        beta=impact_task.Impact('b', True),
-        extended_stable=impact_task.Impact('es', False),
-        head=impact_task.Impact('76.0.1234.43', False))
-
-    self.testcase = data_types.Testcase()
-    self.testcase.job_type = 'job'
-    self.testcase.impact_extended_stable_version = 'es-ver'
-    self.testcase.impact_stable_version = 's-ver'
-    self.testcase.impact_beta_version = 'b-ver'
-    self.testcase.regression = '123:456'
-
-  def test_app_failed_on_stable(self):
-    """Test raising AppFailedException when getting stable impact."""
-    self.mock.get_impact_on_build.side_effect = impact_task.AppFailedException()
-    self.mock.get_impacts_from_url.return_value = self.impacts
-
-    self.assertEqual(
-        self.impacts,
-        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
-    self.mock.get_impact_on_build.assert_has_calls([
-        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
-                  'path')
-    ])
-    self.mock.get_impacts_from_url.assert_has_calls(
-        [mock.call(self.testcase.regression, self.testcase.job_type)])
-
-  def test_app_failed_on_beta(self):
-    """Test app fail on beta."""
-    self.mock.get_impact_on_build.side_effect = [
-        self.impacts.stable,
-        impact_task.AppFailedException(),
-        self.impacts.extended_stable,
-    ]
-
-    self.assertEqual(
-        impact_task.Impacts(
-            self.impacts.stable,
-            impact_task.Impact(),
-            self.impacts.extended_stable,
-            head=self.impacts.head),
-        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
-    self.mock.get_impact_on_build.assert_has_calls([
-        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
-                  'path'),
-        mock.call('beta', self.testcase.impact_beta_version, self.testcase,
-                  'path'),
-        mock.call('extended_stable',
-                  self.testcase.impact_extended_stable_version, self.testcase,
-                  'path'),
-    ])
-    self.mock.get_impacts_from_url.assert_has_calls([])
-
-  def test_app_failed_on_extended_stable(self):
-    """Test app fail on extended stable."""
-    self.mock.get_impact_on_build.side_effect = [
-        self.impacts.stable,
-        self.impacts.beta,
-        impact_task.AppFailedException(),
-    ]
-    self.mock.get_impacts_from_url.return_value = self.impacts
-
-    self.assertEqual(
-        self.impacts,
-        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
-    self.mock.get_impact_on_build.assert_has_calls([
-        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
-                  'path'),
-        mock.call('beta', self.testcase.impact_beta_version, self.testcase,
-                  'path'),
-        mock.call('extended_stable',
-                  self.testcase.impact_extended_stable_version, self.testcase,
-                  'path'),
-    ])
-    self.mock.get_impacts_from_url.assert_has_calls(
-        [mock.call(self.testcase.regression, self.testcase.job_type)])
-
-  def test_get_impacts(self):
-    """Test getting impacts."""
-    self.mock.get_impact_on_build.side_effect = [
-        self.impacts.stable, self.impacts.beta, self.impacts.extended_stable
-    ]
-
-    self.assertEqual(
-        self.impacts,
-        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
-    self.mock.get_impact_on_build.assert_has_calls([
-        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
-                  'path'),
-        mock.call('beta', self.testcase.impact_beta_version, self.testcase,
-                  'path'),
-        mock.call('extended_stable',
-                  self.testcase.impact_extended_stable_version, self.testcase,
-                  'path'),
-    ])
-    self.mock.get_impacts_from_url.assert_has_calls([])
-
-  def test_get_impacts_canary_not_exists(self):
-    """Test getting impacts if there's no Canary build, only dev."""
-    self.mock.get_impact_on_build.side_effect = [
-        self.impacts.stable, self.impacts.beta, self.impacts.extended_stable
-    ]
-    self.mock.get_build_to_revision_mappings.return_value = {
-        'stable': {
-            'revision': '398287',
-            'version': '74.0.1345.34'
-        },
-        'beta': {
-            'revision': '399171',
-            'version': '75.0.1353.43'
-        },
-        'dev': {
-            'revision': '400000',
-            'version': '76.0.1234.43'
-        }
-    }
-
-    self.assertEqual(
-        self.impacts,
-        impact_task.get_impacts_on_prod_builds(self.testcase, 'path'))
-    self.mock.get_impact_on_build.assert_has_calls([
-        mock.call('stable', self.testcase.impact_stable_version, self.testcase,
-                  'path'),
-        mock.call('beta', self.testcase.impact_beta_version, self.testcase,
-                  'path'),
-        mock.call('extended_stable',
-                  self.testcase.impact_extended_stable_version, self.testcase,
-                  'path'),
-    ])
-    self.mock.get_impacts_from_url.assert_has_calls([])
-
-
-class GetImpactOnBuild(unittest.TestCase):
-  """Test get_impact_on_build."""
-
-  def setUp(self):
-    helpers.patch(self, [
-        'clusterfuzz._internal.build_management.build_manager.setup_production_build',
-        'clusterfuzz._internal.system.environment.get_value',
-        'clusterfuzz._internal.bot.testcase_manager.get_command_line_for_application',
-        'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
-    ])
-    self.env = {
-        'APP_PATH': 'app',
-        'TEST_TIMEOUT': '9',
-        'JOB_NAME': 'linux_asan_chrome',
-        'TOOL_NAME': 'ASAN'
-    }
-    self.result = mock.Mock()
-    self.result.is_crash = mock.Mock()
-    self.result.get_stacktrace = mock.Mock()
-
-    self.mock.setup_production_build.return_value = (
-        build_manager.ProductionBuild('/base', '52', None, 'stable'))
-    self.mock.get_value.side_effect = self.env.get
-    self.mock.test_for_crash_with_retries.return_value = self.result
-    self.result.is_crash.return_value = True
-    self.result.get_stacktrace.return_value = 'crashed-trace'
-
-    self.testcase = data_types.Testcase()
-
-  def test_build_failed(self):
-    """Test raising BuildFailedException."""
-    self.mock.setup_production_build.return_value = None
-    with self.assertRaises(impact_task.BuildFailedException) as cm:
-      impact_task.get_impact_on_build('stable', '52', self.testcase, 'path')
-
-    self.assertEqual('Build setup failed for Stable', str(cm.exception))
-
-  def test_app_failed(self):
-    """Test raising AppFailedException."""
-    self.env['APP_PATH'] = ''
-    self.env['APP_NAME'] = 'app_name'
-    with self.assertRaises(impact_task.AppFailedException):
-      impact_task.get_impact_on_build('stable', '52', self.testcase, 'path')
-
-  def test_same_version(self):
-    """Test same version."""
-    impact = impact_task.get_impact_on_build('stable', '52', self.testcase,
-                                             'path')
-    self.assertEqual('52', impact.version)
-    self.assertFalse(impact.likely)
-    self.assertEqual('', impact.extra_trace)
-
-  def test_crash(self):
-    """Test crashing."""
-    impact = impact_task.get_impact_on_build('stable', '53', self.testcase,
-                                             'path')
-    self.assertEqual('52', impact.version)
-    self.assertFalse(impact.likely)
-    self.assertIn('crashed-trace', impact.extra_trace)
-
-  def test_not_crash(self):
-    """Test not crashing and returning empty impact."""
-    self.result.is_crash.return_value = False
-    self.assertEqual(
-        impact_task.Impact(),
-        impact_task.get_impact_on_build('stable', '53', self.testcase, 'path'))
 
 
 class GetStartAndEndRevisionTest(unittest.TestCase):

@@ -14,16 +14,13 @@
 """Tests for load_bigquery_stats."""
 import datetime
 import unittest
+from unittest import mock
 
-import flask
-import mock
-import webtest
-
+from clusterfuzz._internal.cron import load_bigquery_stats
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import load_bigquery_stats
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -31,12 +28,6 @@ class LoadBigQueryStatsTest(unittest.TestCase):
   """Test LoadBigQueryStatsTest."""
 
   def setUp(self):
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/load-bigquery-stats',
-        view_func=load_bigquery_stats.Handler.as_view('/load-bigquery-stats'))
-    self.app = webtest.TestApp(flaskapp)
-
     data_types.Fuzzer(name='fuzzer', jobs=['job']).put()
     data_types.Job(name='job').put()
 
@@ -44,7 +35,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.big_query.get_api_client',
         'clusterfuzz._internal.metrics.fuzzer_stats_schema.get',
         'handlers.base_handler.Handler.is_cron',
-        'handlers.cron.load_bigquery_stats.Handler._utc_now',
+        'clusterfuzz._internal.cron.load_bigquery_stats._utc_now',
     ])
 
     self.mock._utc_now.return_value = datetime.datetime(2016, 9, 8)  # pylint: disable=protected-access
@@ -59,7 +50,7 @@ class LoadBigQueryStatsTest(unittest.TestCase):
 
   def test_execute(self):
     """Tests executing of cron job."""
-    self.app.get('/load-bigquery-stats')
+    load_bigquery_stats.main()
 
     self.mock_bigquery.datasets().insert.assert_has_calls([
         mock.call(
