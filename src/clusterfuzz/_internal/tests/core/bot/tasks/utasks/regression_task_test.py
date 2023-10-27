@@ -338,7 +338,8 @@ class UtaskPostprocessTest(unittest.TestCase):
 
     output = uworker_io.UworkerOutput(
         uworker_input=uworker_io.UworkerInput(
-            testcase_id=str(testcase.key.id())),
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
         error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
     regression_task.utask_postprocess(output)
