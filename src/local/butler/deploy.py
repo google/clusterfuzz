@@ -220,7 +220,7 @@ def _deploy_zip(bucket_name, zip_path):
 
 def _deploy_manifest(bucket_name, manifest_path):
   """Deploy source manifest to GCS."""
-  if sys.version_info.major == 3:
+  if sys.version_info.major == 3 or sys.version_info.minor != 7:
     manifest_suffix = '.3'
   else:
     manifest_suffix = ''
