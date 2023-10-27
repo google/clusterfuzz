@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module for handling errors in utasks."""
+
+from typing import Callable
+from typing import Dict
+
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
@@ -19,6 +23,7 @@ from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.bot.tasks.utasks import symbolize_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
@@ -111,3 +116,76 @@ def get_handle_all_errors_mapping():
           noop,
   }
   return mapping
+
+
+# A handler takes an output object with its `error_type` set, and does whatever
+# it wants with it.
+ErrorHandler = Callable[[uworker_io.UworkerOutput], None]
+
+
+# Must use string type because of protobuf enum shenanigans.
+HandlerDict = Dict["uworker_msg_pb2.ErrorType", ErrorHandler]
+
+
+class CompositeErrorHandler(object):
+  """A handler for several different types of uworker errors."""
+
+  def __init__(self, handlers: HandlerDict):
+    """Initializes a handler that delegates to the values in `handlers`.
+
+    For example:
+
+      CompositeErrorHandler({FOO: handle_foo, BAR: handle_bar})
+
+    Will delegate handling `FOO` errors to `handle_foo`, and `BAR` errors
+    to `handle_bar`.
+    """
+    self._handlers = handlers
+
+  # Mut use string types because `CompositeErrorHandler` is not defined yet.
+  @classmethod
+  def compose(cls, *args: "CompositeErrorHandler") -> "CompositeErrorHandler":
+    """Composes several composite error handlers into one.
+
+    The given handlers must handle disjoint sets of error types.
+
+    Raises:
+      ValueError: if more than one handler handles the same error type.
+    """
+    handlers = {}
+
+    # Merge all handler dicts, checking that no keys are duplicated.
+    for composite_handler in args:
+      for error_type, handler in composite_handler.handlers().items():
+        if error_type in handlers:
+          raise ValueError(f"Duplicate handlers for error type {error_type}")
+
+        handlers[error_type] = handler
+
+    return cls(handlers)
+
+  def handlers(self) -> HandlerDict:
+    """Returns a shallow copy of this handler's underlying dictionary."""
+    return self._handlers.copy()
+
+  def is_handled(self, error_type: uworker_msg_pb2.ErrorType) -> bool:
+    """Returns whether the given error type is handled by this instance."""
+    return error_type in self._handlers
+
+  def handle(self, output: uworker_io.UworkerOutput):
+    """Handles the given `output`, delegating to underlying handlers.
+
+    Raises:
+      RuntimeError: if `output.error_type` is not handled by this instance.
+    """
+    handler = self._handlers.get(output.error_type)
+    if handler is None:
+      raise RuntimeError(f"Cannot handle error type {output.error_type}")
+
+    handler(output)
+
+
+# A composite error handler for `UNHANDLED` errors, that ignores such errors.
+UNHANDLED_ERROR_HANDLER = CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.UNHANDLED: noop,
+})
