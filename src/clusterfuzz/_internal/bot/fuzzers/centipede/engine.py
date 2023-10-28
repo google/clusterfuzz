@@ -351,9 +351,12 @@ class Engine(engine.Engine):
     if result.timed_out:
       logs.log_error(
           'Testcase minimization timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
     minimum_testcase = self._get_smallest_crasher(workdir)
     if minimum_testcase:
       shutil.copyfile(minimum_testcase, output_path)
+    else:
+      shutil.copyfile(input_path, output_path)
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
 
