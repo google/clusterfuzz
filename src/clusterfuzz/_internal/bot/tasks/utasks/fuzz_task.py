@@ -867,7 +867,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
 
 
 def preprocess_store_fuzzer_run_results(fuzz_task_input):
-  """Does Preprocessing for store_fuzzer_run_results. More specifically, gets
+  """Does preprocessing for store_fuzzer_run_results. More specifically, gets
   URLs to upload a sample testcase and the logs."""
   fuzz_task_input.sample_testcase_upload_key = blobs.generate_new_blob_name()
   fuzz_task_input.sample_testcase_upload_url = blobs.get_signed_upload_url(
