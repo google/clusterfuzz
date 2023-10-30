@@ -381,6 +381,9 @@ class GcsProvider(StorageProvider):
     requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
 
 
+# TODO(metzman): Consider whether to remove this since it's not making any calls
+# over the network that aren't already wrapped in retry (only network call is
+# _signing_creds).
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,

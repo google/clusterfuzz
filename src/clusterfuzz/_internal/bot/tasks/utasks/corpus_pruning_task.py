@@ -923,7 +923,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Get status of last execution.
   last_execution_metadata = data_handler.get_task_status(task_name)
-  last_execution_failed = (
+  last_execution_failed = bool(
       last_execution_metadata and
       last_execution_metadata.status == data_types.TaskState.ERROR)
 

@@ -27,6 +27,18 @@ from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
+def _roundtrip_input(uworker_input: uworker_io.UworkerInput
+                    ) -> uworker_io.DeserializedUworkerMsg:
+  serialized = uworker_io.serialize_uworker_input(uworker_input)
+  return uworker_io.deserialize_uworker_input(serialized)
+
+
+def _roundtrip_output(uworker_output: uworker_io.UworkerOutput
+                     ) -> uworker_io.DeserializedUworkerMsg:
+  serialized = uworker_io.serialize_uworker_output(uworker_output)
+  return uworker_io.deserialize_uworker_output(serialized)
+
+
 class WriteToBigQueryTest(unittest.TestCase):
   """Test write_to_big_query."""
 
@@ -289,7 +301,7 @@ class UtaskMainTest(unittest.TestCase):
         uworker_io.UworkerOutput(
             error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP))
 
-    output = regression_task.utask_main(uworker_input)
+    output = regression_task.utask_main(_roundtrip_input(uworker_input))
     output.error_type = uworker_msg_pb2.ErrorType.TESTCASE_SETUP
 
   def test_empty_revision_list(self):
@@ -311,14 +323,12 @@ class UtaskMainTest(unittest.TestCase):
     self.mock.get_primary_bucket_path.return_value = 'gs://foo'
     self.mock.get_revisions_list.return_value = []
 
-    _ = regression_task.utask_main(uworker_input)
+    output = regression_task.utask_main(_roundtrip_input(uworker_input))
 
-    self.mock.get_revisions_list.assert_called_with('gs://foo', bad_revisions,
-                                                    testcase)
-
-    testcase = testcase.key.get()
-    self.assertEqual(testcase.fixed, 'NA')
-    self.assertRegex(testcase.comments, 'Failed to fetch revision list.$')
+    self.mock.get_revisions_list.assert_called_once()
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
+    self.assertEqual(output.testcase.key, testcase.key)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -338,10 +348,29 @@ class UtaskPostprocessTest(unittest.TestCase):
 
     output = uworker_io.UworkerOutput(
         uworker_input=uworker_io.UworkerInput(
-            testcase_id=str(testcase.key.id())),
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
         error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
-    regression_task.utask_postprocess(output)
+    regression_task.utask_postprocess(_roundtrip_output(output))
 
     # TODO: Set up environment more realistically and check `add_task()` args.
     self.mock.add_task.assert_called()
+
+  def test_revision_list_error(self):
+    """Verifies that if the task failed with `REGRESSION_REVISION_LIST_ERROR`,
+    the testcase is updated to reflect that."""
+    testcase = test_utils.create_generic_testcase()
+
+    output = uworker_io.UworkerOutput(
+        uworker_input=uworker_io.UworkerInput(
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
+        testcase=uworker_io.UworkerEntityWrapper(testcase))
+
+    regression_task.utask_postprocess(_roundtrip_output(output))
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.fixed, 'NA')
+    self.assertRegex(testcase.comments, 'Failed to fetch revision list.$')

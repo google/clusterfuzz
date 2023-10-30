@@ -683,11 +683,10 @@ def handle_duplicate_entry(testcase):
              (existing_testcase_id, testcase_id))
 
 
-def is_first_retry_for_task(testcase, reset_after_retry=False):
+def is_first_attempt_for_task(task_name, testcase, reset_after_retry=False):
   """Returns true if this task is tried atleast once. Only applicable for
   analyze and progression tasks."""
-  task_name = environment.get_value('TASK_NAME')
-  retry_key = '%s_retry' % task_name
+  retry_key = f'{task_name}_retry'
   retry_flag = testcase.get_metadata(retry_key)
   if not retry_flag:
     # Update the metadata key since now we have tried it once.
