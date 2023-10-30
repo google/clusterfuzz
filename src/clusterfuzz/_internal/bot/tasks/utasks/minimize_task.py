@@ -611,19 +611,6 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)
 
 
-HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.MINIMIZE_SETUP,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-    uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH,
-    uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,
-    uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
-    uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE,
-    uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,
-    uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED,
-    uworker_msg_pb2.ErrorType.UNHANDLED
-]
-
-
 def update_testcase(output: uworker_msg_pb2.Output):
   """Updates the tescase using the values passed from utask_main. This is done
   at the beginning of utask_postprocess and before error handling is called."""
@@ -666,19 +653,6 @@ def update_testcase(output: uworker_msg_pb2.Output):
     testcase.minimized_keys = minimize_task_output.minimized_keys
 
   testcase.put()
-
-
-def utask_postprocess(output):
-  """Postprocess in a trusted bot."""
-  update_testcase(output)
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, HANDLED_ERRORS)
-    return
-
-  finalize_testcase(
-      output.uworker_input.testcase_id,
-      output.minimize_task_output.last_crash_result_dict,
-      flaky_stack=output.minimize_task_output.flaky_stack)
 
 
 def handle_minimize_setup_error(output):
@@ -727,6 +701,66 @@ def handle_minimize_deadline_exceeded_in_main_file_phase(output):
                  output.uworker_input.job_type)
 
 
+def handle_minimize_deadline_exceeded(output: uworker_msg_pb2.Output):
+  """Reschedules a minimize task when minimization deadline is exceeded or
+  calls _skip_minimization when the number of reattempts is surpassed."""
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  attempts = testcase.get_metadata(
+      'minimization_deadline_exceeded_attempts', default=0)
+  if attempts >= MAX_DEADLINE_EXCEEDED_ATTEMPTS:
+    _skip_minimization(testcase,
+                       'Exceeded minimization deadline too many times.')
+  else:
+    testcase.set_metadata('minimization_deadline_exceeded_attempts',
+                          attempts + 1)
+    tasks.add_task('minimize', output.uworker_input.testcase_id,
+                   output.uworker_input.job_type)
+
+
+def handle_libfuzzer_minimization_unreproducible(
+    output: uworker_msg_pb2.Output):
+  """Handles libfuzzer minimization task's failure to reproduce the issue."""
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  # Be more lenient with marking testcases as unreproducible when this is a
+  # job override.
+  is_overriden_job = bool(environment.get_value('ORIGINAL_JOB_NAME'))
+  if is_overriden_job:
+    _skip_minimization(testcase, 'Unreproducible on overridden job')
+  else:
+    task_creation.mark_unreproducible_if_flaky(testcase, 'minimize', True)
+
+
+def handle_libfuzzer_minimization_failed(output: uworker_msg_pb2.Output):
+  """Handles libfuzzer minimization task failure."""
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  _skip_minimization(
+      testcase,
+      'LibFuzzer minimization failed',
+      crash_result_dict=output.minimize_task_output.last_crash_result_dict)
+
+
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
+    uworker_handle_errors.CompositeErrorHandler({
+      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP:
+          handle_minimize_setup_error,
+      uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH:
+          handle_minimize_unreproducible_crash,
+      uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY:
+          handle_minimize_crash_too_flaky,
+      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE:
+          handle_minimize_deadline_exceeded_in_main_file_phase,
+      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED:
+          handle_minimize_deadline_exceeded,
+      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE:
+          handle_libfuzzer_minimization_unreproducible,
+      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED:
+          handle_libfuzzer_minimization_failed,
+    }),
+    setup.ERROR_HANDLER,
+    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+)
+
+
 def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
   """Perform final updates on a test case and prepare it for other tasks."""
   # Symbolize crash output if we have it.
@@ -747,6 +781,19 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
   data_handler.handle_duplicate_entry(testcase)
 
   task_creation.create_postminimize_tasks(testcase)
+
+
+def utask_postprocess(output):
+  """Postprocess in a trusted bot."""
+  update_testcase(output)
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+    _ERROR_HANDLER.handle(output)
+    return
+
+  finalize_testcase(
+      output.uworker_input.testcase_id,
+      output.minimize_task_output.last_crash_result_dict,
+      flaky_stack=output.minimize_task_output.flaky_stack)
 
 
 def should_attempt_phase(testcase, phase):
@@ -954,22 +1001,6 @@ def check_deadline_exceeded_and_store_partial_minimized_testcase(
                            minimize_task_output)
 
   return time.time() > deadline
-
-
-def handle_minimize_deadline_exceeded(output: uworker_msg_pb2.Output):
-  """Reschedules a minimize task when minimization deadline is exceeded or
-  calls _skip_minimization when the number of reattempts is surpassed."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  attempts = testcase.get_metadata(
-      'minimization_deadline_exceeded_attempts', default=0)
-  if attempts >= MAX_DEADLINE_EXCEEDED_ATTEMPTS:
-    _skip_minimization(testcase,
-                       'Exceeded minimization deadline too many times.')
-  else:
-    testcase.set_metadata('minimization_deadline_exceeded_attempts',
-                          attempts + 1)
-    tasks.add_task('minimize', output.uworker_input.testcase_id,
-                   output.uworker_input.job_type)
 
 
 def check_for_initial_crash(test_runner, crash_retries, testcase):
@@ -1397,28 +1428,6 @@ def _skip_minimization(testcase: data_types.Testcase,
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        message)
   task_creation.create_postminimize_tasks(testcase)
-
-
-def handle_libfuzzer_minimization_unreproducible(
-    output: uworker_msg_pb2.Output):
-  """Handles libfuzzer minimization task's failure to reproduce the issue."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  # Be more lenient with marking testcases as unreproducible when this is a
-  # job override.
-  is_overriden_job = bool(environment.get_value('ORIGINAL_JOB_NAME'))
-  if is_overriden_job:
-    _skip_minimization(testcase, 'Unreproducible on overridden job')
-  else:
-    task_creation.mark_unreproducible_if_flaky(testcase, 'minimize', True)
-
-
-def handle_libfuzzer_minimization_failed(output: uworker_msg_pb2.Output):
-  """Handles libfuzzer minimization task failure."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  _skip_minimization(
-      testcase,
-      'LibFuzzer minimization failed',
-      crash_result_dict=output.minimize_task_output.last_crash_result_dict)
 
 
 def _update_testcase_memory_tool_options(testcase: data_types.Testcase,

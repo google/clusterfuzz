@@ -444,13 +444,20 @@ def handle_build_setup_error(output):
       testcase, testcase_upload_metadata, 'Build setup failed')
 
 
-HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
-    uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
-    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX,
-    uworker_msg_pb2.ErrorType.UNHANDLED,
-] + setup.HANDLED_ERRORS
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
+    setup.ERROR_HANDLER,
+    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+    uworker_handle_errors.CompositeErrorHandler({
+      uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
+          handle_noncrash,
+      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
+          handle_build_setup_error,
+      uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:
+          handle_analyze_no_revisions_list_error,
+      uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX:
+          handle_analyze_no_revision_index,
+    }),
+)
 
 
 def _update_testcase(output):
@@ -503,7 +510,7 @@ def utask_postprocess(output):
   the db."""
   _update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    _ERROR_HANDLER.handle(output)
     return
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase_upload_metadata = query_testcase_upload_metadata(

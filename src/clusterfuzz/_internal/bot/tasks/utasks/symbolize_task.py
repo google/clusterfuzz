@@ -289,16 +289,18 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
   return symbolized, stacktrace
 
 
-HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR,  # pylint: disable=no-member
-    uworker_msg_pb2.ErrorType.UNHANDLED  # pylint: disable=no-member
-] + setup.HANDLED_ERRORS
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
+    setup.ERROR_HANDLER,
+    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+    uworker_handle_errors.CompositeErrorHandler({
+        uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR: handle_build_setup_error,
+    }))
 
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    _ERROR_HANDLER.handle(output)
     return
 
   symbolize_task_output = output.symbolize_task_output

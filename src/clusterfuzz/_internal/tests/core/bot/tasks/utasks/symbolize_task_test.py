@@ -66,9 +66,9 @@ class UTaskPostprocessTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_handle_errors.handle',
         'clusterfuzz._internal.datastore.data_handler.handle_duplicate_entry',
-        'clusterfuzz._internal.bot.tasks.task_creation.create_blame_task_if_needed'
+        'clusterfuzz._internal.bot.tasks.task_creation.create_blame_task_if_needed',
+        'clusterfuzz._internal.bot.tasks.utasks.symbolize_task._ERROR_HANDLER.handle',
     ])
 
   def test_error_handling_called_on_error(self):

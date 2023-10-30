@@ -27,6 +27,7 @@ from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -200,7 +201,9 @@ def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
       wait_time=testcase_fail_wait)
 
 
-HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]
+ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP: handle_setup_testcase_error,
+})
 
 
 def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
