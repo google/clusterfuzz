@@ -16,7 +16,7 @@ import collections
 import threading
 import uuid
 
-import credentials
+from . import credentials
 from google.cloud import batch_v1 as batch
 
 # TODO(metzman): Change to from . import credentials when we are done
@@ -32,7 +32,6 @@ RETRY_COUNT = 1
 TASK_COUNT = 1
 
 BatchJobSpec = collections.namedtuple('BatchJobSpec', [
-    'source_image',
     'disk_size_gb',
     'docker_image',
     'user_data',
@@ -129,18 +128,18 @@ def get_spec(full_module_name, job):
   command = utask_utils.get_command_from_module(full_module_name)
   if command != 'fuzz':
     platform += '-HIGH-END'
-  machine_type_config = local_config.MachineTypeConfig()
-  cluster_name = machine_type_config.get('mapping').get(platform, None)
+  batch_config = local_config.BatchConfig()
+  cluster_name = batch_config.get('mapping').get(platform, None)
   if cluster_name is None:
     return None
-  project_name = machine_type_config.get('project')
+  project_name = batch_config.get('project')
   clusters_config = local_config.GCEClustersConfig()
   project_spec = clusters_config.get(project_name)
   templates = project_spec['instance_templates']
   cluster = project_spec['clusters'][cluster_name]
   template_name = cluster['instance_template']
   for template in templates:
-    if templates['name'] != template_name:
+    if template['name'] != template_name:
       continue
     break
   else:
@@ -151,12 +150,15 @@ def get_spec(full_module_name, job):
   docker_image = None
   user_data = None
   for item in items:
-    if item['key'] == 'docker_image':
+    if item['key'] == 'docker-image':
       docker_image = item['value']
-    if item['key'] == 'user_data':
-      user_data = item['user_data']
+    if item['key'] == 'user-data':
+      user_data = item['value']
   assert docker_image is not None and user_data is not None
-  disk_params = properties['disks']['initializeParams']
+  disks = properties['disks']
+  assert len(disks) == 1
+  disk = disks[0]
+  disk_params = disk['initializeParams']
   service_accounts = properties['serviceAccounts']
   assert len(service_accounts) == 1
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
@@ -165,16 +167,16 @@ def get_spec(full_module_name, job):
   network_interfaces = properties['networkInterfaces']
   assert len(network_interfaces) == 1
   network_interface = network_interfaces[0]
-  subnetwork = network_interface['subnetwork']
+  subnetwork = network_interface.get('subnetwork', None)
+  preemptible = bool(properties.get('scheduling') and properties['preemptible'])
   spec = BatchJobSpec(
-      source_image=disk_params['sourceImage'],
       docker_image=docker_image,
       user_data=user_data,
-      diskp_size_gb=disk_params['diskSizeGb'],
+      disk_size_gb=disk_params['diskSizeGb'],
       service_account_email=service_account_email,
       subnetwork=subnetwork,
-      gce_zone=cluster['gce-zone'],
+      gce_zone=cluster['gce_zone'],
       project=project_name,
-      preemptible=properties['scheduling']['preemptible'],
+      preemptible=preemptible,
       machine_type=properties['machineType'])
   return spec

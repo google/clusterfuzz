@@ -30,7 +30,7 @@ GAE_AUTH_PATH = 'gae.auth'
 GAE_CONFIG_PATH = 'gae.config'
 GCE_CLUSTERS_PATH = 'gce.clusters'
 ISSUE_TRACKERS_PATH = 'issue_trackers.config'
-MACHINE_TYPE_PATH = 'machine_type.machine_type'
+BATCH_PATH = 'batch.batch'
 MONITORING_REGIONS_PATH = 'monitoring.regions'
 PROJECT_PATH = 'project'
 
@@ -239,11 +239,11 @@ class IssueTrackerConfig(Config):
     super().__init__(ISSUE_TRACKERS_PATH)
 
 
-class MachineTypeConfig(Config):
-  """Issue tracker config."""
+class BatchConfig(Config):
+  """Batch config."""
 
   def __init__(self):
-    super().__init__(MACHINE_TYPE_PATH)
+    super().__init__(BATCH_PATH)
 
 
 class GCEClustersConfig(Config):

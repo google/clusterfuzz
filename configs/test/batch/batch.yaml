@@ -1,0 +1,6 @@
+mapping:
+  LINUX-HIGH-END: clusterfuzz-linux
+  LINUX: clusterfuzz-linux-pre
+  WINDOWS-HIGH-END: clusterfuzz-windows
+  WINDOWS: clusterfuzz-windows-pre
+project: 'test-clusterfuzz'
