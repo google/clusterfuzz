@@ -56,7 +56,7 @@ class GetSpecTest(unittest.TestCase):
         subnetwork=None,
         gce_zone='gce-zone',
         project='test-clusterfuzz',
-        preemptible=False,
+        preemptible=True,
         machine_type='n1-standard-1')
 
     self.assertEqual(spec, expected_spec)

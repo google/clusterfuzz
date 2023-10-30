@@ -169,7 +169,7 @@ def get_spec(full_module_name, job):
   assert len(network_interfaces) == 1
   network_interface = network_interfaces[0]
   subnetwork = network_interface.get('subnetwork', None)
-  preemptible = bool(properties.get('scheduling') and properties['preemptible'])
+  preemptible = bool(properties.get('scheduling') and properties['scheduling']['preemptible'])
   spec = BatchJobSpec(
       docker_image=docker_image,
       user_data=user_data,
