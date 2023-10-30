@@ -203,7 +203,7 @@ def handle_build_setup_error(output):
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
     uworker_handle_errors.CompositeErrorHandler({
-      uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP: handle_build_setup_error,
+        uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP: handle_build_setup_error,
     }),
     uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
     setup.ERROR_HANDLER,

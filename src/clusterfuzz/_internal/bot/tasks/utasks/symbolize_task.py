@@ -290,10 +290,10 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
-    setup.ERROR_HANDLER,
-    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+    setup.ERROR_HANDLER, uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
     uworker_handle_errors.CompositeErrorHandler({
-        uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR: handle_build_setup_error,
+        uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR:
+            handle_build_setup_error,
     }))
 
 

@@ -448,14 +448,14 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
     setup.ERROR_HANDLER,
     uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
     uworker_handle_errors.CompositeErrorHandler({
-      uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
-          handle_noncrash,
-      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
-          handle_build_setup_error,
-      uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:
-          handle_analyze_no_revisions_list_error,
-      uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX:
-          handle_analyze_no_revision_index,
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
+            handle_noncrash,
+        uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
+            handle_build_setup_error,
+        uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:
+            handle_analyze_no_revisions_list_error,
+        uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX:
+            handle_analyze_no_revision_index,
     }),
 )
 

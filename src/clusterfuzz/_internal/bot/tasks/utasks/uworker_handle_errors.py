@@ -18,11 +18,9 @@ from typing import Dict
 
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
-
 # A handler takes an output object with its `error_type` set, and does whatever
 # it wants with it.
 ErrorHandler = Callable[[uworker_msg_pb2.Output], None]
-
 
 # Must use string type because of protobuf enum shenanigans.
 HandlerDict = Dict["uworker_msg_pb2.ErrorType", ErrorHandler]
