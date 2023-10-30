@@ -27,6 +27,18 @@ from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
+def _roundtrip_input(uworker_input: uworker_io.UworkerInput
+                    ) -> uworker_io.DeserializedUworkerMsg:
+  serialized = uworker_io.serialize_uworker_input(uworker_input)
+  return uworker_io.deserialize_uworker_input(serialized)
+
+
+def _roundtrip_output(uworker_output: uworker_io.UworkerOutput
+                     ) -> uworker_io.DeserializedUworkerMsg:
+  serialized = uworker_io.serialize_uworker_output(uworker_output)
+  return uworker_io.deserialize_uworker_output(serialized)
+
+
 class WriteToBigQueryTest(unittest.TestCase):
   """Test write_to_big_query."""
 
@@ -289,7 +301,7 @@ class UtaskMainTest(unittest.TestCase):
         uworker_io.UworkerOutput(
             error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP))
 
-    output = regression_task.utask_main(uworker_input)
+    output = regression_task.utask_main(_roundtrip_input(uworker_input))
     output.error_type = uworker_msg_pb2.ErrorType.TESTCASE_SETUP
 
   def test_empty_revision_list(self):
@@ -311,7 +323,7 @@ class UtaskMainTest(unittest.TestCase):
     self.mock.get_primary_bucket_path.return_value = 'gs://foo'
     self.mock.get_revisions_list.return_value = []
 
-    _ = regression_task.utask_main(uworker_input)
+    _ = regression_task.utask_main(_roundtrip_input(uworker_input))
 
     self.mock.get_revisions_list.assert_called_with('gs://foo', bad_revisions,
                                                     testcase)
@@ -342,7 +354,7 @@ class UtaskPostprocessTest(unittest.TestCase):
             module_name=regression_task.__name__),
         error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
-    regression_task.utask_postprocess(output)
+    regression_task.utask_postprocess(_roundtrip_output(output))
 
     # TODO: Set up environment more realistically and check `add_task()` args.
     self.mock.add_task.assert_called()

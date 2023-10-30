@@ -212,7 +212,7 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
   return True
 
 
-def find_regression_range(uworker_input: uworker_io.UworkerInput
+def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
                          ) -> Optional[uworker_io.UworkerOutput]:
   """Attempt to find when the testcase regressed."""
   testcase = uworker_input.testcase
@@ -367,7 +367,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 _HANDLED_ERRORS = setup.HANDLED_ERRORS
 
 
-def utask_postprocess(output: uworker_io.UworkerOutput) -> None:
+def utask_postprocess(output: uworker_io.DeserializedUworkerMsg) -> None:
   """Handles the output of `utask_main()` run on an untrusted worker.
 
   Runs on a trusted worker.
@@ -379,7 +379,7 @@ def utask_postprocess(output: uworker_io.UworkerOutput) -> None:
   # TODO: migrate more stuff out of `utask_main()`.
 
 
-def utask_main(uworker_input: uworker_io.UworkerInput
+def utask_main(uworker_input: uworker_io.DeserializedUworkerMsg,
               ) -> Optional[uworker_io.UworkerOutput]:
   """Runs regression task and handles potential errors.
 
