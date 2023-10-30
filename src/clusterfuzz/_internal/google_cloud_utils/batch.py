@@ -22,16 +22,27 @@ from google.cloud import batch_v1 as batch
 # TODO(metzman): Change to from . import credentials when we are done
 # developing.
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import utask_utils
+from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 
 _local = threading.local()
 
 MAX_DURATION = '3600s'
-RETRY_COUNT = 2
+RETRY_COUNT = 1
 TASK_COUNT = 1
 
-collections.namedtuple('BatchJobSpecs', [])
+BatchJobSpec = collections.namedtuple('BatchJobSpec', [
+    'source_image',
+    'disk_size_gb',
+    'docker_image',
+    'user_data',
+    'service_account_email',
+    'subnetwork',
+    'preemptible',
+    'project',
+    'gce_zone',
+    'machine_type',
+])
 
 
 def _create_batch_client_new():
@@ -56,16 +67,13 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def create_job(module_name,
-               cf_job,
-               email='untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
-               image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
-               machine_type='e2-standard-2'):
+def create_job(module_name, cf_job):
   """This is not a job in ClusterFuzz's meaning of the word."""
   # Define what will be done as part of the job.
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
-  runnable.container.image_uri = image_uri
+  spec = get_spec(module_name, cf_job)
+  runnable.container.image_uri = spec.docker_image
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
       '-P --privileged --cap-add=all '
@@ -83,19 +91,17 @@ def create_job(module_name,
   group.task_count = TASK_COUNT
   group.task_spec = task
 
-  specs = get_specs(full_module_name, cf_job)
-
   policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
-  disk.size_gb = specs.disk_size
+  disk.size_gb = spec.disk_size_gb
   policy.boot_disk = disk
-  policy.machine_type = specs.machine_type
+  policy.machine_type = spec.machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = policy
   allocation_policy = batch.AllocationPolicy()
   allocation_policy.instances = [instances]
-  service_account = batch.ServiceAccount(email=email)  # pylint: disable=no-member
+  service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
 
   job = batch.Job()
@@ -117,9 +123,10 @@ def create_job(module_name,
   return _batch_client().create_job(create_request)
 
 
-def get_specs(full_module_name, job):
+def get_spec(full_module_name, job):
+  """Gets the specifications for a job."""
   platform = job.platform
-  command = utask_utils.get_command_from_module(full_module)
+  command = utask_utils.get_command_from_module(full_module_name)
   if command != 'fuzz':
     platform += '-HIGH-END'
   machine_type_config = local_config.MachineTypeConfig()
@@ -128,35 +135,46 @@ def get_specs(full_module_name, job):
     return None
   project_name = machine_type_config.get('project')
   clusters_config = local_config.GCEClustersConfig()
-  project_specs = clusters_config.get(project_name)
-  templates = project_specs['instance_templates']
-  cluster = project_specs['clusters'][instance_template]
+  project_spec = clusters_config.get(project_name)
+  templates = project_spec['instance_templates']
+  cluster = project_spec['clusters'][cluster_name]
+  template_name = cluster['instance_template']
   for template in templates:
     if templates['name'] != template_name:
       continue
     break
   else:
     raise ValueError(f'Could not find template: {template_name}')
-  return template, cluster, project
 
-
-def get_instance_specs(full_module_name, job):
-  specs = get_specs(full_module_name, job)
-
-  if specs is None:
-    # !!!
-    pass
-
-  template, cluster, project = specs
-  template
-
-
-def main():
-  """Main function only used in development."""
-  # email = 'untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
-  # email = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
-  create_job()
-
-
-if __name__ == '__main__':
-  main()
+  properties = template['properties']
+  items = properties['metadata']['items']
+  docker_image = None
+  user_data = None
+  for item in items:
+    if item['key'] == 'docker_image':
+      docker_image = item['value']
+    if item['key'] == 'user_data':
+      user_data = item['user_data']
+  assert docker_image is not None and user_data is not None
+  disk_params = properties['disks']['initializeParams']
+  service_accounts = properties['serviceAccounts']
+  assert len(service_accounts) == 1
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
+  # low-privilege account.
+  service_account_email = service_accounts[0]['email']
+  network_interfaces = properties['networkInterfaces']
+  assert len(network_interfaces) == 1
+  network_interface = network_interfaces[0]
+  subnetwork = network_interface['subnetwork']
+  spec = BatchJobSpec(
+      source_image=disk_params['sourceImage'],
+      docker_image=docker_image,
+      user_data=user_data,
+      diskp_size_gb=disk_params['diskSizeGb'],
+      service_account_email=service_account_email,
+      subnetwork=subnetwork,
+      gce_zone=cluster['gce-zone'],
+      project=project_name,
+      preemptible=properties['scheduling']['preemptible'],
+      machine_type=properties['machineType'])
+  return spec

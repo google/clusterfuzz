@@ -17,7 +17,6 @@ import os
 import unittest
 from unittest import mock
 
-from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
