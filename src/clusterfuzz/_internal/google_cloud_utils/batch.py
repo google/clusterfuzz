@@ -56,7 +56,9 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def create_job(email,
+def create_job(module_name,
+               cf_job,
+               email='untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
                image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
                machine_type='e2-standard-2'):
   """This is not a job in ClusterFuzz's meaning of the word."""
@@ -81,12 +83,14 @@ def create_job(email,
   group.task_count = TASK_COUNT
   group.task_spec = task
 
+  specs = get_specs(full_module_name, cf_job)
+
   policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
-  disk.size_gb = '100'
+  disk.size_gb = specs.disk_size
   policy.boot_disk = disk
-  policy.machine_type = machine_type
+  policy.machine_type = specs.machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = policy
   allocation_policy = batch.AllocationPolicy()
@@ -130,25 +134,28 @@ def get_specs(full_module_name, job):
   for template in templates:
     if templates['name'] != template_name:
       continue
-    template =
-  return template, project
+    break
+  else:
+    raise ValueError(f'Could not find template: {template_name}')
+  return template, cluster, project
 
 
 def get_instance_specs(full_module_name, job):
-  template_and_project_id = get_specs(full_module_name, job)
+  specs = get_specs(full_module_name, job)
 
-  if template_and_project_id is None:
+  if specs is None:
     # !!!
     pass
 
-  template_and_project_id
+  template, cluster, project = specs
+  template
 
 
 def main():
   """Main function only used in development."""
-  email = 'untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
+  # email = 'untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
   # email = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
-  create_job(email=email)
+  create_job()
 
 
 if __name__ == '__main__':
