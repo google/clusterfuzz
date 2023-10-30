@@ -63,6 +63,7 @@ def utask_main(uworker_input):
   if error:
     # Because this is trusted, we can trust the error.
     all_errors = uworker_handle_errors.get_all_handled_errors()
+    error.uworker_input.module_name = __name__
     uworker_handle_errors.handle(error, all_errors)
     return None
 
