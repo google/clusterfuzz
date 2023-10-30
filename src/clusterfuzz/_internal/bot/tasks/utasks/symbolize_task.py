@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -37,14 +38,21 @@ MIN_REDZONE = 16
 STACK_FRAME_COUNT = 128
 
 
-def execute_task(testcase_id, job_type):
+def utask_preprocess(testcase_id, job_type):
+  return uworker_io.UworkerInput(job_type=job_type, testcase_id=testcase_id)
+
+
+def utask_main(uworker_input):
   """Execute a symbolize command."""
+  job_type = uworker_input.job_type
+  testcase_id = uworker_input.testcase_id
+
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   # We should atleast have a symbolized debug or release build.
   if not build_manager.has_symbolized_builds():
-    return
+    return None
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
@@ -53,11 +61,10 @@ def execute_task(testcase_id, job_type):
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
   if error:
-    # TODO(metzman): Assert trusted.
     # Because this is trusted, we can trust the error.
     all_errors = uworker_handle_errors.get_all_handled_errors()
     uworker_handle_errors.handle(error, all_errors)
-    return
+    return None
 
   # Initialize variables.
   build_fail_wait = environment.get_value('FAIL_WAIT')
@@ -90,7 +97,7 @@ def execute_task(testcase_id, job_type):
                                          'Build setup failed')
     tasks.add_task(
         'symbolize', testcase_id, job_type, wait_time=build_fail_wait)
-    return
+    return None
 
   # ASAN tool settings (if the tool is used).
   # See if we can get better stacks with higher redzone sizes.
@@ -143,7 +150,7 @@ def execute_task(testcase_id, job_type):
                                          'Build setup failed')
     tasks.add_task(
         'symbolize', testcase_id, job_type, wait_time=build_fail_wait)
-    return
+    return None
 
   # Increase malloc_context_size to get all stack frames. Default is 30.
   environment.reset_current_memory_tool_options(
@@ -200,6 +207,7 @@ def execute_task(testcase_id, job_type):
 
   # Cleanup symbolized builds which are space-heavy.
   symbolized_builds.delete()
+  return None
 
 
 def get_symbolized_stacktraces(testcase_file_path, testcase,
@@ -286,3 +294,7 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
     stacktrace += '\n\n' + debug_build_stacktrace
 
   return symbolized, stacktrace
+
+
+def utask_postprocess(output):
+  del output

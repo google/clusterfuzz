@@ -38,6 +38,9 @@ message AnalyzeTaskInput {
   repeated int64 bad_revisions = 1;
 }
 
+message SymbolizeTaskInput {
+}
+
 message FuzzTaskInput {
   optional google.datastore.v1.Entity targets_count = 1;
 }
@@ -81,7 +84,12 @@ message Input {
   optional MinimizeTaskInput minimize_task_input = 15;
   optional ProgressionTaskInput progression_task_input = 16;
   optional RegressionTaskInput regression_task_input = 17;
-  optional string module_name = 18;
+  optional SymbolizeTaskInput symbolize_task_input = 18;
+  optional string module_name = 19;
+}
+
+message SymbolizeTaskOutput {
+ // TODO(metzman): Fill this out.
 }
 
 message AnalyzeTaskOutput {
@@ -170,5 +178,6 @@ message Output {
   optional MinimizeTaskOutput minimize_task_output = 11;
   optional RegressionTaskOutput regression_task_output = 12;
   optional ProgressionTaskOutput progression_task_output = 13;
-  optional string error_message = 14;
+  optional SymbolizeTaskOutput symbolize_task_output = 14;
+  optional string error_message = 15;
 }
