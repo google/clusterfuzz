@@ -13,7 +13,6 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
-import collections
 import json
 import uuid
 
@@ -21,6 +20,7 @@ from google.cloud import ndb
 from google.cloud.datastore_v1.proto import entity_pb2
 from google.cloud.ndb import model
 from google.protobuf import message
+from google.protobuf.descriptor import FieldDescriptor
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -349,6 +349,11 @@ class UworkerMsg:
 
     field_descriptor = self.proto.DESCRIPTOR.fields_by_name[attribute]
     if field_descriptor.message_type is None:
+      # Handle the repeated fields of non-composite types.
+      if field_descriptor.label == FieldDescriptor.LABEL_REPEATED:
+        field = getattr(self.proto, attribute)
+        field.extend(value)
+        return
       setattr(self.proto, attribute, value)
       return
 
@@ -364,36 +369,6 @@ class UworkerMsg:
     return self.proto.SerializeToString()
 
 
-class FuzzTaskOutput(UworkerMsg):
-  """Class representing an unserialized FuzzTaskOutput message from
-  fuzz_task."""
-
-  PROTO_CLS = uworker_msg_pb2.FuzzTaskOutput
-
-  def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
-
-class ProgressionTaskOutput(UworkerMsg):
-  """Class representing an unserialized ProgressionTaskOutput message from
-  fuzz_task."""
-
-  PROTO_CLS = uworker_msg_pb2.ProgressionTaskOutput
-
-  def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
-
 def save_json_field(field, value):
   serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
   field.CopyFrom(serialized_json)
@@ -406,7 +381,8 @@ class UworkerOutput(UworkerMsg):
 
   def save_rich_type(self, attribute, value):
     field = getattr(self.proto, attribute)
-    if isinstance(value, dict):
+    # list/dict can represent JSON type members as defined in uworker_msg.
+    if isinstance(value, (dict, list)):
       save_json_field(field, value)
       return
 
@@ -428,18 +404,24 @@ class UworkerOutput(UworkerMsg):
     field.CopyFrom(wrapped_entity_proto)
 
 
-class BuildData(UworkerMsg):
-  """Class representing an unserialized ProgressionTaskOutput message from
+class FuzzTaskOutput(UworkerOutput):
+  """Class representing an unserialized FuzzTaskOutput message from
   fuzz_task."""
+
+  PROTO_CLS = uworker_msg_pb2.FuzzTaskOutput
+
+
+class ProgressionTaskOutput(UworkerOutput):
+  """Class representing an unserialized ProgressionTaskOutput message from
+  progression_task."""
+
+  PROTO_CLS = uworker_msg_pb2.ProgressionTaskOutput
+
+
+class BuildData(UworkerOutput):
+  """Class representing an unserialized BuildData message from
+  utask_main."""
   PROTO_CLS = uworker_msg_pb2.BuildData
-
-  def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
 
 class UworkerInput(UworkerMsg):
@@ -449,11 +431,12 @@ class UworkerInput(UworkerMsg):
 
   def save_rich_type(self, attribute, value):
     field = getattr(self.proto, attribute)
+    field_descriptor = self.proto.DESCRIPTOR.fields_by_name[attribute]
     if isinstance(value, dict):
       save_json_field(field, value)
       return
 
-    if isinstance(field, collections.abc.Sequence):
+    if field_descriptor.label == FieldDescriptor.LABEL_REPEATED:
       # This the way to tell if it's a repeated field.
       # We can't get the type of the repeated field directly.
       value = list(value)
@@ -510,25 +493,17 @@ class CorpusPruningTaskInput(UworkerInput):
   PROTO_CLS = uworker_msg_pb2.CorpusPruningTaskInput
 
 
-class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+class AnalyzeTaskOutput(UworkerOutput):  # pylint: disable=abstract-method
   """Output from analyze_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.AnalyzeTaskOutput
 
 
-class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+class MinimizeTaskOutput(UworkerOutput):  # pylint: disable=abstract-method
   """Output from minimize_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
 
-  def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
 
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
-
-class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+class RegressionTaskOutput(UworkerOutput):  # pylint: disable=abstract-method
   """Output from regression_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.RegressionTaskOutput
 
