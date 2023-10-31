@@ -38,8 +38,9 @@ MIN_REDZONE = 16
 STACK_FRAME_COUNT = 128
 
 
-def utask_preprocess(testcase_id, job_type):
-  return uworker_io.UworkerInput(job_type=job_type, testcase_id=testcase_id)
+def utask_preprocess(testcase_id, job_type, uworker_env):
+  return uworker_io.UworkerInput(
+      job_type=job_type, testcase_id=testcase_id, uworker_env=uworker_env)
 
 
 def utask_main(uworker_input):
