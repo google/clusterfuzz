@@ -35,7 +35,6 @@ from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
 from clusterfuzz._internal.issue_management.monorail.issue import \
     Issue as MonorailIssue
 from clusterfuzz._internal.tests.test_libs import helpers
-from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -479,28 +478,41 @@ class IssueFilerTests(unittest.TestCase):
     self.mock.utcnow.return_value = datetime.datetime(2016, 1, 1)
 
   def test_filed_issue_google_issue_tracker(self):
-    """Tests issue filing for chromium with google_issue_tracker."""
-    test_helpers.patch(self, [
+    """Tests issue filing flow for chromium with google_issue_tracker."""
+
+    helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
-        'clusterfuzz._internal.issue_management.monorail._get_issue_tracker_manager_for_project'
+        'clusterfuzz._internal.issue_management.google_issue_tracker.IssueTracker._execute',
     ])
+    # This mock is for the issue_tracker_utils.get_issue_tracker call.
     self.mock.get.return_value = CHROMIUM_GIT_POLICY
+    # This mock is for the IssueTrackerConfig.get call.
     self.mock.get.return_value = {
         'type': 'google_issue_tracker',
         'default_component_id': '1234567890',
         'component_id': '123',
     }
-    self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
+    exp_issue_id = 68828938
+    self.mock._execute.return_value = {
+        'issueId': exp_issue_id,
+        'issueState': {
+            'componentId': '29002',
+            'type': 'BUG',
+        },
+    }
     issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
         'google_issue_tracker': google_issue_tracker.get_issue_tracker
     }
+    # To avoid calls to real discovery service.
+    client_patcher = mock.patch('clusterfuzz._internal.issue_management.' +
+                                'google_issue_tracker.client.build')
+    client_patcher.start()
 
     issue_tracker = issue_tracker_utils.get_issue_tracker()
-    issue_filer.file_issue(self.testcase1, issue_tracker)
-
-    self.assertIn('chromium', issue_tracker._itm.last_issue.labels)
-    self.assertTrue(
-        issue_tracker._itm.last_issue.has_label_matching('_ext_collaborators'))
+    actual_issue_id, exception = issue_filer.file_issue(self.testcase1,
+                                                        issue_tracker)
+    self.assertIsNone(exception)
+    self.assertEqual(exp_issue_id, actual_issue_id)
 
   def test_filed_issues_chromium(self):
     """Tests issue filing for chromium."""

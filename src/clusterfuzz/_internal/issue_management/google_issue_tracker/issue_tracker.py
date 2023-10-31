@@ -114,10 +114,7 @@ class Issue(issue_tracker.Issue):
 
     if extension_fields.get('_ext_issue_access_limit'):
       self._changed.add('_issue_access_limit')
-      self._issue_access_limit = extension_fields.get(
-          '_ext_issue_access_limit') or ({
-              'access_level': IssueAccessLevel.LIMIT_NONE
-          })
+      self._issue_access_limit = extension_fields['_ext_issue_access_limit']
 
   @property
   def issue_tracker(self):
