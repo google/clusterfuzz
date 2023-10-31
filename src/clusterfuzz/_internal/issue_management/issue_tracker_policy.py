@@ -73,6 +73,7 @@ class IssueTrackerPolicy:
     """Get the actual status string for the given type."""
     return self._data['status'][status_type]
 
+  @property
   def extension_fields(self):
     """Returns all _ext_ prefixed data items."""
     extension_fields = {}
@@ -180,7 +181,7 @@ class IssueTrackerPolicy:
       if non_crash_labels:
         policy.labels.extend(_to_str_list(non_crash_labels))
 
-    for k, v in self.extension_fields():
+    for k, v in self.extension_fields:
       policy.extension_fields[k] = v
 
   def get_existing_issue_properties(self):

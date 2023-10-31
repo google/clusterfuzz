@@ -507,10 +507,17 @@ class IssueFilerTests(unittest.TestCase):
     client_patcher = mock.patch('clusterfuzz._internal.issue_management.' +
                                 'google_issue_tracker.client.build')
     client_patcher.start()
+    # Mock calls to labels.
+    label_patcher = mock.patch(
+        'clusterfuzz._internal.issue_management.' +
+        'google_issue_tracker.issue_tracker.Issue.labels')
+    label_patcher.start()
 
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     actual_issue_id, exception = issue_filer.file_issue(self.testcase1,
                                                         issue_tracker)
+    client_patcher.stop()
+    label_patcher.stop()
     self.assertIsNone(exception)
     self.assertEqual(exp_issue_id, actual_issue_id)
 
