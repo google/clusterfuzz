@@ -24,6 +24,7 @@ import sys
 import yaml
 
 from clusterfuzz._internal import fuzzing
+from clusterfuzz._internal.metrics import logs
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
@@ -1022,6 +1023,8 @@ def set_value(environment_variable, value, env=None):
   environment_variable_str = str(environment_variable)
   value_str = value_str.replace('%ROOT_DIR%', os.getenv('ROOT_DIR', ''))
   env[environment_variable_str] = value_str
+  logs.log(
+      f'Set environment variable: {environment_variable_str!r} = {value_str!r}')
 
   if is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import \
