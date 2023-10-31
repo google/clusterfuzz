@@ -483,6 +483,8 @@ class IssueFilerTests(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
         'clusterfuzz._internal.issue_management.google_issue_tracker.IssueTracker._execute',
+        'clusterfuzz._internal.issue_management.google_issue_tracker.client.build',
+        'clusterfuzz._internal.issue_management.google_issue_tracker.issue_tracker.Issue.labels'
     ])
     # This mock is for the issue_tracker_utils.get_issue_tracker call.
     self.mock.get.return_value = CHROMIUM_GIT_POLICY
@@ -503,21 +505,10 @@ class IssueFilerTests(unittest.TestCase):
     issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
         'google_issue_tracker': google_issue_tracker.get_issue_tracker
     }
-    # To avoid calls to real discovery service.
-    client_patcher = mock.patch('clusterfuzz._internal.issue_management.' +
-                                'google_issue_tracker.client.build')
-    client_patcher.start()
-    # Mock calls to labels.
-    label_patcher = mock.patch(
-        'clusterfuzz._internal.issue_management.' +
-        'google_issue_tracker.issue_tracker.Issue.labels')
-    label_patcher.start()
 
     issue_tracker = issue_tracker_utils.get_issue_tracker()
     actual_issue_id, exception = issue_filer.file_issue(self.testcase1,
                                                         issue_tracker)
-    client_patcher.stop()
-    label_patcher.stop()
     self.assertIsNone(exception)
     self.assertEqual(exp_issue_id, actual_issue_id)
 
