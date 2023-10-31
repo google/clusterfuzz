@@ -24,7 +24,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 ALLOWED_FUZZ_TARGET_EXTENSIONS = ['', '.exe', '.par']
-FUZZ_TARGET_SEARCH_BYTES = b'LLVMFuzzerTestOneInput'
+FUZZ_TARGET_SEARCH_BYTES = [b'LLVMFuzzerTestOneInput', b'LLVMFuzzerRunDriver']
 VALID_TARGET_NAME_REGEX = re.compile(r'^[a-zA-Z0-9@_.-]+$')
 BLOCKLISTED_TARGET_NAME_REGEX = re.compile(r'^(jazzer_driver.*)$')
 EXTRA_BUILD_DIR = '__extra_build'
@@ -75,10 +75,14 @@ def is_fuzz_target_local(file_path, file_handle=None):
   # Use already provided file handle or open the file.
   local_file_handle = file_handle or open(file_path, 'rb')
 
-  # TODO(metzman): Bound this call so we don't read forever if something went
-  # wrong.
-  result = utils.search_bytes_in_file(FUZZ_TARGET_SEARCH_BYTES,
-                                      local_file_handle)
+  result = False
+  for pattern in FUZZ_TARGET_SEARCH_BYTES:
+    # TODO(metzman): Bound this call so we don't read forever if something went
+    # wrong.
+    result = utils.search_bytes_in_file(pattern,
+                                        local_file_handle)
+    if result:
+      break
 
   if not file_handle:
     # If this local file handle is owned by our function, close it now.
