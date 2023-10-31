@@ -784,6 +784,11 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   # Set metadata fields (e.g. build url, build key, platform string, etc).
   set_initial_testcase_metadata(testcase)
 
+  # Set crash metadata.
+  # TODO(https://github.com/google/clusterfuzz/pull/3333#discussion_r1369199761)
+  if hasattr(crash, 'crash_categories') and crash.crash_categories:
+    testcase.set_metadata('crash_categories', list(crash.crash_categories))
+
   # Update the comment and save testcase.
   update_testcase_comment(testcase, data_types.TaskState.NA, comment)
 
