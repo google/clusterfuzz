@@ -1525,12 +1525,17 @@ def get_rpaths(binary_path):
   return []
 
 
-def check_app_path(app_path='APP_PATH'):
+def check_app_path(app_path='APP_PATH') -> bool:
   """Check if APP_PATH is properly set."""
   # If APP_NAME is not set (e.g. for grey box jobs), then we don't need
   # APP_PATH.
-  return (not environment.get_value('APP_NAME') or
-          environment.get_value(app_path))
+  if environment.get_value('APP_NAME'):
+    return True
+  logs.log('APP_NAME not set')
+
+  app_path_value = environment.get_value(app_path)
+  logs.log(f'app_path: {app_path} {app_path_value}')
+  return bool(app_path_value)
 
 
 def get_bucket_path(name):
