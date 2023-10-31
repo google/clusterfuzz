@@ -357,6 +357,12 @@ class UworkerMsg:
 
     self.save_rich_type(attribute, value)
 
+  def __getattr__(self, attribute):
+    if 'attribute' == 'proto':
+      super().__getattr__(attribute)
+    value = self.proto.__getattr__(attribute)
+
+
   def save_rich_type(self, attribute, value):
     raise NotImplementedError('Child must implement.')
 
