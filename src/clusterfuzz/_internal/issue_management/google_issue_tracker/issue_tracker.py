@@ -399,8 +399,10 @@ class Issue(issue_tracker.Issue):
       access_limit = self._issue_access_limit
       if access_limit:
         self._data['issueState']['access_limit'] = access_limit
+      valid_hotlists = filter(
+          lambda label: ((label is not None) and label.isdigit()), self.labels)
       self._data['issueState']['hotlistIds'] = [
-          int(label) for label in self.labels
+          int(label) for label in valid_hotlists
       ]
       if self._body is not None:
         self._data['issueComment'] = {

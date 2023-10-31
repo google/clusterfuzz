@@ -24,15 +24,18 @@ import parameterized
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import pubsub
+from clusterfuzz._internal.issue_management import google_issue_tracker
 from clusterfuzz._internal.issue_management import issue_filer
 from clusterfuzz._internal.issue_management import issue_tracker_policy
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.issue_management import monorail
-from clusterfuzz._internal.issue_management.google_issue_tracker import \
-    issue_tracker as google_issue_tracker
+from clusterfuzz._internal.issue_management.google_issue_tracker.issue_tracker import \
+    IssueAccessLevel
 from clusterfuzz._internal.issue_management.issue_tracker import LabelStore
 from clusterfuzz._internal.issue_management.monorail.issue import \
     Issue as MonorailIssue
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import mock_config
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -73,7 +76,7 @@ CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
         'labels': ['Type-Bug-Security'],
         '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
         '_ext_issue_access_limit': {
-            'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_VIEW
+            'access_limit': IssueAccessLevel.LIMIT_VIEW
         }
     },
     'existing': {
@@ -119,7 +122,7 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
         'labels': ['Type-Bug-Security'],
         '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
         '_ext_issue_access_limit': {
-            'access_limit': google_issue_tracker.IssueAccessLevel.LIMIT_VIEW
+            'access_limit': IssueAccessLevel.LIMIT_VIEW
         }
     },
     'existing': {
@@ -129,6 +132,59 @@ CHROMIUM_POLICY_FALLBACK = issue_tracker_policy.IssueTrackerPolicy({
     'fallback_policy_message':
         '**NOTE**: This bug was filed into this component due to permission '
         'or configuration issues with the specified component(s) %COMPONENTS%'
+})
+
+CHROMIUM_GIT_POLICY = issue_tracker_policy.IssueTrackerPolicy({
+    'type': 'google_issue_tracker',
+    'status': {
+        'assigned': 'Assigned',
+        'duplicate': 'Duplicate',
+        'verified': 'Verified',
+        'new': 'Untriaged',
+        'wontfix': 'WontFix',
+        'fixed': 'Fixed'
+    },
+    'all': {
+        'status': 'new',
+        'labels': ['1679217', 'Stability-%SANITIZER%']
+    },
+    'non_security': {
+        'labels': ['Type-Bug'],
+        'crash_labels': ['Stability-Crash', 'Pri-1'],
+        'non_crash_labels': ['Pri-2']
+    },
+    'labels': {
+        'ignore': '1',
+        'verified': '2',
+        'security_severity': '3',
+        'needs_feedback': '4',
+        'invalid_fuzzer': '5',
+        'reported': '9999999',
+        'wrong': '6',
+        'fuzz_blocker': '7',
+        'reproducible': '8',
+        'auto_cc_from_owners': '9',
+        'os': '10',
+        'unreproducible': '11',
+        'restrict_view': '12'
+    },
+    'security': {
+        'labels': ['Type-Bug-Security'],
+        '_ext_collaborators': ['superman@krypton.com', 'batman@gotham.com'],
+        '_ext_issue_access_limit': {
+            'access_limit': IssueAccessLevel.LIMIT_VIEW
+        }
+    },
+    'existing': {
+        'labels': ['Stability-%SANITIZER%'],
+        'ext_collaborators': ['user1@google.com']
+    },
+    'component_id': '123',
+    'fallback_component': '1234567890',
+    'fallback_policy_message':
+        '**NOTE**: This bug was filed into this component due to permission '
+        'or configuration issues with the specified component(s) %COMPONENTS%',
+    'default_component_id': '123',
 })
 
 CHROMIUM_MIRACLEPTR_STACKTRACE_PROTECTED = (
@@ -421,6 +477,30 @@ class IssueFilerTests(unittest.TestCase):
 
     self.mock.get_issue_description.return_value = 'Issue'
     self.mock.utcnow.return_value = datetime.datetime(2016, 1, 1)
+
+  def test_filed_issue_google_issue_tracker(self):
+    """Tests issue filing for chromium with google_issue_tracker."""
+    test_helpers.patch(self, [
+        'clusterfuzz._internal.config.local_config.IssueTrackerConfig.get',
+        'clusterfuzz._internal.issue_management.monorail._get_issue_tracker_manager_for_project'
+    ])
+    self.mock.get.return_value = CHROMIUM_GIT_POLICY
+    self.mock.get.return_value = {
+        'type': 'google_issue_tracker',
+        'default_component_id': '1234567890',
+        'component_id': '123',
+    }
+    self.mock._get_issue_tracker_manager_for_project.return_value = 'test_icm'
+    issue_tracker_utils._ISSUE_TRACKER_CONSTRUCTORS = {
+        'google_issue_tracker': google_issue_tracker.get_issue_tracker
+    }
+
+    issue_tracker = issue_tracker_utils.get_issue_tracker()
+    issue_filer.file_issue(self.testcase1, issue_tracker)
+
+    self.assertIn('chromium', issue_tracker._itm.last_issue.labels)
+    self.assertTrue(
+        issue_tracker._itm.last_issue.has_label_matching('_ext_collaborators'))
 
   def test_filed_issues_chromium(self):
     """Tests issue filing for chromium."""
