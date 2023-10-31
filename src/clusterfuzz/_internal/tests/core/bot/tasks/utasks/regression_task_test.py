@@ -425,7 +425,7 @@ class UtaskPostprocessTest(unittest.TestCase):
 
   def test_build_not_found_error(self):
     """Verifies that if the task failed with `REGRESSION_BUILD_NOT_FOUND_ERROR`,
-    then TODO."""
+    then the testcase is updated to reflect that regression failed."""
     testcase = test_utils.create_generic_testcase()
 
     output = uworker_io.UworkerOutput(
