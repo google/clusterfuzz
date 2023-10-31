@@ -79,8 +79,7 @@ def is_fuzz_target_local(file_path, file_handle=None):
   for pattern in FUZZ_TARGET_SEARCH_BYTES:
     # TODO(metzman): Bound this call so we don't read forever if something went
     # wrong.
-    result = utils.search_bytes_in_file(pattern,
-                                        local_file_handle)
+    result = utils.search_bytes_in_file(pattern, local_file_handle)
     if result:
       break
 
