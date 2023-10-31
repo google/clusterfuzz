@@ -48,7 +48,7 @@ message MinimizeTaskInput {
 }
 
 message RegressionTaskInput {
-  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  repeated int64 bad_revisions = 1;
 }
 
 message ProgressionTaskInput {
@@ -79,8 +79,8 @@ message Input {
   optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
   optional FuzzTaskInput fuzz_task_input = 14;
   optional MinimizeTaskInput minimize_task_input = 15;
-  optional RegressionTaskInput regression_task_input = 16;
-  optional ProgressionTaskInput progression_task_input = 17;
+  optional ProgressionTaskInput progression_task_input = 16;
+  optional RegressionTaskInput regression_task_input = 17;
   optional string module_name = 18;
 }
 
@@ -108,6 +108,12 @@ message MinimizeTaskOutput {
 
 message RegressionTaskOutput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+}
+
+message BuildData{
+  optional bool is_bad_build = 1;
+  optional bool should_ignore_crash_result = 2;
+  optional string build_run_console_output = 3;
 }
 
 message ProgressionTaskOutput{
@@ -146,6 +152,7 @@ enum ErrorType {
   PROGRESSION_TIMEOUT = 16;
   PROGRESSION_BAD_BUILD = 17;
   PROGRESSION_BUILD_SETUP_ERROR = 18;
+  REGRESSION_REVISION_LIST_ERROR = 19;
 }
 
 message Output {

@@ -884,12 +884,7 @@ def utask_main(uworker_input):
   last_execution_failed = (
       uworker_input.corpus_pruning_task_input.last_execution_failed)
 
-  # Setup fuzzer and data bundle.
-  # TODO(https://github.com/google/clusterfuzz/issues/3026): Move this to
-  # preprocess.
-  setup_input = (
-      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
-  if not setup.update_fuzzer_and_data_bundles(setup_input):
+  if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.
@@ -928,7 +923,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
   # Get status of last execution.
   last_execution_metadata = data_handler.get_task_status(task_name)
-  last_execution_failed = (
+  last_execution_failed = bool(
       last_execution_metadata and
       last_execution_metadata.status == data_types.TaskState.ERROR)
 
@@ -942,10 +937,14 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
       fuzz_target=fuzz_target, last_execution_failed=last_execution_failed)
 
+  setup_input = (
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
+
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
+      setup_input=setup_input,
       corpus_pruning_task_input=corpus_pruning_task_input)
 
 

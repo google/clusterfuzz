@@ -20,10 +20,23 @@ import unittest
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
-from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
+
+
+def _roundtrip_input(uworker_input: uworker_io.UworkerInput
+                    ) -> uworker_io.DeserializedUworkerMsg:
+  serialized = uworker_io.serialize_uworker_input(uworker_input)
+  return uworker_io.deserialize_uworker_input(serialized)
+
+
+def _roundtrip_output(uworker_output: uworker_io.UworkerOutput
+                     ) -> uworker_io.DeserializedUworkerMsg:
+  serialized = uworker_io.serialize_uworker_output(uworker_output)
+  return uworker_io.deserialize_uworker_output(serialized)
 
 
 class WriteToBigQueryTest(unittest.TestCase):
@@ -179,7 +192,7 @@ class ValidateRegressionRangeTest(unittest.TestCase):
         testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4)
     self.assertFalse(result)
 
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    testcase = testcase.key.get()
     self.assertEqual(testcase.regression, 'NA')
 
   def test_valid_range(self):
@@ -191,3 +204,173 @@ class ValidateRegressionRangeTest(unittest.TestCase):
     result = regression_task.validate_regression_range(
         testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4)
     self.assertTrue(result)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UtaskPreprocessTest(unittest.TestCase):
+  """Test regression_task.utask_preprocess."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase',
+    ])
+
+  def test_invalid_testcase(self):
+    """Verifies that an InvalidTestCase error is raised when we execute against
+    an invalid testcase ID."""
+    testcase_id = 11
+    with self.assertRaises(errors.InvalidTestcaseError):
+      regression_task.utask_preprocess(testcase_id, None, None)
+
+  def test_already_regressed_testcase(self):
+    """Verifies that if the testcase already has regression information stored,
+    a new regression task is not started."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.regression = 'foo'
+    testcase.put()
+
+    self.assertIsNone(
+        regression_task.utask_preprocess(testcase.key.id(), None, None))
+
+  def test_custom_binary(self):
+    """Verifies that if the testcase concerns a custom binary, a new regression
+    task is not started."""
+    helpers.patch_environ(self)
+    os.environ['CUSTOM_BINARY'] = 'some_value'
+
+    testcase = test_utils.create_generic_testcase()
+
+    self.assertIsNone(
+        regression_task.utask_preprocess(testcase.key.id(), None, None))
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.regression, 'NA')
+    self.assertRegex(testcase.comments, 'Not applicable for custom binaries.$')
+
+  def test_success(self):
+    """Verifies that if the testcase concerns a custom binary, a new regression
+    task is not started."""
+    testcase = test_utils.create_generic_testcase()
+    # Ensure this property exists before we check for it below.
+    self.assertTrue(testcase.project_name)
+
+    testcase_id = str(testcase.key.id())
+    job_type = 'foo-job'
+    uworker_env = {"foo": "bar"}
+    fuzzer_name = 'foo-fuzzer'
+    self.mock.preprocess_setup_testcase.return_value = uworker_io.SetupInput(
+        fuzzer_name=fuzzer_name)
+
+    uworker_input = regression_task.utask_preprocess(testcase_id, job_type,
+                                                     uworker_env)
+
+    self.assertEqual(uworker_input.testcase_id, testcase_id)
+    self.assertEqual(uworker_input.testcase.project_name, testcase.project_name)
+    self.assertEqual(uworker_input.job_type, job_type)
+    self.assertTrue(uworker_input.HasField("regression_task_input"))
+
+    testcase = testcase.key.get()
+    self.assertRegex(testcase.comments, 'started.$')
+    self.assertEqual(uworker_input.setup_input.fuzzer_name, fuzzer_name)
+    self.assertEqual(uworker_input.uworker_env, uworker_env)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UtaskMainTest(unittest.TestCase):
+  """Test regression_task.utask_main."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.setup.setup_testcase',
+        'clusterfuzz._internal.build_management.build_manager.get_primary_bucket_path',
+        'clusterfuzz._internal.build_management.build_manager.get_revisions_list',
+    ])
+
+  def test_setup_error(self):
+    """Verifies that if setting up the testcase fails, the task bails out."""
+    testcase = test_utils.create_generic_testcase()
+    uworker_input = uworker_io.UworkerInput(
+        testcase_id=str(testcase.key.id()),
+        testcase=testcase,
+        job_type='foo-job',
+        setup_input=uworker_io.SetupInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (
+        None, None,
+        uworker_io.UworkerOutput(
+            error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP))
+
+    output = regression_task.utask_main(_roundtrip_input(uworker_input))
+    output.error_type = uworker_msg_pb2.ErrorType.TESTCASE_SETUP
+
+  def test_empty_revision_list(self):
+    """Verifies that if no good revisions can be found, the task fails."""
+    testcase = test_utils.create_generic_testcase()
+    bad_revisions = [1, 2, 3]
+    uworker_input = uworker_io.UworkerInput(
+        testcase_id=str(testcase.key.id()),
+        testcase=testcase,
+        job_type='foo-job',
+        setup_input=uworker_io.SetupInput(),
+        regression_task_input=uworker_io.RegressionTaskInput(),
+    )
+    uworker_input.regression_task_input.bad_revisions.extend(bad_revisions)
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    # TODO: Set up environment more realistically and avoid mocking these out
+    # entirely.
+    self.mock.get_primary_bucket_path.return_value = 'gs://foo'
+    self.mock.get_revisions_list.return_value = []
+
+    output = regression_task.utask_main(_roundtrip_input(uworker_input))
+
+    self.mock.get_revisions_list.assert_called_once()
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
+    self.assertEqual(output.testcase.key, testcase.key)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UtaskPostprocessTest(unittest.TestCase):
+  """Test regression_task.utask_postprocess."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+    ])
+
+  def test_error_testcase_setup(self):
+    """Verifies that if the task failed during setup, the error is handled
+    appropriately.
+    """
+    testcase = test_utils.create_generic_testcase()
+
+    output = uworker_io.UworkerOutput(
+        uworker_input=uworker_io.UworkerInput(
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
+        error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
+
+    regression_task.utask_postprocess(_roundtrip_output(output))
+
+    # TODO: Set up environment more realistically and check `add_task()` args.
+    self.mock.add_task.assert_called()
+
+  def test_revision_list_error(self):
+    """Verifies that if the task failed with `REGRESSION_REVISION_LIST_ERROR`,
+    the testcase is updated to reflect that."""
+    testcase = test_utils.create_generic_testcase()
+
+    output = uworker_io.UworkerOutput(
+        uworker_input=uworker_io.UworkerInput(
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
+        testcase=uworker_io.UworkerEntityWrapper(testcase))
+
+    regression_task.utask_postprocess(_roundtrip_output(output))
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.fixed, 'NA')
+    self.assertRegex(testcase.comments, 'Failed to fetch revision list.$')

@@ -63,6 +63,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_build',
         'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
+        'clusterfuzz._internal.bot.testcase_manager.update_build_metadata',
         'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
         'clusterfuzz._internal.build_management.build_manager.check_app_path'
     ])
@@ -84,7 +85,10 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = True
+    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+        is_bad_build=True,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1)
     self.assertIsNone(result)
@@ -95,7 +99,10 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = False
+    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+        is_bad_build=False,
+        should_ignore_crash_result=False,
+        build_run_console_output='')
     testcase = data_types.Testcase()
     testcase = uworker_io.UworkerEntityWrapper(testcase)
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
@@ -175,7 +182,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.uworker_handle_errors.handle',
         'clusterfuzz._internal.bot.tasks.utasks.progression_task.crash_on_latest',
-        'clusterfuzz._internal.datastore.data_handler.is_first_retry_for_task',
+        'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.base.bisection.request_bisection'
     ])
 
@@ -233,11 +240,11 @@ class UTaskPostprocessTest(unittest.TestCase):
     uworker_output = self._create_output(
         uworker_input=uworker_input, testcase=testcase)
     self.assertTrue(testcase.open)
-    self.mock.is_first_retry_for_task.return_value = False
+    self.mock.is_first_attempt_for_task.return_value = False
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
     self.assertFalse(self.mock.crash_on_latest.called)
-    self.assertTrue(self.mock.is_first_retry_for_task.called)
+    self.assertTrue(self.mock.is_first_attempt_for_task.called)
     updated_testcase = data_handler.get_testcase_by_id(testcase.key.id())
     self.assertEqual(updated_testcase.fixed, 'Yes')
     self.assertFalse(updated_testcase.open)
@@ -254,7 +261,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     progression_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.handle.called)
     self.assertFalse(self.mock.crash_on_latest.called)
-    self.assertFalse(self.mock.is_first_retry_for_task.called)
+    self.assertFalse(self.mock.is_first_attempt_for_task.called)
     self.assertTrue(self.mock.request_bisection.called)
 
 

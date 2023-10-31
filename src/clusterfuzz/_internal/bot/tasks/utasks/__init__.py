@@ -126,6 +126,13 @@ def get_utask_module(module_name):
   return importlib.import_module(module_name)
 
 
+def get_command_from_module(full_module_name):
+  module_name = full_module_name.split('.')[-1]
+  if not module_name.endswith('_task'):
+    raise ValueError(f'{full_module_name} is not a real command')
+  return module_name[:-len('_task')]
+
+
 def uworker_bot_main():
   """The entrypoint for a uworker."""
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
