@@ -344,11 +344,28 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
   platform = environment.platform()
   absolute_file_path = None
   app_directory = None
+  use_default_llvm_symbolizer = environment.get_value(
+      'USE_DEFAULT_LLVM_SYMBOLIZER')
 
   # Chromium specific folder to ignore.
   initialexe_folder_path = f'{os.path.sep}initialexe'
 
+  logs.log('\n'.join([
+      'Walking build directory to find files and set environment variables.',
+      f'Environment prefix: {env_prefix!r}',
+      f'App path environment variable name: {app_path!r}',
+      f'App name: {app_name!r}',
+      f'LLVM symbolizer file name: {llvm_symbolizer_filename!r}',
+      f'Use default LLVM symbolizer: {use_default_llvm_symbolizer}',
+  ]))
+
+  def set_env_var(name, value):
+    full_name = env_prefix + name
+    logs.log(f'Setting environment variable: {full_name} = {value}')
+    environment.set_value(full_name, value)
+
   for search_directory in search_directories:
+    logs.log(f'Searching in directory: {search_directory}')
     for root, _, files in shell.walk(search_directory):
       # .dSYM folder contain symbol files on Mac and should
       # not be searched for application binary.
@@ -368,19 +385,21 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
           if not environment.get_value('SYSTEM_BINARY_DIR'):
             os.chmod(absolute_file_path, 0o750)
 
-          environment.set_value(env_prefix + app_path, absolute_file_path)
-          environment.set_value(env_prefix + 'APP_DIR', app_directory)
+          set_env_var(app_path, absolute_file_path)
+          set_env_var('APP_DIR', app_directory)
 
         if not gn_args_path and filename == gn_args_filename:
           gn_args_path = os.path.join(root, gn_args_filename)
-          environment.set_value(env_prefix + 'GN_ARGS_PATH', gn_args_path)
+          set_env_var('GN_ARGS_PATH', gn_args_path)
 
         if (not llvm_symbolizer_path and
             filename == llvm_symbolizer_filename and
-            not environment.get_value('USE_DEFAULT_LLVM_SYMBOLIZER')):
+            not use_default_llvm_symbolizer):
           llvm_symbolizer_path = os.path.join(root, llvm_symbolizer_filename)
-          environment.set_value(env_prefix + 'LLVM_SYMBOLIZER_PATH',
-                                llvm_symbolizer_path)
+          set_env_var('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
+
+  if not absolute_file_path:
+    logs.log_error(f'Could not find app {app_name!r} in search directories.')
 
 
 class BaseBuild:
