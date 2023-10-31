@@ -58,7 +58,7 @@ def is_fuzz_target_local(file_path, file_handle=None):
     # Ignore non-existent files for cases when we don't have a file handle.
     return False
 
-  if filename.endswith('_fuzzer') or filename.endswidth('_fuzztest')::
+  if filename.endswith('_fuzzer') or filename.endswidth('_fuzztest'):
     return True
 
   # TODO(aarya): Remove this optimization if it does not show up significant
