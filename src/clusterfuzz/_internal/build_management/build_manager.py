@@ -352,11 +352,11 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
 
   logs.log('\n'.join([
       'Walking build directory to find files and set environment variables.',
-      f'  Environment prefix: {env_prefix!r}',
-      f'  App path environment variable name: {app_path!r}',
-      f'  App name: {app_name!r}',
-      f'  LLVM symbolizer file name: {llvm_symbolizer_filename!r}',
-      f'  Use default LLVM symbolizer: {use_default_llvm_symbolizer}',
+      f'Environment prefix: {env_prefix!r}',
+      f'App path environment variable name: {app_path!r}',
+      f'App name: {app_name!r}',
+      f'LLVM symbolizer file name: {llvm_symbolizer_filename!r}',
+      f'Use default LLVM symbolizer: {use_default_llvm_symbolizer}',
   ]))
 
   def set_env_var(name, value):
