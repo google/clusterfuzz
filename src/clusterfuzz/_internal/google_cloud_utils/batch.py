@@ -128,7 +128,7 @@ def get_spec(full_module_name, job):
   platform = job.platform
   command = utask_utils.get_command_from_module(full_module_name)
   if command != 'fuzz':
-    platform += '-HIGH-END'
+    platform += '-PREEMPTIBLE'
   batch_config = local_config.BatchConfig()
   cluster_name = batch_config.get('mapping').get(platform, None)
   if cluster_name is None:
