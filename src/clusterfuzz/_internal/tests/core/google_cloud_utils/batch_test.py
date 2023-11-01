@@ -28,7 +28,7 @@ class GetSpecTest(unittest.TestCase):
     self.maxDiff = None
 
   def test_get_spec(self):
-    """Tests that get_spec works as expected."""
+    """Tests that get_spec works for non-preemptibles as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     spec = batch.get_spec(regression_task.__name__, job)
     expected_spec = batch.BatchJobSpec(
@@ -44,14 +44,14 @@ class GetSpecTest(unittest.TestCase):
 
     self.assertEqual(spec, expected_spec)
 
-  def test_lowend_get_spec(self):
-    """Tests that get_spec works as expected."""
+  def test_preemptible_get_spec(self):
+    """Tests that get_spec works for preemptibles as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     spec = batch.get_spec(fuzz_task.__name__, job)
     expected_spec = batch.BatchJobSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
-        disk_size_gb=100,
+        disk_size_gb=110,
         service_account_email='test-clusterfuzz-service-account-email',
         subnetwork=None,
         gce_zone='gce-zone',

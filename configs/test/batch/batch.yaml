@@ -13,8 +13,20 @@
 # limitations under the License.
 
 mapping:
-  LINUX-HIGH-END: clusterfuzz-linux
-  LINUX: clusterfuzz-linux-pre
-  WINDOWS-HIGH-END: clusterfuzz-windows
-  WINDOWS: clusterfuzz-windows-pre
+  LINUX-NONPREEMPTIBLE:
+    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+    user_data: 'file://linux-init.yaml'
+    disk_size_gb: 75
+    service_account_email: test-clusterfuzz-service-account-email
+    subnetwork: null
+    gce_zone: 'gce-zone'
+    preemptible: false
+  LINUX-PREEMPTIBLE:
+    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+    user_data: 'file://linux-init.yaml'
+    disk_size_gb: 110
+    service_account_email: test-clusterfuzz-service-account-email
+    subnetwork: null
+    gce_zone: 'gce-zone'
+    preemptible: false
 project: 'test-clusterfuzz'
