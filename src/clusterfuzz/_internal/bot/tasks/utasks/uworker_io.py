@@ -388,6 +388,10 @@ class FuzzTaskOutput(UworkerMsg):
       save_json_field(field, value)
       return
 
+    if isinstance(value, UworkerMsg):
+      field.CopyFrom(value.proto)
+      return
+
     raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
 

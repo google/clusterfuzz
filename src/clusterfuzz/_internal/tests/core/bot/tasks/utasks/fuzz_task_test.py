@@ -1534,23 +1534,28 @@ from clusterfuzz.fuzz import engine
 #         'issue_labels': '123,456',
 #     }, metadata)
 
-
-class ProcessStoreFuzzerRunResultsTest(unittest.TestCase):
+class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
+        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name',
     ])
-    self.mock._sign_url.side_effect = lambda remote_path: remote_path
+    self.mock._sign_url.side_effect = (
+        lambda remote_path, method, minutes: remote_path)
+    self.mock.generate_new_blob_name.return_value = 'e629bd1e-7153-426a-89e1-2c9890e48986'
 
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_io.FuzzTaskInput()
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
-    self.assertEqual(fuzz_task_input.sample_testcase_upload_url, None)
-    self.assertEqual(fuzz_task_input.script_log_upload_url, None)
+    self.assertEqual(fuzz_task_input.sample_testcase_upload_url,
+                     '/clusterfuzz-ci-blobs/e629bd1e-7153-426a-89e1-2c9890e48986')
+    self.assertEqual(fuzz_task_input.script_log_upload_url, '/clusterfuzz-ci-blobs/e629bd1e-7153-426a-89e1-2c9890e48986')
 
+class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   def test_postprocess_store_fuzzer_run_results(self):
     fuzzer_run_results = uworker_io.StoreFuzzerRunResultsOutput()
     output = uworker_io.UworkerOutput(
         fuzz_task_output=uworker_io.FuzzTaskOutput(
             fuzzer_run_results=fuzzer_run_results))
+    fuzz_task.postprocess_store_fuzzer_run_results(output)

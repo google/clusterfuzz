@@ -115,7 +115,7 @@ message FuzzTaskOutput {
   optional int64 testcases_executed = 6;
   optional Json job_run_crashes = 7;
   optional string fully_qualified_fuzzer_name = 8;
-  optional StoreFuzzerRunResultsOutput store_fuzzer_run_results_output = 9;
+  optional StoreFuzzerRunResultsOutput fuzzer_run_results = 9;
   optional int32 new_targets_count = 10;
   optional int32 fuzzer_revision = 11;
 }
