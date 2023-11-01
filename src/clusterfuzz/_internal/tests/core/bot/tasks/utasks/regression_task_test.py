@@ -282,6 +282,7 @@ class UtaskMainTest(unittest.TestCase):
         testcase=testcase,
         job_type='foo-job',
         setup_input=uworker_io.SetupInput(),
+        module_name=regression_task.__name__,
     )
 
     self.mock.setup_testcase.return_value = (
