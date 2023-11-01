@@ -13,20 +13,18 @@
 # limitations under the License.
 """Centipede engine interface."""
 
-from collections import namedtuple
 import os
 import pathlib
 import re
 import shutil
+from collections import namedtuple
 
-from clusterfuzz._internal.bot.fuzzers import dictionary_manager
-from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import dictionary_manager, engine_common
 from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.centipede import constants
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
-from clusterfuzz._internal.system import new_process
+from clusterfuzz._internal.system import environment, new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
@@ -301,43 +299,63 @@ class Engine(engine.Engine):
       A FuzzResult object.
     """
     runner = _get_runner(target_path)
-    workdir = self._create_temp_dir('workdir')
 
-    os.makedirs(output_dir, exist_ok=True)
-    corpus_dirs = f'{output_dir},' + ','.join([str(dir) for dir in input_dirs])
+    # Step 1: Generate corpus file for Centipede.
+    workdir1 = self._create_temp_dir('workdir1')
+    input_dirs_param = ','.join(str(dir) for dir in input_dirs)
     args = [
+        f'--workdir={workdir1}',
         f'--binary={target_path}',
-        f'--workdir={workdir}',
-        '--distill',
-        f'--corpus_dir={corpus_dirs}',
-        f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
-        '--require_pc_table=0',
+        f'--corpus_dir={input_dirs_param}',
+        '--num_runs=0',
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
+
     if result.timed_out:
       logs.log_error(
-          'Corpus minimization timed out.', fuzzer_output=result.output)
+          ('Corpus minimization timed out: Failed to generate Centipede corpus '
+           'file'),
+          fuzzer_output=result.output)
 
-    print(' '.join(result.command))
+    # Step 2: Distill.
+    args = [
+        f'--workdir={workdir1}',
+        f'--binary={target_path}',
+        '--distill',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+
+    if result.timed_out:
+      logs.log_error(
+          'Corpus minimization timed out: Failed to distill',
+          fuzzer_output=result.output)
+
+    # Step 3: Generate corpus files for output_dir.
+    os.makedirs(output_dir, exist_ok=True)
+    workdir2 = self._create_temp_dir('workdir2')
+    distilled_file = os.path.join(
+        workdir1, f'distilled-{os.path.basename(target_path)}.000000')
+    corpus_file = os.path.join(workdir2, 'corpus.000000')
+    shutil.copyfile(distilled_file, corpus_file)
+
+    args = [
+        f'--workdir={workdir2}',
+        f'--corpus_to_files={output_dir}',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+
+    if result.timed_out:
+      logs.log_error(
+          ('Corpus minimization timed out: Failed to generate output corpus '
+           'files'),
+          fuzzer_output=result.output)
+
+    # Step 4: Copy reproducers from workdir1.
     os.makedirs(reproducers_dir, exist_ok=True)
-    print(f'WorkDir: {os.listdir(workdir)}')
-    crashes_dir = os.path.join(workdir, 'crashes')
-    #print(f'Crash: {os.listdir(crashes_dir)}')
-    # Copy crash files to reproducers_dir in case it is not empty.
-    if os.path.isdir(crashes_dir):
-      for crash in os.listdir(crashes_dir):
-        result = self.reproduce(target_path, crash, [], 3)
-        print(result.output)
-        shutil.copy(os.path.join(crashes_dir, crash), reproducers_dir)
-        shutil.copy(
-            os.path.join(crashes_dir, crash),
-            '/usr/local/google/home/donggeliu/Code/clusterfuzz/src/clusterfuzz/_internal/tests/core/bot/fuzzers/centipede/test_data/crashes'
-        )
-
-    # print(f'TMP workdir: {os.listdir(os.path.join(workdir, "crashes"))}')
-    # for file in os.listdir(os.path.join(workdir, "crashes")):
-    #   with open(os.path.join(workdir, "crashes", file)) as testcase:
-    #     print(f'Crash: {testcase.read()}')
+    crashes_dir = os.path.join(workdir1, 'crashes')
+    for file in os.listdir(crashes_dir):
+      crasher_path = os.path.join(crashes_dir, file)
+      shutil.copy(crasher_path, reproducers_dir)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)

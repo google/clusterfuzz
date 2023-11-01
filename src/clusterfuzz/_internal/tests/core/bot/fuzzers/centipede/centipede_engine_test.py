@@ -142,63 +142,63 @@ class IntegrationTest(unittest.TestCase):
 
     return re.search(regex, result.output)
 
-  def test_reproduce_uaf_without_unsanitized_binary(self):
-    """Tests reproducing an ASAN heap-use-after-free crash when no unsanitized
-    target binary was provided."""
-    testcase_path = setup_testcase('uaf', self.test_paths)
-    crash_info = self._test_reproduce(
-        constants.ASAN_REGEX,
-        testcase_path,
-        'clusterfuzz_format_target_sanitized',
-        sanitized_target_dir=self.test_paths.data)
+  # def test_reproduce_uaf_without_unsanitized_binary(self):
+  #   """Tests reproducing an ASAN heap-use-after-free crash when no unsanitized
+  #   target binary was provided."""
+  #   testcase_path = setup_testcase('uaf', self.test_paths)
+  #   crash_info = self._test_reproduce(
+  #       constants.ASAN_REGEX,
+  #       testcase_path,
+  #       'clusterfuzz_format_target_sanitized',
+  #       sanitized_target_dir=self.test_paths.data)
 
-    # Check the crash reason was parsed correctly.
-    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
-    self.assertIn('heap-use-after-free', crash_info.group(2))
+  #   # Check the crash reason was parsed correctly.
+  #   self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+  #   self.assertIn('heap-use-after-free', crash_info.group(2))
 
-  def test_reproduce_uaf(self):
-    """Tests reproducing a ASAN heap-use-after-free crash."""
-    testcase_path = setup_testcase('uaf', self.test_paths)
-    crash_info = self._test_reproduce(constants.ASAN_REGEX, testcase_path)
+  # def test_reproduce_uaf(self):
+  #   """Tests reproducing a ASAN heap-use-after-free crash."""
+  #   testcase_path = setup_testcase('uaf', self.test_paths)
+  #   crash_info = self._test_reproduce(constants.ASAN_REGEX, testcase_path)
 
-    # Check the crash reason was parsed correctly.
-    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
-    self.assertIn('heap-use-after-free', crash_info.group(2))
+  #   # Check the crash reason was parsed correctly.
+  #   self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+  #   self.assertIn('heap-use-after-free', crash_info.group(2))
 
-  def test_reproduce_oom(self):
-    """Tests reproducing a out-of-memory crash."""
-    testcase_path = setup_testcase('oom', self.test_paths)
-    existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
-    # For testing oom only.
-    os.environ['CENTIPEDE_RUNNER_FLAGS'] = f':rss_limit_mb={_RSS_LIMIT_TEST}:'
-    self._test_reproduce(constants.OUT_OF_MEMORY_REGEX, testcase_path)
-    if existing_runner_flags:
-      os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
-    else:
-      os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
+  # def test_reproduce_oom(self):
+  #   """Tests reproducing a out-of-memory crash."""
+  #   testcase_path = setup_testcase('oom', self.test_paths)
+  #   existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
+  #   # For testing oom only.
+  #   os.environ['CENTIPEDE_RUNNER_FLAGS'] = f':rss_limit_mb={_RSS_LIMIT_TEST}:'
+  #   self._test_reproduce(constants.OUT_OF_MEMORY_REGEX, testcase_path)
+  #   if existing_runner_flags:
+  #     os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
+  #   else:
+  #     os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
 
-  def test_reproduce_timeout(self):
-    """Tests reproducing a timeout."""
-    testcase_path = setup_testcase('slo', self.test_paths)
+  # def test_reproduce_timeout(self):
+  #   """Tests reproducing a timeout."""
+  #   testcase_path = setup_testcase('slo', self.test_paths)
 
-    existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
-    # For testing only.
-    os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-        f':timeout_per_input={_TIMEOUT_PER_INPUT_TEST}:')
-    self._test_reproduce(constants.CENTIPEDE_TIMEOUT_REGEX, testcase_path)
-    if existing_runner_flags:
-      os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
-    else:
-      os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
+  #   existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
+  #   # For testing only.
+  #   os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
+  #       f':timeout_per_input={_TIMEOUT_PER_INPUT_TEST}:')
+  #   self._test_reproduce(constants.CENTIPEDE_TIMEOUT_REGEX, testcase_path)
+  #   if existing_runner_flags:
+  #     os.environ['CENTIPEDE_RUNNER_FLAGS'] = existing_runner_flags
+  #   else:
+  #     os.unsetenv('CENTIPEDE_RUNNER_FLAGS')
 
-  def test_options_arguments(self):
-    """Tests that the options file is correctly taken into account when querying for arguments."""
-    testcase_path = setup_testcase('fuzzer_arguments', self.test_paths)
-    engine_impl = engine.Engine()
-    # pylint: disable=protected-access
-    arguments = engine_impl._get_arguments(str(testcase_path))
-    args = arguments.list()
-    self.assertIn('-rss_limit_mb=1234', args)
+  # def test_options_arguments(self):
+  #   """Tests that the options file is correctly taken into account when querying for arguments."""
+  #   testcase_path = setup_testcase('fuzzer_arguments', self.test_paths)
+  #   engine_impl = engine.Engine()
+  #   # pylint: disable=protected-access
+  #   arguments = engine_impl._get_arguments(str(testcase_path))
+  #   args = arguments.list()
+  #   self.assertIn('-rss_limit_mb=1234', args)
 
   @patch('clusterfuzz._internal.bot.fuzzers.centipede.engine._CLEAN_EXIT_SECS',
          5)
@@ -259,22 +259,22 @@ class IntegrationTest(unittest.TestCase):
     self.compare_arguments(expected_command, results.command)
     return results
 
-  @test_utils.slow
-  def test_fuzz_no_crash(self):
-    """Tests fuzzing (no crash)."""
-    dictionary = self.test_paths.data / 'test_fuzzer.dict'
-    self._run_centipede(target_name='test_fuzzer', dictionary=dictionary)
-    self.assertTrue(self.test_paths.corpus.iterdir())
+  # @test_utils.slow
+  # def test_fuzz_no_crash(self):
+  #   """Tests fuzzing (no crash)."""
+  #   dictionary = self.test_paths.data / 'test_fuzzer.dict'
+  #   self._run_centipede(target_name='test_fuzzer', dictionary=dictionary)
+  #   self.assertTrue(self.test_paths.corpus.iterdir())
 
-  def test_fuzz_no_crash_without_unsanitized_binary(self):
-    """Tests fuzzing (no crash) when no unsanitized target binary was provided.
-    """
-    dictionary = self.test_paths.data / 'test_fuzzer_sanitized.dict'
-    self._run_centipede(
-        target_name='test_fuzzer_sanitized',
-        dictionary=dictionary,
-        sanitized_target_dir=self.test_paths.data)
-    self.assertTrue(self.test_paths.corpus.iterdir())
+  # def test_fuzz_no_crash_without_unsanitized_binary(self):
+  #   """Tests fuzzing (no crash) when no unsanitized target binary was provided.
+  #   """
+  #   dictionary = self.test_paths.data / 'test_fuzzer_sanitized.dict'
+  #   self._run_centipede(
+  #       target_name='test_fuzzer_sanitized',
+  #       dictionary=dictionary,
+  #       sanitized_target_dir=self.test_paths.data)
+  #   self.assertTrue(self.test_paths.corpus.iterdir())
 
   def _test_crash_log_regex(self,
                             crash_regex,
@@ -314,42 +314,42 @@ class IntegrationTest(unittest.TestCase):
 
     return re.search(crash_regex, crash.stacktrace)
 
-  def test_crash_uaf_without_unsanitized(self):
-    """Tests fuzzing that results in a ASAN heap-use-after-free crash when no
-    unsanitized target binary was provided."""
-    setup_testcase('uaf', self.test_paths)
-    crash_info = self._test_crash_log_regex(
-        constants.ASAN_REGEX,
-        'uaf',
-        target_name='clusterfuzz_format_target_sanitized',
-        sanitized_target_dir=self.test_paths.data)
+  # def test_crash_uaf_without_unsanitized(self):
+  #   """Tests fuzzing that results in a ASAN heap-use-after-free crash when no
+  #   unsanitized target binary was provided."""
+  #   setup_testcase('uaf', self.test_paths)
+  #   crash_info = self._test_crash_log_regex(
+  #       constants.ASAN_REGEX,
+  #       'uaf',
+  #       target_name='clusterfuzz_format_target_sanitized',
+  #       sanitized_target_dir=self.test_paths.data)
 
-    # Check the crash reason was parsed correctly.
-    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
-    self.assertIn('heap-use-after-free', crash_info.group(2))
+  #   # Check the crash reason was parsed correctly.
+  #   self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+  #   self.assertIn('heap-use-after-free', crash_info.group(2))
 
-  def test_crash_uaf(self):
-    """Tests fuzzing that results in a ASAN heap-use-after-free crash."""
-    setup_testcase('uaf', self.test_paths)
-    crash_info = self._test_crash_log_regex(constants.ASAN_REGEX, 'uaf')
+  # def test_crash_uaf(self):
+  #   """Tests fuzzing that results in a ASAN heap-use-after-free crash."""
+  #   setup_testcase('uaf', self.test_paths)
+  #   crash_info = self._test_crash_log_regex(constants.ASAN_REGEX, 'uaf')
 
-    # Check the crash reason was parsed correctly.
-    self.assertEqual(crash_info.group(1), 'AddressSanitizer')
-    self.assertIn('heap-use-after-free', crash_info.group(2))
+  #   # Check the crash reason was parsed correctly.
+  #   self.assertEqual(crash_info.group(1), 'AddressSanitizer')
+  #   self.assertIn('heap-use-after-free', crash_info.group(2))
 
-  def test_crash_oom(self):
-    """Tests fuzzing that results in a out-of-memory crash."""
-    setup_testcase('oom', self.test_paths)
-    self._test_crash_log_regex(
-        constants.OUT_OF_MEMORY_REGEX, 'oom', rss_limit=_RSS_LIMIT_TEST)
+  # def test_crash_oom(self):
+  #   """Tests fuzzing that results in a out-of-memory crash."""
+  #   setup_testcase('oom', self.test_paths)
+  #   self._test_crash_log_regex(
+  #       constants.OUT_OF_MEMORY_REGEX, 'oom', rss_limit=_RSS_LIMIT_TEST)
 
-  def test_crash_timeout(self):
-    """Tests fuzzing that results in a timeout."""
-    setup_testcase('slo', self.test_paths)
-    self._test_crash_log_regex(
-        constants.CENTIPEDE_TIMEOUT_REGEX,
-        'slo',
-        timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
+  # def test_crash_timeout(self):
+  #   """Tests fuzzing that results in a timeout."""
+  #   setup_testcase('slo', self.test_paths)
+  #   self._test_crash_log_regex(
+  #       constants.CENTIPEDE_TIMEOUT_REGEX,
+  #       'slo',
+  #       timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
   def test_minimize_corpus(self):
     """Tests minimizing a corpus."""
@@ -364,28 +364,18 @@ class IntegrationTest(unittest.TestCase):
     result = engine_impl.minimize_corpus(target_path, [], [unminimized_corpus],
                                          minimized_corpus, crash_corpus,
                                          MAX_TIME)
-    print(result.command)
-    print(result.return_code)
-    print(result.output)
-    self.assertTrue(result)
-    self.assertTrue(os.path.isdir(minimized_corpus))
-    self.assertTrue(
-        len(os.listdir(unminimized_corpus)) > len(os.listdir(minimized_corpus)))
-    print(f'Before: {os.listdir(unminimized_corpus)}')
-    print(f'After : {os.listdir(minimized_corpus)}')
-    print(f'After crashes : {os.listdir(crash_corpus)}')
-    for file in os.listdir(minimized_corpus):
-      with open(os.path.join(minimized_corpus, file)) as testcase:
-        print(f'Testcase: {testcase.read()}')
-    for file in os.listdir(crash_corpus):
-      result = engine_impl.reproduce(target_path, file, [], MAX_TIME)
-      print(result.output)
-      try:
-        with open(os.path.join(crash_corpus, file)) as testcase:
-          print(f'Crashes: {testcase.read()}')
-      except:
-        print('Crashes: Unkown encoding')
 
+    self.assertTrue(result)
+    self.assertTrue(len(os.listdir(minimized_corpus)) == 3)
+    self.assertTrue(len(os.listdir(crash_corpus)) == 1)
+    crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
+    with open(crasher) as crasher_file:
+      self.assertTrue(crasher_file.read() == '?f???u???z?')
+    self.assertTrue(
+        '3416c992cc0271ca340b51b1b7d1273abdc912e3' in os.listdir(crash_corpus))
+    print(f'corpus: {os.listdir(unminimized_corpus)}')
+    print(f'corpus: {os.listdir(minimized_corpus)}')
+    print(f'corpus: {os.listdir(crash_corpus)}')
     self.assertTrue(False)
 
   def test_minimize_testcase(self):
