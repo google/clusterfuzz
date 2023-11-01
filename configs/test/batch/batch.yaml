@@ -21,6 +21,7 @@ mapping:
     subnetwork: null
     gce_zone: 'gce-zone'
     preemptible: false
+    machine_type: e2-standard-2
   LINUX-PREEMPTIBLE:
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
     user_data: 'file://linux-init.yaml'
@@ -29,4 +30,5 @@ mapping:
     subnetwork: null
     gce_zone: 'gce-zone'
     preemptible: false
+    machine_type: e2-standard-2
 project: 'test-clusterfuzz'

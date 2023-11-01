@@ -130,55 +130,22 @@ def get_spec(full_module_name, job):
   if command != 'fuzz':
     platform += '-PREEMPTIBLE'
   batch_config = local_config.BatchConfig()
-  cluster_name = batch_config.get('mapping').get(platform, None)
-  if cluster_name is None:
-    return None
+  instance_spec = batch_config.get('mapping').get(platform, None)
+  if instance_spec is None:
+    raise ValueError(f'No mapping for {platform}')
   project_name = batch_config.get('project')
-  clusters_config = local_config.GCEClustersConfig()
-  project_spec = clusters_config.get(project_name)
-  templates = project_spec['instance_templates']
-  cluster = project_spec['clusters'][cluster_name]
-  template_name = cluster['instance_template']
-  for template in templates:
-    if template['name'] != template_name:
-      continue
-    break
-  else:
-    raise ValueError(f'Could not find template: {template_name}')
-
-  properties = template['properties']
-  items = properties['metadata']['items']
-  docker_image = None
-  user_data = None
-  for item in items:
-    if item['key'] == 'docker-image':
-      docker_image = item['value']
-    if item['key'] == 'user-data':
-      user_data = item['value']
-  assert docker_image is not None and user_data is not None
-  disks = properties['disks']
-  assert len(disks) == 1
-  disk = disks[0]
-  disk_params = disk['initializeParams']
-  service_accounts = properties['serviceAccounts']
-  assert len(service_accounts) == 1
+  docker_image = instance_spec['docker_image']
+  user_data = instance_spec['user_data']
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
   # low-privilege account.
-  service_account_email = service_accounts[0]['email']
-  network_interfaces = properties['networkInterfaces']
-  assert len(network_interfaces) == 1
-  network_interface = network_interfaces[0]
-  subnetwork = network_interface.get('subnetwork', None)
-  preemptible = bool(
-      properties.get('scheduling') and properties['scheduling']['preemptible'])
   spec = BatchJobSpec(
       docker_image=docker_image,
       user_data=user_data,
-      disk_size_gb=disk_params['diskSizeGb'],
-      service_account_email=service_account_email,
-      subnetwork=subnetwork,
-      gce_zone=cluster['gce_zone'],
+      disk_size_gb=instance_spec['disk_size_gb'],
+      service_account_email=instance_spec['service_account_email'],
+      subnetwork=instance_spec['subnetwork'],
+      gce_zone=instance_spec['gce_zone'],
       project=project_name,
-      preemptible=preemptible,
-      machine_type=properties['machineType'])
+      preemptible=instance_spec['preemptible'],
+      machine_type=instance_spec['machine_type'])
   return spec
