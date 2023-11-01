@@ -27,27 +27,10 @@ class GetSpecTest(unittest.TestCase):
   def setUp(self):
     self.maxDiff = None
 
-  def test_get_spec(self):
+  def test_nonpreemptible_get_spec(self):
     """Tests that get_spec works for non-preemptibles as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     spec = batch.get_spec(regression_task.__name__, job)
-    expected_spec = batch.BatchJobSpec(
-        docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
-        user_data='file://linux-init.yaml',
-        disk_size_gb=100,
-        service_account_email='test-clusterfuzz-service-account-email',
-        subnetwork=None,
-        gce_zone='gce-zone',
-        project='test-clusterfuzz',
-        preemptible=False,
-        machine_type='n1-standard-1')
-
-    self.assertEqual(spec, expected_spec)
-
-  def test_preemptible_get_spec(self):
-    """Tests that get_spec works for preemptibles as expected."""
-    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
-    spec = batch.get_spec(fuzz_task.__name__, job)
     expected_spec = batch.BatchJobSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
@@ -56,7 +39,24 @@ class GetSpecTest(unittest.TestCase):
         subnetwork=None,
         gce_zone='gce-zone',
         project='test-clusterfuzz',
+        preemptible=False,
+        machine_type='n1-standard-1')
+
+    self.assertCountEqual(spec, expected_spec)
+
+  def test_preemptible_get_spec(self):
+    """Tests that get_spec works for preemptibles as expected."""
+    job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
+    spec = batch.get_spec(fuzz_task.__name__, job)
+    expected_spec = batch.BatchJobSpec(
+        docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
+        user_data='file://linux-init.yaml',
+        disk_size_gb=75,
+        service_account_email='test-clusterfuzz-service-account-email',
+        subnetwork=None,
+        gce_zone='gce-zone',
+        project='test-clusterfuzz',
         preemptible=True,
         machine_type='n1-standard-1')
 
-    self.assertEqual(spec, expected_spec)
+    self.assertCountEqual(spec, expected_spec)

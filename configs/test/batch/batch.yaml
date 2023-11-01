@@ -16,19 +16,19 @@ mapping:
   LINUX-NONPREEMPTIBLE:
     docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
     user_data: 'file://linux-init.yaml'
-    disk_size_gb: 75
-    service_account_email: test-clusterfuzz-service-account-email
-    subnetwork: null
-    gce_zone: 'gce-zone'
-    preemptible: false
-    machine_type: e2-standard-2
-  LINUX-PREEMPTIBLE:
-    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
-    user_data: 'file://linux-init.yaml'
     disk_size_gb: 110
     service_account_email: test-clusterfuzz-service-account-email
     subnetwork: null
     gce_zone: 'gce-zone'
     preemptible: false
-    machine_type: e2-standard-2
+    machine_type: n1-standard-1
+  LINUX-PREEMPTIBLE:
+    docker_image: 'gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654'
+    user_data: 'file://linux-init.yaml'
+    disk_size_gb: 75
+    service_account_email: test-clusterfuzz-service-account-email
+    subnetwork: null
+    gce_zone: 'gce-zone'
+    preemptible: true
+    machine_type: n1-standard-1
 project: 'test-clusterfuzz'

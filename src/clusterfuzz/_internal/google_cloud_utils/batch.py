@@ -127,8 +127,10 @@ def get_spec(full_module_name, job):
   """Gets the specifications for a job."""
   platform = job.platform
   command = utask_utils.get_command_from_module(full_module_name)
-  if command != 'fuzz':
+  if command == 'fuzz':
     platform += '-PREEMPTIBLE'
+  else:
+    platform += '-NONPREEMPTIBLE'
   batch_config = local_config.BatchConfig()
   instance_spec = batch_config.get('mapping').get(platform, None)
   if instance_spec is None:
