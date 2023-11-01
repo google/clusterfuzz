@@ -47,7 +47,6 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz._internal.tests.test_libs import untrusted_runner_helpers
 from clusterfuzz.fuzz import engine
 
-
 # class TrackFuzzerRunResultTest(unittest.TestCase):
 #   """Test _track_fuzzer_run_result."""
 
@@ -96,7 +95,6 @@ from clusterfuzz.fuzz import engine
 #     expected_buckets[21] = 1
 #     self.assertListEqual(expected_buckets, testcase_count_ratio.buckets)
 
-
 # class TrackBuildRunResultTest(unittest.TestCase):
 #   """Test _track_build_run_result."""
 
@@ -121,7 +119,6 @@ from clusterfuzz.fuzz import engine
 #             'job': 'name',
 #             'bad_build': False
 #         }))
-
 
 # class TrackTestcaseRunResultTest(unittest.TestCase):
 #   """Test _track_testcase_run_result."""
@@ -151,7 +148,6 @@ from clusterfuzz.fuzz import engine
 #             'fuzzer': 'fuzzer'
 #         }))
 
-
 # class TruncateFuzzerOutputTest(unittest.TestCase):
 #   """Truncate fuzzer output tests."""
 
@@ -171,7 +167,6 @@ from clusterfuzz.fuzz import engine
 #     with self.assertRaises(AssertionError):
 #       self.assertEqual(
 #           '', fuzz_task.truncate_fuzzer_output('123456xxxxxx54321', 10))
-
 
 # class TrackFuzzTimeTest(unittest.TestCase):
 #   """Test _TrackFuzzTime."""
@@ -199,7 +194,6 @@ from clusterfuzz.fuzz import engine
 #   def test_timeout(self):
 #     """Test timeout."""
 #     self._test(True)
-
 
 # class GetFuzzerMetadataFromOutputTest(unittest.TestCase):
 #   """Test get_fuzzer_metadata_from_output."""
@@ -231,7 +225,6 @@ from clusterfuzz.fuzz import engine
 #             'foo': 'bar'
 #         })
 
-
 # class GetRegressionTest(unittest.TestCase):
 #   """Test get_regression."""
 
@@ -255,7 +248,6 @@ from clusterfuzz.fuzz import engine
 #     self.mock.is_custom_binary.return_value = False
 #     self.assertEqual('', fuzz_task.get_regression(False))
 
-
 # class GetFixedOrMinimizedKeyTest(unittest.TestCase):
 #   """Test get_fixed_or_minimized_key."""
 
@@ -266,7 +258,6 @@ from clusterfuzz.fuzz import engine
 #   def test_reproducible(self):
 #     """Test for reproducible."""
 #     self.assertEqual('', fuzz_task.get_fixed_or_minimized_key(False))
-
 
 # class CrashInitTest(fake_filesystem_unittest.TestCase):
 #   """Test Crash.__init__."""
@@ -440,7 +431,6 @@ from clusterfuzz.fuzz import engine
 #     crash = fuzz_task.Crash.from_testcase_manager_crash(testcase_manager_crash)
 #     self.assertEqual('app minimized', crash.arguments)
 
-
 # class CrashGroupTest(unittest.TestCase):
 #   """Test CrashGroup."""
 
@@ -550,7 +540,6 @@ from clusterfuzz.fuzz import engine
 #     self.assertFalse(group.has_existing_reproducible_testcase())
 #     self.assertTrue(group.one_time_crasher_flag)
 
-
 # class FindMainCrashTest(unittest.TestCase):
 #   """Test find_main_crash."""
 
@@ -645,7 +634,6 @@ from clusterfuzz.fuzz import engine
 #       c.archive_testcase_in_blobstore.assert_called_once_with()
 
 #     self.assertEqual(0, self.mock.test_for_reproducibility.call_count)
-
 
 # @test_utils.with_cloud_emulators('datastore')
 # class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
@@ -919,7 +907,6 @@ from clusterfuzz.fuzz import engine
 #         ]),
 #     ])
 
-
 # class WriteCrashToBigQueryTest(unittest.TestCase):
 #   """Test write_crash_to_big_query."""
 
@@ -1098,7 +1085,6 @@ from clusterfuzz.fuzz import engine
 #     self.assertEqual(0, success_count)
 #     self.assertEqual(3, failure_count)
 
-
 # class ConvertGroupsToCrashesTest(unittest.TestCase):
 #   """Test convert_groups_to_crashes."""
 
@@ -1133,7 +1119,6 @@ from clusterfuzz.fuzz import engine
 #             'security_flag': False
 #         },
 #     ], fuzz_task.convert_groups_to_crashes(groups))
-
 
 # class TestCorpusSync(fake_filesystem_unittest.TestCase):
 #   """Test corpus sync."""
@@ -1195,7 +1180,6 @@ from clusterfuzz.fuzz import engine
 #     self.mock.last_updated.return_value = None
 #     self.assertTrue(corpus.sync_from_gcs())
 #     self.assertEqual(1, self.mock.rsync_to_disk.call_count)
-
 
 # @test_utils.with_cloud_emulators('datastore')
 # class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
@@ -1319,7 +1303,6 @@ from clusterfuzz.fuzz import engine
 #     self.assertEqual('/app/app_1 -r=3 -x -y /tests/2',
 #                      crashes[1].application_command_line)
 
-
 # @test_utils.with_cloud_emulators('datastore')
 # class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
 #   """do_engine_fuzzing tests."""
@@ -1442,7 +1425,6 @@ from clusterfuzz.fuzz import engine
 #           'timestamp': 0.0,
 #       }, testcase_run.data)
 
-
 # class UntrustedRunEngineFuzzerTest(
 #     untrusted_runner_helpers.UntrustedRunnerIntegrationTest):
 #   """Engine fuzzing tests for untrusted."""
@@ -1503,7 +1485,6 @@ from clusterfuzz.fuzz import engine
 #     self.assertDictEqual({'fuzzer_binary_name': 'test_fuzzer'}, fuzzer_metadata)
 #     self.assertDictEqual({'value_profile': 1}, strategies)
 
-
 # class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):
 #   """Tests for _add_issue_metadata_from_environment."""
 
@@ -1555,6 +1536,13 @@ from clusterfuzz.fuzz import engine
 
 
 class ProcessStoreFuzzerRunResultsTest(unittest.TestCase):
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
+    ])
+    self.mock._sign_url.side_effect = lambda remote_path: remote_path
+
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_io.FuzzTaskInput()
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
