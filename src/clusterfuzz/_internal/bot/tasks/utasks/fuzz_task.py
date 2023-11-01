@@ -884,20 +884,20 @@ def postprocess_store_fuzzer_run_results(output):
     return
   uworker_input = output.uworker_input
   fuzzer = data_types.Fuzzer.query(
-      data_types.Fuzzer.name == output.uworker_input).get()
+      data_types.Fuzzer.name == output.uworker_input.fuzzer_name).get()
   if not fuzzer:
     logs.log_fatal_and_exit('Fuzzer does not exist, exiting.')
 
-  fuzzer_run_results_output = output.fuzz_task_output.fuzzer_run_results_output
-  if fuzzer.revision != output.fuzz_task_output.revision:
+  fuzzer_run_results = output.fuzz_task_output.fuzzer_run_results
+  if fuzzer.revision != output.fuzz_task_output.fuzzer_revision:
     logs.log('Fuzzer was recently updated, skipping results from old version.')
     return
   fuzzer.sample_testcase = (
       uworker_input.fuzz_task_input.sample_testcase_upload_key)
-  fuzzer.console_output = fuzzer_run_results_output.console_output
-  fuzzer.result = fuzzer_run_results_output.generated_testcase_string
+  fuzzer.console_output = fuzzer_run_results.console_output
+  fuzzer.result = fuzzer_run_results.generated_testcase_string
   fuzzer.result_timestamp = datetime.datetime.utcnow()
-  fuzzer.return_code = fuzzer_run_results_output.fuzzer_return_code
+  fuzzer.return_code = fuzzer_run_results.fuzzer_return_code
   fuzzer.put()
 
   logs.log('Finished storing results from fuzzer run.')
@@ -1490,11 +1490,11 @@ class FuzzingSession:
             output=fuzzer_output)
 
     # Store fuzzer run results.
-    fuzzer_run_results_output = store_fuzzer_run_results(
+    fuzzer_run_results = store_fuzzer_run_results(
         testcase_file_paths, fuzzer, fuzzer_command, fuzzer_output,
         fuzzer_return_code, generated_testcase_count, testcase_count,
         generated_testcase_string, self.uworker_input.fuzz_task_input)
-    self.fuzz_task_output.fuzzer_run_results_output = fuzzer_run_results_output
+    self.fuzz_task_output.fuzzer_run_results = fuzzer_run_results
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths

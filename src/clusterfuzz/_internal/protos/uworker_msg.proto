@@ -107,6 +107,7 @@ message StoreFuzzerRunResultsOutput {
 }
 
 message FuzzTaskOutput {
+  // TODO(metzman): Figure out if this is needed when input has it.
   optional string fuzzer_name = 1;
   optional string crash_revision = 2;
   optional float job_run_timestamp = 3;
