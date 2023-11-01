@@ -47,6 +47,7 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 from clusterfuzz._internal.tests.test_libs import untrusted_runner_helpers
 from clusterfuzz.fuzz import engine
 
+
 class TrackFuzzerRunResultTest(unittest.TestCase):
   """Test _track_fuzzer_run_result."""
 
@@ -95,6 +96,7 @@ class TrackFuzzerRunResultTest(unittest.TestCase):
     expected_buckets[21] = 1
     self.assertListEqual(expected_buckets, testcase_count_ratio.buckets)
 
+
 class TrackBuildRunResultTest(unittest.TestCase):
   """Test _track_build_run_result."""
 
@@ -119,6 +121,7 @@ class TrackBuildRunResultTest(unittest.TestCase):
             'job': 'name',
             'bad_build': False
         }))
+
 
 class TrackTestcaseRunResultTest(unittest.TestCase):
   """Test _track_testcase_run_result."""
@@ -148,6 +151,7 @@ class TrackTestcaseRunResultTest(unittest.TestCase):
             'fuzzer': 'fuzzer'
         }))
 
+
 class TruncateFuzzerOutputTest(unittest.TestCase):
   """Truncate fuzzer output tests."""
 
@@ -167,6 +171,7 @@ class TruncateFuzzerOutputTest(unittest.TestCase):
     with self.assertRaises(AssertionError):
       self.assertEqual(
           '', fuzz_task.truncate_fuzzer_output('123456xxxxxx54321', 10))
+
 
 class TrackFuzzTimeTest(unittest.TestCase):
   """Test _TrackFuzzTime."""
@@ -194,6 +199,7 @@ class TrackFuzzTimeTest(unittest.TestCase):
   def test_timeout(self):
     """Test timeout."""
     self._test(True)
+
 
 class GetFuzzerMetadataFromOutputTest(unittest.TestCase):
   """Test get_fuzzer_metadata_from_output."""
@@ -225,6 +231,7 @@ class GetFuzzerMetadataFromOutputTest(unittest.TestCase):
             'foo': 'bar'
         })
 
+
 class GetRegressionTest(unittest.TestCase):
   """Test get_regression."""
 
@@ -248,6 +255,7 @@ class GetRegressionTest(unittest.TestCase):
     self.mock.is_custom_binary.return_value = False
     self.assertEqual('', fuzz_task.get_regression(False))
 
+
 class GetFixedOrMinimizedKeyTest(unittest.TestCase):
   """Test get_fixed_or_minimized_key."""
 
@@ -258,6 +266,7 @@ class GetFixedOrMinimizedKeyTest(unittest.TestCase):
   def test_reproducible(self):
     """Test for reproducible."""
     self.assertEqual('', fuzz_task.get_fixed_or_minimized_key(False))
+
 
 class CrashInitTest(fake_filesystem_unittest.TestCase):
   """Test Crash.__init__."""
@@ -431,6 +440,7 @@ class CrashInitTest(fake_filesystem_unittest.TestCase):
     crash = fuzz_task.Crash.from_testcase_manager_crash(testcase_manager_crash)
     self.assertEqual('app minimized', crash.arguments)
 
+
 class CrashGroupTest(unittest.TestCase):
   """Test CrashGroup."""
 
@@ -540,6 +550,7 @@ class CrashGroupTest(unittest.TestCase):
     self.assertFalse(group.has_existing_reproducible_testcase())
     self.assertTrue(group.one_time_crasher_flag)
 
+
 class FindMainCrashTest(unittest.TestCase):
   """Test find_main_crash."""
 
@@ -634,6 +645,7 @@ class FindMainCrashTest(unittest.TestCase):
       c.archive_testcase_in_blobstore.assert_called_once_with()
 
     self.assertEqual(0, self.mock.test_for_reproducibility.call_count)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
@@ -907,6 +919,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
         ]),
     ])
 
+
 class WriteCrashToBigQueryTest(unittest.TestCase):
   """Test write_crash_to_big_query."""
 
@@ -1085,6 +1098,7 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.assertEqual(0, success_count)
     self.assertEqual(3, failure_count)
 
+
 class ConvertGroupsToCrashesTest(unittest.TestCase):
   """Test convert_groups_to_crashes."""
 
@@ -1119,6 +1133,7 @@ class ConvertGroupsToCrashesTest(unittest.TestCase):
             'security_flag': False
         },
     ], fuzz_task.convert_groups_to_crashes(groups))
+
 
 class TestCorpusSync(fake_filesystem_unittest.TestCase):
   """Test corpus sync."""
@@ -1180,6 +1195,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     self.mock.last_updated.return_value = None
     self.assertTrue(corpus.sync_from_gcs())
     self.assertEqual(1, self.mock.rsync_to_disk.call_count)
+
 
 @test_utils.with_cloud_emulators('datastore')
 class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
@@ -1303,6 +1319,7 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     self.assertEqual('/app/app_1 -r=3 -x -y /tests/2',
                      crashes[1].application_command_line)
 
+
 @test_utils.with_cloud_emulators('datastore')
 class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
   """do_engine_fuzzing tests."""
@@ -1425,6 +1442,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
           'timestamp': 0.0,
       }, testcase_run.data)
 
+
 class UntrustedRunEngineFuzzerTest(
     untrusted_runner_helpers.UntrustedRunnerIntegrationTest):
   """Engine fuzzing tests for untrusted."""
@@ -1484,6 +1502,7 @@ class UntrustedRunEngineFuzzerTest(
 
     self.assertDictEqual({'fuzzer_binary_name': 'test_fuzzer'}, fuzzer_metadata)
     self.assertDictEqual({'value_profile': 1}, strategies)
+
 
 class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):
   """Tests for _add_issue_metadata_from_environment."""
