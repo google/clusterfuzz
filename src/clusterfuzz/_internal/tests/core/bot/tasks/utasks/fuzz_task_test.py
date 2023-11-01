@@ -1554,7 +1554,7 @@ from clusterfuzz.fuzz import engine
 #     }, metadata)
 
 
-class processStoreFuzzerRunResultsTest(unittest.TestCase):
+class ProcessStoreFuzzerRunResultsTest(unittest.TestCase):
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_io.FuzzTaskInput()
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
