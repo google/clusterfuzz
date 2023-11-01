@@ -64,7 +64,9 @@ def download_latest_build(build_info, image_regexes, image_directory):
   # download it.
   build_id = build_info['bid']
   target = build_info['target']
+  logs.log_warn('target stored in current build_info: %s.' % target)
   last_build_info = persistent_cache.get_value(constants.LAST_FLASH_BUILD_KEY)
+  logs.log_warn('last_build_info take from persisten cache: %s.' % last_build_info)
   if last_build_info and last_build_info['bid'] == build_id:
     return
 
@@ -122,16 +124,21 @@ def flash_to_latest_build_if_needed():
   branch = environment.get_value('BUILD_BRANCH')
   target = environment.get_value('BUILD_TARGET')
   if not target:
+    logs.log_warn('BUILD_TARGET is not set.')
     build_params = settings.get_build_parameters()
     if build_params:
+      logs.log_warn('build_params found on device: %s.' % build_params)
       if environment.is_android_cuttlefish():
         target = build_params.get('target') + FLASH_DEFAULT_BUILD_TARGET
+        logs.log_warn('is_android_cuttlefish() returned True. Target: %s.' % target)
       else:
         target = build_params.get('target') + '-userdebug'
+        logs.log_warn('is_android_cuttlefish() returned False. Target: %s.' % target)
 
       # Cache target in environment. This is also useful for cases when
       # device is bricked and we don't have this information available.
       environment.set_value('BUILD_TARGET', target)
+    logs.log_warn('build_params not found.')
 
   if not branch or not target:
     logs.log_warn(

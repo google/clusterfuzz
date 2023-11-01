@@ -14,6 +14,7 @@
 """Android init scripts."""
 
 from clusterfuzz._internal.bot.init_scripts import init_runner
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 
@@ -26,7 +27,10 @@ def run():
 
   # Set cuttlefish device serial if needed.
   if environment.is_android_cuttlefish():
+    logs.log_warn('Running Android init script on Cuttlefish.')
     android.adb.set_cuttlefish_device_serial()
+  else:
+    logs.log_warn('Running Android init script on non-Cuttlefish.')
 
   # Check if we need to reflash device to latest build.
   android.flash.flash_to_latest_build_if_needed()
