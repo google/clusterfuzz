@@ -151,7 +151,8 @@ def deserialize_uworker_input(serialized_uworker_input):
 
 
 def serialize_uworker_input(uworker_input):
-  """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
+  """Serializes and returns |uworker_input| as proto. Can handle ndb
+  entities."""
   return uworker_input.serialize()
 
 
@@ -328,28 +329,31 @@ class UworkerMsg:
   PROTO_CLS = None
 
   def __init__(self, **kwargs):
-    self.proto = self.PROTO_CLS()  # pylint: disable=not-callable
+    self._proto = self.PROTO_CLS()  # pylint: disable=not-callable
+    self._set_fields = set()
     for key, value in kwargs.items():
       setattr(self, key, value)
 
     assert self.PROTO_CLS is not None
 
   def __getattr__(self, attribute):
-    if attribute in ['proto']:
-      # Allow setting and changing proto. Stack overflow in __init__ otherwise.
+    if attribute in ['_proto', '_set_fields']:
+      # Allow setting and changing _proto. Stack overflow in __init__ otherwise.
       return super().__getattr__(attribute)  # pylint: disable=no-member
-    return getattr(self.proto, attribute)
+    return getattr(self._proto, attribute)
 
   def __setattr__(self, attribute, value):
     super().__setattr__(attribute, value)
-    if attribute in ['proto']:
-      # Allow setting and changing proto. Stack overflow in __init__
+    if attribute in ['_proto', '_set_fields']:
+      # Allow setting and changing _proto. Stack overflow in __init__
       # otherwise.
       return
 
-    field_descriptor = self.proto.DESCRIPTOR.fields_by_name[attribute]
-    if field_descriptor.message_type is None:
-      setattr(self.proto, attribute, value)
+    self._set_fields.add(attribute)
+
+    field_descriptor = self._proto.DESCRIPTOR.fields_by_name[attribute]
+    if field_descriptor.message_type is None and not isinstance(value, list):
+      setattr(self._proto, attribute, value)
       return
 
     if value is None:
@@ -361,7 +365,17 @@ class UworkerMsg:
     raise NotImplementedError('Child must implement.')
 
   def serialize(self):
-    return self.proto.SerializeToString()
+    for attr in self._set_fields:
+      # Do this to make sure _proto fields are up to date.
+      value = getattr(self, attr)
+      if isinstance(value, UworkerMsg):
+        # Do this and throw away the result to make sure the same process
+        # happens to submessages that can have submessages of there own. This
+        # will break if there's a cycle but there definitely should not be
+        # cycles anyway.
+        value.serialize()
+      setattr(self, attr, value)
+    return self._proto.SerializeToString()
 
 
 class FuzzTaskOutput(UworkerMsg):
@@ -371,7 +385,7 @@ class FuzzTaskOutput(UworkerMsg):
   PROTO_CLS = uworker_msg_pb2.FuzzTaskOutput
 
   def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
+    field = getattr(self._proto, attribute)
     if isinstance(value, (dict, list)):
       save_json_field(field, value)
       return
@@ -386,7 +400,7 @@ class ProgressionTaskOutput(UworkerMsg):
   PROTO_CLS = uworker_msg_pb2.ProgressionTaskOutput
 
   def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
+    field = getattr(self._proto, attribute)
     if isinstance(value, (dict, list)):
       save_json_field(field, value)
       return
@@ -405,7 +419,7 @@ class UworkerOutput(UworkerMsg):
   PROTO_CLS = uworker_msg_pb2.Output
 
   def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
+    field = getattr(self._proto, attribute)
     if isinstance(value, dict):
       save_json_field(field, value)
       return
@@ -418,7 +432,7 @@ class UworkerOutput(UworkerMsg):
       return
 
     if isinstance(value, UworkerMsg):
-      field.CopyFrom(value.proto)
+      field.CopyFrom(value._proto)
       return
 
     if not isinstance(value, UworkerEntityWrapper):
@@ -434,7 +448,7 @@ class BuildData(UworkerMsg):
   PROTO_CLS = uworker_msg_pb2.BuildData
 
   def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
+    field = getattr(self._proto, attribute)
     if isinstance(value, (dict, list)):
       save_json_field(field, value)
       return
@@ -448,7 +462,7 @@ class UworkerInput(UworkerMsg):
   PROTO_CLS = uworker_msg_pb2.Input
 
   def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
+    field = getattr(self._proto, attribute)
     if isinstance(value, dict):
       save_json_field(field, value)
       return
@@ -459,12 +473,17 @@ class UworkerInput(UworkerMsg):
       value = list(value)
       if len(value) == 0:
         return
-      assert isinstance(value[0], ndb.Model), value[0]
-      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      if not isinstance(value[0], ndb.Model):
+        field.extend(value)
+      else:
+        new_value = [model._entity_to_protobuf(entity) for entity in value]  # pylint: disable=protected-access
+        field.extend(new_value)
       return
 
     if isinstance(value, UworkerMsg):
-      field.CopyFrom(value.proto)
+      if isinstance(value, AnalyzeTaskInput):
+        pass
+      field.CopyFrom(value._proto)
       return
 
     if not isinstance(value, ndb.Model):
@@ -520,7 +539,7 @@ class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
 
   def save_rich_type(self, attribute, value):
-    field = getattr(self.proto, attribute)
+    field = getattr(self._proto, attribute)
     if isinstance(value, (dict, list)):
       save_json_field(field, value)
       return
