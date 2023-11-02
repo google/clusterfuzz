@@ -314,7 +314,7 @@ class Engine(engine.Engine):
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
 
     if result.timed_out:
-      logs.log_error(
+      logs.log_warn(
           ('Corpus minimization timed out: Failed to generate Centipede corpus '
            'file'),
           fuzzer_output=result.output)
@@ -329,7 +329,7 @@ class Engine(engine.Engine):
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
 
     if result.timed_out:
-      logs.log_error(
+      logs.log_warn(
           'Corpus minimization timed out: Failed to distill',
           fuzzer_output=result.output)
       raise TimeoutError('Minimization corpus timed out.')
@@ -350,7 +350,7 @@ class Engine(engine.Engine):
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
 
     if result.timed_out:
-      logs.log_error(
+      logs.log_warn(
           ('Corpus minimization timed out: Failed to generate output corpus '
            'files'),
           fuzzer_output=result.output)
@@ -415,7 +415,7 @@ class Engine(engine.Engine):
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
     if result.timed_out:
-      logs.log_error(
+      logs.log_warn(
           'Testcase minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
     minimum_testcase = self._get_smallest_crasher(workdir)
