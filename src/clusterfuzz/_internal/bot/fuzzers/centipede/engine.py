@@ -362,6 +362,8 @@ class Engine(engine.Engine):
     for file in os.listdir(crashes_dir):
       crasher_path = os.path.join(crashes_dir, file)
       shutil.copy(crasher_path, reproducers_dir)
+    shutil.rmtree(full_corpus_workdir)
+    shutil.rmtree(minimized_corpus_workdir)
 
     return engine.ReproduceResult(result.command, result.return_code,
                                   result.time_executed, result.output)
