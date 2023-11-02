@@ -303,10 +303,10 @@ class Engine(engine.Engine):
     runner = _get_runner(target_path)
 
     # Step 1: Generate corpus file for Centipede.
-    workdir1 = self._create_temp_dir('workdir1')
+    full_corpus_workdir = self._create_temp_dir('full_corpus_workdir')
     input_dirs_param = ','.join(str(dir) for dir in input_dirs)
     args = [
-        f'--workdir={workdir1}',
+        f'--workdir={full_corpus_workdir}',
         f'--binary={target_path}',
         f'--corpus_dir={input_dirs_param}',
         '--num_runs=0',
@@ -322,7 +322,7 @@ class Engine(engine.Engine):
 
     # Step 2: Distill.
     args = [
-        f'--workdir={workdir1}',
+        f'--workdir={full_corpus_workdir}',
         f'--binary={target_path}',
         '--distill',
     ]
@@ -336,14 +336,15 @@ class Engine(engine.Engine):
 
     # Step 3: Generate corpus files for output_dir.
     os.makedirs(output_dir, exist_ok=True)
-    workdir2 = self._create_temp_dir('workdir2')
+    minimized_corpus_workdir = self._create_temp_dir('minimized_corpus_workdir')
     distilled_file = os.path.join(
-        workdir1, f'distilled-{os.path.basename(target_path)}.000000')
-    corpus_file = os.path.join(workdir2, 'corpus.000000')
+        full_corpus_workdir,
+        f'distilled-{os.path.basename(target_path)}.000000')
+    corpus_file = os.path.join(minimized_corpus_workdir, 'corpus.000000')
     shutil.copyfile(distilled_file, corpus_file)
 
     args = [
-        f'--workdir={workdir2}',
+        f'--workdir={minimized_corpus_workdir}',
         f'--corpus_to_files={output_dir}',
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
@@ -355,9 +356,9 @@ class Engine(engine.Engine):
           fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
 
-    # Step 4: Copy reproducers from workdir1.
+    # Step 4: Copy reproducers from full_corpus_workdir.
     os.makedirs(reproducers_dir, exist_ok=True)
-    crashes_dir = os.path.join(workdir1, 'crashes')
+    crashes_dir = os.path.join(full_corpus_workdir, 'crashes')
     for file in os.listdir(crashes_dir):
       crasher_path = os.path.join(crashes_dir, file)
       shutil.copy(crasher_path, reproducers_dir)
