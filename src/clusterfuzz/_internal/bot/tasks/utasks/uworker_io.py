@@ -365,6 +365,7 @@ class UworkerMsg:
     raise NotImplementedError('Child must implement.')
 
   def serialize(self):
+    """Serializes UworkerMsg into proto wire format."""
     for attr in self._set_fields:
       # Do this to make sure _proto fields are up to date.
       value = getattr(self, attr)
@@ -432,7 +433,7 @@ class UworkerOutput(UworkerMsg):
       return
 
     if isinstance(value, UworkerMsg):
-      field.CopyFrom(value._proto)
+      field.CopyFrom(value._proto)  # pylint: disable=protected-access
       return
 
     if not isinstance(value, UworkerEntityWrapper):
@@ -470,20 +471,21 @@ class UworkerInput(UworkerMsg):
     if isinstance(field, collections.abc.Sequence):
       # This the way to tell if it's a repeated field.
       # We can't get the type of the repeated field directly.
+      del field[:]
       value = list(value)
       if len(value) == 0:
         return
       if not isinstance(value[0], ndb.Model):
         field.extend(value)
       else:
+        # TODO(metzman): This is probably unnecessary and very complext to deal
+        # with.
         new_value = [model._entity_to_protobuf(entity) for entity in value]  # pylint: disable=protected-access
         field.extend(new_value)
       return
 
     if isinstance(value, UworkerMsg):
-      if isinstance(value, AnalyzeTaskInput):
-        pass
-      field.CopyFrom(value._proto)
+      field.CopyFrom(value._proto)  # pylint: disable=protected-access
       return
 
     if not isinstance(value, ndb.Model):
