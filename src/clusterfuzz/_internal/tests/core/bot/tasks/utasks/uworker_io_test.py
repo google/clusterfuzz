@@ -217,8 +217,9 @@ class RoundTripTest(unittest.TestCase):
         testcase=self.testcase,
         uworker_env=self.env,
         setup_input=uworker_io.SetupInput(testcase_download_url=self.FAKE_URL),
-    )
-
+        analyze_task_input=uworker_io.AnalyzeTaskInput())
+    # uworker_input.analyze_task_input = uworker_io.AnalyzeTaskInput()
+    uworker_input.analyze_task_input.bad_revisions.extend([8922])
     # Create a mocked version of write_data so that when we upload the uworker
     # input, it goes to a known file we can read from.
     write_data_tempfile = None
@@ -270,6 +271,7 @@ class RoundTripTest(unittest.TestCase):
                      downloaded_input.uworker_output_upload_url)
     self.assertEqual(uworker_input.setup_input.testcase_download_url,
                      downloaded_input.setup_input.testcase_download_url)
+    self.assertEqual([8922], downloaded_input.analyze_task_input.bad_revisions)
 
   def test_upload_and_download_output(self):
     """Tests that uploading and downloading uworker output works. This means
