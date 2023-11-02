@@ -149,10 +149,18 @@ class StackParser:
     return False
 
   def get_rank(self, crash_type):
-    """Return the assignment priority of a given crash type."""
-    if crash_type in ['Timeout']:
-      return 1
-    return 0
+    """Return the assignment rank of a given crash type."""
+    # Higher ranked types will not be overwritten with lower ranked types.
+    # Types missing in this list have a default rank of 0.
+    high_rank_types = {'V8 sandbox violation': 2, 'Timeout': 1}
+    return high_rank_types.get(crash_type, 0)
+
+  def update_crash_type(self, state: CrashInfo, new_type):
+    # Prioritize the crash type associated with the latest stack frame, unless
+    # the previous type has an explicitly assigned higher priority.
+    if new_type is not None and self.get_rank(new_type) >= self.get_rank(
+        state.crash_type):
+      state.crash_type = new_type
 
   def update_state_on_match(self,
                             compiled_regex: re.Pattern,
@@ -180,11 +188,7 @@ class StackParser:
       state.frame_count = 0
 
     # Direct updates.
-    if new_type is not None and self.get_rank(new_type) >= self.get_rank(
-        state.crash_type):
-      # Prioritize the crash type associated with the latest stack frame,
-      # unless explicit ordering is available.
-      state.crash_type = new_type
+    self.update_crash_type(state, new_type)
 
     if new_state is not None:
       state.crash_state = new_state
@@ -197,7 +201,8 @@ class StackParser:
 
     # Updates from match groups.
     if type_from_group is not None:
-      state.crash_type = type_filter(match.group(type_from_group)).strip()
+      self.update_crash_type(state,
+                             type_filter(match.group(type_from_group)).strip())
 
     if address_from_group is not None:
       state.crash_address = address_filter(
@@ -679,7 +684,7 @@ class StackParser:
               SAN_SIGNAL_REGEX.match(stacktrace)):
             continue
 
-        state.crash_type = 'UNKNOWN'
+        self.update_crash_type(state, 'UNKNOWN')
         state.crash_address = temp_crash_address
         state.crash_state = ''
         state.frame_count = 0
@@ -1067,6 +1072,13 @@ class StackParser:
             state,
             new_type='V8 correctness failure',
             reset=True)
+
+        # V8 sandbox violations.
+        self.update_state_on_match(
+            V8_SANDBOX_VIOLATION_REGEX,
+            line,
+            state,
+            new_type='V8 sandbox violation')
 
         # Generic SEGV handler errors.
         self.update_state_on_match(
