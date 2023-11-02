@@ -40,6 +40,7 @@ EXTRA_BINARIES_FLAGNAME = 'extra_binaries'
 EXIT_ON_CRASH_FLAGNAME = 'exit_on_crash'
 
 TIMEOUT_PER_INPUT_REPR = 60
+NUM_RUNS_PER_MINIMIZATION = 100000
 
 
 def get_default_arguments():
