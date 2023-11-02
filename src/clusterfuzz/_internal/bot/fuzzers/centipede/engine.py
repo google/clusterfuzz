@@ -318,6 +318,7 @@ class Engine(engine.Engine):
           ('Corpus minimization timed out: Failed to generate Centipede corpus '
            'file'),
           fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
 
     # Step 2: Distill.
     args = [
@@ -331,6 +332,7 @@ class Engine(engine.Engine):
       logs.log_error(
           'Corpus minimization timed out: Failed to distill',
           fuzzer_output=result.output)
+      raise TimeoutError('Minimization corpus timed out.')
 
     # Step 3: Generate corpus files for output_dir.
     os.makedirs(output_dir, exist_ok=True)
@@ -351,6 +353,7 @@ class Engine(engine.Engine):
           ('Corpus minimization timed out: Failed to generate output corpus '
            'files'),
           fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
 
     # Step 4: Copy reproducers from workdir1.
     os.makedirs(reproducers_dir, exist_ok=True)
