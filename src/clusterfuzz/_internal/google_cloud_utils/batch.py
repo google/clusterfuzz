@@ -12,22 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cloud Batch helpers."""
-
+import collections
 import threading
 import uuid
 
-import credentials
 from google.cloud import batch_v1 as batch
 
 # TODO(metzman): Change to from . import credentials when we are done
 # developing.
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks.utasks import utask_utils
+from clusterfuzz._internal.config import local_config
+
+from . import credentials
 
 _local = threading.local()
 
 MAX_DURATION = '3600s'
-RETRY_COUNT = 2
+RETRY_COUNT = 1
 TASK_COUNT = 1
+
+BatchJobSpec = collections.namedtuple('BatchJobSpec', [
+    'disk_size_gb',
+    'docker_image',
+    'user_data',
+    'service_account_email',
+    'subnetwork',
+    'preemptible',
+    'project',
+    'gce_zone',
+    'machine_type',
+])
 
 
 def _create_batch_client_new():
@@ -52,14 +67,13 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def create_job(email,
-               image_uri='gcr.io/clusterfuzz-images/oss-fuzz/worker',
-               machine_type='e2-standard-2'):
+def create_job(module_name, cf_job):
   """This is not a job in ClusterFuzz's meaning of the word."""
   # Define what will be done as part of the job.
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
-  runnable.container.image_uri = image_uri
+  spec = get_spec(module_name, cf_job)
+  runnable.container.image_uri = spec.docker_image
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
       '-P --privileged --cap-add=all '
@@ -80,14 +94,14 @@ def create_job(email,
   policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
-  disk.size_gb = '100'
+  disk.size_gb = spec.disk_size_gb
   policy.boot_disk = disk
-  policy.machine_type = machine_type
+  policy.machine_type = spec.machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = policy
   allocation_policy = batch.AllocationPolicy()
   allocation_policy.instances = [instances]
-  service_account = batch.ServiceAccount(email=email)  # pylint: disable=no-member
+  service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
 
   job = batch.Job()
@@ -109,12 +123,31 @@ def create_job(email,
   return _batch_client().create_job(create_request)
 
 
-def main():
-  """Main function only used in development."""
-  email = 'untrusted-worker@clusterfuzz.google.com.iam.gserviceaccount.com'
-  # email = 'untrusted-worker@clusterfuzz-external.iam.gserviceaccount.com'
-  create_job(email=email)
-
-
-if __name__ == '__main__':
-  main()
+def get_spec(full_module_name, job):
+  """Gets the specifications for a job."""
+  platform = job.platform
+  command = utask_utils.get_command_from_module(full_module_name)
+  if command == 'fuzz':
+    platform += '-PREEMPTIBLE'
+  else:
+    platform += '-NONPREEMPTIBLE'
+  batch_config = local_config.BatchConfig()
+  instance_spec = batch_config.get('mapping').get(platform, None)
+  if instance_spec is None:
+    raise ValueError(f'No mapping for {platform}')
+  project_name = batch_config.get('project')
+  docker_image = instance_spec['docker_image']
+  user_data = instance_spec['user_data']
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
+  # low-privilege account.
+  spec = BatchJobSpec(
+      docker_image=docker_image,
+      user_data=user_data,
+      disk_size_gb=instance_spec['disk_size_gb'],
+      service_account_email=instance_spec['service_account_email'],
+      subnetwork=instance_spec['subnetwork'],
+      gce_zone=instance_spec['gce_zone'],
+      project=project_name,
+      preemptible=instance_spec['preemptible'],
+      machine_type=instance_spec['machine_type'])
+  return spec
