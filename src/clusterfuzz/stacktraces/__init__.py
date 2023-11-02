@@ -34,6 +34,7 @@ class CrashInfo:
     self.crash_address = ''
     self.crash_state = ''
     self.crash_stacktrace = ''
+    self.crash_categories = set()
     self.frame_count = 0
     self.process_name = 'NULL'
     self.process_died = False
@@ -147,6 +148,12 @@ class StackParser:
 
     return False
 
+  def get_rank(self, crash_type):
+    """Return the assignment priority of a given crash type."""
+    if crash_type in ['Timeout']:
+      return 1
+    return 0
+
   def update_state_on_match(self,
                             compiled_regex: re.Pattern,
                             line: str,
@@ -173,7 +180,10 @@ class StackParser:
       state.frame_count = 0
 
     # Direct updates.
-    if new_type is not None:
+    if new_type is not None and self.get_rank(new_type) >= self.get_rank(
+        state.crash_type):
+      # Prioritize the crash type associated with the latest stack frame,
+      # unless explicit ordering is available.
       state.crash_type = new_type
 
     if new_state is not None:
@@ -1161,6 +1171,10 @@ class StackParser:
             new_state=new_state,
             new_type='Unreachable code',
             reset=True)
+
+      # Check if stacktrace indicates crash location in a fuzzer library.
+      if FUZZER_EXIT_REGEX.match(line):
+        state.crash_categories.add('Fuzzer-exit')
 
       # Check cases with unusual stack start markers.
       self.update_state_on_match(

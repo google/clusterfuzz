@@ -17,6 +17,7 @@ from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
+from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.bot.tasks.utasks import variant_task
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
@@ -78,6 +79,8 @@ def get_handle_all_errors_mapping():
           progression_task.handle_progression_bad_build,
       uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR:
           progression_task.handle_progression_build_setup_error,
+      uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:
+          regression_task.handle_revision_list_error,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }

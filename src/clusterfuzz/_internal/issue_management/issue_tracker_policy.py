@@ -73,9 +73,16 @@ class IssueTrackerPolicy:
     """Get the actual status string for the given type."""
     return self._data['status'][status_type]
 
+  @property
   def extension_fields(self):
     """Returns all _ext_ prefixed data items."""
-    return self.extension_fields
+    extension_fields = {}
+    # Extension fields are dynamically added to the policy
+    # depending on which (if any) have been set in the config
+    for k, v in self._data.items():
+      if k.startswith(EXTENSION_PREFIX):
+        extension_fields[k] = v
+    return extension_fields
 
   def label(self, label_type):
     """Get the actual label string for the given type."""
@@ -92,6 +99,18 @@ class IssueTrackerPolicy:
 
     crash_type = crash_type.splitlines()[0].lower()
     label = self._data['labels']['crash_types'].get(crash_type)
+    if label is None:
+      return None
+
+    return str(label)
+
+  def label_for_crash_category(self, crash_category):
+    """Get the actual label string for the given crash subtype."""
+    if 'crash_categories' not in self._data['labels']:
+      return None
+
+    crash_category = crash_category.splitlines()[0].lower()
+    label = self._data['labels']['crash_categories'].get(crash_category)
     if label is None:
       return None
 
@@ -174,10 +193,8 @@ class IssueTrackerPolicy:
       if non_crash_labels:
         policy.labels.extend(_to_str_list(non_crash_labels))
 
-    # Find all _ext_ keys and add to extension_fields
-    for k, v in self._data.items():
-      if k.startswith(EXTENSION_PREFIX):
-        policy.extension_fields[k] = v
+    for k, v in self.extension_fields:
+      policy.extension_fields[k] = v
 
   def get_existing_issue_properties(self):
     """Get the properties to apply to a new issue."""

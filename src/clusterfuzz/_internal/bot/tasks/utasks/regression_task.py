@@ -32,6 +32,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 # Number of revisions before the maximum to test before doing a bisect. This
@@ -212,7 +213,7 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
   return True
 
 
-def find_regression_range(uworker_input: uworker_io.UworkerInput
+def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
                          ) -> Optional[uworker_io.UworkerOutput]:
   """Attempt to find when the testcase regressed."""
   testcase = uworker_input.testcase
@@ -232,9 +233,9 @@ def find_regression_range(uworker_input: uworker_io.UworkerInput
       uworker_input.regression_task_input.bad_revisions,
       testcase=testcase)
   if not revision_list:
-    data_handler.close_testcase_with_error(testcase,
-                                           'Failed to fetch revision list')
-    return None
+    return uworker_io.UworkerOutput(
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
+        testcase=testcase)
 
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
@@ -364,10 +365,17 @@ def utask_preprocess(testcase_id: str, job_type: str,
   )
 
 
-_HANDLED_ERRORS = setup.HANDLED_ERRORS
+def handle_revision_list_error(output: uworker_io.UworkerOutput):
+  data_handler.close_testcase_with_error(output.testcase,
+                                         'Failed to fetch revision list')
 
 
-def utask_postprocess(output: uworker_io.UworkerOutput) -> None:
+_HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
+] + setup.HANDLED_ERRORS
+
+
+def utask_postprocess(output: uworker_io.DeserializedUworkerMsg) -> None:
   """Handles the output of `utask_main()` run on an untrusted worker.
 
   Runs on a trusted worker.
@@ -379,7 +387,7 @@ def utask_postprocess(output: uworker_io.UworkerOutput) -> None:
   # TODO: migrate more stuff out of `utask_main()`.
 
 
-def utask_main(uworker_input: uworker_io.UworkerInput
+def utask_main(uworker_input: uworker_io.DeserializedUworkerMsg,
               ) -> Optional[uworker_io.UworkerOutput]:
   """Runs regression task and handles potential errors.
 

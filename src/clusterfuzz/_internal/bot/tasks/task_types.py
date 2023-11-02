@@ -140,7 +140,6 @@ class UworkerMainTask(BaseTask):
 
 
 COMMAND_TYPES = {
-    # TODO(metzman): Change analyze task away from in-memory.
     'analyze': UTaskLocalPreprocessAndMain,
     'blame': TrustedTask,
     'corpus_pruning': UTaskLocalExecutor,
@@ -149,7 +148,7 @@ COMMAND_TYPES = {
     'minimize': UTaskLocalExecutor,
     'progression': UTaskLocalExecutor,
     'regression': UTaskLocalExecutor,
-    'symbolize': TrustedTask,
+    'symbolize': UTaskLocalExecutor,
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
