@@ -33,7 +33,7 @@ _default_extras = {}
 
 def _increment_error_count():
   """"Increment the error count metric."""
-  if _is_runnging_on_k8s():
+  if _is_running_on_k8s():
     task_name = 'k8s'
   elif _is_running_on_app_engine():
     task_name = 'appengine'
@@ -59,7 +59,7 @@ def _is_running_on_app_engine():
        os.getenv('SERVER_SOFTWARE').startswith('Google App Engine/')))
 
 
-def _is_runnging_on_k8s():
+def _is_running_on_k8s():
   """Returns whether or not we're running on K8s."""
   return os.getenv('IS_K8S_ENV') == 'true'
 
@@ -332,7 +332,7 @@ def configure(name, extras=None):
   |extras| will be included by emit() in log messages."""
   suppress_unwanted_warnings()
 
-  if _is_runnging_on_k8s():
+  if _is_running_on_k8s():
     configure_k8s()
     return
 
@@ -365,7 +365,7 @@ def get_logger():
   if _logger:
     return _logger
 
-  if _is_running_on_app_engine() or _is_runnging_on_k8s():
+  if _is_running_on_app_engine() or _is_running_on_k8s():
     # Running on App Engine.
     set_logger(logging.getLogger())
 
