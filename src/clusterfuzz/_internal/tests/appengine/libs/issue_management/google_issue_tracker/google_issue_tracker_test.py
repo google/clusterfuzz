@@ -539,15 +539,17 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     url = self.issue_tracker.find_issues_url(
         keywords=['abc', 'def'], only_open=True)
     self.assertEqual(
-        'https://issuetracker.google.com/issues?q=%22abc%22+%22def%22+status%3Aopen',
+        'https://issuetracker.googleapis.com/v1/'
+        'issues?q=%22abc%22+%22def%22+status%3Aopen',
         url,
     )
     url = self.issue_tracker.find_issues_url(
         keywords=['abc', 'def'], only_open=False)
     self.assertEqual(
-        'https://issuetracker.google.com/issues?q=%22abc%22+%22def%22', url)
+        'https://issuetracker.googleapis.com/v1/issues?q=%22abc%22+%22def%22',
+        url)
 
   def test_issue_url(self):
     """Test issue_url."""
     url = self.issue_tracker.issue_url(123)
-    self.assertEqual('https://issuetracker.google.com/issues/123', url)
+    self.assertEqual('https://issuetracker.googleapis.com/v1/issues/123', url)

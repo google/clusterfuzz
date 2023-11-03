@@ -19,7 +19,8 @@ from googleapiclient import discovery
 from googleapiclient import errors
 import httplib2
 
-_ROLE_ACCOUNT = "cluster-fuzz@appspot.gserviceaccount.com"
+# TODO: What is the service account going to be?
+_ROLE_ACCOUNT = "cluster-fuzz-google-issue-tracker"
 
 _DISCOVERY_URL = ('https://issuetracker.googleapis.com/$discovery/rest?'
                   'version=v1&labels=GOOGLE_PUBLIC')
@@ -30,7 +31,7 @@ HttpError = errors.HttpError
 
 
 def user():
-  return _ROLE_ACCOUNT
+  return _ROLE_ACCOUNT + '@google.com'
 
 
 def build_http():

@@ -26,7 +26,7 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import client
 from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
-_ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
+_ISSUE_TRACKER_URL = 'https://issuetracker.googleapis.com/v1/issues'
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -108,17 +108,15 @@ class Issue(issue_tracker.Issue):
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
     if extension_fields.get('_ext_collaborators'):
-      print(
-          'google_issue_tracker: In apply_extension_fields for '
-          'collaborators: %s' % extension_fields['_ext_collaborators'])
+      print('google_issue_tracker: In apply_extension_fields for '
+            'collaborators: %s' % extension_fields['_ext_collaborators'])
       self._changed.add('_ext_collaborators')
       for collaborator in extension_fields['_ext_collaborators']:
         self._collaborators.add(collaborator)
 
     if extension_fields.get('_ext_issue_access_limit'):
-      print(
-          'google_issue_tracker: In apply_extension_fields for IAL: %s' %
-          extension_fields['_ext_issue_access_limit'])
+      print('google_issue_tracker: In apply_extension_fields for IAL: %s' %
+            extension_fields['_ext_issue_access_limit'])
       self._changed.add('_issue_access_limit')
       self._issue_access_limit = extension_fields['_ext_issue_access_limit']
 
