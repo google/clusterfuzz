@@ -312,6 +312,7 @@ class Engine(engine.Engine):
         '--num_runs=0',
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    max_time -= result.time_executed
 
     if result.timed_out:
       logs.log_warn(
@@ -327,6 +328,7 @@ class Engine(engine.Engine):
         '--distill',
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    max_time -= result.time_executed
 
     if result.timed_out:
       logs.log_warn(
