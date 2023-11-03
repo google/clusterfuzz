@@ -314,7 +314,7 @@ class Engine(engine.Engine):
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
     max_time -= result.time_executed
 
-    if result.timed_out and max_time < 0:
+    if result.timed_out or max_time < 0:
       logs.log_warn(
           ('Corpus minimization timed out: Failed to generate Centipede corpus '
            'file'),
@@ -330,7 +330,7 @@ class Engine(engine.Engine):
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
     max_time -= result.time_executed
 
-    if result.timed_out and max_time < 0:
+    if result.timed_out or max_time < 0:
       logs.log_warn(
           'Corpus minimization timed out: Failed to distill',
           fuzzer_output=result.output)
@@ -351,7 +351,7 @@ class Engine(engine.Engine):
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
 
-    if result.timed_out and max_time < 0:
+    if result.timed_out or max_time < 0:
       logs.log_warn(
           ('Corpus minimization timed out: Failed to generate output corpus '
            'files'),
