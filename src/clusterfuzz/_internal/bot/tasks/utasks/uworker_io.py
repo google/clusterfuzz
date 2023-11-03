@@ -265,6 +265,10 @@ def deserialize_uworker_output(uworker_output_str):
   return uworker_output
 
 
+def to_json_msg(value):
+  return uworker_msg_pb2.Json(serialized=json.dumps(value))
+
+
 class UworkerEntityWrapper:
   """Wrapper for db entities on the uworker. This wrapper functions the same as
   the entity but also tracks changes made to the entity. This is useful for
@@ -322,8 +326,9 @@ class UworkerEntityWrapper:
 
 
 class UworkerMsg:
-  """Convenience class for results utask_function. This is useful for ensuring
-  we are returning values for fields expected by main or postprocess."""
+  """Convenience class for results from utask functions. This is useful for
+  ensuring we are returning values for fields expected by main or
+  postprocess."""
 
   # Child must implement.
   PROTO_CLS = None
@@ -337,9 +342,6 @@ class UworkerMsg:
     assert self.PROTO_CLS is not None
 
   def __getattr__(self, attribute):
-    if attribute in ['_proto', '_set_fields']:
-      # Allow setting and changing _proto. Stack overflow in __init__ otherwise.
-      return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self._proto, attribute)
 
   def __setattr__(self, attribute, value):
@@ -352,26 +354,46 @@ class UworkerMsg:
     self._set_fields.add(attribute)
 
     field_descriptor = self._proto.DESCRIPTOR.fields_by_name[attribute]
-    if field_descriptor.message_type is None and not isinstance(value, list):
+    if (field_descriptor.message_type is None and
+        not isinstance(field_descriptor.default_value, list)):
       setattr(self._proto, attribute, value)
-      return
-
-    if value is None:
       return
 
     self.save_rich_type(attribute, value)
 
   def save_rich_type(self, attribute, value):
-    raise NotImplementedError('Child must implement.')
+    field = getattr(self._proto, attribute)
+
+    if isinstance(field, collections.abc.Sequence):
+      # This the way to tell if it's a repeated field.
+      # We can't get the type of the repeated field directly.
+      del field[:]
+      field.extend([self.convert_value_to_saveable(v) for v in value])
+      return
+
+    if value is None:
+      self._proto.ClearField(attribute)
+      return
+
+    value = self.convert_value_to_saveable(value)
+    field.CopyFrom(value)
+
+  def convert_value_to_saveable(self, value):
+    """Converts python objects to a form that can be saved in a proto."""
+    if isinstance(value, dict):
+      return uworker_msg_pb2.Json(serialized=json.dumps(value))
+    if isinstance(value, UworkerMsg):
+      return value._proto  # pylint: disable=protected-access
+    return value
 
   def serialize(self):
     """Serializes UworkerMsg into proto wire format."""
     for attr in self._set_fields:
-      # Do this to make sure _proto fields are up to date.
+      # Do this to make sure _proto fields are up-to-date.
       value = getattr(self, attr)
       if isinstance(value, UworkerMsg):
         # Do this and throw away the result to make sure the same process
-        # happens to submessages that can have submessages of there own. This
+        # happens to submessages that can have submessages of their own. This
         # will break if there's a cycle but there definitely should not be
         # cycles anyway.
         value.serialize()
@@ -385,14 +407,6 @@ class FuzzTaskOutput(UworkerMsg):
 
   PROTO_CLS = uworker_msg_pb2.FuzzTaskOutput
 
-  def save_rich_type(self, attribute, value):
-    field = getattr(self._proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
 
 class ProgressionTaskOutput(UworkerMsg):
   """Class representing an unserialized ProgressionTaskOutput message from
@@ -400,47 +414,16 @@ class ProgressionTaskOutput(UworkerMsg):
 
   PROTO_CLS = uworker_msg_pb2.ProgressionTaskOutput
 
-  def save_rich_type(self, attribute, value):
-    field = getattr(self._proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
-
-def save_json_field(field, value):
-  serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
-  field.CopyFrom(serialized_json)
-
 
 class UworkerOutput(UworkerMsg):
   """Class representing an unserialized UworkerOutput message from
   utask_main."""
   PROTO_CLS = uworker_msg_pb2.Output
 
-  def save_rich_type(self, attribute, value):
-    field = getattr(self._proto, attribute)
-    if isinstance(value, dict):
-      save_json_field(field, value)
-      return
-
-    # TODO(metzman): Remove this once everything is migrated. This is only
-    # needed because some functions need to support utasks and non-utasks at the
-    # same time.
-    if isinstance(value, uworker_msg_pb2.Input):
-      field.CopyFrom(value)
-      return
-
-    if isinstance(value, UworkerMsg):
-      field.CopyFrom(value._proto)  # pylint: disable=protected-access
-      return
-
-    if not isinstance(value, UworkerEntityWrapper):
-      raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
-    wrapped_entity_proto = serialize_wrapped_entity(value)
-    field.CopyFrom(wrapped_entity_proto)
+  def convert_value_to_saveable(self, value):
+    if isinstance(value, UworkerEntityWrapper):
+      return serialize_wrapped_entity(value)
+    return super().convert_value_to_saveable(value)
 
 
 class BuildData(UworkerMsg):
@@ -448,51 +431,16 @@ class BuildData(UworkerMsg):
   fuzz_task."""
   PROTO_CLS = uworker_msg_pb2.BuildData
 
-  def save_rich_type(self, attribute, value):
-    field = getattr(self._proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
 
 class UworkerInput(UworkerMsg):
   """Class representing an unserialized UworkerInput message from
   utask_preprocess."""
   PROTO_CLS = uworker_msg_pb2.Input
 
-  def save_rich_type(self, attribute, value):
-    field = getattr(self._proto, attribute)
-    if isinstance(value, dict):
-      save_json_field(field, value)
-      return
-
-    if isinstance(field, collections.abc.Sequence):
-      # This the way to tell if it's a repeated field.
-      # We can't get the type of the repeated field directly.
-      del field[:]
-      value = list(value)
-      if len(value) == 0:
-        return
-      if not isinstance(value[0], ndb.Model):
-        field.extend(value)
-      else:
-        # TODO(metzman): This is probably unnecessary and very complext to deal
-        # with.
-        new_value = [model._entity_to_protobuf(entity) for entity in value]  # pylint: disable=protected-access
-        field.extend(new_value)
-      return
-
-    if isinstance(value, UworkerMsg):
-      field.CopyFrom(value._proto)  # pylint: disable=protected-access
-      return
-
-    if not isinstance(value, ndb.Model):
-      raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
-
-    entity_proto = model._entity_to_protobuf(value)  # pylint: disable=protected-access
-    field.CopyFrom(entity_proto)
+  def convert_value_to_saveable(self, value):
+    if isinstance(value, ndb.Model):
+      return model._entity_to_protobuf(value)  # pylint: disable=protected-access
+    return super().convert_value_to_saveable(value)
 
 
 class SetupInput(UworkerInput):
@@ -539,14 +487,6 @@ class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
 class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   """Output from minimize_task.uworker_main."""
   PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
-
-  def save_rich_type(self, attribute, value):
-    field = getattr(self._proto, attribute)
-    if isinstance(value, (dict, list)):
-      save_json_field(field, value)
-      return
-
-    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
 
 class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method

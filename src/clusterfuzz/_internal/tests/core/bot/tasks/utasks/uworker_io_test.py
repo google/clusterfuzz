@@ -371,11 +371,13 @@ class RoundTripTest(unittest.TestCase):
     bundle2.put()
     data_bundles = [bundle1, bundle2]
     setup_input = uworker_io.SetupInput(data_bundles=data_bundles)
+    new_name = 'newname'
+    setup_input.data_bundles[0].name = new_name
     uworker_input = uworker_io.UworkerInput(setup_input=setup_input)
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(serialized)
     setup_input = deserialized.setup_input
-    self.assertEqual(setup_input.data_bundles[0].name, bundle1.name)
+    self.assertEqual(setup_input.data_bundles[0].name, new_name)
     self.assertEqual(setup_input.data_bundles[1].name, bundle2.name)
 
   def test_minimization_output_serialization(self):
@@ -485,3 +487,17 @@ class ComplexFieldsTest(unittest.TestCase):
     wire_format = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(wire_format)
     self.assertEqual(deserialized.analyze_task_input.bad_revisions, expected)
+
+  def test_set_to_none(self):
+    """Tests that updating a field to None works."""
+    analyze_task_input = uworker_io.AnalyzeTaskInput(bad_revisions=[0])
+    uworker_input = uworker_io.UworkerInput(
+        analyze_task_input=analyze_task_input)
+    expected = None
+    with self.assertRaises(TypeError):
+      analyze_task_input.bad_revisions = None
+
+    uworker_input.analyze_task_input = None
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(deserialized.analyze_task_input, expected)
