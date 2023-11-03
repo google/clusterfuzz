@@ -1,6 +1,6 @@
 {
   "include": [
-    "src/clusterfuzz/_internal/bot/tasks/utasks/progression_task.py"
+    "src/clusterfuzz/_internal/bot/tasks/utasks/uworker_io2.py"
   ],
   "exclude": [
     "**/__pycache__",
