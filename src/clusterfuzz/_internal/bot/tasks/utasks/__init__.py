@@ -16,6 +16,7 @@
 import importlib
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io2
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
