@@ -362,6 +362,8 @@ class UworkerMsg:
     self.save_rich_type(attribute, value)
 
   def save_rich_type(self, attribute, value):
+    """Saves non-primitive types to the _proto. This handles lists, messages and
+    lists of messages."""
     field = getattr(self._proto, attribute)
 
     if isinstance(field, collections.abc.Sequence):
