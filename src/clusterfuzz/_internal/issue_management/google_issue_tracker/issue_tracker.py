@@ -108,11 +108,15 @@ class Issue(issue_tracker.Issue):
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
     if extension_fields.get('_ext_collaborators'):
+      logs.log('google_issue_tracker: In apply_extension_fields for '
+               'collaborators: %s' % extension_fields['_ext_collaborators'])
       self._changed.add('_ext_collaborators')
       for collaborator in extension_fields['_ext_collaborators']:
         self._collaborators.add(collaborator)
 
     if extension_fields.get('_ext_issue_access_limit'):
+      logs.log('google_issue_tracker: In apply_extension_fields for IAL: %s' %
+               extension_fields['_ext_issue_access_limit'])
       self._changed.add('_issue_access_limit')
       self._issue_access_limit = extension_fields['_ext_issue_access_limit']
 
@@ -379,6 +383,7 @@ class Issue(issue_tracker.Issue):
   def save(self, new_comment=None, notify=True):
     """Saves the issue."""
     if self._is_new:
+      logs.log('google_issue_tracker: Creating new issue..')
       priority = _extract_label(self.labels, 'Pri-')
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
       self._data['issueState']['type'] = issue_type
@@ -408,9 +413,11 @@ class Issue(issue_tracker.Issue):
               body=self._data, templateOptions_applyTemplate=True))
       self._is_new = False
     else:
+      logs.log('google_issue_tracker: Updating issue..')
       result = self._update_issue(new_comment=new_comment, notify=notify)
     self._reset_tracking()
     self._data = result
+    logs.log('google_issue_tracker: self._data: %s' % self._data)
 
 
 class Action(issue_tracker.Action):
