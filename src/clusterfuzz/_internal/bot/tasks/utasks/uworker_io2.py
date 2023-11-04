@@ -152,9 +152,10 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   job_type: str
   original_job_type: str
   uworker_output_upload_url: str
+  fuzzer_name: str
+  module_name: str
 
   # optional google.datastore.v1.Entity variant = 8;
-  # optional string fuzzer_name = 10;
   # optional SetupInput setup_input = 11;
   # optional AnalyzeTaskInput analyze_task_input = 12;
   # optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
@@ -163,7 +164,6 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   # optional ProgressionTaskInput progression_task_input = 16;
   # optional RegressionTaskInput regression_task_input = 17;
   # optional SymbolizeTaskInput symbolize_task_input = 18;
-  # optional string module_name = 19;
 
   def to_proto(self) -> uworker_msg_pb2.Input:
     testcase = model_to_proto(self.testcase)
@@ -175,6 +175,8 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         original_job_type=self.original_job_type,
         uworker_env=uworker_env,
         uworker_output_upload_url=self.uworker_output_upload_url,
+        fuzzer_name=self.fuzzer_name,
+        module_name=self.module_name,
     )
 
   @classmethod
@@ -190,6 +192,8 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         original_job_type=proto.original_job_type,
         uworker_env=uworker_env,
         uworker_output_upload_url=proto.uworker_output_upload_url,
+        fuzzer_name=proto.fuzzer_name,
+        module_name=proto.module_name,
     )
 
 

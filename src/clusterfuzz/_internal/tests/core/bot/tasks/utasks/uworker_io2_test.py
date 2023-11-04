@@ -69,6 +69,8 @@ class UworkerIo2Test(unittest.TestCase):
         original_job_type='original-job',
         uworker_env={'a': 'b'},
         uworker_output_upload_url='http://foo',
+        fuzzer_name='foo-fuzzer',
+        module_name='foo_module',
     )
 
     proto = inp.to_proto()
@@ -77,6 +79,8 @@ class UworkerIo2Test(unittest.TestCase):
     self.assertEqual(proto.job_type, 'foo-job')
     self.assertEqual(proto.original_job_type, 'original-job')
     self.assertEqual(proto.uworker_output_upload_url, 'http://foo')
+    self.assertEqual(proto.fuzzer_name, 'foo-fuzzer')
+    self.assertEqual(proto.module_name, 'foo_module')
 
     roundtripped_testcase = uworker_io2.model_from_proto(proto.testcase)
     self.assertEqual(roundtripped_testcase, testcase)
@@ -97,6 +101,8 @@ class UworkerIo2Test(unittest.TestCase):
             'a': 'b'
         }),
         uworker_output_upload_url='http://foo',
+        fuzzer_name='foo-fuzzer',
+        module_name='foo_module',
     )
 
     inp = uworker_io2.Input.from_proto(proto)
@@ -110,6 +116,8 @@ class UworkerIo2Test(unittest.TestCase):
             original_job_type='original-job',
             uworker_env={'a': 'b'},
             uworker_output_upload_url='http://foo',
+            fuzzer_name='foo-fuzzer',
+            module_name='foo_module',
         ))
 
   def test_input_roundtrip(self):
@@ -123,6 +131,8 @@ class UworkerIo2Test(unittest.TestCase):
         original_job_type='original-job',
         uworker_env={'a': 'b'},
         uworker_output_upload_url='http://foo',
+        fuzzer_name='foo-fuzzer',
+        module_name='foo_module',
     )
 
     roundtripped = uworker_io2.Input.from_proto(inp.to_proto())
