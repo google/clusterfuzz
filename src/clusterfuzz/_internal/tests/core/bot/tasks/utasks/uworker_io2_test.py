@@ -65,12 +65,14 @@ class UworkerIo2Test(unittest.TestCase):
     inp = uworker_io2.Input(
         testcase=testcase,
         testcase_id='123',
+        job_type='foo-job',
         uworker_env={'a': 'b'},
     )
 
     proto = inp.to_proto()
 
     self.assertEqual(proto.testcase_id, '123')
+    self.assertEqual(proto.job_type, 'foo-job')
 
     roundtripped_testcase = uworker_io2.model_from_proto(proto.testcase)
     self.assertEqual(roundtripped_testcase, testcase)
@@ -85,6 +87,7 @@ class UworkerIo2Test(unittest.TestCase):
     proto = uworker_msg_pb2.Input(
         testcase=uworker_io2.model_to_proto(testcase),
         testcase_id='123',
+        job_type='foo-job',
         uworker_env=uworker_io2.json_to_proto({
             'a': 'b'
         }),
@@ -94,6 +97,7 @@ class UworkerIo2Test(unittest.TestCase):
 
     self.assertEqual(inp.testcase, testcase)
     self.assertEqual(inp.testcase_id, '123')
+    self.assertEqual(inp.job_type, 'foo-job')
     self.assertEqual(inp.uworker_env, {'a': 'b'})
 
   def test_input_roundtrip(self):
@@ -104,6 +108,7 @@ class UworkerIo2Test(unittest.TestCase):
     inp = uworker_io2.Input(
         testcase=testcase,
         testcase_id='123',
+        job_type='foo-job',
         uworker_env={'a': 'b'},
     )
 

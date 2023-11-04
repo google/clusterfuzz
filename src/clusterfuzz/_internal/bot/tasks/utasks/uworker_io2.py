@@ -140,7 +140,6 @@ class AnalyzeTaskInput(ProtoConvertible[uworker_msg_pb2.AnalyzeTaskInput]):
 
 # message Input {
 #   optional google.datastore.v1.Entity testcase_upload_metadata = 2;
-#   optional string job_type = 6;
 #   // uworker_io is the only module that should be using this.
 #   optional string uworker_output_upload_url = 7;
 #   optional google.datastore.v1.Entity variant = 8;
@@ -166,6 +165,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   testcase: data_types.Testcase
   uworker_env: Any
   testcase_id: str
+  job_type: str
 
   def to_proto(self) -> uworker_msg_pb2.Input:
     testcase = model_to_proto(self.testcase)
@@ -173,6 +173,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
     return uworker_msg_pb2.Input(
         testcase=testcase,
         testcase_id=self.testcase_id,
+        job_type=self.job_type,
         uworker_env=uworker_env,
     )
 
@@ -185,6 +186,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
     return cls(
         testcase=testcase,
         testcase_id=proto.testcase_id,
+        job_type=proto.job_type,
         uworker_env=uworker_env,
     )
 
