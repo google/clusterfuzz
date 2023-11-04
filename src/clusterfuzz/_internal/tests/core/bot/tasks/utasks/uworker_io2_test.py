@@ -18,6 +18,7 @@ import unittest
 from google.cloud.datastore_v1.proto import entity_pb2
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io2
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -58,6 +59,12 @@ class UworkerIo2Test(unittest.TestCase):
 
     self.assertEqual(roundtripped, testcase)
 
+  def _make_testcase_upload_metadata(self):
+    metadata = data_types.TestcaseUploadMetadata()
+    metadata.put()  # Put before mutating, to ensure local changes propagate.
+    metadata.filename = 'bar.txt'
+    return metadata
+
   def test_input_to_proto(self):
     """Verifies that `uworker_io2.Input` is correctly converted to a protobuf.
     """
@@ -65,6 +72,7 @@ class UworkerIo2Test(unittest.TestCase):
     inp = uworker_io2.Input(
         testcase=testcase,
         testcase_id='123',
+        testcase_upload_metadata=None,
         job_type='foo-job',
         original_job_type='original-job',
         uworker_env={'a': 'b'},
@@ -82,11 +90,36 @@ class UworkerIo2Test(unittest.TestCase):
     self.assertEqual(proto.fuzzer_name, 'foo-fuzzer')
     self.assertEqual(proto.module_name, 'foo_module')
 
+    self.assertFalse(proto.HasField('testcase_upload_metadata'))
+
     roundtripped_testcase = uworker_io2.model_from_proto(proto.testcase)
     self.assertEqual(roundtripped_testcase, testcase)
 
     roundtripped_uworker_env = uworker_io2.json_from_proto(proto.uworker_env)
     self.assertEqual(roundtripped_uworker_env, {'a': 'b'})
+
+  def test_input_to_proto_optional_fields(self):
+    """Verifies that `uworker_io2.Input` correctly converts its optional fields
+    to protobuf fields when they are set.
+    """
+    metadata = self._make_testcase_upload_metadata()
+    inp = uworker_io2.Input(
+        testcase=test_utils.create_generic_testcase(),
+        testcase_id='123',
+        testcase_upload_metadata=metadata,
+        job_type='foo-job',
+        original_job_type='original-job',
+        uworker_env={'a': 'b'},
+        uworker_output_upload_url='http://foo',
+        fuzzer_name='foo-fuzzer',
+        module_name='foo_module',
+    )
+
+    proto = inp.to_proto()
+
+    roundtripped_metadata = uworker_io2.model_from_proto(
+        proto.testcase_upload_metadata)
+    self.assertEqual(roundtripped_metadata, metadata)
 
   def test_input_from_proto(self):
     """Verifies that `uworker_io2.Input` is correctly converted from a protobuf.
@@ -95,6 +128,7 @@ class UworkerIo2Test(unittest.TestCase):
     proto = uworker_msg_pb2.Input(
         testcase=uworker_io2.model_to_proto(testcase),
         testcase_id='123',
+        testcase_upload_metadata=None,
         job_type='foo-job',
         original_job_type='original-job',
         uworker_env=uworker_io2.json_to_proto({
@@ -112,6 +146,7 @@ class UworkerIo2Test(unittest.TestCase):
         uworker_io2.Input(
             testcase=testcase,
             testcase_id='123',
+            testcase_upload_metadata=None,
             job_type='foo-job',
             original_job_type='original-job',
             uworker_env={'a': 'b'},
@@ -120,6 +155,30 @@ class UworkerIo2Test(unittest.TestCase):
             module_name='foo_module',
         ))
 
+  def test_input_from_proto_optional_fields(self):
+    """Verifies that `uworker_io2.Input.from_proto()` correctly converts
+    optional fields when they are set.
+    """
+    testcase = test_utils.create_generic_testcase()
+    metadata = self._make_testcase_upload_metadata()
+    proto = uworker_msg_pb2.Input(
+        testcase=uworker_io2.model_to_proto(testcase),
+        testcase_id='123',
+        testcase_upload_metadata=uworker_io2.model_to_proto(metadata),
+        job_type='foo-job',
+        original_job_type='original-job',
+        uworker_env=uworker_io2.json_to_proto({
+            'a': 'b'
+        }),
+        uworker_output_upload_url='http://foo',
+        fuzzer_name='foo-fuzzer',
+        module_name='foo_module',
+    )
+
+    inp = uworker_io2.Input.from_proto(proto)
+
+    self.assertEqual(inp.testcase_upload_metadata, metadata)
+
   def test_input_roundtrip(self):
     """Verifies that converting a `uworker_io2.Input` to protobufs and back
     yields the same value.
@@ -127,6 +186,7 @@ class UworkerIo2Test(unittest.TestCase):
     inp = uworker_io2.Input(
         testcase=test_utils.create_generic_testcase(),
         testcase_id='123',
+        testcase_upload_metadata=self._make_testcase_upload_metadata(),
         job_type='foo-job',
         original_job_type='original-job',
         uworker_env={'a': 'b'},

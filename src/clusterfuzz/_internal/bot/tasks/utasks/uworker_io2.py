@@ -22,6 +22,7 @@ import json
 from typing import Any
 from typing import Generic
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import TypeVar
 
@@ -110,6 +111,15 @@ def model_to_proto(mdl: ndb.Model) -> entity_pb2.Entity:
   return model._entity_to_protobuf(mdl)  # pyright: ignore # pylint: disable=protected-access
 
 
+def optional_model_to_proto(
+    mdl: Optional[ndb.Model]) -> Optional[entity_pb2.Entity]:
+  """Like `model_to_proto()`, but maps `None` to `None`."""
+  if mdl is None:
+    return None
+
+  return model_to_proto(mdl)
+
+
 def model_from_proto(entity: entity_pb2.Entity) -> ndb.Model:
   """TODO
   """
@@ -146,7 +156,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   """
 
   testcase: data_types.Testcase
-  # optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+  testcase_upload_metadata: Optional[data_types.TestcaseUploadMetadata]
   uworker_env: Any
   testcase_id: str
   job_type: str
@@ -167,10 +177,13 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
 
   def to_proto(self) -> uworker_msg_pb2.Input:
     testcase = model_to_proto(self.testcase)
+    testcase_upload_metadata = optional_model_to_proto(
+        self.testcase_upload_metadata)
     uworker_env = json_to_proto(self.uworker_env)
     return uworker_msg_pb2.Input(
         testcase=testcase,
         testcase_id=self.testcase_id,
+        testcase_upload_metadata=testcase_upload_metadata,
         job_type=self.job_type,
         original_job_type=self.original_job_type,
         uworker_env=uworker_env,
@@ -181,13 +194,22 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
 
   @classmethod
   def from_proto(cls, proto: uworker_msg_pb2.Input):
+    """See `ProtoConvertible.from_proto()`."""
     testcase = model_from_proto(proto.testcase)
     assert isinstance(testcase, data_types.Testcase)
+
+    testcase_upload_metadata = None
+    if proto.HasField('testcase_upload_metadata'):
+      testcase_upload_metadata = model_from_proto(
+          proto.testcase_upload_metadata)
+      assert isinstance(testcase_upload_metadata,
+                        data_types.TestcaseUploadMetadata)
 
     uworker_env = json_from_proto(proto.uworker_env)
     return cls(
         testcase=testcase,
         testcase_id=proto.testcase_id,
+        testcase_upload_metadata=testcase_upload_metadata,
         job_type=proto.job_type,
         original_job_type=proto.original_job_type,
         uworker_env=uworker_env,
