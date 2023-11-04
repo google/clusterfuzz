@@ -66,6 +66,7 @@ class UworkerIo2Test(unittest.TestCase):
         testcase=testcase,
         testcase_id='123',
         job_type='foo-job',
+        original_job_type='original-job',
         uworker_env={'a': 'b'},
         uworker_output_upload_url='http://foo',
     )
@@ -74,6 +75,7 @@ class UworkerIo2Test(unittest.TestCase):
 
     self.assertEqual(proto.testcase_id, '123')
     self.assertEqual(proto.job_type, 'foo-job')
+    self.assertEqual(proto.original_job_type, 'original-job')
     self.assertEqual(proto.uworker_output_upload_url, 'http://foo')
 
     roundtripped_testcase = uworker_io2.model_from_proto(proto.testcase)
@@ -90,6 +92,7 @@ class UworkerIo2Test(unittest.TestCase):
         testcase=uworker_io2.model_to_proto(testcase),
         testcase_id='123',
         job_type='foo-job',
+        original_job_type='original-job',
         uworker_env=uworker_io2.json_to_proto({
             'a': 'b'
         }),
@@ -104,6 +107,7 @@ class UworkerIo2Test(unittest.TestCase):
             testcase=testcase,
             testcase_id='123',
             job_type='foo-job',
+            original_job_type='original-job',
             uworker_env={'a': 'b'},
             uworker_output_upload_url='http://foo',
         ))
@@ -116,6 +120,7 @@ class UworkerIo2Test(unittest.TestCase):
         testcase=test_utils.create_generic_testcase(),
         testcase_id='123',
         job_type='foo-job',
+        original_job_type='original-job',
         uworker_env={'a': 'b'},
         uworker_output_upload_url='http://foo',
     )

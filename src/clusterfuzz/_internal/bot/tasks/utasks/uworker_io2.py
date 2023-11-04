@@ -150,10 +150,10 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   uworker_env: Any
   testcase_id: str
   job_type: str
+  original_job_type: str
   uworker_output_upload_url: str
 
   # optional google.datastore.v1.Entity variant = 8;
-  # optional string original_job_type = 9;
   # optional string fuzzer_name = 10;
   # optional SetupInput setup_input = 11;
   # optional AnalyzeTaskInput analyze_task_input = 12;
@@ -172,6 +172,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         testcase=testcase,
         testcase_id=self.testcase_id,
         job_type=self.job_type,
+        original_job_type=self.original_job_type,
         uworker_env=uworker_env,
         uworker_output_upload_url=self.uworker_output_upload_url,
     )
@@ -186,6 +187,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         testcase=testcase,
         testcase_id=proto.testcase_id,
         job_type=proto.job_type,
+        original_job_type=proto.original_job_type,
         uworker_env=uworker_env,
         uworker_output_upload_url=proto.uworker_output_upload_url,
     )
