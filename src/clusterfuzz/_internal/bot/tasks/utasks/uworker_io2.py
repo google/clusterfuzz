@@ -24,6 +24,7 @@ from typing import Generic
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Type
 from typing import TypeVar
 
 from google.cloud import ndb
@@ -120,10 +121,15 @@ def optional_model_to_proto(
   return model_to_proto(mdl)
 
 
-def model_from_proto(entity: entity_pb2.Entity) -> ndb.Model:
+M = TypeVar('M', bound=ndb.Model)
+
+
+def model_from_proto(entity: entity_pb2.Entity, model_type: Type[M]) -> M:
   """TODO
   """
-  return model._entity_from_protobuf(entity)  # pyright: ignore # pylint: disable=protected-access
+  mdl = model._entity_from_protobuf(entity)  # pyright: ignore # pylint: disable=protected-access
+  assert isinstance(mdl, model_type)
+  return mdl
 
 
 @dataclasses.dataclass
@@ -149,6 +155,47 @@ class AnalyzeTaskInput(ProtoConvertible[uworker_msg_pb2.AnalyzeTaskInput]):
 
 
 @dataclasses.dataclass
+class SetupInput(ProtoConvertible[uworker_msg_pb2.SetupInput]):
+  """TODO.
+  """
+
+  fuzzer: data_types.Fuzzer
+  data_bundles: List[data_types.DataBundle]
+  fuzzer_name: str
+  fuzzer_log_upload_url: str
+  fuzzer_download_url: str
+  testcase_download_url: str
+
+  def to_proto(self) -> uworker_msg_pb2.SetupInput:
+    fuzzer = model_to_proto(self.fuzzer)
+    data_bundles = [model_to_proto(bundle) for bundle in self.data_bundles]
+    return uworker_msg_pb2.SetupInput(
+        fuzzer=fuzzer,
+        data_bundles=data_bundles,
+        fuzzer_name=self.fuzzer_name,
+        fuzzer_log_upload_url=self.fuzzer_log_upload_url,
+        fuzzer_download_url=self.fuzzer_download_url,
+        testcase_download_url=self.testcase_download_url,
+    )
+
+  @classmethod
+  def from_proto(cls, proto: uworker_msg_pb2.SetupInput) -> "SetupInput":
+    fuzzer = model_from_proto(proto.fuzzer, data_types.Fuzzer)
+    data_bundles = [
+        model_from_proto(bundle, data_types.DataBundle)
+        for bundle in proto.data_bundles
+    ]
+    return cls(
+        fuzzer=fuzzer,
+        data_bundles=data_bundles,
+        fuzzer_name=proto.fuzzer_name,
+        fuzzer_log_upload_url=proto.fuzzer_log_upload_url,
+        fuzzer_download_url=proto.fuzzer_download_url,
+        testcase_download_url=proto.testcase_download_url,
+    )
+
+
+@dataclasses.dataclass
 class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   """Input for uworkers.
 
@@ -164,6 +211,8 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   uworker_output_upload_url: str
   fuzzer_name: str
   module_name: str
+
+  #setup_input: Optional[SetupInput]
 
   # optional google.datastore.v1.Entity variant = 8;
   # optional SetupInput setup_input = 11;
@@ -195,15 +244,12 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   @classmethod
   def from_proto(cls, proto: uworker_msg_pb2.Input):
     """See `ProtoConvertible.from_proto()`."""
-    testcase = model_from_proto(proto.testcase)
-    assert isinstance(testcase, data_types.Testcase)
+    testcase = model_from_proto(proto.testcase, data_types.Testcase)
 
     testcase_upload_metadata = None
     if proto.HasField('testcase_upload_metadata'):
       testcase_upload_metadata = model_from_proto(
-          proto.testcase_upload_metadata)
-      assert isinstance(testcase_upload_metadata,
-                        data_types.TestcaseUploadMetadata)
+          proto.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
 
     uworker_env = json_from_proto(proto.uworker_env)
     return cls(
