@@ -15,10 +15,14 @@
 
 import unittest
 
+from google.cloud.datastore_v1.proto import entity_pb2
+
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io2
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 
+@test_utils.with_cloud_emulators('datastore')
 class UworkerIo2Test(unittest.TestCase):
   """Tests for proto conversion to and from python types."""
 
@@ -44,8 +48,45 @@ class UworkerIo2Test(unittest.TestCase):
   def test_json_from_proto(self):
     pass
 
-  def test_model_to_proto(self):
-    pass
+  def test_model_roundtrip(self):
+    testcase = test_utils.create_generic_testcase()
+    proto = uworker_io2.model_to_proto(testcase)
 
-  def test_model_from_proto(self):
-    pass
+    self.assertIsInstance(proto, entity_pb2.Entity)
+
+    roundtripped = uworker_io2.model_from_proto(proto)
+
+    self.assertEqual(roundtripped, testcase)
+
+  def test_input_to_proto(self):
+    testcase = test_utils.create_generic_testcase()
+    inp = uworker_io2.Input(testcase=testcase, uworker_env={'a': 'b'})
+
+    proto = inp.to_proto()
+
+    roundtripped_testcase = uworker_io2.model_from_proto(proto.testcase)
+    self.assertEqual(roundtripped_testcase, testcase)
+
+    roundtripped_uworker_env = uworker_io2.json_from_proto(proto.uworker_env)
+    self.assertEqual(roundtripped_uworker_env, {'a': 'b'})
+
+  def test_input_from_proto(self):
+    testcase = test_utils.create_generic_testcase()
+    proto = uworker_msg_pb2.Input(
+        testcase=uworker_io2.model_to_proto(testcase),
+        uworker_env=uworker_io2.json_to_proto({
+            'a': 'b'
+        }))
+
+    inp = uworker_io2.Input.from_proto(proto)
+
+    self.assertEqual(inp.testcase, testcase)
+    self.assertEqual(inp.uworker_env, {'a': 'b'})
+
+  def test_input_roundtrip(self):
+    testcase = test_utils.create_generic_testcase()
+    inp = uworker_io2.Input(testcase=testcase, uworker_env={'a': 'b'})
+
+    roundtripped = uworker_io2.Input.from_proto(inp.to_proto())
+
+    self.assertEqual(roundtripped, inp)

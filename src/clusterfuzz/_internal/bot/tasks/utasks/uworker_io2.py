@@ -30,7 +30,7 @@ from google.cloud.datastore_v1.proto import entity_pb2
 from google.cloud.ndb import model  # pyright: ignore[reportMissingModuleSource]
 from google.protobuf import message
 
-#from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_types
 #from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
@@ -136,6 +136,51 @@ class AnalyzeTaskInput(ProtoConvertible[uworker_msg_pb2.AnalyzeTaskInput]):
     """TODO.
     """
     return cls(bad_revisions=list(proto.bad_revisions))
+
+
+# message Input {
+#   optional google.datastore.v1.Entity testcase = 1;
+#   optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+#   optional string testcase_id = 3;
+#   optional Json uworker_env = 4;
+#   optional string job_type = 6;
+#   // uworker_io is the only module that should be using this.
+#   optional string uworker_output_upload_url = 7;
+#   optional google.datastore.v1.Entity variant = 8;
+#   optional string original_job_type = 9;
+#   optional string fuzzer_name = 10;
+#   optional SetupInput setup_input = 11;
+#   optional AnalyzeTaskInput analyze_task_input = 12;
+#   optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
+#   optional FuzzTaskInput fuzz_task_input = 14;
+#   optional MinimizeTaskInput minimize_task_input = 15;
+#   optional ProgressionTaskInput progression_task_input = 16;
+#   optional RegressionTaskInput regression_task_input = 17;
+#   optional SymbolizeTaskInput symbolize_task_input = 18;
+#   optional string module_name = 19;
+# }
+@dataclasses.dataclass
+class Input(ProtoConvertible[uworker_msg_pb2.Input]):
+  """Input for uworkers.
+
+  See `Input` proto definition for more details.
+  """
+
+  testcase: data_types.Testcase
+  uworker_env: Any
+
+  def to_proto(self) -> uworker_msg_pb2.Input:
+    testcase = model_to_proto(self.testcase)
+    uworker_env = json_to_proto(self.uworker_env)
+    return uworker_msg_pb2.Input(testcase=testcase, uworker_env=uworker_env)
+
+  @classmethod
+  def from_proto(cls, proto: uworker_msg_pb2.Input):
+    testcase = model_from_proto(proto.testcase)
+    assert isinstance(testcase, data_types.Testcase)
+
+    uworker_env = json_from_proto(proto.uworker_env)
+    return cls(testcase=testcase, uworker_env=uworker_env)
 
 
 @dataclasses.dataclass
