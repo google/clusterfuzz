@@ -67,12 +67,14 @@ class UworkerIo2Test(unittest.TestCase):
         testcase_id='123',
         job_type='foo-job',
         uworker_env={'a': 'b'},
+        uworker_output_upload_url='http://foo',
     )
 
     proto = inp.to_proto()
 
     self.assertEqual(proto.testcase_id, '123')
     self.assertEqual(proto.job_type, 'foo-job')
+    self.assertEqual(proto.uworker_output_upload_url, 'http://foo')
 
     roundtripped_testcase = uworker_io2.model_from_proto(proto.testcase)
     self.assertEqual(roundtripped_testcase, testcase)
@@ -91,25 +93,31 @@ class UworkerIo2Test(unittest.TestCase):
         uworker_env=uworker_io2.json_to_proto({
             'a': 'b'
         }),
+        uworker_output_upload_url='http://foo',
     )
 
     inp = uworker_io2.Input.from_proto(proto)
 
-    self.assertEqual(inp.testcase, testcase)
-    self.assertEqual(inp.testcase_id, '123')
-    self.assertEqual(inp.job_type, 'foo-job')
-    self.assertEqual(inp.uworker_env, {'a': 'b'})
+    self.assertEqual(
+        inp,
+        uworker_io2.Input(
+            testcase=testcase,
+            testcase_id='123',
+            job_type='foo-job',
+            uworker_env={'a': 'b'},
+            uworker_output_upload_url='http://foo',
+        ))
 
   def test_input_roundtrip(self):
     """Verifies that converting a `uworker_io2.Input` to protobufs and back
     yields the same value.
     """
-    testcase = test_utils.create_generic_testcase()
     inp = uworker_io2.Input(
-        testcase=testcase,
+        testcase=test_utils.create_generic_testcase(),
         testcase_id='123',
         job_type='foo-job',
         uworker_env={'a': 'b'},
+        uworker_output_upload_url='http://foo',
     )
 
     roundtripped = uworker_io2.Input.from_proto(inp.to_proto())

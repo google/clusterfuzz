@@ -138,23 +138,6 @@ class AnalyzeTaskInput(ProtoConvertible[uworker_msg_pb2.AnalyzeTaskInput]):
     return cls(bad_revisions=list(proto.bad_revisions))
 
 
-# message Input {
-#   optional google.datastore.v1.Entity testcase_upload_metadata = 2;
-#   // uworker_io is the only module that should be using this.
-#   optional string uworker_output_upload_url = 7;
-#   optional google.datastore.v1.Entity variant = 8;
-#   optional string original_job_type = 9;
-#   optional string fuzzer_name = 10;
-#   optional SetupInput setup_input = 11;
-#   optional AnalyzeTaskInput analyze_task_input = 12;
-#   optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
-#   optional FuzzTaskInput fuzz_task_input = 14;
-#   optional MinimizeTaskInput minimize_task_input = 15;
-#   optional ProgressionTaskInput progression_task_input = 16;
-#   optional RegressionTaskInput regression_task_input = 17;
-#   optional SymbolizeTaskInput symbolize_task_input = 18;
-#   optional string module_name = 19;
-# }
 @dataclasses.dataclass
 class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   """Input for uworkers.
@@ -163,9 +146,24 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   """
 
   testcase: data_types.Testcase
+  # optional google.datastore.v1.Entity testcase_upload_metadata = 2;
   uworker_env: Any
   testcase_id: str
   job_type: str
+  uworker_output_upload_url: str
+
+  # optional google.datastore.v1.Entity variant = 8;
+  # optional string original_job_type = 9;
+  # optional string fuzzer_name = 10;
+  # optional SetupInput setup_input = 11;
+  # optional AnalyzeTaskInput analyze_task_input = 12;
+  # optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
+  # optional FuzzTaskInput fuzz_task_input = 14;
+  # optional MinimizeTaskInput minimize_task_input = 15;
+  # optional ProgressionTaskInput progression_task_input = 16;
+  # optional RegressionTaskInput regression_task_input = 17;
+  # optional SymbolizeTaskInput symbolize_task_input = 18;
+  # optional string module_name = 19;
 
   def to_proto(self) -> uworker_msg_pb2.Input:
     testcase = model_to_proto(self.testcase)
@@ -175,6 +173,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         testcase_id=self.testcase_id,
         job_type=self.job_type,
         uworker_env=uworker_env,
+        uworker_output_upload_url=self.uworker_output_upload_url,
     )
 
   @classmethod
@@ -188,6 +187,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         testcase_id=proto.testcase_id,
         job_type=proto.job_type,
         uworker_env=uworker_env,
+        uworker_output_upload_url=proto.uworker_output_upload_url,
     )
 
 
