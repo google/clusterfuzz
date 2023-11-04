@@ -59,10 +59,18 @@ class UworkerIo2Test(unittest.TestCase):
     self.assertEqual(roundtripped, testcase)
 
   def test_input_to_proto(self):
+    """Verifies that `uworker_io2.Input` is correctly converted to a protobuf.
+    """
     testcase = test_utils.create_generic_testcase()
-    inp = uworker_io2.Input(testcase=testcase, uworker_env={'a': 'b'})
+    inp = uworker_io2.Input(
+        testcase=testcase,
+        testcase_id='123',
+        uworker_env={'a': 'b'},
+    )
 
     proto = inp.to_proto()
+
+    self.assertEqual(proto.testcase_id, '123')
 
     roundtripped_testcase = uworker_io2.model_from_proto(proto.testcase)
     self.assertEqual(roundtripped_testcase, testcase)
@@ -71,21 +79,33 @@ class UworkerIo2Test(unittest.TestCase):
     self.assertEqual(roundtripped_uworker_env, {'a': 'b'})
 
   def test_input_from_proto(self):
+    """Verifies that `uworker_io2.Input` is correctly converted from a protobuf.
+    """
     testcase = test_utils.create_generic_testcase()
     proto = uworker_msg_pb2.Input(
         testcase=uworker_io2.model_to_proto(testcase),
+        testcase_id='123',
         uworker_env=uworker_io2.json_to_proto({
             'a': 'b'
-        }))
+        }),
+    )
 
     inp = uworker_io2.Input.from_proto(proto)
 
     self.assertEqual(inp.testcase, testcase)
+    self.assertEqual(inp.testcase_id, '123')
     self.assertEqual(inp.uworker_env, {'a': 'b'})
 
   def test_input_roundtrip(self):
+    """Verifies that converting a `uworker_io2.Input` to protobufs and back
+    yields the same value.
+    """
     testcase = test_utils.create_generic_testcase()
-    inp = uworker_io2.Input(testcase=testcase, uworker_env={'a': 'b'})
+    inp = uworker_io2.Input(
+        testcase=testcase,
+        testcase_id='123',
+        uworker_env={'a': 'b'},
+    )
 
     roundtripped = uworker_io2.Input.from_proto(inp.to_proto())
 

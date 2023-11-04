@@ -139,10 +139,7 @@ class AnalyzeTaskInput(ProtoConvertible[uworker_msg_pb2.AnalyzeTaskInput]):
 
 
 # message Input {
-#   optional google.datastore.v1.Entity testcase = 1;
 #   optional google.datastore.v1.Entity testcase_upload_metadata = 2;
-#   optional string testcase_id = 3;
-#   optional Json uworker_env = 4;
 #   optional string job_type = 6;
 #   // uworker_io is the only module that should be using this.
 #   optional string uworker_output_upload_url = 7;
@@ -168,11 +165,16 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
 
   testcase: data_types.Testcase
   uworker_env: Any
+  testcase_id: str
 
   def to_proto(self) -> uworker_msg_pb2.Input:
     testcase = model_to_proto(self.testcase)
     uworker_env = json_to_proto(self.uworker_env)
-    return uworker_msg_pb2.Input(testcase=testcase, uworker_env=uworker_env)
+    return uworker_msg_pb2.Input(
+        testcase=testcase,
+        testcase_id=self.testcase_id,
+        uworker_env=uworker_env,
+    )
 
   @classmethod
   def from_proto(cls, proto: uworker_msg_pb2.Input):
@@ -180,7 +182,11 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
     assert isinstance(testcase, data_types.Testcase)
 
     uworker_env = json_from_proto(proto.uworker_env)
-    return cls(testcase=testcase, uworker_env=uworker_env)
+    return cls(
+        testcase=testcase,
+        testcase_id=proto.testcase_id,
+        uworker_env=uworker_env,
+    )
 
 
 @dataclasses.dataclass
