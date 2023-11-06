@@ -90,6 +90,9 @@ class UworkerIo2Test(unittest.TestCase):
         testcase_download_url='http://testcase-download',
     )
 
+  def _make_analyze_task_input(self):
+    return uworker_io2.AnalyzeTaskInput(bad_revisions=[1, 2, 3])
+
   def test_setup_input_to_proto(self):
     """Verifies that `uworker_io2.SetupInput.to_proto()` works correctly."""
     setup_input = self._make_setup_input()
@@ -138,6 +141,7 @@ class UworkerIo2Test(unittest.TestCase):
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
         setup_input=None,
+        analyze_task_input=None,
     )
 
     proto = inp.to_proto()
@@ -151,6 +155,7 @@ class UworkerIo2Test(unittest.TestCase):
 
     self.assertFalse(proto.HasField('testcase_upload_metadata'))
     self.assertFalse(proto.HasField('setup_input'))
+    self.assertFalse(proto.HasField('analyze_task_input'))
 
     roundtripped_testcase = uworker_io2.model_from_proto(
         proto.testcase, data_types.Testcase)
@@ -175,6 +180,7 @@ class UworkerIo2Test(unittest.TestCase):
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
         setup_input=self._make_setup_input(),
+        analyze_task_input=self._make_analyze_task_input(),
     )
 
     proto = inp.to_proto()
@@ -186,6 +192,10 @@ class UworkerIo2Test(unittest.TestCase):
     roundtripped_setup_input = uworker_io2.SetupInput.from_proto(
         proto.setup_input)
     self.assertEqual(roundtripped_setup_input, inp.setup_input)
+
+    roundtripped_analyze_task_input = uworker_io2.AnalyzeTaskInput.from_proto(
+        proto.analyze_task_input)
+    self.assertEqual(roundtripped_analyze_task_input, inp.analyze_task_input)
 
   def test_input_from_proto(self):
     """Verifies that `uworker_io2.Input` is correctly converted from a protobuf.
@@ -220,6 +230,7 @@ class UworkerIo2Test(unittest.TestCase):
             fuzzer_name='foo-fuzzer',
             module_name='foo_module',
             setup_input=None,
+            analyze_task_input=None,
         ))
 
   def test_input_from_proto_optional_fields(self):
@@ -229,6 +240,7 @@ class UworkerIo2Test(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
     metadata = self._make_testcase_upload_metadata()
     setup_input = self._make_setup_input()
+    analyze_task_input = self._make_analyze_task_input()
     proto = uworker_msg_pb2.Input(
         testcase=uworker_io2.model_to_proto(testcase),
         testcase_id='123',
@@ -242,12 +254,14 @@ class UworkerIo2Test(unittest.TestCase):
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
         setup_input=setup_input.to_proto(),
+        analyze_task_input=analyze_task_input.to_proto(),
     )
 
     inp = uworker_io2.Input.from_proto(proto)
 
     self.assertEqual(inp.testcase_upload_metadata, metadata)
     self.assertEqual(inp.setup_input, setup_input)
+    self.assertEqual(inp.analyze_task_input, analyze_task_input)
 
   def test_input_roundtrip(self):
     """Verifies that converting a `uworker_io2.Input` to protobufs and back
@@ -264,6 +278,7 @@ class UworkerIo2Test(unittest.TestCase):
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
         setup_input=self._make_setup_input(),
+        analyze_task_input=self._make_analyze_task_input(),
     )
 
     roundtripped = uworker_io2.Input.from_proto(inp.to_proto())

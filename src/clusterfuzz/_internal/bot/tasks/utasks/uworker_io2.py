@@ -212,9 +212,9 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   fuzzer_name: str
   module_name: str
   setup_input: Optional[SetupInput]
+  analyze_task_input: Optional[AnalyzeTaskInput]
 
   # optional google.datastore.v1.Entity variant = 8;
-  # optional AnalyzeTaskInput analyze_task_input = 12;
   # optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
   # optional FuzzTaskInput fuzz_task_input = 14;
   # optional MinimizeTaskInput minimize_task_input = 15;
@@ -233,6 +233,10 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
     if self.setup_input is not None:
       setup_input = self.setup_input.to_proto()
 
+    analyze_task_input = None
+    if self.analyze_task_input is not None:
+      analyze_task_input = self.analyze_task_input.to_proto()
+
     return uworker_msg_pb2.Input(
         testcase=testcase,
         testcase_id=self.testcase_id,
@@ -244,6 +248,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         fuzzer_name=self.fuzzer_name,
         module_name=self.module_name,
         setup_input=setup_input,
+        analyze_task_input=analyze_task_input,
     )
 
   @classmethod
@@ -260,6 +265,10 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
     if proto.HasField('setup_input'):
       setup_input = SetupInput.from_proto(proto.setup_input)
 
+    analyze_task_input = None
+    if proto.HasField('analyze_task_input'):
+      analyze_task_input = AnalyzeTaskInput.from_proto(proto.analyze_task_input)
+
     uworker_env = json_from_proto(proto.uworker_env)
     return cls(
         testcase=testcase,
@@ -272,6 +281,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         fuzzer_name=proto.fuzzer_name,
         module_name=proto.module_name,
         setup_input=setup_input,
+        analyze_task_input=analyze_task_input,
     )
 
 
