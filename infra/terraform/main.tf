@@ -72,7 +72,8 @@ resource "google_container_node_pool" "primary_nodes" {
 
   node_config {
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/buganizer"
     ]
 
     labels = {
