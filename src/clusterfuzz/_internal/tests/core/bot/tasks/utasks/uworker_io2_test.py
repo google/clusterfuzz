@@ -77,6 +77,52 @@ class UworkerIo2Test(unittest.TestCase):
     bundle.name = name
     return bundle
 
+  def _make_setup_input(self):
+    return uworker_io2.SetupInput(
+        fuzzer=self._make_fuzzer(),
+        data_bundles=[
+            self._make_data_bundle(name='foo-bundle'),
+            self._make_data_bundle(name='bar-bundle'),
+        ],
+        fuzzer_name='foo-fuzzer',
+        fuzzer_log_upload_url='http://fuzzer-log-upload',
+        fuzzer_download_url='http://fuzzer-download',
+        testcase_download_url='http://testcase-download',
+    )
+
+  def test_setup_input_to_proto(self):
+    """Verifies that `uworker_io2.SetupInput.to_proto()` works correctly."""
+    setup_input = self._make_setup_input()
+
+    proto = setup_input.to_proto()
+
+    self.assertEqual(proto.fuzzer_name, setup_input.fuzzer_name)
+    self.assertEqual(proto.fuzzer_log_upload_url,
+                     setup_input.fuzzer_log_upload_url)
+    self.assertEqual(proto.fuzzer_download_url, setup_input.fuzzer_download_url)
+    self.assertEqual(proto.testcase_download_url,
+                     setup_input.testcase_download_url)
+
+    roundtripped_fuzzer = uworker_io2.model_from_proto(proto.fuzzer,
+                                                       data_types.Fuzzer)
+    self.assertEqual(roundtripped_fuzzer, setup_input.fuzzer)
+
+    roundtripped_bundles = [
+        uworker_io2.model_from_proto(bundle, data_types.DataBundle)
+        for bundle in proto.data_bundles
+    ]
+    self.assertEqual(roundtripped_bundles, setup_input.data_bundles)
+
+  def test_setup_input_roundtrip(self):
+    """Verifies that converting a `uworker_io2.SetupInput` to protobufs and back
+    yields the same value.
+    """
+    setup_input = self._make_setup_input()
+
+    roundtripped = uworker_io2.SetupInput.from_proto(setup_input.to_proto())
+
+    self.assertEqual(roundtripped, setup_input)
+
   def test_input_to_proto(self):
     """Verifies that `uworker_io2.Input` is correctly converted to a protobuf.
     """
@@ -211,49 +257,3 @@ class UworkerIo2Test(unittest.TestCase):
     roundtripped = uworker_io2.Input.from_proto(inp.to_proto())
 
     self.assertEqual(roundtripped, inp)
-
-  def _make_setup_input(self):
-    return uworker_io2.SetupInput(
-        fuzzer=self._make_fuzzer(),
-        data_bundles=[
-            self._make_data_bundle(name='foo-bundle'),
-            self._make_data_bundle(name='bar-bundle'),
-        ],
-        fuzzer_name='foo-fuzzer',
-        fuzzer_log_upload_url='http://fuzzer-log-upload',
-        fuzzer_download_url='http://fuzzer-download',
-        testcase_download_url='http://testcase-download',
-    )
-
-  def test_setup_input_to_proto(self):
-    """Verifies that `uworker_io2.SetupInput.to_proto()` works correctly."""
-    setup_input = self._make_setup_input()
-
-    proto = setup_input.to_proto()
-
-    self.assertEqual(proto.fuzzer_name, setup_input.fuzzer_name)
-    self.assertEqual(proto.fuzzer_log_upload_url,
-                     setup_input.fuzzer_log_upload_url)
-    self.assertEqual(proto.fuzzer_download_url, setup_input.fuzzer_download_url)
-    self.assertEqual(proto.testcase_download_url,
-                     setup_input.testcase_download_url)
-
-    roundtripped_fuzzer = uworker_io2.model_from_proto(proto.fuzzer,
-                                                       data_types.Fuzzer)
-    self.assertEqual(roundtripped_fuzzer, setup_input.fuzzer)
-
-    roundtripped_bundles = [
-        uworker_io2.model_from_proto(bundle, data_types.DataBundle)
-        for bundle in proto.data_bundles
-    ]
-    self.assertEqual(roundtripped_bundles, setup_input.data_bundles)
-
-  def test_setup_input_roundtrip(self):
-    """Verifies that converting a `uworker_io2.SetupInput` to protobufs and back
-    yields the same value.
-    """
-    setup_input = self._make_setup_input()
-
-    roundtripped = uworker_io2.SetupInput.from_proto(setup_input.to_proto())
-
-    self.assertEqual(roundtripped, setup_input)
