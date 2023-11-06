@@ -375,7 +375,7 @@ def get_testcase_detail(testcase):
   crash_type = data_handler.get_crash_type_string(testcase)
   external_user = not access.has_access(job_type=testcase.job_type)
   issue_url = issue_tracker_utils.get_issue_url(testcase)
-  metadata = testcase.get_metadata()
+  metadata = testcase.get_all_metadata()
   original_testcase_size = _get_blob_size_string(testcase.fuzzed_keys)
   minimized_testcase_size = _get_blob_size_string(testcase.minimized_keys)
   has_issue_tracker = bool(data_handler.get_issue_tracker_name())

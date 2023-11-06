@@ -14,6 +14,8 @@
 """Classes for objects stored in the datastore."""
 
 import re
+from typing import Any
+from typing import Dict
 
 from google.cloud import ndb
 
@@ -671,38 +673,39 @@ class Testcase(Model):
 
     setattr(self, 'metadata_cache', cache)
 
-  def get_metadata(self, key=None, default=None):
-    """Get metadata for a test case. Slow on first access."""
+  def get_all_metadata(self) -> Dict[str, Any]:
+    """Get all metadata for a test case. Slow on first access."""
     self._ensure_metadata_is_cached()
+    return self.metadata_cache
 
-    # If no key is specified, return all metadata.
-    if not key:
-      return self.metadata_cache
-
+  def get_metadata(self, key: str, default: Any = None) -> Any:
+    """Get metadata for a test case. Slow on first access."""
+    metadata = self.get_all_metadata()
     try:
-      return self.metadata_cache[key]
+      return metadata[key]
     except KeyError:
       return default
 
-  def set_metadata(self, key, value, update_testcase=True):
+  def set_metadata(self, key: str, value: Any,
+                   update_testcase: bool = True) -> None:
     """Set metadata for a test case."""
-    self._ensure_metadata_is_cached()
-    self.metadata_cache[key] = value
+    metadata = self.get_all_metadata()
+    metadata[key] = value
 
-    self.additional_metadata = json_utils.dumps(self.metadata_cache)
+    self.additional_metadata = json_utils.dumps(metadata)
     if update_testcase:
       self.put()
 
-  def delete_metadata(self, key, update_testcase=True):
+  def delete_metadata(self, key: str, update_testcase: bool = True) -> None:
     """Remove metadata key for a test case."""
-    self._ensure_metadata_is_cached()
+    metadata = self.get_all_metadata()
 
     # Make sure that the key exists in cache. If not, no work to do here.
-    if key not in self.metadata_cache:
+    if key not in metadata:
       return
 
-    del self.metadata_cache[key]
-    self.additional_metadata = json_utils.dumps(self.metadata_cache)
+    del metadata[key]
+    self.additional_metadata = json_utils.dumps(metadata)
     if update_testcase:
       self.put()
 

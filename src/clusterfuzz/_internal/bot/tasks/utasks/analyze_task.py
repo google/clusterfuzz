@@ -38,13 +38,13 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
-def _add_default_issue_metadata(testcase):
+def _add_default_issue_metadata(testcase: data_types.Testcase) -> None:
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
   default_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
   if not default_metadata:
     return
 
-  testcase_metadata = testcase.get_metadata()
+  testcase_metadata = testcase.get_all_metadata()
   for key, default_value in default_metadata.items():
     # Only string metadata are supported.
     if not isinstance(default_value, str):
@@ -57,6 +57,8 @@ def _add_default_issue_metadata(testcase):
 
     # Append uploader specified testcase metadata value to end (for preference).
     uploader_value = testcase_metadata.get(key, '')
+    assert isinstance(uploader_value, str)
+
     uploader_value_list = utils.parse_delimited(
         uploader_value, delimiter=',', strip=True, remove_empty=True)
     for value in uploader_value_list:
