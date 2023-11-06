@@ -406,7 +406,7 @@ class Testcase(Model):
   comments = ndb.TextProperty(default='', indexed=False)
 
   # Revision that we discovered the crash in.
-  crash_revision = ndb.IntegerProperty()
+  crash_revision: int = ndb.IntegerProperty()
 
   # The file on the bot that generated the testcase.
   absolute_path = ndb.TextProperty()

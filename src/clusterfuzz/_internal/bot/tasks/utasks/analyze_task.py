@@ -15,6 +15,7 @@
 
 import datetime
 from typing import Optional
+from typing import Tuple
 
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -24,6 +25,7 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io2
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -133,7 +135,7 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 def setup_testcase_and_build(
     testcase, testcase_upload_metadata, job_type, setup_input,
-    bad_revisions) -> (Optional[str], Optional[uworker_io.UworkerOutput]):
+    bad_revisions) -> Tuple[Optional[str], Optional[uworker_io.UworkerOutput]]:
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
@@ -273,8 +275,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  id_clause = data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id) # pyright: ignore
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(id_clause).get()
   if not testcase_upload_metadata:
     logs.log_error(
         'Testcase %s has no associated upload metadata.' % testcase_id)
