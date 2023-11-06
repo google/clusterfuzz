@@ -14,6 +14,7 @@
 """Analyze task for handling user uploads."""
 
 import datetime
+from typing import Dict
 from typing import Optional
 from typing import Tuple
 
@@ -74,7 +75,8 @@ def _add_default_issue_metadata(testcase: data_types.Testcase) -> None:
     testcase.set_metadata(key, new_value)
 
 
-def handle_analyze_no_revisions_list_error(output):
+def handle_analyze_no_revisions_list_error(
+    output: uworker_io.DeserializedUworkerMsg):
   data_handler.update_testcase_comment(output.testcase,
                                        data_types.TaskState.ERROR,
                                        'Failed to fetch revision list')
@@ -118,7 +120,8 @@ def handle_analyze_no_revision_index(output):
   handle_build_setup_error(output)
 
 
-def prepare_env_for_main(testcase_upload_metadata):
+def prepare_env_for_main(
+    testcase_upload_metadata: data_types.TestcaseUploadMetadata):
   """Prepares the environment for execute_task."""
   # Reset redzones.
   environment.reset_current_memory_tool_options(redzone_size=128)
@@ -165,7 +168,7 @@ def setup_testcase_and_build(
   return testcase_file_path, None
 
 
-def update_testcase_after_build_setup(testcase):
+def update_testcase_after_build_setup(testcase: data_types.Testcase):
   """Updates the testcase entity with values from global state that was set
   during build setup."""
   # NOTE: This must be done after setting up the build, which also sets
@@ -185,7 +188,7 @@ def update_testcase_after_build_setup(testcase):
     testcase.minimized_arguments = minimized_arguments
 
 
-def initialize_testcase_for_main(testcase, job_type):
+def initialize_testcase_for_main(testcase: data_types.Testcase, job_type: str):
   """Initializes a testcase for the crash testing phase."""
   # Update initial testcase information.
   testcase.job_type = job_type
@@ -194,7 +197,8 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.put()
 
 
-def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
+def test_for_crash_with_retries(testcase: data_types.Testcase,
+                                testcase_file_path: str, test_timeout):
   """Tests for a crash with retries. Tries with HTTP (with retries) if initial
   attempts fail. Returns the most recent crash result and the possibly updated
   HTTP flag."""
@@ -227,7 +231,7 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   return result, http_flag
 
 
-def is_first_analyze_attempt(testcase):
+def is_first_analyze_attempt(testcase: data_types.Testcase) -> bool:
   return data_handler.is_first_attempt_for_task('analyze', testcase)
 
 
@@ -271,14 +275,17 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
         bool(testcase.gestures))
 
 
-def utask_preprocess(testcase_id, job_type, uworker_env):
+def utask_preprocess(
+    testcase_id: str, job_type: str,
+    uworker_env: Dict[str, str]) -> Optional[uworker_io.UworkerInput]:
   """Runs preprocessing for analyze task."""
   # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  id_clause = data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id) # pyright: ignore
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(id_clause).get()
+  id_field = data_types.TestcaseUploadMetadata.testcase_id  # pyright: ignore
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
+      id_field == int(testcase_id)).get()
   if not testcase_upload_metadata:
     logs.log_error(
         'Testcase %s has no associated upload metadata.' % testcase_id)
@@ -311,8 +318,12 @@ def get_analyze_task_input():
   return analyze_input
 
 
-def utask_main(uworker_input):
+def utask_main(
+    uworker_input: uworker_io2.Input) -> Optional[uworker_io.UworkerOutput]:
   """Executes the untrusted part of analyze_task."""
+  assert uworker_input.analyze_task_input is not None
+  assert uworker_input.testcase_upload_metadata is not None
+
   prepare_env_for_main(uworker_input.testcase_upload_metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
@@ -324,7 +335,9 @@ def utask_main(uworker_input):
       uworker_input.testcase, uworker_input.testcase_upload_metadata,
       uworker_input.job_type, uworker_input.setup_input,
       uworker_input.analyze_task_input.bad_revisions)
-  uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
+
+  app_revision = int(environment.get_value('APP_REVISION'))  # pyright: ignore
+  uworker_input.testcase.crash_revision = app_revision
 
   if not testcase_file_path:
     return output

@@ -438,7 +438,7 @@ class Testcase(Model):
   flaky_stack = ndb.BooleanProperty(default=False, indexed=False)
 
   # Do we need to test this testcase using an HTTP/HTTPS server?
-  http_flag = ndb.BooleanProperty(default=False, indexed=False)
+  http_flag: bool = ndb.BooleanProperty(default=False, indexed=False)
 
   # Name of the fuzzer used to generate this testcase.
   fuzzer_name = ndb.StringProperty()
