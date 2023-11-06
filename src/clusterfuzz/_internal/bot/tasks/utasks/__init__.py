@@ -15,9 +15,12 @@
 
 import importlib
 
+from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io2
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
@@ -41,7 +44,13 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
   logs.log('Starting utask_main: %s.' % utask_module)
-  uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
+  if utask_module.__name__ == analyze_task.__name__:
+    proto = uworker_msg_pb2.Input()
+    proto.ParseFromString(serialized_uworker_input)
+    uworker_input = uworker_io2.Input.from_proto(proto)
+  else:
+    uworker_input = uworker_io.deserialize_uworker_input(
+        serialized_uworker_input)
 
   # Deal with the environment.
   set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
@@ -105,8 +114,8 @@ def set_uworker_env(uworker_env: dict) -> None:
 def uworker_main(input_download_url) -> None:
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  uworker_input = uworker_io.download_and_deserialize_uworker_input(
-      input_download_url)
+  serialized_input = storage.download_signed_url(input_download_url)
+  uworker_input = uworker_io.deserialize_uworker_input(serialized_input)
   uworker_output_upload_url = uworker_input.uworker_output_upload_url  # pylint: disable=no-member
   delattr(uworker_input, 'uworker_output_upload_url')
 
@@ -114,6 +123,11 @@ def uworker_main(input_download_url) -> None:
   uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
   delattr(uworker_input, 'uworker_env')
   set_uworker_env(uworker_env)
+
+  if uworker_input.module_name == analyze_task.__name__:  # pylint: disable=no-member
+    input_proto = uworker_msg_pb2.Input()
+    input_proto.ParseFromString(serialized_input)
+    uworker_input = uworker_io2.Input.from_proto(input_proto)
 
   utask_module = get_utask_module(uworker_input.module_name)  # pylint: disable=no-member
   logs.log('Starting utask_main: %s.' % utask_module)
