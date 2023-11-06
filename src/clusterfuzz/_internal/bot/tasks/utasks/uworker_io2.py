@@ -211,11 +211,9 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   uworker_output_upload_url: str
   fuzzer_name: str
   module_name: str
-
-  #setup_input: Optional[SetupInput]
+  setup_input: Optional[SetupInput]
 
   # optional google.datastore.v1.Entity variant = 8;
-  # optional SetupInput setup_input = 11;
   # optional AnalyzeTaskInput analyze_task_input = 12;
   # optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
   # optional FuzzTaskInput fuzz_task_input = 14;
@@ -225,10 +223,16 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
   # optional SymbolizeTaskInput symbolize_task_input = 18;
 
   def to_proto(self) -> uworker_msg_pb2.Input:
+    """See `ProtoConvertible.to_proto()."""
     testcase = model_to_proto(self.testcase)
     testcase_upload_metadata = optional_model_to_proto(
         self.testcase_upload_metadata)
     uworker_env = json_to_proto(self.uworker_env)
+
+    setup_input = None
+    if self.setup_input is not None:
+      setup_input = self.setup_input.to_proto()
+
     return uworker_msg_pb2.Input(
         testcase=testcase,
         testcase_id=self.testcase_id,
@@ -239,6 +243,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         uworker_output_upload_url=self.uworker_output_upload_url,
         fuzzer_name=self.fuzzer_name,
         module_name=self.module_name,
+        setup_input=setup_input,
     )
 
   @classmethod
@@ -251,6 +256,10 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
       testcase_upload_metadata = model_from_proto(
           proto.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
 
+    setup_input = None
+    if proto.HasField('setup_input'):
+      setup_input = SetupInput.from_proto(proto.setup_input)
+
     uworker_env = json_from_proto(proto.uworker_env)
     return cls(
         testcase=testcase,
@@ -262,6 +271,7 @@ class Input(ProtoConvertible[uworker_msg_pb2.Input]):
         uworker_output_upload_url=proto.uworker_output_upload_url,
         fuzzer_name=proto.fuzzer_name,
         module_name=proto.module_name,
+        setup_input=setup_input,
     )
 
 

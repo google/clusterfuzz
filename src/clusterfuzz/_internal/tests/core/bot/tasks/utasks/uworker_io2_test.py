@@ -137,6 +137,7 @@ class UworkerIo2Test(unittest.TestCase):
         uworker_output_upload_url='http://foo',
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
+        setup_input=None,
     )
 
     proto = inp.to_proto()
@@ -149,6 +150,7 @@ class UworkerIo2Test(unittest.TestCase):
     self.assertEqual(proto.module_name, 'foo_module')
 
     self.assertFalse(proto.HasField('testcase_upload_metadata'))
+    self.assertFalse(proto.HasField('setup_input'))
 
     roundtripped_testcase = uworker_io2.model_from_proto(
         proto.testcase, data_types.Testcase)
@@ -172,6 +174,7 @@ class UworkerIo2Test(unittest.TestCase):
         uworker_output_upload_url='http://foo',
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
+        setup_input=self._make_setup_input(),
     )
 
     proto = inp.to_proto()
@@ -179,6 +182,10 @@ class UworkerIo2Test(unittest.TestCase):
     roundtripped_metadata = uworker_io2.model_from_proto(
         proto.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
     self.assertEqual(roundtripped_metadata, metadata)
+
+    roundtripped_setup_input = uworker_io2.SetupInput.from_proto(
+        proto.setup_input)
+    self.assertEqual(roundtripped_setup_input, inp.setup_input)
 
   def test_input_from_proto(self):
     """Verifies that `uworker_io2.Input` is correctly converted from a protobuf.
@@ -212,6 +219,7 @@ class UworkerIo2Test(unittest.TestCase):
             uworker_output_upload_url='http://foo',
             fuzzer_name='foo-fuzzer',
             module_name='foo_module',
+            setup_input=None,
         ))
 
   def test_input_from_proto_optional_fields(self):
@@ -220,6 +228,7 @@ class UworkerIo2Test(unittest.TestCase):
     """
     testcase = test_utils.create_generic_testcase()
     metadata = self._make_testcase_upload_metadata()
+    setup_input = self._make_setup_input()
     proto = uworker_msg_pb2.Input(
         testcase=uworker_io2.model_to_proto(testcase),
         testcase_id='123',
@@ -232,11 +241,13 @@ class UworkerIo2Test(unittest.TestCase):
         uworker_output_upload_url='http://foo',
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
+        setup_input=setup_input.to_proto(),
     )
 
     inp = uworker_io2.Input.from_proto(proto)
 
     self.assertEqual(inp.testcase_upload_metadata, metadata)
+    self.assertEqual(inp.setup_input, setup_input)
 
   def test_input_roundtrip(self):
     """Verifies that converting a `uworker_io2.Input` to protobufs and back
@@ -252,6 +263,7 @@ class UworkerIo2Test(unittest.TestCase):
         uworker_output_upload_url='http://foo',
         fuzzer_name='foo-fuzzer',
         module_name='foo_module',
+        setup_input=self._make_setup_input(),
     )
 
     roundtripped = uworker_io2.Input.from_proto(inp.to_proto())
