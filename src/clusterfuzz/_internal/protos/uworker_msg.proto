@@ -138,6 +138,7 @@ message ProgressionTaskOutput{
   // When set to True, we delete the metadata related to: last_progression_min
   // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
+  optional Json issue_metadata = 10;
 }
 
 enum ErrorType {
