@@ -107,6 +107,8 @@ class Issue(issue_tracker.Issue):
 
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
+    logs.log('google_issue_tracker: In apply_extension_fields with %s' %
+             extension_fields)
     if extension_fields.get('_ext_collaborators'):
       logs.log('google_issue_tracker: In apply_extension_fields for '
                'collaborators: %s' % extension_fields['_ext_collaborators'])

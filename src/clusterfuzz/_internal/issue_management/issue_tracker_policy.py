@@ -15,6 +15,7 @@
 from collections import namedtuple
 
 from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.metrics import logs
 
 Status = namedtuple('Status',
                     ['assigned', 'duplicate', 'wontfix', 'fixed', 'verified'])
@@ -79,8 +80,10 @@ class IssueTrackerPolicy:
     extension_fields = {}
     # Extension fields are dynamically added to the policy
     # depending on which (if any) have been set in the config
+    logs.log('extension_fields: self._data: %s' % self._data)
     for k, v in self._data.items():
       if k.startswith(EXTENSION_PREFIX):
+        logs.log('extension_fields: Found %s with value %s' % (k, v))
         extension_fields[k] = v
     return extension_fields
 
