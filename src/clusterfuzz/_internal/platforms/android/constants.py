@@ -48,3 +48,5 @@ PRODUCT_TO_KERNEL = {
     'muskie': 'wahoo',
     'taimen': 'wahoo',
 }
+
+RELEASE_CONFIGURATION = '-next'
