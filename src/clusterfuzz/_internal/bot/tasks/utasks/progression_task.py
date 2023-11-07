@@ -92,7 +92,9 @@ def handle_progression_revision_list_error(
     uworker_output: uworker_io.UworkerOutput):
   """Handles revision list errors, in which case the testcase is closed with
   error."""
-  data_handler.close_testcase_with_error(uworker_output.testcase,
+  testcase_id = uworker_output.uworker_input.testcase_id
+  testcase = data_handler.get_testcase_by_id(testcase_id)
+  data_handler.close_testcase_with_error(testcase,
                                          'Failed to fetch revision list')
 
 
@@ -157,7 +159,7 @@ def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
     data_handler.update_progression_completion_metadata(
-        testcase, uworker_output.testcase.crash_revision)
+        testcase, uworker_output.progression_task_output.crash_revision)
     return
 
   data_handler.clear_progression_pending(testcase)
@@ -224,7 +226,6 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
 
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
-        testcase=testcase,
         error_message='Build setup failed for custom binary',
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
@@ -250,12 +251,12 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
         crash_revision=int(revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace)
     return uworker_io.UworkerOutput(
-        testcase=testcase, progression_task_output=progression_task_output)
+        progression_task_output=progression_task_output)
 
   progression_task_output = uworker_io.ProgressionTaskOutput(
       crash_revision=int(revision))
   return uworker_io.UworkerOutput(
-      testcase=testcase, progression_task_output=progression_task_output)
+      progression_task_output=progression_task_output)
 
 
 def _update_issue_metadata(testcase, metadata):
@@ -293,7 +294,6 @@ def _testcase_reproduces_in_revision(testcase,
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
     return None, uworker_io.UworkerOutput(
-        testcase=testcase,
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
@@ -305,7 +305,6 @@ def _testcase_reproduces_in_revision(testcase,
     # TODO(alhijazi): This is not logged for recoverable builds.
     error_message = f'Bad build at r{revision}. Skipping'
     return None, uworker_io.UworkerOutput(
-        testcase=testcase,
         progression_task_output=progression_task_output,
         error_message=error_message,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
@@ -415,7 +414,6 @@ def find_fixed_range(uworker_input):
       build_bucket_path, bad_revisions, testcase=testcase)
   if not revision_list:
     return uworker_io.UworkerOutput(
-        testcase=testcase,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR)
 
   # Use min, max_index to mark the start and end of revision list that is used
@@ -443,7 +441,6 @@ def find_fixed_range(uworker_input):
   if min_index is None:
     error_message = f'Build {min_revision} no longer exists.'
     return uworker_io.UworkerOutput(
-        testcase=testcase,
         error_message=error_message,
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
@@ -451,7 +448,6 @@ def find_fixed_range(uworker_input):
   if max_index is None:
     error_message = f'Build {max_revision} no longer exists.'
     return uworker_io.UworkerOutput(
-        testcase=testcase,
         error_message=error_message,
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
@@ -504,7 +500,6 @@ def find_fixed_range(uworker_input):
         f'Known crash revision {known_crash_revision} did not crash')
     progression_task_output.crash_revision = int(max_revision)
     return uworker_io.UworkerOutput(
-        testcase=testcase,
         progression_task_output=progression_task_output,
         error_message=error_message,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
@@ -526,7 +521,7 @@ def find_fixed_range(uworker_input):
       progression_task_output.min_revision = int(min_revision)
       progression_task_output.max_revision = int(max_revision)
       return uworker_io.UworkerOutput(
-          testcase=testcase, progression_task_output=progression_task_output)
+          progression_task_output=progression_task_output)
 
     # Occasionally, we get into this bad state. It seems to be related to test
     # cases with flaky stacks, but the exact cause is unknown.
@@ -536,7 +531,6 @@ def find_fixed_range(uworker_input):
       progression_task_output.last_progression_min = last_progression_min
       progression_task_output.last_progression_max = last_progression_max
       return uworker_io.UworkerOutput(
-          testcase=testcase,
           progression_task_output=progression_task_output,
           error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
 
@@ -576,7 +570,6 @@ def find_fixed_range(uworker_input):
   if last_progression_max is not None:
     progression_task_output.last_progression_max = last_progression_max
   return uworker_io.UworkerOutput(
-      testcase=testcase,
       error_message=error_message,
       progression_task_output=progression_task_output,
       error_type=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
@@ -620,7 +613,6 @@ def utask_postprocess(output):
   if output.uworker_input.progression_task_input.custom_binary:
     # Retry once on another bot to confirm our results and in case this bot is
     # in a bad state which we didn't catch through our usual means.
-    testcase = output.testcase
     if data_handler.is_first_attempt_for_task(
         'progression', testcase, reset_after_retry=True):
       tasks.add_task('progression', output.uworker_input.testcase_id,
@@ -634,7 +626,7 @@ def utask_postprocess(output):
     testcase.open = False
     data_handler.update_progression_completion_metadata(
         testcase,
-        output.testcase.crash_revision,
+        output.progression_task_output.crash_revision,
         message='fixed on latest custom build')
     return
 
