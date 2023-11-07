@@ -397,9 +397,12 @@ class Issue(issue_tracker.Issue):
         self._data['issueState']['ccs'] = _make_users(ccs)
       collaborators = list(self._collaborators)
       if collaborators:
+        logs.log(
+            'google_issue_tracker: Setting collaborators: %s' % collaborators)
         self._data['issueState']['collaborators'] = _make_users(collaborators)
       access_limit = self._issue_access_limit
       if access_limit:
+        logs.log('google_issue_tracker: Setting ial: %s' % access_limit)
         self._data['issueState']['accessLimit'] = {'accessLevel': access_limit}
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
@@ -408,6 +411,9 @@ class Issue(issue_tracker.Issue):
         self._data['issueComment'] = {
             'comment': self._body,
         }
+      logs.log(
+          'google_issue_tracker: Executing issue creation with self._data: %s' %
+          self._data)
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().create(
               body=self._data, templateOptions_applyTemplate=True))
