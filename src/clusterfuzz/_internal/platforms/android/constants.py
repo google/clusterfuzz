@@ -49,4 +49,4 @@ PRODUCT_TO_KERNEL = {
     'taimen': 'wahoo',
 }
 
-RELEASE_CONFIGURATION = '-next'
+RELEASE_CONFIGURATION = 'next'
