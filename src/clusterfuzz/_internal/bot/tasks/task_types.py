@@ -79,6 +79,25 @@ class UTaskLocalExecutor(BaseTask):
     logs.log('Utask local: done.')
 
 
+class ProgressionUTaskLocalExecutor(BaseTask):
+  """Represents an untrusted progression task. Executes it entirely locally and
+  in memory."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally in-memory."""
+    uworker_input = utasks.progression_tworker_preprocess_no_io(
+        self.module, task_argument, job_type, uworker_env)
+    if uworker_input is None:
+      return
+    uworker_output = utasks.progression_uworker_main_no_io(
+        self.module, uworker_input)
+    if uworker_output is None:
+      return
+    utasks.progression_tworker_postprocess_no_io(self.module, uworker_output,
+                                                 uworker_input)
+    logs.log('Utask local: done.')
+
+
 class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
   """Represents an untrusted task. Executes the preprocess and main parts on
   this machine and causes postprocess to be executed on on other machines."""
@@ -146,7 +165,7 @@ COMMAND_TYPES = {
     'fuzz': UTaskLocalExecutor,
     'impact': TrustedTask,
     'minimize': UTaskLocalExecutor,
-    'progression': UTaskLocalExecutor,
+    'progression': ProgressionUTaskLocalExecutor,
     'regression': UTaskLocalExecutor,
     'symbolize': UTaskLocalExecutor,
     'unpack': TrustedTask,

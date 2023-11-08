@@ -86,6 +86,7 @@ message Input {
   optional RegressionTaskInput regression_task_input = 17;
   optional SymbolizeTaskInput symbolize_task_input = 18;
   optional string module_name = 19;
+  map<string, string> progression_uworker_env = 20;  
 }
 
 message SymbolizeTaskOutput {

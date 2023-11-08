@@ -17,7 +17,24 @@ import importlib
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
+
+
+def progression_tworker_preprocess_no_io(utask_module, task_argument, job_type,
+                                         uworker_env):
+  """Executes the preprocessing step of the utask |utask_module| and returns the
+  serialized output."""
+  logs.log('Starting utask_preprocess: %s.' % utask_module)
+  set_uworker_env(uworker_env)
+  uworker_input = utask_module.utask_preprocess(task_argument, job_type,
+                                                uworker_env)
+  if not uworker_input:
+    logs.log_error('No uworker_input returned from preprocess')
+    return None
+  assert not uworker_input.module_name
+  uworker_input.module_name = utask_module.__name__
+  return uworker_input.SerializeToString()
 
 
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
@@ -52,6 +69,22 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   return uworker_io.serialize_uworker_output(uworker_output)
 
 
+def progression_uworker_main_no_io(utask_module, serialized_uworker_input):
+  """Exectues the main part of a utask on the uworker (locally if not using
+  remote executor)."""
+  logs.log('Starting utask_main: %s.' % utask_module)
+  uworker_input = uworker_msg_pb2.Input()
+  uworker_input.ParseFromString(serialized_uworker_input)
+
+  # Deal with the environment.
+  set_uworker_env(uworker_input.progression_uworker_env)  # pylint: disable=no-member
+
+  uworker_output = utask_module.utask_main(uworker_input)
+  if uworker_output is None:
+    return None
+  return uworker_output.SerializeToString()
+
+
 def add_uworker_input_to_output(uworker_output, uworker_input):
   uworker_output.uworker_input = uworker_input
 
@@ -64,6 +97,18 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
   add_uworker_input_to_output(uworker_output, uworker_input)
   set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
+  utask_module.utask_postprocess(uworker_output)
+
+
+def progression_tworker_postprocess_no_io(
+    utask_module, serialized_uworker_output, serialized_uworker_input):
+  uworker_output = uworker_msg_pb2.Output()
+  uworker_output.ParseFromString(serialized_uworker_output)
+  # Do this to simulate out-of-band tamper-proof storage of the input.
+  uworker_input = uworker_msg_pb2.Input()
+  uworker_input.ParseFromString(serialized_uworker_input)
+  uworker_output.uworker_input.CopyFrom(uworker_input)  # pylint: disable=no-member
+  set_uworker_env(uworker_input.progression_uworker_env)  # pylint: disable=no-member
   utask_module.utask_postprocess(uworker_output)
 
 
