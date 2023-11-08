@@ -18,6 +18,8 @@ import re
 import stat
 import tempfile
 
+import psutil
+
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -178,3 +180,7 @@ def get_file_from_untrusted_worker(worker_file_path):
 def cleanup():
   """Clean up temporary metadata."""
   shell.remove_directory(get_temp_dir())
+
+
+def set_process_high_priority():
+  psutil.Process().nice(psutil.HIGH_PRIORITY_CLASS)

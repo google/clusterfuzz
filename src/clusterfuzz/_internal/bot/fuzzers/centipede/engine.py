@@ -212,8 +212,11 @@ class Engine(engine.Engine):
     runner = _get_runner(target_path)
     _set_sanitizer_options(target_path)
     timeout = max_time + _CLEAN_EXIT_SECS
+    popen_args = {}
+    if environment.platform() == 'LINUX':
+      popen_args['preexec_fn'] = fuzzer_utils.set_process_high_priority
     fuzz_result = runner.run_and_wait(
-        additional_args=options.arguments, timeout=timeout)
+        additional_args=options.arguments, timeout=timeout, **popen_args)
     fuzz_result.output = Engine.trim_logs(fuzz_result.output)
 
     reproducer_path = _get_reproducer_path(fuzz_result.output, reproducers_dir)
