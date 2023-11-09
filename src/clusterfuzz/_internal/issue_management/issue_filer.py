@@ -329,7 +329,6 @@ def file_issue(testcase,
 
   policy = issue_tracker_policy.get(issue_tracker.project)
   logs.log('policy: %s' % policy)
-  logs.log('policy.extension_fields: %s' % policy.extension_fields)
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
@@ -465,7 +464,7 @@ def file_issue(testcase,
     issue.ccs.add(cc)
 
   # Apply extension fields.
-  issue.apply_extension_fields(policy.extension_fields)
+  issue.apply_extension_fields(properties.extension_fields)
 
   # Add additional labels and components from testcase metadata.
   metadata_labels = _get_from_metadata(testcase, 'issue_labels')
