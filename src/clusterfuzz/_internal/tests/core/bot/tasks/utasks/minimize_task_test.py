@@ -345,7 +345,6 @@ class UTaskMainTest(unittest.TestCase):
     del check_app_path
     testcase = data_types.Testcase()
     testcase.put()
-    testcase_id = testcase.key.id()
     build_fail_wait = 10
     environment.set_value('FAIL_WAIT', 10)
     uworker_input = uworker_io.UworkerInput(testcase=testcase)
@@ -354,7 +353,6 @@ class UTaskMainTest(unittest.TestCase):
     uworker_output = minimize_task.utask_main(uworker_input)
     uworker_output = uworker_io.serialize_uworker_output(uworker_output)
     uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
-    self.assertEqual(uworker_output.testcase.key.id(), testcase_id)
     self.assertEqual(uworker_output.minimize_task_output.build_fail_wait,
                      build_fail_wait)
     self.assertEqual(uworker_output.error_type,
