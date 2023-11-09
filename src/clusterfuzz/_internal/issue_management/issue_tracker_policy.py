@@ -213,6 +213,8 @@ def get(project_name):
   """Get policy."""
   issue_tracker_config = local_config.IssueTrackerConfig()
   project_config = issue_tracker_config.get(project_name)
+  logs.log('project_name: %s' % project_name)
+  logs.log('project_config: %s' % project_config)
   if not project_config:
     raise ConfigurationError(
         'Issue tracker for {} does not exist'.format(project_name))
