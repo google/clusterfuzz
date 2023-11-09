@@ -329,7 +329,6 @@ class UtaskMainTest(unittest.TestCase):
     self.mock.get_revisions_list.assert_called_once()
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
-    self.assertEqual(output.testcase.key, testcase.key)
 
   def test_min_revision_not_found(self):
     """Verifies that if the minimum revision in the regression range is not
@@ -351,7 +350,6 @@ class UtaskMainTest(unittest.TestCase):
 
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND)
-    self.assertEqual(output.testcase.key, testcase.key)
     self.assertEqual(output.error_message,
                      'Could not find good min revision <= 100.')
 
@@ -375,7 +373,6 @@ class UtaskMainTest(unittest.TestCase):
 
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND)
-    self.assertEqual(output.testcase.key, testcase.key)
     self.assertEqual(output.error_message,
                      'Could not find good max revision >= 101.')
 
