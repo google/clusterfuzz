@@ -419,7 +419,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'boom_internal\nanother_boom\nboom\n'
     expected_stacktrace = data
     expected_security_flag = True
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -508,7 +508,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'boom_internal\nanother_boom\nboom\n'
     expected_stacktrace = data
     expected_security_flag = True
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -808,7 +808,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'regexp-builtins.cc\n')
     expected_stacktrace = data
     expected_security_flag = True
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -899,7 +899,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -918,7 +918,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -1410,7 +1410,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -1424,7 +1424,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x631000001001'
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -1438,7 +1438,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = '0x000000000000'
     expected_stacktrace = data
     expected_security_flag = True
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -1547,7 +1547,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag, expected_categories)
@@ -1560,7 +1560,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag, expected_categories)
@@ -2527,7 +2527,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'pdfium_fuzzer\n'
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -2541,7 +2541,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ''
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -2558,7 +2558,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'freetype2_fuzzer\n'
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -2582,7 +2582,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = 'freetype2_fuzzer\n'
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -3162,7 +3162,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
     expected_stacktrace = data
     expected_security_flag = False
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
@@ -3661,7 +3661,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'android::FuzzEventHub::getEvents\n')
     expected_stacktrace = data
     expected_security_flag = True
-    expected_categories = {'Fuzzer-exit'}
+    expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
