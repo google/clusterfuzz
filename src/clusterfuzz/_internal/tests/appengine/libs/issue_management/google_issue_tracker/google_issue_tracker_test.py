@@ -257,6 +257,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'componentId': 9001,
                     'hotlistIds': [12345],
                     'type': 'BUG',
+                    'severity': 'S2',
                 },
             },
             templateOptions_applyTemplate=True,
@@ -317,6 +318,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'issue title',
                     'type':
                         'Bug-Security',
+                    'severity':
+                        'S2',
                 },
                 'issueComment': {
                     'comment': 'issue body'
