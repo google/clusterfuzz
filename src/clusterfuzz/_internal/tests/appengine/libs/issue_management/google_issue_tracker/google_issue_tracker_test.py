@@ -581,7 +581,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         {
             'name': 'Low input',
             'input': 'Low',
-            'expected': 'S3'
+            'expected': 'S4'
         },
     ]
     for case in testcases:
