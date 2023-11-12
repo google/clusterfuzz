@@ -129,7 +129,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             'type': 'BUG',
             'status': 'VERIFIED',
             'priority': 'P2',
-            'severity': 'S2',
+            'severity': 'S4',
             'title': 'test',
         },
         'createdTime': '2019-06-24T03:40:37.741Z',
@@ -161,7 +161,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             'type': 'BUG',
             'status': 'NEW',
             'priority': 'P2',
-            'severity': 'S2',
+            'severity': 'S4',
             'title': 'test',
             'hotlistIds': [
                 '1337',
@@ -561,7 +561,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         {
             'name': 'Empty input',
             'input': '',
-            'expected': 'S2'
+            'expected': 'S4'
         },
         {
             'name': 'Critical input',

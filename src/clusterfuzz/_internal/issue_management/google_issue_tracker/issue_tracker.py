@@ -719,7 +719,7 @@ def _get_severity_from_crash_text(crash_severity_text):
   if crash_severity_text == 'Low':
     return 'S3'
   # Default case.
-  return 'S2'
+  return 'S4'
 
 
 # Uncomment for local testing. Will need access to a service account for these
