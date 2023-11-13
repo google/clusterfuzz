@@ -733,7 +733,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 #    python src/clusterfuzz/_internal/issue_management/google_issue_tracker/\
 #    issue_tracker.py
 
-#  if __name__ == '__main__':
+# if __name__ == '__main__':
 #   it = IssueTracker('chromium', None, {'default_component_id': 1434846})
 #
 #   # Test issue creation.
@@ -747,7 +747,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 #           'skia-npm-audit-mirror@skia-public.iam.gserviceaccount.com'],
 #       '_ext_issue_access_limit': IssueAccessLevel.LIMIT_VIEW_TRUSTED,
 #   })
-#  issue.save(new_comment='testing')
+#   issue.save(new_comment='testing')
 #
 #   # Test issue query.
 #   queried_issue = it.get_issue(307559515)
