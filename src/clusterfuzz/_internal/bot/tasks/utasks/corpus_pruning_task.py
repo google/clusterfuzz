@@ -325,7 +325,8 @@ class Runner:
     rss_limit = RSS_LIMIT
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
     detect_leaks = 1
-    arguments = [TIMEOUT_FLAG]
+    arguments = options.FuzzerArguments()
+    arguments[constants.TIMEOUT_FLAGNAME] = SINGLE_UNIT_TIMEOUT
 
     if self.fuzzer_options:
       # Default values from above can be customized for a given fuzz target.
@@ -348,12 +349,12 @@ class Runner:
       if custom_detect_leaks is not None:
         detect_leaks = custom_detect_leaks
 
-    arguments.append(RSS_LIMIT_MB_FLAG % rss_limit)
-    arguments.append(MAX_LEN_FLAG % max_len)
-    arguments.append(DETECT_LEAKS_FLAG % detect_leaks)
-    arguments.append(constants.VALUE_PROFILE_ARGUMENT)
+    arguments[constants.RSS_LIMIT_FLAGNAME] = rss_limit
+    arguments[constants.MAX_LEN_FLAGNAME] = max_len
+    arguments[constants.DETECT_LEAKS_FLAGNAME] = detect_leaks
+    arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
 
-    return arguments
+    return arguments.list()
 
   def process_sanitizer_options(self):
     """Process sanitizer options overrides."""
