@@ -107,6 +107,8 @@ class Issue(issue_tracker.Issue):
 
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
+    logs.log('google_issue_tracker: In apply_extension_fields with %s' %
+             extension_fields)
     if extension_fields.get('_ext_collaborators'):
       logs.log('google_issue_tracker: In apply_extension_fields for '
                'collaborators: %s' % extension_fields['_ext_collaborators'])
@@ -389,6 +391,11 @@ class Issue(issue_tracker.Issue):
       self._data['issueState']['type'] = issue_type
       if priority:
         self._data['issueState']['priority'] = priority
+
+      severity_text = _extract_label(self.labels, 'Security_Severity-')
+      severity = _get_severity_from_crash_text(severity_text)
+      self._data['issueState']['severity'] = severity
+
       component_id = self._components.get_single()
       if component_id:
         self._data['issueState']['componentId'] = int(component_id)
@@ -397,9 +404,12 @@ class Issue(issue_tracker.Issue):
         self._data['issueState']['ccs'] = _make_users(ccs)
       collaborators = list(self._collaborators)
       if collaborators:
+        logs.log(
+            'google_issue_tracker: Setting collaborators: %s' % collaborators)
         self._data['issueState']['collaborators'] = _make_users(collaborators)
       access_limit = self._issue_access_limit
       if access_limit:
+        logs.log('google_issue_tracker: Setting ial: %s' % access_limit)
         self._data['issueState']['accessLimit'] = {'accessLevel': access_limit}
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
@@ -408,6 +418,9 @@ class Issue(issue_tracker.Issue):
         self._data['issueComment'] = {
             'comment': self._body,
         }
+      logs.log(
+          'google_issue_tracker: Executing issue creation with self._data: %s' %
+          self._data)
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().create(
               body=self._data, templateOptions_applyTemplate=True))
@@ -693,6 +706,20 @@ def _get_query(keywords, only_open):
   if only_open:
     query += ' status:open'
   return query
+
+
+def _get_severity_from_crash_text(crash_severity_text):
+  """Get Google issue tracker severity from crash severity text."""
+  if crash_severity_text == 'Critical':
+    return 'S0'
+  if crash_severity_text == 'High':
+    return 'S1'
+  if crash_severity_text == 'Medium':
+    return 'S2'
+  if crash_severity_text == 'Low':
+    return 'S3'
+  # Default case.
+  return 'S4'
 
 
 # Uncomment for local testing. Will need access to a service account for these

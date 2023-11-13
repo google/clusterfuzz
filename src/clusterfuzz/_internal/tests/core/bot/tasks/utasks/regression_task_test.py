@@ -331,6 +331,54 @@ class UtaskMainTest(unittest.TestCase):
                      uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
     self.assertEqual(output.testcase.key, testcase.key)
 
+  def test_min_revision_not_found(self):
+    """Verifies that if the minimum revision in the regression range is not
+    found, the task fails."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.set_metadata('last_regression_min', 100)
+    uworker_input = uworker_io.UworkerInput(
+        testcase_id=str(testcase.key.id()),
+        testcase=testcase,
+        job_type='foo-job',
+        setup_input=uworker_io.SetupInput(),
+        regression_task_input=uworker_io.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = [101]
+
+    output = regression_task.utask_main(_roundtrip_input(uworker_input))
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND)
+    self.assertEqual(output.testcase.key, testcase.key)
+    self.assertEqual(output.error_message,
+                     'Could not find good min revision <= 100.')
+
+  def test_max_revision_not_found(self):
+    """Verifies that if the maximum revision in the regression range is not
+    found, the task fails."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.set_metadata('last_regression_max', 101)
+    uworker_input = uworker_io.UworkerInput(
+        testcase_id=str(testcase.key.id()),
+        testcase=testcase,
+        job_type='foo-job',
+        setup_input=uworker_io.SetupInput(),
+        regression_task_input=uworker_io.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = [100]
+
+    output = regression_task.utask_main(_roundtrip_input(uworker_input))
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND)
+    self.assertEqual(output.testcase.key, testcase.key)
+    self.assertEqual(output.error_message,
+                     'Could not find good max revision >= 101.')
+
 
 @test_utils.with_cloud_emulators('datastore')
 class UtaskPostprocessTest(unittest.TestCase):
@@ -376,3 +424,22 @@ class UtaskPostprocessTest(unittest.TestCase):
     testcase = testcase.key.get()
     self.assertEqual(testcase.fixed, 'NA')
     self.assertRegex(testcase.comments, 'Failed to fetch revision list.$')
+
+  def test_build_not_found_error(self):
+    """Verifies that if the task failed with `REGRESSION_BUILD_NOT_FOUND_ERROR`,
+    then the testcase is updated to reflect that regression failed."""
+    testcase = test_utils.create_generic_testcase()
+
+    output = uworker_io.UworkerOutput(
+        uworker_input=uworker_io.UworkerInput(
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
+        error_message='foo',
+        testcase=uworker_io.UworkerEntityWrapper(testcase))
+
+    regression_task.utask_postprocess(_roundtrip_output(output))
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.regression, 'NA')
+    self.assertRegex(testcase.comments, 'foo.$')
