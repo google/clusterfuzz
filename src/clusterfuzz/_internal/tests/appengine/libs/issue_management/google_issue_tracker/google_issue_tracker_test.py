@@ -129,7 +129,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             'type': 'BUG',
             'status': 'VERIFIED',
             'priority': 'P2',
-            'severity': 'S2',
+            'severity': 'S4',
             'title': 'test',
         },
         'createdTime': '2019-06-24T03:40:37.741Z',
@@ -161,7 +161,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             'type': 'BUG',
             'status': 'NEW',
             'priority': 'P2',
-            'severity': 'S2',
+            'severity': 'S4',
             'title': 'test',
             'hotlistIds': [
                 '1337',
@@ -257,6 +257,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'componentId': 9001,
                     'hotlistIds': [12345],
                     'type': 'BUG',
+                    'severity': 'S4',
                 },
             },
             templateOptions_applyTemplate=True,
@@ -317,6 +318,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'issue title',
                     'type':
                         'Bug-Security',
+                    'severity':
+                        'S4',
                 },
                 'issueComment': {
                     'comment': 'issue body'
@@ -551,3 +554,39 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     """Test issue_url."""
     url = self.issue_tracker.issue_url(123)
     self.assertEqual('https://issuetracker.google.com/issues/123', url)
+
+  def test_get_severity_from_crash_text(self):
+    """Test _get_severity_from_crash_text."""
+    testcases = [
+        {
+            'name': 'Empty input',
+            'input': '',
+            'expected': 'S4'
+        },
+        {
+            'name': 'Critical input',
+            'input': 'Critical',
+            'expected': 'S0'
+        },
+        {
+            'name': 'High input',
+            'input': 'High',
+            'expected': 'S1'
+        },
+        {
+            'name': 'Medium input',
+            'input': 'Medium',
+            'expected': 'S2'
+        },
+        {
+            'name': 'Low input',
+            'input': 'Low',
+            'expected': 'S3'
+        },
+    ]
+    for case in testcases:
+      # pylint: disable=protected-access
+      actual = issue_tracker._get_severity_from_crash_text(case['input'])
+      self.assertEqual(
+          case['expected'], actual, 'failed test %s. expected %s. actual %s' %
+          (case['name'], case['expected'], actual))
