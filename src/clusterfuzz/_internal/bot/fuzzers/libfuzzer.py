@@ -1459,8 +1459,11 @@ def pick_strategies(strategy_pool,
 
   # Do not use fork mode for DFT-based fuzzing. This is needed in order to
   # collect readable and actionable logs from fuzz targets running with DFT.
+  # If fork_server is already set by the user, let's keep it that way.
+  fork_server = fuzzer_utils.extract_argument(
+      existing_arguments, constants.FORK_FLAG, remove=False)
   if (not is_fuchsia and not is_android and not is_ephemeral and
-      not use_dataflow_tracing and
+      not use_dataflow_tracing and not fork_server and
       strategy_pool.do_strategy(strategy.FORK_STRATEGY)):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, utils.cpu_count() // max_fuzz_threads)
