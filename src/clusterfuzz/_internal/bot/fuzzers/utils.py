@@ -58,7 +58,8 @@ def is_fuzz_target_local(file_path, file_handle=None):
     # Ignore non-existent files for cases when we don't have a file handle.
     return False
 
-  if filename.endswith('_fuzzer') or filename.endswith('_fuzztest'):
+  if (filename.endswith('_fuzzer') or filename.endswith('_fuzztest') or
+      filename.endswith('_fuzz_test')):
     return True
 
   # TODO(aarya): Remove this optimization if it does not show up significant
@@ -79,6 +80,7 @@ def is_fuzz_target_local(file_path, file_handle=None):
   for pattern in FUZZ_TARGET_SEARCH_BYTES:
     # TODO(metzman): Bound this call so we don't read forever if something went
     # wrong.
+    local_file_handle.seek(0)
     result = utils.search_bytes_in_file(pattern, local_file_handle)
     if result:
       break

@@ -60,6 +60,9 @@ class CrashInfo:
     # Additional tracking for lkl bugs.
     self.lkl_kernel_build_id = None
 
+    # Additional tracking for fuzzing directory frames,
+    self.fuzzer_dir_frames = 0
+
     self.is_kasan = False
     self.is_lkl = False
     self.is_golang = False
@@ -178,6 +181,7 @@ class StackParser:
       state.crash_address = ''
       state.crash_state = ''
       state.frame_count = 0
+      state.fuzzer_dir_frames = 0
 
     # Direct updates.
     if new_type is not None and self.get_rank(new_type) >= self.get_rank(
@@ -293,6 +297,8 @@ class StackParser:
     if state.frame_count < MAX_CRASH_STATE_FRAMES:
       state.crash_state += filtered_frame + '\n'
       state.frame_count += 1
+      if FUZZER_DIR_REGEX.match(line):
+        state.fuzzer_dir_frames += 1
 
     return match
 
@@ -1309,6 +1315,10 @@ class StackParser:
       if state.is_trusty and self.add_frame_on_match(
           TRUSTY_STACK_FRAME_REGEX, line, state, group=4):
         continue
+
+    # Add label if majority of crash_state arises from fuzzing directories.
+    if state.fuzzer_dir_frames >= state.frame_count / 2:
+      state.crash_categories.add('Fuzzer-crash-state')
 
     # Detect cycles in stack overflow bugs and update crash state.
     update_crash_state_for_stack_overflow_if_needed(state)
