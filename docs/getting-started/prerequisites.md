@@ -161,4 +161,4 @@ You might get stuck in a mode where the python version is the global value, rath
 ## ClusterFuzz Development Tips
 
 - Before committing, run `python butler.py format` to clean up formatting
-- Make sure you lint all updated files. Either with `python butler.py lint` or individually with `pylint --score=no --jobs=0 <name of directory>`
+- Make sure you lint all updated files with `python butler.py lint`. (It's also possible, though not recommended, to lint individual files with `pylint --score=no --jobs=0 <name of directory>`.)
