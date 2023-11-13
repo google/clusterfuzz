@@ -353,25 +353,9 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
                    regression_testcase_url)
 
 
-# If this approach of using the protos directly is adopted, these two function
+# If this approach of using the protos directly is adopted, this function
 # would no longer be needed and we'd make setup.preprocess_setup_testcase
 # return a proto directly.
-def setup_input_to_proto(setup_input):
-  """A temporary workaround to limit the changes inside this file."""
-  setup_input_proto = uworker_msg_pb2.SetupInput()
-  if setup_input.fuzzer is not None:
-    setup_input_proto.fuzzer = model._entity_to_protobuf(setup_input.fuzzer)  # pylint: disable=protected-access
-  setup_input_proto.fuzzer_name = setup_input.fuzzer_name
-  proto_data_bundles = [
-      model._entity_to_protobuf(entity) for entity in setup_input.data_bundles  # pylint: disable=protected-access
-  ]
-  setup_input_proto.data_bundles.extend(proto_data_bundles)  # pylint: disable=no-member
-  setup_input_proto.fuzzer_log_upload_url = setup_input.fuzzer_log_upload_url
-  setup_input_proto.fuzzer_download_url = setup_input.fuzzer_download_url
-  setup_input_proto.testcase_download_url = setup_input.testcase_download_url
-  return setup_input_proto
-
-
 def setup_input_proto_to_setup_input(setup_input_proto):
   """A temporary workaround to limit the changes inside this file."""
   from clusterfuzz._internal.bot.tasks.utasks import uworker_io
@@ -418,7 +402,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       progression_uworker_env=uworker_env,
       progression_task_input=progression_input,
       testcase=testcase_proto,
-      setup_input=setup_input_to_proto(setup_input))
+      setup_input=setup_input.proto)
 
 
 def find_fixed_range(uworker_input):

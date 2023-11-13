@@ -121,7 +121,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     helpers.patch(
         self,
         ['clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase'])
-    setup_input = uworker_io.SetupInput()
+    setup_input = uworker_io.SetupInput(fuzzer_name='fuzzer_name')
     # For some reason, setup_input.fuzzer is not None as a result of the above statement alone.
     setup_input.fuzzer = None
     self.mock.preprocess_setup_testcase.return_value = setup_input
@@ -160,6 +160,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     bad_revisions = result.progression_task_input.bad_revisions
     self.assertEqual(len(bad_revisions), 1)
     self.assertEqual(bad_revisions[0], 9999)
+    self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
   def test_preprocess_uworker_output_custom_binary(self):
     """Tests the preprocess behaviour for custom binaries."""
@@ -175,6 +176,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     bad_revisions = result.progression_task_input.bad_revisions
     self.assertEqual(len(bad_revisions), 1)
     self.assertEqual(bad_revisions[0], 9999)
+    self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
 
 @test_utils.with_cloud_emulators('datastore')
