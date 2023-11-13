@@ -81,6 +81,8 @@ def get_handle_all_errors_mapping():
           progression_task.handle_progression_build_setup_error,
       uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:
           regression_task.handle_revision_list_error,
+      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND:
+          regression_task.handle_build_not_found_error,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }
