@@ -391,6 +391,11 @@ class Issue(issue_tracker.Issue):
       self._data['issueState']['type'] = issue_type
       if priority:
         self._data['issueState']['priority'] = priority
+
+      severity_text = _extract_label(self.labels, 'Security_Severity-')
+      severity = _get_severity_from_crash_text(severity_text)
+      self._data['issueState']['severity'] = severity
+
       component_id = self._components.get_single()
       if component_id:
         self._data['issueState']['componentId'] = int(component_id)
@@ -701,6 +706,20 @@ def _get_query(keywords, only_open):
   if only_open:
     query += ' status:open'
   return query
+
+
+def _get_severity_from_crash_text(crash_severity_text):
+  """Get Google issue tracker severity from crash severity text."""
+  if crash_severity_text == 'Critical':
+    return 'S0'
+  if crash_severity_text == 'High':
+    return 'S1'
+  if crash_severity_text == 'Medium':
+    return 'S2'
+  if crash_severity_text == 'Low':
+    return 'S3'
+  # Default case.
+  return 'S4'
 
 
 # Uncomment for local testing. Will need access to a service account for these
