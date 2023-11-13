@@ -75,8 +75,9 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     self.mock.check_app_path.return_value = False
     # No need to implement a fake setup_regular_build. Since it's doing nothing,
     # we won't have the build directory properly set.
+    progression_task_output = uworker_io.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1)
+        None, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(result)
     self.assertIs(worker_output.error_type,
                   uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
@@ -89,8 +90,9 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
         is_bad_build=True,
         should_ignore_crash_result=False,
         build_run_console_output='')
+    progression_task_output = uworker_io.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1)
+        None, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(result)
     self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
@@ -105,8 +107,9 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
         build_run_console_output='')
     testcase = data_types.Testcase()
     testcase = uworker_io.UworkerEntityWrapper(testcase)
+    progression_task_output = uworker_io.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        testcase, '/tmp/blah', 'job_type', 1)
+        testcase, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(worker_output)
     self.assertIsNotNone(result)
 
@@ -371,7 +374,7 @@ class UpdateIssueMetadataTest(unittest.TestCase):
 
   def test_update_issue_metadata_non_existent(self):
     """Test update issue metadata a testcase with no metadata."""
-    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
@@ -385,7 +388,7 @@ class UpdateIssueMetadataTest(unittest.TestCase):
         'issue_labels': 'label1',
         'issue_components': 'component2',
     })
-    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
@@ -402,7 +405,7 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.testcase.put()
 
     self.testcase.crash_type = 'test'  # Should not be written.
-    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
