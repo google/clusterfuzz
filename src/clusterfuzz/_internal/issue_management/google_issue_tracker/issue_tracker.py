@@ -392,7 +392,7 @@ class Issue(issue_tracker.Issue):
       if priority:
         self._data['issueState']['priority'] = priority
 
-      logs.log('google_issue_tracker: labels: %s' % self.labels)
+      logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
       logs.log('google_issue_tracker: severity_text: %s' % severity_text)
       severity = _get_severity_from_crash_text(severity_text)
