@@ -118,11 +118,12 @@ def get_fuzz_task_payload(platform=None):
   if base_platform != platform:
     platforms.append(base_platform)
 
-  query = data_types.FuzzerJobs.query()
   if environment.is_local_development():
-    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
+    query = data_types.FuzzerJob.query()
+    query = query.filter(data_types.FuzzerJob.platform.IN(platforms))
     mappings = list(ndb_utils.get_all_from_query(query))[:1]
   else:
+    query = data_types.FuzzerJobs.query()
     query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
     mappings = []
