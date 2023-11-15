@@ -71,12 +71,16 @@ def get_arguments(fuzzer_path):
     arguments.append(
         '%s%d' % (constants.RSS_LIMIT_FLAG, constants.DEFAULT_RSS_LIMIT_MB))
   else:
-    max_memory_limit = psutil.virtual_memory().total - constants.MEMORY_OVERHEAD
+    # psutil gives the total amount of memory in bytes, but we're only dealing
+    # with options that are counting memory space in MB, so we need to do the
+    # conversion first.
+    max_memory_limit_mb = (psutil.virtual_memory().total //
+                           (1 << 20)) - constants.MEMORY_OVERHEAD
     # Custom rss_limit_mb value shouldn't be greater than the actual memory
     # allocated on the machine.
-    if rss_limit_mb > max_memory_limit:
+    if rss_limit_mb > max_memory_limit_mb:
       arguments.remove('%s%d' % (constants.RSS_LIMIT_FLAG, rss_limit_mb))
-      arguments.append('%s%d' % (constants.RSS_LIMIT_FLAG, max_memory_limit))
+      arguments.append('%s%d' % (constants.RSS_LIMIT_FLAG, max_memory_limit_mb))
 
   return arguments
 
