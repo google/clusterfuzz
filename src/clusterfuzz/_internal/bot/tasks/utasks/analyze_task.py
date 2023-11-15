@@ -244,7 +244,7 @@ def handle_noncrash(output):
     return
 
   data_handler.mark_invalid_uploaded_testcase(
-      testcase, output.testcase_upload_metadata, 'Unreproducible')
+      testcase, output.uworker_input.testcase_upload_metadata, 'Unreproducible')
 
 
 def update_testcase_after_crash(testcase, state, job_type, http_flag,
