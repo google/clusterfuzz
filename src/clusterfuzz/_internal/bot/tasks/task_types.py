@@ -15,6 +15,7 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
@@ -40,21 +41,6 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-class UTask(BaseTask):
-  """Represents an untrusted task. Executes the preprocess part on this machine
-  and causes the other parts to be executed on on other machines."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
-
-    if preprocess_result is None:
-      return
-
-    # TODO(metzman): Execute main on other machines.
-
-
 def is_production():
   return not (environment.is_local_development() or
               environment.get_value('UNTRUSTED_RUNNER_TESTS') or
@@ -62,12 +48,15 @@ def is_production():
               environment.get_value('UTASK_TESTS'))
 
 
-class UTaskLocalExecutor(BaseTask):
-  """Represents an untrusted task. Executes it entirely locally and in
-  memory."""
+class BaseUTask(BaseTask):
+  """Base class representing an untrusted task. Children must decide to execute
+  locally or remotely."""
 
   def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally in-memory."""
+    """Executes a task."""
+    raise NotImplementedError('Child class must implement.')
+
+  def execute_locally(self, task_argument, job_type, uworker_env):
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
@@ -79,26 +68,37 @@ class UTaskLocalExecutor(BaseTask):
     logs.log('Utask local: done.')
 
 
-class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
-  """Represents an untrusted task. Executes the preprocess and main parts on
-  this machine and causes postprocess to be executed on on other machines."""
+class UTaskLocalExecutor(BaseUTask):
+  """Represents an untrusted task. Executes it entirely locally and in
+  memory."""
 
-  # TODO(metzman): Delete this once we start using UTasks. Its only purpose is
-  # for incremental development.
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally in-memory."""
+    self.execute_locally(task_argument, job_type, uworker_env)
+
+
+class UTask(BaseUTask):
+  """Represents an untrusted task. Executes preprocess on this machine, main on
+  an untrusted machine, and postprocess on another trusted machine if
+  opted-in. Otherwise executes locally."""
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
     if (not is_production() or
         not environment.get_value('REMOTE_UTASK_EXECUTION')):
-      super().execute(task_argument, job_type, uworker_env)
+      self.execute_locally(task_argument, job_type, uworker_env)
       return
 
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
                                                 job_type, uworker_env)
+    if not download_url:
+      logs.log_error('No download_url returned from preprocess.')
+      return
 
     logs.log('Utask: done with preprocess.')
-    utasks.uworker_main(download_url)
-    logs.log('Utask: done with main.')
+    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
+                                        download_url)
+    logs.log('Utask: done creating main.')
 
 
 class PostprocessTask(BaseTask):
@@ -140,7 +140,7 @@ class UworkerMainTask(BaseTask):
 
 
 COMMAND_TYPES = {
-    'analyze': UTaskLocalPreprocessAndMain,
+    'analyze': UTask,
     'blame': TrustedTask,
     'corpus_pruning': UTaskLocalExecutor,
     'fuzz': UTaskLocalExecutor,
