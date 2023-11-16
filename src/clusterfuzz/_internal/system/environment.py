@@ -1070,6 +1070,12 @@ def is_local_development():
   return bool(get_value('LOCAL_DEVELOPMENT') and not get_value('PY_UNITTESTS'))
 
 
+def is_production():
+  """Return True if running in production environment (e.g. not running
+  a bot locally, excludes tests)."""
+  return not is_local_development()
+
+
 def local_noop(func):
   """Wrap a function into no-op and return None if running in local
   development environment."""
