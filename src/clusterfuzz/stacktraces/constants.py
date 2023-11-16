@@ -629,7 +629,9 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'Unreachable code',
     'V8 API error',
+    'V8 sandbox violation',
 ]
 
 STATE_STOP_MARKERS = [
