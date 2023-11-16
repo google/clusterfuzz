@@ -35,7 +35,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xdc\x02\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\")\n\x10\x41nalyzeTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"\x14\n\x12SymbolizeTaskInput\"Z\n\rFuzzTaskInput\x12\x37\n\rtargets_count\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x42\x10\n\x0e_targets_count\"M\n\x11MinimizeTaskInput\x12 \n\x13testcase_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x16\n\x14_testcase_upload_url\",\n\x13RegressionTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"[\n\x14ProgressionTaskInput\x12\x1a\n\rcustom_binary\x18\x01 \x01(\x08H\x00\x88\x01\x01\x12\x15\n\rbad_revisions\x18\x02 \x03(\x03\x42\x10\n\x0e_custom_binary\"\x9d\x01\n\x16\x43orpusPruningTaskInput\x12\x35\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\"\n\x15last_execution_failed\x18\x02 \x01(\x08H\x01\x88\x01\x01\x42\x0e\n\x0c_fuzz_targetB\x18\n\x16_last_execution_failed\"\xa4\t\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x04\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x05\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x06\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\x08\x88\x01\x01\x12%\n\x0bsetup_input\x18\x0b \x01(\x0b\x32\x0b.SetupInputH\t\x88\x01\x01\x12\x32\n\x12\x61nalyze_task_input\x18\x0c \x01(\x0b\x32\x11.AnalyzeTaskInputH\n\x88\x01\x01\x12?\n\x19\x63orpus_pruning_task_input\x18\r \x01(\x0b\x32\x17.CorpusPruningTaskInputH\x0b\x88\x01\x01\x12,\n\x0f\x66uzz_task_input\x18\x0e \x01(\x0b\x32\x0e.FuzzTaskInputH\x0c\x88\x01\x01\x12\x34\n\x13minimize_task_input\x18\x0f \x01(\x0b\x32\x12.MinimizeTaskInputH\r\x88\x01\x01\x12:\n\x16progression_task_input\x18\x10 \x01(\x0b\x32\x15.ProgressionTaskInputH\x0e\x88\x01\x01\x12\x38\n\x15regression_task_input\x18\x11 \x01(\x0b\x32\x14.RegressionTaskInputH\x0f\x88\x01\x01\x12\x36\n\x14symbolize_task_input\x18\x12 \x01(\x0b\x32\x13.SymbolizeTaskInputH\x10\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x13 \x01(\tH\x11\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x1c\n\x1a_corpus_pruning_task_inputB\x12\n\x10_fuzz_task_inputB\x16\n\x14_minimize_task_inputB\x19\n\x17_progression_task_inputB\x18\n\x16_regression_task_inputB\x17\n\x15_symbolize_task_inputB\x0e\n\x0c_module_name\"\x15\n\x13SymbolizeTaskOutput\"\x13\n\x11\x41nalyzeTaskOutput\"\xf9\x03\n\x0e\x46uzzTaskOutput\x12\x18\n\x0b\x66uzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1c\n\x0fnew_crash_count\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12\x1e\n\x11known_crash_count\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x05\x88\x01\x01\x12#\n\x0fjob_run_crashes\x18\x07 \x01(\x0b\x32\x05.JsonH\x06\x88\x01\x01\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x1e\n\x11new_targets_count\x18\t \x01(\x05H\x08\x88\x01\x01\x42\x0e\n\x0c_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x12\n\x10_new_crash_countB\x14\n\x12_known_crash_countB\x15\n\x13_testcases_executedB\x12\n\x10_job_run_crashesB\x1e\n\x1c_fully_qualified_fuzzer_nameB\x14\n\x12_new_targets_count\"\xb7\x01\n\x12MinimizeTaskOutput\x12*\n\x16last_crash_result_dict\x18\x01 \x01(\x0b\x32\x05.JsonH\x00\x88\x01\x01\x12\x18\n\x0b\x66laky_stack\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\x1c\n\x0f\x62uild_fail_wait\x18\x03 \x01(\x03H\x02\x88\x01\x01\x42\x19\n\x17_last_crash_result_dictB\x0e\n\x0c_flaky_stackB\x12\n\x10_build_fail_wait\"\x16\n\x14RegressionTaskOutput\"\xc3\x01\n\tBuildData\x12\x19\n\x0cis_bad_build\x18\x01 \x01(\x08H\x00\x88\x01\x01\x12\'\n\x1ashould_ignore_crash_result\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12%\n\x18\x62uild_run_console_output\x18\x03 \x01(\tH\x02\x88\x01\x01\x42\x0f\n\r_is_bad_buildB\x1d\n\x1b_should_ignore_crash_resultB\x1b\n\x19_build_run_console_output\"\xce\x04\n\x15ProgressionTaskOutput\x12\x19\n\x0cmin_revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x19\n\x0cmax_revision\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12\x1c\n\x0f\x63rash_on_latest\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12$\n\x17\x63rash_on_latest_message\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12)\n\x1clast_tested_crash_stacktrace\x18\x06 \x01(\tH\x05\x88\x01\x01\x12!\n\x14last_progression_min\x18\x07 \x01(\x03H\x06\x88\x01\x01\x12!\n\x14last_progression_max\x18\x08 \x01(\x03H\x07\x88\x01\x01\x12#\n\x16\x63lear_min_max_metadata\x18\t \x01(\x08H\x08\x88\x01\x01\x12\"\n\x0eissue_metadata\x18\n \x01(\x0b\x32\x05.JsonH\t\x88\x01\x01\x42\x0f\n\r_min_revisionB\x0f\n\r_max_revisionB\x12\n\x10_crash_on_latestB\x1a\n\x18_crash_on_latest_messageB\x11\n\x0f_crash_revisionB\x1f\n\x1d_last_tested_crash_stacktraceB\x17\n\x15_last_progression_minB\x17\n\x15_last_progression_maxB\x19\n\x17_clear_min_max_metadataB\x11\n\x0f_issue_metadata\"\xee\x07\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12#\n\nerror_type\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x34\n\x13\x61nalyze_task_output\x18\t \x01(\x0b\x32\x12.AnalyzeTaskOutputH\x08\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\n \x01(\x0b\x32\x0f.FuzzTaskOutputH\t\x88\x01\x01\x12\x36\n\x14minimize_task_output\x18\x0b \x01(\x0b\x32\x13.MinimizeTaskOutputH\n\x88\x01\x01\x12:\n\x16regression_task_output\x18\x0c \x01(\x0b\x32\x15.RegressionTaskOutputH\x0b\x88\x01\x01\x12<\n\x17progression_task_output\x18\r \x01(\x0b\x32\x16.ProgressionTaskOutputH\x0c\x88\x01\x01\x12\x38\n\x15symbolize_task_output\x18\x0e \x01(\x0b\x32\x14.SymbolizeTaskOutputH\r\x88\x01\x01\x12\x1a\n\rerror_message\x18\x0f \x01(\tH\x0e\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\r\n\x0b_error_typeB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x16\n\x14_analyze_task_outputB\x13\n\x11_fuzz_task_outputB\x17\n\x15_minimize_task_outputB\x19\n\x17_regression_task_outputB\x1a\n\x18_progression_task_outputB\x18\n\x16_symbolize_task_outputB\x10\n\x0e_error_message*\xca\x04\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x1d\n\x19\x41NALYZE_NO_REVISIONS_LIST\x10\x03\x12\x1d\n\x19\x41NALYZE_NO_REVISION_INDEX\x10\x04\x12\x12\n\x0eTESTCASE_SETUP\x10\x05\x12\r\n\tUNHANDLED\x10\x06\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x07\x12\x12\n\x0eMINIMIZE_SETUP\x10\x08\x12\x1c\n\x18\x46UZZ_BUILD_SETUP_FAILURE\x10\t\x12\"\n\x1e\x46UZZ_DATA_BUNDLE_SETUP_FAILURE\x10\n\x12\x12\n\x0e\x46UZZ_NO_FUZZER\x10\x0b\x12#\n\x1fPROGRESSION_REVISION_LIST_ERROR\x10\x0c\x12\x1f\n\x1bPROGRESSION_BUILD_NOT_FOUND\x10\r\x12\x18\n\x14PROGRESSION_NO_CRASH\x10\x0e\x12!\n\x1dPROGRESSION_BAD_STATE_MIN_MAX\x10\x0f\x12\x17\n\x13PROGRESSION_TIMEOUT\x10\x10\x12\x19\n\x15PROGRESSION_BAD_BUILD\x10\x11\x12!\n\x1dPROGRESSION_BUILD_SETUP_ERROR\x10\x12\x12\"\n\x1eREGRESSION_REVISION_LIST_ERROR\x10\x13\x12\x1e\n\x1aREGRESSION_BUILD_NOT_FOUND\x10\x14\x62\x06proto3'
+  serialized_pb=b'\n.clusterfuzz/_internal/protos/uworker_msg.proto\x1a,google/cloud/datastore_v1/proto/entity.proto\"\x1a\n\x04Json\x12\x12\n\nserialized\x18\x01 \x01(\t\"[\n\x14UworkerEntityWrapper\x12+\n\x06\x65ntity\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.Entity\x12\x16\n\x07\x63hanged\x18\x02 \x01(\x0b\x32\x05.Json\"\xdc\x02\n\nSetupInput\x12\x30\n\x06\x66uzzer\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x31\n\x0c\x64\x61ta_bundles\x18\x03 \x03(\x0b\x32\x1b.google.datastore.v1.Entity\x12\"\n\x15\x66uzzer_log_upload_url\x18\x04 \x01(\tH\x02\x88\x01\x01\x12 \n\x13\x66uzzer_download_url\x18\x05 \x01(\tH\x03\x88\x01\x01\x12\"\n\x15testcase_download_url\x18\x06 \x01(\tH\x04\x88\x01\x01\x42\t\n\x07_fuzzerB\x0e\n\x0c_fuzzer_nameB\x18\n\x16_fuzzer_log_upload_urlB\x16\n\x14_fuzzer_download_urlB\x18\n\x16_testcase_download_url\")\n\x10\x41nalyzeTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"\x14\n\x12SymbolizeTaskInput\"Z\n\rFuzzTaskInput\x12\x37\n\rtargets_count\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x42\x10\n\x0e_targets_count\"M\n\x11MinimizeTaskInput\x12 \n\x13testcase_upload_url\x18\x01 \x01(\tH\x00\x88\x01\x01\x42\x16\n\x14_testcase_upload_url\",\n\x13RegressionTaskInput\x12\x15\n\rbad_revisions\x18\x01 \x03(\x03\"[\n\x14ProgressionTaskInput\x12\x1a\n\rcustom_binary\x18\x01 \x01(\x08H\x00\x88\x01\x01\x12\x15\n\rbad_revisions\x18\x02 \x03(\x03\x42\x10\n\x0e_custom_binary\"\x9d\x01\n\x16\x43orpusPruningTaskInput\x12\x35\n\x0b\x66uzz_target\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\"\n\x15last_execution_failed\x18\x02 \x01(\x08H\x01\x88\x01\x01\x42\x0e\n\x0c_fuzz_targetB\x18\n\x16_last_execution_failed\"\xa4\t\n\x05Input\x12\x32\n\x08testcase\x18\x01 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x00\x88\x01\x01\x12\x42\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x01\x88\x01\x01\x12\x18\n\x0btestcase_id\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1f\n\x0buworker_env\x18\x04 \x01(\x0b\x32\x05.JsonH\x03\x88\x01\x01\x12\x15\n\x08job_type\x18\x06 \x01(\tH\x04\x88\x01\x01\x12&\n\x19uworker_output_upload_url\x18\x07 \x01(\tH\x05\x88\x01\x01\x12\x31\n\x07variant\x18\x08 \x01(\x0b\x32\x1b.google.datastore.v1.EntityH\x06\x88\x01\x01\x12\x1e\n\x11original_job_type\x18\t \x01(\tH\x07\x88\x01\x01\x12\x18\n\x0b\x66uzzer_name\x18\n \x01(\tH\x08\x88\x01\x01\x12%\n\x0bsetup_input\x18\x0b \x01(\x0b\x32\x0b.SetupInputH\t\x88\x01\x01\x12\x32\n\x12\x61nalyze_task_input\x18\x0c \x01(\x0b\x32\x11.AnalyzeTaskInputH\n\x88\x01\x01\x12?\n\x19\x63orpus_pruning_task_input\x18\r \x01(\x0b\x32\x17.CorpusPruningTaskInputH\x0b\x88\x01\x01\x12,\n\x0f\x66uzz_task_input\x18\x0e \x01(\x0b\x32\x0e.FuzzTaskInputH\x0c\x88\x01\x01\x12\x34\n\x13minimize_task_input\x18\x0f \x01(\x0b\x32\x12.MinimizeTaskInputH\r\x88\x01\x01\x12:\n\x16progression_task_input\x18\x10 \x01(\x0b\x32\x15.ProgressionTaskInputH\x0e\x88\x01\x01\x12\x38\n\x15regression_task_input\x18\x11 \x01(\x0b\x32\x14.RegressionTaskInputH\x0f\x88\x01\x01\x12\x36\n\x14symbolize_task_input\x18\x12 \x01(\x0b\x32\x13.SymbolizeTaskInputH\x10\x88\x01\x01\x12\x18\n\x0bmodule_name\x18\x13 \x01(\tH\x11\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\x0e\n\x0c_testcase_idB\x0e\n\x0c_uworker_envB\x0b\n\t_job_typeB\x1c\n\x1a_uworker_output_upload_urlB\n\n\x08_variantB\x14\n\x12_original_job_typeB\x0e\n\x0c_fuzzer_nameB\x0e\n\x0c_setup_inputB\x15\n\x13_analyze_task_inputB\x1c\n\x1a_corpus_pruning_task_inputB\x12\n\x10_fuzz_task_inputB\x16\n\x14_minimize_task_inputB\x19\n\x17_progression_task_inputB\x18\n\x16_regression_task_inputB\x17\n\x15_symbolize_task_inputB\x0e\n\x0c_module_name\"\x15\n\x13SymbolizeTaskOutput\"\x13\n\x11\x41nalyzeTaskOutput\"\xf9\x03\n\x0e\x46uzzTaskOutput\x12\x18\n\x0b\x66uzzer_name\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\x11job_run_timestamp\x18\x03 \x01(\x02H\x02\x88\x01\x01\x12\x1c\n\x0fnew_crash_count\x18\x04 \x01(\x03H\x03\x88\x01\x01\x12\x1e\n\x11known_crash_count\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12\x1f\n\x12testcases_executed\x18\x06 \x01(\x03H\x05\x88\x01\x01\x12#\n\x0fjob_run_crashes\x18\x07 \x01(\x0b\x32\x05.JsonH\x06\x88\x01\x01\x12(\n\x1b\x66ully_qualified_fuzzer_name\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x1e\n\x11new_targets_count\x18\t \x01(\x05H\x08\x88\x01\x01\x42\x0e\n\x0c_fuzzer_nameB\x11\n\x0f_crash_revisionB\x14\n\x12_job_run_timestampB\x12\n\x10_new_crash_countB\x14\n\x12_known_crash_countB\x15\n\x13_testcases_executedB\x12\n\x10_job_run_crashesB\x1e\n\x1c_fully_qualified_fuzzer_nameB\x14\n\x12_new_targets_count\"\xb7\x01\n\x12MinimizeTaskOutput\x12*\n\x16last_crash_result_dict\x18\x01 \x01(\x0b\x32\x05.JsonH\x00\x88\x01\x01\x12\x18\n\x0b\x66laky_stack\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12\x1c\n\x0f\x62uild_fail_wait\x18\x03 \x01(\x03H\x02\x88\x01\x01\x42\x19\n\x17_last_crash_result_dictB\x0e\n\x0c_flaky_stackB\x12\n\x10_build_fail_wait\"\x16\n\x14RegressionTaskOutput\"\xa3\x02\n\x11VariantTaskOutput\x12\x13\n\x06status\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x15\n\x08revision\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12\x17\n\ncrash_type\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x18\n\x0b\x63rash_state\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1a\n\rsecurity_flag\x18\x05 \x01(\x08H\x04\x88\x01\x01\x12\x17\n\nis_similar\x18\x06 \x01(\x08H\x05\x88\x01\x01\x12\x15\n\x08platform\x18\x07 \x01(\tH\x06\x88\x01\x01\x42\t\n\x07_statusB\x0b\n\t_revisionB\r\n\x0b_crash_typeB\x0e\n\x0c_crash_stateB\x10\n\x0e_security_flagB\r\n\x0b_is_similarB\x0b\n\t_platform\"\xc3\x01\n\tBuildData\x12\x19\n\x0cis_bad_build\x18\x01 \x01(\x08H\x00\x88\x01\x01\x12\'\n\x1ashould_ignore_crash_result\x18\x02 \x01(\x08H\x01\x88\x01\x01\x12%\n\x18\x62uild_run_console_output\x18\x03 \x01(\tH\x02\x88\x01\x01\x42\x0f\n\r_is_bad_buildB\x1d\n\x1b_should_ignore_crash_resultB\x1b\n\x19_build_run_console_output\"\xce\x04\n\x15ProgressionTaskOutput\x12\x19\n\x0cmin_revision\x18\x01 \x01(\x03H\x00\x88\x01\x01\x12\x19\n\x0cmax_revision\x18\x02 \x01(\x03H\x01\x88\x01\x01\x12\x1c\n\x0f\x63rash_on_latest\x18\x03 \x01(\x08H\x02\x88\x01\x01\x12$\n\x17\x63rash_on_latest_message\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x1b\n\x0e\x63rash_revision\x18\x05 \x01(\x03H\x04\x88\x01\x01\x12)\n\x1clast_tested_crash_stacktrace\x18\x06 \x01(\tH\x05\x88\x01\x01\x12!\n\x14last_progression_min\x18\x07 \x01(\x03H\x06\x88\x01\x01\x12!\n\x14last_progression_max\x18\x08 \x01(\x03H\x07\x88\x01\x01\x12#\n\x16\x63lear_min_max_metadata\x18\t \x01(\x08H\x08\x88\x01\x01\x12\"\n\x0eissue_metadata\x18\n \x01(\x0b\x32\x05.JsonH\t\x88\x01\x01\x42\x0f\n\r_min_revisionB\x0f\n\r_max_revisionB\x12\n\x10_crash_on_latestB\x1a\n\x18_crash_on_latest_messageB\x11\n\x0f_crash_revisionB\x1f\n\x1d_last_tested_crash_stacktraceB\x17\n\x15_last_progression_minB\x17\n\x15_last_progression_maxB\x19\n\x17_clear_min_max_metadataB\x11\n\x0f_issue_metadata\"\xbc\x08\n\x06Output\x12,\n\x08testcase\x18\x01 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x00\x88\x01\x01\x12<\n\x18testcase_upload_metadata\x18\x02 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x01\x88\x01\x01\x12+\n\x07variant\x18\x03 \x01(\x0b\x32\x15.UworkerEntityWrapperH\x02\x88\x01\x01\x12#\n\nerror_type\x18\x04 \x01(\x0e\x32\n.ErrorTypeH\x03\x88\x01\x01\x12\"\n\ruworker_input\x18\x05 \x01(\x0b\x32\x06.InputH\x04\x88\x01\x01\x12\x19\n\x0ctest_timeout\x18\x06 \x01(\x02H\x05\x88\x01\x01\x12\x17\n\ncrash_time\x18\x07 \x01(\x02H\x06\x88\x01\x01\x12$\n\x17\x63rash_stacktrace_output\x18\x08 \x01(\tH\x07\x88\x01\x01\x12\x34\n\x13\x61nalyze_task_output\x18\t \x01(\x0b\x32\x12.AnalyzeTaskOutputH\x08\x88\x01\x01\x12.\n\x10\x66uzz_task_output\x18\n \x01(\x0b\x32\x0f.FuzzTaskOutputH\t\x88\x01\x01\x12\x36\n\x14minimize_task_output\x18\x0b \x01(\x0b\x32\x13.MinimizeTaskOutputH\n\x88\x01\x01\x12:\n\x16regression_task_output\x18\x0c \x01(\x0b\x32\x15.RegressionTaskOutputH\x0b\x88\x01\x01\x12<\n\x17progression_task_output\x18\r \x01(\x0b\x32\x16.ProgressionTaskOutputH\x0c\x88\x01\x01\x12\x38\n\x15symbolize_task_output\x18\x0e \x01(\x0b\x32\x14.SymbolizeTaskOutputH\r\x88\x01\x01\x12\x34\n\x13variant_task_output\x18\x0f \x01(\x0b\x32\x12.VariantTaskOutputH\x0e\x88\x01\x01\x12\x1a\n\rerror_message\x18\x10 \x01(\tH\x0f\x88\x01\x01\x42\x0b\n\t_testcaseB\x1b\n\x19_testcase_upload_metadataB\n\n\x08_variantB\r\n\x0b_error_typeB\x10\n\x0e_uworker_inputB\x0f\n\r_test_timeoutB\r\n\x0b_crash_timeB\x1a\n\x18_crash_stacktrace_outputB\x16\n\x14_analyze_task_outputB\x13\n\x11_fuzz_task_outputB\x17\n\x15_minimize_task_outputB\x19\n\x17_regression_task_outputB\x1a\n\x18_progression_task_outputB\x18\n\x16_symbolize_task_outputB\x16\n\x14_variant_task_outputB\x10\n\x0e_error_message*\xca\x04\n\tErrorType\x12\x0c\n\x08NO_ERROR\x10\x00\x12\x17\n\x13\x41NALYZE_BUILD_SETUP\x10\x01\x12\x14\n\x10\x41NALYZE_NO_CRASH\x10\x02\x12\x1d\n\x19\x41NALYZE_NO_REVISIONS_LIST\x10\x03\x12\x1d\n\x19\x41NALYZE_NO_REVISION_INDEX\x10\x04\x12\x12\n\x0eTESTCASE_SETUP\x10\x05\x12\r\n\tUNHANDLED\x10\x06\x12\x17\n\x13VARIANT_BUILD_SETUP\x10\x07\x12\x12\n\x0eMINIMIZE_SETUP\x10\x08\x12\x1c\n\x18\x46UZZ_BUILD_SETUP_FAILURE\x10\t\x12\"\n\x1e\x46UZZ_DATA_BUNDLE_SETUP_FAILURE\x10\n\x12\x12\n\x0e\x46UZZ_NO_FUZZER\x10\x0b\x12#\n\x1fPROGRESSION_REVISION_LIST_ERROR\x10\x0c\x12\x1f\n\x1bPROGRESSION_BUILD_NOT_FOUND\x10\r\x12\x18\n\x14PROGRESSION_NO_CRASH\x10\x0e\x12!\n\x1dPROGRESSION_BAD_STATE_MIN_MAX\x10\x0f\x12\x17\n\x13PROGRESSION_TIMEOUT\x10\x10\x12\x19\n\x15PROGRESSION_BAD_BUILD\x10\x11\x12!\n\x1dPROGRESSION_BUILD_SETUP_ERROR\x10\x12\x12\"\n\x1eREGRESSION_REVISION_LIST_ERROR\x10\x13\x12\x1e\n\x1aREGRESSION_BUILD_NOT_FOUND\x10\x14\x62\x06proto3'
   ,
   dependencies=[google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2.DESCRIPTOR,])
 
@@ -154,8 +154,8 @@ _ERRORTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   serialized_options=None,
-  serialized_start=4857,
-  serialized_end=5443,
+  serialized_start=5229,
+  serialized_end=5815,
 )
 _sym_db.RegisterEnumDescriptor(_ERRORTYPE)
 
@@ -1113,6 +1113,115 @@ _REGRESSIONTASKOUTPUT = _descriptor.Descriptor(
 )
 
 
+_VARIANTTASKOUTPUT = _descriptor.Descriptor(
+  name='VariantTaskOutput',
+  full_name='VariantTaskOutput',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='status', full_name='VariantTaskOutput.status', index=0,
+      number=1, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='revision', full_name='VariantTaskOutput.revision', index=1,
+      number=2, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='crash_type', full_name='VariantTaskOutput.crash_type', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='crash_state', full_name='VariantTaskOutput.crash_state', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='security_flag', full_name='VariantTaskOutput.security_flag', index=4,
+      number=5, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='is_similar', full_name='VariantTaskOutput.is_similar', index=5,
+      number=6, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='platform', full_name='VariantTaskOutput.platform', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='_status', full_name='VariantTaskOutput._status',
+      index=0, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_revision', full_name='VariantTaskOutput._revision',
+      index=1, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_crash_type', full_name='VariantTaskOutput._crash_type',
+      index=2, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_crash_state', full_name='VariantTaskOutput._crash_state',
+      index=3, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_security_flag', full_name='VariantTaskOutput._security_flag',
+      index=4, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_is_similar', full_name='VariantTaskOutput._is_similar',
+      index=5, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_platform', full_name='VariantTaskOutput._platform',
+      index=6, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
+  ],
+  serialized_start=3057,
+  serialized_end=3348,
+)
+
+
 _BUILDDATA = _descriptor.Descriptor(
   name='BuildData',
   full_name='BuildData',
@@ -1169,8 +1278,8 @@ _BUILDDATA = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=3057,
-  serialized_end=3252,
+  serialized_start=3351,
+  serialized_end=3546,
 )
 
 
@@ -1314,8 +1423,8 @@ _PROGRESSIONTASKOUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=3255,
-  serialized_end=3845,
+  serialized_start=3549,
+  serialized_end=4139,
 )
 
 
@@ -1426,8 +1535,15 @@ _OUTPUT = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='error_message', full_name='Output.error_message', index=14,
-      number=15, type=9, cpp_type=9, label=1,
+      name='variant_task_output', full_name='Output.variant_task_output', index=14,
+      number=15, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='error_message', full_name='Output.error_message', index=15,
+      number=16, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -1514,13 +1630,18 @@ _OUTPUT = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_error_message', full_name='Output._error_message',
+      name='_variant_task_output', full_name='Output._variant_task_output',
       index=14, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_error_message', full_name='Output._error_message',
+      index=15, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
-  serialized_start=3848,
-  serialized_end=4854,
+  serialized_start=4142,
+  serialized_end=5226,
 )
 
 _UWORKERENTITYWRAPPER.fields_by_name['entity'].message_type = google_dot_cloud_dot_datastore__v1_dot_proto_dot_entity__pb2._ENTITY
@@ -1663,6 +1784,27 @@ _MINIMIZETASKOUTPUT.fields_by_name['flaky_stack'].containing_oneof = _MINIMIZETA
 _MINIMIZETASKOUTPUT.oneofs_by_name['_build_fail_wait'].fields.append(
   _MINIMIZETASKOUTPUT.fields_by_name['build_fail_wait'])
 _MINIMIZETASKOUTPUT.fields_by_name['build_fail_wait'].containing_oneof = _MINIMIZETASKOUTPUT.oneofs_by_name['_build_fail_wait']
+_VARIANTTASKOUTPUT.oneofs_by_name['_status'].fields.append(
+  _VARIANTTASKOUTPUT.fields_by_name['status'])
+_VARIANTTASKOUTPUT.fields_by_name['status'].containing_oneof = _VARIANTTASKOUTPUT.oneofs_by_name['_status']
+_VARIANTTASKOUTPUT.oneofs_by_name['_revision'].fields.append(
+  _VARIANTTASKOUTPUT.fields_by_name['revision'])
+_VARIANTTASKOUTPUT.fields_by_name['revision'].containing_oneof = _VARIANTTASKOUTPUT.oneofs_by_name['_revision']
+_VARIANTTASKOUTPUT.oneofs_by_name['_crash_type'].fields.append(
+  _VARIANTTASKOUTPUT.fields_by_name['crash_type'])
+_VARIANTTASKOUTPUT.fields_by_name['crash_type'].containing_oneof = _VARIANTTASKOUTPUT.oneofs_by_name['_crash_type']
+_VARIANTTASKOUTPUT.oneofs_by_name['_crash_state'].fields.append(
+  _VARIANTTASKOUTPUT.fields_by_name['crash_state'])
+_VARIANTTASKOUTPUT.fields_by_name['crash_state'].containing_oneof = _VARIANTTASKOUTPUT.oneofs_by_name['_crash_state']
+_VARIANTTASKOUTPUT.oneofs_by_name['_security_flag'].fields.append(
+  _VARIANTTASKOUTPUT.fields_by_name['security_flag'])
+_VARIANTTASKOUTPUT.fields_by_name['security_flag'].containing_oneof = _VARIANTTASKOUTPUT.oneofs_by_name['_security_flag']
+_VARIANTTASKOUTPUT.oneofs_by_name['_is_similar'].fields.append(
+  _VARIANTTASKOUTPUT.fields_by_name['is_similar'])
+_VARIANTTASKOUTPUT.fields_by_name['is_similar'].containing_oneof = _VARIANTTASKOUTPUT.oneofs_by_name['_is_similar']
+_VARIANTTASKOUTPUT.oneofs_by_name['_platform'].fields.append(
+  _VARIANTTASKOUTPUT.fields_by_name['platform'])
+_VARIANTTASKOUTPUT.fields_by_name['platform'].containing_oneof = _VARIANTTASKOUTPUT.oneofs_by_name['_platform']
 _BUILDDATA.oneofs_by_name['_is_bad_build'].fields.append(
   _BUILDDATA.fields_by_name['is_bad_build'])
 _BUILDDATA.fields_by_name['is_bad_build'].containing_oneof = _BUILDDATA.oneofs_by_name['_is_bad_build']
@@ -1714,6 +1856,7 @@ _OUTPUT.fields_by_name['minimize_task_output'].message_type = _MINIMIZETASKOUTPU
 _OUTPUT.fields_by_name['regression_task_output'].message_type = _REGRESSIONTASKOUTPUT
 _OUTPUT.fields_by_name['progression_task_output'].message_type = _PROGRESSIONTASKOUTPUT
 _OUTPUT.fields_by_name['symbolize_task_output'].message_type = _SYMBOLIZETASKOUTPUT
+_OUTPUT.fields_by_name['variant_task_output'].message_type = _VARIANTTASKOUTPUT
 _OUTPUT.oneofs_by_name['_testcase'].fields.append(
   _OUTPUT.fields_by_name['testcase'])
 _OUTPUT.fields_by_name['testcase'].containing_oneof = _OUTPUT.oneofs_by_name['_testcase']
@@ -1756,6 +1899,9 @@ _OUTPUT.fields_by_name['progression_task_output'].containing_oneof = _OUTPUT.one
 _OUTPUT.oneofs_by_name['_symbolize_task_output'].fields.append(
   _OUTPUT.fields_by_name['symbolize_task_output'])
 _OUTPUT.fields_by_name['symbolize_task_output'].containing_oneof = _OUTPUT.oneofs_by_name['_symbolize_task_output']
+_OUTPUT.oneofs_by_name['_variant_task_output'].fields.append(
+  _OUTPUT.fields_by_name['variant_task_output'])
+_OUTPUT.fields_by_name['variant_task_output'].containing_oneof = _OUTPUT.oneofs_by_name['_variant_task_output']
 _OUTPUT.oneofs_by_name['_error_message'].fields.append(
   _OUTPUT.fields_by_name['error_message'])
 _OUTPUT.fields_by_name['error_message'].containing_oneof = _OUTPUT.oneofs_by_name['_error_message']
@@ -1775,6 +1921,7 @@ DESCRIPTOR.message_types_by_name['AnalyzeTaskOutput'] = _ANALYZETASKOUTPUT
 DESCRIPTOR.message_types_by_name['FuzzTaskOutput'] = _FUZZTASKOUTPUT
 DESCRIPTOR.message_types_by_name['MinimizeTaskOutput'] = _MINIMIZETASKOUTPUT
 DESCRIPTOR.message_types_by_name['RegressionTaskOutput'] = _REGRESSIONTASKOUTPUT
+DESCRIPTOR.message_types_by_name['VariantTaskOutput'] = _VARIANTTASKOUTPUT
 DESCRIPTOR.message_types_by_name['BuildData'] = _BUILDDATA
 DESCRIPTOR.message_types_by_name['ProgressionTaskOutput'] = _PROGRESSIONTASKOUTPUT
 DESCRIPTOR.message_types_by_name['Output'] = _OUTPUT
@@ -1892,6 +2039,13 @@ RegressionTaskOutput = _reflection.GeneratedProtocolMessageType('RegressionTaskO
   # @@protoc_insertion_point(class_scope:RegressionTaskOutput)
   })
 _sym_db.RegisterMessage(RegressionTaskOutput)
+
+VariantTaskOutput = _reflection.GeneratedProtocolMessageType('VariantTaskOutput', (_message.Message,), {
+  'DESCRIPTOR' : _VARIANTTASKOUTPUT,
+  '__module__' : 'clusterfuzz._internal.protos.uworker_msg_pb2'
+  # @@protoc_insertion_point(class_scope:VariantTaskOutput)
+  })
+_sym_db.RegisterMessage(VariantTaskOutput)
 
 BuildData = _reflection.GeneratedProtocolMessageType('BuildData', (_message.Message,), {
   'DESCRIPTOR' : _BUILDDATA,
