@@ -23,6 +23,7 @@ from google.cloud import batch_v1 as batch
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.datastore import data_types
 
 from . import credentials
 
@@ -124,8 +125,9 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   return _batch_client().create_job(create_request)
 
 
-def get_spec(full_module_name, job):
+def get_spec(full_module_name, job_name):
   """Gets the specifications for a job."""
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
   platform = job.platform
   command = utask_utils.get_command_from_module(full_module_name)
   if command == 'fuzz':
