@@ -67,7 +67,7 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def create_job(module_name, cf_job):
+def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   """This is not a job in ClusterFuzz's meaning of the word."""
   # Define what will be done as part of the job.
   runnable = batch.Runnable()
@@ -77,7 +77,8 @@ def create_job(module_name, cf_job):
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
       '-P --privileged --cap-add=all '
-      '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e IS_UWORKER=True')
+      '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e IS_UWORKER=True '
+      f'-e UWORKER_INPUT_DOWNLOAD_URL={input_download_url}')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   # Jobs can be divided into tasks. In this case, we have only one task.
   task = batch.TaskSpec()
