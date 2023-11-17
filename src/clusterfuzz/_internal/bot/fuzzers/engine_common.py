@@ -653,10 +653,10 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
 
   idx = 0
   for file in reader.list_files():
-    if file.is_dir():
+    if file.is_dir:
       continue
 
-    if file.file_size > max_bytes:
+    if file.file_size_bytes > max_bytes:
       continue
 
     output_filename = '%016d' % idx

@@ -13,8 +13,11 @@
 # limitations under the License.
 """Functions for handling archives."""
 
+import abc
+import dataclasses
 import os
 import tarfile
+import typing
 import zipfile
 
 from clusterfuzz._internal.metrics import logs
@@ -51,45 +54,37 @@ def _is_attempting_path_traversal(archive_name, output_dir, filename) -> bool:
   return False
 
 
+@dataclasses.dataclass
 class ArchiveMemberInfo:
   """ArchiveMemberInfo"""
 
-  def __init__(self, filename, is_dir, file_size, mode):
-    self._filename = filename
-    self._is_dir = is_dir
-    self._file_size = file_size
-    self._mode = mode
-
-  @property
-  def filename(self):
-    return self._filename
-
-  def is_dir(self):
-    return self._is_dir
-
-  @property
-  def file_size(self):
-    return self._file_size
-
-  @property
-  def mode(self):
-    return self._mode
+  filename: str
+  is_dir: bool
+  file_size_bytes: int
+  mode: int
 
 
-class ArchiveReader:
+class ArchiveReader(abc.ABC):
   """ArchiveReader"""
 
-  # This should have a few of the handful functions a tool like unzip has
-  def list_files(self) -> [ArchiveMemberInfo]:
+  @abc.abstractmethod
+  def list_files(self) -> typing.List[ArchiveMemberInfo]:
     raise NotImplementedError
 
+  @abc.abstractmethod
   def extract(self, member, path=None, trusted=False):
     raise NotImplementedError
 
+  @abc.abstractmethod
   def open(self, member):
     raise NotImplementedError
 
+  @abc.abstractmethod
   def close(self) -> None:
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def extractall(self, path=None, members=None, trusted=False) -> None:
     raise NotImplementedError
 
   def try_open(self, member):
@@ -101,18 +96,15 @@ class ArchiveReader:
   def get_first_file_matching(self, search_string):
     for file in self.list_files():
       if file.filename.startswith('__MACOSX/'):
-        # Exclude MAC resouce forks.
+        # Exclude MAC resource forks.
         continue
 
       if search_string in file.filename:
         return file.filename
     return None
 
-  def extractall(self, path=None, members=None, trusted=False) -> None:
-    raise NotImplementedError
-
   def extracted_size(self, file_match_callback=None):
-    return sum(f.file_size
+    return sum(f.file_size_bytes
                for f in self.list_files()
                if not file_match_callback or file_match_callback(f.filename))
 
@@ -130,11 +122,13 @@ class TarArchiveReader(ArchiveReader):
       self.archive = tarfile.open(archive_path, mode=mode)
     self.archive_path = archive_path
 
-  def list_files(self) -> [ArchiveMemberInfo]:
+  def list_files(self) -> typing.List[ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
-            filename=f.name, is_dir=f.isdir(), file_size=f.size, mode=f.mode)
-        for f in self.archive.getmembers()
+            filename=f.name,
+            is_dir=f.isdir(),
+            file_size_bytes=f.size,
+            mode=f.mode) for f in self.archive.getmembers()
     ]
 
   def open(self, member):
@@ -169,12 +163,12 @@ class ZipArchiveReader(ArchiveReader):
   def __init__(self, file) -> None:
     self.zip_archive = zipfile.ZipFile(file, mode='r')
 
-  def list_files(self):
+  def list_files(self) -> typing.List[ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
             filename=f.filename,
             is_dir=f.is_dir(),
-            file_size=f.file_size,
+            file_size_bytes=f.file_size,
             mode=f.external_attr & 0o7777) for f in self.zip_archive.infolist()
     ]
 
@@ -321,7 +315,7 @@ def unpack(archive_path,
 
   error_occurred = False
   for file in file_list:
-    error_occurred = reader.extract(
+    error_occurred |= reader.extract(
         member=file, path=output_directory, trusted=trusted) is None
     # Keep heartbeat happy by updating with our progress.
     archive_file_unpack_count += 1

@@ -63,7 +63,7 @@ class IteratorTest(unittest.TestCase):
     actual_results = {
         f.filename: reader.open(f.filename).read()
         for f in reader.list_files()
-        if not f.is_dir()
+        if not f.is_dir
     }
     self.assertEqual(actual_results, expected_results)
 
@@ -76,7 +76,7 @@ class IteratorTest(unittest.TestCase):
     actual_results = {
         f.filename: reader.open(f.filename).read()
         for f in reader.list_files()
-        if not f.is_dir()
+        if not f.is_dir
     }
     self.assertEqual(actual_results, expected_results)
 
@@ -96,9 +96,10 @@ class IteratorTest(unittest.TestCase):
       # This means we can read the file.
       handle = reader.try_open(file.filename)
       if handle is not None:
-        actual_results.append((file.filename, file.file_size, handle.read()))
+        actual_results.append((file.filename, file.file_size_bytes,
+                               handle.read()))
       else:
-        actual_results.append((file.filename, file.file_size, None))
+        actual_results.append((file.filename, file.file_size_bytes, None))
 
     # Check that iterator returns what we expect it to.
     expected_results = [
