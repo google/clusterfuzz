@@ -338,15 +338,6 @@ class ArchiveType:
   TAR_LZMA = 3
 
 
-class ArchiveFile:
-  """File in an archive."""
-
-  def __init__(self, name, size, handle):
-    self.name = name
-    self.size = size
-    self.handle = handle
-
-
 def get_archive_type(archive_path):
   """Get the type of the archive."""
 
