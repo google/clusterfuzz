@@ -98,6 +98,16 @@ class ArchiveReader:
     except:
       return None
 
+  def get_first_file_matching(self, search_string):
+    for file in self.list_files():
+      if file.filename.startswith('__MACOSX/'):
+        # Exclude MAC resouce forks.
+        continue
+
+      if search_string in file.filename:
+        return file.filename
+    return None
+
   def extractall(self, path=None, members=None, trusted=False) -> None:
     raise NotImplementedError
 
@@ -285,19 +295,6 @@ def get_archive_type(archive_path):
     return ArchiveType.TAR_LZMA
 
   return ArchiveType.UNKNOWN
-
-
-def get_first_file_matching(search_string, archive_obj, archive_path):
-  """Returns the first file with a name matching search string in archive."""
-  reader = get_archive_reader(archive_path, archive_obj)
-  for file in reader.list_files():
-    if file.filename.startswith('__MACOSX/'):
-      # Exclude MAC resouce forks.
-      continue
-
-    if search_string in file.filename:
-      return file.filename
-  return None
 
 
 def is_archive(filename):
