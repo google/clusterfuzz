@@ -384,7 +384,13 @@ def unpack_testcase(testcase, testcase_download_url):
   file_list = []
   if archived:
     archive.unpack(temp_filename, input_directory)
-    file_list = archive.get_file_list(temp_filename)
+
+    reader = archive.get_archive_reader(temp_filename)
+    assert reader
+
+    file_list = [f.filename for f in reader.list_files()]
+    reader.close()
+
     shell.remove_file(temp_filename)
 
     file_exists = False

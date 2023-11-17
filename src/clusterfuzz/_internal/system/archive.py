@@ -54,11 +54,11 @@ def _is_attempting_path_traversal(archive_name, output_dir, filename) -> bool:
 class ArchiveMemberInfo:
   """ArchiveMemberInfo"""
 
-  def __init__(self, filename, is_dir, file_size, compress_size):
+  def __init__(self, filename, is_dir, file_size, mode):
     self._filename = filename
     self._is_dir = is_dir
     self._file_size = file_size
-    self._compress_size = compress_size
+    self._mode = mode
 
   @property
   def filename(self):
@@ -72,8 +72,8 @@ class ArchiveMemberInfo:
     return self._file_size
 
   @property
-  def compress_size(self):
-    return self._compress_size
+  def mode(self):
+    return self._mode
 
 
 class ArchiveReader:
@@ -87,6 +87,9 @@ class ArchiveReader:
     raise NotImplementedError
 
   def open(self, member):
+    raise NotImplementedError
+
+  def close(self) -> None:
     raise NotImplementedError
 
   def try_open(self, member):
@@ -120,14 +123,15 @@ class TarArchiveReader(ArchiveReader):
   def list_files(self) -> [ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
-            filename=f.name,
-            is_dir=f.isdir(),
-            file_size=f.size,
-            compress_size=f.size) for f in self.archive.getmembers()
+            filename=f.name, is_dir=f.isdir(), file_size=f.size, mode=f.mode)
+        for f in self.archive.getmembers()
     ]
 
   def open(self, member):
     return self.archive.extractfile(member)
+
+  def close(self) -> None:
+    self.archive.close()
 
   def extract(self, member, path=None, trusted=False):
     # If the output directory is a symlink, get its actual path since we will be
@@ -161,11 +165,14 @@ class ZipArchiveReader(ArchiveReader):
             filename=f.filename,
             is_dir=f.is_dir(),
             file_size=f.file_size,
-            compress_size=f.compress_size) for f in self.zip_archive.infolist()
+            mode=f.external_attr & 0o7777) for f in self.zip_archive.infolist()
     ]
 
   def open(self, member):
     return self.zip_archive.open(name=member)
+
+  def close(self) -> None:
+    self.zip_archive.close()
 
   def extract(self, member, path=None, trusted=False):
     # If the output directory is a symlink, get its actual path since we will be
@@ -280,16 +287,6 @@ def get_archive_type(archive_path):
   return ArchiveType.UNKNOWN
 
 
-def get_file_list(archive_path, file_match_callback=None):
-  """List all files in an archive."""
-  reader = get_archive_reader(archive_path)
-  return [
-      f.filename
-      for f in reader.list_files()
-      if not file_match_callback or file_match_callback(f.filename)
-  ]
-
-
 def get_first_file_matching(search_string, archive_obj, archive_path):
   """Returns the first file with a name matching search string in archive."""
   reader = get_archive_reader(archive_path, archive_obj)
@@ -324,8 +321,11 @@ def unpack(archive_path,
   output_directory = os.path.realpath(output_directory)
 
   # Choose to unpack all files or ones matching a particular regex.
-  file_list = get_file_list(
-      archive_path, file_match_callback=file_match_callback)
+  file_list = [
+      f.filename
+      for f in reader.list_files()
+      if not file_match_callback or file_match_callback(f.filename)
+  ]
 
   archive_file_unpack_count = 0
   archive_file_total_count = len(file_list)

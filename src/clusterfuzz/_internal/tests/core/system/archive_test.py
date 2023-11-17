@@ -44,9 +44,10 @@ class UnpackTest(unittest.TestCase):
 
   def test_file_list(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
-    self.assertCountEqual(
-        archive.get_file_list(tar_xz_path),
-        ["archive_dir", "archive_dir/bye", "archive_dir/hi"])
+    reader = archive.get_archive_reader(tar_xz_path)
+    self.assertIsNotNone(reader)
+    self.assertCountEqual([f.filename for f in reader.list_files()],
+                          ["archive_dir", "archive_dir/bye", "archive_dir/hi"])
 
 
 class IteratorTest(unittest.TestCase):

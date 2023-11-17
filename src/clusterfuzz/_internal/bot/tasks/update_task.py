@@ -18,7 +18,6 @@ import os
 import platform
 import sys
 import time
-import zipfile
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
@@ -207,24 +206,23 @@ def update_source_code():
     logs.log_error('Could not retrieve source code archive from url.')
     return
 
-  try:
-    file_list = archive.get_file_list(temp_archive)
-    zip_archive = zipfile.ZipFile(temp_archive, 'r')
-  except Exception:
+  reader = archive.get_archive_reader(temp_archive)
+  if not reader:
     logs.log_error('Bad zip file.')
     return
+  file_list = reader.list_files()
 
   src_directory = os.path.join(root_directory, 'src')
   error_occurred = False
   normalized_file_set = set()
-  for filepath in file_list:
-    filename = os.path.basename(filepath)
+  for file in file_list:
+    filename = os.path.basename(file.filename)
 
     # This file cannot be updated on the fly since it is running as server.
     if filename == 'adb':
       continue
 
-    absolute_filepath = os.path.join(cf_source_root_parent_dir, filepath)
+    absolute_filepath = os.path.join(cf_source_root_parent_dir, file.filename)
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
@@ -252,17 +250,16 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
-      extracted_path = zip_archive.extract(filepath, cf_source_root_parent_dir)
-      external_attr = zip_archive.getinfo(filepath).external_attr
-      mode = (external_attr >> 16) & 0o777
+      extracted_path = reader.extract(file.filename, cf_source_root_parent_dir)
+      mode = file.mode
       mode |= 0o440
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True
       logs.log_error(
-          'Failed to extract file %s from source archive.' % filepath)
+          'Failed to extract file %s from source archive.' % file.filename)
 
-  zip_archive.close()
+  reader.close()
 
   if error_occurred:
     return

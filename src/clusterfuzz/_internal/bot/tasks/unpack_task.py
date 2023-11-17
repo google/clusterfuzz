@@ -78,7 +78,9 @@ def execute_task(metadata_id, job_type):
 
   archive_state = data_types.ArchiveStatus.NONE
   bundled = True
-  file_list = archive.get_file_list(archive_path)
+  reader = archive.get_archive_reader(archive_path)
+  assert reader
+  file_list = [f.filename for f in reader.list_files()]
 
   for file_path in file_list:
     absolute_file_path = os.path.join(testcases_directory, file_path)
