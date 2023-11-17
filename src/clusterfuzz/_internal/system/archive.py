@@ -88,12 +88,12 @@ class ArchiveReader(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def extract(self, member, path=None, trusted=False) -> str:
+  def extract(self, member, path, trusted=False) -> str:
     """Extracts `member` out of the archive to the provided path.
 
     Args:
         member (str): the member name
-        path (str, optional): the path at which the member should be extracted.
+        path (str): the path where the member should be extracted.
         Defaults to None.
         trusted (bool, optional): whether the archive is trusted. Defaults to
         False.
@@ -122,11 +122,11 @@ class ArchiveReader(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def extractall(self, path=None, members=None, trusted=False) -> None:
+  def extractall(self, path, members=None, trusted=False) -> None:
     """Extract the whole archive content or the members listed in `members`.
 
     Args:
-        path (str, optional): the path where the members should be extracted.
+        path (str): the path where the members should be extracted.
         Defaults to None.
         members ([str], optional): the member names. Defaults to None.
         trusted (bool, optional): whether the archive is trusted or not.
@@ -211,7 +211,7 @@ class TarArchiveReader(ArchiveReader):
   def close(self) -> None:
     self.archive.close()
 
-  def extract(self, member, path=None, trusted=False):
+  def extract(self, member, path, trusted=False):
     # If the output directory is a symlink, get its actual path since we will be
     # doing directory traversal checks later when unpacking the archive.
     output_directory = os.path.realpath(path)
@@ -224,7 +224,7 @@ class TarArchiveReader(ArchiveReader):
     self.archive.extract(member=member, path=output_directory)
     return os.path.realpath(os.path.join(output_directory, member))
 
-  def extractall(self, path=None, members=None, trusted=False) -> None:
+  def extractall(self, path, members=None, trusted=False) -> None:
     to_extract = members if members is not None else self.archive.namelist()
     #FIXME(paulsemel): we could try extracting that all.
     for member in to_extract:
@@ -253,7 +253,7 @@ class ZipArchiveReader(ArchiveReader):
   def close(self) -> None:
     self.zip_archive.close()
 
-  def extract(self, member, path=None, trusted=False):
+  def extract(self, member, path, trusted=False):
     # If the output directory is a symlink, get its actual path since we will be
     # doing directory traversal checks later when unpacking the archive.
     output_directory = os.path.realpath(path)
@@ -301,7 +301,7 @@ class ZipArchiveReader(ArchiveReader):
       # In case of errors, we try to extract whatever we can without errors.
       return None
 
-  def extractall(self, path=None, members=None, trusted=False) -> None:
+  def extractall(self, path, members=None, trusted=False) -> None:
     to_extract = members if members is not None else self.zip_archive.namelist()
     for member in to_extract:
       self.extract(member=member, path=path, trusted=trusted)
