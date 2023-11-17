@@ -437,6 +437,9 @@ HANDLED_ERRORS = [
 
 def _update_testcase(output):
   """Updates the testcase using the info passed from utask_main."""
+  if output.analyze_task_output is None:
+    return
+
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   analyze_task_output = output.analyze_task_output
   testcase.crash_revision = analyze_task_output.crash_revision
