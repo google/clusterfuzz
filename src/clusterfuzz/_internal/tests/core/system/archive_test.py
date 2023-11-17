@@ -56,10 +56,12 @@ class IteratorTest(unittest.TestCase):
     """Test that a .tar.xz file is handled properly by iterator()."""
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
     expected_results = {'archive_dir/hi': b'hi\n', 'archive_dir/bye': b'bye\n'}
+    reader = archive.get_archive_reader(tar_xz_path)
+    self.assertIsNotNone(reader)
     actual_results = {
-        archive_file.name: archive_file.handle.read()
-        for archive_file in archive.iterator(tar_xz_path)
-        if archive_file.handle
+        f.filename: reader.open(f.filename).read()
+        for f in reader.list_files()
+        if not f.is_dir()
     }
     self.assertEqual(actual_results, expected_results)
 
@@ -67,10 +69,12 @@ class IteratorTest(unittest.TestCase):
     """Test that a .tgz file with cwd prefix is handled."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     expected_results = {'./test': b'abc\n'}
+    reader = archive.get_archive_reader(tgz_path)
+    self.assertIsNotNone(reader)
     actual_results = {
-        archive_file.name: archive_file.handle.read()
-        for archive_file in archive.iterator(tgz_path)
-        if archive_file.handle
+        f.filename: reader.open(f.filename).read()
+        for f in reader.list_files()
+        if not f.is_dir()
     }
     self.assertEqual(actual_results, expected_results)
 
@@ -81,15 +85,18 @@ class IteratorTest(unittest.TestCase):
 
     archive_name = 'broken-links.tar.xz'
     archive_path = os.path.join(TESTDATA_PATH, archive_name)
+    reader = archive.get_archive_reader(archive_path)
+    self.assertIsNotNone(reader)
 
     # Get the results we expect from iterator().
     actual_results = []
-    for archive_file in archive.iterator(archive_path):
-      if archive_file.handle is not None:
-        actual_results.append((archive_file.name, archive_file.size,
-                               archive_file.handle.read()))
+    for file in reader.list_files():
+      # This means we can read the file.
+      handle = reader.try_open(file.filename)
+      if handle is not None:
+        actual_results.append((file.filename, file.file_size, handle.read()))
       else:
-        actual_results.append((archive_file.name, archive_file.size, None))
+        actual_results.append((file.filename, file.file_size, None))
 
     # Check that iterator returns what we expect it to.
     expected_results = [
@@ -103,8 +110,3 @@ class IteratorTest(unittest.TestCase):
     ]
 
     self.assertEqual(expected_results, actual_results)
-
-    # Check that iterator calls log_warn on a broken link.
-    self.mock.log_warn.assert_called_with(
-        'Check archive %s for broken links.' % archive_path,
-        error_filepaths=['testdir/2/a', 'testdir/2/b'])

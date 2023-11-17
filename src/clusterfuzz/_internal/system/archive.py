@@ -65,7 +65,7 @@ class ArchiveMemberInfo:
     return self._filename
 
   def is_dir(self):
-    raise self._is_dir
+    return self._is_dir
 
   @property
   def file_size(self):
@@ -88,6 +88,12 @@ class ArchiveReader:
 
   def open(self, member):
     raise NotImplementedError
+
+  def try_open(self, member):
+    try:
+      return self.open(member)
+    except:
+      return None
 
   def extractall(self, path=None, members=None, trusted=False) -> None:
     raise NotImplementedError
@@ -217,11 +223,14 @@ class ZipArchiveReader(ArchiveReader):
 
 def get_archive_reader(archive_path, file_obj=None):
   archive_type = get_archive_type(archive_path)
-  if archive_type == ArchiveType.ZIP:
-    return ZipArchiveReader(archive_path or file_obj)
-  if archive_type in (ArchiveType.TAR_LZMA, ArchiveType.TAR):
-    return TarArchiveReader(archive_path, file_obj=file_obj)
-  return None
+  try:
+    if archive_type == ArchiveType.ZIP:
+      return ZipArchiveReader(archive_path or file_obj)
+    if archive_type in (ArchiveType.TAR_LZMA, ArchiveType.TAR):
+      return TarArchiveReader(archive_path, file_obj=file_obj)
+    return None
+  except:
+    return None
 
 
 class ArchiveType:
@@ -239,38 +248,6 @@ class ArchiveFile:
     self.name = name
     self.size = size
     self.handle = handle
-
-
-def iterator(archive_path,
-             archive_obj=None,
-             file_match_callback=None,
-             should_extract=True):
-  """Return an iterator for files in an archive. Extracts files if
-  |should_extract| is True."""
-  try:
-    reader = get_archive_reader(archive_path, archive_obj)
-    assert reader is not None
-
-    files = [
-        f for f in reader.list_files()
-        if not file_match_callback or file_match_callback(f.filename)
-    ]
-    error_file_paths = []
-    for file in files:
-      try:
-        yield ArchiveFile(
-            file.filename,
-            file.file_size,
-            handle=None if not should_extract else reader.open(file.filename))
-      except KeyError:
-        error_file_paths.append(file.filename)
-        yield ArchiveFile(file.filename, file.file_size, None)
-    if error_file_paths:
-      logs.log_warn(
-          'Check archive %s for broken links.' % archive_path,
-          error_filepaths=error_file_paths)
-  except:
-    logs.log_error(f'Bad file {archive_path}')
 
 
 def extracted_size(archive_path, file_match_callback=None):

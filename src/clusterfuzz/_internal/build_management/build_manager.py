@@ -606,10 +606,14 @@ class Build(BaseBuild):
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
-    for archive_file in archive.iterator(archive_path):
-      if fuzzer_utils.is_fuzz_target_local(archive_file.name,
-                                           archive_file.handle):
-        fuzz_target = _normalize_target_name(archive_file.name)
+    reader = archive.get_archive_reader(archive_path)
+    if not reader:
+      return
+
+    for archive_file in reader.list_files():
+      if fuzzer_utils.is_fuzz_target_local(
+          archive_file.filename, reader.try_open(archive_file.filename)):
+        fuzz_target = _normalize_target_name(archive_file.filename)
         yield fuzz_target
 
   def _get_fuzz_targets_from_dir(self, build_dir):
