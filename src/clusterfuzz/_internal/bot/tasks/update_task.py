@@ -311,9 +311,14 @@ def update_tests_if_needed():
     try:
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)
-      archive.unpack(temp_archive, data_directory, trusted=True)
-      shell.remove_file(temp_archive)
-      error_occured = False
+      reader = archive.get_archive_reader(temp_archive)
+      if not reader:
+        error_occured = True
+      else:
+        archive.unpack(reader, data_directory, trusted=True)
+        reader.close()
+        shell.remove_file(temp_archive)
+        error_occured = False
       break
     except:
       logs.log_error(

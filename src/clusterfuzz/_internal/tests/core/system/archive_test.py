@@ -30,7 +30,9 @@ class UnpackTest(unittest.TestCase):
     """Test unpack with trusted=False passes with file having './' prefix."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
-    archive.unpack(tgz_path, output_directory, trusted=False)
+    reader = archive.get_archive_reader(tgz_path)
+    self.assertIsNotNone(reader)
+    archive.unpack(reader, output_directory, trusted=False)
 
     test_file_path = os.path.join(output_directory, 'test')
     self.assertTrue(os.path.exists(test_file_path))

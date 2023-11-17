@@ -233,6 +233,7 @@ class ZipArchiveReader(ArchiveReader):
 
 
 def get_archive_reader(archive_path, file_obj=None):
+  """get_archive_reader"""
   archive_type = get_archive_type(archive_path)
   try:
     if archive_type == ArchiveType.ZIP:
@@ -241,6 +242,7 @@ def get_archive_reader(archive_path, file_obj=None):
       return TarArchiveReader(archive_path, file_obj=file_obj)
     return None
   except:
+    logs.log_error(f"Could not open archive at {archive_path}.")
     return None
 
 
@@ -288,22 +290,10 @@ def is_archive(filename):
   return get_archive_type(filename) != ArchiveType.UNKNOWN
 
 
-def unpack(archive_path,
-           output_directory,
-           trusted=False,
-           file_match_callback=None):
-  """Extracts an archive into the target directory."""
-  if not os.path.exists(archive_path):
-    logs.log_error('Archive %s not found.' % archive_path)
-    return False
-  reader = get_archive_reader(archive_path=archive_path)
-  assert reader is not None
+def unpack(reader, output_dir, trusted=False, file_match_callback=None):
+  """unpack"""
+  assert reader
 
-  # If the output directory is a symlink, get its actual path since we will be
-  # doing directory traversal checks later when unpacking the archive.
-  output_directory = os.path.realpath(output_directory)
-
-  # Choose to unpack all files or ones matching a particular regex.
   file_list = [
       f.filename
       for f in reader.list_files()
@@ -316,7 +306,7 @@ def unpack(archive_path,
   error_occurred = False
   for file in file_list:
     error_occurred |= reader.extract(
-        member=file, path=output_directory, trusted=trusted) is None
+        member=file, path=output_dir, trusted=trusted) is None
     # Keep heartbeat happy by updating with our progress.
     archive_file_unpack_count += 1
     if archive_file_unpack_count % 1000 == 0:

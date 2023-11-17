@@ -383,10 +383,10 @@ def unpack_testcase(testcase, testcase_download_url):
 
   file_list = []
   if archived:
-    archive.unpack(temp_filename, input_directory)
-
     reader = archive.get_archive_reader(temp_filename)
     assert reader
+
+    archive.unpack(reader, input_directory)
 
     file_list = [f.filename for f in reader.list_files()]
     reader.close()
@@ -599,9 +599,15 @@ def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput,
     logs.log_error('Failed to copy fuzzer archive.')
     return False
 
-  try:
-    archive.unpack(archive_path, fuzzer_directory)
-  except Exception:
+  reader = archive.get_archive_reader(archive_path)
+  error_occurred = reader is None
+  if reader:
+    try:
+      archive.unpack(reader, fuzzer_directory)
+    except Exception:
+      error_occurred = True
+
+  if error_occurred:
     error_message = (f'Failed to unpack fuzzer archive {fuzzer.filename} '
                      '(bad archive or unsupported format).')
     logs.log_error(error_message)

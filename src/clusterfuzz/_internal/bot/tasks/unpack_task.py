@@ -64,9 +64,13 @@ def execute_task(metadata_id, job_type):
     tasks.add_task('unpack', metadata_id, job_type)
     return
 
+  reader = archive.get_archive_reader(archive_path)
+  error_occured = reader is None
   try:
-    archive.unpack(archive_path, testcases_directory)
+    archive.unpack(reader, testcases_directory)
   except:
+    error_occured = True
+  if error_occured:
     logs.log_error('Could not unpack archive for bundle %d.' % metadata_id)
     tasks.add_task('unpack', metadata_id, job_type)
     return
@@ -78,8 +82,6 @@ def execute_task(metadata_id, job_type):
 
   archive_state = data_types.ArchiveStatus.NONE
   bundled = True
-  reader = archive.get_archive_reader(archive_path)
-  assert reader
   file_list = [f.filename for f in reader.list_files()]
 
   for file_path in file_list:

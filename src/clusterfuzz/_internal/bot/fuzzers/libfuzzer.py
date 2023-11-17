@@ -1327,7 +1327,9 @@ def use_peach_mutator(extra_env, grammar):
   unzipped = os.path.join(peach_dir, 'mutator')
   source = os.path.join(peach_dir, 'peach_mutator.zip')
 
-  archive.unpack(source, unzipped, trusted=True)
+  reader = archive.get_archive_reader(source)
+  assert reader
+  archive.unpack(reader, unzipped, trusted=True)
 
   # Set LD_PRELOAD.
   peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')

@@ -566,12 +566,15 @@ class Build(BaseBuild):
           'Failed to make space for build. '
           'Cleared all data directories to free up space, exiting.')
 
+    if not reader:
+      logs.log_error('Unable to open archive %s.' % build_local_archive)
+      return False
     # Unpack the local build archive.
     logs.log('Unpacking build archive %s.' % build_local_archive)
     trusted = not utils.is_oss_fuzz()
     try:
       archive.unpack(
-          build_local_archive,
+          reader,
           build_dir,
           trusted=trusted,
           file_match_callback=file_match_callback)
@@ -846,7 +849,9 @@ class CuttlefishKernelBuild(RegularBuild):
     # Extract syzkaller binary.
     syzkaller_path = os.path.join(self.build_dir, 'syzkaller')
     shell.remove_directory(syzkaller_path)
-    archive.unpack(archive_dst_path, syzkaller_path)
+    reader = archive.get_archive_reader(archive_dst_path)
+    assert reader
+    archive.unpack(reader, syzkaller_path)
     shell.remove_file(archive_dst_path)
 
     environment.set_value('VMLINUX_PATH', self.build_dir)
@@ -974,9 +979,14 @@ class CustomBuild(Build):
 
         logs.log_fatal_and_exit('Could not make space for build.')
 
-      try:
-        archive.unpack(build_local_archive, self.build_dir, trusted=True)
-      except:
+      reader = archive.get_archive_reader(build_local_archive)
+      error_occurred = reader is None
+      if reader:
+        try:
+          archive.unpack(reader, self.build_dir, trusted=True)
+        except:
+          error_occurred = True
+      if error_occurred:
         logs.log_error(
             'Unable to unpack build archive %s.' % build_local_archive)
         return False
