@@ -199,7 +199,9 @@ def run_loop(bot_command, heartbeat_command):
       if environment.is_android():
         start_android_heartbeat()
       start_heartbeat(heartbeat_command)
-    start_bot(bot_command)
+    exit_code = start_bot(bot_command)
+    if environment.is_uworker():
+      sys.exit(exit_code)
 
     # See if our run timed out, if yes bail out.
     try:
