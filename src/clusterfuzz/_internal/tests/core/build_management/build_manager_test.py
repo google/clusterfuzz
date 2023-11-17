@@ -1400,7 +1400,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.utils.is_chromium',
         'clusterfuzz._internal.system.shell.get_free_disk_space',
-        'clusterfuzz._internal.system.archive.extracted_size',
+        'clusterfuzz._internal.system.archive.ArchiveReader',
     ])
 
     test_helpers.patch_environ(self)
@@ -1427,7 +1427,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
 
   def test_make_space_for_build_remove_one_build(self):
     """Test make_space_for_build (remove 1 build)."""
-    self.mock.extracted_size.return_value = 1 * 1024 * 1024 * 1024  # 1 GB
+    self.mock.ArchiveReader.extracted_size.return_value = 1 * 1024 * 1024 * 1024  # 1 GB
     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
     self.free_disk_space = [
         9 * 1024 * 1024 * 1024,
@@ -1435,7 +1435,8 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     ]
 
     self.assertTrue(
-        build_manager._make_space_for_build('/archive.zip', '/builds/build4'))
+        build_manager._make_space_for_build(self.mock.ArchiveReader,
+                                            '/builds/build4'))
 
     self.assertTrue(os.path.isdir('/builds/build1'))
     self.assertFalse(os.path.isdir('/builds/build2'))
@@ -1444,7 +1445,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
 
   def test_make_space_for_build_remove_two_builds(self):
     """Test make_space_for_build (remove 2 builds)."""
-    self.mock.extracted_size.return_value = 1 * 1024 * 1024 * 1024  # 1 GB
+    self.mock.ArchiveReader.extracted_size.return_value = 1 * 1024 * 1024 * 1024  # 1 GB
     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
     self.free_disk_space = [
         8 * 1024 * 1024 * 1024,
@@ -1453,7 +1454,8 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     ]
 
     self.assertTrue(
-        build_manager._make_space_for_build('/archive.zip', '/builds/build4'))
+        build_manager._make_space_for_build(self.mock.ArchiveReader,
+                                            '/builds/build4'))
 
     self.assertTrue(os.path.isdir('/builds/build1'))
     self.assertFalse(os.path.isdir('/builds/build2'))
@@ -1462,7 +1464,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
 
   def test_make_space_for_build_remove_three_builds(self):
     """Test make_space_for_build (remove 3 builds)."""
-    self.mock.extracted_size.return_value = 1 * 1024 * 1024 * 1024  # 1 GB
+    self.mock.ArchiveReader.extracted_size.return_value = 1 * 1024 * 1024 * 1024  # 1 GB
     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
     self.free_disk_space = [
         7 * 1024 * 1024 * 1024,
@@ -1472,7 +1474,8 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     ]
 
     self.assertTrue(
-        build_manager._make_space_for_build('/archive.zip', '/builds/build4'))
+        build_manager._make_space_for_build(self.mock.ArchiveReader,
+                                            '/builds/build4'))
 
     self.assertFalse(os.path.isdir('/builds/build1'))
     self.assertFalse(os.path.isdir('/builds/build2'))
@@ -1481,7 +1484,7 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
 
   def test_make_space_for_build_fail(self):
     """Test make_space_for_build failure."""
-    self.mock.extracted_size.return_value = 20 * 1024 * 1024 * 1024  # 1 GB
+    self.mock.ArchiveReader.extracted_size.return_value = 20 * 1024 * 1024 * 1024  # 1 GB
     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
     self.free_disk_space = [
         12 * 1024 * 1024 * 1024,
@@ -1491,7 +1494,8 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     ]
 
     self.assertFalse(
-        build_manager._make_space_for_build('/archive.zip', '/builds/build4'))
+        build_manager._make_space_for_build(self.mock.ArchiveReader,
+                                            '/builds/build4'))
 
     self.assertFalse(os.path.isdir('/builds/build1'))
     self.assertFalse(os.path.isdir('/builds/build2'))
@@ -1504,14 +1508,15 @@ class BuildEvictionTests(fake_filesystem_unittest.TestCase):
     shutil.rmtree('/builds/build2')
     shutil.rmtree('/builds/build3')
 
-    self.mock.extracted_size.return_value = 20 * 1024 * 1024 * 1024  # 1 GB
+    self.mock.ArchiveReader.extracted_size.return_value = 20 * 1024 * 1024 * 1024  # 1 GB
     self.mock.get_free_disk_space.side_effect = self._mock_free_disk_space
     self.free_disk_space = [
         18 * 1024 * 1024 * 1024,
     ]
 
     self.assertFalse(
-        build_manager._make_space_for_build('/archive.zip', '/builds/build4'))
+        build_manager._make_space_for_build(self.mock.ArchiveReader,
+                                            '/builds/build4'))
 
 
 class GetFileMatchCallbackTest(unittest.TestCase):

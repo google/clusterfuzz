@@ -151,13 +151,14 @@ def _make_space(requested_size, current_build_dir=None):
   return result
 
 
-def _make_space_for_build(build_local_archive,
+def _make_space_for_build(archive_reader,
                           current_build_dir,
                           file_match_callback=None):
   """Make space for extracting the build archive by deleting the least recently
   used builds."""
-  extracted_size = archive.extracted_size(
-      build_local_archive, file_match_callback=file_match_callback)
+  extracted_size = 0
+  if archive_reader:
+    extracted_size = archive_reader.extracted_size(file_match_callback)
 
   return _make_space(extracted_size, current_build_dir=current_build_dir)
 
@@ -558,8 +559,8 @@ class Build(BaseBuild):
     file_match_callback = _get_file_match_callback()
     assert not (unpack_everything and file_match_callback is not None)
 
-    if not _make_space_for_build(build_local_archive, base_build_dir,
-                                 file_match_callback):
+    reader = archive.get_archive_reader(build_local_archive)
+    if not _make_space_for_build(reader, base_build_dir, file_match_callback):
       shell.clear_data_directories()
       logs.log_fatal_and_exit(
           'Failed to make space for build. '
@@ -965,7 +966,8 @@ class CustomBuild(Build):
 
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
-      if not _make_space_for_build(build_local_archive, self.base_build_dir):
+      if not _make_space_for_build(
+          archive.get_archive_reader(build_local_archive), self.base_build_dir):
         # Remove downloaded archive to free up space and otherwise, it won't get
         # deleted until next job run.
         shell.remove_file(build_local_archive)

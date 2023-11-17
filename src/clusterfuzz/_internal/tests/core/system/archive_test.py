@@ -40,7 +40,8 @@ class UnpackTest(unittest.TestCase):
 
   def test_extract(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
-    self.assertEqual(archive.extracted_size(tar_xz_path), 7)
+    reader = archive.get_archive_reader(tar_xz_path)
+    self.assertEqual(reader.extracted_size(), 7)
 
   def test_file_list(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')

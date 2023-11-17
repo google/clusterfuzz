@@ -267,14 +267,6 @@ class ArchiveFile:
     self.handle = handle
 
 
-def extracted_size(archive_path, file_match_callback=None):
-  """Return the total extracted size of the archive."""
-  reader = get_archive_reader(archive_path)
-  return sum(f.file_size
-             for f in reader.list_files()
-             if not file_match_callback or file_match_callback(f.filename))
-
-
 def get_archive_type(archive_path):
   """Get the type of the archive."""
 
