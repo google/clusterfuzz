@@ -122,10 +122,6 @@ class StorageProvider:
     """Write the data of a remote file."""
     raise NotImplementedError
 
-  def write_stream(self, stream, remote_path, metadata=None):
-    """Write the data of a generator."""
-    raise NotImplementedError
-
   def get(self, remote_path):
     """Get information about a remote file."""
     raise NotImplementedError
@@ -256,6 +252,7 @@ class GcsProvider(StorageProvider):
         blob.upload_from_filename(local_path_or_handle)
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
+
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
                     (local_path_or_handle, remote_path))
@@ -308,27 +305,6 @@ class GcsProvider(StorageProvider):
       if metadata:
         blob.metadata = metadata
       blob.upload_from_string(data)
-    except google.cloud.exceptions.GoogleCloudError:
-      logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
-      raise
-
-    return True
-
-  def write_stream(self, stream, remote_path, metadata=None):
-    """Writes the data from an iterator in chunks to a remote file."""
-    client = _storage_client()
-    bucket_name, path = get_bucket_name_and_path(remote_path)
-
-    try:
-      bucket = client.bucket(bucket_name)
-      blob = bucket.blob(path, chunk_size=self._chunk_size())
-      if metadata:
-        blob.metadata = metadata
-      with gcs.fileio.BlobWriter(blob) as blob_writer:
-        for data in stream:
-          if isinstance(data, str):
-            data = data.encode()
-          blob_writer.write(data)
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
       raise
@@ -576,19 +552,6 @@ class FileSystemProvider(StorageProvider):
 
     with open(fs_path, 'wb') as f:
       f.write(data)
-
-    self._write_metadata(remote_path, metadata)
-    return True
-
-  def write_stream(self, stream, remote_path, metadata=None):
-    """Write the data of a remote file."""
-    fs_path = self.convert_path_for_write(remote_path)
-
-    with open(fs_path, 'wb') as f:
-      for data in stream:
-        if isinstance(data, str):
-          data = data.encode()
-        f.write(data)
 
     self._write_metadata(remote_path, metadata)
     return True
@@ -973,17 +936,6 @@ def write_data(data, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
       data, cloud_storage_file_path, metadata=metadata)
-
-
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.write_data',
-    exception_types=_TRANSIENT_ERRORS)
-def write_stream(stream, cloud_storage_file_path, metadata=None):
-  """Return content of a cloud storage file."""
-  return _provider().write_stream(
-      stream, cloud_storage_file_path, metadata=metadata)
 
 
 @retry.wrap(

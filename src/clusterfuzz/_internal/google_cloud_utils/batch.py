@@ -23,7 +23,8 @@ from google.cloud import batch_v1 as batch
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
-from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import data_type
+from clusterfuzz._internal.system import environment
 
 from . import credentials
 
@@ -75,11 +76,18 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   runnable.container = batch.Runnable.Container()
   spec = get_spec(module_name, cf_job)
   runnable.container.image_uri = spec.docker_image
+  # For logging use ONLY.
+  task_payload = environment.get_value('TASK_PAYLOAD')
+  task_name = environment.get_value('TASK_NAME')
+  bot_name = environment.get_value('BOT_NAME')
   runnable.container.options = (
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
       '-P --privileged --cap-add=all '
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
-      f'-e UWORKER_INPUT_DOWNLOAD_URL={input_download_url}')
+      f'-e UWORKER_INPUT_DOWNLOAD_URL={input_download_url} '
+      f'-e TASK_PAYLOAD={task_payload} '
+      f'-e TASK_NAME={task_name} '
+      f'-e BOT_NAME={bot_name} ')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   # Jobs can be divided into tasks. In this case, we have only one task.
   task = batch.TaskSpec()
