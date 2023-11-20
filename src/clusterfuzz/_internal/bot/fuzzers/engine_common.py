@@ -646,8 +646,9 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
   if force_unpack:
     logs.log('Forced unpack: %s.' % seed_corpus_archive_path)
 
-  reader = archive.get_archive_reader(seed_corpus_archive_path)
-  if not reader:
+  try:
+    reader = archive.get_archive_reader(seed_corpus_archive_path)
+  except:
     logs.log_error(f"Failed reading archive: {seed_corpus_archive_path}")
     return
 

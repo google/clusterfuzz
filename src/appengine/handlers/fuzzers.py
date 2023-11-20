@@ -98,7 +98,6 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     reader = self._read_to_bytesio(upload_info.gcs_path)
     archive_reader = archive.get_archive_reader(upload_info.filename, reader)
-    assert archive_reader
     return archive_reader.get_first_file_matching(executable_path)
 
   def _get_launcher_script(self, upload_info):
@@ -115,7 +114,6 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
 
     reader = self._read_to_bytesio(upload_info.gcs_path)
     archive_reader = archive.get_archive_reader(upload_info.filename, reader)
-    assert archive_reader
     launcher_script = archive_reader.get_first_file_matching(launcher_script)
     if not launcher_script:
       raise helpers.EarlyExitError(

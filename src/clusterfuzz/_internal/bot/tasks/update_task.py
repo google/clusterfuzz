@@ -206,10 +206,12 @@ def update_source_code():
     logs.log_error('Could not retrieve source code archive from url.')
     return
 
-  reader = archive.get_archive_reader(temp_archive)
-  if not reader:
+  try:
+    reader = archive.get_archive_reader(temp_archive)
+  except:
     logs.log_error('Bad zip file.')
     return
+
   file_list = reader.list_files()
 
   src_directory = os.path.join(root_directory, 'src')
@@ -312,13 +314,10 @@ def update_tests_if_needed():
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)
       reader = archive.get_archive_reader(temp_archive)
-      if not reader:
-        error_occured = True
-      else:
-        archive.unpack(reader, data_directory, trusted=True)
-        reader.close()
-        shell.remove_file(temp_archive)
-        error_occured = False
+      archive.unpack(reader, data_directory, trusted=True)
+      reader.close()
+      shell.remove_file(temp_archive)
+      error_occured = False
       break
     except:
       logs.log_error(

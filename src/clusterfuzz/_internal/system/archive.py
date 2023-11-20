@@ -307,6 +307,10 @@ class ZipArchiveReader(ArchiveReader):
       self.extract(member=member, path=path, trusted=trusted)
 
 
+class ArchiveReaderError(Exception):
+  """ArchiveReaderError"""
+
+
 def get_archive_reader(archive_path, file_obj=None):
   """Gets the appropriate archive reader based on the provided path.
 
@@ -319,15 +323,11 @@ def get_archive_reader(archive_path, file_obj=None):
       (ArchiveReader): the archive reader or None if an error occurred.
   """
   archive_type = get_archive_type(archive_path)
-  try:
-    if archive_type == ArchiveType.ZIP:
-      return ZipArchiveReader(archive_path or file_obj)
-    if archive_type in (ArchiveType.TAR_LZMA, ArchiveType.TAR):
-      return TarArchiveReader(archive_path, file_obj=file_obj)
-    return None
-  except:
-    logs.log_error(f"Could not open archive at {archive_path}.")
-    return None
+  if archive_type == ArchiveType.ZIP:
+    return ZipArchiveReader(archive_path or file_obj)
+  if archive_type in (ArchiveType.TAR_LZMA, ArchiveType.TAR):
+    return TarArchiveReader(archive_path, file_obj=file_obj)
+  raise ArchiveReaderError('Unhandled archive type.')
 
 
 class ArchiveType:

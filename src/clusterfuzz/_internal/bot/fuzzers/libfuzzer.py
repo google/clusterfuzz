@@ -1328,7 +1328,6 @@ def use_peach_mutator(extra_env, grammar):
   source = os.path.join(peach_dir, 'peach_mutator.zip')
 
   reader = archive.get_archive_reader(source)
-  assert reader
   archive.unpack(reader, unzipped, trusted=True)
 
   # Set LD_PRELOAD.

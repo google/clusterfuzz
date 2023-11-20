@@ -289,7 +289,6 @@ class Context:
                                                     project_qualified_name)
       shell.create_directory(corpus_backup_output_directory)
       reader = archive.get_archive_reader(corpus_backup_local_path)
-      assert reader
       result = archive.unpack(reader, corpus_backup_output_directory)
       shell.remove_file(corpus_backup_local_path)
 

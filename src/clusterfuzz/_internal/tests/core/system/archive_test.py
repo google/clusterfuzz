@@ -31,7 +31,6 @@ class UnpackTest(unittest.TestCase):
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
     reader = archive.get_archive_reader(tgz_path)
-    self.assertIsNotNone(reader)
     archive.unpack(reader, output_directory, trusted=False)
 
     test_file_path = os.path.join(output_directory, 'test')
@@ -48,12 +47,11 @@ class UnpackTest(unittest.TestCase):
   def test_file_list(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
     reader = archive.get_archive_reader(tar_xz_path)
-    self.assertIsNotNone(reader)
     self.assertCountEqual([f.filename for f in reader.list_files()],
                           ["archive_dir", "archive_dir/bye", "archive_dir/hi"])
 
 
-class IteratorTest(unittest.TestCase):
+class ArchiveReaderTest(unittest.TestCase):
   """Tests for the archive.iterator function."""
 
   def test_tar_xz(self):
@@ -61,7 +59,6 @@ class IteratorTest(unittest.TestCase):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
     expected_results = {'archive_dir/hi': b'hi\n', 'archive_dir/bye': b'bye\n'}
     reader = archive.get_archive_reader(tar_xz_path)
-    self.assertIsNotNone(reader)
     actual_results = {
         f.filename: reader.open(f.filename).read()
         for f in reader.list_files()
@@ -74,7 +71,6 @@ class IteratorTest(unittest.TestCase):
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     expected_results = {'./test': b'abc\n'}
     reader = archive.get_archive_reader(tgz_path)
-    self.assertIsNotNone(reader)
     actual_results = {
         f.filename: reader.open(f.filename).read()
         for f in reader.list_files()
@@ -90,7 +86,6 @@ class IteratorTest(unittest.TestCase):
     archive_name = 'broken-links.tar.xz'
     archive_path = os.path.join(TESTDATA_PATH, archive_name)
     reader = archive.get_archive_reader(archive_path)
-    self.assertIsNotNone(reader)
 
     # Get the results we expect from iterator().
     actual_results = []

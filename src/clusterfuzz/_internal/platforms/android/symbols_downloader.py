@@ -170,7 +170,6 @@ def download_system_symbols_if_needed(symbols_directory):
     return
 
   reader = archive.get_archive_reader(symbols_archive_path)
-  assert reader
   archive.unpack(reader, symbols_directory, trusted=True)
   shell.remove_file(symbols_archive_path)
 
