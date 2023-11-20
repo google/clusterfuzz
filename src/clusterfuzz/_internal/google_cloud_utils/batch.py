@@ -18,7 +18,6 @@ import uuid
 
 from google.cloud import batch_v1 as batch
 
-
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks.utasks import utask_utils
@@ -128,12 +127,10 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
 
   return _create_job(create_request)
 
-@retry.wrap(
-    retries=3,
-    delay=2,
-    function='google_cloud_utils.batch._create_job')
+
+@retry.wrap(retries=3, delay=2, function='google_cloud_utils.batch._create_job')
 def _create_job(create_request):
-  return  _batch_client().create_job(create_request)
+  return _batch_client().create_job(create_request)
 
 
 def get_spec(full_module_name, job_name):
