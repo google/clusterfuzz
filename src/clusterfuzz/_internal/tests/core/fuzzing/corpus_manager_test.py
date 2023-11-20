@@ -40,27 +40,15 @@ class GcsCorpusTest(unittest.TestCase):
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
         'multiprocessing.cpu_count',
         'subprocess.Popen',
-        'clusterfuzz._internal.google_cloud_utils.storage.exists',
-        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
-        'zipfile.ZipFile.write',
-        'uuid.uuid4',
     ])
 
     self.mock.Popen.return_value.poll.return_value = 0
-    self.mock.list_blobs.return_value = []
-    self.mock.exists.return_value = True
-    self.mock.uuid4.return_value = 'random'
     self.mock.Popen.return_value.communicate.return_value = (None, None)
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
 
     os.environ['GSUTIL_PATH'] = '/gsutil_path'
 
-  @mock.patch(
-      'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
-      return_value=[])
-  def test_rsync_to_disk(self, _):
+  def test_rsync_to_disk(self):
     """Test rsync_to_disk."""
     self.mock.cpu_count.return_value = 1
     corpus = corpus_manager.GcsCorpus('bucket')
@@ -127,11 +115,7 @@ class RsyncErrorHandlingTest(unittest.TestCase):
     test_helpers.patch(self, [
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
         'clusterfuzz._internal.google_cloud_utils.gsutil.GSUtilRunner.run_gsutil',
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
-        'clusterfuzz._internal.google_cloud_utils.storage.exists',
     ])
-    self.mock.exists.return_value = True
 
   def test_rsync_error_below_threshold(self):
     """Test rsync returning errors (but they're below threshold)."""
@@ -223,11 +207,6 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.fuzzing.corpus_manager._count_corpus_files',
         'multiprocessing.cpu_count',
         'subprocess.Popen',
-        'clusterfuzz._internal.google_cloud_utils.storage.exists',
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
-        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
-        'subprocess.Popen',
     ])
 
     self.mock.Popen.return_value.poll.return_value = 0
@@ -237,10 +216,6 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
     self.mock._count_corpus_files.return_value = 1  # pylint: disable=protected-access
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/dir')
-    self.fs.create_file('/dir/a')
-    self.fs.create_file('/dir/b')
-    self.mock._get_random_filename.return_value = 'randomname'
-    self.maxDiff = None
 
   def test_rsync_to_disk(self):
     """Test rsync_to_disk."""
@@ -295,8 +270,6 @@ class FuzzTargetCorpusTest(fake_filesystem_unittest.TestCase):
         '/gsutil_path/gsutil', '-m', '-q', 'rsync', '-r', '-d', '/dir',
         'gs://bucket/libFuzzer/fuzzer/'
     ])
-    self.mock.copy_file_to.assert_called_with(
-        '/tmp/randomname.zip', 'gs://bucket/zipped/libFuzzer/fuzzer/base.zip')
 
   def test_upload_files(self):
     """Test upload_files."""

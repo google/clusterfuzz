@@ -482,7 +482,6 @@ class Engine(engine.Engine):
 
     self._merge_control_file = None
 
-    # TODO(ochang): Get crashes found during merge.
     return engine.FuzzResult(output, result_2.command, [], merge_stats,
                              result_1.time_executed + result_2.time_executed)
 
