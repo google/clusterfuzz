@@ -356,7 +356,10 @@ class GcsCorpus:
     result = self._gsutil_runner.rsync(corpus_gcs_url, directory, timeout,
                                        delete)
 
-    # TODO(metzman): Download zipcorpora.
+    # Download zipcorpora.
+    # TODO(metzman): Get rid of the rest of this function when migration is
+    # complete.
+    self.download_zipcorpora(directory)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)
