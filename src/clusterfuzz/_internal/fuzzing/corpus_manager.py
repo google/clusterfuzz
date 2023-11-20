@@ -231,6 +231,7 @@ class GcsCorpus:
     Returns:
       A string giving the GCS URL.
     """
+    url = f'gs://{self.bucket_name}{self.bucket_path}{suffix}'
     if not url.endswith('/'):
       # Ensure that the bucket path is '/' terminated. Without this, when a
       # single file is being uploaded, it is renamed to the trailing non-/
@@ -280,11 +281,6 @@ class GcsCorpus:
     corpus_gcs_url = self.get_gcs_url()
     result = self._gsutil_runner.rsync(corpus_gcs_url, directory, timeout,
                                        delete)
-
-    # Download zipcorpora.
-    # TODO(metzman): Get rid of the rest of this function when migration is
-    # complete.
-    self.download_zipcorpora(directory)
 
     # Allow a small number of files to fail to be synced.
     return _handle_rsync_result(result, max_errors=MAX_SYNC_ERRORS)

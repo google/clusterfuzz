@@ -15,7 +15,6 @@
 
 import datetime
 import os
-import tempfile
 import unittest
 from unittest import mock
 
@@ -23,7 +22,6 @@ from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.fuzzing import corpus_manager
-from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
