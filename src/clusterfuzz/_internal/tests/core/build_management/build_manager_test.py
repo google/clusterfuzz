@@ -1048,7 +1048,7 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
 
     # For now, we're calling it multiple times because we're not passing the
     # reader object along in the build manager
-    self.mock.open.assert_called_with(
+    self.mock.open.assert_called_once_with(
         '/builds/job_custom/custom/custom_binary.zip',)
     self.mock.unpack.assert_called_once_with(
         self.mock.open.return_value, '/builds/job_custom/custom', trusted=True)
@@ -1078,7 +1078,7 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
 
     # For now, we're calling it multiple times because we're not passing the
     # reader object along in the build manager
-    self.mock.open.assert_called_with(
+    self.mock.open.assert_called_once_with(
         '/builds/job_custom/custom/custom_binary.zip',)
     self.mock.unpack.assert_called_once_with(
         self.mock.open.return_value, '/builds/job_custom/custom', trusted=True)
