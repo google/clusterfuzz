@@ -543,7 +543,7 @@ class Build(BaseBuild):
         'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
 
     try:
-      reader = archive.get_archive_reader(build_local_archive)
+      reader = archive.open(build_local_archive)
     except:
       logs.log_error('Unable to open build archive %s.' % build_local_archive)
       return False
@@ -847,7 +847,7 @@ class CuttlefishKernelBuild(RegularBuild):
     # Extract syzkaller binary.
     syzkaller_path = os.path.join(self.build_dir, 'syzkaller')
     shell.remove_directory(syzkaller_path)
-    reader = archive.get_archive_reader(archive_dst_path)
+    reader = archive.open(archive_dst_path)
     archive.unpack(reader, syzkaller_path)
     shell.remove_file(archive_dst_path)
 
@@ -967,7 +967,7 @@ class CustomBuild(Build):
       return False
 
     try:
-      reader = archive.get_archive_reader(build_local_archive)
+      reader = archive.open(build_local_archive)
     except:
       logs.log_error('Unable to open build archive %s.' % build_local_archive)
       return False

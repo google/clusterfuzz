@@ -288,7 +288,7 @@ class Context:
       corpus_backup_output_directory = os.path.join(self.shared_corpus_path,
                                                     project_qualified_name)
       shell.create_directory(corpus_backup_output_directory)
-      reader = archive.get_archive_reader(corpus_backup_local_path)
+      reader = archive.open(corpus_backup_local_path)
       result = archive.unpack(reader, corpus_backup_output_directory)
       shell.remove_file(corpus_backup_local_path)
 

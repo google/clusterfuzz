@@ -65,7 +65,7 @@ def execute_task(metadata_id, job_type):
     return
 
   try:
-    reader = archive.get_archive_reader(archive_path)
+    reader = archive.open(archive_path)
     archive.unpack(reader, testcases_directory)
   except:
     logs.log_error('Could not unpack archive for bundle %d.' % metadata_id)

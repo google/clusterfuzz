@@ -417,7 +417,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
-        'clusterfuzz._internal.system.archive.get_archive_reader',
+        'clusterfuzz._internal.system.archive.open',
         'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
@@ -578,11 +578,11 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         return True
 
     file_match_callback_checker = FileMatchCallbackChecker()
-    self.mock.get_archive_reader.assert_called_with(
+    self.mock.open.assert_called_with(
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
         'revisions/file-release-2.zip',)
     self.mock.unpack.assert_called_with(
-        self.mock.get_archive_reader.return_value,
+        self.mock.open.return_value,
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
         file_match_callback=file_match_callback_checker,
         trusted=True)
@@ -594,11 +594,11 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     # If it was a partial build, the unpack should be called again.
     if unpack_all != 'True':
       self.assertEqual(2, self.mock.unpack.call_count)
-      self.mock.get_archive_reader.assert_called_with(
+      self.mock.open.assert_called_with(
           '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
           'revisions/file-release-2.zip',)
       self.mock.unpack.assert_called_with(
-          self.mock.get_archive_reader.return_value,
+          self.mock.open.return_value,
           '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
           file_match_callback=file_match_callback_checker,
           trusted=True)
@@ -641,12 +641,12 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     file_match_callback_checker = FileMatchCallbackChecker()
     self.mock.unpack.assert_has_calls([
         mock.call(
-            self.mock.get_archive_reader.return_value,
+            self.mock.open.return_value,
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
             file_match_callback=file_match_callback_checker,
             trusted=True),
         mock.call(
-            self.mock.get_archive_reader.return_value,
+            self.mock.open.return_value,
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
             '__extra_build',
             file_match_callback=file_match_callback_checker,
@@ -662,12 +662,12 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(4, self.mock.unpack.call_count)
       self.mock.unpack.assert_has_calls([
           mock.call(
-              self.mock.get_archive_reader.return_value,
+              self.mock.open.return_value,
               '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
               file_match_callback=file_match_callback_checker,
               trusted=True),
           mock.call(
-              self.mock.get_archive_reader.return_value,
+              self.mock.open.return_value,
               '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
               '__extra_build',
               file_match_callback=file_match_callback_checker,
@@ -993,7 +993,7 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.blobs.read_blob_to_disk',
-        'clusterfuzz._internal.system.archive.get_archive_reader',
+        'clusterfuzz._internal.system.archive.open',
         'clusterfuzz._internal.system.archive.unpack',
         'time.sleep',
         'time.time',
@@ -1048,12 +1048,10 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
 
     # For now, we're calling it multiple times because we're not passing the
     # reader object along in the build manager
-    self.mock.get_archive_reader.assert_called_with(
+    self.mock.open.assert_called_with(
         '/builds/job_custom/custom/custom_binary.zip',)
     self.mock.unpack.assert_called_once_with(
-        self.mock.get_archive_reader.return_value,
-        '/builds/job_custom/custom',
-        trusted=True)
+        self.mock.open.return_value, '/builds/job_custom/custom', trusted=True)
 
     self._assert_env_vars()
 
@@ -1080,12 +1078,10 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
 
     # For now, we're calling it multiple times because we're not passing the
     # reader object along in the build manager
-    self.mock.get_archive_reader.assert_called_with(
+    self.mock.open.assert_called_with(
         '/builds/job_custom/custom/custom_binary.zip',)
     self.mock.unpack.assert_called_once_with(
-        self.mock.get_archive_reader.return_value,
-        '/builds/job_custom/custom',
-        trusted=True)
+        self.mock.open.return_value, '/builds/job_custom/custom', trusted=True)
 
     self._assert_env_vars()
     self.assertEqual(os.environ['JOB_NAME'], 'job_share')
@@ -1250,7 +1246,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.system.archive.unpack',
-        'clusterfuzz._internal.system.archive.get_archive_reader',
+        'clusterfuzz._internal.system.archive.open',
         'time.time',
     ])
 
@@ -1344,11 +1340,11 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     self.assertEqual(1, self.mock.unpack.call_count)
     file_match_callback_checker = FileMatchCallbackChecker()
-    self.mock.get_archive_reader.assert_called_with(
+    self.mock.open.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
         'dataflow/file-dataflow-10.zip',)
     self.mock.unpack.assert_called_with(
-        self.mock.get_archive_reader.return_value,
+        self.mock.open.return_value,
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
         file_match_callback=file_match_callback_checker,
         trusted=True)
@@ -1371,11 +1367,11 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     else:
       self.assertEqual(2, self.mock.unpack.call_count)
 
-    self.mock.get_archive_reader.assert_called_with(
+    self.mock.open.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
         'dataflow/file-dataflow-10.zip',)
     self.mock.unpack.assert_called_with(
-        self.mock.get_archive_reader.return_value,
+        self.mock.open.return_value,
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
         file_match_callback=file_match_callback_checker,
         trusted=True)
@@ -1946,7 +1942,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.read_data',
-        'clusterfuzz._internal.system.archive.get_archive_reader',
+        'clusterfuzz._internal.system.archive.open',
         'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
@@ -2017,11 +2013,11 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars('target2', 10)
 
     self.assertEqual(1, self.mock.unpack.call_count)
-    self.mock.get_archive_reader.assert_called_with(
+    self.mock.open.assert_called_with(
         '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions/10.zip',)
     self.mock.unpack.assert_called_with(
-        self.mock.get_archive_reader.return_value,
+        self.mock.open.return_value,
         '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions',
         file_match_callback=None,
@@ -2045,11 +2041,11 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars('target1', 8)
 
     self.assertEqual(1, self.mock.unpack.call_count)
-    self.mock.get_archive_reader.assert_called_with(
+    self.mock.open.assert_called_with(
         '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions/8.zip',)
     self.mock.unpack.assert_called_with(
-        self.mock.get_archive_reader.return_value,
+        self.mock.open.return_value,
         '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions',
         file_match_callback=None,

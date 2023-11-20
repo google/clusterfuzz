@@ -207,7 +207,7 @@ def update_source_code():
     return
 
   try:
-    reader = archive.get_archive_reader(temp_archive)
+    reader = archive.open(temp_archive)
   except:
     logs.log_error('Bad zip file.')
     return
@@ -313,7 +313,7 @@ def update_tests_if_needed():
     try:
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)
-      reader = archive.get_archive_reader(temp_archive)
+      reader = archive.open(temp_archive)
       archive.unpack(reader, data_directory, trusted=True)
       reader.close()
       shell.remove_file(temp_archive)

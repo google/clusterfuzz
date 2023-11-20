@@ -169,7 +169,7 @@ def download_system_symbols_if_needed(symbols_directory):
         'Unable to locate symbols archive %s.' % symbols_archive_path)
     return
 
-  reader = archive.get_archive_reader(symbols_archive_path)
+  reader = archive.open(symbols_archive_path)
   archive.unpack(reader, symbols_directory, trusted=True)
   shell.remove_file(symbols_archive_path)
 

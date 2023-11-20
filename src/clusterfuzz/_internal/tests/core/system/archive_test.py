@@ -30,7 +30,7 @@ class UnpackTest(unittest.TestCase):
     """Test unpack with trusted=False passes with file having './' prefix."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
-    reader = archive.get_archive_reader(tgz_path)
+    reader = archive.open(tgz_path)
     archive.unpack(reader, output_directory, trusted=False)
 
     test_file_path = os.path.join(output_directory, 'test')
@@ -41,12 +41,12 @@ class UnpackTest(unittest.TestCase):
 
   def test_extract(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
-    reader = archive.get_archive_reader(tar_xz_path)
+    reader = archive.open(tar_xz_path)
     self.assertEqual(reader.extracted_size(), 7)
 
   def test_file_list(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
-    reader = archive.get_archive_reader(tar_xz_path)
+    reader = archive.open(tar_xz_path)
     self.assertCountEqual([f.filename for f in reader.list_files()],
                           ["archive_dir", "archive_dir/bye", "archive_dir/hi"])
 
@@ -58,7 +58,7 @@ class ArchiveReaderTest(unittest.TestCase):
     """Test that a .tar.xz file is handled properly by iterator()."""
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
     expected_results = {'archive_dir/hi': b'hi\n', 'archive_dir/bye': b'bye\n'}
-    reader = archive.get_archive_reader(tar_xz_path)
+    reader = archive.open(tar_xz_path)
     actual_results = {
         f.filename: reader.open(f.filename).read()
         for f in reader.list_files()
@@ -70,7 +70,7 @@ class ArchiveReaderTest(unittest.TestCase):
     """Test that a .tgz file with cwd prefix is handled."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     expected_results = {'./test': b'abc\n'}
-    reader = archive.get_archive_reader(tgz_path)
+    reader = archive.open(tgz_path)
     actual_results = {
         f.filename: reader.open(f.filename).read()
         for f in reader.list_files()
@@ -85,7 +85,7 @@ class ArchiveReaderTest(unittest.TestCase):
 
     archive_name = 'broken-links.tar.xz'
     archive_path = os.path.join(TESTDATA_PATH, archive_name)
-    reader = archive.get_archive_reader(archive_path)
+    reader = archive.open(archive_path)
 
     # Get the results we expect from iterator().
     actual_results = []

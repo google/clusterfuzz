@@ -454,7 +454,7 @@ class ZipInMemoryTest(unittest.TestCase):
         data = b''.join(data for data in zip_file)
         fp.write(data)
       unpack_dir = os.path.join(tmp_dir, 'unpack')
-      reader = archive.get_archive_reader(archive_path)
+      reader = archive.open(archive_path)
       archive.unpack(reader, unpack_dir)
       self.assertEqual(sorted(os.listdir(unpack_dir)), sorted(filenames))
 
