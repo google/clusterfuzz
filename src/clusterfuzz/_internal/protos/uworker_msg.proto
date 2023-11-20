@@ -188,21 +188,20 @@ enum ErrorType {
 
 message Output {
   optional UworkerEntityWrapper testcase = 1;
-  optional UworkerEntityWrapper testcase_upload_metadata = 2;
-  optional UworkerEntityWrapper variant = 3;
-  optional ErrorType error_type = 4;
+  optional UworkerEntityWrapper variant = 2;
+  optional ErrorType error_type = 3;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
-  optional Input uworker_input = 5;
-  optional float test_timeout = 6;
-  optional float crash_time = 7;
-  optional string crash_stacktrace_output = 8;
-  optional AnalyzeTaskOutput analyze_task_output = 9;
-  optional FuzzTaskOutput fuzz_task_output = 10;
-  optional MinimizeTaskOutput minimize_task_output = 11;
-  optional RegressionTaskOutput regression_task_output = 12;
-  optional ProgressionTaskOutput progression_task_output = 13;
-  optional SymbolizeTaskOutput symbolize_task_output = 14;
-  optional VariantTaskOutput variant_task_output = 15;
-  optional string error_message = 16;
+  optional Input uworker_input = 4;
+  optional float test_timeout = 5;
+  optional float crash_time = 6;
+  optional string crash_stacktrace_output = 7;
+  optional AnalyzeTaskOutput analyze_task_output = 8;
+  optional FuzzTaskOutput fuzz_task_output = 9;
+  optional MinimizeTaskOutput minimize_task_output = 10;
+  optional RegressionTaskOutput regression_task_output = 11;
+  optional ProgressionTaskOutput progression_task_output = 12;
+  optional SymbolizeTaskOutput symbolize_task_output = 13;
+  optional VariantTaskOutput variant_task_output = 14;
+  optional string error_message = 15;
 }
