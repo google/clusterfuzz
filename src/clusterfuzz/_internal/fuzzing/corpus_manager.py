@@ -463,13 +463,10 @@ def _add_files_to_zip(file_paths, zip_file):
   seen_filenames = set()
   for file_path in file_paths:
     arcname = _get_unique_filename(file_path, seen_filenames)
-    try:
-      with _compressed_version_of_file(
-          zip_file, file_path, arcname, mode='w') as zipped_file:
-        for _ in chunked_file_zipper(file_path, zipped_file):
-          yield
-    except FileNotFoundError:
-      logs.log_warn(f'Could not find {file_path}.')
+    with _compressed_version_of_file(
+        zip_file, file_path, arcname, mode='w') as zipped_file:
+      for _ in chunked_file_zipper(file_path, zipped_file):
+        yield
 
 
 def zip_in_memory(file_paths):
