@@ -88,9 +88,7 @@ class GetUtaskFiltersTest(unittest.TestCase):
     # TOOD(metzman): Delete this test when it is no longer needed.
     filters = tasks.get_utask_filters(is_chromium=True, is_linux=True)
     self.assertEqual(
-        filters,
-        'attribute.name = analyze AND attribute.name = postprocess AND attribute.name = variant'
-    )
+        filters, 'attribute.name = analyze AND attribute.name = postprocess')
 
   def test_chromium_nonlinux(self):
     """Tests that the get_utask_filters only has linux bots in chrome
@@ -100,9 +98,7 @@ class GetUtaskFiltersTest(unittest.TestCase):
     filters = tasks.get_utask_filters(is_chromium=True, is_linux=False)
     # Analyze will be begun only on Linux bots.
     self.assertEqual(
-        filters,
-        '-attribute.name = analyze AND -attribute.name = postprocess AND -attribute.name = variant'
-    )
+        filters, '-attribute.name = analyze AND -attribute.name = postprocess')
 
   def test_external_linux(self):
     """Tests that the get_utask_filters only has linux bots in chrome
