@@ -118,9 +118,6 @@ def get_fuzz_task_payload(platform=None):
   if base_platform != platform:
     platforms.append(base_platform)
 
-  query = data_types.FuzzerJob.query()
-  mappings = list(ndb_utils.get_all_from_query(query))[:1]
-
   if environment.is_production():
     query = data_types.FuzzerJobs.query()
     query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
@@ -128,6 +125,9 @@ def get_fuzz_task_payload(platform=None):
     mappings = []
     for entity in query:
       mappings.extend(entity.fuzzer_jobs)
+  else:
+    query = data_types.FuzzerJob.query()
+    mappings = list(ndb_utils.get_all_from_query(query))[:1]  
 
   if not mappings:
     return None, None
