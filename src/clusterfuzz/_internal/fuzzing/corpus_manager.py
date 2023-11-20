@@ -410,6 +410,7 @@ def temp_zipfile(file_paths):
   """Yields a temporary zip file containing |file_paths|."""
   file_paths = list(file_paths)
   seen_filenames = set()
+
   # Because of the way this function is used we will probably only ever get
   # file_paths from one directory. But if we were to get files from different
   # directories, it's possible there are name collisions. So do a low effort, no
