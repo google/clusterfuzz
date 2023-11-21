@@ -128,9 +128,10 @@ def get_utask_module(module_name):
 
 def uworker_bot_main():
   """The entrypoint for a uworker."""
+  logs.log('Starting utask_main on untrusted worker.')
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
   uworker_main(input_download_url)
-  return True
+  return 0
 
 
 def tworker_postprocess(output_download_url) -> None:

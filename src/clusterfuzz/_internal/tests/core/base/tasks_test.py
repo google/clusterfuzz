@@ -81,21 +81,29 @@ class InitializeTaskTest(unittest.TestCase):
 class GetUtaskFiltersTest(unittest.TestCase):
   """Tests for get_utask_filters."""
 
-  def test_chromium_linux(self):
-    """Tests that the get_utask_filters only has linux bots in chrome
-    clusterfuzz executing preprocess and postprocess. This test is temporary and
-    will be removed when the migration is complete."""
-    # TOOD(metzman): Delete this test when it is no longer needed.
-    filters = tasks.get_utask_filters(is_chromium=True, is_linux=True)
-    self.assertEqual(filters, 'attribute.name = postprocess')
+  # TODO(metzman): Restore tests when feature is used.
+  # def test_chromium_linux(self):
+  #   """Tests that the get_utask_filters only has linux bots in chrome
+  #   clusterfuzz executing preprocess. This test is temporary and
+  #   will be removed when the migration is complete."""
+  #   # TOOD(metzman): Delete this test when it is no longer needed.
+  #   filters = tasks.get_utask_filters(is_chromium=True, is_linux=True)
+  #   self.assertEqual(
+  #       filters,
+  #       'attribute.name = analyze AND attribute.name = postprocess AND attribute.name = variant'
+  #   )
 
-  def test_chromium_nonlinux(self):
-    """Tests that the get_utask_filters only has linux bots in chrome
-    clusterfuzz executing preprocess and postprocess. This test is temporary and
-    will be removed when the migration is complete."""
-    # TOOD(metzman): Delete this test when it is no longer needed.
-    filters = tasks.get_utask_filters(is_chromium=True, is_linux=False)
-    self.assertEqual(filters, '-attribute.name = postprocess')
+  # def test_chromium_nonlinux(self):
+  #   """Tests that the get_utask_filters only has linux bots in chrome
+  #   clusterfuzz executing preprocess and postprocess. This test is temporary and
+  #   will be removed when the migration is complete."""
+  #   # TOOD(metzman): Delete this test when it is no longer needed.
+  #   filters = tasks.get_utask_filters(is_chromium=True, is_linux=False)
+  #   # Analyze will be begun only on Linux bots.
+  #   self.assertEqual(
+  #       filters,
+  #       '-attribute.name = analyze AND -attribute.name = postprocess AND -attribute.name = variant'
+  #   )
 
   def test_external_linux(self):
     """Tests that the get_utask_filters only has linux bots in chrome

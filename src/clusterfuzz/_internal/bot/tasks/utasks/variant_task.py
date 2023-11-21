@@ -119,7 +119,7 @@ def utask_main(uworker_input):
   if not build_manager.check_app_path():
     return uworker_io.UworkerOutput(
         error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
-        testcase=uworker_input.testcase)
+    )
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
@@ -177,17 +177,17 @@ def utask_main(uworker_input):
     crash_stacktrace_output = 'No crash occurred.'
 
   # Regular case of variant analysis.
-  uworker_input.variant.status = status
-  uworker_input.variant.revision = revision
-  uworker_input.variant.crash_type = crash_type
-  uworker_input.variant.crash_state = crash_state
-  uworker_input.variant.security_flag = security_flag
-  uworker_input.variant.is_similar = is_similar
-  uworker_input.variant.platform = environment.platform().lower()
+  variant_task_output = uworker_io.VariantTaskOutput()
+  variant_task_output.status = status
+  variant_task_output.revision = int(revision)
+  variant_task_output.crash_type = crash_type
+  variant_task_output.crash_state = crash_state
+  variant_task_output.security_flag = security_flag
+  variant_task_output.is_similar = is_similar
+  variant_task_output.platform = environment.platform().lower()
 
   return uworker_io.UworkerOutput(
-      testcase=uworker_input.testcase,
-      variant=uworker_input.variant,
+      variant_task_output=variant_task_output,
       crash_stacktrace_output=crash_stacktrace_output)
 
 
@@ -206,25 +206,36 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  if output.testcase and environment.is_engine_fuzzer_job(
-      output.testcase.job_type):
-    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
-    output.testcase.put = lambda: None
-
   if output.error_type is not None:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  if environment.is_engine_fuzzer_job(output.uworker_input.job_type):
+    # Remove put() method to avoid updates. DO NOT REMOVE THIS.
+    testcase.put = lambda: None
+
   if output.uworker_input.original_job_type == output.uworker_input.job_type:
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.
-    output.testcase.last_tested_crash_stacktrace = (
+    testcase.last_tested_crash_stacktrace = (
         data_handler.filter_stacktrace(output.crash_stacktrace_output))
-    output.testcase.set_metadata(
+    testcase.set_metadata(
         'last_tested_crash_revision',
-        output.variant.revision,
+        output.variant_task_output.revision,
         update_testcase=True)
   else:
     # Explicitly skipping crash stacktrace for now as it make entities larger
     # and we plan to use only crash paramaters in UI.
-    output.variant.put()
+    variant = data_handler.get_or_create_testcase_variant(
+        output.uworker_input.testcase_id, output.uworker_input.job_type)
+    variant_task_output = output.variant_task_output
+    variant.status = variant_task_output.status
+    variant.revision = variant_task_output.revision
+    variant.crash_type = variant_task_output.crash_type
+    variant.crash_state = variant_task_output.crash_state
+    variant.security_flag = variant_task_output.security_flag
+    variant.is_similar = variant_task_output.is_similar
+    variant.platform = variant_task_output.platform
+
+    variant.put()

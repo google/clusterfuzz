@@ -237,11 +237,10 @@ class UTaskPostprocessTest(unittest.TestCase):
         progression_task_input=progression_task_input)
     self.assertEqual(testcase.fixed, '')
     self.assertTrue(testcase.open)
-    # TODO(alhijazi): Should we wrap the testcase entities passed to utask_main
-    # before returning them through the uworker_output?
-    testcase = uworker_io.UworkerEntityWrapper(testcase)
+    progression_task_output = uworker_io.ProgressionTaskOutput(crash_revision=1)
     uworker_output = self._create_output(
-        uworker_input=uworker_input, testcase=testcase)
+        uworker_input=uworker_input,
+        progression_task_output=progression_task_output)
     self.assertTrue(testcase.open)
     self.mock.is_first_attempt_for_task.return_value = False
     progression_task.utask_postprocess(uworker_output)

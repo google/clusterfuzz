@@ -24,7 +24,7 @@ RUN apt-get update && \
         google-cloud-sdk-app-engine-python-extras \
         google-cloud-sdk-datastore-emulator \
         google-cloud-sdk-gke-gcloud-auth-plugin \
-        google-cloud-sdk-pubsub-emulator=312.0.0-0 \
+        google-cloud-sdk-pubsub-emulator \
         kubectl \
         liblzma-dev \
         openjdk-11-jdk

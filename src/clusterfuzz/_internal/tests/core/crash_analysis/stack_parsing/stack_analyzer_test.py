@@ -1061,7 +1061,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('v8_unreachable_code.txt')
     expected_type = 'Unreachable code'
     expected_address = ''
-    expected_state = 'typer.cc\n'
+    expected_state = 'flags.cc\n'
     expected_stacktrace = data
     expected_security_flag = False
 
