@@ -271,7 +271,8 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag,
     testcase.security_severity = severity_analyzer.get_security_severity(
         state.crash_type, state.crash_stacktrace, job_type,
         bool(testcase.gestures))
-    analyze_task_output.security_severity = testcase.security_severity
+    if testcase.security_severity is not None:
+      analyze_task_output.security_severity = testcase.security_severity
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
