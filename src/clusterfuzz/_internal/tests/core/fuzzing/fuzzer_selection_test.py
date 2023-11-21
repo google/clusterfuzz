@@ -239,7 +239,7 @@ class GetFuzzTaskPayloadTest(unittest.TestCase):
     self.assertEqual(
         (None, None), fuzzer_selection.get_fuzz_task_payload(platform='linux'))
 
-  @parameterized.parameterized.expand([('False',), ('True',)])
+  @parameterized.parameterized.expand([('True',), ('False',)])
   def test_platform_restriction(self, local_development):
     """Ensure that we can find a task with a valid platform."""
     os.environ['LOCAL_DEVELOPMENT'] = local_development
