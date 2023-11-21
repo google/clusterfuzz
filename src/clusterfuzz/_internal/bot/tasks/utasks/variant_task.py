@@ -180,10 +180,8 @@ def utask_main(uworker_input):
   variant_task_output = uworker_io.VariantTaskOutput()
   variant_task_output.status = status
   variant_task_output.revision = int(revision)
-  if crash_type is not None:
-    variant_task_output.crash_type = crash_type
-  if crash_state is not None:
-    variant_task_output.crash_state = crash_state
+  variant_task_output.crash_type = crash_type
+  variant_task_output.crash_state = crash_state
   variant_task_output.security_flag = security_flag
   variant_task_output.is_similar = is_similar
   variant_task_output.platform = environment.platform().lower()
