@@ -18,13 +18,15 @@ import uuid
 
 from google.cloud import batch_v1 as batch
 
-# TODO(metzman): Change to from . import credentials when we are done
-# developing.
+from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 
+# TODO(metzman): Change to from . import credentials when we are done
+# developing.
 from . import credentials
 
 _local = threading.local()
@@ -35,6 +37,7 @@ TASK_COUNT = 1
 
 BatchJobSpec = collections.namedtuple('BatchJobSpec', [
     'disk_size_gb',
+    'disk_type',
     'docker_image',
     'user_data',
     'service_account_email',
@@ -97,6 +100,7 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
   disk.size_gb = spec.disk_size_gb
+  disk.type = spec.disk_type
   policy.boot_disk = disk
   policy.machine_type = spec.machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
@@ -121,7 +125,13 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   project_id = 'google.com:clusterfuzz'
   region = 'us-central1'
   create_request.parent = f'projects/{project_id}/locations/{region}'
+  result = _create_job(create_request)
+  logs.log('Created batch job.')
+  return result
 
+
+@retry.wrap(retries=3, delay=2, function='google_cloud_utils.batch._create_job')
+def _create_job(create_request):
   return _batch_client().create_job(create_request)
 
 
@@ -147,6 +157,7 @@ def get_spec(full_module_name, job_name):
       docker_image=docker_image,
       user_data=user_data,
       disk_size_gb=instance_spec['disk_size_gb'],
+      disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
       subnetwork=instance_spec['subnetwork'],
       gce_zone=instance_spec['gce_zone'],
