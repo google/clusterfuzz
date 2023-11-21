@@ -93,18 +93,7 @@ message SymbolizeTaskOutput {
 }
 
 message AnalyzeTaskOutput {
-  optional int64 crash_revision = 1;
-  optional string absolute_path = 2;
-  optional string minimized_arguments = 3;
-  optional string crash_stacktrace = 4;
-  optional bool crash_info_set = 5;
-  optional bool http_flag = 6;
-  optional string crash_type = 7;
-  optional string crash_address = 8;
-  optional string crash_state = 9;
-  optional bool security_flag = 10;
-  optional int64 security_severity = 11;
-  optional bool one_time_crasher_flag = 12;
+ // TODO(metzman): Fill this out.
 }
 
 message FuzzTaskOutput {
@@ -127,16 +116,6 @@ message MinimizeTaskOutput {
 
 message RegressionTaskOutput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
-}
-
-message VariantTaskOutput {
-  optional int64 status = 1;
-  optional int64 revision = 2;
-  optional string crash_type = 3;
-  optional string crash_state = 4;
-  optional bool security_flag = 5;
-  optional bool is_similar = 6;
-  optional string platform = 7;
 }
 
 message BuildData{
@@ -188,20 +167,20 @@ enum ErrorType {
 
 message Output {
   optional UworkerEntityWrapper testcase = 1;
-  optional UworkerEntityWrapper variant = 2;
-  optional ErrorType error_type = 3;
+  optional UworkerEntityWrapper testcase_upload_metadata = 2;
+  optional UworkerEntityWrapper variant = 3;
+  optional ErrorType error_type = 4;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
-  optional Input uworker_input = 4;
-  optional float test_timeout = 5;
-  optional float crash_time = 6;
-  optional string crash_stacktrace_output = 7;
-  optional AnalyzeTaskOutput analyze_task_output = 8;
-  optional FuzzTaskOutput fuzz_task_output = 9;
-  optional MinimizeTaskOutput minimize_task_output = 10;
-  optional RegressionTaskOutput regression_task_output = 11;
-  optional ProgressionTaskOutput progression_task_output = 12;
-  optional SymbolizeTaskOutput symbolize_task_output = 13;
-  optional VariantTaskOutput variant_task_output = 14;
+  optional Input uworker_input = 5;
+  optional float test_timeout = 6;
+  optional float crash_time = 7;
+  optional string crash_stacktrace_output = 8;
+  optional AnalyzeTaskOutput analyze_task_output = 9;
+  optional FuzzTaskOutput fuzz_task_output = 10;
+  optional MinimizeTaskOutput minimize_task_output = 11;
+  optional RegressionTaskOutput regression_task_output = 12;
+  optional ProgressionTaskOutput progression_task_output = 13;
+  optional SymbolizeTaskOutput symbolize_task_output = 14;
   optional string error_message = 15;
 }
