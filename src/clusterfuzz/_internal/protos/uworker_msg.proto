@@ -118,16 +118,6 @@ message RegressionTaskOutput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
-message VariantTaskOutput {
-  optional int64 status = 1;
-  optional int64 revision = 2;
-  optional string crash_type = 3;
-  optional string crash_state = 4;
-  optional bool security_flag = 5;
-  optional bool is_similar = 6;
-  optional string platform = 7;
-}
-
 message BuildData{
   optional bool is_bad_build = 1;
   optional bool should_ignore_crash_result = 2;
@@ -192,6 +182,5 @@ message Output {
   optional RegressionTaskOutput regression_task_output = 12;
   optional ProgressionTaskOutput progression_task_output = 13;
   optional SymbolizeTaskOutput symbolize_task_output = 14;
-  optional VariantTaskOutput variant_task_output = 15;
-  optional string error_message = 16;
+  optional string error_message = 15;
 }
