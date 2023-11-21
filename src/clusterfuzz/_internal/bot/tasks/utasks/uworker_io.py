@@ -533,6 +533,11 @@ class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
   PROTO_CLS = uworker_msg_pb2.RegressionTaskOutput
 
 
+class VariantTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from variant_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.VariantTaskOutput
+
+
 class DeserializedUworkerMsg:
 
   def __init__(self, testcase=None, error_type=None, **kwargs):
