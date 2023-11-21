@@ -155,6 +155,7 @@ def get_spec(full_module_name, job_name):
       docker_image=docker_image,
       user_data=user_data,
       disk_size_gb=instance_spec['disk_size_gb'],
+      disk_type=instance_spec['disk_type'],
       service_account_email=instance_spec['service_account_email'],
       subnetwork=instance_spec['subnetwork'],
       gce_zone=instance_spec['gce_zone'],
