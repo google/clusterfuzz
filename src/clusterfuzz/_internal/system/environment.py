@@ -1071,9 +1071,12 @@ def is_local_development():
 
 
 def is_production():
-  """Return True if running in production environment (e.g. not running
-  a bot locally, excludes tests)."""
-  return not is_local_development()
+  """Returns True if there are no environmental indicators
+  of local development."""
+  return not (is_local_development() or
+              get_value('UNTRUSTED_RUNNER_TESTS') or
+              get_value('LOCAL_DEVELOPMENT') or
+              get_value('UTASK_TESTS'))
 
 
 def local_noop(func):

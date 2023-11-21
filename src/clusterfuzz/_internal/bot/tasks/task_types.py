@@ -41,11 +41,19 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-def is_production():
-  return not (environment.is_local_development() or
-              environment.get_value('UNTRUSTED_RUNNER_TESTS') or
-              environment.get_value('LOCAL_DEVELOPMENT') or
-              environment.get_value('UTASK_TESTS'))
+class UTask(BaseTask):
+  """Represents an untrusted task. Executes the preprocess part on this machine
+  and causes the other parts to be executed on on other machines."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally."""
+    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
+                                                  job_type, uworker_env)
+
+    if preprocess_result is None:
+      return
+
+    # TODO(metzman): Execute main on other machines.
 
 
 class BaseUTask(BaseTask):
@@ -84,10 +92,9 @@ class UTask(BaseUTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    if (not is_production() or
-        not environment.get_value('REMOTE_UTASK_EXECUTION') or
-        environment.platform() != 'LINUX'):
-      self.execute_locally(task_argument, job_type, uworker_env)
+    if (not environment.is_production() or
+        not environment.get_value('REMOTE_UTASK_EXECUTION')):
+      super().execute(task_argument, job_type, uworker_env)
       return
 
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,

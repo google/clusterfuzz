@@ -126,6 +126,8 @@ def get_fuzz_task_payload(platform=None):
     for entity in query:
       mappings.extend(entity.fuzzer_jobs)
   else:
+    # 'FuzzerJobs' may not exist locally because they are created by
+    # the 'batch_fuzzer_jobs' cron job
     query = data_types.FuzzerJob.query()
     mappings = list(ndb_utils.get_all_from_query(query))[:1]
 
