@@ -41,21 +41,6 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-class UTask(BaseTask):
-  """Represents an untrusted task. Executes the preprocess part on this machine
-  and causes the other parts to be executed on on other machines."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
-
-    if preprocess_result is None:
-      return
-
-    # TODO(metzman): Execute main on other machines.
-
-
 class BaseUTask(BaseTask):
   """Base class representing an untrusted task. Children must decide to execute
   locally or remotely."""
