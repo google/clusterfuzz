@@ -124,8 +124,9 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   project_id = 'google.com:clusterfuzz'
   region = 'us-central1'
   create_request.parent = f'projects/{project_id}/locations/{region}'
-
-  return _create_job(create_request)
+  result = _create_job(create_request)
+  logs.log('Created batch job.')
+  return result
 
 
 @retry.wrap(retries=3, delay=2, function='google_cloud_utils.batch._create_job')
