@@ -127,7 +127,7 @@ def get_fuzz_task_payload(platform=None):
       mappings.extend(entity.fuzzer_jobs)
   else:
     query = data_types.FuzzerJob.query()
-    mappings = list(ndb_utils.get_all_from_query(query))[:1]  
+    mappings = list(ndb_utils.get_all_from_query(query))[:1]
 
   if not mappings:
     return None, None
