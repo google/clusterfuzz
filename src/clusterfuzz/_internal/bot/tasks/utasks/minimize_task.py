@@ -401,9 +401,11 @@ def utask_main(uworker_input):
   if not build_manager.check_app_path():
     logs.log_error('Unable to setup build for minimization.')
     build_fail_wait = environment.get_value('FAIL_WAIT')
+    minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput()
+    if build_fail_wait is not None:
+      minimize_task_output.build_fail_wait = int(build_fail_wait)
     return uworker_msg_pb2.Output(
-        minimize_task_output=uworker_msg_pb2.MinimizeTaskOutput(
-            build_fail_wait=build_fail_wait),
+        minimize_task_output=minimize_task_output,
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
@@ -614,7 +616,7 @@ def handle_minimize_setup_error(output):
   """Handles errors occuring during setup."""
 
   if environment.get_value('ORIGINAL_JOB_NAME'):
-    testcase = model._entity_from_protobuf(output.uworker_input.testcase)  # pylint: disable=protected-access
+    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
     _skip_minimization(testcase, 'Failed to setup build for overridden job.')
   else:
     # Only recreate task if this isn't an overriden job. It's possible that a

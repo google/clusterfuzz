@@ -58,8 +58,6 @@ def _save_current_fixed_range_indices(testcase, uworker_output):
   last_progression_min = None
   last_progression_max = None
 
-  # The default value is zero. Keep last_progression_min and
-  # last_progression_max as None in that case.
   if task_output.HasField("last_progression_min"):
     last_progression_min = task_output.last_progression_min
   if task_output.HasField("last_progression_max"):
@@ -321,9 +319,9 @@ def _testcase_reproduces_in_revision(testcase,
   _log_output(revision, result)
 
   if update_metadata:
-    #TODO: does this work?
-    progression_task_output.issue_metadata = _get_and_update_issue_metadata(
-        testcase)
+    progression_task_output.ClearField("issue_metadata")
+    progression_task_output.issue_metadata.update(
+        _get_and_update_issue_metadata(testcase))
 
   return result, None
 
@@ -388,13 +386,12 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   progression_input.bad_revisions.extend(build_manager.get_job_bad_revisions())  # pylint: disable=no-member
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
-  testcase_proto = model._entity_to_protobuf(testcase)  # pylint: disable=protected-access
   return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       progression_task_input=progression_input,
-      testcase=testcase_proto,
+      testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access,
       setup_input=setup_input)
 
 
@@ -638,8 +635,6 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
     return
 
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  # TODO(alhijazi): this method doesn't exist on scalar fields, add test
-  #  to make this fail, then fix.
   if output.progression_task_output.HasField("min_revision"):
     _save_fixed_range(output.uworker_input.testcase_id,
                       output.progression_task_output.min_revision,

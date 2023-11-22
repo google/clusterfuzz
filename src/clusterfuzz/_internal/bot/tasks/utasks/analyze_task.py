@@ -243,8 +243,9 @@ def handle_noncrash(output):
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
-  testcase_upload_metadata = model._entity_from_protobuf(  # pylint: disable=protected-access
-      output.uworker_input.testcase_upload_metadata)
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(
+          output.uworker_input.testcase_id)).get()
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
 
@@ -273,8 +274,6 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag,
     testcase.security_severity = severity_analyzer.get_security_severity(
         state.crash_type, state.crash_stacktrace, job_type,
         bool(testcase.gestures))
-    # security_severity can be None
-    # TODO: Properly handle that!
     if testcase.security_severity is not None:
       analyze_task_output.security_severity = testcase.security_severity
 
@@ -430,8 +429,6 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
 def handle_build_setup_error(output):
   """Handles errors for scenarios where build setup fails."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = model._entity_from_protobuf(  # pylint: disable=protected-access
-      output.uworker_input.testcase_upload_metadata)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        'Build setup failed')
 
@@ -444,6 +441,9 @@ def handle_build_setup_error(output):
         output.uworker_input.job_type,
         wait_time=testcase_fail_wait)
     return
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(
+          output.uworker_input.testcase_id)).get()
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Build setup failed')
 
@@ -512,9 +512,9 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  # TODO: this should be reconverted to an entity?
-  testcase_upload_metadata = model._entity_from_protobuf(  # pylint: disable=protected-access
-      output.uworker_input.testcase_upload_metadata)
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(
+          output.uworker_input.testcase_id)).get()
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')

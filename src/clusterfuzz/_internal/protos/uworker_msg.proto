@@ -89,21 +89,14 @@ message SymbolizeTaskOutput {
 }
 
 message AnalyzeTaskOutput {
-  // Non Nullable
   optional int64 crash_revision = 1;
-  // Non nullable
   optional string absolute_path = 2;
-  // Non nullable
   optional string minimized_arguments = 3;
-  // Non nullable
   optional string crash_stacktrace = 4;
   optional bool crash_info_set = 5;
   optional bool http_flag = 6;
-  // Non Nullable
   optional string crash_type = 7;
-  // Non Nullable
   optional string crash_address = 8;
-  // Non Nullable
   optional string crash_state = 9;
   optional bool security_flag = 10;
   optional int32 security_severity = 11;
@@ -124,19 +117,12 @@ message CrashInfo{
 }
 
 message FuzzTaskOutput {
-  // Non Nullable: Not quite sure but let's risk it.
   optional string fully_qualified_fuzzer_name = 1;
-  // Non Nullable
   optional string crash_revision = 2;
-  // Non Nullable
   optional float job_run_timestamp = 3;
-  // Non Nullable
   optional int64 new_crash_count = 4;
-  // Non Nullable
   optional int64 known_crash_count = 5;
-  // Non Nullable
   optional int64 testcases_executed = 6;
-  // Should be good now
   repeated CrashInfo job_run_crashes = 7;
   optional int32 new_targets_count = 9;
 }
@@ -152,17 +138,12 @@ message RegressionTaskOutput {
 }
 
 message VariantTaskOutput {
-  // Non Nullable
   optional int64 status = 1;
-  // Non Nullable
   optional int64 revision = 2;
-  // Nullable
   optional string crash_type = 3;
-  // Nullable
   optional string crash_state = 4;
   optional bool security_flag = 5;
   optional bool is_similar = 6;
-  // Non Nullable
   optional string platform = 7;
 }
 
@@ -173,22 +154,15 @@ message BuildData{
 }
 
 message ProgressionTaskOutput{
-  // Non Nullable
   optional int64 min_revision = 1;
-    // Non Nullable
   optional int64 max_revision = 2;
   // Set to true when latest revision or latest custom build still crash.
   optional bool crash_on_latest = 3;
-  // Non Nullable.
   optional string crash_on_latest_message = 4;
   // Information passed back to trusted worker when we crash on latest.
-  // Non Nullable
   optional int64 crash_revision = 5;
-  // Non Nullable
   optional string last_tested_crash_stacktrace = 6;
-  // Checking for zero is enough to know if this was set.
   optional int64 last_progression_min = 7;
-  // Checking for zero is enough to know if this was set.
   optional int64 last_progression_max = 8;
   // When set to True, we delete the metadata related to: last_progression_min
   // and last_progression_max from the testcase on postprocess.

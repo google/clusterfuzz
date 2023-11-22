@@ -551,7 +551,7 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
     update_input.fuzzer_download_url = blobs.get_signed_download_url(
         fuzzer.blobstore_key)
 
-  update_input.fuzzer = model._entity_to_protobuf(fuzzer)  # pylint: disable=protected-access
+  update_input.fuzzer.CopyFrom(model._entity_to_protobuf(fuzzer))  # pylint: disable=protected-access,no-member
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Finish migrating
   # update data bundles.
 

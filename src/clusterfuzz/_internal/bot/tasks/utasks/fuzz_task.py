@@ -1873,7 +1873,7 @@ class FuzzingSession:
     fuzz_task_output.job_run_crashes.extend(  # pylint: disable=no-member
         convert_groups_to_crashes(processed_groups))
     if new_targets_count is not None:
-      fuzz_task_output.new_targets_count = new_targets_count
+      fuzz_task_output.new_targets_count = int(new_targets_count)
     return uworker_msg_pb2.Output(fuzz_task_output=fuzz_task_output)
 
   def postprocess(self, uworker_output):
@@ -1897,8 +1897,8 @@ class FuzzingSession:
     uworker_input = uworker_output.uworker_input
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if (not targets_count or
-        # As is this doesn't work since new_targets_count might not be set!!!
-        targets_count.count != fuzz_task_output.new_targets_count):
+        (fuzz_task_output.HasField("new_targets_count") and
+         targets_count.count != fuzz_task_output.new_targets_count)):
       data_types.FuzzTargetsCount(
           id=uworker_input.job_type,
           count=fuzz_task_output.new_targets_count).put()
