@@ -20,6 +20,7 @@ import random
 import shutil
 
 from google.cloud import ndb
+from google.cloud.ndb import model
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -27,7 +28,6 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -41,6 +41,7 @@ from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -877,7 +878,8 @@ def _save_coverage_information(context, result):
 
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = uworker_input.corpus_pruning_task_input.fuzz_target
+  fuzz_target = model._entity_from_protobuf(  # pylint: disable=protected-access
+      uworker_input.corpus_pruning_task_input.fuzz_target)
   task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
                f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
@@ -908,12 +910,12 @@ def utask_main(uworker_input):
   except Exception:
     logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
-    return uworker_io.UworkerOutput()
+    return uworker_msg_pb2.Output()
   finally:
     context.cleanup()
 
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
-  return uworker_io.UworkerOutput()
+  return uworker_msg_pb2.Output()
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -935,13 +937,14 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     logs.log('A previous corpus pruning task is still running, exiting.')
     return None
 
-  corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
-      fuzz_target=fuzz_target, last_execution_failed=last_execution_failed)
+  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
+      fuzz_target=model._entity_to_protobuf(fuzz_target),  # pylint: disable=protected-access
+      last_execution_failed=last_execution_failed)
 
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
 
-  return uworker_io.UworkerInput(
+  return uworker_msg_pb2.Input(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,

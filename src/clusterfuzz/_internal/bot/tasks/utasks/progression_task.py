@@ -16,6 +16,8 @@
 import os
 import time
 
+from google.cloud.ndb import model
+
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -24,7 +26,6 @@ from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -37,13 +38,14 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
-def _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output):
+def _maybe_clear_progression_last_min_max_metadata(
+    testcase, uworker_output: uworker_msg_pb2.Output):
   """Clears last_progression_min and last_progression_max when
   clear_min_max_metadata is set to True"""
-  task_output = uworker_output.progression_task_output
-  if task_output is None:
+  if not uworker_output.HasField("progression_task_output"):
     return
 
+  task_output = uworker_output.progression_task_output
   if task_output.clear_min_max_metadata:
     testcase.delete_metadata('last_progression_min', update_testcase=False)
     testcase.delete_metadata('last_progression_max', update_testcase=False)
@@ -53,17 +55,23 @@ def _maybe_clear_progression_last_min_max_metadata(testcase, uworker_output):
 def _save_current_fixed_range_indices(testcase, uworker_output):
   """Save current fixed range indices in case we die in middle of task."""
   task_output = uworker_output.progression_task_output
+  last_progression_min = None
+  last_progression_max = None
+
+  # The default value is zero. Keep last_progression_min and
+  # last_progression_max as None in that case.
+  if task_output.HasField("last_progression_min"):
+    last_progression_min = task_output.last_progression_min
+  if task_output.HasField("last_progression_max"):
+    last_progression_max = task_output.last_progression_max
+
   testcase.set_metadata(
-      'last_progression_min',
-      task_output.last_progression_min,
-      update_testcase=False)
+      'last_progression_min', last_progression_min, update_testcase=False)
   testcase.set_metadata(
-      'last_progression_max',
-      task_output.last_progression_max,
-      update_testcase=False)
+      'last_progression_max', last_progression_max, update_testcase=False)
 
 
-def handle_progression_timeout(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_timeout(uworker_output: uworker_msg_pb2.Output):
   """Job has exceeded the deadline. Recreate the task to pick up where we left
   off."""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -75,8 +83,7 @@ def handle_progression_timeout(uworker_output: uworker_io.UworkerOutput):
   tasks.add_task('progression', testcase_id, job_type)
 
 
-def handle_progression_build_not_found(
-    uworker_output: uworker_io.UworkerOutput):
+def handle_progression_build_not_found(uworker_output: uworker_msg_pb2.Output):
   """Handles an expected build that no longer exists, we can't continue. Also,
   clears progression_pending testcase metadata"""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -89,7 +96,7 @@ def handle_progression_build_not_found(
 
 
 def handle_progression_revision_list_error(
-    uworker_output: uworker_io.UworkerOutput):
+    uworker_output: uworker_msg_pb2.Output):
   """Handles revision list errors, in which case the testcase is closed with
   error."""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -98,7 +105,7 @@ def handle_progression_revision_list_error(
                                          'Failed to fetch revision list')
 
 
-def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
+def crash_on_latest(uworker_output: uworker_msg_pb2.Output):
   """Handles crash on latest revision, or custom binary crashes. Saves the crash
   info for non-custom binaries."""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -123,7 +130,7 @@ def crash_on_latest(uworker_output: uworker_io.UworkerOutput):
 
 
 def handle_progression_bad_state_min_max(
-    uworker_output: uworker_io.UworkerOutput):
+    uworker_output: uworker_msg_pb2.Output):
   """Handles when we end up in a state having min and max versions the same
   during a progression."""
   testcase = data_handler.get_testcase_by_id(
@@ -143,7 +150,7 @@ def handle_progression_bad_state_min_max(
   bisection.request_bisection(testcase)
 
 
-def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_no_crash(uworker_output: uworker_msg_pb2.Output):
   """Expected crash version doesn't crash. Retries once to confirm the result
   otherwise marks unreproducible if the testcase is flaky."""
   testcase_id = uworker_output.uworker_input.testcase_id
@@ -170,7 +177,7 @@ def handle_progression_no_crash(uworker_output: uworker_io.UworkerOutput):
 
 
 def handle_progression_build_setup_error(
-    uworker_output: uworker_io.UworkerOutput):
+    uworker_output: uworker_msg_pb2.Output):
   """Handles errors for scenarios where build setup fails."""
   # If we failed to setup a build, it is likely a bot error. We can retry
   # the task in this case.
@@ -184,7 +191,7 @@ def handle_progression_build_setup_error(
       'progression', testcase_id, job_type, wait_time=build_fail_wait)
 
 
-def handle_progression_bad_build(uworker_output: uworker_io.UworkerOutput):
+def handle_progression_bad_build(uworker_output: uworker_msg_pb2.Output):
   """Handles unrecoverable bad build errors."""
   # Though bad builds when narrowing the range are recoverable, certain builds
   # being marked as bad may be unrecoverable. Recoverable ones should not
@@ -225,7 +232,7 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     revision = 0
 
   if not build_manager.check_app_path():
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_message='Build setup failed for custom binary',
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
@@ -245,18 +252,17 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     stacktrace = utils.get_crash_stacktrace_output(
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
     last_tested_crash_stacktrace = data_handler.filter_stacktrace(stacktrace)
-    progression_task_output = uworker_io.ProgressionTaskOutput(
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message='Still crashes on latest custom build.',
         crash_revision=int(revision),
         last_tested_crash_stacktrace=last_tested_crash_stacktrace)
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         progression_task_output=progression_task_output)
 
-  progression_task_output = uworker_io.ProgressionTaskOutput(
+  progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
       crash_revision=int(revision))
-  return uworker_io.UworkerOutput(
-      progression_task_output=progression_task_output)
+  return uworker_msg_pb2.Output(progression_task_output=progression_task_output)
 
 
 def _update_issue_metadata(testcase, metadata):
@@ -293,7 +299,7 @@ def _testcase_reproduces_in_revision(testcase,
   build_manager.setup_build(revision)
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
-    return None, uworker_io.UworkerOutput(
+    return None, uworker_msg_pb2.Output(
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
@@ -301,10 +307,10 @@ def _testcase_reproduces_in_revision(testcase,
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
   # postprocess.
   testcase_manager.update_build_metadata(job_type, revision, build_data)
-  if build_data.is_bad_build:
+  if build_data.is_bad_build:  # pylint: disable=no-member
     # TODO(alhijazi): This is not logged for recoverable builds.
     error_message = f'Bad build at r{revision}. Skipping'
-    return None, uworker_io.UworkerOutput(
+    return None, uworker_msg_pb2.Output(
         progression_task_output=progression_task_output,
         error_message=error_message,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
@@ -315,6 +321,7 @@ def _testcase_reproduces_in_revision(testcase,
   _log_output(revision, result)
 
   if update_metadata:
+    #TODO: does this work?
     progression_task_output.issue_metadata = _get_and_update_issue_metadata(
         testcase)
 
@@ -371,30 +378,30 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     logs.log_error(f'Fixed range is already set as {testcase.fixed}, skip.')
     return None
 
-  # TODO(alhijazi): Make sure this is always properly cleared on failure.
   # Set a flag to indicate we are running progression task. This shows pending
   # status on testcase report page and avoid conflicting testcase updates by
   # triage cron.
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
-  progression_input = uworker_io.ProgressionTaskInput()
+  progression_input = uworker_msg_pb2.ProgressionTaskInput()
   progression_input.custom_binary = build_manager.is_custom_binary()
-  progression_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
+  progression_input.bad_revisions.extend(build_manager.get_job_bad_revisions())  # pylint: disable=no-member
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
-  return uworker_io.UworkerInput(
+  testcase_proto = model._entity_to_protobuf(testcase)  # pylint: disable=protected-access
+  return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       progression_task_input=progression_input,
-      testcase=testcase,
+      testcase=testcase_proto,
       setup_input=setup_input)
 
 
 def find_fixed_range(uworker_input):
   """Attempt to find the revision range where a testcase was fixed."""
   deadline = tasks.get_task_completion_deadline()
-  testcase = uworker_input.testcase
+  testcase = model._entity_from_protobuf(uworker_input.testcase)  # pylint: disable=protected-access
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
 
@@ -413,7 +420,7 @@ def find_fixed_range(uworker_input):
   revision_list = build_manager.get_revisions_list(
       build_bucket_path, bad_revisions, testcase=testcase)
   if not revision_list:
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR)
 
   # Use min, max_index to mark the start and end of revision list that is used
@@ -422,7 +429,7 @@ def find_fixed_range(uworker_input):
   # if it timed out.
   min_revision = testcase.get_metadata('last_progression_min')
   max_revision = testcase.get_metadata('last_progression_max')
-  progression_task_output = uworker_io.ProgressionTaskOutput(
+  progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
       clear_min_max_metadata=False)
   if min_revision or max_revision:
     # Clear these to avoid using them in next run. If this run fails, then we
@@ -440,14 +447,14 @@ def find_fixed_range(uworker_input):
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
     error_message = f'Build {min_revision} no longer exists.'
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_message=error_message,
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
   if max_index is None:
     error_message = f'Build {max_revision} no longer exists.'
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_message=error_message,
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND)
@@ -484,7 +491,7 @@ def find_fixed_range(uworker_input):
     progression_task_output.crash_revision = int(max_revision)
     progression_task_output.last_tested_crash_stacktrace = (
         last_tested_crash_stacktrace)
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         testcase=testcase, progression_task_output=progression_task_output)
 
   # Verify that we do crash in the min revision. This is assumed to be true
@@ -498,8 +505,8 @@ def find_fixed_range(uworker_input):
   if result and not result.is_crash():  # pylint: disable=no-member
     error_message = (
         f'Known crash revision {known_crash_revision} did not crash')
-    progression_task_output.crash_revision = int(max_revision)
-    return uworker_io.UworkerOutput(
+    progression_task_output.crash_revision = int(min_revision)
+    return uworker_msg_pb2.Output(
         progression_task_output=progression_task_output,
         error_message=error_message,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
@@ -520,7 +527,7 @@ def find_fixed_range(uworker_input):
       _store_testcase_for_regression_testing(testcase, testcase_file_path)
       progression_task_output.min_revision = int(min_revision)
       progression_task_output.max_revision = int(max_revision)
-      return uworker_io.UworkerOutput(
+      return uworker_msg_pb2.Output(
           progression_task_output=progression_task_output)
 
     # Occasionally, we get into this bad state. It seems to be related to test
@@ -530,7 +537,7 @@ def find_fixed_range(uworker_input):
       progression_task_output.max_revision = int(max_revision)
       progression_task_output.last_progression_min = last_progression_min
       progression_task_output.last_progression_max = last_progression_max
-      return uworker_io.UworkerOutput(
+      return uworker_msg_pb2.Output(
           progression_task_output=progression_task_output,
           error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
 
@@ -542,7 +549,7 @@ def find_fixed_range(uworker_input):
         testcase, testcase_file_path, job_type, middle_revision,
         progression_task_output)
     if error is not None:
-      if error.error_type == uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
+      if error.error_type == uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:  # pylint: disable=no-member
         # Skip this revision.
         del revision_list[middle_index]
         max_index -= 1
@@ -569,7 +576,7 @@ def find_fixed_range(uworker_input):
     progression_task_output.last_progression_min = last_progression_min
   if last_progression_max is not None:
     progression_task_output.last_progression_max = last_progression_max
-  return uworker_io.UworkerOutput(
+  return uworker_msg_pb2.Output(
       error_message=error_message,
       progression_task_output=progression_task_output,
       error_type=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
@@ -592,20 +599,20 @@ HANDLED_ERRORS = [
 ]
 
 
-def utask_postprocess(output):
+def utask_postprocess(output: uworker_msg_pb2.Output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   _maybe_clear_progression_last_min_max_metadata(testcase, output)
-  if output.progression_task_output:
+  if output.HasField("progression_task_output"):
     _update_issue_metadata(testcase,
                            output.progression_task_output.issue_metadata)
 
-  if output.error_type is not None:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
-  if (output.progression_task_output is not None and
+  if (output.HasField("progression_task_output") and
       output.progression_task_output.crash_on_latest):
     crash_on_latest(output)
     return
@@ -631,12 +638,13 @@ def utask_postprocess(output):
     return
 
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  if output.progression_task_output.min_revision:
+  # TODO(alhijazi): this method doesn't exist on scalar fields, add test
+  #  to make this fail, then fix.
+  if output.progression_task_output.HasField("min_revision"):
     _save_fixed_range(output.uworker_input.testcase_id,
                       output.progression_task_output.min_revision,
                       output.progression_task_output.max_revision)
-  # TODO(alhijazi): This should probably be moved to the end of the (not yet
-  #  implemented) progression_bisection task.
+
   # If there is a fine grained bisection service available, request it. Both
   # regression and fixed ranges are requested once. Regression is also requested
   # here as the bisection service may require details that are not yet available

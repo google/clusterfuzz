@@ -35,7 +35,6 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
@@ -788,13 +787,13 @@ def convert_groups_to_crashes(groups):
   """Convert groups to crashes (in an array of dicts) for JobRun."""
   crashes = []
   for group in groups:
-    crashes.append({
-        'is_new': group.is_new(),
-        'count': len(group.crashes),
-        'crash_type': group.main_crash.crash_type,
-        'crash_state': group.main_crash.crash_state,
-        'security_flag': group.main_crash.security_flag,
-    })
+    crashes.append(
+        uworker_msg_pb2.CrashInfo(
+            is_new=group.is_new(),
+            count=len(group.crashes),
+            crash_type=group.main_crash.crash_type,
+            crash_state=group.main_crash.crash_state,
+            security_flag=group.main_crash.security_flag))
   return crashes
 
 
@@ -1736,7 +1735,7 @@ class FuzzingSession:
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
       time.sleep(failure_wait_interval)
-      return uworker_io.UworkerOutput(
+      return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER)
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
@@ -1751,7 +1750,7 @@ class FuzzingSession:
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
-      return uworker_io.UworkerOutput(
+      return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE)
 
     # Centipede requires separate binaries for sanitized targets.
@@ -1776,9 +1775,9 @@ class FuzzingSession:
     testcase_manager.update_build_metadata(self.job_type, crash_revision,
                                            build_data)
     _track_build_run_result(self.job_type, crash_revision,
-                            build_data.is_bad_build)
-    if build_data.is_bad_build:
-      return uworker_io.UworkerOutput(
+                            build_data.is_bad_build)  # pylint: disable=no-member
+    if build_data.is_bad_build:  # pylint: disable=no-member
+      return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     # Data bundle directories can also have testcases which are kept in-place
@@ -1787,7 +1786,7 @@ class FuzzingSession:
     if not self.data_directory:
       logs.log_error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
-      return uworker_io.UworkerOutput(
+      return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
     engine_impl = engine.get(self.fuzzer.name)
@@ -1807,7 +1806,7 @@ class FuzzingSession:
     if crashes is None:
       # Error occurred in generate_blackbox_testcases.
       # TODO(ochang): Pipe this error a little better.
-      return uworker_io.UworkerOutput(
+      return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
     logs.log('Finished processing test cases.')
@@ -1863,32 +1862,43 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
-    fuzz_task_output = uworker_io.FuzzTaskOutput(
+    fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput(
         fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
         crash_revision=str(crash_revision),
         job_run_timestamp=time.time(),
         new_crash_count=new_crash_count,
         known_crash_count=known_crash_count,
         testcases_executed=testcases_executed,
-        job_run_crashes=convert_groups_to_crashes(processed_groups),
     )
+    fuzz_task_output.job_run_crashes.extend(  # pylint: disable=no-member
+        convert_groups_to_crashes(processed_groups))
     if new_targets_count is not None:
       fuzz_task_output.new_targets_count = new_targets_count
-    return uworker_io.UworkerOutput(fuzz_task_output=fuzz_task_output)
+    return uworker_msg_pb2.Output(fuzz_task_output=fuzz_task_output)
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
     fuzz_task_output = uworker_output.fuzz_task_output
+    job_run_crashes = []
+    for crash in fuzz_task_output.job_run_crashes:
+      job_run_crashes.append({
+          'is_new': crash.is_new,
+          'count': crash.count,
+          'crash_type': crash.crash_type,
+          'crash_state': crash.crash_state,
+          'security_flag': crash.security_flag,
+      })
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
-        fuzz_task_output.testcases_executed, fuzz_task_output.job_run_crashes)
+        fuzz_task_output.testcases_executed, job_run_crashes)
     uworker_input = uworker_output.uworker_input
-    fuzz_task_input = uworker_input.fuzz_task_input
-    if (not fuzz_task_input.targets_count or fuzz_task_input.targets_count.count
-        != fuzz_task_output.new_targets_count):
+    targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
+    if (not targets_count or
+        # As is this doesn't work since new_targets_count might not be set!!!
+        targets_count.count != fuzz_task_output.new_targets_count):
       data_types.FuzzTargetsCount(
           id=uworker_input.job_type,
           count=fuzz_task_output.new_targets_count).put()
@@ -1936,19 +1946,16 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
-  targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
-  fuzz_task_input = uworker_io.FuzzTaskInput(targets_count=targets_count)
-  return uworker_io.UworkerInput(
+  return uworker_msg_pb2.Input(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
       setup_input=setup_input,
-      fuzz_task_input=fuzz_task_input,
   )
 
 
 def utask_postprocess(output):
-  if output.error_type:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   session = _make_session(output.uworker_input)

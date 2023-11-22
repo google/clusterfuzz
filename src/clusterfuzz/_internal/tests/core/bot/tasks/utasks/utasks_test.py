@@ -19,7 +19,7 @@ from unittest import mock
 
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -41,7 +41,7 @@ class TworkerPreprocessTest(unittest.TestCase):
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
-    self.uworker_input = uworker_io.UworkerInput(job_type='something')
+    self.uworker_input = uworker_msg_pb2.Input(job_type='something')
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
@@ -99,7 +99,7 @@ class UworkerMainTest(unittest.TestCase):
     ])
     self.module = mock.MagicMock()
     self.mock.get_utask_module.return_value = self.module
-    self.uworker_input = uworker_io.UworkerInput(
+    self.uworker_input = uworker_msg_pb2.Input(
         original_job_type='original_job_type-value',
         uworker_env=self.UWORKER_ENV,
         uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
@@ -110,10 +110,9 @@ class UworkerMainTest(unittest.TestCase):
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
     uworker_output = {
-        'testcase': None,
         'crash_time': 70.1,
     }
-    self.module.utask_main.return_value = uworker_io.UworkerOutput(
+    self.module.utask_main.return_value = uworker_msg_pb2.Output(
         **uworker_output)
     input_download_url = 'http://input'
     utasks.uworker_main(input_download_url)

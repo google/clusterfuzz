@@ -19,12 +19,13 @@ import unittest
 # pylint: disable=unused-argument
 from unittest import mock
 
+from google.cloud.ndb import model
+
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -190,9 +191,9 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
     setup_input = setup.preprocess_setup_testcase(testcase)
-    uworker_input = uworker_io.DeserializedUworkerMsg(
+    uworker_input = uworker_msg_pb2.Input(
         job_type='libfuzzer_asan_job',
-        testcase=testcase,
+        testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access
         setup_input=setup_input,
         testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
@@ -285,18 +286,16 @@ class UTaskPostprocessTest(unittest.TestCase):
 
   def _get_generic_input(self):
     testcase = data_types.Testcase()
-    uworker_input = uworker_io.UworkerInput(
-        job_type='job_type', testcase_id='testcase_id', testcase=testcase)
-    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
-    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    uworker_input = uworker_msg_pb2.Input(
+        job_type='job_type',
+        testcase_id='testcase_id',
+        testcase=model._entity_to_protobuf(testcase))  # pylint: disable=protected-access
     return uworker_input
 
   def _create_output(self, uworker_input=None, **kwargs):
-    uworker_output = uworker_io.UworkerOutput(**kwargs)
-    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
-    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+    uworker_output = uworker_msg_pb2.Output(**kwargs)
     if uworker_input:
-      uworker_output.uworker_input = uworker_input
+      uworker_output.uworker_input.CopyFrom(uworker_input)
     return uworker_output
 
   def test_error_does_not_finalize_testcase(self):
@@ -310,7 +309,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     """Checks that an output with all critical fields finalizes a testcase."""
     self.mock.finalize_testcase.return_value = None
     last_crash_result_dict = {'crash_type': 'placeholder'}
-    minimize_task_output = uworker_io.MinimizeTaskOutput(
+    minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=last_crash_result_dict)
     uworker_output = self._create_output(
         uworker_input=self._get_generic_input(),
@@ -347,12 +346,9 @@ class UTaskMainTest(unittest.TestCase):
     testcase.put()
     build_fail_wait = 10
     environment.set_value('FAIL_WAIT', 10)
-    uworker_input = uworker_io.UworkerInput(testcase=testcase)
-    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
-    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    uworker_input = uworker_msg_pb2.Input(
+        testcase=model._entity_to_protobuf(testcase))  # pylint: disable=protected-access
     uworker_output = minimize_task.utask_main(uworker_input)
-    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
-    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
     self.assertEqual(uworker_output.minimize_task_output.build_fail_wait,
                      build_fail_wait)
     self.assertEqual(uworker_output.error_type,

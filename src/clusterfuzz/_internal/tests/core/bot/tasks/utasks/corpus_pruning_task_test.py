@@ -22,17 +22,19 @@ import tempfile
 import unittest
 from unittest import mock
 
+from google.cloud.ndb import model
+
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import gsutil
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -49,17 +51,15 @@ TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
 def _get_deserialized_uworker_input(job_type, fuzzer_name):
   """Creates a deserialized uworker_input to be passed to utask_main."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
-  corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
-      fuzz_target=fuzz_target)
+  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
+      fuzz_target=model._entity_to_protobuf(fuzz_target))
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
-  uworker_input = uworker_io.UworkerInput(
+  uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       setup_input=setup_input,
       corpus_pruning_task_input=corpus_pruning_task_input)
-  uworker_input = uworker_input.serialize()
-  uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
   return uworker_input
 
 
@@ -202,8 +202,9 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertEqual(uworker_input.job_type, job_type)
     self.assertEqual(uworker_input.fuzzer_name, fuzzer_name)
     fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
-    self.assertEqual(uworker_input.corpus_pruning_task_input.fuzz_target,
-                     fuzz_target)
+    self.assertEqual(
+        model._entity_from_protobuf(
+            uworker_input.corpus_pruning_task_input.fuzz_target), fuzz_target)
     self.assertTrue(
         uworker_input.corpus_pruning_task_input.last_execution_failed)
 

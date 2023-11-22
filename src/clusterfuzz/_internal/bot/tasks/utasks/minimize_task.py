@@ -20,6 +20,8 @@ import threading
 import time
 import zipfile
 
+from google.cloud.ndb import model
+
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -36,7 +38,6 @@ from clusterfuzz._internal.bot.minimizer import minimizer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
@@ -363,17 +364,17 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(
       testcase, fuzzer_override=minimize_fuzzer_override)
 
-  return uworker_io.UworkerInput(
+  return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=str(testcase_id),
-      testcase=testcase,
+      testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access
       setup_input=setup_input,
       uworker_env=uworker_env)
 
 
 def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
-  testcase = uworker_input.testcase
+  testcase = model._entity_from_protobuf(uworker_input.testcase)  # pylint: disable=protected-access
 
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -400,8 +401,8 @@ def utask_main(uworker_input):
   if not build_manager.check_app_path():
     logs.log_error('Unable to setup build for minimization.')
     build_fail_wait = environment.get_value('FAIL_WAIT')
-    return uworker_io.UworkerOutput(
-        minimize_task_output=uworker_io.MinimizeTaskOutput(
+    return uworker_msg_pb2.Output(
+        minimize_task_output=uworker_msg_pb2.MinimizeTaskOutput(
             build_fail_wait=build_fail_wait),
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
@@ -584,10 +585,10 @@ def utask_main(uworker_input):
   store_minimized_testcase(testcase, input_directory, file_list, data,
                            testcase_file_path)
 
-  minimize_task_output = uworker_io.MinimizeTaskOutput(
+  minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
       last_crash_result_dict=_extract_crash_result(last_crash_result, command),
       flaky_stack=flaky_stack)
-  return uworker_io.UworkerOutput(minimize_task_output=minimize_task_output)
+  return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)
 
 
 HANDLED_ERRORS = [
@@ -599,7 +600,7 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
-  if output.error_type:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
@@ -613,17 +614,20 @@ def handle_minimize_setup_error(output):
   """Handles errors occuring during setup."""
 
   if environment.get_value('ORIGINAL_JOB_NAME'):
-    _skip_minimization(output.uworker_input.testcase,
-                       'Failed to setup build for overridden job.')
+    testcase = model._entity_from_protobuf(output.uworker_input.testcase)  # pylint: disable=protected-access
+    _skip_minimization(testcase, 'Failed to setup build for overridden job.')
   else:
     # Only recreate task if this isn't an overriden job. It's possible that a
     # revision exists for the original job, but doesn't exist for the
     # overriden job.
+    build_fail_wait = None
+    if output.minimize_task_output.HasField("build_fail_wait"):
+      build_fail_wait = output.minimize_task_output.build_fail_wait
     tasks.add_task(
         'minimize',
         output.uworker_input.testcase_id,
         output.uworker_input.job_type,
-        wait_time=output.minimize_task_output.build_fail_wait)
+        wait_time=build_fail_wait)
 
 
 def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
