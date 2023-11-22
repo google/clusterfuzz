@@ -71,8 +71,8 @@ def _add_default_issue_metadata(testcase):
 
 
 def handle_analyze_no_revisions_list_error(output):
-  data_handler.update_testcase_comment(output.testcase,
-                                       data_types.TaskState.ERROR,
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        'Failed to fetch revision list')
   handle_build_setup_error(output)
 
@@ -90,13 +90,11 @@ def setup_build(testcase: data_types.Testcase,
         build_bucket_path, bad_revisions, testcase=testcase)
     if not revision_list:
       return uworker_io.UworkerOutput(
-          testcase=testcase,
           error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
       return uworker_io.UworkerOutput(
-          testcase=testcase,
           error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
     revision = revision_list[revision_index]
 
@@ -105,8 +103,7 @@ def setup_build(testcase: data_types.Testcase,
 
 
 def handle_analyze_no_revision_index(output):
-  testcase = testcase = data_handler.get_testcase_by_id(
-      output.uworker_input.testcase_id)
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.update_testcase_comment(
       testcase, data_types.TaskState.ERROR,
       f'Build {testcase.job_type} r{testcase.crash_revision} '
@@ -152,8 +149,6 @@ def setup_testcase_and_build(
   if not build_manager.check_app_path():
     # Let postprocess handle ANALYZE_BUILD_SETUP and restart tasks if needed.
     return None, uworker_io.UworkerOutput(
-        testcase=testcase,
-        testcase_upload_metadata=testcase_upload_metadata,
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
 
   update_testcase_after_build_setup(testcase)
@@ -231,27 +226,29 @@ def handle_noncrash(output):
   """Handles a non-crashing testcase. Either deletes the testcase or schedules
   another, final analysis."""
   # Could not reproduce the crash.
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   log_message = (
       f'Testcase didn\'t crash in {output.test_timeout} seconds (with retries)')
-  data_handler.update_testcase_comment(
-      output.testcase, data_types.TaskState.FINISHED, log_message)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED,
+                                       log_message)
 
   # For an unreproducible testcase, retry once on another bot to confirm
   # our results and in case this bot is in a bad state which we didn't catch
   # through our usual means.
-  if is_first_analyze_attempt(output.testcase):
-    output.testcase.status = 'Unreproducible, retrying'
-    output.testcase.put()
+  if is_first_analyze_attempt(testcase):
+    testcase.status = 'Unreproducible, retrying'
+    testcase.put()
 
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
 
   data_handler.mark_invalid_uploaded_testcase(
-      output.testcase, output.testcase_upload_metadata, 'Unreproducible')
+      testcase, output.uworker_input.testcase_upload_metadata, 'Unreproducible')
 
 
-def update_testcase_after_crash(testcase, state, job_type, http_flag):
+def update_testcase_after_crash(testcase, state, job_type, http_flag,
+                                analyze_task_output):
   """Updates |testcase| based on |state|."""
   testcase.crash_type = state.crash_type
   testcase.crash_address = state.crash_address
@@ -260,11 +257,22 @@ def update_testcase_after_crash(testcase, state, job_type, http_flag):
 
   testcase.security_flag = crash_analyzer.is_security_issue(
       state.crash_stacktrace, state.crash_type, state.crash_address)
+
+  # These are passed back to postprocess to update the testcase.
+  analyze_task_output.crash_info_set = True
+  analyze_task_output.http_flag = http_flag
+  analyze_task_output.crash_type = state.crash_type
+  analyze_task_output.crash_address = state.crash_address
+  analyze_task_output.crash_state = state.crash_state
+  analyze_task_output.security_flag = testcase.security_flag
+
   # If it is, guess the severity.
   if testcase.security_flag:
     testcase.security_severity = severity_analyzer.get_security_severity(
         state.crash_type, state.crash_stacktrace, job_type,
         bool(testcase.gestures))
+    if testcase.security_severity is not None:
+      analyze_task_output.security_severity = testcase.security_severity
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
@@ -309,7 +317,9 @@ def get_analyze_task_input():
 
 def utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
-  prepare_env_for_main(uworker_input.testcase_upload_metadata)
+  testcase_upload_metadata = uworker_input.testcase_upload_metadata
+  testcase = uworker_input.testcase
+  prepare_env_for_main(testcase_upload_metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
   if is_lsan_enabled:
@@ -317,18 +327,23 @@ def utask_main(uworker_input):
     leak_blacklist.create_empty_local_blacklist()
 
   testcase_file_path, output = setup_testcase_and_build(
-      uworker_input.testcase, uworker_input.testcase_upload_metadata,
-      uworker_input.job_type, uworker_input.setup_input,
-      uworker_input.analyze_task_input.bad_revisions)
-  uworker_input.testcase.crash_revision = environment.get_value('APP_REVISION')
+      testcase, testcase_upload_metadata, uworker_input.job_type,
+      uworker_input.setup_input, uworker_input.analyze_task_input.bad_revisions)
+  testcase.crash_revision = environment.get_value('APP_REVISION')
+
+  analyze_task_output = uworker_io.AnalyzeTaskOutput()
+  analyze_task_output.crash_revision = int(testcase.crash_revision)
+  analyze_task_output.absolute_path = testcase.absolute_path
+  analyze_task_output.minimized_arguments = testcase.minimized_arguments
 
   if not testcase_file_path:
+    output.analyze_task_output = analyze_task_output
     return output
 
   # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  result, http_flag = test_for_crash_with_retries(
-      uworker_input.testcase, testcase_file_path, test_timeout)
+  result, http_flag = test_for_crash_with_retries(testcase, testcase_file_path,
+                                                  test_timeout)
 
   # Set application command line with the correct http flag.
   application_command_line = (
@@ -348,18 +363,19 @@ def utask_main(uworker_input):
   crash_stacktrace_output = utils.get_crash_stacktrace_output(
       application_command_line, state.crash_stacktrace,
       unsymbolized_crash_stacktrace)
-  uworker_input.testcase.crash_stacktrace = data_handler.filter_stacktrace(
+  testcase.crash_stacktrace = data_handler.filter_stacktrace(
       crash_stacktrace_output)
+
+  analyze_task_output.crash_stacktrace = testcase.crash_stacktrace
 
   if not crashed:
     return uworker_io.UworkerOutput(
-        testcase=uworker_input.testcase,
-        testcase_upload_metadata=uworker_input.testcase_upload_metadata,
+        analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
         test_timeout=test_timeout)
   # Update testcase crash parameters.
-  update_testcase_after_crash(uworker_input.testcase, state,
-                              uworker_input.job_type, http_flag)
+  update_testcase_after_crash(testcase, state, uworker_input.job_type,
+                              http_flag, analyze_task_output)
 
   # See if we have to ignore this crash.
   if crash_analyzer.ignore_stacktrace(state.crash_stacktrace):
@@ -367,18 +383,15 @@ def utask_main(uworker_input):
     # Also, deal with the other cases where we are updating testcase comment
     # in untrusted.
     data_handler.close_invalid_uploaded_testcase(
-        uworker_input.testcase, uworker_input.testcase_upload_metadata,
-        'Irrelevant')
+        testcase, testcase_upload_metadata, 'Irrelevant')
     return uworker_io.UworkerOutput(
-        testcase=uworker_input.testcase,
-        testcase_upload_metadata=uworker_input.testcase_upload_metadata,
+        analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
-  test_for_reproducibility(uworker_input.testcase, testcase_file_path, state,
-                           test_timeout)
+  test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
+  analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
   return uworker_io.UworkerOutput(
-      testcase=uworker_input.testcase,
-      testcase_upload_metadata=uworker_input.testcase_upload_metadata,
+      analyze_task_output=analyze_task_output,
       test_timeout=test_timeout,
       crash_time=crash_time)
 
@@ -393,10 +406,12 @@ def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
 
 def handle_build_setup_error(output):
   """Handles errors for scenarios where build setup fails."""
-  data_handler.update_testcase_comment(
-      output.testcase, data_types.TaskState.ERROR, 'Build setup failed')
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase_upload_metadata = output.uworker_input.testcase_upload_metadata
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                       'Build setup failed')
 
-  if is_first_analyze_attempt(output.testcase):
+  if is_first_analyze_attempt(testcase):
     task_name = 'analyze'
     testcase_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
@@ -406,7 +421,7 @@ def handle_build_setup_error(output):
         wait_time=testcase_fail_wait)
     return
   data_handler.mark_invalid_uploaded_testcase(
-      output.testcase, output.testcase_upload_metadata, 'Build setup failed')
+      testcase, testcase_upload_metadata, 'Build setup failed')
 
 
 # pylint: disable=no-member
@@ -414,21 +429,53 @@ HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
     uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST,
-    uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX,
+    uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX,
     uworker_msg_pb2.ErrorType.UNHANDLED,
 ] + setup.HANDLED_ERRORS
 
 # pylint: enable=no-member
 
 
+def _update_testcase(output):
+  """Updates the testcase using the info passed from utask_main."""
+  if output.analyze_task_output is None:
+    return
+
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  analyze_task_output = output.analyze_task_output
+  testcase.crash_revision = analyze_task_output.crash_revision
+
+  if analyze_task_output.absolute_path:
+    testcase.absolute_path = analyze_task_output.absolute_path
+
+  if analyze_task_output.minimized_arguments:
+    testcase.minimized_arguments = analyze_task_output.minimized_arguments
+
+  if analyze_task_output.crash_stacktrace:
+    testcase.crash_stacktrace = analyze_task_output.crash_stacktrace
+
+  if analyze_task_output.crash_info_set:
+    testcase.http_flag = analyze_task_output.http_flag
+    testcase.crash_type = analyze_task_output.crash_type
+    testcase.crash_address = analyze_task_output.crash_address
+    testcase.crash_state = analyze_task_output.crash_state
+    testcase.security_flag = analyze_task_output.security_flag
+    if testcase.security_flag:
+      testcase.security_severity = analyze_task_output.security_severity
+
+  testcase.one_time_crasher_flag = analyze_task_output.one_time_crasher_flag
+  testcase.put()
+
+
 def utask_postprocess(output):
   """Trusted: Cleans up after a uworker execute_task, writing anything needed to
   the db."""
+  _update_testcase(output)
   if output.error_type is not None:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
-  testcase = output.testcase
-  testcase_upload_metadata = output.testcase_upload_metadata
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase_upload_metadata = output.uworker_input.testcase_upload_metadata
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
