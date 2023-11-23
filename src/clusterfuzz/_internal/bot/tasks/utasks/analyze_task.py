@@ -315,11 +315,11 @@ def get_analyze_task_input():
   return analyze_input
 
 
-def _update_analyze_task_output(
-    analyze_task_output: uworker_io.AnalyzeTaskOutput,
-    testcase: data_types.Testcase):
+def _build_task_output(
+    testcase: data_types.Testcase) -> uworker_io.AnalyzeTaskOutput:
   """Copies the testcase updated fields to analyze_task_output to be updated in
   postprocess."""
+  analyze_task_output = uworker_io.AnalyzeTaskOutput()
   analyze_task_output.crash_revision = int(testcase.crash_revision)
   analyze_task_output.absolute_path = testcase.absolute_path
   analyze_task_output.minimized_arguments = testcase.minimized_arguments
@@ -333,6 +333,7 @@ def _update_analyze_task_output(
     analyze_task_output.platform = testcase.platform
   if testcase.platform_id:
     analyze_task_output.platform_id = testcase.platform_id
+  return analyze_task_output
 
 
 def utask_main(uworker_input):
@@ -354,8 +355,7 @@ def utask_main(uworker_input):
   if not testcase_file_path:
     return output
 
-  analyze_task_output = uworker_io.AnalyzeTaskOutput()
-  _update_analyze_task_output(analyze_task_output, testcase)
+  analyze_task_output = _build_task_output(testcase)
 
   # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
