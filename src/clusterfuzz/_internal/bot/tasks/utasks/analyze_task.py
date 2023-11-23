@@ -315,6 +315,26 @@ def get_analyze_task_input():
   return analyze_input
 
 
+def _update_analyze_task_output(
+    analyze_task_output: uworker_io.AnalyzeTaskOutput,
+    testcase: data_types.Testcase):
+  """Copies the testcase updated fields to analyze_task_output to be updated in
+  postprocess."""
+  analyze_task_output.crash_revision = int(testcase.crash_revision)
+  analyze_task_output.absolute_path = testcase.absolute_path
+  analyze_task_output.minimized_arguments = testcase.minimized_arguments
+  if testcase.get_metadata('build_key'):
+    analyze_task_output.build_key = testcase.get_metadata('build_key')
+  if testcase.get_metadata('build_url'):
+    analyze_task_output.build_url = testcase.get_metadata('build_url')
+  if testcase.get_metadata('gn_args'):
+    analyze_task_output.gn_args = testcase.get_metadata('gn_args')
+  if testcase.platform:
+    analyze_task_output.platform = testcase.platform
+  if testcase.platform_id:
+    analyze_task_output.platform_id = testcase.platform_id
+
+
 def utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
   testcase_upload_metadata = uworker_input.testcase_upload_metadata
@@ -331,14 +351,11 @@ def utask_main(uworker_input):
       uworker_input.setup_input, uworker_input.analyze_task_input.bad_revisions)
   testcase.crash_revision = environment.get_value('APP_REVISION')
 
-  analyze_task_output = uworker_io.AnalyzeTaskOutput()
-  analyze_task_output.crash_revision = int(testcase.crash_revision)
-  analyze_task_output.absolute_path = testcase.absolute_path
-  analyze_task_output.minimized_arguments = testcase.minimized_arguments
-
   if not testcase_file_path:
-    output.analyze_task_output = analyze_task_output
     return output
+
+  analyze_task_output = uworker_io.AnalyzeTaskOutput()
+  _update_analyze_task_output(analyze_task_output, testcase)
 
   # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
@@ -464,6 +481,21 @@ def _update_testcase(output):
       testcase.security_severity = analyze_task_output.security_severity
 
   testcase.one_time_crasher_flag = analyze_task_output.one_time_crasher_flag
+
+  if analyze_task_output.build_key:
+    testcase.set_metadata(
+        'build_key', analyze_task_output.build_key, update_testcase=False)
+  if analyze_task_output.build_url:
+    testcase.set_metadata(
+        'build_url', analyze_task_output.build_url, update_testcase=False)
+  if analyze_task_output.gn_args:
+    testcase.set_metadata(
+        'gn_args', analyze_task_output.gn_args, update_testcase=False)
+  if analyze_task_output.platform:
+    testcase.platform = analyze_task_output.platform
+  if analyze_task_output.platform_id:
+    testcase.platform_id = analyze_task_output.platform_id
+
   testcase.put()
 
 

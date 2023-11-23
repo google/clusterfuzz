@@ -105,6 +105,11 @@ message AnalyzeTaskOutput {
   optional bool security_flag = 10;
   optional int64 security_severity = 11;
   optional bool one_time_crasher_flag = 12;
+  optional string build_key = 13;
+  optional string build_url = 14;
+  optional string gn_args = 15;
+  optional string platform = 16;
+  optional string platform_id = 17;
 }
 
 message FuzzTaskOutput {
