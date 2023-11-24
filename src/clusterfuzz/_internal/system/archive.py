@@ -77,7 +77,8 @@ def _is_attempting_path_traversal(archive_name: StrBytesPathLike,
 class ArchiveMemberInfo:
   """Represents an archive member. A member can either be a file or a directory.
   Members:
-    name: the name of the archive member.
+    name: the name of the archive member. It can represent a file or a directory
+    name.
     is_dir: whether this member is a directory.
     size_bytes: the extracted size of the member.
     mode: the mode of the member (file system attributes).
@@ -327,8 +328,8 @@ class ZipArchiveReader(ArchiveReader):
       return extracted_path
     except Exception as e:
       # In case of errors, we try to extract whatever we can without errors.
-      logs.log_warn('An error occured while extracting %s the archive: %s.' %
-                    (member, repr(e)))
+      logs.log_warn('An error occured while extracting %s from the archive: %s.'
+                    % (member, repr(e)))
       return None
 
   def extract_all(self,
@@ -349,12 +350,12 @@ class ArchiveError(Exception):
 def open(archive_path: str,
          file_obj: Optional[BinaryIO] = None) -> ArchiveReader:
   """Opens the archive and gets the appropriate archive reader based on the
-  `archive_path`. If file_obj is not none, the binary file-like object will be
-  used to read the archive instead of opening the file.
+  `archive_path`. If `file_obj` is not none, the binary file-like object will be
+  used to read the archive instead of opening `archive_path`.
 
   Args:
       archive_path: the path to the archive.
-      file_obj: a object-like containing the archive.
+      file_obj: a file-like object containing the archive.
 
   Raises:
       If the file could not be opened or if the archive type cannot be handled.
