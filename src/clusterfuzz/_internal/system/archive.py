@@ -47,6 +47,7 @@ def _is_attempting_path_traversal(archive_name, output_dir, filename) -> bool:
   Returns:
       bool: Whether there is a path traversal attempt
   """
+  output_dir = os.path.realpath(output_dir)
   absolute_file_path = os.path.join(output_dir, os.path.normpath(filename))
   real_file_path = os.path.realpath(absolute_file_path)
 
@@ -189,12 +190,12 @@ class TarArchiveReader(ArchiveReader):
 
   def __init__(self, archive_path, file_obj=None) -> None:
     if file_obj:
-      self.archive = tarfile.open(fileobj=file_obj)
+      self._archive = tarfile.open(fileobj=file_obj)
     else:
       archive_type = get_archive_type(archive_path)
       mode = 'r' if archive_type == ArchiveType.TAR else 'r:xz'
-      self.archive = tarfile.open(archive_path, mode=mode)
-    self.archive_path = archive_path
+      self._archive = tarfile.open(archive_path, mode=mode)
+    self._archive_path = archive_path
 
   def list_files(self) -> typing.List[ArchiveMemberInfo]:
     return [
@@ -202,14 +203,14 @@ class TarArchiveReader(ArchiveReader):
             filename=f.name,
             is_dir=f.isdir(),
             file_size_bytes=f.size,
-            mode=f.mode) for f in self.archive.getmembers()
+            mode=f.mode) for f in self._archive.getmembers()
     ]
 
   def open(self, member):
-    return self.archive.extractfile(member)
+    return self._archive.extractfile(member)
 
   def close(self) -> None:
-    self.archive.close()
+    self._archive.close()
 
   def extract(self, member, path, trusted=False):
     # If the output directory is a symlink, get its actual path since we will be
@@ -217,15 +218,15 @@ class TarArchiveReader(ArchiveReader):
     output_directory = os.path.realpath(path)
 
     if not trusted:
-      if (_is_attempting_path_traversal(self.archive_path, output_directory,
+      if (_is_attempting_path_traversal(self._archive_path, output_directory,
                                         member)):
         return None
 
-    self.archive.extract(member=member, path=output_directory)
+    self._archive.extract(member=member, path=output_directory)
     return os.path.realpath(os.path.join(output_directory, member))
 
   def extractall(self, path, members=None, trusted=False) -> None:
-    to_extract = members if members is not None else self.archive.namelist()
+    to_extract = members if members is not None else self._archive.namelist()
     #FIXME(paulsemel): we could try extracting that all.
     for member in to_extract:
       self.extract(member=member, path=path, trusted=trusted)
@@ -236,7 +237,7 @@ class ZipArchiveReader(ArchiveReader):
   """
 
   def __init__(self, file) -> None:
-    self.zip_archive = zipfile.ZipFile(file, mode='r')
+    self._zip_archive = zipfile.ZipFile(file, mode='r')
 
   def list_files(self) -> typing.List[ArchiveMemberInfo]:
     return [
@@ -244,14 +245,15 @@ class ZipArchiveReader(ArchiveReader):
             filename=f.filename,
             is_dir=f.is_dir(),
             file_size_bytes=f.file_size,
-            mode=f.external_attr & 0o7777) for f in self.zip_archive.infolist()
+            mode=f.external_attr & 0o7777)
+        for f in self._zip_archive.infolist()
     ]
 
   def open(self, member):
-    return self.zip_archive.open(name=member)
+    return self._zip_archive.open(name=member)
 
   def close(self) -> None:
-    self.zip_archive.close()
+    self._zip_archive.close()
 
   def extract(self, member, path, trusted=False):
     # If the output directory is a symlink, get its actual path since we will be
@@ -262,18 +264,18 @@ class ZipArchiveReader(ArchiveReader):
     # sure this archive is safe and is not attempting to do path
     # traversals.
     if not trusted:
-      if (_is_attempting_path_traversal(self.zip_archive.filename,
+      if (_is_attempting_path_traversal(self._zip_archive.filename,
                                         output_directory, member)):
         return None
 
     try:
-      extracted_path = self.zip_archive.extract(member, output_directory)
+      extracted_path = self._zip_archive.extract(member, output_directory)
 
       # Preserve permissions for regular files. 640 is the default
       # permission for extract. If we need execute permission, we need
       # to chmod it explicitly. Also, get rid of suid bit for security
       # reasons.
-      external_attr = self.zip_archive.getinfo(member).external_attr >> 16
+      external_attr = self._zip_archive.getinfo(member).external_attr >> 16
       if oct(external_attr).startswith(FILE_ATTRIBUTE):
         old_mode = external_attr & 0o7777
         new_mode = external_attr & 0o777
@@ -291,7 +293,7 @@ class ZipArchiveReader(ArchiveReader):
       # Create symlink if needed (only on unix platforms).
       if (trusted and hasattr(os, 'symlink') and
           oct(external_attr).startswith(SYMLINK_ATTRIBUTE)):
-        symlink_source = self.zip_archive.read(member)
+        symlink_source = self._zip_archive.read(member)
         if os.path.exists(extracted_path):
           os.remove(extracted_path)
         os.symlink(symlink_source, extracted_path)
@@ -302,7 +304,8 @@ class ZipArchiveReader(ArchiveReader):
       return None
 
   def extractall(self, path, members=None, trusted=False) -> None:
-    to_extract = members if members is not None else self.zip_archive.namelist()
+    to_extract = members if members is not None else self._zip_archive.namelist(
+    )
     for member in to_extract:
       self.extract(member=member, path=path, trusted=trusted)
 
