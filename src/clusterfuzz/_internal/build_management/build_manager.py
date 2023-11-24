@@ -156,7 +156,6 @@ def _make_space_for_build(archive_reader,
                           file_match_callback=None):
   """Make space for extracting the build archive by deleting the least recently
   used builds."""
-  extracted_size = 0
   extracted_size = archive_reader.extracted_size(file_match_callback)
 
   return _make_space(extracted_size, current_build_dir=current_build_dir)
@@ -612,9 +611,9 @@ class Build(BaseBuild):
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     for archive_file in reader.list_members():
-      if fuzzer_utils.is_fuzz_target_local(
-          archive_file.filename, reader.try_open(archive_file.filename)):
-        fuzz_target = _normalize_target_name(archive_file.filename)
+      if fuzzer_utils.is_fuzz_target_local(archive_file.name,
+                                           reader.try_open(archive_file.name)):
+        fuzz_target = _normalize_target_name(archive_file.name)
         yield fuzz_target
 
   def _get_fuzz_targets_from_dir(self, build_dir):

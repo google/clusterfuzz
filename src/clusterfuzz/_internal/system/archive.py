@@ -107,14 +107,13 @@ class ArchiveReader(abc.ABC):
               path: Union[str, os.PathLike],
               trusted: bool = False) -> str:
     """Extracts `member` out of the archive to the provided path.
-    If `members` is a directory in the archive, only the directory itself will
+    If `member` is a directory in the archive, only the directory itself will
     be extracted, not its content.
 
     Args:
         member: the member name
         path: the path where the member should be extracted.
-        trusted (optional): whether the archive is trusted. Defaults to
-        False.
+        trusted: whether the archive is trusted.
 
     Returns:
         The path to the extracted member
@@ -142,15 +141,14 @@ class ArchiveReader(abc.ABC):
   @abc.abstractmethod
   def extract_all(self,
                   path: Union[str, os.PathLike],
-                  members: List[str] = None,
+                  members: Optional[List[str]] = None,
                   trusted: bool = False) -> None:
     """Extract the whole archive content or the members listed in `members`.
 
     Args:
         path: the path where the members should be extracted.
-        members (optional): the member names. Defaults to None.
-        trusted (optional): whether the archive is trusted or not.
-        Defaults to False.
+        members: the member names.
+        trusted: whether the archive is trusted or not.
     """
     raise NotImplementedError
 
@@ -192,8 +190,7 @@ class ArchiveReader(abc.ABC):
     size of the whole archive.
 
     Args:
-        file_match_callback (optional): the file matching callback. Defaults
-        to None.
+        file_match_callback: the file matching callback.
 
     Returns:
         the sum of the extract size in bytes of members matched with the
@@ -251,7 +248,7 @@ class TarArchiveReader(ArchiveReader):
 
   def extract_all(self,
                   path: Union[str, os.PathLike],
-                  members: List[str] = None,
+                  members: Optional[List[str]] = None,
                   trusted: bool = False) -> None:
     to_extract = members if members is not None else self._archive.namelist()
     for member in to_extract:
@@ -330,13 +327,13 @@ class ZipArchiveReader(ArchiveReader):
       return extracted_path
     except Exception as e:
       # In case of errors, we try to extract whatever we can without errors.
-      logs.log_warn(
-          'An error occured while extracting the archive: %s.' % repr(e))
+      logs.log_warn('An error occured while extracting %s the archive: %s.' %
+                    (member, repr(e)))
       return None
 
   def extract_all(self,
                   path: Union[str, os.PathLike],
-                  members: List[str] = None,
+                  members: Optional[List[str]] = None,
                   trusted: bool = False) -> None:
     to_extract = members if members is not None else self._zip_archive.namelist(
     )
@@ -349,14 +346,15 @@ class ArchiveError(Exception):
 
 
 # pylint: disable=redefined-builtin
-def open(archive_path: str, file_obj: BinaryIO = None) -> ArchiveReader:
+def open(archive_path: str,
+         file_obj: Optional[BinaryIO] = None) -> ArchiveReader:
   """Opens the archive and gets the appropriate archive reader based on the
-  `archive_path`.
+  `archive_path`. If file_obj is not none, the binary file-like object will be
+  used to read the archive instead of opening the file.
 
   Args:
       archive_path: the path to the archive.
-      file_obj (optional): a object-like containing the archive. Defaults
-      to None.
+      file_obj: a object-like containing the archive.
 
   Raises:
       If the file could not be opened or if the archive type cannot be handled.
@@ -433,10 +431,8 @@ def unpack(reader: ArchiveReader,
   Args:
       reader: the archive reader
       output_dir: the output directory to unpack the archive to.
-      trusted (optional): whether the archive is trusted. Defaults to
-      False.
-      file_match_callback (optional): the file matching callback. Defaults to
-      None.
+      trusted: whether the archive is trusted.
+      file_match_callback: the file matching callback.
 
   Returns:
       bool: whether an error occurred.
