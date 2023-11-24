@@ -208,23 +208,21 @@ def update_source_code():
 
   try:
     reader = archive.open(temp_archive)
-  except:
-    logs.log_error('Bad zip file.')
+  except Exception as e:
+    logs.log_error('Bad zip file: %s.' % repr(e))
     return
-
-  file_list = reader.list_files()
 
   src_directory = os.path.join(root_directory, 'src')
   error_occurred = False
   normalized_file_set = set()
-  for file in file_list:
-    filename = os.path.basename(file.filename)
+  for file in reader.list_members():
+    filename = os.path.basename(file.name)
 
     # This file cannot be updated on the fly since it is running as server.
     if filename == 'adb':
       continue
 
-    absolute_filepath = os.path.join(cf_source_root_parent_dir, file.filename)
+    absolute_filepath = os.path.join(cf_source_root_parent_dir, file.name)
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
@@ -252,14 +250,14 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
-      extracted_path = reader.extract(file.filename, cf_source_root_parent_dir)
+      extracted_path = reader.extract(file.name, cf_source_root_parent_dir)
       mode = file.mode
       mode |= 0o440
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True
       logs.log_error(
-          'Failed to extract file %s from source archive.' % file.filename)
+          'Failed to extract file %s from source archive.' % file.name)
 
   reader.close()
 

@@ -1098,7 +1098,6 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
     extension_archive = os.path.join(environment.get_resources_directory(),
                                      'firefox', 'fuzzPriv-extension.zip')
     reader = archive.open(extension_archive)
-    assert reader
     archive.unpack(reader, extensions_directory)
 
     # Add this extension in the extensions configuration file.

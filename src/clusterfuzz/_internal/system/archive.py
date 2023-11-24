@@ -17,7 +17,11 @@ import abc
 import dataclasses
 import os
 import tarfile
-import typing
+from typing import BinaryIO
+from typing import Callable
+from typing import List
+from typing import Optional
+from typing import Union
 import zipfile
 
 from clusterfuzz._internal.metrics import logs
@@ -35,17 +39,22 @@ LZMA_FILE_EXTENSIONS = ['.tar.lzma', '.tar.xz']
 ARCHIVE_FILE_EXTENSIONS = (
     ZIP_FILE_EXTENSIONS + TAR_FILE_EXTENSIONS + LZMA_FILE_EXTENSIONS)
 
+StrBytesPathLike = Union[str, bytes, os.PathLike]
+MatchCallback = Callable[[str], bool]
 
-def _is_attempting_path_traversal(archive_name, output_dir, filename) -> bool:
+
+def _is_attempting_path_traversal(archive_name: StrBytesPathLike,
+                                  output_dir: StrBytesPathLike,
+                                  filename: StrBytesPathLike) -> bool:
   """Detects whether there is a path traversal attempt.
 
   Args:
-      archive_name (str): the name of the archive.
-      output_dir (str): the output directory.
-      filename (str): the name of the file being checked.
+      archive_name: the name of the archive.
+      output_dir: the output directory.
+      filename: the name of the file being checked.
 
   Returns:
-      bool: Whether there is a path traversal attempt
+      Whether there is a path traversal attempt
   """
   output_dir = os.path.realpath(output_dir)
   absolute_file_path = os.path.join(output_dir, os.path.normpath(filename))
@@ -66,53 +75,61 @@ def _is_attempting_path_traversal(archive_name, output_dir, filename) -> bool:
 
 @dataclasses.dataclass
 class ArchiveMemberInfo:
-  """Represents an archive member.
+  """Represents an archive member. A member can either be a file or a directory.
+  Members:
+    name: the name of the archive member.
+    is_dir: whether this member is a directory.
+    size_bytes: the extracted size of the member.
+    mode: the mode of the member (file system attributes).
   """
-  filename: str
+  name: str
   is_dir: bool
-  file_size_bytes: int
+  size_bytes: int
   mode: int
 
 
 class ArchiveReader(abc.ABC):
-  """Abstract class for representing an archive reader. Abstract methods must
-  be overriden.
+  """Abstract class for representing an archive reader.
   """
 
   @abc.abstractmethod
-  def list_files(self) -> typing.List[ArchiveMemberInfo]:
+  def list_members(self) -> List[ArchiveMemberInfo]:
     """Lists all members contained in the archives.
 
     Returns:
-        typing.List[ArchiveMemberInfo]: All the archive members
+        List[ArchiveMemberInfo]: All the archive members
     """
     raise NotImplementedError
 
   @abc.abstractmethod
-  def extract(self, member, path, trusted=False) -> str:
+  def extract(self,
+              member: str,
+              path: Union[str, os.PathLike],
+              trusted: bool = False) -> str:
     """Extracts `member` out of the archive to the provided path.
+    If `members` is a directory in the archive, only the directory itself will
+    be extracted, not its content.
 
     Args:
-        member (str): the member name
-        path (str): the path where the member should be extracted.
-        Defaults to None.
-        trusted (bool, optional): whether the archive is trusted. Defaults to
+        member: the member name
+        path: the path where the member should be extracted.
+        trusted (optional): whether the archive is trusted. Defaults to
         False.
 
     Returns:
-        str: the path to the extracted member
+        The path to the extracted member
     """
     raise NotImplementedError
 
   @abc.abstractmethod
-  def open(self, member):
+  def open(self, member: str) -> BinaryIO:
     """Opens `member`.
 
     Args:
-        member (str): the member name
+        member: the member name
 
     Returns:
-        [IO]: a file-like object that can be `read`.
+        a file-like object that can be `read`.
     """
     raise NotImplementedError
 
@@ -123,52 +140,54 @@ class ArchiveReader(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def extractall(self, path, members=None, trusted=False) -> None:
+  def extract_all(self,
+                  path: Union[str, os.PathLike],
+                  members: List[str] = None,
+                  trusted: bool = False) -> None:
     """Extract the whole archive content or the members listed in `members`.
 
     Args:
-        path (str): the path where the members should be extracted.
-        Defaults to None.
-        members ([str], optional): the member names. Defaults to None.
-        trusted (bool, optional): whether the archive is trusted or not.
+        path: the path where the members should be extracted.
+        members (optional): the member names. Defaults to None.
+        trusted (optional): whether the archive is trusted or not.
         Defaults to False.
     """
     raise NotImplementedError
 
-  def try_open(self, member):
+  def try_open(self, member: str) -> Optional[BinaryIO]:
     """Tries to open the archive. Does not throw.
 
     Args:
-        member (str): the member name
+        member: the member name
 
     Returns:
-        [IO]: a file-like object that can be `read`.
+        a file-like object that can be `read` or None if an error occured.
     """
     try:
       return self.open(member)
     except:
       return None
 
-  def get_first_file_matching(self, search_string):
+  def get_first_file_matching(self, search_string: str) -> str:
     """Gets the name of the first matching member.
 
     Args:
-        search_string (str): the string to be searched for.
+        search_string: the string to be searched for.
 
     Returns:
-        str: the member name that matched.
+        the member name that matched.
     """
-    for file in self.list_files():
-      if file.filename.startswith('__MACOSX/'):
+    for file in self.list_members():
+      if file.name.startswith('__MACOSX/'):
         # Exclude MAC resource forks.
         continue
 
-      if search_string in file.filename:
-        return file.filename
+      if search_string in file.name:
+        return file.name
     return None
 
-  def extracted_size(self, file_match_callback=None):
-    """Gets the total extracted size of the file matched by
+  def extracted_size(self, file_match_callback: MatchCallback = None) -> int:
+    """Gets the total extracted size of the files matched by
     file_match_callback. If file_match_callback is None, gets the extracted
     size of the whole archive.
 
@@ -177,18 +196,22 @@ class ArchiveReader(abc.ABC):
         to None.
 
     Returns:
-        int: the extracted size.
+        the sum of the extract size in bytes of members matched with the
+        callback. If the callback isn't specified, returns the extracted size
+        of the whole archive.
     """
-    return sum(f.file_size_bytes
-               for f in self.list_files()
-               if not file_match_callback or file_match_callback(f.filename))
+    return sum(f.size_bytes
+               for f in self.list_members()
+               if not file_match_callback or file_match_callback(f.name))
 
 
 class TarArchiveReader(ArchiveReader):
   """A tar archive reader. Currently supports TAR and TAR_LZMA archives.
   """
 
-  def __init__(self, archive_path, file_obj=None) -> None:
+  def __init__(self,
+               archive_path: Union[str, os.PathLike],
+               file_obj: BinaryIO = None) -> None:
     if file_obj:
       self._archive = tarfile.open(fileobj=file_obj)
     else:
@@ -197,22 +220,23 @@ class TarArchiveReader(ArchiveReader):
       self._archive = tarfile.open(archive_path, mode=mode)
     self._archive_path = archive_path
 
-  def list_files(self) -> typing.List[ArchiveMemberInfo]:
+  def list_members(self) -> List[ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
-            filename=f.name,
-            is_dir=f.isdir(),
-            file_size_bytes=f.size,
-            mode=f.mode) for f in self._archive.getmembers()
+            name=f.name, is_dir=f.isdir(), size_bytes=f.size, mode=f.mode)
+        for f in self._archive.getmembers()
     ]
 
-  def open(self, member):
+  def open(self, member: str):
     return self._archive.extractfile(member)
 
   def close(self) -> None:
     self._archive.close()
 
-  def extract(self, member, path, trusted=False):
+  def extract(self,
+              member: str,
+              path: Union[str, os.PathLike],
+              trusted: bool = False):
     # If the output directory is a symlink, get its actual path since we will be
     # doing directory traversal checks later when unpacking the archive.
     output_directory = os.path.realpath(path)
@@ -225,9 +249,11 @@ class TarArchiveReader(ArchiveReader):
     self._archive.extract(member=member, path=output_directory)
     return os.path.realpath(os.path.join(output_directory, member))
 
-  def extractall(self, path, members=None, trusted=False) -> None:
+  def extract_all(self,
+                  path: Union[str, os.PathLike],
+                  members: List[str] = None,
+                  trusted: bool = False) -> None:
     to_extract = members if members is not None else self._archive.namelist()
-    #FIXME(paulsemel): we could try extracting that all.
     for member in to_extract:
       self.extract(member=member, path=path, trusted=trusted)
 
@@ -239,12 +265,12 @@ class ZipArchiveReader(ArchiveReader):
   def __init__(self, file) -> None:
     self._zip_archive = zipfile.ZipFile(file, mode='r')
 
-  def list_files(self) -> typing.List[ArchiveMemberInfo]:
+  def list_members(self) -> List[ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
-            filename=f.filename,
+            name=f.filename,
             is_dir=f.is_dir(),
-            file_size_bytes=f.file_size,
+            size_bytes=f.file_size,
             mode=f.external_attr & 0o7777)
         for f in self._zip_archive.infolist()
     ]
@@ -255,7 +281,10 @@ class ZipArchiveReader(ArchiveReader):
   def close(self) -> None:
     self._zip_archive.close()
 
-  def extract(self, member, path, trusted=False):
+  def extract(self,
+              member: str,
+              path: Union[str, os.PathLike],
+              trusted: bool = False):
     # If the output directory is a symlink, get its actual path since we will be
     # doing directory traversal checks later when unpacking the archive.
     output_directory = os.path.realpath(path)
@@ -299,11 +328,16 @@ class ZipArchiveReader(ArchiveReader):
         os.symlink(symlink_source, extracted_path)
 
       return extracted_path
-    except:
+    except Exception as e:
       # In case of errors, we try to extract whatever we can without errors.
+      logs.log_warn(
+          'An error occured while extracting the archive: %s.' % repr(e))
       return None
 
-  def extractall(self, path, members=None, trusted=False) -> None:
+  def extract_all(self,
+                  path: Union[str, os.PathLike],
+                  members: List[str] = None,
+                  trusted: bool = False) -> None:
     to_extract = members if members is not None else self._zip_archive.namelist(
     )
     for member in to_extract:
@@ -315,22 +349,21 @@ class ArchiveError(Exception):
 
 
 # pylint: disable=redefined-builtin
-def open(archive_path, file_obj=None):
+def open(archive_path: str, file_obj: BinaryIO = None) -> ArchiveReader:
   """Opens the archive and gets the appropriate archive reader based on the
   `archive_path`.
 
   Args:
-      archive_path (str): the path to the archive.
-      file_obj (obj, optional): a object-like containing the archive. Defaults
+      archive_path: the path to the archive.
+      file_obj (optional): a object-like containing the archive. Defaults
       to None.
 
   Raises:
-      this function raises if the file could not be open or if the archive type
-      cannot be handled. See `get_archive_type` to check whether the archive
-      type is handled.
+      If the file could not be opened or if the archive type cannot be handled.
+      See `is_archive()` to check whether the archive type is handled.
 
   Returns:
-      (ArchiveReader): the archive reader.
+      the archive reader.
   """
   archive_type = get_archive_type(archive_path)
   if archive_type == ArchiveType.ZIP:
@@ -348,8 +381,15 @@ class ArchiveType:
   TAR_LZMA = 3
 
 
-def get_archive_type(archive_path):
-  """Get the type of the archive."""
+def get_archive_type(archive_path: str) -> ArchiveType:
+  """Get the type of the archive.
+
+  Args:
+      archive_path: the path to the archive.
+
+  Returns:
+      the type of the archive, or ArchiveType.UNKNOWN if unknown.
+  """
 
   def has_extension(extensions):
     """Returns True if |archive_path| endswith an extension in |extensions|."""
@@ -370,20 +410,30 @@ def get_archive_type(archive_path):
   return ArchiveType.UNKNOWN
 
 
-def is_archive(filename):
-  """Return true if the file is an archive."""
+def is_archive(filename: str) -> bool:
+  """Return true if the file is an archive.
+
+  Args:
+      filename: the path to a file.
+
+  Returns:
+      whether the provided file is an archive.
+  """
   return get_archive_type(filename) != ArchiveType.UNKNOWN
 
 
-def unpack(reader, output_dir, trusted=False, file_match_callback=None):
-  """Unpacks the current archives opened with `reader`. If file_match_callback
+def unpack(reader: ArchiveReader,
+           output_dir: Union[str, os.PathLike],
+           trusted: bool = False,
+           file_match_callback: MatchCallback = None):
+  """Unpacks the current archive opened with `reader`. If `file_match_callback`
   is None, unpacks all the archive. Otherwise, this only unpacks the files
   matched by the callback.
 
   Args:
-      reader (ArchiveReader): the archive reader
-      output_dir (_type_): the output directory to unpack the archive to.
-      trusted (bool, optional): whether the archive is trusted. Defaults to
+      reader: the archive reader
+      output_dir: the output directory to unpack the archive to.
+      trusted (optional): whether the archive is trusted. Defaults to
       False.
       file_match_callback (optional): the file matching callback. Defaults to
       None.
@@ -394,9 +444,9 @@ def unpack(reader, output_dir, trusted=False, file_match_callback=None):
   assert reader
 
   file_list = [
-      f.filename
-      for f in reader.list_files()
-      if not file_match_callback or file_match_callback(f.filename)
+      f.name
+      for f in reader.list_members()
+      if not file_match_callback or file_match_callback(f.name)
   ]
 
   archive_file_unpack_count = 0

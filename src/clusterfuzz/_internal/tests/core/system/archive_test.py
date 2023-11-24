@@ -47,7 +47,7 @@ class UnpackTest(unittest.TestCase):
   def test_file_list(self):
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
     reader = archive.open(tar_xz_path)
-    self.assertCountEqual([f.filename for f in reader.list_files()],
+    self.assertCountEqual([f.name for f in reader.list_members()],
                           ["archive_dir", "archive_dir/bye", "archive_dir/hi"])
 
 
@@ -60,8 +60,8 @@ class ArchiveReaderTest(unittest.TestCase):
     expected_results = {'archive_dir/hi': b'hi\n', 'archive_dir/bye': b'bye\n'}
     reader = archive.open(tar_xz_path)
     actual_results = {
-        f.filename: reader.open(f.filename).read()
-        for f in reader.list_files()
+        f.name: reader.open(f.name).read()
+        for f in reader.list_members()
         if not f.is_dir
     }
     self.assertEqual(actual_results, expected_results)
@@ -72,8 +72,8 @@ class ArchiveReaderTest(unittest.TestCase):
     expected_results = {'./test': b'abc\n'}
     reader = archive.open(tgz_path)
     actual_results = {
-        f.filename: reader.open(f.filename).read()
-        for f in reader.list_files()
+        f.name: reader.open(f.name).read()
+        for f in reader.list_members()
         if not f.is_dir
     }
     self.assertEqual(actual_results, expected_results)
@@ -89,14 +89,13 @@ class ArchiveReaderTest(unittest.TestCase):
 
     # Get the results we expect from iterator().
     actual_results = []
-    for file in reader.list_files():
+    for file in reader.list_members():
       # This means we can read the file.
-      handle = reader.try_open(file.filename)
+      handle = reader.try_open(file.name)
       if handle is not None:
-        actual_results.append((file.filename, file.file_size_bytes,
-                               handle.read()))
+        actual_results.append((file.name, file.size_bytes, handle.read()))
       else:
-        actual_results.append((file.filename, file.file_size_bytes, None))
+        actual_results.append((file.name, file.size_bytes, None))
 
     # Check that iterator returns what we expect it to.
     expected_results = [

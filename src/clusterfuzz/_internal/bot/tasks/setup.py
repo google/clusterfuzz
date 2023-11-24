@@ -387,7 +387,7 @@ def unpack_testcase(testcase, testcase_download_url):
 
     archive.unpack(reader, input_directory)
 
-    file_list = [f.filename for f in reader.list_files()]
+    file_list = [f.name for f in reader.list_members()]
     reader.close()
 
     shell.remove_file(temp_filename)

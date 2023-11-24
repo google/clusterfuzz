@@ -653,17 +653,17 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
     return
 
   idx = 0
-  for file in reader.list_files():
+  for file in reader.list_members():
     if file.is_dir:
       continue
 
-    if file.file_size_bytes > max_bytes:
+    if file.size_bytes > max_bytes:
       continue
 
     output_filename = '%016d' % idx
     output_file_path = os.path.join(corpus_directory, output_filename)
     with open(output_file_path, 'wb') as file_handle:
-      shutil.copyfileobj(reader.open(file.filename), file_handle)
+      shutil.copyfileobj(reader.open(file.name), file_handle)
 
     idx += 1
 
