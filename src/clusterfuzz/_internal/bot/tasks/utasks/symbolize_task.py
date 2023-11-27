@@ -196,7 +196,7 @@ def utask_main(uworker_input):
 
   # Cleanup symbolized builds which are space-heavy.
   symbolized_builds.delete()
-  return uworker_io.UworkerOutput(symbolize_task_outptut=symbolize_task_outptut)
+  return uworker_io.UworkerOutput(symbolize_task_output=symbolize_task_outptut)
 
 
 def get_symbolized_stacktraces(testcase_file_path, testcase,
