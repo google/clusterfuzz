@@ -1113,7 +1113,8 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
                              extension_config_file_path)
 
 
-def check_for_bad_build(job_type, crash_revision) -> uworker_msg_pb2.BuildData:
+def check_for_bad_build(job_type: str,
+                        crash_revision: int) -> uworker_msg_pb2.BuildData:
   """
   Checks whether the target binary fails to execute at the given revision.
 
@@ -1202,7 +1203,7 @@ def check_for_bad_build(job_type, crash_revision) -> uworker_msg_pb2.BuildData:
       build_run_console_output=build_run_console_output)
 
 
-def update_build_metadata(job_type, crash_revision,
+def update_build_metadata(job_type: str, crash_revision: int,
                           build_data: uworker_msg_pb2.BuildData):
   """
   Updates the corresponding build metadata.

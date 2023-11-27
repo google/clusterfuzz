@@ -15,17 +15,21 @@
 
 import uuid
 
+from google.cloud import ndb
+from google.cloud.datastore_v1.proto import entity_pb2
+from google.cloud.ndb import model
+
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
 
-def generate_new_input_file_name():
+def generate_new_input_file_name() -> str:
   """Generates a new input file name."""
   return str(uuid.uuid4()).lower()
 
 
-def get_uworker_input_gcs_path():
+def get_uworker_input_gcs_path() -> str:
   """Returns a GCS path for uworker I/O."""
   # Inspired by blobs.write_blob.
   io_bucket = storage.uworker_input_bucket()
@@ -66,19 +70,21 @@ def upload_uworker_input(uworker_input, gcs_path):
   storage.write_data(uworker_input, gcs_path)
 
 
-def deserialize_uworker_input(serialized_uworker_input):
+def deserialize_uworker_input(
+    serialized_uworker_input: bytes) -> uworker_msg_pb2.Input:
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
   uworker_input_proto.ParseFromString(serialized_uworker_input)
   return uworker_input_proto
 
 
-def serialize_uworker_input(uworker_input):
+def serialize_uworker_input(uworker_input: uworker_msg_pb2.Input) -> bytes:
   """Serializes and returns |uworker_input| as JSON. Can handle ndb entities."""
   return uworker_input.SerializeToString()
 
 
-def serialize_and_upload_uworker_input(uworker_input) -> str:
+def serialize_and_upload_uworker_input(
+    uworker_input: uworker_msg_pb2.Input) -> str:
   """Serializes input for the untrusted portion of a task."""
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
@@ -96,32 +102,36 @@ def serialize_and_upload_uworker_input(uworker_input) -> str:
   return signed_input_download_url, output_gcs_url
 
 
-def download_and_deserialize_uworker_input(uworker_input_download_url):
+def download_and_deserialize_uworker_input(
+    uworker_input_download_url: str) -> uworker_msg_pb2.Input:
   """Downloads and deserializes the input to the uworker from the signed
   download URL."""
   data = storage.download_signed_url(uworker_input_download_url)
   return deserialize_uworker_input(data)
 
 
-def serialize_uworker_output(uworker_output_obj):
+def serialize_uworker_output(
+    uworker_output_obj: uworker_msg_pb2.Output) -> bytes:
   """Serializes uworker's output for deserializing by deserialize_uworker_output
   and consumption by postprocess_task."""
   return uworker_output_obj.SerializeToString()
 
 
-def deserialize_uworker_output(serialized):
+def deserialize_uworker_output(serialized: bytes) -> uworker_msg_pb2.Output:
   output = uworker_msg_pb2.Output()
   output.ParseFromString(serialized)
   return output
 
 
-def serialize_and_upload_uworker_output(uworker_output, upload_url):
+def serialize_and_upload_uworker_output(uworker_output: uworker_msg_pb2.Output,
+                                        upload_url: str):
   """Serializes |uworker_output| and uploads it to |upload_url."""
   serialized_uworker_output = uworker_output.SerializeToString()
   storage.upload_signed_url(serialized_uworker_output, upload_url)
 
 
-def download_input_based_on_output_url(output_url):
+def download_input_based_on_output_url(
+    output_url: str) -> uworker_msg_pb2.Input:
   input_url = uworker_output_path_to_input_path(output_url)
   serialized_uworker_input = storage.read_data(input_url)
   if serialized_uworker_input is None:
@@ -129,7 +139,8 @@ def download_input_based_on_output_url(output_url):
   return deserialize_uworker_input(serialized_uworker_input)
 
 
-def download_and_deserialize_uworker_output(output_url: str):
+def download_and_deserialize_uworker_output(
+    output_url: str) -> uworker_msg_pb2.Output:
   """Downloads and deserializes uworker output."""
   serialized_uworker_output = storage.read_data(output_url)
 
@@ -139,5 +150,23 @@ def download_and_deserialize_uworker_output(output_url: str):
   # tamper with it.
   uworker_input = download_input_based_on_output_url(output_url)
 
-  uworker_output.uworker_input.CopyFrom(uworker_input)  # pylint: disable=no-member
+  uworker_output.uworker_input.CopyFrom(uworker_input)
   return uworker_output
+
+
+def model_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
+  """Helper function to convert entity to protobuf format."""
+  return model._entity_to_protobuf(entity)  # pylint: disable=protected-access
+
+
+from typing import Type
+from typing import TypeVar
+
+T = TypeVar('T', bound=ndb.Model)
+
+
+def model_from_protobuf(pb2_model: entity_pb2.Entity, model_type: Type[T]) -> T:
+  """Helper function to get an entity from a proto."""
+  entity = model._entity_from_protobuf(pb2_model)  # pylint: disable=protected-access
+  assert isinstance(entity, model_type)
+  return entity

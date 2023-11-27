@@ -20,7 +20,6 @@ import random
 import shutil
 
 from google.cloud import ndb
-from google.cloud.ndb import model
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -28,6 +27,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
@@ -878,8 +878,9 @@ def _save_coverage_information(context, result):
 
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = model._entity_from_protobuf(  # pylint: disable=protected-access
-      uworker_input.corpus_pruning_task_input.fuzz_target)
+  fuzz_target = uworker_io.model_from_protobuf(
+      uworker_input.corpus_pruning_task_input.fuzz_target,
+      data_types.FuzzTarget)
   task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
                f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
@@ -938,7 +939,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     return None
 
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
-      fuzz_target=model._entity_to_protobuf(fuzz_target),  # pylint: disable=protected-access
+      fuzz_target=uworker_io.model_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed)
 
   setup_input = (

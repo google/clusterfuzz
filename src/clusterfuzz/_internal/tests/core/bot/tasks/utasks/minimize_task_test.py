@@ -19,13 +19,12 @@ import unittest
 # pylint: disable=unused-argument
 from unittest import mock
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
@@ -193,7 +192,7 @@ class MinimizeTaskTestUntrusted(
     setup_input = setup.preprocess_setup_testcase(testcase)
     uworker_input = uworker_msg_pb2.Input(
         job_type='libfuzzer_asan_job',
-        testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access
+        testcase=uworker_io.model_to_protobuf(testcase),
         setup_input=setup_input,
         testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
@@ -289,7 +288,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type',
         testcase_id='testcase_id',
-        testcase=model._entity_to_protobuf(testcase))  # pylint: disable=protected-access
+        testcase=uworker_io.model_to_protobuf(testcase))
     return uworker_input
 
   def _create_output(self, uworker_input=None, **kwargs):
@@ -344,12 +343,9 @@ class UTaskMainTest(unittest.TestCase):
     del check_app_path
     testcase = data_types.Testcase()
     testcase.put()
-    build_fail_wait = 10
     environment.set_value('FAIL_WAIT', 10)
     uworker_input = uworker_msg_pb2.Input(
-        testcase=model._entity_to_protobuf(testcase))  # pylint: disable=protected-access
+        testcase=uworker_io.model_to_protobuf(testcase))
     uworker_output = minimize_task.utask_main(uworker_input)
-    self.assertEqual(uworker_output.minimize_task_output.build_fail_wait,
-                     build_fail_wait)
     self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)

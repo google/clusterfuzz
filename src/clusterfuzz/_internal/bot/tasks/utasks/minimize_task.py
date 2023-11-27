@@ -20,8 +20,6 @@ import threading
 import time
 import zipfile
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
@@ -38,6 +36,7 @@ from clusterfuzz._internal.bot.minimizer import minimizer
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.tokenizer.antlr_tokenizer import AntlrTokenizer
 from clusterfuzz._internal.bot.tokenizer.grammars.JavaScriptLexer import \
     JavaScriptLexer
@@ -367,14 +366,15 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=str(testcase_id),
-      testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access
+      testcase=uworker_io.model_to_protobuf(testcase),
       setup_input=setup_input,
       uworker_env=uworker_env)
 
 
 def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
-  testcase = model._entity_from_protobuf(uworker_input.testcase)  # pylint: disable=protected-access
+  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
+                                            data_types.Testcase)
 
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -400,12 +400,7 @@ def utask_main(uworker_input):
   # to setup correctly.
   if not build_manager.check_app_path():
     logs.log_error('Unable to setup build for minimization.')
-    build_fail_wait = environment.get_value('FAIL_WAIT')
-    minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput()
-    if build_fail_wait is not None:
-      minimize_task_output.build_fail_wait = int(build_fail_wait)
     return uworker_msg_pb2.Output(
-        minimize_task_output=minimize_task_output,
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
@@ -622,9 +617,7 @@ def handle_minimize_setup_error(output):
     # Only recreate task if this isn't an overriden job. It's possible that a
     # revision exists for the original job, but doesn't exist for the
     # overriden job.
-    build_fail_wait = None
-    if output.minimize_task_output.HasField("build_fail_wait"):
-      build_fail_wait = output.minimize_task_output.build_fail_wait
+    build_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
         'minimize',
         output.uworker_input.testcase_id,

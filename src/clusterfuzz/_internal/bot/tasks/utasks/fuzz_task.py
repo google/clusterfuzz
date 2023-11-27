@@ -783,8 +783,9 @@ def truncate_fuzzer_output(output, limit):
   return ''.join([output[:left], separator, output[-right:]])
 
 
-def convert_groups_to_crashes(groups):
-  """Convert groups to crashes (in an array of dicts) for JobRun."""
+def convert_groups_to_crashes(groups: list):
+  """Convert groups to crashes (in an array of uworker_msg_pb2.CrashInfo) for
+  JobRun."""
   crashes = []
   for group in groups:
     crashes.append(
@@ -795,6 +796,18 @@ def convert_groups_to_crashes(groups):
             crash_state=group.main_crash.crash_state,
             security_flag=group.main_crash.security_flag))
   return crashes
+
+
+def convert_crashes_to_list_of_dicts(crashes):
+  """Convert crashes to groups (in an array of dicts) for
+  JobRun."""
+  return [{
+      'is_new': crash_info.is_new,
+      'count': crash_info.count,
+      'crash_type': crash_info.crash_type,
+      'crash_state': crash_info.crash_state,
+      'security_flag': crash_info.security_flag,
+  } for crash_info in crashes]
 
 
 def upload_job_run_stats(fuzzer_name, job_type, revision, timestamp,
@@ -1775,8 +1788,8 @@ class FuzzingSession:
     testcase_manager.update_build_metadata(self.job_type, crash_revision,
                                            build_data)
     _track_build_run_result(self.job_type, crash_revision,
-                            build_data.is_bad_build)  # pylint: disable=no-member
-    if build_data.is_bad_build:  # pylint: disable=no-member
+                            build_data.is_bad_build)
+    if build_data.is_bad_build:
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
@@ -1870,7 +1883,7 @@ class FuzzingSession:
         known_crash_count=known_crash_count,
         testcases_executed=testcases_executed,
     )
-    fuzz_task_output.job_run_crashes.extend(  # pylint: disable=no-member
+    fuzz_task_output.job_run_crashes.extend(
         convert_groups_to_crashes(processed_groups))
     if new_targets_count is not None:
       fuzz_task_output.new_targets_count = int(new_targets_count)
@@ -1880,20 +1893,13 @@ class FuzzingSession:
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
     fuzz_task_output = uworker_output.fuzz_task_output
-    job_run_crashes = []
-    for crash in fuzz_task_output.job_run_crashes:
-      job_run_crashes.append({
-          'is_new': crash.is_new,
-          'count': crash.count,
-          'crash_type': crash.crash_type,
-          'crash_state': crash.crash_state,
-          'security_flag': crash.security_flag,
-      })
+    crash_groups = convert_crashes_to_list_of_dicts(
+        fuzz_task_output.job_run_crashes)
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
-        fuzz_task_output.testcases_executed, job_run_crashes)
+        fuzz_task_output.testcases_executed, crash_groups)
     uworker_input = uworker_output.uworker_input
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if (not targets_count or

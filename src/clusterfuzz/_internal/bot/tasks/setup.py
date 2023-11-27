@@ -19,14 +19,13 @@ import shlex
 import time
 import zipfile
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks.utasks import utask_utils
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -200,7 +199,7 @@ def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
       wait_time=testcase_fail_wait)
 
 
-HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]  # pylint: disable=no-member
+HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]
 
 
 def preprocess_setup_testcase(testcase, fuzzer_override=None):
@@ -233,8 +232,8 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None):
   return setup_input
 
 
-def setup_testcase(testcase,
-                   job_type,
+def setup_testcase(testcase: data_types.Testcase,
+                   job_type: str,
                    setup_input: uworker_msg_pb2.SetupInput,
                    metadata=None):
   """Sets up the testcase and needed dependencies like fuzzer,
@@ -248,7 +247,7 @@ def setup_testcase(testcase,
       testcase_id=str(testcase_id), job_type=job_type)
   uworker_error_output = uworker_msg_pb2.Output(
       uworker_input=uworker_error_input,
-      error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)  # pylint: disable=no-member
+      error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
   testcase_setup_error_result = (None, None, uworker_error_output)
 
@@ -261,7 +260,7 @@ def setup_testcase(testcase,
     _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
-  if setup_input.HasField("fuzzer_name"):
+  if setup_input.fuzzer_name:
     update_successful = update_fuzzer_and_data_bundles(setup_input)
     if not update_successful:
       error_message = f'Unable to setup fuzzer {setup_input.fuzzer_name}'
@@ -438,8 +437,10 @@ def update_data_bundle(update_input, data_bundle):
   # with multiprocessing and psutil imports.
   from clusterfuzz._internal.google_cloud_utils import gsutil
 
-  data_bundle = model._entity_from_protobuf(data_bundle)  # pylint: disable=protected-access
-  fuzzer = model._entity_from_protobuf(update_input.fuzzer)  # pylint: disable=protected-access
+  data_bundle = uworker_io.model_from_protobuf(data_bundle,
+                                               data_types.DataBundle)
+  fuzzer = uworker_io.model_from_protobuf(update_input.fuzzer,
+                                          data_types.Fuzzer)
   data_bundle_directory = get_data_bundle_directory(fuzzer.name)
   if not data_bundle_directory:
     logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
@@ -542,8 +543,9 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
               data_types.DataBundle.name == fuzzer.data_bundle_name)))
   logs.log('Data bundles: %s' % data_bundles)
 
-  update_input.data_bundles.extend(  # pylint: disable=no-member
-      [model._entity_to_protobuf(data_bundle) for data_bundle in data_bundles])  # pylint: disable=protected-access
+  update_input.data_bundles.extend([
+      uworker_io.model_to_protobuf(data_bundle) for data_bundle in data_bundles
+  ])
 
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
@@ -551,7 +553,7 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
     update_input.fuzzer_download_url = blobs.get_signed_download_url(
         fuzzer.blobstore_key)
 
-  update_input.fuzzer.CopyFrom(model._entity_to_protobuf(fuzzer))  # pylint: disable=protected-access,no-member
+  update_input.fuzzer.CopyFrom(uworker_io.model_to_protobuf(fuzzer))
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Finish migrating
   # update data bundles.
 
@@ -561,7 +563,8 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
 def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput, fuzzer_directory,
                    version_file):
   """Updates the fuzzer. Helper for update_fuzzer_and_data_bundles."""
-  fuzzer = model._entity_from_protobuf(update_input.fuzzer)  # pylint: disable=protected-access
+  fuzzer = uworker_io.model_from_protobuf(update_input.fuzzer,
+                                          data_types.Fuzzer)
   fuzzer_name = update_input.fuzzer_name
   if fuzzer.builtin:
     return True
@@ -631,7 +634,8 @@ def _set_up_data_bundles(update_input):
 
 def update_fuzzer_and_data_bundles(update_input):
   """Updates the fuzzer specified by |update_input| and its data bundles."""
-  fuzzer = model._entity_from_protobuf(update_input.fuzzer)  # pylint: disable=protected-access
+  fuzzer = uworker_io.model_from_protobuf(update_input.fuzzer,
+                                          data_types.Fuzzer)
 
   _set_fuzzer_env_vars(fuzzer)
   # Set some helper environment variables.

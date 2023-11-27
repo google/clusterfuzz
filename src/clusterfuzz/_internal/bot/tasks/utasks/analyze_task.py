@@ -16,8 +16,6 @@
 import datetime
 from typing import Optional
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -25,6 +23,7 @@ from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -91,12 +90,12 @@ def setup_build(testcase: data_types.Testcase,
         build_bucket_path, bad_revisions, testcase=testcase)
     if not revision_list:
       return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST)
 
     revision_index = revisions.find_min_revision_index(revision_list, revision)
     if revision_index is None:
       return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)  # pylint: disable=no-member
+          error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX)
     revision = revision_list[revision_index]
 
   build_manager.setup_build(revision)
@@ -150,7 +149,7 @@ def setup_testcase_and_build(
   if not build_manager.check_app_path():
     # Let postprocess handle ANALYZE_BUILD_SETUP and restart tasks if needed.
     return None, uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP)
 
   update_testcase_after_build_setup(testcase)
   testcase.absolute_path = testcase_file_path
@@ -243,9 +242,8 @@ def handle_noncrash(output):
     tasks.add_task('analyze', output.uworker_input.testcase_id,
                    output.uworker_input.job_type)
     return
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(
-          output.uworker_input.testcase_id)).get()
+  testcase_upload_metadata = query_testcase_upload_metadata(
+      int(output.uworker_input.testcase_id))
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
 
@@ -284,8 +282,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  testcase_upload_metadata = query_testcase_upload_metadata(int(testcase_id))
   if not testcase_upload_metadata:
     logs.log_error(
         'Testcase %s has no associated upload metadata.' % testcase_id)
@@ -302,9 +299,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(testcase)
   analyze_task_input = get_analyze_task_input()
   return uworker_msg_pb2.Input(
-      testcase_upload_metadata=model._entity_to_protobuf(  # pylint: disable=protected-access
+      testcase_upload_metadata=uworker_io.model_to_protobuf(
           testcase_upload_metadata),
-      testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access
+      testcase=uworker_io.model_to_protobuf(testcase),
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
@@ -315,7 +312,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def get_analyze_task_input():
   analyze_input = uworker_msg_pb2.AnalyzeTaskInput()
-  analyze_input.bad_revisions.extend(build_manager.get_job_bad_revisions())  # pylint: disable=no-member
+  analyze_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
   return analyze_input
 
 
@@ -342,9 +339,10 @@ def _build_task_output(
 
 def utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
-  testcase_upload_metadata = model._entity_from_protobuf(  # pylint: disable=protected-access
-      uworker_input.testcase_upload_metadata)
-  testcase = model._entity_from_protobuf(uworker_input.testcase)  # pylint: disable=protected-access
+  testcase_upload_metadata = uworker_io.model_from_protobuf(
+      uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
+  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
+                                            data_types.Testcase)
   prepare_env_for_main(testcase_upload_metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
@@ -393,7 +391,7 @@ def utask_main(uworker_input):
   if not crashed:
     return uworker_msg_pb2.Output(
         analyze_task_output=analyze_task_output,
-        error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
         test_timeout=test_timeout)
   # Update testcase crash parameters.
   update_testcase_after_crash(testcase, state, uworker_input.job_type,
@@ -441,14 +439,12 @@ def handle_build_setup_error(output):
         output.uworker_input.job_type,
         wait_time=testcase_fail_wait)
     return
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(
-          output.uworker_input.testcase_id)).get()
+  testcase_upload_metadata = query_testcase_upload_metadata(
+      int(output.uworker_input.testcase_id))
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Build setup failed')
 
 
-# pylint: disable=no-member
 HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH,
     uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP,
@@ -456,8 +452,6 @@ HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISION_INDEX,
     uworker_msg_pb2.ErrorType.UNHANDLED,
 ] + setup.HANDLED_ERRORS
-
-# pylint: enable=no-member
 
 
 def _update_testcase(output):
@@ -512,9 +506,8 @@ def utask_postprocess(output):
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(
-          output.uworker_input.testcase_id)).get()
+  testcase_upload_metadata = query_testcase_upload_metadata(
+      int(output.uworker_input.testcase_id))
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
@@ -568,3 +561,9 @@ def utask_postprocess(output):
   # 5. Get second stacktrace from another job in case of
   #    one-time crashes (stack).
   task_creation.create_tasks(testcase)
+
+
+def query_testcase_upload_metadata(
+    testcase_id: int) -> Optional[data_types.TestcaseUploadMetadata]:
+  return data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == testcase_id).get()

@@ -13,13 +13,12 @@
 # limitations under the License.
 """Variant task for analyzing testcase variants with a different job."""
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
 from clusterfuzz._internal.datastore import data_handler
@@ -78,8 +77,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   return uworker_msg_pb2.Input(
       job_type=job_type,
       original_job_type=original_job_type,
-      testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access
-      testcase_upload_metadata=model._entity_to_protobuf(  # pylint: disable=protected-access
+      testcase=uworker_io.model_to_protobuf(testcase),
+      testcase_upload_metadata=uworker_io.model_to_protobuf(
           testcase_upload_metadata),
       uworker_env=uworker_env,
       testcase_id=testcase_id,
@@ -90,9 +89,10 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 def utask_main(uworker_input):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
-  testcase = model._entity_from_protobuf(uworker_input.testcase)  # pylint: disable=protected-access
-  testcase_upload_metadata = model._entity_from_protobuf(  # pylint: disable=protected-access
-      uworker_input.testcase_upload_metadata)
+  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
+                                            data_types.Testcase)
+  testcase_upload_metadata = uworker_io.model_from_protobuf(
+      uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
   if environment.is_engine_fuzzer_job(testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     # Repeat this because the in-memory executor may allow puts.
@@ -115,18 +115,17 @@ def utask_main(uworker_input):
   except errors.BuildNotFoundError:
     logs.log_warn('Matching build not found.')
     return uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)  # pylint: disable=no-member
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   # Check if we have an application path. If not, our build failed to setup
   # correctly.
   if not build_manager.check_app_path():
     return uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
-    )
+        error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,)
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.
-  use_gestures = (testcase.platform == environment.platform().lower())
+  use_gestures = testcase.platform == environment.platform().lower()
 
   # Reproduce the crash.
   app_path = environment.get_value('APP_PATH')
@@ -181,8 +180,8 @@ def utask_main(uworker_input):
     variant_task_output.crash_type = crash_type
   if crash_state is not None:
     variant_task_output.crash_state = crash_state
-  variant_task_output.security_flag = security_flag
-  variant_task_output.is_similar = is_similar
+  variant_task_output.security_flag = bool(security_flag)
+  variant_task_output.is_similar = bool(is_similar)
   variant_task_output.platform = environment.platform().lower()
 
   return uworker_msg_pb2.Output(
@@ -198,8 +197,8 @@ def handle_build_setup_error(output):
 
 
 HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,  # pylint: disable=no-member
-    uworker_msg_pb2.ErrorType.UNHANDLED  # pylint: disable=no-member
+    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
+    uworker_msg_pb2.ErrorType.UNHANDLED
 ] + setup.HANDLED_ERRORS
 
 

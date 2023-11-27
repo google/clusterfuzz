@@ -20,11 +20,10 @@ import subprocess
 import sys
 import tempfile
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import \
     environment as untrusted_env
 from clusterfuzz._internal.bot.untrusted_runner import config
@@ -524,7 +523,7 @@ class UntrustedRunnerIntegrationTest(
 
     self.assertTrue(
         setup.update_data_bundle(setup_input,
-                                 model._entity_to_protobuf(bundle)))  # pylint: disable=protected-access
+                                 uworker_io.model_to_protobuf(bundle)))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
         setup.get_data_bundle_directory('fuzzer'))
@@ -533,7 +532,7 @@ class UntrustedRunnerIntegrationTest(
 
     self.assertTrue(
         setup.update_data_bundle(setup_input,
-                                 model._entity_to_protobuf(bundle)))  # pylint: disable=protected-access
+                                 uworker_io.model_to_protobuf(bundle)))
 
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""

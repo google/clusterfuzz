@@ -17,11 +17,11 @@ import json
 import os
 import unittest
 
-from google.cloud.ndb import model
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks.utasks import progression_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -154,7 +154,8 @@ class UtaskPreprocessTest(unittest.TestCase):
         str(testcase.key.id()), 'job_type', None)
     self.assertFalse(result.progression_task_input.custom_binary)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = model._entity_from_protobuf(result.testcase)  # pylint: disable=protected-access
+    returned_testcase = uworker_io.model_from_protobuf(result.testcase,
+                                                       data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
     bad_revisions = result.progression_task_input.bad_revisions
     self.assertEqual(len(bad_revisions), 1)
@@ -170,7 +171,8 @@ class UtaskPreprocessTest(unittest.TestCase):
         str(testcase.key.id()), 'job_type', None)
     self.assertTrue(result.progression_task_input.custom_binary)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = model._entity_from_protobuf(result.testcase)  # pylint: disable=protected-access
+    returned_testcase = uworker_io.model_from_protobuf(result.testcase,
+                                                       data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
     bad_revisions = result.progression_task_input.bad_revisions
     self.assertEqual(len(bad_revisions), 1)

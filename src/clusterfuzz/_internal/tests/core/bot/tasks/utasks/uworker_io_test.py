@@ -20,7 +20,6 @@ import unittest
 from unittest import mock
 
 from google.cloud import ndb
-from google.cloud.ndb import model
 
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
@@ -120,7 +119,7 @@ class RoundTripTest(unittest.TestCase):
     serialization and deserialization works."""
     # Create input for the uworker.
     uworker_input = uworker_msg_pb2.Input(
-        testcase=model._entity_to_protobuf(self.testcase),
+        testcase=uworker_io.model_to_protobuf(self.testcase),
         uworker_env=self.env,
         setup_input=uworker_msg_pb2.SetupInput(
             testcase_download_url=self.FAKE_URL),
@@ -161,7 +160,8 @@ class RoundTripTest(unittest.TestCase):
               self.FAKE_URL)
 
     # Test that testcase (de)serialization worked.
-    downloaded_testcase = model._entity_from_protobuf(downloaded_input.testcase)
+    downloaded_testcase = uworker_io.model_from_protobuf(
+        downloaded_input.testcase, data_types.Testcase)
     self.assertEqual(self.testcase.crash_type, downloaded_testcase.crash_type)
     self.assertEqual(self.testcase.crash_address,
                      downloaded_testcase.crash_address)
@@ -259,8 +259,8 @@ class RoundTripTest(unittest.TestCase):
     bundle1.put()
     bundle2.put()
     data_bundles = [
-        model._entity_to_protobuf(bundle1),
-        model._entity_to_protobuf(bundle2)
+        uworker_io.model_to_protobuf(bundle1),
+        uworker_io.model_to_protobuf(bundle2),
     ]
     setup_input = uworker_msg_pb2.SetupInput(data_bundles=data_bundles)
     uworker_input = uworker_msg_pb2.Input(setup_input=setup_input)
@@ -268,7 +268,7 @@ class RoundTripTest(unittest.TestCase):
     deserialized = uworker_io.deserialize_uworker_input(serialized)
     setup_input = deserialized.setup_input
     deserialized_data_bundles = [
-        model._entity_from_protobuf(bundle)
+        uworker_io.model_from_protobuf(bundle, data_types.DataBundle)
         for bundle in setup_input.data_bundles
     ]
     self.assertEqual(deserialized_data_bundles[0].name, bundle1.name)
@@ -284,11 +284,9 @@ class RoundTripTest(unittest.TestCase):
         '#0 0x64801a in frame0() src/test.cpp:1819:15' ,
     }
     expected_flaky_stack = True
-    expected_build_fail_wait = 321
     pre_serialized_minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=expected_last_crash_result_dict,
-        flaky_stack=expected_flaky_stack,
-        build_fail_wait=expected_build_fail_wait)
+        flaky_stack=expected_flaky_stack)
     uworker_output = uworker_msg_pb2.Output(
         minimize_task_output=pre_serialized_minimize_task_output)
     serialized = uworker_io.serialize_uworker_output(uworker_output)
@@ -298,8 +296,6 @@ class RoundTripTest(unittest.TestCase):
                      expected_last_crash_result_dict)
     self.assertEqual(deserialized_minimize_task_output.flaky_stack,
                      expected_flaky_stack)
-    self.assertEqual(deserialized_minimize_task_output.build_fail_wait,
-                     expected_build_fail_wait)
 
   def test_submessage_serialization_and_deserialization(self):
     """Tests that output messages with submessages are serialized and

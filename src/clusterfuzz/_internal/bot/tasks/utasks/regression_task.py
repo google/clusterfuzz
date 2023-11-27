@@ -19,14 +19,13 @@ import time
 from typing import Dict
 from typing import Optional
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -114,7 +113,7 @@ def _testcase_reproduces_in_revision(testcase,
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
   # postprocess.
   testcase_manager.update_build_metadata(job_type, revision, build_data)
-  if build_data.is_bad_build:  # pylint: disable=no-member
+  if build_data.is_bad_build:
     log_message = 'Bad build at r%d. Skipping' % revision
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
     data_handler.update_testcase_comment(testcase, data_types.TaskState.WIP,
@@ -217,7 +216,8 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
 def find_regression_range(uworker_input: uworker_msg_pb2.Input,
                          ) -> Optional[uworker_msg_pb2.Output]:
   """Attempt to find when the testcase regressed."""
-  testcase = model._entity_from_protobuf(uworker_input.testcase)  # pylint: disable=protected-access
+  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
+                                            data_types.Testcase)
   job_type = uworker_input.job_type
 
   deadline = tasks.get_task_completion_deadline()
@@ -360,11 +360,11 @@ def utask_preprocess(testcase_id: str, job_type: str,
   setup_input = setup.preprocess_setup_testcase(testcase)
 
   task_input = uworker_msg_pb2.RegressionTaskInput()
-  task_input.bad_revisions.extend(build_manager.get_job_bad_revisions())  # pylint: disable=no-member
+  task_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
 
   return uworker_msg_pb2.Input(
       testcase_id=testcase_id,
-      testcase=model._entity_to_protobuf(testcase),  # pylint: disable=protected-access
+      testcase=uworker_io.model_to_protobuf(testcase),
       job_type=job_type,
       uworker_env=uworker_env,
       setup_input=setup_input,

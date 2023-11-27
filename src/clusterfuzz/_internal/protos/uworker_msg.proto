@@ -130,7 +130,6 @@ message FuzzTaskOutput {
 message MinimizeTaskOutput {
   map<string, string> last_crash_result_dict = 1;
   optional bool flaky_stack = 2;
-  optional int64 build_fail_wait = 3;
 }
 
 message RegressionTaskOutput {
@@ -196,19 +195,19 @@ enum ErrorType {
 }
 
 message Output {
-  optional ErrorType error_type = 1;
+  optional ErrorType error_type = 3;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
-  optional Input uworker_input = 2;
-  optional float test_timeout = 3;
-  optional float crash_time = 4;
-  optional string crash_stacktrace_output = 5;
-  optional AnalyzeTaskOutput analyze_task_output = 6;
-  optional FuzzTaskOutput fuzz_task_output = 7;
-  optional MinimizeTaskOutput minimize_task_output = 8;
-  optional RegressionTaskOutput regression_task_output = 9;
-  optional ProgressionTaskOutput progression_task_output = 10;
-  optional SymbolizeTaskOutput symbolize_task_output = 11;
-  optional VariantTaskOutput variant_task_output = 12;
-  optional string error_message = 13;
+  optional Input uworker_input = 4;
+  optional float test_timeout = 5;
+  optional float crash_time = 6;
+  optional string crash_stacktrace_output = 7;
+  optional AnalyzeTaskOutput analyze_task_output = 8;
+  optional FuzzTaskOutput fuzz_task_output = 9;
+  optional MinimizeTaskOutput minimize_task_output = 10;
+  optional RegressionTaskOutput regression_task_output = 11;
+  optional ProgressionTaskOutput progression_task_output = 12;
+  optional SymbolizeTaskOutput symbolize_task_output = 13;
+  optional VariantTaskOutput variant_task_output = 14;
+  optional string error_message = 15;
 }

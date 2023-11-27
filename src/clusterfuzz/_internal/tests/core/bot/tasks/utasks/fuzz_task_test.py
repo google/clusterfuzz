@@ -1117,15 +1117,7 @@ class ConvertGroupsToCrashesTest(unittest.TestCase):
     groups[1].is_new.return_value = True
 
     crashes = fuzz_task.convert_groups_to_crashes(groups)
-    job_run_crashes = []
-    for crash in crashes:
-      job_run_crashes.append({
-          'is_new': crash.is_new,
-          'count': crash.count,
-          'crash_type': crash.crash_type,
-          'crash_state': crash.crash_state,
-          'security_flag': crash.security_flag,
-      })
+    job_run_crashes = fuzz_task.convert_crashes_to_list_of_dicts(crashes)
 
     self.assertEqual([
         {

@@ -18,10 +18,9 @@
 import os
 import unittest
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -254,7 +253,8 @@ class UtaskPreprocessTest(unittest.TestCase):
                                                      uworker_env)
 
     self.assertEqual(uworker_input.testcase_id, testcase_id)
-    returned_testcase = model._entity_from_protobuf(uworker_input.testcase)
+    returned_testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
+                                                       data_types.Testcase)
     self.assertEqual(returned_testcase.project_name, testcase.project_name)
     self.assertEqual(uworker_input.job_type, job_type)
     self.assertTrue(uworker_input.HasField("regression_task_input"))
@@ -281,7 +281,7 @@ class UtaskMainTest(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
-        testcase=model._entity_to_protobuf(testcase),
+        testcase=uworker_io.model_to_protobuf(testcase),
         job_type='foo-job',
         setup_input=uworker_msg_pb2.SetupInput(),
         module_name=regression_task.__name__,
@@ -301,7 +301,7 @@ class UtaskMainTest(unittest.TestCase):
     bad_revisions = [1, 2, 3]
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
-        testcase=model._entity_to_protobuf(testcase),
+        testcase=uworker_io.model_to_protobuf(testcase),
         job_type='foo-job',
         setup_input=uworker_msg_pb2.SetupInput(),
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
@@ -327,7 +327,7 @@ class UtaskMainTest(unittest.TestCase):
     testcase.set_metadata('last_regression_min', 100)
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
-        testcase=model._entity_to_protobuf(testcase),
+        testcase=uworker_io.model_to_protobuf(testcase),
         job_type='foo-job',
         setup_input=uworker_msg_pb2.SetupInput(),
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
@@ -350,7 +350,7 @@ class UtaskMainTest(unittest.TestCase):
     testcase.set_metadata('last_regression_max', 101)
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
-        testcase=model._entity_to_protobuf(testcase),
+        testcase=uworker_io.model_to_protobuf(testcase),
         job_type='foo-job',
         setup_input=uworker_msg_pb2.SetupInput(),
         regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
