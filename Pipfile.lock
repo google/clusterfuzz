@@ -829,6 +829,14 @@
             "index": "pypi",
             "version": "==2.17.7"
         },
+        "pylint-protobuf": {
+            "hashes": [
+                "sha256:b334ba32f40a579d1f8b44f3ab7a495f2553b204df6f628ee20e53db4d5a9b17",
+                "sha256:c643f796db9d0c85fc597803bc92c920c0a3eb1f02acff210518589aef79112f"
+            ],
+            "index": "pypi",
+            "version": "==0.21.0"
+        },
         "pynacl": {
             "hashes": [
                 "sha256:06b8f6fa7f5de8d5d2f7573fe8c863c051225a27b61e6860fd047b1775807858",
