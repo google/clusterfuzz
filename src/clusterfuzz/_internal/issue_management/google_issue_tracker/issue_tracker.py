@@ -27,6 +27,7 @@ from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
+_CHROMIUM_OS_CUSTOM_FIELD_ID = 1223084
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -387,10 +388,13 @@ class Issue(issue_tracker.Issue):
     if self._is_new:
       logs.log('google_issue_tracker: Creating new issue..')
       priority = _extract_label(self.labels, 'Pri-')
+      os = _extract_label(self.labels, 'OS-')
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
       self._data['issueState']['type'] = issue_type
       if priority:
         self._data['issueState']['priority'] = priority
+      if os:
+        self._data['issueState'][_CHROMIUM_OS_CUSTOM_FIELD_ID] = os
 
       logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
