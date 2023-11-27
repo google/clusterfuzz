@@ -43,10 +43,10 @@ def handle_build_setup_error(output):
   testcase_id = output.uworker_input.testcase_id
   job_type = output.uworker_input.job_type
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  build_fail_wait = environment.get_value('FAIL_WAIT')
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        'Build setup failed')
-  tasks.add_task(
-      'symbolize', testcase_id, job_type, wait_time=output.build_fail_wait)
+  tasks.add_task('symbolize', testcase_id, job_type, wait_time=build_fail_wait)
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
@@ -82,8 +82,6 @@ def utask_main(uworker_input):
     return error
 
   # Initialize variables.
-  build_fail_wait = environment.get_value('FAIL_WAIT')
-
   #TODO(alhijazi): check with @metzman if the blobstore is read-only and
   # accessible within utasks.
   old_crash_stacktrace = data_handler.get_stacktrace(testcase)
@@ -109,12 +107,8 @@ def utask_main(uworker_input):
   crash_revision = environment.get_value('APP_REVISION')
 
   if not build_manager.check_app_path():
-    symbolize_task_output = uworker_io.SymbolizeTaskOutput()
-    if build_fail_wait:
-      symbolize_task_output.build_fail_wait = int(build_fail_wait)
     return uworker_io.UworkerOutput(
         error_message='Build setup failed',
-        symbolize_task_output=symbolize_task_output,
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
 
   # ASAN tool settings (if the tool is used).
@@ -163,12 +157,8 @@ def utask_main(uworker_input):
   if (not symbolized_builds or
       (not build_manager.check_app_path() and
        not build_manager.check_app_path('APP_PATH_DEBUG'))):
-    symbolize_task_output = uworker_io.SymbolizeTaskOutput()
-    if build_fail_wait:
-      symbolize_task_output.build_fail_wait = int(build_fail_wait)
     return uworker_io.UworkerOutput(
         error_message='Build setup failed',
-        symbolize_task_output=symbolize_task_output,
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
 
   # Increase malloc_context_size to get all stack frames. Default is 30.
@@ -321,8 +311,6 @@ def utask_postprocess(output):
         testcase, data_types.TaskState.ERROR,
         'Unable to reproduce crash, skipping '
         'stacktrace update')
-    # TODO(alhijazi): I am conserving previous behaviour, but shouldn't we
-    # return here and not later mark the testcase as symbolized?
   else:
     # Switch build url to use the less-optimized symbolized build with better
     # stacktrace.

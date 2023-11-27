@@ -89,14 +89,13 @@ message Input {
 }
 
 message SymbolizeTaskOutput {
-  optional int64 build_fail_wait = 1;
-  optional string crash_type = 2;
-  optional string crash_address = 3;
-  optional string crash_state = 4;
-  optional string crash_stacktrace = 5;
-  optional bool symbolized = 6;
-  optional int32 crash_revision = 7;
-  optional string build_url = 8;
+  optional string crash_type = 1;
+  optional string crash_address = 2;
+  optional string crash_state = 3;
+  optional string crash_stacktrace = 4;
+  optional bool symbolized = 5;
+  optional int32 crash_revision = 6;
+  optional string build_url = 7;
 }
 
 message AnalyzeTaskOutput {

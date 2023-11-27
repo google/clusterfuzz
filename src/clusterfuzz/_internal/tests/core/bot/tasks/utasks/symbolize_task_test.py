@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for symbolize_task."""
-import os
 import unittest
 
 from clusterfuzz._internal.bot.tasks.utasks import symbolize_task
@@ -200,7 +199,6 @@ class UtaskMainTest(unittest.TestCase):
   def test_build_setup_failure(self):
     """Tests utask_main behaviour on build setup failure."""
     self.mock.setup_testcase.return_value = (None, '/testcase/file/path', None)
-    os.environ['FAIL_WAIT'] = '12'
     uworker_input = uworker_io.UworkerInput(
         testcase=self.testcase,
         job_type='job_type',
@@ -208,5 +206,4 @@ class UtaskMainTest(unittest.TestCase):
     result = symbolize_task.utask_main(uworker_input)
     self.assertEqual(result.error_type,
                      uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
-    self.assertEqual(result.symbolize_task_output.build_fail_wait, 12)
     self.assertEqual(result.error_message, 'Build setup failed')
