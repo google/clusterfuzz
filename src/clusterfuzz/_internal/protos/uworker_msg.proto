@@ -89,7 +89,13 @@ message Input {
 }
 
 message SymbolizeTaskOutput {
- // TODO(metzman): Fill this out.
+  optional string crash_type = 1;
+  optional string crash_address = 2;
+  optional string crash_state = 3;
+  optional string crash_stacktrace = 4;
+  optional bool symbolized = 5;
+  optional int32 crash_revision = 6;
+  optional string build_url = 7;
 }
 
 message AnalyzeTaskOutput {
@@ -189,6 +195,7 @@ enum ErrorType {
   PROGRESSION_BUILD_SETUP_ERROR = 18;
   REGRESSION_REVISION_LIST_ERROR = 19;
   REGRESSION_BUILD_NOT_FOUND = 20;
+  SYMBOLIZE_BUILD_SETUP_ERROR = 21;
 }
 
 message Output {
