@@ -300,7 +300,75 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    raise NotImplementedError
+    runner = _get_runner(target_path)
+
+    # Step 1: Generate corpus file for Centipede.
+    full_corpus_workdir = self._create_temp_dir('full_corpus_workdir')
+    input_dirs_param = ','.join(str(dir) for dir in input_dirs)
+    args = [
+        f'--workdir={full_corpus_workdir}',
+        f'--binary={target_path}',
+        f'--corpus_dir={input_dirs_param}',
+        '--num_runs=0',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    max_time -= result.time_executed
+
+    if result.timed_out or max_time < 0:
+      logs.log_warn(
+          ('Corpus minimization timed out: Failed to generate Centipede corpus '
+           'file'),
+          fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
+
+    # Step 2: Distill.
+    args = [
+        f'--workdir={full_corpus_workdir}',
+        f'--binary={target_path}',
+        '--distill',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    max_time -= result.time_executed
+
+    if result.timed_out or max_time < 0:
+      logs.log_warn(
+          'Corpus minimization timed out: Failed to distill',
+          fuzzer_output=result.output)
+      raise TimeoutError('Minimization corpus timed out.')
+
+    # Step 3: Generate corpus files for output_dir.
+    os.makedirs(output_dir, exist_ok=True)
+    minimized_corpus_workdir = self._create_temp_dir('minimized_corpus_workdir')
+    distilled_file = os.path.join(
+        full_corpus_workdir,
+        f'distilled-{os.path.basename(target_path)}.000000')
+    corpus_file = os.path.join(minimized_corpus_workdir, 'corpus.000000')
+    shutil.copyfile(distilled_file, corpus_file)
+
+    args = [
+        f'--workdir={minimized_corpus_workdir}',
+        f'--corpus_to_files={output_dir}',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+
+    if result.timed_out or max_time < 0:
+      logs.log_warn(
+          ('Corpus minimization timed out: Failed to generate output corpus '
+           'files'),
+          fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
+
+    # Step 4: Copy reproducers from full_corpus_workdir.
+    os.makedirs(reproducers_dir, exist_ok=True)
+    crashes_dir = os.path.join(full_corpus_workdir, 'crashes')
+    for file in os.listdir(crashes_dir):
+      crasher_path = os.path.join(crashes_dir, file)
+      shutil.copy(crasher_path, reproducers_dir)
+    shutil.rmtree(full_corpus_workdir)
+    shutil.rmtree(minimized_corpus_workdir)
+
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def _get_smallest_crasher(self, workdir_path):
     """Returns the path to the smallest crash in Centipede's |workdir_path|."""
@@ -349,7 +417,7 @@ class Engine(engine.Engine):
     ]
     result = runner.run_and_wait(additional_args=args, timeout=max_time)
     if result.timed_out:
-      logs.log_error(
+      logs.log_warn(
           'Testcase minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
     minimum_testcase = self._get_smallest_crasher(workdir)

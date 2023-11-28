@@ -234,8 +234,7 @@ def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
       testcase=testcase)
   if not revision_list:
     return uworker_io.UworkerOutput(
-        error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
-        testcase=testcase)
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
 
   # Pick up where left off in a previous run if necessary.
   min_revision = testcase.get_metadata('last_regression_min')
@@ -248,10 +247,17 @@ def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
 
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
-    raise errors.BuildNotFoundError(min_revision, job_type)
+    error_message = f'Could not find good min revision <= {min_revision}.'
+    return uworker_io.UworkerOutput(
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
+        error_message=error_message)
+
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
   if max_index is None:
-    raise errors.BuildNotFoundError(max_revision, job_type)
+    error_message = f'Could not find good max revision >= {max_revision}.'
+    return uworker_io.UworkerOutput(
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
+        error_message=error_message)
 
   # Make sure that the revision where we noticed the crash, still crashes at
   # that revision. Otherwise, our binary search algorithm won't work correctly.
@@ -365,13 +371,23 @@ def utask_preprocess(testcase_id: str, job_type: str,
   )
 
 
-def handle_revision_list_error(output: uworker_io.UworkerOutput):
-  data_handler.close_testcase_with_error(output.testcase,
+def handle_revision_list_error(output: uworker_io.DeserializedUworkerMsg):
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  data_handler.close_testcase_with_error(testcase,
                                          'Failed to fetch revision list')
+
+
+def handle_build_not_found_error(output: uworker_io.DeserializedUworkerMsg):
+  # If an expected build no longer exists, we can't continue.
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase.regression = 'NA'
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                       output.error_message)
 
 
 _HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
+    uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
 ] + setup.HANDLED_ERRORS
 
 
@@ -417,12 +433,4 @@ def utask_main(uworker_input: uworker_io.DeserializedUworkerMsg,
     error_message = 'Unable to recover from bad build'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-  except errors.BuildNotFoundError as e:
-    # If an expected build no longer exists, we can't continue.
-    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
-    testcase.regression = 'NA'
-    error_message = f'Build {e.revision} not longer exists'
-    data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                         error_message)
-
   return None

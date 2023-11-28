@@ -80,8 +80,8 @@ LEASE_RETRIES = 5
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
-FILTERS_AND = 'AND'
-FILTERS_OR = 'OR'
+FILTERS_AND = ' AND '
+FILTERS_OR = ' OR '
 
 POSTPROCESS_QUEUE = 'postprocess'
 

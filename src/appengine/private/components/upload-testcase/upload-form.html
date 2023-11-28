@@ -112,6 +112,9 @@
         </span>
       </template>
       <paper-input value="{{uploadParams.file}}" no-label-float always-float-label$="false" type="file" id="file" label="File" title="Test case file or archive. If an archive is uploaded, a file containing &quot;fuzz-&quot;, &quot;run&quot;, &quot;index.&quot;, or &quot;crash.&quot; will be treated as the test case and the rest as resources."></paper-input>
+      <template is="dom-if" if="[[shouldShowFiletypePicker(uploadParams.file)]]">
+        <p>Test case file or archive. If an archive is uploaded, a file containing 'fuzz-', 'run', 'index.', or 'crash.'; will be treated as the test case and the rest as resources.</p>
+      </template>
       <div class="inline wide">
         <paper-dropdown-menu
             class="dropdown-filter"
@@ -274,6 +277,13 @@
         super.ready();
         this.uploadParams = window.query.toObject(
             window.query.get(), this.paramKeys);
+      }
+
+      shouldShowFiletypePicker(filePath) {
+        if (!filePath) {
+          return false;
+        }
+        return !filePath.includes('.html') && !filePath.includes('.js') && !filePath.includes('.pdf');
       }
 
       computeGcsBody() {

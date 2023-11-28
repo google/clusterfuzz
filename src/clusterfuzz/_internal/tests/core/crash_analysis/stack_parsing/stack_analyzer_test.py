@@ -1061,7 +1061,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('v8_unreachable_code.txt')
     expected_type = 'Unreachable code'
     expected_address = ''
-    expected_state = 'typer.cc\n'
+    expected_state = 'flags.cc\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -1149,6 +1149,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                       'suppression: crbug.com/123456\n')
     expected_stacktrace = data
     expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_sandbox_violation(self):
+    """Test a v8 sandbox violation."""
+    data = self._read_test_data('v8_sandbox_violation.txt')
+    expected_type = 'V8 sandbox violation'
+    expected_address = '0x414141414141'
+    expected_state = ('Builtins_JSToWasmWrapperAsm\n'
+                      'Builtins_JSToWasmWrapper\n'
+                      'Builtins_InterpreterEntryTrampoline\n')
+    expected_stacktrace = data
+    expected_security_flag = True
 
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,

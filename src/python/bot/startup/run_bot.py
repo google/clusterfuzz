@@ -81,13 +81,13 @@ def task_loop():
     # This caches the current environment on first run. Don't move this.
     environment.reset_environment()
     try:
+      if environment.is_uworker():
+        # Batch tasks only run one at a time.
+        sys.exit(utasks.uworker_bot_main())
       # Run regular updates.
       update_task.run()
       update_task.track_revision()
 
-      if environment.is_uworker():
-        # Batch tasks only run one at a time.
-        sys.exit(utasks.uworker_bot_main())
       task = tasks.get_task()
       if not task:
         continue

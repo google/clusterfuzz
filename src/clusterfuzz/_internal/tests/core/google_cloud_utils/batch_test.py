@@ -19,8 +19,10 @@ from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
 from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import batch
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 
+@test_utils.with_cloud_emulators('datastore')
 class GetSpecTest(unittest.TestCase):
   """Tests for get_spec."""
 
@@ -30,11 +32,13 @@ class GetSpecTest(unittest.TestCase):
   def test_nonpreemptible_get_spec(self):
     """Tests that get_spec works for non-preemptibles as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
-    spec = batch.get_spec(regression_task.__name__, job)
+    job.put()
+    spec = batch.get_spec(regression_task.__name__, job.name)
     expected_spec = batch.BatchJobSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
         disk_size_gb=110,
+        disk_type='pd-standard',
         service_account_email='test-clusterfuzz-service-account-email',
         subnetwork=None,
         gce_zone='gce-zone',
@@ -47,11 +51,13 @@ class GetSpecTest(unittest.TestCase):
   def test_preemptible_get_spec(self):
     """Tests that get_spec works for preemptibles as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
-    spec = batch.get_spec(fuzz_task.__name__, job)
+    job.put()
+    spec = batch.get_spec(fuzz_task.__name__, job.name)
     expected_spec = batch.BatchJobSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
         disk_size_gb=75,
+        disk_type='pd-standard',
         service_account_email='test-clusterfuzz-service-account-email',
         subnetwork=None,
         gce_zone='gce-zone',

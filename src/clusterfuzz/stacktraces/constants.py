@@ -299,6 +299,7 @@ V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
 V8_CORRECTNESS_METADATA_REGEX = re.compile(
     r'#\s*V8 correctness ((configs|sources|suppression): .*)')
 V8_ERROR_REGEX = re.compile(r'\s*\[[^\]]*\] V8 error: (.+)\.$')
+V8_SANDBOX_VIOLATION_REGEX = re.compile(r'## V8 sandbox violation detected!$')
 WINDOWS_CDB_STACK_FRAME_REGEX = re.compile(
     r'([0-9a-zA-Z`]+) '  # Child EBP or SP; remove ` if needed (1)
     r'([0-9a-zA-Z`]+) '  # RetAddr; remove ` if needed (2)
@@ -628,7 +629,9 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'Unreachable code',
     'V8 API error',
+    'V8 sandbox violation',
 ]
 
 STATE_STOP_MARKERS = [
