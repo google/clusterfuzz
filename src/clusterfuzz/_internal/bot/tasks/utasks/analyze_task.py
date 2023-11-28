@@ -311,9 +311,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 
 def get_analyze_task_input():
-  analyze_input = uworker_msg_pb2.AnalyzeTaskInput()
-  analyze_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
-  return analyze_input
+  return uworker_msg_pb2.AnalyzeTaskInput(
+      bad_revisions=build_manager.get_job_bad_revisions())
 
 
 def _build_task_output(
@@ -481,18 +480,19 @@ def _update_testcase(output):
 
   testcase.one_time_crasher_flag = analyze_task_output.one_time_crasher_flag
 
-  if analyze_task_output.HasField("build_key"):
+  # For the following fields, we are assuming an empty string/ None is invalid.
+  if analyze_task_output.build_key:
     testcase.set_metadata(
         'build_key', analyze_task_output.build_key, update_testcase=False)
-  if analyze_task_output.HasField("build_url"):
+  if analyze_task_output.build_url:
     testcase.set_metadata(
         'build_url', analyze_task_output.build_url, update_testcase=False)
-  if analyze_task_output.HasField("gn_args"):
+  if analyze_task_output.gn_args:
     testcase.set_metadata(
         'gn_args', analyze_task_output.gn_args, update_testcase=False)
-  if analyze_task_output.HasField("platform"):
+  if analyze_task_output.platform:
     testcase.platform = analyze_task_output.platform
-  if analyze_task_output.HasField("platform_id"):
+  if analyze_task_output.platform_id:
     testcase.platform_id = analyze_task_output.platform_id
 
   testcase.put()

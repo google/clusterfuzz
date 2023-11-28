@@ -105,8 +105,7 @@ def uworker_main(input_download_url) -> None:
   uworker_input.ClearField("uworker_output_upload_url")
 
   # Deal with the environment.
-  uworker_env = uworker_input.uworker_env
-  set_uworker_env(uworker_env)
+  set_uworker_env(uworker_input.uworker_env)
   uworker_input.uworker_env.clear()
 
   utask_module = get_utask_module(uworker_input.module_name)

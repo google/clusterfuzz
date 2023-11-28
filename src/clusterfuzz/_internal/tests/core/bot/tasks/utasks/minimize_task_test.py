@@ -307,7 +307,7 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_generic_output_finalizes_testcase(self):
     """Checks that an output with all critical fields finalizes a testcase."""
     self.mock.finalize_testcase.return_value = None
-    last_crash_result_dict = {'crash_type': 'placeholder'}
+    last_crash_result_dict = {'crash_type': 'type', 'crash_state': 'state'}
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=last_crash_result_dict)
     uworker_output = self._create_output(

@@ -810,8 +810,9 @@ def convert_crashes_to_list_of_dicts(crashes):
   } for crash_info in crashes]
 
 
-def upload_job_run_stats(fuzzer_name, job_type, revision, timestamp,
-                         new_crash_count, known_crash_count, testcases_executed,
+def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
+                         timestamp: float, new_crash_count: int,
+                         known_crash_count: int, testcases_executed: int,
                          groups):
   """Upload job run stats."""
   # New format.
@@ -1882,9 +1883,7 @@ class FuzzingSession:
         new_crash_count=new_crash_count,
         known_crash_count=known_crash_count,
         testcases_executed=testcases_executed,
-    )
-    fuzz_task_output.job_run_crashes.extend(
-        convert_groups_to_crashes(processed_groups))
+        job_run_crashes=convert_groups_to_crashes(processed_groups))
     if new_targets_count is not None:
       fuzz_task_output.new_targets_count = int(new_targets_count)
     return uworker_msg_pb2.Output(fuzz_task_output=fuzz_task_output)

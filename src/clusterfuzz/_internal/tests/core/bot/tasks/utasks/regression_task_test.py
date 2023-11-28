@@ -304,10 +304,9 @@ class UtaskMainTest(unittest.TestCase):
         testcase=uworker_io.model_to_protobuf(testcase),
         job_type='foo-job',
         setup_input=uworker_msg_pb2.SetupInput(),
-        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(
+            bad_revisions=bad_revisions),
     )
-    uworker_input.regression_task_input.bad_revisions.extend(bad_revisions)
-
     self.mock.setup_testcase.return_value = (None, None, None)
     # TODO: Set up environment more realistically and avoid mocking these out
     # entirely.

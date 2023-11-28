@@ -129,6 +129,12 @@ class UtaskPreprocessTest(unittest.TestCase):
     data_handler.add_build_metadata(
         job_type='progression',
         is_bad_build=True,
+        crash_revision=8888,
+        console_output='console')
+    # Add a bad build.
+    data_handler.add_build_metadata(
+        job_type='progression',
+        is_bad_build=True,
         crash_revision=9999,
         console_output='console')
 
@@ -157,9 +163,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     returned_testcase = uworker_io.model_from_protobuf(result.testcase,
                                                        data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_revisions = result.progression_task_input.bad_revisions
-    self.assertEqual(len(bad_revisions), 1)
-    self.assertEqual(bad_revisions[0], 9999)
+    self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
     self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
   def test_preprocess_uworker_output_custom_binary(self):
@@ -174,9 +178,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     returned_testcase = uworker_io.model_from_protobuf(result.testcase,
                                                        data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_revisions = result.progression_task_input.bad_revisions
-    self.assertEqual(len(bad_revisions), 1)
-    self.assertEqual(bad_revisions[0], 9999)
+    self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
     self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
 

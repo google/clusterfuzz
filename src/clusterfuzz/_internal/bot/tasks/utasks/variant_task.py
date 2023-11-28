@@ -232,8 +232,12 @@ def utask_postprocess(output):
     variant.revision = variant_task_output.revision
     if variant_task_output.HasField("crash_type"):
       variant.crash_type = variant_task_output.crash_type
+    else:
+      variant.crash_type = None
     if variant_task_output.HasField("crash_state"):
       variant.crash_state = variant_task_output.crash_state
+    else:
+      variant.crash_state = None
     variant.security_flag = variant_task_output.security_flag
     variant.is_similar = variant_task_output.is_similar
     variant.platform = variant_task_output.platform
