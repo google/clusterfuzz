@@ -265,6 +265,58 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
+  def test_new_issue_with_os_label(self):
+    """Test new issue creation with os label."""
+    issue = self.issue_tracker.new_issue()
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee@google.com'
+    issue.body = 'issue body'
+    issue.ccs.add('cc@google.com')
+    issue.components.add('9001')
+    issue.labels.add('12345')
+    issue.labels.add('OS-Linux')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title'
+    issue.save()
+    self.client.issues().create.assert_has_calls([
+        mock.call(
+            body={
+                'issueComment': {
+                    'comment': 'issue body'
+                },
+                'issueState': {
+                    'status': 'ASSIGNED',
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'title': 'issue title',
+                    'accessLimit': {
+                        'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    },
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'collaborators': [],
+                    'assignee': {
+                        'emailAddress': 'assignee@google.com'
+                    },
+                    'componentId': 9001,
+                    'hotlistIds': [12345],
+                    'type': 'BUG',
+                    'custom_fields': {
+                        'custom_field_id': 1223084,
+                        'repeated_enum_value': {
+                            'values': ['Linux']
+                        }
+                    },
+                    'severity': 'S4',
+                },
+            },
+            templateOptions_applyTemplate=True,
+        ),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
   def test_new_security_issue(self):
     """Test creation of security issue."""
     issue = self.issue_tracker.new_issue()

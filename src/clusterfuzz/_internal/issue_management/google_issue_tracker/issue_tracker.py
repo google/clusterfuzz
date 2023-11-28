@@ -394,7 +394,13 @@ class Issue(issue_tracker.Issue):
       if priority:
         self._data['issueState']['priority'] = priority
       if os:
-        self._data['issueState'][_CHROMIUM_OS_CUSTOM_FIELD_ID] = os
+        # TODO(rmistry): _update_issue will need to handle this as well.
+        self._data['issueState']['custom_fields'] = {
+            'custom_field_id': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+            'repeated_enum_value': {
+                'values': [os]
+            },
+        }
 
       logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
@@ -738,13 +744,14 @@ def _get_severity_from_crash_text(crash_severity_text):
 #    issue_tracker.py
 
 # if __name__ == '__main__':
-#   it = IssueTracker('chromium', None, {'default_component_id': 1434846})
+#   it = IssueTracker('chromium', None, {'default_component_id': 1363614})
 #
 #   # Test issue creation.
 #   issue = it.new_issue()
 #   issue.title = 'test issue'
 #   issue.assignee = 'rmistry@google.com'
 #   issue.status = 'ASSIGNED'
+#   issue.labels.add('OS-Linux')
 #   issue.apply_extension_fields({
 #       '_ext_collaborators': [
 #           'rmistry@google.com',
@@ -754,5 +761,6 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.save(new_comment='testing')
 #
 #   # Test issue query.
-#   queried_issue = it.get_issue(307559515)
+#   queried_issue = it.get_issue(313545808)
 #   print(queried_issue._data)
+#   queried_issue._update_issue()
