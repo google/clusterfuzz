@@ -20,6 +20,8 @@ import os
 import random
 import re
 import time
+from typing import Any
+from typing import Dict
 from typing import List
 
 from google.cloud import ndb
@@ -783,22 +785,22 @@ def truncate_fuzzer_output(output, limit):
   return ''.join([output[:left], separator, output[-right:]])
 
 
-def convert_groups_to_crashes(groups: list):
+def convert_groups_to_crashes(
+    groups: List[CrashGroup]) -> List[uworker_msg_pb2.CrashInfo]:
   """Convert groups to crashes (in an array of uworker_msg_pb2.CrashInfo) for
   JobRun."""
-  crashes = []
-  for group in groups:
-    crashes.append(
-        uworker_msg_pb2.CrashInfo(
-            is_new=group.is_new(),
-            count=len(group.crashes),
-            crash_type=group.main_crash.crash_type,
-            crash_state=group.main_crash.crash_state,
-            security_flag=group.main_crash.security_flag))
-  return crashes
+  return [
+      uworker_msg_pb2.CrashInfo(
+          is_new=group.is_new(),
+          count=len(group.crashes),
+          crash_type=group.main_crash.crash_type,
+          crash_state=group.main_crash.crash_state,
+          security_flag=group.main_crash.security_flag) for group in groups
+  ]
 
 
-def convert_crashes_to_list_of_dicts(crashes):
+def convert_crashes_to_list_of_dicts(
+    crashes: List[uworker_msg_pb2.CrashInfo]) -> List[Dict[str, Any]]:
   """Convert crashes to groups (in an array of dicts) for
   JobRun."""
   return [{

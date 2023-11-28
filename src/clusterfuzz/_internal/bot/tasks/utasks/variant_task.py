@@ -121,7 +121,7 @@ def utask_main(uworker_input):
   # correctly.
   if not build_manager.check_app_path():
     return uworker_msg_pb2.Output(
-        error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,)
+        error_type=uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP)
 
   # Disable gestures if we're running on a different platform from that of
   # the original test case.

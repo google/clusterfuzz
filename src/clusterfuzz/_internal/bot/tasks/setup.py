@@ -17,6 +17,7 @@ import datetime
 import os
 import shlex
 import time
+from typing import Optional
 import zipfile
 
 from clusterfuzz._internal.base import dates
@@ -232,10 +233,11 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None):
   return setup_input
 
 
-def setup_testcase(testcase: data_types.Testcase,
-                   job_type: str,
-                   setup_input: uworker_msg_pb2.SetupInput,
-                   metadata=None):
+def setup_testcase(
+    testcase: data_types.Testcase,
+    job_type: str,
+    setup_input: uworker_msg_pb2.SetupInput,
+    metadata: Optional[data_types.TestcaseUploadMetadata] = None):
   """Sets up the testcase and needed dependencies like fuzzer,
   data bundle, etc."""
   testcase_id = testcase.key.id()

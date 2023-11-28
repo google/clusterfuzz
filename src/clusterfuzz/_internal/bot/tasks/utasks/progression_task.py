@@ -290,7 +290,7 @@ def _testcase_reproduces_in_revision(
     job_type: str,
     revision: int,
     progression_task_output: uworker_msg_pb2.ProgressionTaskOutput,
-    update_metadata=False):
+    update_metadata: bool = False):
   """Tests to see if a test case reproduces in the specified revision.
   Returns a tuple containing the (result, error) depending on whether
   there was an error."""

@@ -13,6 +13,9 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
+from typing import Tuple
+from typing import Type
+from typing import TypeVar
 import uuid
 
 from google.cloud import ndb
@@ -39,7 +42,7 @@ def get_uworker_input_gcs_path() -> str:
   return f'/{io_bucket}/{io_file_name}'
 
 
-def get_uworker_output_urls(input_gcs_path):
+def get_uworker_output_urls(input_gcs_path: str) -> str:
   """Returns a signed download URL for the uworker to upload the output and a
   GCS url for the tworker to download the output. Make sure we can infer the
   actual input since the output is not trusted."""
@@ -48,12 +51,12 @@ def get_uworker_output_urls(input_gcs_path):
   return storage.get_signed_upload_url(gcs_path), gcs_path
 
 
-def uworker_input_path_to_output_path(input_gcs_path):
+def uworker_input_path_to_output_path(input_gcs_path: str) -> str:
   return input_gcs_path.replace(storage.uworker_input_bucket(),
                                 storage.uworker_output_bucket())
 
 
-def uworker_output_path_to_input_path(output_gcs_path):
+def uworker_output_path_to_input_path(output_gcs_path: str) -> str:
   return output_gcs_path.replace(storage.uworker_output_bucket(),
                                  storage.uworker_input_bucket())
 
@@ -65,7 +68,7 @@ def get_uworker_input_urls():
   return storage.get_signed_download_url(gcs_path), gcs_path
 
 
-def upload_uworker_input(uworker_input, gcs_path):
+def upload_uworker_input(uworker_input: bytes, gcs_path: str):
   """Uploads input for the untrusted portion of a task."""
   storage.write_data(uworker_input, gcs_path)
 
@@ -84,7 +87,7 @@ def serialize_uworker_input(uworker_input: uworker_msg_pb2.Input) -> bytes:
 
 
 def serialize_and_upload_uworker_input(
-    uworker_input: uworker_msg_pb2.Input) -> str:
+    uworker_input: uworker_msg_pb2.Input) -> Tuple[str, str]:
   """Serializes input for the untrusted portion of a task."""
   signed_input_download_url, input_gcs_url = get_uworker_input_urls()
   # Get URLs for the uworker'ps output. We need a signed upload URL so it can
@@ -159,14 +162,17 @@ def model_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
   return model._entity_to_protobuf(entity)  # pylint: disable=protected-access
 
 
-from typing import Type
-from typing import TypeVar
-
 T = TypeVar('T', bound=ndb.Model)
 
 
-def model_from_protobuf(pb2_model: entity_pb2.Entity, model_type: Type[T]) -> T:
-  """Helper function to get an entity from a proto."""
-  entity = model._entity_from_protobuf(pb2_model)  # pylint: disable=protected-access
+def model_from_protobuf(entity_proto: entity_pb2.Entity,
+                        model_type: Type[T]) -> T:
+  """Converts `entity_proto` to the `ndb.Model` of type `model_type` it encodes.
+  
+  Raises:
+    AssertionError: if `entity_proto` does not encode a model of type
+    `model_type`
+  """
+  entity = model._entity_from_protobuf(entity_proto)  # pylint: disable=protected-access
   assert isinstance(entity, model_type)
   return entity
