@@ -16,14 +16,13 @@
 
 import os
 
-from google.cloud.ndb import model
-
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
@@ -68,13 +67,14 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
-      testcase=model._entity_to_protobuf(testcase))  # pylint: disable=protected-access
+      testcase=uworker_io.model_to_protobuf(testcase))
 
 
 def utask_main(uworker_input):
   """Execute the untrusted part of a symbolize command."""
   job_type = uworker_input.job_type
-  testcase = model._entity_to_protobuf(uworker_input.testcase)  # pylint: disable=protected-access
+  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
+                                            data_types.Testcase)
   setup_input = uworker_input.setup_input
 
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
@@ -189,7 +189,7 @@ def utask_main(uworker_input):
   if result:
     build_url = environment.get_value('BUILD_URL')
     if build_url:
-      symbolize_task_output.build_url = build_url
+      symbolize_task_output.build_url = str(build_url)
 
   # Switch current directory before builds cleanup.
   root_directory = environment.get_value('ROOT_DIR')
