@@ -583,7 +583,7 @@ class Testcase(Model):
     return self.is_chromium()
 
   def has_impacts(self):
-    return self.is_chromium()
+    return self.is_chromium() and not self.one_time_crasher_flag
 
   def impacts_production(self):
     return (bool(self.impact_extended_stable_version) or
