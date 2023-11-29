@@ -73,6 +73,16 @@ def _extract_label(labels, prefix):
   return None
 
 
+def _get_label(labels_dict, prefix):
+  """Return a label value from labels.added or labels.removed"""
+  for label in labels_dict:
+    if not label.startswith(prefix):
+      continue
+    result = label[len(prefix):]
+    return result
+  return None
+
+
 class Issue(issue_tracker.Issue):
   """Issue tracker issue."""
 
@@ -326,6 +336,7 @@ class Issue(issue_tracker.Issue):
     # Add updates.
     added = []
     removed = []
+    # HERE HERE
     self._add_update_single(update_body, added, removed, 'status', 'status')
     self._add_update_single(update_body, added, removed, 'assignee', 'assignee',
                             _make_user)
@@ -340,6 +351,21 @@ class Issue(issue_tracker.Issue):
                                 'collaborators', _make_users)
     self._add_update_single(update_body, added, removed, '_issue_access_limit',
                             'access_limit')
+
+    # Special case OS custom field. Custom fields are modified by providing the
+    # complete value of the custom_field_id enum.
+    added_os = _get_label(self.labels.added, 'OS-')
+    removed_os = _get_label(self.labels.removed, 'OS-')
+    if added_os or removed_os:
+      oses = [l.lstrip('OS-') for l in self.labels if l.startswith('OS-')]
+      added.append('custom_fields')
+      update_body['add']['custom_fields'] = {
+          'custom_field_id': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+          'repeated_enum_value': {
+              'values': oses,
+          }
+      }
+
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -394,7 +420,6 @@ class Issue(issue_tracker.Issue):
       if priority:
         self._data['issueState']['priority'] = priority
       if os:
-        # TODO(rmistry): _update_issue will need to handle this as well.
         self._data['issueState']['custom_fields'] = {
             'custom_field_id': _CHROMIUM_OS_CUSTOM_FIELD_ID,
             'repeated_enum_value': {

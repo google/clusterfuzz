@@ -485,6 +485,129 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
+  def test_update_issue_with_os(self):
+    """Test updating an existing issue with OSes."""
+    self.client.issues().get().execute.return_value = BASIC_ISSUE
+    self.client.issues().modify().execute.return_value = {
+        'issueId': '68828938',
+        'issueState': {
+            'componentId':
+                '9001',
+            'type':
+                'ASSIGNED',
+            'status':
+                'NEW',
+            'priority':
+                'P2',
+            'severity':
+                'S2',
+            'title':
+                'issue title2',
+            'accessLimit': {
+                'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
+            },
+            'reporter': {
+                'emailAddress': 'reporter@google.com',
+                'userGaiaStatus': 'ACTIVE',
+            },
+            'assignee': {
+                'emailAddress': 'assignee2@google.com',
+                'userGaiaStatus': 'ACTIVE',
+            },
+            'retention':
+                'COMPONENT_DEFAULT',
+            'ccs': [{
+                'emailAddress': 'cc@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },],
+            'hotlistIds': ['12345',],
+        },
+        'createdTime': '2019-06-25T01:29:30.021Z',
+        'modifiedTime': '2019-06-25T01:29:30.021Z',
+        'userData': {},
+        'accessLimit': {
+            'accessLevel': 'INTERNAL'
+        },
+        'lastModifier': {
+            'emailAddress': 'user1@google.com',
+            'userGaiaStatus': 'ACTIVE',
+        },
+    }
+    issue = self.issue_tracker.get_issue(68828938)
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee2@google.com'
+    issue.ccs.add('cc@google.com')
+    issue.components.add('9001')
+    issue.labels.add('12345')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title2'
+    # Adding OS Android and Linux here.
+    issue.labels.add('OS-Android')
+    issue.labels.add('OS-Linux')
+    issue.save()
+    self.assertEqual(68828938, issue.id)
+
+    # Update again, removing both OS labels.
+    issue.labels.remove('OS-Android')
+    issue.labels.remove('OS-Linux')
+    issue.save()
+    self.assertEqual(68828938, issue.id)
+
+    # We assert both save calls here. The 1st call is with 6 different fields in the addMask.
+    # The 2nd call (where we remove all OSes) is with only custom_fields in the addMask.
+    self.client.issues().modify.assert_has_calls([
+        # 1st save call.
+        mock.call(
+            body={
+                'add': {
+                    'status': 'ASSIGNED',
+                    'assignee': {
+                        'emailAddress': 'assignee2@google.com'
+                    },
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'title': 'issue title2',
+                    'custom_fields': {
+                        'custom_field_id': 1223084,
+                        'repeated_enum_value': {
+                            'values': ['Android', 'Linux']
+                        }
+                    },
+                },
+                'removeMask': '',
+                'addMask': 'status,assignee,reporter,title,ccs,custom_fields',
+                'remove': {},
+                'significanceOverride': 'MAJOR',
+            },
+            issueId='68828938',
+        ),
+        mock.call().execute(http=None, num_retries=3),
+
+        # 2nd save call.
+        mock.call(
+            body={
+                'add': {
+                    'custom_fields': {
+                        'custom_field_id': 1223084,
+                        'repeated_enum_value': {
+                            'values': []
+                        }
+                    },
+                },
+                'removeMask': '',
+                'addMask': 'custom_fields',
+                'remove': {},
+                'significanceOverride': 'MAJOR',
+            },
+            issueId='68828938',
+        ),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
   def test_update_issue_to_security(self):
     """Test updating an existing issue."""
     self.client.issues().get().execute.return_value = BASIC_ISSUE
