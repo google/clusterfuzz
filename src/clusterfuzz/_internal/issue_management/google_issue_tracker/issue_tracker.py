@@ -780,8 +780,8 @@ def _get_severity_from_crash_text(crash_severity_text):
 #    python src/clusterfuzz/_internal/issue_management/google_issue_tracker/\
 #    issue_tracker.py
 
-if __name__ == '__main__':
-  it = IssueTracker('chromium', None, {'default_component_id': 1363614})
+# if __name__ == '__main__':
+#   it = IssueTracker('chromium', None, {'default_component_id': 1363614})
 #
 #   # Test issue creation.
 #   issue = it.new_issue()
