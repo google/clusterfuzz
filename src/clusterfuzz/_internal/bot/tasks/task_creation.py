@@ -76,7 +76,7 @@ def create_blame_task_if_needed(testcase):
     return
 
   # Blame is only applicable to chromium project, otherwise bail out.
-  if testcase.project_name != 'chromium':
+  if testcase.is_chromium():
     return
 
   # We cannot run blame job for custom binaries since we don't have any context
