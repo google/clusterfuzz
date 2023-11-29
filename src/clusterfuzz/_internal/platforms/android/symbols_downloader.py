@@ -141,7 +141,7 @@ def download_system_symbols_if_needed(symbols_directory):
   build_id = build_params.get('build_id')
   target = build_params.get('target')
   build_type = build_params.get('type')
-  if environment.is_android_cuttlefish():
+  if environment.is_android():
     build_type = constants.RELEASE_CONFIGURATION + '-' + build_type
   if not build_id or not target or not build_type:
     logs.log_error('Null build parameters found, exiting.')

@@ -576,11 +576,14 @@ class Testcase(Model):
   # Note that the number is specific to the repository.
   github_issue_num = ndb.IntegerProperty()
 
+  def is_chromium(self):
+    return self.project_name in ('chromium', 'chromium-testing')
+
   def has_blame(self):
-    return self.project_name == 'chromium'
+    return self.is_chromium()
 
   def has_impacts(self):
-    return self.project_name == 'chromium' and not self.one_time_crasher_flag
+    return self.is_chromium() and not self.one_time_crasher_flag
 
   def impacts_production(self):
     return (bool(self.impact_extended_stable_version) or
