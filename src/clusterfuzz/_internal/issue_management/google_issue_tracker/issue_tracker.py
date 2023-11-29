@@ -272,8 +272,7 @@ class Issue(issue_tracker.Issue):
       if cf.get('customFieldId') == _CHROMIUM_OS_CUSTOM_FIELD_ID:
         enum_values = cf.get('repeatedEnumValue')
         if enum_values:
-          oses = enum_values.get('values') or []
-          return oses
+          return enum_values.get('values') or []
     return []
 
   @property
@@ -348,7 +347,6 @@ class Issue(issue_tracker.Issue):
     # Add updates.
     added = []
     removed = []
-    # HERE HERE
     self._add_update_single(update_body, added, removed, 'status', 'status')
     self._add_update_single(update_body, added, removed, 'assignee', 'assignee',
                             _make_user)
