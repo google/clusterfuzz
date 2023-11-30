@@ -3687,9 +3687,10 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('missing_libfuzzer_stacktrace.txt')
     expected_type = 'UNKNOWN'
     expected_address = '0x72ffbea193'
-    expected_state = ('std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::\n'
-                      'void std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, \n'
-                      'android::C2PlatformComponentStore::C2PlatformComponentStore\n')
+    expected_state = (
+        'std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::\n'
+        'void std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, \n'
+        'android::C2PlatformComponentStore::C2PlatformComponentStore\n')
     expected_stacktrace = data
     expected_security_flag = True
     expected_categories = {'Missing-libfuzzer-stacktrace'}
