@@ -68,7 +68,7 @@ class _SingleComponentStore(issue_tracker.LabelStore):
 
 
 def _extract_all_labels(labels, prefix):
-  """Extract all label value."""
+  """Extract all label values."""
   results = []
   labels_to_remove = []
   for label in labels:
@@ -393,7 +393,7 @@ class Issue(issue_tracker.Issue):
                             'access_limit')
 
     # Custom fields are modified by providing the complete value of the
-    # customFields enum.
+    # customFieldId.
     custom_field_entries = []
 
     # Special case OS custom field.
@@ -407,7 +407,8 @@ class Issue(issue_tracker.Issue):
               'values': oses,
           }
       })
-    # Remove OS labels or they will be attempted to be added as hotlist IDs.
+    # Remove all OS labels or they will be attempted to be added as
+    # hotlist IDs.
     self.labels.remove_by_prefix('OS-')
 
     # Special case FoundIn custom field.
