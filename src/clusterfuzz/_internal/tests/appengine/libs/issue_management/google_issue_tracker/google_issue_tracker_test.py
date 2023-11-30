@@ -265,8 +265,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
-  def test_new_issue_with_os_label(self):
-    """Test new issue creation with os label."""
+  def test_new_issue_with_custom_fields(self):
+    """Test new issue creation with os and foundin labels."""
     issue = self.issue_tracker.new_issue()
     issue.reporter = 'reporter@google.com'
     issue.assignee = 'assignee@google.com'
@@ -275,6 +275,9 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.components.add('9001')
     issue.labels.add('12345')
     issue.labels.add('OS-Linux')
+    issue.labels.add('OS-Android')
+    issue.labels.add('FoundIn-123')
+    issue.labels.add('FoundIn-789')
     issue.status = 'ASSIGNED'
     issue.title = 'issue title'
     issue.save()
@@ -304,12 +307,20 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'issue title',
                     'type':
                         'BUG',
-                    'customFields': [{
-                        'customFieldId': '1223084',
-                        'repeatedEnumValue': {
-                            'values': ['Linux']
-                        }
-                    },],
+                    'customFields': [
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223034',
+                            'repeatedTextValue': {
+                                'values': ['123', '789']
+                            }
+                        },
+                    ],
                     'severity':
                         'S4',
                 },
@@ -490,8 +501,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
-  def test_update_issue_with_os(self):
-    """Test updating an existing issue with OSes."""
+  def test_update_issue_with_custom_fields(self):
+    """Test updating an existing issue with OS and FoundIn labels."""
     self.client.issues().get().execute.return_value = {
         'issueId': '68828938',
         'issueState': {
@@ -503,7 +514,13 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                 {
                     'customFieldId': '1223084',
                     'repeatedEnumValue': {
-                        'values': ['Linux']  # Add OS Linux.
+                        'values': ['Linux']  # Existing OS-Linux.
+                    },
+                },
+                {
+                    'customFieldId': '1223034',
+                    'repeatedTextValue': {
+                        'values': ['123']  # Existing FoundIn-123.
                     },
                 },
             ],
@@ -548,6 +565,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.title = 'issue title2'
     # Adding OS Android here (in addition to the Linux already set).
     issue.labels.add('OS-Android')
+    # Adding FoundIn 789 here (in addition to the 123 already set).
+    issue.labels.add('FoundIn-789')
     issue.save()
 
     self.client.issues().modify.assert_has_calls([
@@ -568,12 +587,20 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
-                    'customFields': [{
-                        'customFieldId': '1223084',
-                        'repeatedEnumValue': {
-                            'values': ['Linux', 'Android']
-                        }
-                    },],
+                    'customFields': [
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223034',
+                            'repeatedTextValue': {
+                                'values': ['123', '789']
+                            }
+                        },
+                    ],
                 },
                 'addMask': 'status,assignee,reporter,title,ccs,customFields',
                 'remove': {},
