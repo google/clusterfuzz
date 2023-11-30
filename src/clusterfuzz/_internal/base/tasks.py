@@ -13,7 +13,6 @@
 # limitations under the License.
 """Task queue functions."""
 
-import collections
 import contextlib
 import datetime
 import json
@@ -296,42 +295,6 @@ def get_postprocess_task():
   return task
 
 
-def get_task() -> Task | CombinedTasks:
-  """Get tasks to execute."""
-  task = get_command_override()
-  if task:
-    return task
-
-  allow_all_tasks = not environment.get_value('PREEMPTIBLE')
-  if allow_all_tasks:
-    # Postprocess and preprocessing of tasks need to be executed on a
-    # non-preemptible otherwise we can lose the input/output of a task.
-    # These tasks get priority because they are so quick. They typically only
-    # involve a few DB writes and never run user code.
-    task = get_postprocess_task() or get_utasks()
-    if task:
-      return task
-
-    # Check the high-end jobs queue for bots with multiplier greater than 1.
-    thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
-    if thread_multiplier and thread_multiplier > 1:
-      task = get_high_end_task()
-      if task:
-        return task
-
-    task = get_regular_task()
-    if task:
-      return task
-
-  task = get_fuzz_task()
-  if not task:
-    logs.log_error('Failed to get any fuzzing tasks. This should not happen.')
-    time.sleep(TASK_EXCEPTION_WAIT_INTERVAL)
-
-    return None
-  return task
-
-
 class Task:
   """Represents a task."""
 
@@ -378,7 +341,46 @@ class Task:
     track_task_end()
 
 
-CombinedTasks = collections.namedtuple('CombinedTasks', ['tasks'])
+class CombinedTasks:
+
+  def __init__(self, tasks):
+    self.tasks = tasks
+
+
+def get_task():
+  """Returns a task or CombinedTasks to execute."""
+  task = get_command_override()
+  if task:
+    return task
+
+  allow_all_tasks = not environment.get_value('PREEMPTIBLE')
+  if allow_all_tasks:
+    # Postprocess and preprocessing of tasks need to be executed on a
+    # non-preemptible otherwise we can lose the input/output of a task.
+    # These tasks get priority because they are so quick. They typically only
+    # involve a few DB writes and never run user code.
+    task = get_postprocess_task() or get_utasks()
+    if task:
+      return task
+
+    # Check the high-end jobs queue for bots with multiplier greater than 1.
+    thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
+    if thread_multiplier and thread_multiplier > 1:
+      task = get_high_end_task()
+      if task:
+        return task
+
+    task = get_regular_task()
+    if task:
+      return task
+
+  task = get_fuzz_task()
+  if not task:
+    logs.log_error('Failed to get any fuzzing tasks. This should not happen.')
+    time.sleep(TASK_EXCEPTION_WAIT_INTERVAL)
+
+    return None
+  return task
 
 
 def combine_tasks(messages):

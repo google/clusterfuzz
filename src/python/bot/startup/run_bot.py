@@ -20,6 +20,7 @@ from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
+import contextlib
 import multiprocessing
 import os
 import sys
@@ -69,6 +70,16 @@ class _Monitor:
         })
 
 
+@contextlib.contextmanager
+def lease_combined_tasks(tasks_list):
+  """Creates a context manager that leases every task in tasks_list."""
+  with contextlib.ExitStack() as exit_stack:
+    context_managers = [task.lease for task in tasks_list]
+    for context_manager in context_managers:
+      exit_stack.enter_context(context_manager)
+    yield
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
@@ -79,29 +90,26 @@ def task_loop():
   def process_combined_tasks(combined_tasks):
     tasks_list = combined_tasks.tasks
     batch_tasks = []
-    for task in tasks_list:
-      task_details = commands.prepare_run_command(task)
-      task_executor_obj = commands.get_task_executor(task)
-      input_download_url = task_executor_obj.execute_preprocess(
-          task_details.argument, task_details.job_name,
-          task_details.uworker_env)
-      module_name = task_executor_obj.module.__name__
-      batch_task = batch.BatchTask(module_name, task_details.job_name,
-                                   input_download_url)
-      batch_tasks.append(batch_task)
-    return batch.create_uworker_main_batch_jobs(batch_tasks)
+    with lease_combined_tasks(tasks_list):
+      for task in tasks_list:
+        with _Monitor(task):
+          task_details = commands.prepare_run_command(task)
+          task_executor_obj = commands.get_task_executor(task)
+          input_download_url = task_executor_obj.execute_preprocess(
+              task_details.argument, task_details.job_name,
+              task_details.uworker_env)
+
+        module_name = task_executor_obj.module.__name__
+        batch_task = batch.BatchTask(module_name, task_details.job_name,
+                                     input_download_url)
+        batch_tasks.append(batch_task)
+      return batch.create_uworker_main_batch_jobs(batch_tasks)
 
   def process_task(task):
-    """Note: While it may seem cleaner to return a CombinedTask object from
-    get_task(s) instead of a list of tasks, and have an execute method that for
-    normal tasks runs process command, while for CombinedTasks, preprocesses
-    them, in reality this is worse than the current implementation because it
-    would require tasks.py to depend on commands.py, causing a circular
-    import."""
-    if isinstance(task, tasks.CombinedTasks):
-      process_combined_tasks(task)
-    else:
-      commands.process_command(task[0])
+    with _Monitor(task):
+      with task.lease():
+        # Execute the command and delete the task.
+        commands.process_command(task[0])
 
   clean_exit = False
   while True:
@@ -122,10 +130,17 @@ def task_loop():
       if not task:
         continue
 
-      with _Monitor(task):
-        with task.lease():
-          # Execute the command and delete the task.
-          process_task(task)
+      if isinstance(task, tasks.CombinedTasks):
+        # While it may seem cleaner to return a CombinedTask object from
+        # get_task(s) instead of a list of tasks, and have an execute method
+        # that for normal tasks runs process command, while for CombinedTasks,
+        # preprocesses them, in reality this is worse than the current
+        # implementation because it would require tasks.py to depend on
+        # commands.py, causing a circular import.
+        process_combined_tasks(task)
+      else:
+        process_task(task)
+
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0
