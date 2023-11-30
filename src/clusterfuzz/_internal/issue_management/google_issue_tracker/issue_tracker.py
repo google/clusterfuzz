@@ -855,6 +855,9 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.assignee = 'rmistry@google.com'
 #   issue.status = 'ASSIGNED'
 #   issue.labels.add('OS-Linux')
+#   issue.labels.add('OS-Android')
+#   issue.labels.add('FoundIn-123')
+#   issue.labels.add('FoundIn-789')
 #   issue.apply_extension_fields({
 #       '_ext_collaborators': [
 #           'rmistry@google.com',
@@ -864,7 +867,9 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.save(new_comment='testing')
 #
 #   # Test issue query.
-#   queried_issue = it.get_issue(313545808)
+#   queried_issue = it.get_issue(314141502)
 #   print(queried_issue._data)
-#   queried_issue.labels.add('OS-Linux')
+#   queried_issue.labels.add('OS-Chrome')
+#   queried_issue.labels.add('FoundIn-456')
+#   queried_issue.labels.add('FoundIn-6')
 #   queried_issue._update_issue()
