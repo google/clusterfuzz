@@ -1331,6 +1331,10 @@ class StackParser:
     # Add label if majority of crash_state arises from fuzzing directories.
     if state.fuzzer_dir_frames >= state.frame_count / 2:
       state.crash_categories.add('Fuzzer-crash-state')
+    
+    frame_0_idx, logcat_idx = stacktrace.find('    #0'), stacktrace.find('\n\nLogcat:\n')
+    if logcat_idx != -1 and (frame_0_idx == -1 or frame_0_idx > logcat_idx):
+        state.crash_categories.add('Missing-libfuzzer-stacktrace')
 
     # Detect cycles in stack overflow bugs and update crash state.
     update_crash_state_for_stack_overflow_if_needed(state)
