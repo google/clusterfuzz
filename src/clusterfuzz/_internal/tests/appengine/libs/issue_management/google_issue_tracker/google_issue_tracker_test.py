@@ -281,35 +281,40 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.client.issues().create.assert_has_calls([
         mock.call(
             body={
-                'issueComment': {
-                    'comment': 'issue body'
-                },
                 'issueState': {
-                    'status': 'ASSIGNED',
-                    'reporter': {
-                        'emailAddress': 'reporter@google.com'
-                    },
-                    'title': 'issue title',
-                    'accessLimit': {
-                        'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
-                    },
+                    'componentId':
+                        9001,
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
                     'collaborators': [],
+                    'hotlistIds': [12345],
+                    'accessLimit': {
+                        'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    },
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
                     'assignee': {
                         'emailAddress': 'assignee@google.com'
                     },
-                    'componentId': 9001,
-                    'hotlistIds': [12345],
-                    'type': 'BUG',
-                    'custom_fields': {
-                        'custom_field_id': 1223084,
-                        'repeated_enum_value': {
+                    'status':
+                        'ASSIGNED',
+                    'title':
+                        'issue title',
+                    'type':
+                        'BUG',
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
                             'values': ['Linux']
                         }
-                    },
-                    'severity': 'S4',
+                    },],
+                    'severity':
+                        'S4',
+                },
+                'issueComment': {
+                    'comment': 'issue body'
                 },
             },
             templateOptions_applyTemplate=True,
@@ -482,6 +487,100 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.assertEqual(68828938, issue.id)
     self.client.hotlists().entries().delete.assert_has_calls([
         mock.call(hotlistId='12345', issueId='68828938'),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
+  def test_update_issue_with_os(self):
+    """Test updating an existing issue with OSes."""
+    self.client.issues().get().execute.return_value = {
+        'issueId': '68828938',
+        'issueState': {
+            'componentId':
+                '29002',
+            'type':
+                'BUG',
+            'customFields': [
+                {
+                    'customFieldId': '1223084',
+                    'repeatedEnumValue': {
+                        'values': ['Linux']  # Add OS Linux.
+                    },
+                },
+            ],
+            'status':
+                'NEW',
+            'priority':
+                'P2',
+            'severity':
+                'S2',
+            'title':
+                'test',
+            'reporter': {
+                'emailAddress': 'user1@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },
+            'assignee': {
+                'emailAddress': 'assignee@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },
+            'retention':
+                'COMPONENT_DEFAULT',
+        },
+        'createdTime': '2019-06-25T01:29:30.021Z',
+        'modifiedTime': '2019-06-25T01:29:30.021Z',
+        'userData': {},
+        'accessLimit': {
+            'accessLevel': 'INTERNAL'
+        },
+        'etag': 'TmpnNE1qZzVNemd0TUMweA==',
+        'lastModifier': {
+            'emailAddress': 'user1@google.com',
+            'userGaiaStatus': 'ACTIVE'
+        },
+    }
+    issue = self.issue_tracker.get_issue(68828938)
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee2@google.com'
+    issue.ccs.add('cc@google.com')
+    issue.components.add('9001')
+    issue.labels.add('12345')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title2'
+    # Adding OS Android here (in addition to the Linux already set).
+    issue.labels.add('OS-Android')
+    issue.save()
+
+    self.client.issues().modify.assert_has_calls([
+        mock.call(
+            issueId='68828938',
+            body={
+                'add': {
+                    'status':
+                        'ASSIGNED',
+                    'assignee': {
+                        'emailAddress': 'assignee2@google.com'
+                    },
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'title':
+                        'issue title2',
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
+                            'values': ['Linux', 'Android']
+                        }
+                    },],
+                },
+                'addMask': 'status,assignee,reporter,title,ccs,customFields',
+                'remove': {},
+                'removeMask': '',
+                'significanceOverride': 'MAJOR',
+            },
+        ),
         mock.call().execute(http=None, num_retries=3),
     ])
 

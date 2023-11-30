@@ -27,7 +27,7 @@ from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
-_CHROMIUM_OS_CUSTOM_FIELD_ID = 1223084
+_CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -69,6 +69,16 @@ def _extract_label(labels, prefix):
       continue
     result = label[len(prefix):]
     labels.remove(label)
+    return result
+  return None
+
+
+def _get_label(labels_dict, prefix):
+  """Return a label value from labels.added or labels.removed"""
+  for label in labels_dict:
+    if not label.startswith(prefix):
+      continue
+    result = label[len(prefix):]
     return result
   return None
 
@@ -255,6 +265,17 @@ class Issue(issue_tracker.Issue):
         break
 
   @property
+  def _os_custom_field_values(self):
+    """OS custom field values."""
+    custom_fields = self._data['issueState'].get('customFields', [])
+    for cf in custom_fields:
+      if cf.get('customFieldId') == _CHROMIUM_OS_CUSTOM_FIELD_ID:
+        enum_values = cf.get('repeatedEnumValue')
+        if enum_values:
+          return enum_values.get('values') or []
+    return []
+
+  @property
   def _verifier(self):
     """The issue verifier."""
     verifier = self._data['issueState'].get('verifier')
@@ -340,6 +361,23 @@ class Issue(issue_tracker.Issue):
                                 'collaborators', _make_users)
     self._add_update_single(update_body, added, removed, '_issue_access_limit',
                             'access_limit')
+
+    # Special case OS custom field. Custom fields are modified by providing the
+    # complete value of the customFields enum.
+    added_os = _get_label(self.labels.added, 'OS-')
+    if added_os:
+      oses = self._os_custom_field_values
+      oses.append(added_os)
+      added.append('customFields')
+      update_body['add']['customFields'] = [{
+          'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+          'repeatedEnumValue': {
+              'values': oses,
+          }
+      }]
+      # Remove OS label or it will be attempted to be added as hotlist IDs.
+      self.labels.remove('OS-' + added_os)
+
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -394,13 +432,12 @@ class Issue(issue_tracker.Issue):
       if priority:
         self._data['issueState']['priority'] = priority
       if os:
-        # TODO(rmistry): _update_issue will need to handle this as well.
-        self._data['issueState']['custom_fields'] = {
-            'custom_field_id': _CHROMIUM_OS_CUSTOM_FIELD_ID,
-            'repeated_enum_value': {
+        self._data['issueState']['customFields'] = [{
+            'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
                 'values': [os]
             },
-        }
+        }]
 
       logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
@@ -763,4 +800,5 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   # Test issue query.
 #   queried_issue = it.get_issue(313545808)
 #   print(queried_issue._data)
+#   queried_issue.labels.add('OS-Linux')
 #   queried_issue._update_issue()
