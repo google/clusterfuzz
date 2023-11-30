@@ -30,8 +30,8 @@ class BaseTask:
     """Executes a task."""
     raise NotImplementedError('Child class must implement.')
 
-  @classmethod
-  def is_execution_remote(self):
+  @staticmethod
+  def is_execution_remote():
     return False
 
 
@@ -93,11 +93,11 @@ class UTask(BaseUTask):
   opted-in. Otherwise executes locally."""
 
   def execute_preprocess(self, task_argument, job_type, uworker_env):
-    return utasks.tworker_preprocess(self.module, task_argument,
-                                     job_type, uworker_env)[0]
+    return utasks.tworker_preprocess(self.module, task_argument, job_type,
+                                     uworker_env)[0]
 
-  @classmethod
-  def is_execution_remote(self):
+  @staticmethod
+  def is_execution_remote():
     return is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
@@ -175,37 +175,3 @@ COMMAND_TYPES = {
 
 def is_remote_utask(command):
   return COMMAND_TYPES[command].is_execution_remote()
-
-
-def get_combinable_commands():
-  return [command for command in COMMAND_TYPES
-          if is_command_combinable(command)]
-
-
-def is_trusted_portion_of_utask(command_name):
-  """Returns true if |command_name| is asking the bot to execute the
-  trusted-portion of a utask (preprocess and postprocess). The workflow for
-  executing a task is as follows:
-  1. A command such as analyze is given to a bot.
-  2. The bot executes preprocess and schedules uworker_main.
-  3. The uworker_main command is given to the uworker which executes the
-  uworker_main function of the specified task.
-  4. Postprocessing runs (the postprocess task is triggered by GCS when
-  uworker_main writes its output.
-  Therefore, the commands to execute utasks and the "postprocess" command can be
-  executed on Linux bots even if the utask is supposed to run on Windows. This
-  function returns commands that denote these portions.
-  """
-  task_type = COMMAND_TYPES[command_name]
-  # Postprocess and preprocess tasks are executed on tworkers, while utask_mains
-  # are executed on uworkers. Note that the uworker_main command will be used to
-  # execute uworker_main, while the name of the task itself will be used to
-  # request execution of the preprocess step.
-  return task_type in (PostprocessTask, UTask)
-
-
-def get_utask_trusted_portions():
-  return [
-      command_name for command_name in COMMAND_TYPES
-      if is_trusted_portion_of_utask(command_name)
-  ]

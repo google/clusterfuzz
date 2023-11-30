@@ -20,12 +20,11 @@ import json
 import random
 import threading
 import time
-from typing import List
-
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -82,9 +81,6 @@ LEASE_RETRIES = 5
 
 TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
-
-FILTERS_AND = ' AND '
-FILTERS_OR = ' OR '
 
 POSTPROCESS_QUEUE = 'postprocess'
 
@@ -161,7 +157,7 @@ def get_fuzz_task():
 
 def get_high_end_task():
   """Get a high end task."""
-  task = get_regular_tasks(queue=high_end_queue())
+  task = get_regular_task(queue=high_end_queue())
   if not task:
     return None
 
@@ -186,8 +182,9 @@ def initialize_task(messages):
 
 
 def handle_single_message(messages):
+  """Returns a single task from |messages| if possible."""
   if not messages:
-      return None, False
+    return None, False
 
   try:
     task = initialize_task(messages[0])
@@ -205,23 +202,24 @@ def handle_single_message(messages):
   return None, True
 
 
-
 def get_utasks():
-  if not is_remotely_executing_utasks():
+  """Returns a CombinedTask for preprocessing many utasks on this bot and then
+  running the uworker_mains in the same batch job."""
+  if not task_types.is_remotely_executing_utasks():
     return None
   queue = get_utasks_queue()
   pubsub_client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
   max_messages = 50
-  messages = _get_messages(_get_messages(pubsub_client, application_id, queue, max_messages=max_messages))
+  messages = _get_messages(
+      pubsub_client, application_id, queue, max_messages=max_messages)
   if not messages:
     return None
-  if len(messages) == 1:
-    return handle_single_message(messages)[0]
+  # TODO(metzman): Consider returning a non-combined task.
   return combine_tasks(messages)
 
 
-def get_regular_tasks(queue=None):
+def get_regular_task(queue=None):
   """Get a regular task."""
   if not queue:
     queue = regular_queue()
@@ -235,42 +233,6 @@ def get_regular_tasks(queue=None):
       return task
     if not retry:
       return None
-
-
-# TODO(metzman): Use this function so that linux bots can execute preprocess and
-# postprocess of every utask.
-def get_utask_filters(is_chromium, is_linux):
-  """Returns a string containing filters for pubsub commands. If |is_chromium|
-  and |is_linux| the filters filter out all commands that are not the trusted
-  portions (preprocess and postprocess of utasks). The filter should be used to
-  read from non-linux queues so linux bots can do the trusted preprocess step of
-  non-linux utasks. Otherwise the filters should be used when reading from the
-  bot's "normal" queue to filter out these preprocess/postprocess steps."""
-  if not is_chromium:
-    # Execute all tasks on one machine outside of chrome for now.
-    return None
-
-  # Import here to avoid import errors on webapp.
-  from clusterfuzz._internal.bot.tasks import task_types
-
-  # See https://cloud.google.com/pubsub/docs/subscription-message-filter for
-  # syntax.
-  utask_trusted_portions = task_types.get_utask_trusted_portions()
-  if is_linux:
-    pubsub_filters = [
-        f'attribute.name = {task}' for task in utask_trusted_portions
-    ]
-  else:
-    pubsub_filters = [
-        f'-attribute.name = {task}' for task in utask_trusted_portions
-    ]
-  pubsub_filter = FILTERS_AND.join(pubsub_filters)
-  return pubsub_filter
-
-
-def get_ttask_commands_queues():
-  """Get queues tworkers should be querying for ttask commands. (i.e. tworkers
-  on Linux will need to know about the Windows and Mac queues)."""
 
 
 def get_machine_template_for_queue(queue_name):
@@ -315,7 +277,8 @@ def get_machine_templates():
 
 def _get_messages(pubsub_client, application_id, queue, max_messages=1):
   return pubsub_client.pull_from_subscription(
-      pubsub.subscription_name(application_id, queue), max_messages=max_messages)
+      pubsub.subscription_name(application_id, queue),
+      max_messages=max_messages)
 
 
 def get_postprocess_task():
@@ -331,6 +294,7 @@ def get_postprocess_task():
   if task:
     logs.log('Pulled from postprocess queue.')
   return task
+
 
 def get_task() -> Task | CombinedTasks:
   """Get tasks to execute."""
@@ -414,10 +378,12 @@ class Task:
     track_task_end()
 
 
-CombinedTasks = collections.namedtuple('CombinedTasks', [tasks])
+CombinedTasks = collections.namedtuple('CombinedTasks', ['tasks'])
 
 
 def combine_tasks(messages):
+  """Combine tasks specified in messages into one CombinedTasks object for
+  processing on this bot."""
   tasks = []
   for message in messages:
     task = handle_single_message([message])[0]
@@ -593,7 +559,7 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
       return
 
   if task_types.is_remote_utask(command):
-    queue = get_utask_queue()
+    queue = get_utasks_queue()
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
