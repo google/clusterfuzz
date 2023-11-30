@@ -1332,6 +1332,10 @@ class StackParser:
     if state.fuzzer_dir_frames >= state.frame_count / 2:
       state.crash_categories.add('Fuzzer-crash-state')
     
+<<<<<<< HEAD
+=======
+    # Add label to Android crashes if frame #0 was not found outside of logcat.
+>>>>>>> 9fd92cc3 (Added crash_category for missing libfuzzer stacktraces)
     frame_0_idx, logcat_idx = stacktrace.find('    #0'), stacktrace.find('\n\nLogcat:\n')
     if logcat_idx != -1 and (frame_0_idx == -1 or frame_0_idx > logcat_idx):
         state.crash_categories.add('Missing-libfuzzer-stacktrace')
