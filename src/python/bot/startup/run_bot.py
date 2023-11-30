@@ -34,8 +34,10 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
 from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -68,6 +70,33 @@ class _Monitor:
         })
 
 
+
+def combine_tasks(tasks):
+  batch_tasks = []
+  for task in tasks:
+    task_details = commands.prepare_run_command(task)
+    task_executor_obj = get_command_module(task)
+    input_download_url = task_executor_obj.execute_preprocess(
+        task_details.argument, task_details.job_name, task_details.uworker_env)
+    module_name = task_executor_obj.module.__name__
+    batch_task = batch.BatchTask(
+        module_name, task_details.job_name, input_download_url)
+    batch_tasks.append(batch_task)
+  return create_uworker_main_batch_jobs(batch_tasks)
+
+
+def process_tasks(tasks):
+  """Note: While it may seem cleaner to return a CombinedTask object from
+  get_task(s) instead of a list of tasks, and have an execute method that for
+  normal tasks runs process command, while for CombinedTasks, preprocesses them,
+  in reality this is worse than the current implementation because it would
+  require tasks.py to depend on commands.py, even though."""
+  if len(tasks) == 1:
+    commands.process_command(task[0])
+  else:
+    combine_tasks(tasks)
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
@@ -88,14 +117,15 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
-      task = tasks.get_task()
-      if not task:
+      tasks = tasks.get_tasks()
+      if not tasks:
         continue
+
 
       with _Monitor(task):
         with task.lease():
           # Execute the command and delete the task.
-          commands.process_command(task)
+          process_tasks(tasks)
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0

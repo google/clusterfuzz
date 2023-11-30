@@ -82,6 +82,10 @@ class UTask(BaseUTask):
   an untrusted machine, and postprocess on another trusted machine if
   opted-in. Otherwise executes locally."""
 
+  def execute_preprocess(self, task_argument, job_type, uworker_env):
+    return utasks.tworker_preprocess(self.module, task_argument,
+                                     job_type, uworker_env)[0]
+
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
     if (not is_production() or
@@ -90,8 +94,8 @@ class UTask(BaseUTask):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
-    download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
-                                                job_type, uworker_env)
+    download_url = self.execute_preprocess(task_argument, job_type, uworker_env)
+
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
       return

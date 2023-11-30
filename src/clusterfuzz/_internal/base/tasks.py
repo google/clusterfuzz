@@ -19,6 +19,8 @@ import json
 import random
 import threading
 import time
+from typing import List, Optional
+
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
@@ -312,11 +314,11 @@ def get_postprocess_task():
     return None
 
 
-def get_task():
-  """Get a task."""
+def get_tasks() -> Optional[List[Task]]:
+  """Get tasks to execute."""
   task = get_command_override()
   if task:
-    return task
+    return [task]
 
   allow_all_tasks = not environment.get_value('PREEMPTIBLE')
   if allow_all_tasks:
@@ -324,13 +326,14 @@ def get_task():
     # can lose the output of a task.
     # Postprocess tasks get priority because they are so quick. They typically
     # only involve a few DB writes and never run user code.
+    # They also make no sense to combine.
     task = get_postprocess_task()
     if task:
-      return task
+      return [task]
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
-      task = get_high_end_task()
+      task = get_high_end_tasks()
       if task:
         return task
 
@@ -343,7 +346,7 @@ def get_task():
     logs.log_error('Failed to get any fuzzing tasks. This should not happen.')
     time.sleep(TASK_EXCEPTION_WAIT_INTERVAL)
 
-  return task
+    return task
 
 
 class Task:

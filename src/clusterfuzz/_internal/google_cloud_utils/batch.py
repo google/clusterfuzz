@@ -71,31 +71,48 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
+class BatchTask:
+  def __init__(self, module_name, job_type, input_download_url):
+    self.module_name = module_name
+    self.job_type = job_type
+    self.input_download_url = input_download_url
+
+
 def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   """This is not a job in ClusterFuzz's meaning of the word."""
+  batch_task = BatchTask(module_name, cf_job, input_download_url)
+  batch_tasks = [batch_task]
+  return create_uworker_main_batch_jobs(batch_tasks)[0]
+
+
+def create_uworker_main_batch_jobs(batch_tasks):
   # Define what will be done as part of the job.
-  runnable = batch.Runnable()
-  runnable.container = batch.Runnable.Container()
-  spec = get_spec(module_name, cf_job)
-  runnable.container.image_uri = spec.docker_image
-  runnable.container.options = (
-      '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
-      '-P --privileged --cap-add=all '
-      '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
-      f'-e UWORKER_INPUT_DOWNLOAD_URL={input_download_url}')
-  runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
-  # Jobs can be divided into tasks. In this case, we have only one task.
-  task = batch.TaskSpec()
-  task.runnables = [runnable]
-  task.max_retry_count = RETRY_COUNT
-  # TODO(metzman): Change this for production.
-  task.max_run_duration = MAX_DURATION
+  tasks = []
+  job_specs = collections.defaultdict(list)
+  for batch_task in batch_tasks:
+    runnable = batch.Runnable()
+    runnable.container = batch.Runnable.Container()
+    spec = get_spec(batch_task.module_name, batch_task.job_type)
+    runnable.container.image_uri = spec.docker_image
+    runnable.container.options = (
+        '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
+        '-e HOST_UID=1337 -P --privileged --cap-add=all '
+        '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
+        f'-e UWORKER_INPUT_DOWNLOAD_URL={batch_task.input_download_url}')
+    runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
+    # Jobs can be divided into tasks. In this case, we have only one task.
+    task = batch.TaskSpec()
+    task.runnables = [runnable]
+    task.max_retry_count = RETRY_COUNT
+    # TODO(metzman): Change this for production.
+    task.max_run_duration = MAX_DURATION
+    job_specs[spec].append(task)
 
+  return [_create_job(spec, tasks) for spec, tasks in job_specs.items()]
+
+
+def _create_job(spec, tasks)
   # Only one of these is currently possible.
-  group = batch.TaskGroup()
-  group.task_count = TASK_COUNT
-  group.task_spec = task
-
   policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
@@ -109,9 +126,16 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   allocation_policy.instances = [instances]
   service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
+  task_groups = []
+  for tasks in tasks:
+    group = batch.TaskGroup()
+    group.task_count = TASK_COUNT
+    group.task_spec = task
+    task_groups.append(group)
+
 
   job = batch.Job()
-  job.task_groups = [group]
+  job.task_groups = task_groups
   job.allocation_policy = allocation_policy
   job.labels = {'env': 'testing', 'type': 'container'}
   job.logs_policy = batch.LogsPolicy()
@@ -125,13 +149,14 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   project_id = 'google.com:clusterfuzz'
   region = 'us-central1'
   create_request.parent = f'projects/{project_id}/locations/{region}'
-  result = _create_job(create_request)
+  result = _send_create_job_request(create_request)
   logs.log('Created batch job.')
   return result
 
 
-@retry.wrap(retries=3, delay=2, function='google_cloud_utils.batch._create_job')
-def _create_job(create_request):
+@retry.wrap(retries=3, delay=2,
+            function='google_cloud_utils.batch._send_create_job_request')
+def _send_create_job_request(create_request):
   return _batch_client().create_job(create_request)
 
 

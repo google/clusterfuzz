@@ -13,6 +13,7 @@
 # limitations under the License.
 """Run command based on the current task."""
 
+import collections
 import functools
 import sys
 import time
@@ -21,6 +22,7 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import blame_task
+from clusterfuzz._internal.bot.tasks import combine_task
 from clusterfuzz._internal.bot.tasks import impact_task
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.bot.tasks import unpack_task
@@ -63,6 +65,14 @@ COMMAND_MAP = {
     command: task_cls(_COMMAND_MODULE_MAP[command])
     for command, task_cls in task_types.COMMAND_TYPES.items()
 }
+
+
+def get_task_executor(command):
+  return COMMAND_MAP[command]
+
+TaskDetails = collections.namedtuple(
+    'TaskDetails',
+    ['name', 'argument', 'job_name', 'uworker_env'])
 
 
 class Error(Exception):
@@ -191,7 +201,7 @@ def start_web_server_if_needed():
     logs.log_error('Failed to start web server, skipping.')
 
 
-def run_command(task_name, task_argument, job_name, uworker_env):
+def run_command(task_name, task_argument, job_name, uworker_env, execute_method):
   """Run the command."""
   task = COMMAND_MAP.get(task_name)
   if not task:
@@ -207,8 +217,9 @@ def run_command(task_name, task_argument, job_name, uworker_env):
                'running, exiting.'.format(task_state_name))
       raise AlreadyRunningError
 
+  execute_method = getattr(task, execute_method)
   try:
-    task.execute(task_argument, job_name, uworker_env)
+    return execute_method(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -228,16 +239,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
                                     data_types.TaskState.FINISHED)
 
 
-# pylint: disable=too-many-nested-blocks
-# TODO(mbarbella): Rewrite this function to avoid nesting issues.
-@set_task_payload
-def process_command(task):
-  """Figures out what to do with the given task and executes the command."""
-  logs.log(f'Executing command "{task.payload()}"')
-  if not task.payload().strip():
-    logs.log_error('Empty task received.')
-    return
-
+def prepare_run_command(task):
   uworker_env = None
   # Parse task payload.
   task_name = task.command
@@ -384,15 +386,32 @@ def process_command(task):
         task_argument,
         job_name,
         wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
-    return
+    return None
 
   # Initial cleanup.
   cleanup_task_state()
 
   start_web_server_if_needed()
+  return TaskDetails(name=task_name, arguemnt=task_argument, job_name=job_name,
+                     uworker_env=uworker_env)
 
+
+
+# pylint: disable=too-many-nested-blocks
+# TODO(mbarbella): Rewrite this function to avoid nesting issues.
+@set_task_payload
+def process_command(task, execute_method='execute'):
+  """Figures out what to do with the given task and executes the command."""
+  logs.log(f'Executing command "{task.payload()}"')
+  if not task.payload().strip():
+    logs.log_error('Empty task received.')
+    return
+
+  task_details = prepare_run_command(task)
+  if task_details is None:
+    return
   try:
-    run_command(task_name, task_argument, job_name, uworker_env)
+    return run_command(task_details.name, task_details.argument, task_details.job_name, task_details.uworker_env, execute_method=execute_method)
   finally:
     # Final clean up.
     cleanup_task_state()
