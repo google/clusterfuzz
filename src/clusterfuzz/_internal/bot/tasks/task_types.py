@@ -30,6 +30,10 @@ class BaseTask:
     """Executes a task."""
     raise NotImplementedError('Child class must implement.')
 
+  @classmethod
+  def is_execution_remote(self):
+    return False
+
 
 class TrustedTask(BaseTask):
   """Implementation of a task that is run on a single machine. These tasks were
@@ -77,6 +81,12 @@ class UTaskLocalExecutor(BaseUTask):
     self.execute_locally(task_argument, job_type, uworker_env)
 
 
+def is_remotely_executing_utasks():
+  return (is_production() and
+          environment.get_value('REMOTE_UTASK_EXECUTION') and
+          environment.platform() == 'LINUX')
+
+
 class UTask(BaseUTask):
   """Represents an untrusted task. Executes preprocess on this machine, main on
   an untrusted machine, and postprocess on another trusted machine if
@@ -86,11 +96,13 @@ class UTask(BaseUTask):
     return utasks.tworker_preprocess(self.module, task_argument,
                                      job_type, uworker_env)[0]
 
+  @classmethod
+  def is_execution_remote(self):
+    return is_remotely_executing_utasks()
+
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    if (not is_production() or
-        not environment.get_value('REMOTE_UTASK_EXECUTION') or
-        environment.platform() != 'LINUX'):
+    if not self.is_execution_remote():
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
@@ -159,6 +171,15 @@ COMMAND_TYPES = {
     'uworker_main': UworkerMainTask,
     'variant': UTaskLocalExecutor,
 }
+
+
+def is_remote_utask(command):
+  return COMMAND_TYPES[command].is_execution_remote()
+
+
+def get_combinable_commands():
+  return [command for command in COMMAND_TYPES
+          if is_command_combinable(command)]
 
 
 def is_trusted_portion_of_utask(command_name):

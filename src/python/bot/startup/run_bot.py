@@ -71,7 +71,8 @@ class _Monitor:
 
 
 
-def combine_tasks(tasks):
+def process_combine_tasks(combined_tasks):
+  tasks = combined_tasks.tasks
   batch_tasks = []
   for task in tasks:
     task_details = commands.prepare_run_command(task)
@@ -85,16 +86,16 @@ def combine_tasks(tasks):
   return create_uworker_main_batch_jobs(batch_tasks)
 
 
-def process_tasks(tasks):
+def process_task(task):
   """Note: While it may seem cleaner to return a CombinedTask object from
   get_task(s) instead of a list of tasks, and have an execute method that for
   normal tasks runs process command, while for CombinedTasks, preprocesses them,
   in reality this is worse than the current implementation because it would
   require tasks.py to depend on commands.py, causing a circular import."""
-  if len(tasks) == 1:
-    commands.process_command(task[0])
+  if isinstance(task, tasks.CombinedTasks):
+    process_combined_tasks(task)
   else:
-    combine_tasks(tasks)
+    commands.process_command(task[0])
 
 
 def task_loop():
@@ -117,7 +118,7 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
-      tasks = tasks.get_tasks()
+      task = tasks.get_task()
       if not tasks:
         continue
 
@@ -125,7 +126,7 @@ def task_loop():
       with _Monitor(task):
         with task.lease():
           # Execute the command and delete the task.
-          process_tasks(tasks)
+          process_tasks(task)
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0

@@ -13,13 +13,14 @@
 # limitations under the License.
 """Task queue functions."""
 
+import collections
 import contextlib
 import datetime
 import json
 import random
 import threading
 import time
-from typing import List, Optional
+from typing import List
 
 
 from clusterfuzz._internal.base import external_tasks
@@ -160,7 +161,7 @@ def get_fuzz_task():
 
 def get_high_end_task():
   """Get a high end task."""
-  task = get_regular_task(queue=high_end_queue())
+  task = get_regular_tasks(queue=high_end_queue())
   if not task:
     return None
 
@@ -184,7 +185,43 @@ def initialize_task(messages):
   return PostprocessPubSubTask(output_url_argument, message)
 
 
-def get_regular_task(queue=None):
+def handle_single_message(messages):
+  if not messages:
+      return None, False
+
+  try:
+    task = initialize_task(messages[0])
+    if task is None:
+      return None, False
+  except KeyError:
+    logs.log_error('Received an invalid task, discarding...')
+    messages[0].ack()
+    return None, True
+
+  # Check that this task should be run now (past the ETA). Otherwise we defer
+  # its execution.
+  if not task.defer():
+    return task, False
+  return None, True
+
+
+
+def get_utasks():
+  if not is_remotely_executing_utasks():
+    return None
+  queue = get_utasks_queue()
+  pubsub_client = pubsub.PubSubClient()
+  application_id = utils.get_application_id()
+  max_messages = 50
+  messages = _get_messages(_get_messages(pubsub_client, application_id, queue, max_messages=max_messages))
+  if not messages:
+    return None
+  if len(messages) == 1:
+    return handle_single_message(messages)[0]
+  return combine_tasks(messages)
+
+
+def get_regular_tasks(queue=None):
   """Get a regular task."""
   if not queue:
     queue = regular_queue()
@@ -193,23 +230,11 @@ def get_regular_task(queue=None):
   application_id = utils.get_application_id()
   while True:
     messages = _get_messages(pubsub_client, application_id, queue)
-
-    if not messages:
-      return None
-
-    try:
-      task = initialize_task(messages)
-      if task is None:
-        continue
-    except KeyError:
-      logs.log_error('Received an invalid task, discarding...')
-      messages[0].ack()
-      continue
-
-    # Check that this task should be run now (past the ETA). Otherwise we defer
-    # its execution.
-    if not task.defer():
+    task, retry = handle_single_message(messages)
+    if task:
       return task
+    if not retry:
+      return None
 
 
 # TODO(metzman): Use this function so that linux bots can execute preprocess and
@@ -288,52 +313,45 @@ def get_machine_templates():
   return conf['instance_templates']
 
 
-def _get_messages(pubsub_client, application_id, queue):
+def _get_messages(pubsub_client, application_id, queue, max_messages=1):
   return pubsub_client.pull_from_subscription(
-      pubsub.subscription_name(application_id, queue), max_messages=1)
+      pubsub.subscription_name(application_id, queue), max_messages=max_messages)
 
 
 def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
-  if (environment.platform() != 'LINUX' or
-      not environment.get_value('REMOTE_UTASK_EXECUTION')):
+  if not task_types.is_remotely_executing_utasks():
     return None
   pubsub_client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
   logs.log('Pulling from postprocess queue')
   messages = _get_messages(pubsub_client, application_id, POSTPROCESS_QUEUE)
-  if not messages:
-    return None
-  try:
-    logs.log('Pulled postprocess queue.')
-    return initialize_task(messages)
-  except KeyError:
-    logs.log_error('Received an invalid task, discarding...')
-    messages[0].ack()
-    return None
+  task, _ = handle_single_message(messages)
+  if task:
+    logs.log('Pulled from postprocess queue.')
+  return task
 
-
-def get_tasks() -> Optional[List[Task]]:
+def get_task() -> Task | CombinedTasks:
   """Get tasks to execute."""
   task = get_command_override()
   if task:
-    return [task]
+    return task
 
   allow_all_tasks = not environment.get_value('PREEMPTIBLE')
   if allow_all_tasks:
-    # Postprocess tasks need to be executed on a non-preemptible otherwise we
-    # can lose the output of a task.
-    # Postprocess tasks get priority because they are so quick. They typically
-    # only involve a few DB writes and never run user code.
-    # They also make no sense to combine.
-    task = get_postprocess_task()
+    # Postprocess and preprocessing of tasks need to be executed on a
+    # non-preemptible otherwise we can lose the input/output of a task.
+    # These tasks get priority because they are so quick. They typically only
+    # involve a few DB writes and never run user code.
+    task = get_postprocess_task() or get_utasks()
     if task:
-      return [task]
+      return task
+
     # Check the high-end jobs queue for bots with multiplier greater than 1.
     thread_multiplier = environment.get_value('THREAD_MULTIPLIER')
     if thread_multiplier and thread_multiplier > 1:
-      task = get_high_end_tasks()
+      task = get_high_end_task()
       if task:
         return task
 
@@ -346,7 +364,8 @@ def get_tasks() -> Optional[List[Task]]:
     logs.log_error('Failed to get any fuzzing tasks. This should not happen.')
     time.sleep(TASK_EXCEPTION_WAIT_INTERVAL)
 
-    return task
+    return None
+  return task
 
 
 class Task:
@@ -393,6 +412,22 @@ class Task:
     track_task_start(self, TASK_LEASE_SECONDS)
     yield
     track_task_end()
+
+
+CombinedTasks = collections.namedtuple('CombinedTasks', [tasks])
+
+
+def combine_tasks(messages):
+  tasks = []
+  for message in messages:
+    task = handle_single_message([message])[0]
+    if task is None:
+      continue
+    tasks.append(task)
+
+  if tasks:
+    return CombinedTasks(tasks)
+  return None
 
 
 class PubSubTask(Task):
@@ -534,6 +569,10 @@ class _PubSubLeaserThread(threading.Thread):
         logs.log_error('Leaser thread failed.')
 
 
+def get_utasks_queue():
+  return 'utasks'
+
+
 def add_task(command, argument, job_type, queue=None, wait_time=None):
   """Add a new task to the job queue."""
   # Old testcases may pass in queue=None explicitly,
@@ -552,6 +591,9 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
     if job.is_external():
       external_tasks.add_external_task(command, argument, job)
       return
+
+  if task_types.is_remote_utask(command):
+    queue = get_utask_queue()
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)

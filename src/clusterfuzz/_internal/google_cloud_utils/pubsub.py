@@ -19,6 +19,7 @@ import json
 import threading
 
 import googleapiclient
+import googleapiclient.discovery
 import httplib2
 
 from clusterfuzz._internal.base import retry
@@ -71,10 +72,10 @@ class PubSubClient:
     self._local = threading.local()
     self._emulator_host = emulator_host
 
-  @retry.wrap(
-      retries=_PUBSUB_FAIL_RETRIES,
-      delay=_PUBSUB_FAIL_WAIT,
-      function='google_cloud_utils.pubsub._api_client')
+  # @retry.wrap(
+  #     retries=_PUBSUB_FAIL_RETRIES,
+  #     delay=_PUBSUB_FAIL_WAIT,
+  #     function='google_cloud_utils.pubsub._api_client')
   def _api_client(self):
     """Get the client for the current thread."""
     if hasattr(self._local, 'api_client'):
@@ -123,7 +124,7 @@ class PubSubClient:
     """Modify acknowledgement deadline of messages."""
     body = {
         'ackIds': ack_ids,
-        'ackDeadlineSeconds': int(seconds),  # since time.time() is float.
+        'ackDeadlineSeconds': int(seconds),  # Since time.time() is float.
     }
 
     request = self._api_client().projects().subscriptions().modifyAckDeadline(
@@ -145,7 +146,7 @@ class PubSubClient:
     return sorted(response.get('messageIds'))
 
   def pull_from_subscription(self,
-                             subscription,
+                             subscription_path,
                              max_messages=_DEFAULT_MAX_MESSAGES,
                              acknowledge=False):
     """Pull messages from a subscription to a topic."""
@@ -153,8 +154,14 @@ class PubSubClient:
         'returnImmediately': True,
         'maxMessages': max_messages,
     }
-    request = self._api_client().projects().subscriptions().pull(
-        subscription=subscription, body=request_body)
+    subscriptions = self._api_client().projects().subscriptions()
+    if pubsub_filter:
+      subscription_req_body = {'filter': pubsub_filter}
+    else:
+      subscription_req_body = {}
+    subscription = subscriptions.create(name=subscription_path, body=subscription_req_body)
+    request = subscription.pull(
+        subscription=subscription_path, body=request_body)
     response = self._execute_with_retry(request)
     if response is None:
       raise RuntimeError('Invalid subscription: ' + subscription)
