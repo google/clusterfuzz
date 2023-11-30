@@ -308,18 +308,18 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'type':
                         'BUG',
                     'customFields': [
-                      {
-                        'customFieldId': '1223084',
-                        'repeatedEnumValue': {
-                            'values': ['Linux', 'Android']
-                        }
-                      },
-                      {
-                        'customFieldId': '1223034',
-                        'repeatedTextValue': {
-                            'values': ['123', '789']
-                        }
-                      },
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223034',
+                            'repeatedTextValue': {
+                                'values': ['123', '789']
+                            }
+                        },
                     ],
                     'severity':
                         'S4',
@@ -588,18 +588,18 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'emailAddress': 'cc@google.com'
                     }],
                     'customFields': [
-                      {
-                        'customFieldId': '1223084',
-                        'repeatedEnumValue': {
-                            'values': ['Linux', 'Android']
-                        }
-                      },
-                      {
-                        'customFieldId': '1223034',
-                        'repeatedTextValue': {
-                            'values': ['123', '789']
-                        }
-                      },
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223034',
+                            'repeatedTextValue': {
+                                'values': ['123', '789']
+                            }
+                        },
                     ],
                 },
                 'addMask': 'status,assignee,reporter,title,ccs,customFields',

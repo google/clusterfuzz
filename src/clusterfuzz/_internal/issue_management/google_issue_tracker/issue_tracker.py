@@ -25,7 +25,6 @@ from clusterfuzz._internal.issue_management import issue_tracker
 from clusterfuzz._internal.issue_management.google_issue_tracker import client
 from clusterfuzz._internal.metrics import logs
 
-
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
 
@@ -422,7 +421,8 @@ class Issue(issue_tracker.Issue):
               'values': foundins,
           }
       })
-    # Remove FoundIn labels or they will be attempted to be added as hotlist IDs.
+    # Remove FoundIn labels or they will be attempted to be added as
+    # hotlist IDs.
     self.labels.remove_by_prefix('FoundIn-')
 
     if custom_field_entries:
@@ -493,17 +493,16 @@ class Issue(issue_tracker.Issue):
                 'values': oses
             },
         })
-      foundInValues =_extract_all_labels(self.labels, 'FoundIn-')
-      if foundInValues:
+      foundin_values = _extract_all_labels(self.labels, 'FoundIn-')
+      if foundin_values:
         custom_field_entries.append({
             'customFieldId': _CHROMIUM_FOUNDIN_CUSTOM_FIELD_ID,
             'repeatedTextValue': {
-                'values': foundInValues
+                'values': foundin_values
             },
         })
       if custom_field_entries:
         self._data['issueState']['customFields'] = custom_field_entries
-
 
       logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
