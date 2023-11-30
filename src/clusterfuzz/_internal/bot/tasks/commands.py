@@ -66,8 +66,8 @@ COMMAND_MAP = {
 }
 
 
-def get_task_executor(command):
-  return COMMAND_MAP[command]
+def get_command_module(command):
+  return _COMMAND_MODULE_MAP[command]
 
 
 TaskDetails = collections.namedtuple(
@@ -216,8 +216,9 @@ def run_command(task_name, task_argument, job_name, uworker_env):
                'running, exiting.'.format(task_state_name))
       raise AlreadyRunningError
 
+  result = None
   try:
-    return task.execute(task_argument, job_name, uworker_env)
+    result = task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -235,7 +236,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   if should_update_task_status(task_name):
     data_handler.update_task_status(task_state_name,
                                     data_types.TaskState.FINISHED)
-  return None
+  return result
 
 
 def prepare_run_command(task):
@@ -407,14 +408,15 @@ def process_command(task):
   logs.log(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
     logs.log_error('Empty task received.')
-    return
+    return None
 
   task_details = prepare_run_command(task)
   if task_details is None:
-    return
+    return None
   try:
-    run_command(task_details.name, task_details.argument, task_details.job_name,
-                task_details.uworker_env)
+    return run_command(task_details.name, task_details.argument,
+                       task_details.job_name, task_details.uworker_env)
   finally:
     # Final clean up.
     cleanup_task_state()
+  return None

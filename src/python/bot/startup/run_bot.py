@@ -93,16 +93,12 @@ def task_loop():
     with lease_combined_tasks(tasks_list):
       for task in tasks_list:
         with _Monitor(task):
-          task_details = commands.prepare_run_command(task)
-          task_executor_obj = commands.get_task_executor(task)
-          input_download_url = task_executor_obj.execute_preprocess(
-              task_details.argument, task_details.job_name,
-              task_details.uworker_env)
-
-        module_name = task_executor_obj.module.__name__
-        batch_task = batch.BatchTask(module_name, task_details.job_name,
-                                     input_download_url)
-        batch_tasks.append(batch_task)
+          task_module = commands.get_command_module(task.command)
+          input_download_url = commands.process_command(task)
+          module_name = task_module.__name__
+          batch_task = batch.BatchTask(module_name, task.job,
+                                       input_download_url)
+          batch_tasks.append(batch_task)
       return batch.create_uworker_main_batch_jobs(batch_tasks)
 
   def process_task(task):
