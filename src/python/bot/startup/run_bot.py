@@ -90,7 +90,7 @@ def process_tasks(tasks):
   get_task(s) instead of a list of tasks, and have an execute method that for
   normal tasks runs process command, while for CombinedTasks, preprocesses them,
   in reality this is worse than the current implementation because it would
-  require tasks.py to depend on commands.py, even though."""
+  require tasks.py to depend on commands.py, causing a circular import."""
   if len(tasks) == 1:
     commands.process_command(task[0])
   else:
