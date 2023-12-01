@@ -3361,7 +3361,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'ASSERT'
     expected_address = ''
     expected_state = (
-        "'called `Result::unwrap()` on an `Err` value: failed directive on wasmtime/crate'
+        "'called `Result::unwrap()` on an `Err` value: failed directive on wasmtime/crate"
         'wasmtime/crates\n'
         'wasmtime_fuzzing::oracles::spectest::ha380505b8ea313d4\n')
     expected_stacktrace = data
