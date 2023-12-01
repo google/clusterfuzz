@@ -3245,7 +3245,24 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'ASSERT'
     expected_address = ''
     expected_state = (
-        'Error: could not find an available port\n'
+        "'Error: could not find an available port', config/src/utils.rs:27:5\n"
+        'libra_config::utils::get_available_port::h7d7baacfb554bae8\n'
+        'libra_json_rpc::fuzzing::fuzzer::hde487212e06dd4fd\n')
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_rust_panic_recent(self):
+    """Test for panic in recent Rust versions."""
+    environment.set_value('ASSERTS_HAVE_SECURITY_IMPLICATION', False)
+
+    data = self._read_test_data('rust_panic.txt')
+    expected_type = 'ASSERT'
+    expected_address = ''
+    expected_state = (
+        "fuzz/fuzz_targets/borsh.rs:8:5:\n"
         'libra_config::utils::get_available_port::h7d7baacfb554bae8\n'
         'libra_json_rpc::fuzzing::fuzzer::hde487212e06dd4fd\n')
     expected_stacktrace = data
@@ -3284,7 +3301,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'ASSERT'
     expected_address = ''
     expected_state = (
-        'it works!\n'
+        "'it works!', ../../examples/fuzzers/rust/src/lib.rs:22:17\n"
         '_toy_example_arbitrary_lib_rustc_static::toy_example::h849ed7a815da104e\n'
         # Note: the line below is truncated by the LINE_LENGTH_CAP.
         '_toy_example_arbitrary_lib_rustc_static::_::toy_example_arbitrary::hc517d560c714\n'
@@ -3308,7 +3325,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'ASSERT'
     expected_address = ''
     expected_state = (
-        'it works!\n'
+        "'it works!', ../../examples/fuzzers/rust/src/lib.rs:22:17\n"
         '_toy_example_arbitrary_lib_rustc_static::toy_example::h849ed7a815da104e\n'
         # Note: the line below is truncated by the LINE_LENGTH_CAP.
         '_toy_example_arbitrary_lib_rustc_static::_::toy_example_arbitrary::hc517d560c714\n'
@@ -3344,7 +3361,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'ASSERT'
     expected_address = ''
     expected_state = (
-        'called `Result::unwrap()` on an `Err` value: failed directive on '
+        "'called `Result::unwrap()` on an `Err` value: failed directive on wasmtime/crate'
         'wasmtime/crates\n'
         'wasmtime_fuzzing::oracles::spectest::ha380505b8ea313d4\n')
     expected_stacktrace = data
