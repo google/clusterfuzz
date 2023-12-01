@@ -3263,8 +3263,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_address = ''
     expected_state = (
         "fuzz/fuzz_targets/borsh.rs:8:5:\n"
-        'libra_config::utils::get_available_port::h7d7baacfb554bae8\n'
-        'libra_json_rpc::fuzzing::fuzzer::hde487212e06dd4fd\n')
+        '/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh\n'
+        '/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh\n')
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
@@ -3361,8 +3361,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'ASSERT'
     expected_address = ''
     expected_state = (
-        "'called `Result::unwrap()` on an `Err` value: failed directive on wasmtime/crate"
-        'wasmtime/crates\n'
+        "'called `Result::unwrap()` on an `Err` value: failed directive on wasmtime/crate\n"
         'wasmtime_fuzzing::oracles::spectest::ha380505b8ea313d4\n')
     expected_stacktrace = data
     expected_security_flag = False
