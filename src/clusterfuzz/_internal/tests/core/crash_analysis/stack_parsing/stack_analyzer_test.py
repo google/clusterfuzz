@@ -3264,7 +3264,8 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = (
         "fuzz/fuzz_targets/borsh.rs:8:5:\n"
         '/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh\n'
-        '/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh\n')
+        '/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh\n'
+    )
     expected_stacktrace = data
     expected_security_flag = False
     self._validate_get_crash_data(data, expected_type, expected_address,
