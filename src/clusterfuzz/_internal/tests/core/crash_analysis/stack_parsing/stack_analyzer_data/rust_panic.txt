@@ -1,0 +1,69 @@
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed: 1952672255
+INFO: Loaded 1 modules   (1852 inline 8-bit counters): 1852 [0x557d4c843130, 0x557d4c84386c), 
+INFO: Loaded 1 PC tables (1852 PCs): 1852 [0x557d4c843870,0x557d4c84ac30), 
+INFO:       31 files found in /home/casm/near-account-id/fuzz/corpus/borsh
+INFO: -max_len is not provided; libFuzzer will not generate inputs larger than 4096 bytes
+thread '<unnamed>' panicked at fuzz/fuzz_targets/borsh.rs:8:5:
+fuzzer panic
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+==1113839== ERROR: libFuzzer: deadly signal
+    #0 0x557d4c69a021  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0xd3021) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #1 0x557d4c6e7d5a  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x120d5a) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #2 0x557d4c6db333  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x114333) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #3 0x7f5e10c5afcf  (/lib/x86_64-linux-gnu/libc.so.6+0x3bfcf) (BuildId: 51657f818beb1ae70372216a99b7412b8a100a20)
+    #4 0x7f5e10ca9d3b  (/lib/x86_64-linux-gnu/libc.so.6+0x8ad3b) (BuildId: 51657f818beb1ae70372216a99b7412b8a100a20)
+    #5 0x7f5e10c5af31  (/lib/x86_64-linux-gnu/libc.so.6+0x3bf31) (BuildId: 51657f818beb1ae70372216a99b7412b8a100a20)
+    #6 0x7f5e10c45471  (/lib/x86_64-linux-gnu/libc.so.6+0x26471) (BuildId: 51657f818beb1ae70372216a99b7412b8a100a20)
+    #7 0x557d4c75dfa6  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x196fa6) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #8 0x557d4c5f0d66  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x29d66) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #9 0x557d4c6d9694  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x112694) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #10 0x557d4c752b27  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x18bb27) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #11 0x557d4c752848  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x18b848) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #12 0x557d4c74fea5  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x188ea5) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #13 0x557d4c7525e1  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x18b5e1) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #14 0x557d4c5f4154  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x2d154) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #15 0x557d4c6d397c  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x10c97c) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #16 0x557d4c6d32d1  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x10c2d1) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #17 0x557d4c6d3f98  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x10cf98) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #18 0x557d4c6d98b7  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x1128b7) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #19 0x557d4c6d8961  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x111961) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #20 0x557d4c6dccdc  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x115cdc) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #21 0x557d4c6de19c  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x11719c) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #22 0x557d4c6dea10  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x117a10) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #23 0x557d4c6feac9  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x137ac9) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #24 0x557d4c6e86e2  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x1216e2) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+    #25 0x7f5e10c461c9  (/lib/x86_64-linux-gnu/libc.so.6+0x271c9) (BuildId: 51657f818beb1ae70372216a99b7412b8a100a20)
+    #26 0x7f5e10c46284  (/lib/x86_64-linux-gnu/libc.so.6+0x27284) (BuildId: 51657f818beb1ae70372216a99b7412b8a100a20)
+    #27 0x557d4c5f4b40  (/home/casm/near-account-id/target/x86_64-unknown-linux-gnu/release/borsh+0x2db40) (BuildId: f9748ec4622cab4930e49f42b2950565696562b0)
+
+NOTE: libFuzzer has rudimentary signal handlers.
+      Combine libFuzzer with AddressSanitizer or similar for better crash reports.
+SUMMARY: libFuzzer: deadly signal
+MS: 0 ; base unit: 0000000000000000000000000000000000000000
+
+
+artifact_prefix='/home/casm/near-account-id/fuzz/artifacts/borsh/'; Test unit written to /home/casm/near-account-id/fuzz/artifacts/borsh/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709
+Base64: 
+
+────────────────────────────────────────────────────────────────────────────────
+
+Failing input:
+
+        fuzz/artifacts/borsh/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709
+
+Output of `std::fmt::Debug`:
+
+        []
+
+Reproduce with:
+
+        cargo fuzz run borsh fuzz/artifacts/borsh/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709
+
+Minimize test case with:
+
+        cargo fuzz tmin borsh fuzz/artifacts/borsh/crash-da39a3ee5e6b4b0d3255bfef95601890afd80709
+
+────────────────────────────────────────────────────────────────────────────────
+
+Error: Fuzz target exited with exit status: 77
