@@ -246,7 +246,7 @@ def apply_substitutions(policy, label, testcase, security_severity=None):
       ]
 
   # No match found. Return mapped value if it exists else the original label
-  # will be returned..
+  # will be returned.
   return [policy.substitution_mapping(label)]
 
 
