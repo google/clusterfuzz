@@ -1,0 +1,21 @@
+{
+  "include": [
+    "src/clusterfuzz/_internal/bot/tasks/utasks/progression_task.py"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "src/appengine",
+    "src/local",
+    "src/python",
+    "src/clusterfuzz/_internal/tests",
+    "src/third_party"
+  ],
+  "ignore": [
+    "src/third_party"
+  ],
+  "executionEnvironments": [{
+    "root": "src",
+    "extraPaths": [ "src/third_party" ],
+    "pythonVersion": "3.7"
+  }]
+}
