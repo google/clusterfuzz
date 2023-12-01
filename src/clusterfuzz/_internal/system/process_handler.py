@@ -64,7 +64,7 @@ LSAN_ANALYSIS_TIME = 1
 THREAD_FINISH_WAIT_TIME = 5
 
 
-class ProcessStatus(object):
+class ProcessStatus:
   """Process exited notification."""
 
   def __init__(self):

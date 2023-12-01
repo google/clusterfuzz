@@ -13,9 +13,9 @@
 # limitations under the License.
 """Create issue tests."""
 import unittest
+from unittest import mock
 
 import flask
-import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
@@ -34,8 +34,8 @@ class HandlerTest(unittest.TestCase):
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.has_access',
         'libs.auth.get_current_user',
-        'libs.issue_management.issue_filer.file_issue',
-        'libs.issue_management.issue_tracker_utils.'
+        'clusterfuzz._internal.issue_management.issue_filer.file_issue',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.'
         'get_issue_tracker_for_testcase',
     ])
     self.mock.has_access.return_value = True

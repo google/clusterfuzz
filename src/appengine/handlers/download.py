@@ -23,11 +23,11 @@ from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from handlers import base_handler
 from libs import access
 from libs import gcs
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 
 _OSS_FUZZ_REPRODUCER_DELAY = 30
 

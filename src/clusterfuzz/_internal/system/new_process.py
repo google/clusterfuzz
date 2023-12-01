@@ -141,7 +141,7 @@ def kill_process_tree(root_pid):
     logs.log_warn('Failed to kill process.')
 
 
-class ChildProcess(object):
+class ChildProcess:
   """A class representing a process that's running."""
 
   def __init__(self,
@@ -212,7 +212,7 @@ class ChildProcess(object):
       logs.log_warn('Failed to terminate process.')
 
 
-class ProcessResult(object):
+class ProcessResult:
   """Object representing result of a process execution.
 
   Returned by ProcessRunner.run_and_wait().
@@ -239,7 +239,7 @@ class ProcessResult(object):
     self.timed_out = timed_out
 
 
-class ProcessRunner(object):
+class ProcessRunner:
   """Generic process runner class.
 
   Attributes:
@@ -411,7 +411,7 @@ class ProcessRunner(object):
     return result
 
 
-class UnicodeProcessRunnerMixin(object):
+class UnicodeProcessRunnerMixin:
   """Mixin for process runner subclasses to output unicode output."""
 
   def run_and_wait(self, *args, **kwargs) -> ProcessResult:  # pylint: disable=arguments-differ
@@ -427,7 +427,7 @@ class UnicodeProcessRunner(UnicodeProcessRunnerMixin, ProcessRunner):
   """ProcessRunner which always returns unicode output."""
 
 
-class ModifierProcessRunnerMixin(object):
+class ModifierProcessRunnerMixin:
   """ProcessRunner mixin with modifiers."""
 
   def tool_prefix(self, tool):

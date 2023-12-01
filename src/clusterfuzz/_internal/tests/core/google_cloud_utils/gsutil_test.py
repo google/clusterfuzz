@@ -14,8 +14,8 @@
 """Tests for gsutil."""
 
 import os
+from unittest import mock
 
-import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.google_cloud_utils import gsutil

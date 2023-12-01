@@ -78,7 +78,7 @@ class BotHTTPServer(http.server.HTTPServer):
     """Process a single http request."""
     try:
       request, client_address = self.get_request()
-    except socket.error:
+    except OSError:
       return
     if self.verify_request(request, client_address):
       try:
@@ -101,7 +101,7 @@ class RequestHandler(http.server.BaseHTTPRequestHandler):
     try:
       with open(absolute_path) as file_handle:
         data = file_handle.read()
-    except IOError:
+    except OSError:
       self.send_response(403)
       self.end_headers()
       return

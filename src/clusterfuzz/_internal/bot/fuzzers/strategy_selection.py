@@ -33,7 +33,7 @@ StrategyCombination = namedtuple('StrategyCombination',
                                  'strategy_name probability')
 
 
-class StrategyPool(object):
+class StrategyPool:
   """Object used to keep track of which strategies the launcher should attempt
   to enable."""
 

@@ -209,7 +209,7 @@ def configure_system_build_properties():
 
   # Write new build.prop.
   new_build_prop_path = os.path.join(bot_tmp_directory, 'new.prop')
-  old_build_prop_file_content = open(old_build_prop_path, 'r')
+  old_build_prop_file_content = open(old_build_prop_path)
   new_build_prop_file_content = open(new_build_prop_path, 'w')
   new_content_notification = '### CHANGED OR ADDED PROPERTIES ###'
   for line in old_build_prop_file_content:

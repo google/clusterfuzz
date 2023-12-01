@@ -18,7 +18,7 @@
   This must be compatible with libs.filters and libs.crash_access."""
 
 
-class Query(object):
+class Query:
   """Represent the interface for Query."""
 
   def filter(self, field, value, operator='='):

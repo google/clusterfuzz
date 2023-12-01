@@ -26,7 +26,7 @@ function run_bot () {
 
   while true; do
     echo "Running ClusterFuzz instance for linux bot."
-    PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" BOT_NAME="linux-$(hostname)" HTTP_PORT_1="$((bot_index+8000))" HTTP_PORT_2="$((bot_index+8080))" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
+    PATH="$PATH" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" BOT_NAME="linux-$(hostname)" HTTP_PORT_1="$((bot_index+8000))" HTTP_PORT_2="$((bot_index+8080))" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
 
     echo "ClusterFuzz instance for linux bot quit unexpectedly. Restarting in 30 seconds."
     sleep 30
@@ -43,7 +43,6 @@ if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
   exit 1
 fi
 
-NFS_ROOT=  # Fill in NFS information if available.
 GOOGLE_CLOUD_SDK=google-cloud-sdk
 GOOGLE_CLOUD_SDK_ARCHIVE=google-cloud-sdk-232.0.0-linux-x86_64.tar.gz
 INSTALL_DIRECTORY=${INSTALL_DIRECTORY:-${HOME}}

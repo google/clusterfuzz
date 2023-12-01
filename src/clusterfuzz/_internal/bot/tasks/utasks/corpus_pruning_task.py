@@ -325,7 +325,8 @@ class Runner:
     rss_limit = RSS_LIMIT
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
     detect_leaks = 1
-    arguments = [TIMEOUT_FLAG]
+    arguments = options.FuzzerArguments()
+    arguments[constants.TIMEOUT_FLAGNAME] = SINGLE_UNIT_TIMEOUT
 
     if self.fuzzer_options:
       # Default values from above can be customized for a given fuzz target.
@@ -348,12 +349,12 @@ class Runner:
       if custom_detect_leaks is not None:
         detect_leaks = custom_detect_leaks
 
-    arguments.append(RSS_LIMIT_MB_FLAG % rss_limit)
-    arguments.append(MAX_LEN_FLAG % max_len)
-    arguments.append(DETECT_LEAKS_FLAG % detect_leaks)
-    arguments.append(constants.VALUE_PROFILE_ARGUMENT)
+    arguments[constants.RSS_LIMIT_FLAGNAME] = rss_limit
+    arguments[constants.MAX_LEN_FLAGNAME] = max_len
+    arguments[constants.DETECT_LEAKS_FLAGNAME] = detect_leaks
+    arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
 
-    return arguments
+    return arguments.list()
 
   def process_sanitizer_options(self):
     """Process sanitizer options overrides."""
@@ -726,7 +727,11 @@ def _process_corpus_crashes(context, result):
   # Generate crash reports.
   for crash in result.crashes:
     existing_testcase = data_handler.find_testcase(
-        project_name, crash.crash_type, crash.crash_state, crash.security_flag)
+        project_name,
+        crash.crash_type,
+        crash.crash_state,
+        crash.security_flag,
+        fuzz_target=context.fuzz_target.project_qualified_name())
     if existing_testcase:
       continue
 
@@ -770,7 +775,6 @@ def _process_corpus_crashes(context, result):
         gestures=None,
         redzone=DEFAULT_REDZONE,
         disable_ubsan=False,
-        minidump_keys=None,
         window_argument=None,
         timeout_multiplier=1.0,
         minimized_arguments=minimized_arguments)
@@ -873,26 +877,15 @@ def _save_coverage_information(context, result):
 
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = data_handler.get_fuzz_target(uworker_input.fuzzer_name)
+  fuzz_target = uworker_input.corpus_pruning_task_input.fuzz_target
   task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
                f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
 
-  # Get status of last execution.
-  last_execution_metadata = data_handler.get_task_status(task_name)
   last_execution_failed = (
-      last_execution_metadata and
-      last_execution_metadata.status == data_types.TaskState.ERROR)
+      uworker_input.corpus_pruning_task_input.last_execution_failed)
 
-  # Make sure we're the only instance running for the given fuzzer and
-  # job_type.
-  if not data_handler.update_task_status(task_name,
-                                         data_types.TaskState.STARTED):
-    logs.log('A previous corpus pruning task is still running, exiting.')
-    return uworker_io.UworkerOutput()
-
-  # Setup fuzzer and data bundle.
-  if not setup.update_fuzzer_and_data_bundles(fuzz_target.engine):
+  if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
 
   # TODO(unassigned): Use coverage information for better selection here.
@@ -924,11 +917,36 @@ def utask_main(uworker_input):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  """Runs preprocessing for corpus pruning task."""
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+
+  task_name = f'corpus_pruning_{fuzzer_name}_{job_type}'
+
+  # Get status of last execution.
+  last_execution_metadata = data_handler.get_task_status(task_name)
+  last_execution_failed = bool(
+      last_execution_metadata and
+      last_execution_metadata.status == data_types.TaskState.ERROR)
+
+  # Make sure we're the only instance running for the given fuzzer and
+  # job_type.
+  if not data_handler.update_task_status(task_name,
+                                         data_types.TaskState.STARTED):
+    logs.log('A previous corpus pruning task is still running, exiting.')
+    return None
+
+  corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
+      fuzz_target=fuzz_target, last_execution_failed=last_execution_failed)
+
+  setup_input = (
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
+
   return uworker_io.UworkerInput(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
-  )
+      setup_input=setup_input,
+      corpus_pruning_task_input=corpus_pruning_task_input)
 
 
 def utask_postprocess(output):

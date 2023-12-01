@@ -26,7 +26,7 @@ SANITIZER_START_REGEX = re.compile(r'.*ERROR: [A-Za-z]+Sanitizer:.*')
 SANITIZER_SEPERATOR_REGEX = re.compile(r'^=+$')
 
 
-class StatsGetter(object):
+class StatsGetter:
   """Calculates stats and retreives stats, compiling them into dictionary that
   can be uploaded to ClusterFuzz.
   """
@@ -117,7 +117,7 @@ class StatsGetter(object):
     try:
       afl_stat_value = self.afl_stats[afl_stat_name]
     except KeyError:
-      print("{0} not in AFL's stats file.".format(afl_stat_name))
+      print("{} not in AFL's stats file.".format(afl_stat_name))
       # If afl_stat_value is in AFL_STATS_MAPPING, then get the clusterfuzz name
       # of the stat to lookup the stat's default value.
       clusterfuzz_stat_name = self.AFL_STATS_MAPPING.get(

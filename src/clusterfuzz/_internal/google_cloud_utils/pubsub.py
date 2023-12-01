@@ -35,7 +35,7 @@ Subscription = collections.namedtuple(
     'Subsciption', ['name', 'topic', 'ack_deadline', 'labels'])
 
 
-class Message(object):
+class Message:
   """Pubsub message."""
 
   def __init__(self, data=None, attributes=None):
@@ -64,7 +64,7 @@ class ReceivedMessage(Message):
     self._client.modify_ack_deadline(self.subscription, [self.ack_id], seconds)
 
 
-class PubSubClient(object):
+class PubSubClient:
   """Helper class that provides wrappers around some Pub/Sub functionality."""
 
   def __init__(self, emulator_host=None):
@@ -258,8 +258,7 @@ class PubSubClient(object):
     response = self._execute_with_retry(request)
 
     while True:
-      for subscription in response.get('subscriptions', []):
-        yield subscription
+      yield from response.get('subscriptions', [])
 
       next_page_token = response.get('nextPageToken')
       if not next_page_token:

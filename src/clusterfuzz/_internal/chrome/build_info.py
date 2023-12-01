@@ -26,7 +26,7 @@ BUILD_INFO_URL_CD = ('https://chromiumdash.appspot.com/fetch_releases?'
                      'num=1&platform={platform}')
 
 
-class BuildInfo(object):
+class BuildInfo:
   """BuildInfo holds build metadata pulled from OmahaProxy."""
 
   def __init__(self, platform, build_type, version, revision):

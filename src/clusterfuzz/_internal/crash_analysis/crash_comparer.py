@@ -69,7 +69,7 @@ def longest_common_subsequence(first_frames, second_frames):
   return solution[first_len][second_len]
 
 
-class CrashComparer(object):
+class CrashComparer:
   """Compares two crash results."""
   COMPARE_THRESHOLD = 0.8
   SAME_FRAMES_THRESHOLD = 2

@@ -93,7 +93,10 @@ def _check_commits(testcase, bisect_type, old_commit, new_commit):
         testcase.job_type, 'RELEASE_BUILD_BUCKET_PATH')
   else:
     bucket_path = build_manager.get_primary_bucket_path()
-  revision_list = build_manager.get_revisions_list(bucket_path)
+  # TODO(https://github.com/google/clusterfuzz/issues/3008): This cannot be done
+  # on a uworker, move it to preprocess.
+  bad_revisions = build_manager.get_job_bad_revisions()
+  revision_list = build_manager.get_revisions_list(bucket_path, bad_revisions)
 
   last_tested_revision = testcase.get_metadata('last_tested_crash_revision')
   known_crash_revision = last_tested_revision or testcase.crash_revision

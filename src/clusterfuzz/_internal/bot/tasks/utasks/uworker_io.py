@@ -13,12 +13,14 @@
 # limitations under the License.
 """Module for dealing with input and output (I/O) to a uworker."""
 
+import collections
 import json
 import uuid
 
 from google.cloud import ndb
 from google.cloud.datastore_v1.proto import entity_pb2
 from google.cloud.ndb import model
+from google.protobuf import message
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -100,29 +102,51 @@ def get_proto_fields(proto):
       # This probably occurs after a deploy.
       logs.log_error(f'Error getting proto fields {error}.')
       has_field = False
+    except ValueError:
+      field_value = getattr(proto, field_name, [])
+      yield field_name, field_value, descriptor
+      continue
     if has_field:
       field_value = getattr(proto, field_name)
     else:
       field_value = None
-    yield field_name, field_value
+    yield field_name, field_value, descriptor
+
+
+def deserialize_proto_field(field_value, field_descriptor, is_input):
+  """Converts a proto field |field_value| to a deserialized representation of
+  its contents for use by code outside of this module. The deserialized value
+  can contain real ndb models and other python objects, instead of only the
+  python serialized versions. |field_descriptor| is used to check for repeated
+  fields and can be None."""
+  if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
+    assert not is_input
+    field_value = deserialize_wrapped_entity(field_value)
+  elif isinstance(field_value, uworker_msg_pb2.Json):
+    field_value = json.loads(field_value.serialized)
+  elif isinstance(field_value, entity_pb2.Entity):
+    assert is_input
+    field_value = UworkerEntityWrapper(model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
+  elif field_descriptor is not None and (
+      field_descriptor.label == field_descriptor.LABEL_REPEATED):
+    initial_field_value = field_value
+    # We can pass None as the descriptor because we know it won't be repeated.
+    field_value = [
+        deserialize_proto_field(element, None, is_input)
+        for element in initial_field_value
+    ]
+  elif isinstance(field_value, message.Message):
+    # This must come last! Otherwise it subsumes more specific types.
+    field_value = proto_to_deserialized_msg_object(field_value, is_input)
+  return field_value
 
 
 def deserialize_uworker_input(serialized_uworker_input):
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
   uworker_input_proto.ParseFromString(serialized_uworker_input)
-  uworker_input = DeserializedUworkerMsg()
-  # Use get_proto_fields, so we can be sure we never get an attribute error,
-  # trying to access a field in uworker_input, that would not give us an error
-  # if we accessed it in uworker_proto_input.
-  for field_name, field_value in get_proto_fields(uworker_input_proto):
-    if isinstance(field_value, entity_pb2.Entity):
-      field_value = UworkerEntityWrapper(
-          model._entity_from_protobuf(field_value))  # pylint: disable=protected-access
-    elif isinstance(field_value, uworker_msg_pb2.Json):
-      field_value = json.loads(field_value.serialized)
-
-    setattr(uworker_input, field_name, field_value)
+  uworker_input = proto_to_deserialized_msg_object(
+      uworker_input_proto, is_input=True)
   return uworker_input
 
 
@@ -164,7 +188,7 @@ def serialize_uworker_output(uworker_output_obj):
 
 def serialize_wrapped_entity(wrapped_entity):
   entity_proto = model._entity_to_protobuf(wrapped_entity._entity)  # pylint: disable=protected-access
-  changed = json.dumps(list(wrapped_entity._wrapped_changed_attributes.keys()))  # pylint: disable=protected-access
+  changed = json.dumps(list(wrapped_entity.get_changed_attrs()))  # pylint: disable=protected-access
   changed = uworker_msg_pb2.Json(serialized=changed)
   wrapped_entity_proto = uworker_msg_pb2.UworkerEntityWrapper(
       entity=entity_proto, changed=changed)
@@ -178,9 +202,10 @@ def serialize_and_upload_uworker_output(uworker_output, upload_url):
 
 
 def download_input_based_on_output_url(output_url):
-  # Get the portion that does not contain ".output".
   input_url = uworker_output_path_to_input_path(output_url)
   serialized_uworker_input = storage.read_data(input_url)
+  if serialized_uworker_input is None:
+    logs.log_error(f'No corresponding input for output: {output_url}.')
   return deserialize_uworker_input(serialized_uworker_input)
 
 
@@ -194,7 +219,6 @@ def download_and_deserialize_uworker_output(output_url: str):
   # tamper with it.
   uworker_input = download_input_based_on_output_url(output_url)
 
-  uworker_output.uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
   uworker_output.uworker_input = uworker_input
   return uworker_output
 
@@ -214,6 +238,19 @@ def deserialize_wrapped_entity(wrapped_entity_proto):
   return original_entity
 
 
+def proto_to_deserialized_msg_object(serialized_msg_proto, is_input):
+  """Converts a |serialized_msg_proto| to a deserialized representation of its
+  contents for use by code outside of this module. The deserialized object can
+  contain real ndb models and other python objects, instead of only the python
+  serialized versions."""
+  deserialized_msg = DeserializedUworkerMsg()
+  for field_name, field_value, descriptor in get_proto_fields(
+      serialized_msg_proto):
+    field_value = deserialize_proto_field(field_value, descriptor, is_input)
+    setattr(deserialized_msg, field_name, field_value)
+  return deserialized_msg
+
+
 def deserialize_uworker_output(uworker_output_str):
   """Deserializes uworker's execute output for postprocessing. Returns a dict
   that can be passed as kwargs to postprocess. Changes made db entities that
@@ -222,14 +259,8 @@ def deserialize_uworker_output(uworker_output_str):
   # Deserialize the proto.
   uworker_output_proto = uworker_msg_pb2.Output()
   uworker_output_proto.ParseFromString(uworker_output_str)
-
-  # Convert the proto to a Python object that can contain real ndb models and
-  # other python objects, instead of only the python serialized versions.
-  uworker_output = DeserializedUworkerMsg()
-  for field_name, field_value in get_proto_fields(uworker_output_proto):
-    if isinstance(field_value, uworker_msg_pb2.UworkerEntityWrapper):
-      field_value = deserialize_wrapped_entity(field_value)
-    setattr(uworker_output, field_name, field_value)
+  uworker_output = proto_to_deserialized_msg_object(
+      uworker_output_proto, is_input=False)
   return uworker_output
 
 
@@ -247,25 +278,46 @@ class UworkerEntityWrapper:
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Deal with key
     # which won't be possible to set on a model when there's no datastore
     # connection.
-    self._wrapped_changed_attributes = {}
+    self._wrapped_changed_attributes = set()
+    self._wrapper_initial_dict = self._entity.__dict__['_values'].copy()
 
   def __getattr__(self, attribute):
-    if attribute in ['_entity', '_wrapped_changed_attributes']:
+    if attribute in [
+        '_entity', '_wrapped_changed_attributes', '_wrapper_initial_dict'
+    ]:
       # Allow setting and changing _entity and _wrapped_changed_attributes.
       # Stack overflow in __init__ otherwise.
       return super().__getattr__(attribute)  # pylint: disable=no-member
     return getattr(self._entity, attribute)
 
   def __setattr__(self, attribute, value):
-    if attribute in ['_entity', '_wrapped_changed_attributes']:
+    if attribute in [
+        '_entity', '_wrapped_changed_attributes', '_wrapper_initial_dict'
+    ]:
       # Allow setting and changing _entity. Stack overflow in __init__
       # otherwise.
       super().__setattr__(attribute, value)
       return
-    # Record the attribute change.
-    self._wrapped_changed_attributes[attribute] = value
-    # Make the attribute change.
+    self._wrapped_changed_attributes.add(attribute)
     setattr(self._entity, attribute, value)
+
+  def get_changed_attrs(self):
+    """Gets changed attributes."""
+    # TODO(metzman): Use __dict__ comparision method in get_changed_attrs to
+    # track all changes.
+    # Get attributes changed by methods too.
+    current_dict = self._entity.__dict__['_values']
+    changed = self._wrapped_changed_attributes.copy()
+    wrapper_initial_dict = self._wrapper_initial_dict
+    for key, value in wrapper_initial_dict.items():
+      if key in changed:
+        continue
+      try:
+        if value != current_dict[key]:
+          changed.add(key)
+      except KeyError:
+        changed.add(key)
+    return changed
 
 
 class UworkerMsg:
@@ -279,6 +331,8 @@ class UworkerMsg:
     self.proto = self.PROTO_CLS()  # pylint: disable=not-callable
     for key, value in kwargs.items():
       setattr(self, key, value)
+
+    assert self.PROTO_CLS is not None
 
   def __getattr__(self, attribute):
     if attribute in ['proto']:
@@ -310,6 +364,36 @@ class UworkerMsg:
     return self.proto.SerializeToString()
 
 
+class FuzzTaskOutput(UworkerMsg):
+  """Class representing an unserialized FuzzTaskOutput message from
+  fuzz_task."""
+
+  PROTO_CLS = uworker_msg_pb2.FuzzTaskOutput
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
+class ProgressionTaskOutput(UworkerMsg):
+  """Class representing an unserialized ProgressionTaskOutput message from
+  fuzz_task."""
+
+  PROTO_CLS = uworker_msg_pb2.ProgressionTaskOutput
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
 def save_json_field(field, value):
   serialized_json = uworker_msg_pb2.Json(serialized=json.dumps(value))
   field.CopyFrom(serialized_json)
@@ -326,9 +410,15 @@ class UworkerOutput(UworkerMsg):
       save_json_field(field, value)
       return
 
-    # TODO(metzman): Remove this once everything is migrated.
+    # TODO(metzman): Remove this once everything is migrated. This is only
+    # needed because some functions need to support utasks and non-utasks at the
+    # same time.
     if isinstance(value, uworker_msg_pb2.Input):
       field.CopyFrom(value)
+      return
+
+    if isinstance(value, UworkerMsg):
+      field.CopyFrom(value.proto)
       return
 
     if not isinstance(value, UworkerEntityWrapper):
@@ -336,6 +426,20 @@ class UworkerOutput(UworkerMsg):
 
     wrapped_entity_proto = serialize_wrapped_entity(value)
     field.CopyFrom(wrapped_entity_proto)
+
+
+class BuildData(UworkerMsg):
+  """Class representing an unserialized ProgressionTaskOutput message from
+  fuzz_task."""
+  PROTO_CLS = uworker_msg_pb2.BuildData
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
 
 class UworkerInput(UworkerMsg):
@@ -349,6 +453,20 @@ class UworkerInput(UworkerMsg):
       save_json_field(field, value)
       return
 
+    if isinstance(field, collections.abc.Sequence):
+      # This the way to tell if it's a repeated field.
+      # We can't get the type of the repeated field directly.
+      value = list(value)
+      if len(value) == 0:
+        return
+      assert isinstance(value[0], ndb.Model), value[0]
+      field.extend([model._entity_to_protobuf(entity) for entity in value])  # pylint: disable=protected-access
+      return
+
+    if isinstance(value, UworkerMsg):
+      field.CopyFrom(value.proto)
+      return
+
     if not isinstance(value, ndb.Model):
       raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
 
@@ -356,10 +474,79 @@ class UworkerInput(UworkerMsg):
     field.CopyFrom(entity_proto)
 
 
+class SetupInput(UworkerInput):
+  """Input for setup.update_fuzzer_and_data_bundle and setup.setup_testcase in
+  uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.SetupInput
+
+
+class AnalyzeTaskInput(UworkerInput):
+  """Input for analyze_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.AnalyzeTaskInput
+
+
+class FuzzTaskInput(UworkerInput):
+  """Input for fuzz_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.FuzzTaskInput
+
+
+class MinimizeTaskInput(UworkerInput):
+  """Input for minimize_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.MinimizeTaskInput
+
+
+class RegressionTaskInput(UworkerInput):
+  """Input for regression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.RegressionTaskInput
+
+
+class ProgressionTaskInput(UworkerInput):
+  """Input for progression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.ProgressionTaskInput
+
+
+class CorpusPruningTaskInput(UworkerInput):
+  """Input for corpus_pruning_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.CorpusPruningTaskInput
+
+
+class AnalyzeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from analyze_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.AnalyzeTaskOutput
+
+
+class MinimizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from minimize_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.MinimizeTaskOutput
+
+  def save_rich_type(self, attribute, value):
+    field = getattr(self.proto, attribute)
+    if isinstance(value, (dict, list)):
+      save_json_field(field, value)
+      return
+
+    raise ValueError(f'{value} is of type {type(value)}. Can\'t serialize.')
+
+
+class RegressionTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from regression_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.RegressionTaskOutput
+
+
+class VariantTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from variant_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.VariantTaskOutput
+
+
+class SymbolizeTaskOutput(UworkerMsg):  # pylint: disable=abstract-method
+  """Output from symbolize_task.uworker_main."""
+  PROTO_CLS = uworker_msg_pb2.SymbolizeTaskOutput
+
+
 class DeserializedUworkerMsg:
 
-  def __init__(self, testcase=None, error=None, **kwargs):
+  def __init__(self, testcase=None, error_type=None, **kwargs):
     self.testcase = testcase
-    self.error = error
+    self.error_type = error_type
     for key, value in kwargs.items():
       setattr(self, key, value)

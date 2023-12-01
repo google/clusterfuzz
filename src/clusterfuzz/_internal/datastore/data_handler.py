@@ -22,6 +22,7 @@ import time
 
 from google.cloud import ndb
 
+from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import memoize
@@ -109,13 +110,20 @@ def get_domain():
 
 
 def get_testcase_by_id(testcase_id):
-  """Return the testcase with the given id, or None if it does not exist."""
-  if not testcase_id or not str(testcase_id).isdigit() or int(testcase_id) == 0:
-    raise errors.InvalidTestcaseError
+  """Return the testcase with the given id.
+  Raises InvalidTestcaseError if no such testcase exists.
+  """
+  try:
+    parsed_id = int(testcase_id)
+  except ValueError:
+    raise errors.InvalidTestcaseError(testcase_id)
 
-  testcase = ndb.Key(data_types.Testcase, int(testcase_id)).get()
+  if parsed_id == 0:
+    raise errors.InvalidTestcaseError(0)
+
+  testcase = ndb.Key(data_types.Testcase, parsed_id).get()
   if not testcase:
-    raise errors.InvalidTestcaseError
+    raise errors.InvalidTestcaseError(parsed_id)
 
   return testcase
 
@@ -124,16 +132,37 @@ def find_testcase(project_name,
                   crash_type,
                   crash_state,
                   security_flag,
-                  testcase_to_exclude=None):
+                  testcase_to_exclude=None,
+                  fuzz_target=None):
   """Find an open test case matching certain parameters."""
   # Prepare the query.
-  query = data_types.Testcase.query(
+  query_args = [
       data_types.Testcase.project_name == project_name,
       data_types.Testcase.crash_type == crash_type,
       data_types.Testcase.crash_state == crash_state,
       data_types.Testcase.security_flag == security_flag,
       data_types.Testcase.status == 'Processed',
-      ndb_utils.is_true(data_types.Testcase.open))
+      ndb_utils.is_true(data_types.Testcase.open)
+  ]
+  if fuzz_target and environment.get_value('DEDUP_ONLY_SAME_TARGET'):
+    culprit_engine = None
+    target_without_engine = None
+    for engine in fuzzing.PUBLIC_ENGINES:
+      if fuzz_target.startswith(f'{engine}_'):
+        culprit_engine = engine
+        target_without_engine = fuzz_target[len(culprit_engine) + 1:]
+        break
+      target_with_different_engines = []
+      assert culprit_engine
+
+    target_with_different_engines = [
+        f'{engine}_{target_without_engine}' for engine in fuzzing.PUBLIC_ENGINES
+    ]
+    query_args.append(
+        data_types.Testcase.overridden_fuzzer_name.IN(
+            target_with_different_engines))
+
+  query = data_types.Testcase.query(*query_args)
 
   # Return any open (not fixed) test cases if they exist.
   testcases = ndb_utils.get_all_from_query(query)
@@ -607,7 +636,8 @@ def handle_duplicate_entry(testcase):
       testcase.crash_type,
       testcase.crash_state,
       testcase.security_flag,
-      testcase_to_exclude=testcase)
+      testcase_to_exclude=testcase,
+      fuzz_target=testcase.fuzzer_name)
   if not existing_testcase:
     return
 
@@ -653,11 +683,10 @@ def handle_duplicate_entry(testcase):
              (existing_testcase_id, testcase_id))
 
 
-def is_first_retry_for_task(testcase, reset_after_retry=False):
+def is_first_attempt_for_task(task_name, testcase, reset_after_retry=False):
   """Returns true if this task is tried atleast once. Only applicable for
   analyze and progression tasks."""
-  task_name = environment.get_value('TASK_NAME')
-  retry_key = '%s_retry' % task_name
+  retry_key = f'{task_name}_retry'
   retry_flag = testcase.get_metadata(retry_key)
   if not retry_flag:
     # Update the metadata key since now we have tried it once.
@@ -706,8 +735,8 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    one_time_crasher_flag, crash_revision, comment,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
                    job_type, archived, archive_filename, http_flag, gestures,
-                   redzone, disable_ubsan, minidump_keys, window_argument,
-                   timeout_multiplier, minimized_arguments):
+                   redzone, disable_ubsan, window_argument, timeout_multiplier,
+                   minimized_arguments):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -747,7 +776,6 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.gestures = gestures
   testcase.redzone = redzone
   testcase.disable_ubsan = disable_ubsan
-  testcase.minidump_keys = minidump_keys
   testcase.window_argument = window_argument
   testcase.timeout_multiplier = float(timeout_multiplier)
   testcase.minimized_arguments = minimized_arguments
@@ -755,6 +783,11 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
 
   # Set metadata fields (e.g. build url, build key, platform string, etc).
   set_initial_testcase_metadata(testcase)
+
+  # Set crash metadata.
+  # TODO(https://github.com/google/clusterfuzz/pull/3333#discussion_r1369199761)
+  if hasattr(crash, 'crash_categories') and crash.crash_categories:
+    testcase.set_metadata('crash_categories', list(crash.crash_categories))
 
   # Update the comment and save testcase.
   update_testcase_comment(testcase, data_types.TaskState.NA, comment)

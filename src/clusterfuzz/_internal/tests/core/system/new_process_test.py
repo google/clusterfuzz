@@ -17,15 +17,14 @@
 import queue
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.system import new_process
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-class Signal(object):
+class Signal:
   TERM = 0
   KILL = 1
 
@@ -40,7 +39,7 @@ def mock_popen_factory(execute_time,
                        return_code=0):
   """Create a mock popen."""
 
-  class MockPopen(object):
+  class MockPopen:
     """Mock subprocess.Popen."""
     received_signals = []
 

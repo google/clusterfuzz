@@ -33,6 +33,7 @@ def _extension(platform):
 def run():
   """Run custom platform specific init scripts."""
   platform = environment.platform().lower()
+  platform = environment.base_platform(platform)
   script_path = os.path.join(environment.get_config_directory(), SCRIPT_DIR,
                              platform + _extension(platform))
   if not os.path.exists(script_path):

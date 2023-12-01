@@ -18,15 +18,12 @@ import json
 import unittest
 from unittest import mock
 
-import flask
-import webtest
-
+from clusterfuzz._internal.cron import oss_fuzz_build_status
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail.issue import Issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import oss_fuzz_build_status
-from libs.issue_management import monorail
-from libs.issue_management.monorail.issue import Issue
 
 
 class MockResponse:
@@ -67,16 +64,10 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
   """Tests for oss_fuzz_build_status."""
 
   def setUp(self):
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/build-status',
-        view_func=oss_fuzz_build_status.Handler.as_view('/build-status'))
-    self.app = webtest.TestApp(flaskapp)
-
     test_helpers.patch(self, [
         'clusterfuzz._internal.base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
-        'libs.issue_management.issue_tracker_utils.get_issue_tracker',
+        'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_tracker',
         'clusterfuzz._internal.metrics.logs.log_error',
         'requests.get',
     ])
@@ -116,7 +107,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
             ]
         }))
 
-    self.app.get('/build-status')
+    oss_fuzz_build_status.main()
     self.assertEqual(0, data_types.OssFuzzBuildFailure.query().count())
     self.assertEqual(0, len(self.itm.issues))
 
@@ -327,7 +318,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     data_types.OssFuzzProject(
         id='proj6', name='proj7', ccs=['b@user.com']).put()
 
-    self.app.get('/build-status')
+    oss_fuzz_build_status.main()
     self.assertCountEqual([
         {
             'build_type': 'fuzzing',
@@ -453,7 +444,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.itm.issues[1] = issue
 
-    self.app.get('/build-status')
+    oss_fuzz_build_status.main()
     self.assertEqual(0, data_types.OssFuzzBuildFailure.query().count())
 
     issue = self.itm.issues[1]
@@ -518,7 +509,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
           }))
 
     self.mock.get.side_effect = _mock_requests_get
-    self.app.get('/build-status')
+    oss_fuzz_build_status.main()
     self.mock.log_error.assert_has_calls([
         mock.call('proj0 has not been built in fuzzing config for 2 days.'),
         mock.call('proj1 has not been built in coverage config for 2 days.')
@@ -548,7 +539,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         consecutive_failures=2,
         build_type='fuzzing').put()
 
-    self.app.get('/build-status')
+    oss_fuzz_build_status.main()
     self.assertCountEqual([
         {
             'build_type': 'fuzzing',
@@ -612,7 +603,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
     self.itm.issues[1] = Issue()
     self.itm.issues[2] = Issue()
 
-    self.app.get('/build-status')
+    oss_fuzz_build_status.main()
     self.assertEqual(
         'Friendly reminder that the build is still failing.\n'
         'Please try to fix this failure to ensure that fuzzing remains '

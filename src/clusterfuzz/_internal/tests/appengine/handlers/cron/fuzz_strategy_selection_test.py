@@ -18,10 +18,10 @@ import json
 import os
 import unittest
 
+from clusterfuzz._internal.cron import fuzz_strategy_selection
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import fuzz_strategy_selection
 
 DATA_DIRECTORY = os.path.join(
     os.path.dirname(__file__), 'fuzz_strategy_selection_data')
@@ -36,9 +36,9 @@ class TestFuzzStrategySelection(unittest.TestCase):
     """Set up method strategy distribution calculation tests."""
     test_helpers.patch_environ(self)
     test_helpers.patch(self, [
-        'handlers.cron.fuzz_strategy_selection.'
+        'clusterfuzz._internal.cron.fuzz_strategy_selection.'
         '_query_multi_armed_bandit_probabilities',
-        'handlers.cron.fuzz_strategy_selection.'
+        'clusterfuzz._internal.cron.fuzz_strategy_selection.'
         '_store_probabilities_in_bigquery'
     ])
     self.mock._query_multi_armed_bandit_probabilities.return_value = json.load(

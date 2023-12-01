@@ -13,21 +13,22 @@
 # limitations under the License.
 """update_issue tests."""
 import unittest
+from unittest import mock
 
 import flask
-import mock
 import webtest
 
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.issue_management import issue_tracker_policy
+from clusterfuzz._internal.issue_management import monorail
+from clusterfuzz._internal.issue_management.monorail import \
+    issue_tracker_manager
+from clusterfuzz._internal.issue_management.monorail import issue
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 from handlers.testcase_detail import update_issue
 from libs import access
 from libs import form
-from libs.issue_management import issue_tracker_policy
-from libs.issue_management import monorail
-from libs.issue_management.monorail import issue
-from libs.issue_management.monorail import issue_tracker_manager
 
 CHROMIUM_POLICY = issue_tracker_policy.IssueTrackerPolicy({
     'status': {
@@ -59,8 +60,8 @@ class HandlerTest(unittest.TestCase):
         'libs.auth.get_current_user',
         'handlers.testcase_detail.show.get_testcase_detail',
         'libs.access.get_access',
-        'libs.issue_management.issue_tracker_policy.get',
-        'libs.issue_management.issue_filer.get_memory_tool_labels',
+        'clusterfuzz._internal.issue_management.issue_tracker_policy.get',
+        'clusterfuzz._internal.issue_management.issue_filer.get_memory_tool_labels',
     ])
     self.mock.get_access.return_value = access.UserAccess.Allowed
     self.mock.get_testcase_detail.return_value = {'testcase': 'yes'}

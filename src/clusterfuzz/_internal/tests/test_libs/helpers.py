@@ -15,12 +15,10 @@
 
 import os
 import time
-import types
-
-import mock
+from unittest import mock
 
 
-class Matcher(object):
+class Matcher:
   # pylint: disable=line-too-long
   """A class used for argument matching.
 
@@ -37,24 +35,8 @@ class Matcher(object):
 
 
 # _Object is needed because we want to add attribute to its instance.
-class _Object(object):
+class _Object:
   pass
-
-
-# A @staticmethod method cannot be mocked,
-# e.g. `GoogleCredentials.get_application_default()`. It has been fixed in
-# Python 3 (http://bugs.python.org/issue23078).
-# pylint: disable=protected-access
-if not hasattr(mock.mock._callable, 'patched'):
-  original_callable = mock.mock._callable
-
-  def new_callable(obj):
-    if isinstance(obj, (staticmethod, classmethod, types.MethodType)):
-      return original_callable(obj.__func__)
-    return original_callable(obj)
-
-  new_callable.patched = True
-  mock.mock._callable = new_callable
 
 
 def patch(testcase_obj, names):
@@ -100,7 +82,7 @@ def patch_environ(testcase_obj, env=None):
   patcher.start()
 
 
-class MockTime(object):
+class MockTime:
   """Mock time because we cannot really mock time.time()."""
 
   def __init__(self, start_time=None):

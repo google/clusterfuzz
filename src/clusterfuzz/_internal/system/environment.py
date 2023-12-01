@@ -171,7 +171,6 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 
   # Enable stack use-after-return.
   asan_options['detect_stack_use_after_return'] = 1
-  asan_options['max_uar_stack_size_log'] = 16
 
   # Other less important default options for all cases.
   asan_options.update({
@@ -748,6 +747,11 @@ def parse_environment_definition(environment_string):
   return values
 
 
+def base_platform(override):
+  """Return the base platform when an override is provided."""
+  return override.split(':')[0]
+
+
 def platform():
   """Return the operating system type, unless an override is provided."""
   environment_override = get_value('OS_OVERRIDE')
@@ -821,7 +825,7 @@ def set_environment_parameters_from_file(file_path):
   if not os.path.exists(file_path):
     return
 
-  with open(file_path, 'r') as f:
+  with open(file_path) as f:
     file_data = f.read()
 
   for line in file_data.splitlines():
@@ -1107,7 +1111,7 @@ def is_android_kernel(plt=None):
 
 def is_android_real_device():
   """Return True if we are on a real android device."""
-  return platform() == 'ANDROID'
+  return base_platform(platform()) == 'ANDROID'
 
 
 def is_lib():
@@ -1117,3 +1121,16 @@ def is_lib():
 
 def is_i386(job_type):
   return '_i386' in job_type
+
+
+def if_redis_available(func):
+  """Wrap a function if redis is available and return None if not."""
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    if get_value('REDIS_HOST'):
+      return func(*args, **kwargs)
+
+    return None
+
+  return wrapper

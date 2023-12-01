@@ -38,14 +38,14 @@ HANDLE_CACHE_KEY = 'undercoat-handles'
 
 def add_running_handle(handle):
   """Record a handle as potentially needing to be cleaned up on restart."""
-  new_handle_list = list(set(get_running_handles()) | set([handle]))
+  new_handle_list = list(set(get_running_handles()) | {handle})
   persistent_cache.set_value(
       HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
 
 
 def remove_running_handle(handle):
   """Remove a handle from the tracked set."""
-  new_handle_list = list(set(get_running_handles()) - set([handle]))
+  new_handle_list = list(set(get_running_handles()) - {handle})
   persistent_cache.set_value(
       HANDLE_CACHE_KEY, new_handle_list, persist_across_reboots=True)
 

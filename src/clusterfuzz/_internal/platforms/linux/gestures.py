@@ -14,6 +14,7 @@
 """Gestures related functions."""
 
 import random
+import shutil
 import time
 
 from clusterfuzz._internal.base import utils
@@ -31,7 +32,7 @@ SCREEN_HEIGHT = 1024
 
 def _xdotool_path():
   """Return full path to xdotool."""
-  return shell.which('xdotool')
+  return shutil.which('xdotool')
 
 
 def find_windows_for_process(process_id):

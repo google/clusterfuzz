@@ -15,8 +15,7 @@
 
 import datetime
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query

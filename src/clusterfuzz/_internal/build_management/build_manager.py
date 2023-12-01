@@ -81,6 +81,12 @@ FUZZ_TARGET_ALLOWLISTED_PREFIXES = [
     'jazzer_driver',
     'jazzer_driver_with_sanitizer',
     'llvm-symbolizer',
+    # crbug.com/1471427: chrome_crashpad_handler is needed for fuzzers that are
+    # spawning the full chrome browser.
+    'chrome_crashpad_handler',
+    # This is part of the chrome archives. This directory contains all sort of
+    # data needed by tests that initially exist in the source tree.
+    'src_root',
 ]
 
 # Time for unpacking a build beyond which an error should be logged.
@@ -338,11 +344,28 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
   platform = environment.platform()
   absolute_file_path = None
   app_directory = None
+  use_default_llvm_symbolizer = environment.get_value(
+      'USE_DEFAULT_LLVM_SYMBOLIZER')
 
   # Chromium specific folder to ignore.
   initialexe_folder_path = f'{os.path.sep}initialexe'
 
+  logs.log('\n'.join([
+      'Walking build directory to find files and set environment variables.',
+      f'Environment prefix: {env_prefix!r}',
+      f'App path environment variable name: {app_path!r}',
+      f'App name: {app_name!r}',
+      f'LLVM symbolizer file name: {llvm_symbolizer_filename!r}',
+      f'Use default LLVM symbolizer: {use_default_llvm_symbolizer}',
+  ]))
+
+  def set_env_var(name, value):
+    full_name = env_prefix + name
+    logs.log(f'Setting environment variable: {full_name} = {value}')
+    environment.set_value(full_name, value)
+
   for search_directory in search_directories:
+    logs.log(f'Searching in directory: {search_directory}')
     for root, _, files in shell.walk(search_directory):
       # .dSYM folder contain symbol files on Mac and should
       # not be searched for application binary.
@@ -362,19 +385,21 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
           if not environment.get_value('SYSTEM_BINARY_DIR'):
             os.chmod(absolute_file_path, 0o750)
 
-          environment.set_value(env_prefix + app_path, absolute_file_path)
-          environment.set_value(env_prefix + 'APP_DIR', app_directory)
+          set_env_var(app_path, absolute_file_path)
+          set_env_var('APP_DIR', app_directory)
 
         if not gn_args_path and filename == gn_args_filename:
           gn_args_path = os.path.join(root, gn_args_filename)
-          environment.set_value(env_prefix + 'GN_ARGS_PATH', gn_args_path)
+          set_env_var('GN_ARGS_PATH', gn_args_path)
 
         if (not llvm_symbolizer_path and
             filename == llvm_symbolizer_filename and
-            not environment.get_value('USE_DEFAULT_LLVM_SYMBOLIZER')):
+            not use_default_llvm_symbolizer):
           llvm_symbolizer_path = os.path.join(root, llvm_symbolizer_filename)
-          environment.set_value(env_prefix + 'LLVM_SYMBOLIZER_PATH',
-                                llvm_symbolizer_path)
+          set_env_var('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
+
+  if not absolute_file_path:
+    logs.log_error(f'Could not find app {app_name!r} in search directories.')
 
 
 class BaseBuild:
@@ -1104,9 +1129,10 @@ def get_primary_bucket_path():
       'needs to be defined.')
 
 
-def get_revisions_list(bucket_path, testcase=None):
+def get_revisions_list(bucket_path, bad_revisions, testcase=None):
   """Returns a sorted ascending list of revisions from a bucket path, excluding
-  bad build revisions and testcase crash revision (if any)."""
+  bad build revisions. Testcase crash revision is not excluded from the list
+  even if it appears in the bad_revisions list."""
   revision_pattern = revisions.revision_pattern_from_build_bucket_path(
       bucket_path)
 
@@ -1122,23 +1148,28 @@ def get_revisions_list(bucket_path, testcase=None):
       revision = revisions.convert_revision_to_integer(match.group(1))
       revision_list.append(revision)
 
-  # Remove revisions for bad builds from the revision list.
-  job_type = environment.get_value('JOB_NAME')
-  bad_builds = ndb_utils.get_all_from_query(
-      data_types.BuildMetadata.query(
-          ndb_utils.is_true(data_types.BuildMetadata.bad_build),
-          data_types.BuildMetadata.job_type == job_type))
-  for bad_build in bad_builds:
+  for bad_revision in bad_revisions:
     # Don't remove testcase revision even if it is in bad build list. This
     # usually happens when a bad bot sometimes marks a particular revision as
     # bad due to flakiness.
-    if testcase and bad_build.revision == testcase.crash_revision:
+    if testcase and bad_revision == testcase.crash_revision:
       continue
 
-    if bad_build.revision in revision_list:
-      revision_list.remove(bad_build.revision)
+    if bad_revision in revision_list:
+      revision_list.remove(bad_revision)
 
   return revision_list
+
+
+def get_job_bad_revisions():
+  job_type = environment.get_value('JOB_NAME')
+
+  bad_builds = list(
+      ndb_utils.get_all_from_query(
+          data_types.BuildMetadata.query(
+              ndb_utils.is_true(data_types.BuildMetadata.bad_build),
+              data_types.BuildMetadata.job_type == job_type)))
+  return [build.revision for build in bad_builds]
 
 
 def _base_fuzz_target_name(target_name):
@@ -1444,8 +1475,9 @@ def setup_build(revision=0, target_weights=None):
 
 def is_custom_binary():
   """Determine if this is a custom or preinstalled system binary."""
-  return (environment.get_value('CUSTOM_BINARY') or
-          environment.get_value('SYSTEM_BINARY_DIR'))
+  return bool(
+      environment.get_value('CUSTOM_BINARY') or
+      environment.get_value('SYSTEM_BINARY_DIR'))
 
 
 def has_symbolized_builds():
@@ -1512,12 +1544,18 @@ def get_rpaths(binary_path):
   return []
 
 
-def check_app_path(app_path='APP_PATH'):
+def check_app_path(app_path='APP_PATH') -> bool:
   """Check if APP_PATH is properly set."""
   # If APP_NAME is not set (e.g. for grey box jobs), then we don't need
   # APP_PATH.
-  return (not environment.get_value('APP_NAME') or
-          environment.get_value(app_path))
+  if not environment.get_value('APP_NAME'):
+    logs.log('APP_NAME is not set.')
+    return True
+  logs.log('APP_NAME is set.')
+
+  app_path_value = environment.get_value(app_path)
+  logs.log(f'app_path: {app_path} {app_path_value}')
+  return bool(app_path_value)
 
 
 def get_bucket_path(name):

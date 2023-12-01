@@ -19,9 +19,9 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from libs import auth
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 
 
 def _is_privileged_user(email):

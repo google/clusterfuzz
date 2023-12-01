@@ -43,7 +43,6 @@ from clusterfuzz._internal.bot.fuzzers.afl import stats
 from clusterfuzz._internal.bot.fuzzers.afl.fuzzer import write_dummy_file
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
@@ -77,7 +76,7 @@ class AflOptionType(enum.Enum):
 AflOption = collections.namedtuple('AflOption', ['name', 'type'])
 
 
-class AflConfig(object):
+class AflConfig:
   """Helper class that determines the arguments that should be passed to
   afl-fuzz, environment variables that should be set before running afl-fuzz,
   and the number of persistent executions that should be passed to the target
@@ -159,7 +158,7 @@ class AflConfig(object):
     self.additional_afl_arguments.append(constants.DICT_FLAG + self.dict_path)
 
 
-class AflFuzzOutputDirectory(object):
+class AflFuzzOutputDirectory:
   """Helper class used by AflRunner to deal with AFL's output directory and its
   contents (ie: the -o argument to afl-fuzz)."""
 
@@ -276,7 +275,7 @@ class AflAndroidFuzzOutputDirectory(AflFuzzOutputDirectory):
     super().copy_crash_if_needed(testcase_path)
 
 
-class FuzzingStrategies(object):
+class FuzzingStrategies:
   """Helper class used by AflRunner classes to decide what strategy to use
   and to record the decision for StatsGetter to use later."""
 
@@ -288,22 +287,33 @@ class FuzzingStrategies(object):
   ]
 
   # Probabilty for arithmetic CMPLOG calculations.
-  CMPLOG_ARITH_PROB = 0.1
+  CMPLOG_ARITH_PROB = 0.4
 
   # Probability for transforming CMPLOG solving.
   CMPLOG_TRANS_PROB = 0.1
+
+  # Probability for extreme CMPLOG solving.
+  CMPLOG_XTREME_PROB = 0.05
 
   # Probability for randomized coloring.
   CMPLOG_RAND_PROB = 0.1
 
   # Probability to disable trimming. (AFL_DISABLE_TRIM=1)
-  DISABLE_TRIM_PROB = 0.75
+  DISABLE_TRIM_PROB = 0.70
 
   # Probability to keep long running finds. (AFL_KEEP_TIMEOUTS=1)
-  KEEP_TIMEOUTS_PROB = 0.5
+  KEEP_TIMEOUTS_PROB = 0.7
 
   # Probability for increased havoc intensity. (AFL_EXPAND_HAVOC_NOW=1)
   EXPAND_HAVOC_PROB = 0.5
+
+  # Probability for a fixed mutation type. (-P)
+  MUTATION_PROB = 0.5
+  MUTATION_EXPLORE_PROB = 0.75
+
+  # PROBABILITY for input type. (-a)
+  INPUT_PROB = 0.4
+  INPUT_ASCII_PROB = 0.3
 
   # Probability to use the MOpt mutator. (-L0)
   MOPT_PROB = 0.4
@@ -382,7 +392,7 @@ class FuzzingStrategies(object):
     return strategies_dict
 
 
-class AflFuzzInputDirectory(object):
+class AflFuzzInputDirectory:
   """Helper class used by AflRunner to deal with the input directory passed to
   afl-fuzz as the -i argument.
   """
@@ -435,7 +445,7 @@ class AflFuzzInputDirectory(object):
 # pylint: disable=no-member
 
 
-class AflRunnerCommon(object):
+class AflRunnerCommon:
   """Afl runner common routines."""
 
   # Window of time for afl to exit gracefully before we kill it.
@@ -553,7 +563,7 @@ class AflRunnerCommon(object):
             utils.read_from_handle_truncated(file_handle, MAX_OUTPUT_LEN))
 
       self._fuzzer_stderr = get_first_stacktrace(stderr_data)
-    except IOError:
+    except OSError:
       self._fuzzer_stderr = ''
     return self._fuzzer_stderr
 
@@ -569,6 +579,7 @@ class AflRunnerCommon(object):
     environment.set_value(constants.SKIP_CRASHES_ENV_VAR, 1)
     environment.set_value(constants.BENCH_UNTIL_CRASH_ENV_VAR, 1)
     environment.set_value(constants.SKIP_CPUFREQ_ENV_VAR, 1)
+    environment.set_value(constants.IGNORE_SEED_PROBLEMS, 1)
 
     stderr_file_path = self.stderr_file_path
     if environment.is_android():
@@ -755,14 +766,14 @@ class AflRunnerCommon(object):
     (calculated using |max_total_time|).
     """
     if max_total_time <= 0:
-      logs.log_error('Tried fuzzing for {0} seconds. Not retrying'.format(
+      logs.log_error('Tried fuzzing for {} seconds. Not retrying'.format(
           self.initial_max_total_time))
 
       return False
 
     if num_retries > self.MAX_FUZZ_RETRIES:
       logs.log_error(
-          'Tried to retry fuzzing {0} times. Fuzzer is likely broken'.format(
+          'Tried to retry fuzzing {} times. Fuzzer is likely broken'.format(
               num_retries))
 
       return False
@@ -869,6 +880,24 @@ class AflRunnerCommon(object):
       # Select the CMPLOG level (even if no cmplog is used, it does not hurt).
       self.set_arg(fuzz_args, constants.CMPLOG_LEVEL_FLAG,
                    rand_cmplog_level(self.strategies))
+
+      if engine_common.decide_with_probability(self.strategies.MUTATION_PROB):
+        if engine_common.decide_with_probability(
+            self.strategies.MUTATION_EXPLORE_PROB):
+          self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
+                       constants.MUTATION_EXPLORE)
+        else:
+          self.set_arg(fuzz_args, constants.MUTATION_STATE_FLAG,
+                       constants.MUTATION_EXPLOIT)
+
+      if engine_common.decide_with_probability(self.strategies.INPUT_PROB):
+        if engine_common.decide_with_probability(
+            self.strategies.INPUT_ASCII_PROB):
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_ASCII)
+        else:
+          self.set_arg(fuzz_args, constants.INPUT_TYPE_FLAG,
+                       constants.INPUT_BINARY)
 
       if not environment.is_android():
         # Attempt to start the fuzzer.
@@ -1371,7 +1400,7 @@ class UnshareAflRunner(new_process.ModifierProcessRunnerMixin, AflRunner):
   """AFL runner which unshares."""
 
 
-class CorpusElement(object):
+class CorpusElement:
   """An element (file) in a corpus."""
 
   def __init__(self, path):
@@ -1379,7 +1408,7 @@ class CorpusElement(object):
     self.size = os.path.getsize(self.path)
 
 
-class Corpus(object):
+class Corpus:
   """A minimal set of input files (elements) for a fuzz target."""
 
   def __init__(self):
@@ -1388,7 +1417,7 @@ class Corpus(object):
   @property
   def element_paths(self):
     """Returns the filepaths of all elements in the corpus."""
-    return set(element.path for element in self.features_and_elements.values())
+    return {element.path for element in self.features_and_elements.values()}
 
   def _associate_feature_with_element(self, feature, element):
     """Associate a feature with an element if the element is the smallest for
@@ -1620,6 +1649,8 @@ def rand_cmplog_level(strategies):
     cmplog_level += constants.CMPLOG_ARITH
   if engine_common.decide_with_probability(strategies.CMPLOG_TRANS_PROB):
     cmplog_level += constants.CMPLOG_TRANS
+  if engine_common.decide_with_probability(strategies.CMPLOG_XTREME_PROB):
+    cmplog_level += constants.CMPLOG_XTREME
   if engine_common.decide_with_probability(strategies.CMPLOG_RAND_PROB):
     cmplog_level += constants.CMPLOG_RAND
   return cmplog_level
@@ -1639,7 +1670,6 @@ def main(argv):
   # same python process.
   logs.configure('run_fuzzer')
   _verify_system_config()
-  profiler.start_if_needed('afl_launcher')
 
   build_directory = environment.get_value('BUILD_DIR')
   fuzzer_path = engine_common.find_fuzzer_path(build_directory, target_name)

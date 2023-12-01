@@ -33,9 +33,9 @@ if gae_env:
     firebase_admin.initialize_app()
 
 try:
-  # Run any module initialization code.
+  # Run module initialization code for internal issue tracker
   import module_init
-  module_init.appengine()
+  module_init.init()
 except ImportError:
   pass
 

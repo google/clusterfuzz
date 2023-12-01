@@ -32,6 +32,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
+from clusterfuzz._internal.issue_management import issue_tracker_utils
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from handlers import base_handler
@@ -40,7 +41,6 @@ from libs import form
 from libs import gcs
 from libs import handler
 from libs import helpers
-from libs.issue_management import issue_tracker_utils
 from libs.query import datastore_query
 
 MAX_RETRIES = 50

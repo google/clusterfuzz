@@ -14,14 +14,13 @@
 """Tests for process_handler."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
 
-class MockProcess(object):
+class MockProcess:
   """Mock process."""
 
   def __init__(self, pid, name, cmdline):

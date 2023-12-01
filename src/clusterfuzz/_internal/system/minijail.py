@@ -54,7 +54,7 @@ def _get_minijail_user_namespace_args():
   # access to things owned by USER (fuzzer binaries, supporting files), and USER
   # can only be mapped once.
   uid_map = [
-      '0 {0} 1'.format(os.getuid()),
+      f'0 {os.getuid()} 1',
   ]
   arguments.extend(['-m', ','.join(uid_map)])
 
@@ -75,7 +75,7 @@ ChrootBinding = namedtuple('ChrootBinding',
                            ['src_path', 'dest_path', 'writeable'])
 
 
-class MinijailChroot(object):
+class MinijailChroot:
   """Minijail environment."""
 
   # Default directories to bind from host to chroot. Mostly library directories.
@@ -232,8 +232,7 @@ class ChromeOSChroot(MinijailChroot):
   def __init__(self, chroot_dir, bindings=None):
     # Do clean up in case close() was not called.
     self.remove_created_dirs(chroot_dir)
-    super(ChromeOSChroot, self).__init__(
-        chroot_dir, bindings, use_existing_base=True)
+    super().__init__(chroot_dir, bindings, use_existing_base=True)
 
   def remove_created_dirs(self, chroot_dir, minijail_created_dirs=None):
     if minijail_created_dirs is None:
@@ -248,7 +247,7 @@ class ChromeOSChroot(MinijailChroot):
     delete the entire chroot directory."""
     abs_path = os.path.join(self._chroot_dir, binding.dest_path[1:])
     shell.remove_directory(abs_path)
-    super(ChromeOSChroot, self).remove_binding(binding)
+    super().remove_binding(binding)
 
   def close(self):
     """Overrides MinijailChroot.close(). Closes the chroot environment. Does
@@ -263,8 +262,7 @@ class MinijailChildProcess(new_process.ChildProcess):
 
   def __init__(self, popen, command, max_stdout_len, stdout_file,
                jailed_pid_file):
-    super(MinijailChildProcess, self).__init__(popen, command, max_stdout_len,
-                                               stdout_file)
+    super().__init__(popen, command, max_stdout_len, stdout_file)
     self._jailed_pid_file = jailed_pid_file
 
   def terminate(self):
@@ -298,8 +296,7 @@ class MinijailProcessRunner(new_process.ProcessRunner):
   PATH_ENVIRONMENT_VALUE = '/bin:/usr/bin'
 
   def __init__(self, chroot, executable_path, default_args=None):
-    super(MinijailProcessRunner, self).__init__(
-        executable_path, default_args=default_args)
+    super().__init__(executable_path, default_args=default_args)
     self._chroot = chroot
 
   @property
@@ -308,8 +305,7 @@ class MinijailProcessRunner(new_process.ProcessRunner):
 
   def get_command(self, additional_args=None):
     """ProcessRunner.get_command override to prepend minijail."""
-    base_command = super(MinijailProcessRunner,
-                         self).get_command(additional_args)
+    base_command = super().get_command(additional_args)
     command = [_get_minijail_path()]
     command.extend(_get_minijail_user_namespace_args())
     command.extend(self.MINIJAIL_ARGS)

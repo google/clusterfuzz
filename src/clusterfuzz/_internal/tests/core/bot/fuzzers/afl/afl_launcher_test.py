@@ -16,8 +16,8 @@
 
 from functools import partial
 import os
+from unittest import mock
 
-import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -158,8 +158,7 @@ class AflFuzzOutputDirectoryTest(LauncherTestBase):
         self.INPUT_TESTCASE_FILENAME)
 
     input_testcase_obj.SetIno(self.INPUT_TESTCASE_INO)
-    self.input_directory_inodes = set(
-        [os.stat(self.input_testcase_path).st_ino])
+    self.input_directory_inodes = {os.stat(self.input_testcase_path).st_ino}
 
     self.queue_input_link_path, queue_input_link_obj = self._create_file(
         self.QUEUE_INPUT_LINK_FILENAME, directory=self.QUEUE_DIR)
@@ -796,7 +795,7 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
     self.corpus.associate_features_with_file(features, smaller_filename)
     self.assertEqual(smaller_filename,
                      self.corpus.features_and_elements[features[0]].path)
-    self.assertEqual(set([smaller_filename]), self.corpus.element_paths)
+    self.assertEqual({smaller_filename}, self.corpus.element_paths)
 
   def test_file_with_one_feature_remains(self):
     """Test that a file remains in the corpus as long as it the smallest element
@@ -814,8 +813,8 @@ class CorpusTest(fake_filesystem_unittest.TestCase):
                      self.corpus.features_and_elements[feature_2].path)
     self.assertEqual(larger_filename,
                      self.corpus.features_and_elements[feature_1].path)
-    self.assertEqual(
-        set([smaller_filename, larger_filename]), self.corpus.element_paths)
+    self.assertEqual({smaller_filename, larger_filename},
+                     self.corpus.element_paths)
 
 
 def dont_use_strategies(obj):

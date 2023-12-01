@@ -17,13 +17,13 @@
 import datetime
 import unittest
 
+from clusterfuzz._internal.cron import triage
+from clusterfuzz._internal.cron.triage import Throttler
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import appengine_test_utils
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import triage
-from src.appengine.handlers.cron.triage import Throttler
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -360,8 +360,8 @@ class FileIssueTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch(self, [
-        'libs.issue_management.issue_filer.file_issue',
-        'src.appengine.handlers.cron.triage.Throttler.should_throttle',
+        'clusterfuzz._internal.issue_management.issue_filer.file_issue',
+        'clusterfuzz._internal.cron.triage.Throttler.should_throttle',
     ])
     self.throttler = Throttler()
     self.mock.should_throttle.return_value = False

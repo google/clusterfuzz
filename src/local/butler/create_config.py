@@ -66,7 +66,7 @@ _NUM_RETRIES = 2
 _ENABLE_SERVICE_BATCH_SIZE = 19
 
 
-class DomainVerifier(object):
+class DomainVerifier:
   """Domain verifier."""
 
   def __init__(self, oauth_client_secrets_path):

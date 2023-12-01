@@ -16,8 +16,8 @@
 from http.server import HTTPServer
 import threading
 import unittest
+from unittest import mock
 
-import mock
 import requests
 
 from python.bot.startup.health_check_responder import EXPECTED_SCRIPTS

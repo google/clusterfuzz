@@ -15,8 +15,6 @@
 
 import re
 
-CRASH_DUMPS_DIR = '/sdcard/crash-reports'
-
 DEVICE_DOWNLOAD_DIR = '/sdcard/Download'
 
 DEVICE_TESTCASES_DIR = '/sdcard/fuzzer-testcases'
@@ -50,3 +48,5 @@ PRODUCT_TO_KERNEL = {
     'muskie': 'wahoo',
     'taimen': 'wahoo',
 }
+
+RELEASE_CONFIGURATION = 'next'

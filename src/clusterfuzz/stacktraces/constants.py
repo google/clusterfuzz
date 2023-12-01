@@ -114,6 +114,10 @@ FATAL_ERROR_DCHECK_FAILURE = re.compile(r'#\s+(Debug check failed: )(.*)')
 FATAL_ERROR_REGEX = re.compile(r'#\s*Fatal error in (.*)')
 FATAL_ERROR_LINE_REGEX = re.compile(r'#\s*Fatal error in (.*), line [0-9]+')
 FATAL_ERROR_UNREACHABLE = re.compile(r'# un(reachable|implemented) code')
+FUZZER_DIR_REGEX = re.compile(r'^\s*#\d 0x.*(?:fuzzer|fuzz/|/fuzz)',
+                              re.IGNORECASE)
+FUZZER_EXIT_REGEX = re.compile(r'^\s*(?:#0|#1) 0x.*(?:fuzzer|fuzz/|/fuzz)',
+                               re.IGNORECASE)
 GENERIC_SEGV_HANDLER_REGEX = re.compile(
     'Received signal 11 SEGV_[A-Z]+ ([0-9a-f]*)')
 GOOGLE_CHECK_FAILURE_REGEX = re.compile(GOOGLE_LOG_FATAL_PREFIX +
@@ -294,6 +298,7 @@ V8_CORRECTNESS_FAILURE_REGEX = re.compile(r'#\s*V8 correctness failure')
 V8_CORRECTNESS_METADATA_REGEX = re.compile(
     r'#\s*V8 correctness ((configs|sources|suppression): .*)')
 V8_ERROR_REGEX = re.compile(r'\s*\[[^\]]*\] V8 error: (.+)\.$')
+V8_SANDBOX_VIOLATION_REGEX = re.compile(r'## V8 sandbox violation detected!$')
 WINDOWS_CDB_STACK_FRAME_REGEX = re.compile(
     r'([0-9a-zA-Z`]+) '  # Child EBP or SP; remove ` if needed (1)
     r'([0-9a-zA-Z`]+) '  # RetAddr; remove ` if needed (2)
@@ -540,6 +545,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*logging::LogMessage',
     r'.*stdext::exception::what',
     r'.*v8::base::OS::Abort',
+    r'.*Runtime_AbortCSADcheck',
 
     # File paths.
     r'.* base/callback',
@@ -622,7 +628,9 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'Unreachable code',
     'V8 API error',
+    'V8 sandbox violation',
 ]
 
 STATE_STOP_MARKERS = [

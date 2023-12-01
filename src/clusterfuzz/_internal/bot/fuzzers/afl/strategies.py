@@ -14,7 +14,7 @@
 """AFL-specific strategies."""
 
 
-class FastCal(object):
+class FastCal:
   """Contains the different values FuzzingStrategies.fast_cal can store."""
 
   NOT_SET = 0

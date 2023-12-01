@@ -14,14 +14,12 @@
 """oss_fuzz_apply_ccs tests."""
 import unittest
 
-import flask
 from google.cloud import ndb
-import webtest
 
+from clusterfuzz._internal.cron import oss_fuzz_generate_certs
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import oss_fuzz_generate_certs
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -35,11 +33,6 @@ class OssFuzzGenerateCertsTest(unittest.TestCase):
     ])
 
     self.mock.is_cron.return_value = True
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/generate-certs',
-        view_func=oss_fuzz_generate_certs.Handler.as_view('/generate-certs'))
-    self.app = webtest.TestApp(flaskapp)
 
     data_types.OssFuzzProject(name='project1').put()
     data_types.OssFuzzProject(name='project2').put()
@@ -55,7 +48,7 @@ class OssFuzzGenerateCertsTest(unittest.TestCase):
     # Defer import to avoid issues on Python 2.
     from OpenSSL import crypto
 
-    self.app.get('/generate-certs')
+    oss_fuzz_generate_certs.main()
 
     # New cert.
     tls_cert = ndb.Key(data_types.WorkerTlsCert, 'project1').get()

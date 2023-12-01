@@ -52,7 +52,7 @@ def get_pack_format_and_mask_for_num_bytes(num_bytes,
   return pack_fmt, mask
 
 
-class MutatorPrimitive(object):
+class MutatorPrimitive:
   """A mutator primitive."""
 
   def __init__(self, ratio=0.0, up_to_ratio=False):
@@ -71,7 +71,7 @@ class BitFlipper(MutatorPrimitive):
   """Flip random bits until the given ratio is satisfied."""
 
   def __init__(self, ratio=0.0, up_to_ratio=False, contiguous_flips=1):
-    super(BitFlipper, self).__init__(ratio, up_to_ratio)
+    super().__init__(ratio, up_to_ratio)
     self.contiguous_flips = contiguous_flips
 
   def mutate(self, buf):
@@ -97,7 +97,7 @@ class BinaryValueAdder(MutatorPrimitive):
                up_to_ratio=False,
                num_bytes=1,
                add_range=(-35, 35)):
-    super(BinaryValueAdder, self).__init__(ratio, up_to_ratio)
+    super().__init__(ratio, up_to_ratio)
     self.num_bytes = num_bytes
     self.add_range = add_range
 
@@ -128,7 +128,7 @@ class ByteRemover(MutatorPrimitive):
   satisfied."""
 
   def __init__(self, ratio=0.0, up_to_ratio=False, num_bytes=1):
-    super(ByteRemover, self).__init__(ratio, up_to_ratio)
+    super().__init__(ratio, up_to_ratio)
     self.num_bytes = num_bytes
 
   def mutate(self, buf):
@@ -151,7 +151,7 @@ class ByteInserter(MutatorPrimitive):
   """Randomly insert |num_bytes| at a time until the ratio is satisfied."""
 
   def __init__(self, ratio=0.0, up_to_ratio=False, num_bytes=1):
-    super(ByteInserter, self).__init__(ratio, up_to_ratio)
+    super().__init__(ratio, up_to_ratio)
     self.num_bytes = num_bytes
 
   def mutate(self, buf):
@@ -173,7 +173,7 @@ class ChunkCopier(MutatorPrimitive):
   to another until the ratio is satisfied."""
 
   def __init__(self, ratio=0.0, up_to_ratio=False, chunk_ratio=0.1):
-    super(ChunkCopier, self).__init__(ratio, up_to_ratio)
+    super().__init__(ratio, up_to_ratio)
     self.chunk_ratio = chunk_ratio
 
   def mutate(self, buf):
@@ -195,7 +195,7 @@ class SpecialIntReplacer(MutatorPrimitive):
   |num_bytes| to random locations in the buffer."""
 
   def __init__(self, ratio=0.0, up_to_ratio=False, num_bytes=1):
-    super(SpecialIntReplacer, self).__init__(ratio, up_to_ratio)
+    super().__init__(ratio, up_to_ratio)
     self.num_bytes = num_bytes
 
     self.pack_fmt = get_pack_format_and_mask_for_num_bytes(
@@ -243,7 +243,7 @@ class SignFlipper(MutatorPrimitive):
   satisfied."""
 
   def __init__(self, ratio=0.0, up_to_ratio=False, num_bytes=1):
-    super(SignFlipper, self).__init__(ratio, up_to_ratio)
+    super().__init__(ratio, up_to_ratio)
     self.num_bytes = num_bytes
 
     self.pack_fmt, self.mask = get_pack_format_and_mask_for_num_bytes(
@@ -276,7 +276,7 @@ class Truncator(MutatorPrimitive):
     del buf[new_len:]
 
 
-class CombinedMutator(object):
+class CombinedMutator:
   """Combination of mutator primitives."""
 
   def __init__(self, mutators=None, num_mutations_choices=None):

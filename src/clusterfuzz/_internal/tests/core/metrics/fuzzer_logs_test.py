@@ -14,8 +14,7 @@
 """fuzzer_logs test."""
 import datetime
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.system import environment

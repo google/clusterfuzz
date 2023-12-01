@@ -40,6 +40,7 @@ from . import credentials
 try:
   import google.cloud
   from google.cloud import storage as gcs
+  import google.cloud.storage.fileio
 except ImportError:
   # This is expected to fail on AppEngine.
   pass
@@ -77,9 +78,12 @@ SIGNED_URL_EXPIRATION_MINUTES = 24 * 60
 # Timeout for HTTP operations.
 HTTP_TIMEOUT_SECONDS = 15
 
-TRANSIENT_ERRORS = [
-    google.cloud.exceptions.GoogleCloudError, ConnectionError,
-    requests.exceptions.ConnectionError
+_TRANSIENT_ERRORS = [
+    google.cloud.exceptions.GoogleCloudError,
+    ConnectionError,
+    requests.exceptions.ConnectionError,
+    requests.exceptions.ChunkedEncodingError,
+    ConnectionResetError,
 ]
 
 
@@ -116,6 +120,10 @@ class StorageProvider:
 
   def write_data(self, data, remote_path, metadata=None):
     """Write the data of a remote file."""
+    raise NotImplementedError
+
+  def write_stream(self, stream, remote_path, metadata=None):
+    """Write the data of a generator."""
     raise NotImplementedError
 
   def get(self, remote_path):
@@ -248,7 +256,6 @@ class GcsProvider(StorageProvider):
         blob.upload_from_filename(local_path_or_handle)
       else:
         blob.upload_from_file(local_path_or_handle, rewind=True)
-
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to copy local file %s to cloud storage file %s.' %
                     (local_path_or_handle, remote_path))
@@ -307,6 +314,27 @@ class GcsProvider(StorageProvider):
 
     return True
 
+  def write_stream(self, stream, remote_path, metadata=None):
+    """Writes the data from an iterator in chunks to a remote file."""
+    client = _storage_client()
+    bucket_name, path = get_bucket_name_and_path(remote_path)
+
+    try:
+      bucket = client.bucket(bucket_name)
+      blob = bucket.blob(path, chunk_size=self._chunk_size())
+      if metadata:
+        blob.metadata = metadata
+      with gcs.fileio.BlobWriter(blob) as blob_writer:
+        for data in stream:
+          if isinstance(data, str):
+            data = data.encode()
+          blob_writer.write(data)
+    except google.cloud.exceptions.GoogleCloudError:
+      logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
+      raise
+
+    return True
+
   def get(self, remote_path):
     """Get information about a remote file."""
     client = create_discovery_storage_client()
@@ -353,13 +381,16 @@ class GcsProvider(StorageProvider):
     requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
 
 
+# TODO(metzman): Consider whether to remove this since it's not making any calls
+# over the network that aren't already wrapped in retry (only network call is
+# _signing_creds).
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
-  if environment.get_value('UTASK_TESTS'):
+  if _integration_test_env_doesnt_support_signed_urls():
     return remote_path
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
@@ -545,6 +576,19 @@ class FileSystemProvider(StorageProvider):
 
     with open(fs_path, 'wb') as f:
       f.write(data)
+
+    self._write_metadata(remote_path, metadata)
+    return True
+
+  def write_stream(self, stream, remote_path, metadata=None):
+    """Write the data of a remote file."""
+    fs_path = self.convert_path_for_write(remote_path)
+
+    with open(fs_path, 'wb') as f:
+      for data in stream:
+        if isinstance(data, str):
+          data = data.encode()
+        f.write(data)
 
     self._write_metadata(remote_path, metadata)
     return True
@@ -828,7 +872,7 @@ def generate_life_cycle_config(action, age=None, num_newer_versions=None):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.copy_file_from',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def copy_file_from(cloud_storage_file_path, local_file_path):
   """Saves a cloud storage file locally."""
   if not _provider().copy_file_from(cloud_storage_file_path, local_file_path):
@@ -841,7 +885,7 @@ def copy_file_from(cloud_storage_file_path, local_file_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.copy_file_to',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def copy_file_to(local_file_path_or_handle,
                  cloud_storage_file_path,
                  metadata=None):
@@ -859,7 +903,7 @@ def copy_file_to(local_file_path_or_handle,
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.copy_blob',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
   """Copy two blobs on GCS 'in the cloud' without touching local disk."""
   return _provider().copy_blob(cloud_storage_source_path,
@@ -870,7 +914,7 @@ def copy_blob(cloud_storage_source_path, cloud_storage_target_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.delete',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def delete(cloud_storage_file_path):
   """Delete a cloud storage file given its path."""
   return _provider().delete(cloud_storage_file_path)
@@ -896,7 +940,7 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.last_updated',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def last_updated(cloud_storage_file_path):
   """Return last updated value by parsing stats for all blobs under a cloud
   storage path."""
@@ -914,7 +958,7 @@ def last_updated(cloud_storage_file_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.read_data',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def read_data(cloud_storage_file_path):
   """Return content of a cloud storage file."""
   return _provider().read_data(cloud_storage_file_path)
@@ -924,7 +968,7 @@ def read_data(cloud_storage_file_path):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.write_data',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def write_data(data, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
@@ -934,8 +978,19 @@ def write_data(data, cloud_storage_file_path, metadata=None):
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.write_data',
+    exception_types=_TRANSIENT_ERRORS)
+def write_stream(stream, cloud_storage_file_path, metadata=None):
+  """Return content of a cloud storage file."""
+  return _provider().write_stream(
+      stream, cloud_storage_file_path, metadata=metadata)
+
+
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.get_blobs',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def get_blobs(cloud_storage_path, recursive=True):
   """Return blobs under the given cloud storage path."""
   yield from _provider().list_blobs(cloud_storage_path, recursive=recursive)
@@ -945,7 +1000,7 @@ def get_blobs(cloud_storage_path, recursive=True):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.list_blobs',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def list_blobs(cloud_storage_path, recursive=True):
   """Return blob names under the given cloud storage path."""
   for blob in _provider().list_blobs(cloud_storage_path, recursive=recursive):
@@ -1053,14 +1108,19 @@ def uworker_output_bucket():
   return bucket
 
 
+def _integration_test_env_doesnt_support_signed_urls():
+  return environment.get_value('UTASK_TESTS') or environment.get_value(
+      'UNTRUSTED_RUNNER_TESTS')
+
+
 @retry.wrap(
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage._download_url',
-    exception_types=TRANSIENT_ERRORS)
+    exception_types=_TRANSIENT_ERRORS)
 def _download_url(url):
   """Downloads |url| and returns the contents."""
-  if environment.get_value('UTASK_TESTS'):
+  if _integration_test_env_doesnt_support_signed_urls():
     return read_data(url)
   request = requests.get(url, timeout=HTTP_TIMEOUT_SECONDS)
   if not request.ok:

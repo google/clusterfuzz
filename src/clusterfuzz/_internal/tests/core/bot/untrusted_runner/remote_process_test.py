@@ -14,8 +14,7 @@
 """Tests for remote_process."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.untrusted_runner import remote_process
 from clusterfuzz._internal.bot.untrusted_runner import remote_process_host

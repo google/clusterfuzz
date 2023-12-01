@@ -14,13 +14,13 @@
 """Functions for running gsutil."""
 
 import os
+import shutil
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
-from clusterfuzz._internal.system import shell
 
 # Default timeout for a GSUtil sync.
 FILES_SYNC_TIMEOUT = 5 * 60 * 60
@@ -39,7 +39,7 @@ def _get_gsutil_path():
   gsutil_directory = environment.get_value('GSUTIL_PATH')
   if not gsutil_directory:
     # Try searching the binary in path.
-    gsutil_absolute_path = shell.which(gsutil_executable)
+    gsutil_absolute_path = shutil.which(gsutil_executable)
     if gsutil_absolute_path:
       return gsutil_absolute_path
 
@@ -84,7 +84,7 @@ def _filter_path(path, write=False):
   return local_path
 
 
-class GSUtilRunner(object):
+class GSUtilRunner:
   """GSUtil runner."""
 
   def __init__(self, process_runner=new_process.ProcessRunner):

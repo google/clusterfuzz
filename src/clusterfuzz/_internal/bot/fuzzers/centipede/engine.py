@@ -21,24 +21,15 @@ import shutil
 
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
+from clusterfuzz._internal.bot.fuzzers.centipede import constants
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import new_process
 from clusterfuzz.fuzz import engine
 
 _CLEAN_EXIT_SECS = 10
-_SERVER_COUNT = 1
-_RSS_LIMIT = 4096
-_ADDRESS_SPACE_LIMIT = 4096
-_TIMEOUT_PER_INPUT_FUZZ = 25
-_TIMEOUT_PER_INPUT_REPR = 60
-_DEFAULT_ARGUMENTS = [
-    '--exit_on_crash=1',
-    f'--fork_server={_SERVER_COUNT}',
-    f'--rss_limit_mb={_RSS_LIMIT}',
-    f'--address_space_limit_mb={_ADDRESS_SPACE_LIMIT}',
-]
 
 CRASH_REGEX = re.compile(r'[sS]aving input to:?\s*(.*)')
 _CRASH_LOG_PREFIX = 'CRASH LOG: '
@@ -88,6 +79,31 @@ class Engine(engine.Engine):
   def name(self):
     return 'centipede'
 
+  def _get_arguments(self, fuzzer_path):
+    """Gets the fuzzer arguments.
+    Returns default arguments and arguments specified by the options field.
+    Args:
+      fuzzer_path: Path to the main target in a string.
+
+    Returns:
+      A FuzzerArguments object.
+    """
+    arguments = fuzzer_options.FuzzerArguments({})
+    options = fuzzer_options.get_fuzz_target_options(fuzzer_path)
+
+    if options:
+      arguments = options.get_engine_arguments('centipede')
+
+    # We ignore this parameter in the options file because it doesn't really
+    # make sense not to crash on errors.
+    arguments[constants.EXIT_ON_CRASH_FLAGNAME] = 1
+
+    for key, val in constants.get_default_arguments().items():
+      if key not in arguments:
+        arguments[key] = val
+
+    return arguments
+
   # pylint: disable=unused-argument
   def prepare(self, corpus_dir, target_path, build_dir):
     """Prepares for a fuzzing session, by generating options.
@@ -100,36 +116,33 @@ class Engine(engine.Engine):
     Returns:
       A FuzzOptions object.
    """
-    arguments = []
+    arguments = self._get_arguments(target_path)
     dict_path = pathlib.Path(
         dictionary_manager.get_default_dictionary_path(target_path))
     if dict_path.exists():
-      arguments.append(f'--dictionary={dict_path}')
+      arguments[constants.DICTIONARY_FLAGNAME] = str(dict_path)
 
     # Directory workdir saves:
     # 1. Centipede-readable corpus file;
     # 2. Centipede-readable feature file;
     # 3. Crash reproducing inputs.
     workdir = self._create_temp_dir('workdir')
-    arguments.append(f'--workdir={workdir}')
+    arguments[constants.WORKDIR_FLAGNAME] = str(workdir)
 
     # Directory corpus_dir saves the corpus files required by ClusterFuzz.
-    arguments.append(f'--corpus_dir={corpus_dir}')
+    arguments[constants.CORPUS_DIR_FLAGNAME] = corpus_dir
 
     target_binaries = self._get_binary_paths(target_path)
     if target_binaries.unsanitized is None:
       # Assuming the only binary is always sanitized (e.g., from Chrome).
-      arguments.append(f'--binary={target_binaries.sanitized}')
+      arguments[constants.BINARY_FLAGNAME] = str(target_binaries.sanitized)
       logs.log_warn('Unable to find unsanitized target binary.')
     else:
-      arguments.append(f'--binary={target_binaries.unsanitized}')
-      arguments.append(f'--extra_binaries={target_binaries.sanitized}')
+      arguments[constants.BINARY_FLAGNAME] = str(target_binaries.unsanitized)
+      arguments[constants.EXTRA_BINARIES_FLAGNAME] = str(
+          target_binaries.sanitized)
 
-    arguments.append(f'--timeout_per_input={_TIMEOUT_PER_INPUT_FUZZ}')
-
-    arguments.extend(_DEFAULT_ARGUMENTS)
-
-    return engine.FuzzOptions(corpus_dir, arguments, {})
+    return engine.FuzzOptions(corpus_dir, arguments.list(), {})
 
   def _get_binary_paths(self, target_path):
     """Gets the paths to the main and auxiliary binaries based on |target_path|
@@ -248,9 +261,11 @@ class Engine(engine.Engine):
 
     existing_runner_flags = os.environ.get('CENTIPEDE_RUNNER_FLAGS')
     if not existing_runner_flags:
+      rss_limit = constants.RSS_LIMIT_MB_DEFAULT
+      timeout = constants.TIMEOUT_PER_INPUT_REPR_DEFAULT
       os.environ['CENTIPEDE_RUNNER_FLAGS'] = (
-          f':rss_limit_mb={_RSS_LIMIT}'
-          f':timeout_per_input={_TIMEOUT_PER_INPUT_REPR}:')
+          f':{constants.RSS_LIMIT_MB_FLAGNAME}={rss_limit}'
+          f':{constants.TIMEOUT_PER_INPUT_FLAGNAME}={timeout}:')
 
     runner = new_process.UnicodeProcessRunner(sanitized_target, [input_path])
     result = runner.run_and_wait(timeout=max_time)
@@ -285,7 +300,97 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    raise NotImplementedError
+    runner = _get_runner(target_path)
+
+    # Step 1: Generate corpus file for Centipede.
+    full_corpus_workdir = self._create_temp_dir('full_corpus_workdir')
+    input_dirs_param = ','.join(str(dir) for dir in input_dirs)
+    args = [
+        f'--workdir={full_corpus_workdir}',
+        f'--binary={target_path}',
+        f'--corpus_dir={input_dirs_param}',
+        '--num_runs=0',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    max_time -= result.time_executed
+
+    if result.timed_out or max_time < 0:
+      logs.log_warn(
+          ('Corpus minimization timed out: Failed to generate Centipede corpus '
+           'file'),
+          fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
+
+    # Step 2: Distill.
+    args = [
+        f'--workdir={full_corpus_workdir}',
+        f'--binary={target_path}',
+        '--distill',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    max_time -= result.time_executed
+
+    if result.timed_out or max_time < 0:
+      logs.log_warn(
+          'Corpus minimization timed out: Failed to distill',
+          fuzzer_output=result.output)
+      raise TimeoutError('Minimization corpus timed out.')
+
+    # Step 3: Generate corpus files for output_dir.
+    os.makedirs(output_dir, exist_ok=True)
+    minimized_corpus_workdir = self._create_temp_dir('minimized_corpus_workdir')
+    distilled_file = os.path.join(
+        full_corpus_workdir,
+        f'distilled-{os.path.basename(target_path)}.000000')
+    corpus_file = os.path.join(minimized_corpus_workdir, 'corpus.000000')
+    shutil.copyfile(distilled_file, corpus_file)
+
+    args = [
+        f'--workdir={minimized_corpus_workdir}',
+        f'--corpus_to_files={output_dir}',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+
+    if result.timed_out or max_time < 0:
+      logs.log_warn(
+          ('Corpus minimization timed out: Failed to generate output corpus '
+           'files'),
+          fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
+
+    # Step 4: Copy reproducers from full_corpus_workdir.
+    os.makedirs(reproducers_dir, exist_ok=True)
+    crashes_dir = os.path.join(full_corpus_workdir, 'crashes')
+    for file in os.listdir(crashes_dir):
+      crasher_path = os.path.join(crashes_dir, file)
+      shutil.copy(crasher_path, reproducers_dir)
+    shutil.rmtree(full_corpus_workdir)
+    shutil.rmtree(minimized_corpus_workdir)
+
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
+
+  def _get_smallest_crasher(self, workdir_path):
+    """Returns the path to the smallest crash in Centipede's |workdir_path|."""
+    if not os.path.isdir(workdir_path):
+      logs.log_error(f'Work directory does not exist: {workdir_path}')
+      return None
+    crashes_path = os.path.join(workdir_path, 'crashes')
+    if not os.path.isdir(crashes_path):
+      logs.log_error(f'Crashes directory does not exist: {crashes_path}')
+      return None
+
+    testcases = [
+        os.path.join(crashes_path, t)
+        for t in os.listdir(crashes_path)
+        if os.path.isfile(os.path.join(crashes_path, t))
+    ]
+    if not testcases:
+      logs.log_error(f'No crash testcases under: {crashes_path}')
+      return None
+
+    minimum_testcase = min(testcases, key=os.path.getsize)
+    return minimum_testcase
 
   def minimize_testcase(self, target_path, arguments, input_path, output_path,
                         max_time):
@@ -301,7 +406,27 @@ class Engine(engine.Engine):
     Raises:
       TimeoutError: If the testcase minimization exceeds max_time.
     """
-    raise NotImplementedError
+    runner = _get_runner(target_path)
+    workdir = self._create_temp_dir('workdir')
+    args = [
+        f'--binary={target_path}',
+        f'--workdir={workdir}',
+        f'--minimize_crash={input_path}',
+        f'--num_runs={constants.NUM_RUNS_PER_MINIMIZATION}',
+        '--seed=1',
+    ]
+    result = runner.run_and_wait(additional_args=args, timeout=max_time)
+    if result.timed_out:
+      logs.log_warn(
+          'Testcase minimization timed out.', fuzzer_output=result.output)
+      raise TimeoutError('Minimization timed out.')
+    minimum_testcase = self._get_smallest_crasher(workdir)
+    if minimum_testcase:
+      shutil.copyfile(minimum_testcase, output_path)
+    else:
+      shutil.copyfile(input_path, output_path)
+    return engine.ReproduceResult(result.command, result.return_code,
+                                  result.time_executed, result.output)
 
   def cleanse(self, target_path, arguments, input_path, output_path, max_time):
     """Cleanses a testcase.

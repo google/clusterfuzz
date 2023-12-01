@@ -13,11 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Fill NFS server information if available.
-NFS_CLUSTER_NAME=  # E.g. 10.0.0.2 is default for Cloud filestore.
-NFS_VOLUME_NAME=   # Fill this based on NFS config.
-NFS_DIR=/mnt/nfs
-
 # Create clusterfuzz user (uid=1337).
 USER=clusterfuzz
 HOME=/home/$USER
@@ -103,25 +98,6 @@ sudo service google-fluentd restart
 
 echo "Installing ClusterFuzz package dependencies."
 pip install crcmod==1.7 psutil==5.6.6 cryptography==3.3.2 pyOpenSSL==19.0.0
-
-if [ -z "$NFS_CLUSTER_NAME" ]; then
-  NFS_ROOT=
-else
-  NFS_ROOT=$NFS_DIR/$NFS_VOLUME_NAME
-
-  echo "Setting up NFS."
-  mkdir -p $NFS_DIR
-  sed -i "s/browse_mode = no/browse_mode = yes/" /etc/autofs.conf
-  echo "$NFS_DIR   /etc/auto.nfs" >> /etc/auto.master
-  service autofs stop
-  echo "$NFS_VOLUME_NAME -intr,hard,rsize=65536,wsize=65536,mountproto=tcp,vers=3,noacl,noatime,nodiratime $NFS_CLUSTER_NAME:/$NFS_VOLUME_NAME" > /etc/auto.nfs
-  service autofs start
-
-  set +e  # Ignore errors in this block since NFS server can be flaky.
-  ls $NFS_ROOT
-  chown $USER:$USER $NFS_ROOT
-  set -e
-fi
 
 echo "Changing user shell to clusterfuzz."
 exec sudo -i -u clusterfuzz bash - << eof

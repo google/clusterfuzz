@@ -22,7 +22,7 @@ from clusterfuzz._internal.system import environment
 FILE_SCHEME = 'file://'
 
 
-class Project(object):
+class Project:
   """Project."""
 
   def __init__(self, project_id, clusters, instance_templates,

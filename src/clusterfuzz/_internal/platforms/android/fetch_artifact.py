@@ -142,7 +142,7 @@ def get_client():
       scopes='https://www.googleapis.com/auth/androidbuild.internal')
   client = apiclient.discovery.build(
       'androidbuildinternal',
-      'v2beta1',
+      'v3',
       credentials=credentials,
       cache_discovery=False)
 

@@ -72,7 +72,7 @@ RADAMSA_MUTATIONS = 2000
 RADAMSA_TIMEOUT = 3
 
 
-class Generator(object):
+class Generator:
   """Generators we can use."""
   NONE = 0
   RADAMSA = 1
@@ -354,7 +354,7 @@ def get_issue_owners(fuzz_target_path):
     return []
 
   owners = []
-  with open(owners_file_path, 'r') as owners_file_handle:
+  with open(owners_file_path) as owners_file_handle:
     owners_file_content = owners_file_handle.read()
 
     for line in owners_file_content.splitlines():
@@ -561,7 +561,7 @@ class MinijailEngineFuzzerRunner(minijail.MinijailProcessRunner):
 def signal_term_handler(sig, frame):  # pylint: disable=unused-argument
   try:
     print('SIGTERMed')
-  except IOError:  # Pipe may already be closed and we may not be able to print.
+  except OSError:  # Pipe may already be closed and we may not be able to print.
     pass
 
   new_process.kill_process_tree(os.getpid())
@@ -576,9 +576,10 @@ def get_seed_corpus_path(fuzz_target_path):
   # Get all files that end with _seed_corpus.*
   possible_archive_paths = set(glob.glob(archive_path_without_extension + '.*'))
   # Now get a list of these that are valid seed corpus archives.
-  archive_paths = possible_archive_paths.intersection(
-      set(archive_path_without_extension + extension
-          for extension in archive.ARCHIVE_FILE_EXTENSIONS))
+  archive_paths = possible_archive_paths.intersection({
+      archive_path_without_extension + extension
+      for extension in archive.ARCHIVE_FILE_EXTENSIONS
+  })
 
   archive_paths = list(archive_paths)
   if not archive_paths:

@@ -20,13 +20,13 @@ import os
 import shutil
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
+from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -46,7 +46,24 @@ TEST_SHARED_BUCKET = 'clusterfuzz-test-shared-corpus'
 TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
 
 
-class BaseTest(object):
+def _get_deserialized_uworker_input(job_type, fuzzer_name):
+  """Creates a deserialized uworker_input to be passed to utask_main."""
+  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+  corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
+      fuzz_target=fuzz_target)
+  setup_input = (
+      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
+  uworker_input = uworker_io.UworkerInput(
+      job_type=job_type,
+      fuzzer_name=fuzzer_name,
+      setup_input=setup_input,
+      corpus_pruning_task_input=corpus_pruning_task_input)
+  uworker_input = uworker_input.serialize()
+  uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+  return uworker_input
+
+
+class BaseTest:
   """Base corpus pruning tests."""
 
   def setUp(self):
@@ -56,6 +73,7 @@ class BaseTest(object):
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
         'clusterfuzz._internal.bot.tasks.setup.update_fuzzer_and_data_bundles',
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
         'clusterfuzz._internal.fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
         'clusterfuzz._internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
@@ -67,6 +85,7 @@ class BaseTest(object):
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
+    self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
 
@@ -158,13 +177,39 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_build',
         'clusterfuzz._internal.base.utils.get_application_id',
+        'clusterfuzz._internal.datastore.data_handler.update_task_status',
+        'clusterfuzz._internal.datastore.data_handler.get_task_status'
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
 
+  def test_preprocess_existing_task_running(self):
+    """Preprocess test when another task is running."""
+    self.mock.update_task_status.return_value = False
+    self.assertIsNone(
+        corpus_pruning_task.utask_preprocess('libFuzzer_test_fuzzer',
+                                             'libfuzzer_asan_job', {}))
+
+  def test_preprocess(self):
+    """Basic preprocess test."""
+    fuzzer_name = 'libFuzzer_test_fuzzer'
+    job_type = 'libfuzzer_asan_job'
+    self.mock.update_task_status.return_value = True
+    self.mock.get_task_status.return_value = data_types.TaskStatus(
+        status=data_types.TaskState.ERROR)
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        fuzzer_name, job_type, {})
+    self.assertEqual(uworker_input.job_type, job_type)
+    self.assertEqual(uworker_input.fuzzer_name, fuzzer_name)
+    fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
+    self.assertEqual(uworker_input.corpus_pruning_task_input.fuzz_target,
+                     fuzz_target)
+    self.assertTrue(
+        uworker_input.corpus_pruning_task_input.last_execution_failed)
+
   def test_prune(self):
     """Basic pruning test."""
-    uworker_input = uworker_io.DeserializedUworkerMsg(
+    uworker_input = _get_deserialized_uworker_input(
         job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
     corpus_pruning_task.utask_main(uworker_input)
 
@@ -263,7 +308,7 @@ class CorpusPruningTestMinijail(CorpusPruningTest):
     if environment.platform() != 'LINUX':
       self.skipTest('Minijail tests are only applicable for linux platform.')
 
-    super(CorpusPruningTestMinijail, self).setUp()
+    super().setUp()
     os.environ['USE_MINIJAIL'] = 'True'
 
 
@@ -315,7 +360,7 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
   def test_prune(self):
     """Basic pruning test."""
     self.corpus_dir = self.fuchsia_corpus_dir
-    uworker_input = uworker_io.DeserializedUworkerMsg(
+    uworker_input = _get_deserialized_uworker_input(
         job_type='libfuzzer_asan_fuchsia',
         fuzzer_name='libFuzzer_fuchsia_example-fuzzers-crash_fuzzer')
     corpus_pruning_task.utask_main(uworker_input)
@@ -337,7 +382,7 @@ class CorpusPruningTestUntrusted(
 
   def setUp(self):
     """Set up."""
-    super(CorpusPruningTestUntrusted, self).setUp()
+    super().setUp()
     environment.set_value('JOB_NAME', 'libfuzzer_asan_job')
 
     helpers.patch(self, [
@@ -406,14 +451,15 @@ class CorpusPruningTestUntrusted(
     self.mock.get_data_bundle_bucket_name.return_value = TEST_GLOBAL_BUCKET
     data_types.DataBundle(name='bundle', sync_to_worker=True).put()
 
-    data_types.Fuzzer(
+    self.fuzzer = data_types.Fuzzer(
         revision=1,
         file_size='builtin',
         source='builtin',
         name='libFuzzer',
         max_testcases=4,
         builtin=True,
-        data_bundle_name='bundle').put()
+        data_bundle_name='bundle')
+    self.fuzzer.put()
 
     self.temp_dir = tempfile.mkdtemp()
 
@@ -429,15 +475,14 @@ class CorpusPruningTestUntrusted(
     ])
 
   def tearDown(self):
-    super(CorpusPruningTestUntrusted, self).tearDown()
+    super().tearDown()
     shutil.rmtree(self.temp_dir, ignore_errors=True)
 
   def test_prune(self):
     """Test pruning."""
     self._setup_env(job_type='libfuzzer_asan_job')
-    uworker_input = uworker_io.DeserializedUworkerMsg(
+    uworker_input = _get_deserialized_uworker_input(
         job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
-
     corpus_pruning_task.utask_main(uworker_input)
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')

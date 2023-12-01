@@ -39,7 +39,6 @@ from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
-from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 
 
@@ -82,13 +81,13 @@ def task_loop():
     # This caches the current environment on first run. Don't move this.
     environment.reset_environment()
     try:
+      if environment.is_uworker():
+        # Batch tasks only run one at a time.
+        sys.exit(utasks.uworker_bot_main())
       # Run regular updates.
       update_task.run()
       update_task.track_revision()
 
-      if environment.is_uworker():
-        # Batch tasks only run one at a time.
-        sys.exit(utasks.uworker_bot_main())
       task = tasks.get_task()
       if not task:
         continue
@@ -135,9 +134,6 @@ def main():
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
   monitor.initialize()
-
-  if not profiler.start_if_needed('python_profiler_bot'):
-    sys.exit(-1)
 
   fuzzers_init.run()
 

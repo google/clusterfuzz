@@ -1,0 +1,52 @@
++----------------------------------------Release Build Stacktrace----------------------------------------+
+Time ran: 92.20641946792603
+INFO: Running with entropic power schedule (0xFF, 100).
+INFO: Seed:1854839982
+Running: /data/fuzz/bot/clusterfuzz/bot/inputs/fuzzer-testcases/timeout-89572aad7e59b81c02273daf70d8f578aaf72fee
+ALARM: working on the last Unit for 90 seconds
+       and the timeout value is 90 (use -timeout=N to change)
+==14066== ERROR: libFuzzer: timeout after 90 seconds
+libunwind: Unsupported .eh_frame_hdr version
+    #0 0x7acd574954 in __sanitizer_print_stack_trace out/lib/compiler-rt-aarch64/out/llvm-project/compiler-rt/lib/hwasan/hwasan.cpp:588:3
+    #1 0x5f49ad9450 in fuzzer::PrintStackTrace() out/lib/compiler-rt-aarch64/out/llvm-project/compiler-rt/lib/fuzzer/FuzzerUtil.cpp:210:5
+    #2 0x5f49ab78d8 in fuzzer::Fuzzer::AlarmCallback() out/lib/compiler-rt-aarch64/out/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:301:5
+    #3 0x7b111af60c in
+    #4 0x7acb4c64dc in syscall bionic/libc/arch-arm64/bionic/syscall.S:41
+    #5 0x7acb55bfd4 in __futex(void volatile*, int, int, timespec const*, int) bionic/libc/private/bionic_futex.h:45:16
+    #6 0x7acb55bfd4 in __futex_wait(void volatile*, int, timespec const*) bionic/libc/private/bionic_futex.h:62:10
+    #7 0x7acb55bfd4 in pthread_join bionic/libc/bionic/pthread_join.cpp:65:5
+    #6 0x7ae3f171a8  (/data/fuzz/bot/builds/android-haiku-auto_git_tm-car-release_target_hwasan_grpc_graph_fuzzer_77651789446b3c3a04b9f492ff141f003d437347/revisions/lib/libc++.so+0xd71a8) (BuildId: 7f81cd23a9be1fad064dc005c8d0a1a2)
+    #8 0x7afb678744 in android::automotive::computepipe::graph::StreamSetObserver::~StreamSetObserver() packages/services/Car/cpp/computepipe/runner/graph/StreamSetObserver.cpp:197:33
+    #9 0x7afb678744 in android::automotive::computepipe::graph::StreamSetObserver::~StreamSetObserver() packages/services/Car/cpp/computepipe/runner/graph/StreamSetObserver.cpp:195:41
+    #10 0x7afb66f600 in std::__1::default_delete<android::automotive::computepipe::graph::StreamSetObserver>::operator()(android::automotive::computepipe::graph::StreamSetObserver*) const external/libcxx/include/memory:2339:5
+    #11 0x7afb66f600 in std::__1::unique_ptr<android::automotive::computepipe::graph::StreamSetObserver, std::__1::default_delete<android::automotive::computepipe::graph::StreamSetObserver> >::reset(android::automotive::computepipe::graph::StreamSetObserver*) external/libcxx/include/memory:2652:7
+    #12 0x7afb66f600 in std::__1::unique_ptr<android::automotive::computepipe::graph::StreamSetObserver, std::__1::default_delete<android::automotive::computepipe::graph::StreamSetObserver> >::operator=(std::__1::unique_ptr<android::automotive::computepipe::graph::StreamSetObserver, std::__1::default_delete<android::automotive::computepipe::graph::StreamSetObserver> >&&) external/libcxx/include/memory:2518:5
+    #13 0x7afb66f600 in android::automotive::computepipe::graph::GrpcGraph::handleConfigPhase(android::automotive::computepipe::runner::ClientConfig const&) packages/services/Car/cpp/computepipe/runner/graph/GrpcGraph.cpp:166:24
+    #14 0x5f49a9d06c in LLVMFuzzerTestOneInput packages/services/Car/cpp/computepipe/tests/fuzz/GrpcGraphFuzzer.cpp:109:24
+    #15 0x5f49ab8e4c in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) out/lib/compiler-rt-aarch64/out/llvm-project/compiler-rt/lib/fuzzer/FuzzerLoop.cpp:611:15
+    #16 0x5f49aae550 in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) out/lib/compiler-rt-aarch64/out/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:324:6
+    #17 0x5f49ab372c in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) out/lib/compiler-rt-aarch64/out/llvm-project/compiler-rt/lib/fuzzer/FuzzerDriver.cpp:860:9
+    #18 0x5f49ad9a04 in main out/lib/compiler-rt-aarch64/out/llvm-project/compiler-rt/lib/fuzzer/FuzzerMain.cpp:20:10
+    #19 0x7acb4c19f0 in __libc_init bionic/libc/bionic/libc_init_dynamic.cpp:157:8
+SUMMARY: libFuzzer: timeout
+Logcat:
+	--------- DEBUG (14362):
+*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+Build fingerprint: 'google/raven_hwasan/raven:13/TAG1.230109.001/9468211:userdebug/dev-keys'
+Revision: '0'
+ABI: 'arm64'
+Timestamp: 2023-01-09 11:54:44.097143879+0000
+Process uptime: 0s
+Cmdline: /vendor/bin/hw/android.hardware.bluetooth@1.0-service-qti
+pid: 13935, tid: 14017, name: POSIX timer 8  >>> /vendor/bin/hw/android.hardware.bluetooth@1.0-service-qti <<<
+uid: 1002
+signal 6 (SIGABRT), code -1 (SI_QUEUE), fault addr --------
+    x0  0000000000000000  x1  00000000000036c1  x2  0000000000000006  x3  00000070c0424a10
+    x4  646b6f6c6e621f72  x5  646b6f6c6e621f72  x6  646b6f6c6e621f72  x7  7f7f7f7f7f7f7f7f
+backtrace:
+    #0 0x0000000000051994 in gwp_asan::GuardedPoolAllocator::allocate(unsigned long, unsigned long) external/gwp_asan/gwp_asan/guarded_pool_allocator.cpp:193
+    #1 0x0000000000033168 in android::hardware::bluetooth::V1_0::implementation::UartController::ReportSocFailure(bool, android::hardware::bluetooth::V1_0::implementation::PrimaryReasonCode, bool, bool) vendor/qcom/sa8155/proprietary/bluetooth/hidl_transport/bt/1.0/default/uart_controller.cpp:808:5
+    #2 0x000000000005e4d4 in __hwasan_check_x0_1_short_v2
+    #3 0x00000000000b63b0 in lstep bionic/libc/upstream-netbsd/lib/libc/regex/engine.c:986:3
+    #4 0x00000000000530b8 in __stpcpy_aarch64 external/arm-optimized-routines/string/aarch64/strcpy.S:189
+--------- NativeCrashListener (1207):

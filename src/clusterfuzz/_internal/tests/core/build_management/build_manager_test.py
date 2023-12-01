@@ -1035,6 +1035,8 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
     """Test setting up a custom binary."""
     os.environ['JOB_NAME'] = 'job_custom'
     self.mock.time.return_value = 1000.0
+    # APP_REVISION env variable is set during setup_custom_binary.
+    self.assertIsNone(os.environ.get('APP_REVISION'))
     build = build_manager.setup_custom_binary()
     self.assertIsInstance(build, build_manager.CustomBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1000.0)

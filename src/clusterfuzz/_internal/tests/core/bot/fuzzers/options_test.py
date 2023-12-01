@@ -13,7 +13,8 @@
 # limitations under the License.
 """Tests for libfuzzer."""
 
-import mock
+from unittest import mock
+
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.bot.fuzzers import options

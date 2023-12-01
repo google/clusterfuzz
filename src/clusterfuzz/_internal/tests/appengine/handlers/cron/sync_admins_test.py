@@ -15,13 +15,10 @@
 
 import unittest
 
-import flask
-import webtest
-
+from clusterfuzz._internal.cron import sync_admins
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
-from handlers.cron import sync_admins
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -29,11 +26,6 @@ class SyncAdminsTest(unittest.TestCase):
   """Tests for sync_admins."""
 
   def setUp(self):
-    flaskapp = flask.Flask('testflask')
-    flaskapp.add_url_rule(
-        '/sync-admins', view_func=sync_admins.Handler.as_view('/sync-admins'))
-    self.app = webtest.TestApp(flaskapp)
-
     test_helpers.patch(self, [
         'googleapiclient.discovery.build',
         'handlers.base_handler.Handler.is_cron',
@@ -87,7 +79,7 @@ class SyncAdminsTest(unittest.TestCase):
 
   def test_sync_admins(self):
     """Test syncing admins."""
-    self.app.get('/sync-admins')
+    sync_admins.main()
     admins = data_types.Admin.query()
     self.assertCountEqual([
         'user1@email.com',

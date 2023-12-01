@@ -157,7 +157,7 @@ def main():
   parser_deploy.add_argument(
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
-      '--targets', nargs='*', default=['appengine', 'zips'])
+      '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')

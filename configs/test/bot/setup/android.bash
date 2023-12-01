@@ -30,7 +30,7 @@ function run_bot () {
     $ADB_PATH/adb -s "$serial" wait-for-device
 
     echo "Running ClusterFuzz instance for bot $serial."
-    OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$serial" PATH="$PATH" NFS_ROOT="$NFS_ROOT" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" BOT_NAME="android-$(hostname)-$serial" HTTP_PORT_1="$((device_index+8000))" HTTP_PORT_2="$((device_index+8080))" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
+    OS_OVERRIDE="ANDROID" ANDROID_SERIAL="$serial" PATH="$PATH" GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS" ROOT_DIR="$bot_directory/clusterfuzz" PYTHONPATH="$PYTHONPATH" GSUTIL_PATH="$GSUTIL_PATH" BOT_NAME="android-$(hostname)-$serial" HTTP_PORT_1="$((device_index+8000))" HTTP_PORT_2="$((device_index+8080))" python $bot_directory/clusterfuzz/src/python/bot/startup/run.py || true
 
     echo "ClusterFuzz instance for bot $serial quit unexpectedly. Waiting for device."
   done
@@ -46,7 +46,6 @@ if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
   exit 1
 fi
 
-NFS_ROOT=  # Fill in NFS information if available.
 GOOGLE_CLOUD_SDK=google-cloud-sdk
 GOOGLE_CLOUD_SDK_ARCHIVE=google-cloud-sdk-232.0.0-linux-x86_64.tar.gz
 INSTALL_DIRECTORY=${INSTALL_DIRECTORY:-${HOME}}

@@ -15,9 +15,9 @@
 # pylint: disable=protected-access
 import datetime
 import unittest
+from unittest import mock
 
 from google.cloud import ndb
-import mock
 
 from clusterfuzz._internal.tests.test_libs import test_utils
 from libs.query import datastore_query
@@ -293,12 +293,14 @@ class ComputeProjectionTest(unittest.TestCase):
 
   def test_combine(self):
     """Test combine."""
-    self.assertSetEqual(
-        set(['a', 'b', 'c']),
-        set(datastore_query.compute_projection(['a', 'c'], 'b')))
+    self.assertSetEqual({'a', 'b', 'c'},
+                        set(
+                            datastore_query.compute_projection(['a', 'c'],
+                                                               'b')))
 
   def test_dedup(self):
     """Test dedup."""
-    self.assertSetEqual(
-        set(['a', 'b', 'c']),
-        set(datastore_query.compute_projection(['a', 'b', 'c'], 'b')))
+    self.assertSetEqual({'a', 'b', 'c'},
+                        set(
+                            datastore_query.compute_projection(['a', 'b', 'c'],
+                                                               'b')))

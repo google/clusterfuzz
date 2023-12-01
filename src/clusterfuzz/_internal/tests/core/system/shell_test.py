@@ -13,10 +13,11 @@
 # limitations under the License.
 """shell tests."""
 import os
+import shutil
 import sys
 import unittest
+from unittest import mock
 
-import mock
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.system import environment
@@ -207,7 +208,7 @@ class WhichTest(fake_filesystem_unittest.TestCase):
       self.skipTest('Which test is only supported on posix platforms.')
 
   def test(self):
-    self.assertTrue(shell.which('ls') in ['/bin/ls', '/usr/bin/ls'])
+    self.assertTrue(shutil.which('ls') in ['/bin/ls', '/usr/bin/ls'])
 
 
 class ClearSystemTempDirectoryTest(fake_filesystem_unittest.TestCase):
@@ -274,7 +275,7 @@ class GetExecuteCommand(unittest.TestCase):
     self.call_and_assert_helper(executable_name, executable_name)
 
 
-class GetInterpreter(object):
+class GetInterpreter:
   """Test that the correct interpreters to execute a file are returned."""
 
   def get_interpreted_file_test(self):
