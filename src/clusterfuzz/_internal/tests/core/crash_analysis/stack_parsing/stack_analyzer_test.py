@@ -3219,7 +3219,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('rust_panic_bolero.txt')
     expected_type = 'ASSERT'
     expected_address = ''
-    expected_state = ('assertion failed: *i != NUMBER\n'
+    expected_state = ("'assertion failed: *i != NUMBER', src/lib.rs:13:56\n"
                       'lib.rs\n'
                       'LLVMFuzzerStartTest\n')
     expected_stacktrace = data
