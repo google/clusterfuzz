@@ -167,7 +167,7 @@ def _get_impact_from_labels(labels):
   return data_types.SecurityImpact.MISSING
 
 
-def update_issue_impact_labels(testcase, issue):
+def update_issue_impact_labels(testcase, issue, policy):
   """Update impact labels on issue."""
   if testcase.one_time_crasher_flag:
     return
@@ -203,9 +203,13 @@ def update_issue_impact_labels(testcase, issue):
     return
 
   if existing_impact != data_types.SecurityImpact.MISSING:
-    issue.labels.remove('Security_Impact-' + impact_to_string(existing_impact))
+    issue.labels.remove(
+        policy.substitution_mapping('Security_Impact-' +
+                                    impact_to_string(existing_impact)))
 
-  issue.labels.add('Security_Impact-' + impact_to_string(new_impact))
+  issue.labels.add(
+      policy.substitution_mapping('Security_Impact-' +
+                                  impact_to_string(new_impact)))
 
 
 def update_issue_foundin_labels(testcase, issue):
@@ -353,15 +357,16 @@ def file_issue(testcase,
       fuzzer = data_types.Fuzzer.query(
           data_types.Fuzzer.name == testcase.fuzzer_name).get()
       if fuzzer and fuzzer.external_contribution:
-        issue.labels.add('reward-topanel')
-        issue.labels.add('External-Fuzzer-Contribution')
+        issue.labels.add(policy.substitution_mapping('reward-topanel'))
+        issue.labels.add(
+            policy.substitution_mapping('External-Fuzzer-Contribution'))
 
-      update_issue_impact_labels(testcase, issue)
+      update_issue_impact_labels(testcase, issue, policy)
 
     # Check for MiraclePtr in stacktrace.
     miracle_label = check_miracleptr_status(testcase)
     if miracle_label:
-      issue.labels.add(miracle_label)
+      issue.labels.add(policy.substitution_mapping(miracle_label))
 
   # Add additional labels from the job definition and fuzzer.
   additional_labels = data_handler.get_additional_values_for_variable(

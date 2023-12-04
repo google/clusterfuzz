@@ -1060,7 +1060,8 @@ class UpdateImpactTest(unittest.TestCase):
     self.testcase.regression = '0:1000'
     mock_issue = self._make_mock_issue()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual(['Security_Impact-Extended'], mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
 
@@ -1071,7 +1072,8 @@ class UpdateImpactTest(unittest.TestCase):
 
     mock_issue = self._make_mock_issue()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual(['Security_Impact-Extended', 'FoundIn-99'],
                           mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
@@ -1083,7 +1085,8 @@ class UpdateImpactTest(unittest.TestCase):
 
     mock_issue = self._make_mock_issue()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual(['Security_Impact-Stable', 'FoundIn-99'],
                           mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
@@ -1095,7 +1098,8 @@ class UpdateImpactTest(unittest.TestCase):
 
     mock_issue = self._make_mock_issue()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual(['Security_Impact-Beta', 'FoundIn-100'],
                           mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
@@ -1106,7 +1110,8 @@ class UpdateImpactTest(unittest.TestCase):
 
     mock_issue = self._make_mock_issue()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual(['Security_Impact-Head'], mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
 
@@ -1118,7 +1123,8 @@ class UpdateImpactTest(unittest.TestCase):
 
     mock_issue = self._make_mock_issue()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual([], mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
 
@@ -1126,7 +1132,8 @@ class UpdateImpactTest(unittest.TestCase):
     """Tests no impact if the impact flag is not set."""
     mock_issue = self._make_mock_issue()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual([], mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
 
@@ -1138,7 +1145,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue.labels.add('Security_Impact-Beta')
     mock_issue.labels.reset_tracking()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual(['Security_Impact-Head'], mock_issue.labels.added)
     self.assertCountEqual(['Security_Impact-Beta'], mock_issue.labels.removed)
 
@@ -1150,7 +1158,8 @@ class UpdateImpactTest(unittest.TestCase):
     mock_issue.labels.add('Security_Impact-Head')
     mock_issue.labels.reset_tracking()
 
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual([], mock_issue.labels.added)
     self.assertCountEqual([], mock_issue.labels.removed)
 
@@ -1170,7 +1179,8 @@ class UpdateImpactTest(unittest.TestCase):
 
     self.testcase.is_impact_set_flag = True
     mock_issue = self._make_mock_issue()
-    issue_filer.update_issue_impact_labels(self.testcase, mock_issue)
+    issue_filer.update_issue_impact_labels(self.testcase, mock_issue,
+                                           CHROMIUM_POLICY)
     self.assertCountEqual(
         ['Security_Impact-Extended', 'FoundIn-1', 'FoundIn-2', 'FoundIn-3'],
         mock_issue.labels.added)
