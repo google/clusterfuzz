@@ -77,8 +77,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   return uworker_msg_pb2.Input(
       job_type=job_type,
       original_job_type=original_job_type,
-      testcase=uworker_io.model_to_protobuf(testcase),
-      testcase_upload_metadata=uworker_io.model_to_protobuf(
+      testcase=uworker_io.entity_to_protobuf(testcase),
+      testcase_upload_metadata=uworker_io.entity_to_protobuf(
           testcase_upload_metadata),
       uworker_env=uworker_env,
       testcase_id=testcase_id,
@@ -89,9 +89,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 def utask_main(uworker_input):
   """The main part of the variant task. Downloads the testcase and build checks
   if the build can reproduce the error."""
-  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
-                                            data_types.Testcase)
-  testcase_upload_metadata = uworker_io.model_from_protobuf(
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
+  testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
   if environment.is_engine_fuzzer_job(testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
@@ -180,8 +180,8 @@ def utask_main(uworker_input):
     variant_task_output.crash_type = crash_type
   if crash_state is not None:
     variant_task_output.crash_state = crash_state
-  variant_task_output.security_flag = bool(security_flag)
-  variant_task_output.is_similar = bool(is_similar)
+  variant_task_output.security_flag = security_flag
+  variant_task_output.is_similar = is_similar
   variant_task_output.platform = environment.platform().lower()
 
   return uworker_msg_pb2.Output(
@@ -230,11 +230,11 @@ def utask_postprocess(output):
     variant_task_output = output.variant_task_output
     variant.status = variant_task_output.status
     variant.revision = variant_task_output.revision
-    if variant_task_output.HasField("crash_type"):
+    if variant_task_output.HasField('crash_type'):
       variant.crash_type = variant_task_output.crash_type
     else:
       variant.crash_type = None
-    if variant_task_output.HasField("crash_state"):
+    if variant_task_output.HasField('crash_state'):
       variant.crash_state = variant_task_output.crash_state
     else:
       variant.crash_state = None

@@ -216,8 +216,8 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
 def find_regression_range(uworker_input: uworker_msg_pb2.Input,
                          ) -> Optional[uworker_msg_pb2.Output]:
   """Attempt to find when the testcase regressed."""
-  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
-                                            data_types.Testcase)
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   job_type = uworker_input.job_type
 
   deadline = tasks.get_task_completion_deadline()
@@ -364,7 +364,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
   return uworker_msg_pb2.Input(
       testcase_id=testcase_id,
-      testcase=uworker_io.model_to_protobuf(testcase),
+      testcase=uworker_io.entity_to_protobuf(testcase),
       job_type=job_type,
       uworker_env=uworker_env,
       setup_input=setup_input,

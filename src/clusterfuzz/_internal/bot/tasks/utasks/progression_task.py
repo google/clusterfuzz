@@ -41,7 +41,7 @@ def _maybe_clear_progression_last_min_max_metadata(
     testcase: data_types.Testcase, uworker_output: uworker_msg_pb2.Output):
   """Clears last_progression_min and last_progression_max when
   clear_min_max_metadata is set to True"""
-  if not uworker_output.HasField("progression_task_output"):
+  if not uworker_output.HasField('progression_task_output'):
     return
 
   task_output = uworker_output.progression_task_output
@@ -57,9 +57,9 @@ def _save_current_fixed_range_indices(testcase, uworker_output):
   last_progression_min = None
   last_progression_max = None
 
-  if task_output.HasField("last_progression_min"):
+  if task_output.HasField('last_progression_min'):
     last_progression_min = task_output.last_progression_min
-  if task_output.HasField("last_progression_max"):
+  if task_output.HasField('last_progression_max'):
     last_progression_max = task_output.last_progression_max
 
   testcase.set_metadata(
@@ -319,9 +319,10 @@ def _testcase_reproduces_in_revision(
   _log_output(revision, result)
 
   if update_metadata:
-    progression_task_output.issue_metadata.clear()
-    progression_task_output.issue_metadata.update(
-        _get_and_update_issue_metadata(testcase))
+    issue_metadata = _get_and_update_issue_metadata(testcase)
+    if issue_metadata:
+      progression_task_output.issue_metadata.clear()
+      progression_task_output.issue_metadata.update(issue_metadata)
 
   return result, None
 
@@ -391,15 +392,15 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       progression_task_input=progression_input,
-      testcase=uworker_io.model_to_protobuf(testcase),
+      testcase=uworker_io.entity_to_protobuf(testcase),
       setup_input=setup_input)
 
 
 def find_fixed_range(uworker_input):
   """Attempt to find the revision range where a testcase was fixed."""
   deadline = tasks.get_task_completion_deadline()
-  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
-                                            data_types.Testcase)
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
 
@@ -603,7 +604,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   _maybe_clear_progression_last_min_max_metadata(testcase, output)
   task_output = None
-  if output.HasField("progression_task_output"):
+  if output.HasField('progression_task_output'):
     task_output = output.progression_task_output
     _update_issue_metadata(testcase, task_output.issue_metadata)
 
@@ -636,7 +637,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
     return
 
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  if task_output.HasField("min_revision"):
+  if task_output.HasField('min_revision'):
     _save_fixed_range(output.uworker_input.testcase_id,
                       task_output.min_revision, task_output.max_revision)
 

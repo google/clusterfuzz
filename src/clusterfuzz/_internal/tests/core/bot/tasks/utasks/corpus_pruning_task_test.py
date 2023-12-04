@@ -51,7 +51,7 @@ def _get_deserialized_uworker_input(job_type, fuzzer_name):
   """Creates a deserialized uworker_input to be passed to utask_main."""
   fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
-      fuzz_target=uworker_io.model_to_protobuf(fuzz_target))
+      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target))
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
   uworker_input = uworker_msg_pb2.Input(
@@ -202,7 +202,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertEqual(uworker_input.fuzzer_name, fuzzer_name)
     fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
     self.assertEqual(
-        uworker_io.model_from_protobuf(
+        uworker_io.entity_from_protobuf(
             uworker_input.corpus_pruning_task_input.fuzz_target,
             data_types.FuzzTarget), fuzz_target)
     self.assertTrue(

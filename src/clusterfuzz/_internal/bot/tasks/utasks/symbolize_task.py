@@ -67,14 +67,14 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
-      testcase=uworker_io.model_to_protobuf(testcase))
+      testcase=uworker_io.entity_to_protobuf(testcase))
 
 
 def utask_main(uworker_input):
   """Execute the untrusted part of a symbolize command."""
   job_type = uworker_input.job_type
-  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
-                                            data_types.Testcase)
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   setup_input = uworker_input.setup_input
 
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,

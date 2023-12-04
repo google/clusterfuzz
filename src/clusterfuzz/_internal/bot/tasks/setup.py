@@ -439,10 +439,10 @@ def update_data_bundle(update_input, data_bundle):
   # with multiprocessing and psutil imports.
   from clusterfuzz._internal.google_cloud_utils import gsutil
 
-  data_bundle = uworker_io.model_from_protobuf(data_bundle,
-                                               data_types.DataBundle)
-  fuzzer = uworker_io.model_from_protobuf(update_input.fuzzer,
-                                          data_types.Fuzzer)
+  data_bundle = uworker_io.entity_from_protobuf(data_bundle,
+                                                data_types.DataBundle)
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
+                                           data_types.Fuzzer)
   data_bundle_directory = get_data_bundle_directory(fuzzer.name)
   if not data_bundle_directory:
     logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
@@ -533,7 +533,6 @@ def _set_fuzzer_env_vars(fuzzer):
 def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
   uworker_main. Returns a SetupInput object."""
-  update_input = uworker_msg_pb2.SetupInput(fuzzer_name=fuzzer_name)
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
   if not fuzzer:
     logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
@@ -545,9 +544,13 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
               data_types.DataBundle.name == fuzzer.data_bundle_name)))
   logs.log('Data bundles: %s' % data_bundles)
 
-  update_input.data_bundles.extend([
-      uworker_io.model_to_protobuf(data_bundle) for data_bundle in data_bundles
-  ])
+  data_bundle_protos = [
+      uworker_io.entity_to_protobuf(data_bundle) for data_bundle in data_bundles
+  ]
+  update_input = uworker_msg_pb2.SetupInput(
+      fuzzer_name=fuzzer_name,
+      data_bundles=data_bundle_protos,
+      fuzzer=uworker_io.entity_to_protobuf(fuzzer))
 
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
@@ -555,7 +558,6 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
     update_input.fuzzer_download_url = blobs.get_signed_download_url(
         fuzzer.blobstore_key)
 
-  update_input.fuzzer.CopyFrom(uworker_io.model_to_protobuf(fuzzer))
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Finish migrating
   # update data bundles.
 
@@ -565,8 +567,8 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
 def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput, fuzzer_directory,
                    version_file):
   """Updates the fuzzer. Helper for update_fuzzer_and_data_bundles."""
-  fuzzer = uworker_io.model_from_protobuf(update_input.fuzzer,
-                                          data_types.Fuzzer)
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
+                                           data_types.Fuzzer)
   fuzzer_name = update_input.fuzzer_name
   if fuzzer.builtin:
     return True
@@ -636,8 +638,8 @@ def _set_up_data_bundles(update_input):
 
 def update_fuzzer_and_data_bundles(update_input):
   """Updates the fuzzer specified by |update_input| and its data bundles."""
-  fuzzer = uworker_io.model_from_protobuf(update_input.fuzzer,
-                                          data_types.Fuzzer)
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
+                                           data_types.Fuzzer)
 
   _set_fuzzer_env_vars(fuzzer)
   # Set some helper environment variables.

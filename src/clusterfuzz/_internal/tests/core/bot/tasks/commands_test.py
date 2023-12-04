@@ -207,7 +207,6 @@ class RunCommandTest(unittest.TestCase):
 
     self.mock.progression_utask_preprocess.return_value = uworker_msg_pb2.Input(
         job_type='job', testcase_id='123')
-    self.mock.progression_utask_main.return_value = uworker_msg_pb2.Output()
     commands.run_command('progression', '123', 'job', {})
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
 

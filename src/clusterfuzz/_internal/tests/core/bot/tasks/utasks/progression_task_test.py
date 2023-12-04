@@ -160,8 +160,8 @@ class UtaskPreprocessTest(unittest.TestCase):
         str(testcase.key.id()), 'job_type', None)
     self.assertFalse(result.progression_task_input.custom_binary)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = uworker_io.model_from_protobuf(result.testcase,
-                                                       data_types.Testcase)
+    returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
+                                                        data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
     self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
     self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
@@ -175,8 +175,8 @@ class UtaskPreprocessTest(unittest.TestCase):
         str(testcase.key.id()), 'job_type', None)
     self.assertTrue(result.progression_task_input.custom_binary)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = uworker_io.model_from_protobuf(result.testcase,
-                                                       data_types.Testcase)
+    returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
+                                                        data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
     self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
     self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)

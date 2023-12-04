@@ -157,7 +157,7 @@ def download_and_deserialize_uworker_output(
   return uworker_output
 
 
-def model_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
+def entity_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
   """Helper function to convert entity to protobuf format."""
   return model._entity_to_protobuf(entity)  # pylint: disable=protected-access
 
@@ -165,8 +165,8 @@ def model_to_protobuf(entity: ndb.Model) -> entity_pb2.Entity:
 T = TypeVar('T', bound=ndb.Model)
 
 
-def model_from_protobuf(entity_proto: entity_pb2.Entity,
-                        model_type: Type[T]) -> T:
+def entity_from_protobuf(entity_proto: entity_pb2.Entity,
+                         model_type: Type[T]) -> T:
   """Converts `entity_proto` to the `ndb.Model` of type `model_type` it encodes.
   
   Raises:

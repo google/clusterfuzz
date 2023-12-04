@@ -51,8 +51,8 @@ class UtaskPreprocessTest(unittest.TestCase):
     result = symbolize_task.utask_preprocess(
         str(self.testcase.key.id()), 'job_type', None)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = uworker_io.model_from_protobuf(result.testcase,
-                                                       data_types.Testcase)
+    returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
+                                                        data_types.Testcase)
     self.assertEqual(returned_testcase.key.id(), self.testcase.key.id())
 
 
@@ -68,19 +68,11 @@ class UTaskPostprocessTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.task_creation.create_blame_task_if_needed'
     ])
 
-  def _create_output(self, uworker_input=None, **kwargs):
-    uworker_output = uworker_msg_pb2.Output(**kwargs)
-    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
-    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
-    if uworker_input:
-      uworker_output.uworker_input.CopyFrom(uworker_input)
-    return uworker_output
-
   def test_error_handling_called_on_error(self):
     """Checks that an output with an error is handled properly."""
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_input,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     symbolize_task.utask_postprocess(uworker_output)
@@ -91,7 +83,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()), job_type='job_type')
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_input,
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
     symbolize_task.utask_postprocess(uworker_output)
@@ -110,7 +102,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()), job_type='job_type')
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_input,
         symbolize_task_output=symbolize_task_output)
     symbolize_task.utask_postprocess(uworker_output)
@@ -144,7 +136,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     testcase = test_utils.create_generic_testcase()
     uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()), job_type='job_type')
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_input,
         symbolize_task_output=symbolize_task_output)
     symbolize_task.utask_postprocess(uworker_output)
@@ -186,7 +178,7 @@ class UtaskMainTest(unittest.TestCase):
         uworker_msg_pb2.Output(
             error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP))
     uworker_input = uworker_msg_pb2.Input(
-        testcase=uworker_io.model_to_protobuf(self.testcase))
+        testcase=uworker_io.entity_to_protobuf(self.testcase))
     result = symbolize_task.utask_main(uworker_input)
     self.assertEqual(result.error_type,
                      uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
@@ -195,7 +187,7 @@ class UtaskMainTest(unittest.TestCase):
     """Tests utask_main behaviour on build setup failure."""
     self.mock.setup_testcase.return_value = (None, '/testcase/file/path', None)
     uworker_input = uworker_msg_pb2.Input(
-        testcase=uworker_io.model_to_protobuf(self.testcase),
+        testcase=uworker_io.entity_to_protobuf(self.testcase),
         job_type='job_type',
         setup_input=uworker_msg_pb2.SetupInput())
     result = symbolize_task.utask_main(uworker_input)

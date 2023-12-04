@@ -366,15 +366,15 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=str(testcase_id),
-      testcase=uworker_io.model_to_protobuf(testcase),
+      testcase=uworker_io.entity_to_protobuf(testcase),
       setup_input=setup_input,
       uworker_env=uworker_env)
 
 
 def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
-  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
-                                            data_types.Testcase)
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
 
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)

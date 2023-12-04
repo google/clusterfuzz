@@ -878,7 +878,7 @@ def _save_coverage_information(context, result):
 
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = uworker_io.model_from_protobuf(
+  fuzz_target = uworker_io.entity_from_protobuf(
       uworker_input.corpus_pruning_task_input.fuzz_target,
       data_types.FuzzTarget)
   task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
@@ -939,7 +939,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     return None
 
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
-      fuzz_target=uworker_io.model_to_protobuf(fuzz_target),
+      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed)
 
   setup_input = (

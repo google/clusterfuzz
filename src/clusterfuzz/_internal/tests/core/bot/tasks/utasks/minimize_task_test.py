@@ -192,7 +192,7 @@ class MinimizeTaskTestUntrusted(
     setup_input = setup.preprocess_setup_testcase(testcase)
     uworker_input = uworker_msg_pb2.Input(
         job_type='libfuzzer_asan_job',
-        testcase=uworker_io.model_to_protobuf(testcase),
+        testcase=uworker_io.entity_to_protobuf(testcase),
         setup_input=setup_input,
         testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
@@ -288,18 +288,12 @@ class UTaskPostprocessTest(unittest.TestCase):
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type',
         testcase_id='testcase_id',
-        testcase=uworker_io.model_to_protobuf(testcase))
+        testcase=uworker_io.entity_to_protobuf(testcase))
     return uworker_input
-
-  def _create_output(self, uworker_input=None, **kwargs):
-    uworker_output = uworker_msg_pb2.Output(**kwargs)
-    if uworker_input:
-      uworker_output.uworker_input.CopyFrom(uworker_input)
-    return uworker_output
 
   def test_error_does_not_finalize_testcase(self):
     """Checks that an output with an error does not finalize a testcase."""
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     minimize_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.finalize_testcase.called)
@@ -310,7 +304,7 @@ class UTaskPostprocessTest(unittest.TestCase):
     last_crash_result_dict = {'crash_type': 'type', 'crash_state': 'state'}
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=last_crash_result_dict)
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=self._get_generic_input(),
         minimize_task_output=minimize_task_output)
 
@@ -345,7 +339,7 @@ class UTaskMainTest(unittest.TestCase):
     testcase.put()
     environment.set_value('FAIL_WAIT', 10)
     uworker_input = uworker_msg_pb2.Input(
-        testcase=uworker_io.model_to_protobuf(testcase))
+        testcase=uworker_io.entity_to_protobuf(testcase))
     uworker_output = minimize_task.utask_main(uworker_input)
     self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)

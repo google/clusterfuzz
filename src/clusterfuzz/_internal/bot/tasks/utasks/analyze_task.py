@@ -282,7 +282,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  testcase_upload_metadata = query_testcase_upload_metadata(int(testcase_id))
+  testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)
   if not testcase_upload_metadata:
     logs.log_error(
         'Testcase %s has no associated upload metadata.' % testcase_id)
@@ -299,9 +299,9 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(testcase)
   analyze_task_input = get_analyze_task_input()
   return uworker_msg_pb2.Input(
-      testcase_upload_metadata=uworker_io.model_to_protobuf(
+      testcase_upload_metadata=uworker_io.entity_to_protobuf(
           testcase_upload_metadata),
-      testcase=uworker_io.model_to_protobuf(testcase),
+      testcase=uworker_io.entity_to_protobuf(testcase),
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
@@ -338,10 +338,10 @@ def _build_task_output(
 
 def utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
-  testcase_upload_metadata = uworker_io.model_from_protobuf(
+  testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
-  testcase = uworker_io.model_from_protobuf(uworker_input.testcase,
-                                            data_types.Testcase)
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   prepare_env_for_main(testcase_upload_metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
@@ -439,7 +439,7 @@ def handle_build_setup_error(output):
         wait_time=testcase_fail_wait)
     return
   testcase_upload_metadata = query_testcase_upload_metadata(
-      int(output.uworker_input.testcase_id))
+      output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Build setup failed')
 
@@ -455,7 +455,7 @@ HANDLED_ERRORS = [
 
 def _update_testcase(output):
   """Updates the testcase using the info passed from utask_main."""
-  if not output.HasField("analyze_task_output"):
+  if not output.HasField('analyze_task_output'):
     return
 
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
@@ -473,7 +473,7 @@ def _update_testcase(output):
     testcase.crash_state = analyze_task_output.crash_state
     testcase.security_flag = analyze_task_output.security_flag
     if testcase.security_flag:
-      if analyze_task_output.HasField("security_severity"):
+      if analyze_task_output.HasField('security_severity'):
         testcase.security_severity = analyze_task_output.security_severity
       else:
         testcase.security_severity = None
@@ -507,7 +507,7 @@ def utask_postprocess(output):
     return
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase_upload_metadata = query_testcase_upload_metadata(
-      int(output.uworker_input.testcase_id))
+      output.uworker_input.testcase_id)
 
   log_message = (f'Testcase crashed in {output.test_timeout} seconds '
                  f'(r{testcase.crash_revision})')
@@ -564,6 +564,6 @@ def utask_postprocess(output):
 
 
 def query_testcase_upload_metadata(
-    testcase_id: int) -> Optional[data_types.TestcaseUploadMetadata]:
+    testcase_id: str) -> Optional[data_types.TestcaseUploadMetadata]:
   return data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == testcase_id).get()
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()

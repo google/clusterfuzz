@@ -1117,7 +1117,7 @@ class ConvertGroupsToCrashesTest(unittest.TestCase):
     groups[1].is_new.return_value = True
 
     crashes = fuzz_task.convert_groups_to_crashes(groups)
-    job_run_crashes = fuzz_task.convert_crashes_to_list_of_dicts(crashes)
+    job_run_crashes = fuzz_task.convert_crashes_to_dicts(crashes)
 
     self.assertEqual([
         {
