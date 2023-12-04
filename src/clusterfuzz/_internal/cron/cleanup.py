@@ -884,7 +884,7 @@ def _update_issue_when_uploaded_testcase_is_processed(
 
   # Impact labels like impacting head/beta/stable only apply for Chromium.
   if testcase.project_name == 'chromium':
-    issue_filer.update_issue_impact_labels(testcase, issue)
+    issue_filer.update_issue_impact_labels(testcase, issue, policy)
 
   # Add severity labels for all project types.
   comment = description + _update_issue_security_severity_and_get_comment(
