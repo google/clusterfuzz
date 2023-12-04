@@ -245,8 +245,9 @@ def apply_substitutions(policy, label, testcase, security_severity=None):
           for label in handler(label, testcase, security_severity)
       ]
 
-  # No match found. Return unmodified label.
-  return [label]
+  # No match found. Return mapped value if it exists else the original label
+  # will be returned.
+  return [policy.substitution_mapping(label)]
 
 
 def get_label_pattern(label):
