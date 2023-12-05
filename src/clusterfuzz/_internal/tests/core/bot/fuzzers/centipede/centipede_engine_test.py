@@ -367,7 +367,7 @@ class IntegrationTest(unittest.TestCase):
 
     self.assertTrue(result)
     self.assertEqual(len(os.listdir(minimized_corpus)), 3)
-    self.assertEqual(len(os.listdir(crash_corpus)), )
+    self.assertEqual(len(os.listdir(crash_corpus)), 1)
     crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
     with open(crasher) as crasher_file:
       self.assertEqual(crasher_file.read(), '?f???u???z?')
