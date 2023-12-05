@@ -54,7 +54,7 @@ class CompositeErrorHandler:
         type.
     """
     for other in args:
-      for error_type, handler in other._handlers.items():
+      for error_type, handler in other._handlers.items():  # pylint: disable=protected-access
         if error_type in self._handlers:
           raise ValueError(f'Duplicate handlers for error type {error_type}')
 
