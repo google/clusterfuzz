@@ -23,10 +23,10 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 ErrorHandler = Callable[[uworker_msg_pb2.Output], None]
 
 # Must use string type because of protobuf enum shenanigans.
-HandlerDict = Dict["uworker_msg_pb2.ErrorType", ErrorHandler]
+HandlerDict = Dict['uworker_msg_pb2.ErrorType', ErrorHandler]
 
 
-class CompositeErrorHandler(object):
+class CompositeErrorHandler:
   """A handler for several different types of uworker errors."""
 
   def __init__(self, handlers: HandlerDict):
@@ -41,9 +41,9 @@ class CompositeErrorHandler(object):
     """
     self._handlers = handlers
 
-  # Mut use string types because `CompositeErrorHandler` is not defined yet.
+  # Must use string types because `CompositeErrorHandler` is not defined yet.
   @classmethod
-  def compose(cls, *args: "CompositeErrorHandler") -> "CompositeErrorHandler":
+  def compose(cls, *args: 'CompositeErrorHandler') -> 'CompositeErrorHandler':
     """Composes several composite error handlers into one.
 
     The given handlers must handle disjoint sets of error types.
@@ -55,17 +55,13 @@ class CompositeErrorHandler(object):
 
     # Merge all handler dicts, checking that no keys are duplicated.
     for composite_handler in args:
-      for error_type, handler in composite_handler.handlers().items():
+      for error_type, handler in composite_handler._handlers.items():
         if error_type in handlers:
-          raise ValueError(f"Duplicate handlers for error type {error_type}")
+          raise ValueError(f'Duplicate handlers for error type {error_type}')
 
         handlers[error_type] = handler
 
     return cls(handlers)
-
-  def handlers(self) -> HandlerDict:
-    """Returns a shallow copy of this handler's underlying dictionary."""
-    return self._handlers.copy()
 
   def is_handled(self, error_type: uworker_msg_pb2.ErrorType) -> bool:
     """Returns whether the given error type is handled by this instance."""
@@ -79,7 +75,7 @@ class CompositeErrorHandler(object):
     """
     handler = self._handlers.get(output.error_type)
     if handler is None:
-      raise RuntimeError(f"Cannot handle error type {output.error_type}")
+      raise RuntimeError(f'Cannot handle error type {output.error_type}')
 
     handler(output)
 
