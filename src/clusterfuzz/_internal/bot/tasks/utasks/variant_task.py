@@ -201,10 +201,9 @@ def handle_build_setup_error(output):
       f'Build setup failed with job: {output.uworker_input.testcase_id}')
 
 
-_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
-    uworker_handle_errors.CompositeErrorHandler({
-        uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP: handle_build_setup_error,
-    }),
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP: handle_build_setup_error,
+}).compose_with(
     uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
     setup.ERROR_HANDLER,
 )

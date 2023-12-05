@@ -739,23 +739,22 @@ def handle_libfuzzer_minimization_failed(output: uworker_msg_pb2.Output):
       crash_result_dict=output.minimize_task_output.last_crash_result_dict)
 
 
-_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
-    uworker_handle_errors.CompositeErrorHandler({
-        uworker_msg_pb2.ErrorType.MINIMIZE_SETUP:
-            handle_minimize_setup_error,
-        uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH:
-            handle_minimize_unreproducible_crash,
-        uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY:
-            handle_minimize_crash_too_flaky,
-        uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE:
-            handle_minimize_deadline_exceeded_in_main_file_phase,
-        uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED:
-            handle_minimize_deadline_exceeded,
-        uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE:
-            handle_libfuzzer_minimization_unreproducible,
-        uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED:
-            handle_libfuzzer_minimization_failed,
-    }),
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.MINIMIZE_SETUP:
+        handle_minimize_setup_error,
+    uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH:
+        handle_minimize_unreproducible_crash,
+    uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY:
+        handle_minimize_crash_too_flaky,
+    uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE:
+        handle_minimize_deadline_exceeded_in_main_file_phase,
+    uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED:
+        handle_minimize_deadline_exceeded,
+    uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE:
+        handle_libfuzzer_minimization_unreproducible,
+    uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED:
+        handle_libfuzzer_minimization_failed,
+}).compose_with(
     setup.ERROR_HANDLER,
     uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
 )

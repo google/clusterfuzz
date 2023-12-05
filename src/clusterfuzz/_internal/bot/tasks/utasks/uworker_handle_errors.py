@@ -42,26 +42,25 @@ class CompositeErrorHandler:
     self._handlers = handlers
 
   # Must use string types because `CompositeErrorHandler` is not defined yet.
-  @classmethod
-  def compose(cls, *args: 'CompositeErrorHandler') -> 'CompositeErrorHandler':
-    """Composes several composite error handlers into one.
+  def compose_with(self,
+                   *args: 'CompositeErrorHandler') -> 'CompositeErrorHandler':
+    """Adds all handlers from the given composite handlers to this instance.
+    Returns `self` for chaining.
 
-    The given handlers must handle disjoint sets of error types.
+    Eachn handler (including `self`) must handle a disjoint set of error types.
 
     Raises:
-      ValueError: if more than one handler handles the same error type.
+      ValueError: if any two handlers (including `self`) handle the same error
+        type.
     """
-    handlers = {}
-
-    # Merge all handler dicts, checking that no keys are duplicated.
-    for composite_handler in args:
-      for error_type, handler in composite_handler._handlers.items():
-        if error_type in handlers:
+    for other in args:
+      for error_type, handler in other._handlers.items():
+        if error_type in self._handlers:
           raise ValueError(f'Duplicate handlers for error type {error_type}')
 
-        handlers[error_type] = handler
+        self._handlers[error_type] = handler
 
-    return cls(handlers)
+    return self
 
   def is_handled(self, error_type: uworker_msg_pb2.ErrorType) -> bool:
     """Returns whether the given error type is handled by this instance."""

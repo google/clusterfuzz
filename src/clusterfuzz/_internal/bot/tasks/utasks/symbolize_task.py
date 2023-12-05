@@ -289,12 +289,13 @@ def get_symbolized_stacktraces(testcase_file_path, testcase,
   return symbolized, stacktrace
 
 
-_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler.compose(
-    setup.ERROR_HANDLER, uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
-    uworker_handle_errors.CompositeErrorHandler({
-        uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR:
-            handle_build_setup_error,
-    }))
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR:
+        handle_build_setup_error,
+}).compose_with(
+    setup.ERROR_HANDLER,
+    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+)
 
 
 def utask_postprocess(output):
