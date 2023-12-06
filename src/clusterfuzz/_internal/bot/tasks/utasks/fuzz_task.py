@@ -814,7 +814,7 @@ def convert_crashes_to_dicts(
 def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
                          timestamp: float, new_crash_count: int,
                          known_crash_count: int, testcases_executed: int,
-                         groups):
+                         groups: List[Dict[str, Any]]):
   """Upload job run stats."""
   # New format.
   job_run = fuzzer_stats.JobRun(fuzzer_name, job_type, revision, timestamp,

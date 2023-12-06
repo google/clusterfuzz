@@ -243,7 +243,7 @@ def handle_noncrash(output):
                    output.uworker_input.job_type)
     return
   testcase_upload_metadata = query_testcase_upload_metadata(
-      int(output.uworker_input.testcase_id))
+      output.uworker_input.testcase_id)
   data_handler.mark_invalid_uploaded_testcase(
       testcase, testcase_upload_metadata, 'Unreproducible')
 

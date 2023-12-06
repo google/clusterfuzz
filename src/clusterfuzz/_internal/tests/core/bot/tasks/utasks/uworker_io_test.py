@@ -321,3 +321,67 @@ class RoundTripTest(unittest.TestCase):
                      crashes[0])
     self.assertEqual(deserialized.fuzz_task_output.crash_revision,
                      crash_revision)
+
+
+class ComplexFieldsTest(unittest.TestCase):
+  """Tests handling of complex proto fields (e.g. lists and
+  submessages)."""
+
+  def test_list_initialize(self):
+    """Tests that initialization with a list works."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(deserialized.analyze_task_input.bad_revisions, [0])
+
+  def test_list_update(self):
+    """Tests that updating a list works."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    analyze_task_input.bad_revisions.extend([1])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(deserialized.analyze_task_input.bad_revisions, [0, 1])
+
+  def test_map_update(self):
+    """Tests that updating a map works."""
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
+        issue_metadata={
+            'a': 'b',
+            'c': 'd'
+        })
+    progression_task_output.issue_metadata.clear()
+    progression_task_output.issue_metadata.update({'e': 'f'})
+    output = uworker_msg_pb2.Output(
+        progression_task_output=progression_task_output)
+    wire_format = uworker_io.serialize_uworker_output(output)
+    deserialized = uworker_io.deserialize_uworker_output(wire_format)
+    self.assertEqual(deserialized.progression_task_output.issue_metadata,
+                     {'e': 'f'})
+
+  def test_submessage_references(self):
+    """Tests that updating a submessage works both when directly reading from
+    uworker_input and from reading from it once it has been serialized and
+    deserialized."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+    uworker_input.analyze_task_input.bad_revisions.append(-1)
+    uworker_input.analyze_task_input.bad_revisions.extend([2])
+    uworker_input.analyze_task_input.bad_revisions.append(3)
+    analyze_task_input.bad_revisions.append(4)
+    self.assertEqual(analyze_task_input.bad_revisions, [0, 4])
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertEqual(deserialized.analyze_task_input.bad_revisions,
+                     [0, -1, 2, 3])
+
+  def test_unset_a_message_field(self):
+    """Tests that clearing a field works."""
+    analyze_task_input = uworker_msg_pb2.AnalyzeTaskInput(bad_revisions=[0])
+    uworker_input = uworker_msg_pb2.Input(analyze_task_input=analyze_task_input)
+
+    uworker_input.ClearField("analyze_task_input")
+    wire_format = uworker_io.serialize_uworker_input(uworker_input)
+    deserialized = uworker_io.deserialize_uworker_input(wire_format)
+    self.assertFalse(deserialized.HasField("analyze_task_input"))

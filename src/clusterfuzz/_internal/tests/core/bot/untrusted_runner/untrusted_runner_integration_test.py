@@ -521,18 +521,16 @@ class UntrustedRunnerIntegrationTest(
     bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == 'bundle').get()
 
-    self.assertTrue(
-        setup.update_data_bundle(setup_input,
-                                 uworker_io.model_to_protobuf(bundle)))
+    returned_fuzzer = uworker_io.entity_from_protobuf(setup_input.fuzzer,
+                                                      data_types.Fuzzer)
+    self.assertTrue(setup.update_data_bundle(returned_fuzzer, bundle))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
         setup.get_data_bundle_directory('fuzzer'))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'a')))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'b')))
 
-    self.assertTrue(
-        setup.update_data_bundle(setup_input,
-                                 uworker_io.model_to_protobuf(bundle)))
+    self.assertTrue(setup.update_data_bundle(returned_fuzzer, bundle))
 
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""

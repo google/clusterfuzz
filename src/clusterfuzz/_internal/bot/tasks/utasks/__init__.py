@@ -102,7 +102,7 @@ def uworker_main(input_download_url) -> None:
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
   uworker_output_upload_url = uworker_input.uworker_output_upload_url
-  uworker_input.ClearField("uworker_output_upload_url")
+  uworker_input.ClearField('uworker_output_upload_url')
 
   # Deal with the environment.
   set_uworker_env(uworker_input.uworker_env)

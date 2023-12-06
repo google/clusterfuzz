@@ -431,7 +431,8 @@ def _clear_old_data_bundles_if_needed():
     shell.remove_directory(dir_to_remove)
 
 
-def update_data_bundle(update_input, data_bundle):
+def update_data_bundle(fuzzer: data_types.Fuzzer,
+                       data_bundle: data_types.DataBundle) -> bool:
   """Updates a data bundle to the latest version."""
   # TODO(metzman): Migrate this functionality to utask.
   logs.log('Setting up data bundle %s.' % data_bundle)
@@ -439,10 +440,6 @@ def update_data_bundle(update_input, data_bundle):
   # with multiprocessing and psutil imports.
   from clusterfuzz._internal.google_cloud_utils import gsutil
 
-  data_bundle = uworker_io.entity_from_protobuf(data_bundle,
-                                                data_types.DataBundle)
-  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
-                                           data_types.Fuzzer)
   data_bundle_directory = get_data_bundle_directory(fuzzer.name)
   if not data_bundle_directory:
     logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
@@ -530,7 +527,8 @@ def _set_fuzzer_env_vars(fuzzer):
     environment.set_value('FUZZ_INPUTS', testcase_disk_directory)
 
 
-def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
+def preprocess_update_fuzzer_and_data_bundles(
+    fuzzer_name: str) -> uworker_msg_pb2.SetupInput:
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
   uworker_main. Returns a SetupInput object."""
   fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
@@ -564,8 +562,8 @@ def preprocess_update_fuzzer_and_data_bundles(fuzzer_name):
   return update_input
 
 
-def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput, fuzzer_directory,
-                   version_file):
+def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput,
+                   fuzzer_directory: str, version_file: str) -> bool:
   """Updates the fuzzer. Helper for update_fuzzer_and_data_bundles."""
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
@@ -625,18 +623,23 @@ def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput, fuzzer_directory,
   return True
 
 
-def _set_up_data_bundles(update_input):
+def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
   logs.log('Setting up data bundles.')
-  for data_bundle in update_input.data_bundles:
-    if not update_data_bundle(update_input, data_bundle):
+  for data_bundle_proto in update_input.data_bundles:
+    data_bundle = uworker_io.entity_from_protobuf(data_bundle_proto,
+                                                  data_types.DataBundle)
+    fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
+                                             data_types.Fuzzer)
+    if not update_data_bundle(fuzzer, data_bundle):
       return False
 
   return True
 
 
-def update_fuzzer_and_data_bundles(update_input):
+def update_fuzzer_and_data_bundles(
+    update_input: uworker_msg_pb2.SetupInput) -> Optional[data_types.Fuzzer]:
   """Updates the fuzzer specified by |update_input| and its data bundles."""
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
