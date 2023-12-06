@@ -180,8 +180,8 @@ def utask_main(uworker_input):
     variant_task_output.crash_type = crash_type
   if crash_state is not None:
     variant_task_output.crash_state = crash_state
-  variant_task_output.security_flag = security_flag
-  variant_task_output.is_similar = is_similar
+  variant_task_output.security_flag = bool(security_flag)
+  variant_task_output.is_similar = bool(is_similar)
   variant_task_output.platform = environment.platform().lower()
 
   return uworker_msg_pb2.Output(
