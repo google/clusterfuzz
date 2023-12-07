@@ -307,14 +307,12 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'issue title',
                     'type':
                         'BUG',
-                    'customFields': [
-                        {
-                            'customFieldId': '1223084',
-                            'repeatedEnumValue': {
-                                'values': ['Linux', 'Android']
-                            }
-                        },
-                    ],
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
+                            'values': ['Linux', 'Android']
+                        }
+                    },],
                     'foundInVersions': ['123', '789'],
                     'severity':
                         'S4',
@@ -577,20 +575,21 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
-                    'customFields': [
-                        {
-                            'customFieldId': '1223084',
-                            'repeatedEnumValue': {
-                                'values': ['Linux', 'Android']
-                            }
-                        },
-                    ],
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
+                            'values': ['Linux', 'Android']
+                        }
+                    },],
                     'foundInVersions': ['123', '789'],
                 },
-                'addMask': 'status,assignee,reporter,title,ccs,customFields,foundInVersions',
+                'addMask':
+                    'status,assignee,reporter,title,ccs,customFields,foundInVersions',
                 'remove': {},
-                'removeMask': '',
-                'significanceOverride': 'MAJOR',
+                'removeMask':
+                    '',
+                'significanceOverride':
+                    'MAJOR',
             },
         ),
         mock.call().execute(http=None, num_retries=3),
