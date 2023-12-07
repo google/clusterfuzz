@@ -62,12 +62,16 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
+
+  old_crash_stacktrace = data_handler.get_stacktrace(testcase)
   return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
-      testcase=uworker_io.entity_to_protobuf(testcase))
+      testcase=uworker_io.entity_to_protobuf(testcase),
+      symbolize_task_input=uworker_msg_pb2.SymbolizeTaskInput(
+          old_crash_stacktrace=old_crash_stacktrace))
 
 
 def utask_main(uworker_input):
@@ -83,9 +87,8 @@ def utask_main(uworker_input):
     return error
 
   # Initialize variables.
-  #TODO(alhijazi): check with @metzman if the blobstore is read-only and
-  # accessible within utasks.
-  old_crash_stacktrace = data_handler.get_stacktrace(testcase)
+  old_crash_stacktrace = (
+      uworker_input.symbolize_task_input.old_crash_stacktrace)
   sym_crash_type = testcase.crash_type
   sym_crash_address = testcase.crash_address
   sym_crash_state = testcase.crash_state
