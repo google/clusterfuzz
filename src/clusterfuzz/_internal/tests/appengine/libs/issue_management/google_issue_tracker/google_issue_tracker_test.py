@@ -265,7 +265,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
-  def test_new_issue_with_custom_fields(self):
+  def test_new_issue_with_os_and_foundin_labels(self):
     """Test new issue creation with os and foundin labels."""
     issue = self.issue_tracker.new_issue()
     issue.reporter = 'reporter@google.com'
@@ -307,20 +307,13 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'issue title',
                     'type':
                         'BUG',
-                    'customFields': [
-                        {
-                            'customFieldId': '1223084',
-                            'repeatedEnumValue': {
-                                'values': ['Linux', 'Android']
-                            }
-                        },
-                        {
-                            'customFieldId': '1223034',
-                            'repeatedTextValue': {
-                                'values': ['123', '789']
-                            }
-                        },
-                    ],
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
+                            'values': ['Linux', 'Android']
+                        }
+                    },],
+                    'foundInVersions': ['123', '789'],
                     'severity':
                         'S4',
                 },
@@ -501,7 +494,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
-  def test_update_issue_with_custom_fields(self):
+  def test_update_issue_with_os_foundin_labels(self):
     """Test updating an existing issue with OS and FoundIn labels."""
     self.client.issues().get().execute.return_value = {
         'issueId': '68828938',
@@ -515,12 +508,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'customFieldId': '1223084',
                     'repeatedEnumValue': {
                         'values': ['Linux']  # Existing OS-Linux.
-                    },
-                },
-                {
-                    'customFieldId': '1223034',
-                    'repeatedTextValue': {
-                        'values': ['123']  # Existing FoundIn-123.
                     },
                 },
             ],
@@ -542,6 +529,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             },
             'retention':
                 'COMPONENT_DEFAULT',
+            'foundInVersions': ['123'],  # Existing FoundIn-123.
         },
         'createdTime': '2019-06-25T01:29:30.021Z',
         'modifiedTime': '2019-06-25T01:29:30.021Z',
@@ -587,25 +575,21 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
-                    'customFields': [
-                        {
-                            'customFieldId': '1223084',
-                            'repeatedEnumValue': {
-                                'values': ['Linux', 'Android']
-                            }
-                        },
-                        {
-                            'customFieldId': '1223034',
-                            'repeatedTextValue': {
-                                'values': ['123', '789']
-                            }
-                        },
-                    ],
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
+                            'values': ['Linux', 'Android']
+                        }
+                    },],
+                    'foundInVersions': ['123', '789'],
                 },
-                'addMask': 'status,assignee,reporter,title,ccs,customFields',
+                'addMask':
+                    'status,assignee,reporter,title,ccs,customFields,foundInVersions',
                 'remove': {},
-                'removeMask': '',
-                'significanceOverride': 'MAJOR',
+                'removeMask':
+                    '',
+                'significanceOverride':
+                    'MAJOR',
             },
         ),
         mock.call().execute(http=None, num_retries=3),

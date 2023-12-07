@@ -295,15 +295,12 @@ class Issue(issue_tracker.Issue):
     return []
 
   @property
-  def _foundin_custom_field_values(self):
-    """FoundIn custom field values."""
-    custom_fields = self._data['issueState'].get('customFields', [])
-    for cf in custom_fields:
-      if cf.get('customFieldId') == _CHROMIUM_FOUNDIN_CUSTOM_FIELD_ID:
-        text_values = cf.get('repeatedTextValue')
-        if text_values:
-          return text_values.get('values') or []
-    return []
+  def _foundin_versions(self):
+    """FoundIn versions."""
+    foundin_versions = self._data['issueState'].get('foundInVersions')
+    if not foundin_versions:
+      return []
+    return foundin_versions
 
   @property
   def _verifier(self):
@@ -411,24 +408,20 @@ class Issue(issue_tracker.Issue):
     # hotlist IDs.
     self.labels.remove_by_prefix('OS-')
 
-    # Special case FoundIn custom field.
-    added_foundins = _get_labels(self.labels.added, 'FoundIn-')
-    if added_foundins:
-      foundins = self._foundin_custom_field_values
-      foundins.extend(added_foundins)
-      custom_field_entries.append({
-          'customFieldId': _CHROMIUM_FOUNDIN_CUSTOM_FIELD_ID,
-          'repeatedTextValue': {
-              'values': foundins,
-          }
-      })
-    # Remove FoundIn labels or they will be attempted to be added as
-    # hotlist IDs.
-    self.labels.remove_by_prefix('FoundIn-')
-
     if custom_field_entries:
       added.append('customFields')
       update_body['add']['customFields'] = custom_field_entries
+
+    # Special case FoundIn versions.
+    added_foundins = _get_labels(self.labels.added, 'FoundIn-')
+    if added_foundins:
+      foundins = self._foundin_versions
+      foundins.extend(added_foundins)
+      added.append('foundInVersions')
+      update_body['add']['foundInVersions'] = foundins
+    # Remove FoundIn labels or they will be attempted to be added as
+    # hotlist IDs.
+    self.labels.remove_by_prefix('FoundIn-')
 
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
@@ -494,16 +487,12 @@ class Issue(issue_tracker.Issue):
                 'values': oses
             },
         })
-      foundin_values = _extract_all_labels(self.labels, 'FoundIn-')
-      if foundin_values:
-        custom_field_entries.append({
-            'customFieldId': _CHROMIUM_FOUNDIN_CUSTOM_FIELD_ID,
-            'repeatedTextValue': {
-                'values': foundin_values
-            },
-        })
       if custom_field_entries:
         self._data['issueState']['customFields'] = custom_field_entries
+
+      foundin_values = _extract_all_labels(self.labels, 'FoundIn-')
+      if foundin_values:
+        self._data['issueState']['foundInVersions'] = foundin_values
 
       logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
@@ -861,15 +850,17 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.apply_extension_fields({
 #       '_ext_collaborators': [
 #           'rmistry@google.com',
-#           'skia-npm-audit-mirror@skia-public.iam.gserviceaccount.com'],
-#       '_ext_issue_access_limit': IssueAccessLevel.LIMIT_VIEW_TRUSTED,
+#           'skia-npm-audit-mirror@skia-public.iam.gserviceaccount.com'
+#       ],
+#       '_ext_issue_access_limit':
+#           IssueAccessLevel.LIMIT_VIEW_TRUSTED,
 #   })
 #   issue.save(new_comment='testing')
 #
 #   # Test issue query.
 #   queried_issue = it.get_issue(314141502)
 #   print(queried_issue._data)
-#   queried_issue.labels.add('OS-Chrome')
+#   queried_issue.labels.add('OS-ChromeOS')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
 #   queried_issue._update_issue()
