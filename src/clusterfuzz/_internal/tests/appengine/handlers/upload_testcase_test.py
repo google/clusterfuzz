@@ -156,7 +156,7 @@ class UploadOAuthTest(unittest.TestCase):
         'crash_address': '',
         'crash_revision': 1337,
         'crash_stacktrace': stacktrace,
-        'crash_state': 'target\n',
+        'crash_state': 'target',
         'crash_type': 'Out-of-memory',
         'disable_ubsan': False,
         'duplicate_of': None,
@@ -383,7 +383,7 @@ class UploadOAuthTest(unittest.TestCase):
     """Test uploading a duplicate."""
     existing = data_types.Testcase(
         crash_address='',
-        crash_state='target\n',
+        crash_state='target',
         crash_type='Out-of-memory',
         project_name='proj',
         minimized_keys='NA',
@@ -419,7 +419,7 @@ class UploadOAuthTest(unittest.TestCase):
         'crash_address': '',
         'crash_revision': 1337,
         'crash_stacktrace': stacktrace,
-        'crash_state': 'target\n',
+        'crash_state': 'target',
         'crash_type': 'Out-of-memory',
         'disable_ubsan': False,
         'duplicate_of': 2,

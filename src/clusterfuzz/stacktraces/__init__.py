@@ -343,7 +343,8 @@ class StackParser:
       if state.crash_type not in ['V8 correctness failure']:
         state.crash_state = filter_addresses_and_numbers(state.crash_state)
 
-      # Truncate each line in the crash state to avoid excessive length.
+      # Truncate each line in the crash state to avoid excessive length. This
+      # also ensures a trailing '\n' in the crash state.
       original_crash_state = state.crash_state
       state.crash_state = ''
       for line in original_crash_state.splitlines():
@@ -365,11 +366,6 @@ class StackParser:
         'Out-of-memory', 'Timeout', 'Overwrites-const-input'
     ]:
       state.crash_state = self.fuzz_target
-
-    # Add a trailing \n if it does not exist in crash state.
-    if (state.crash_state and state.crash_state != 'NULL' and
-        state.crash_state[-1] != '\n'):
-      state.crash_state += '\n'
 
     # Normalize access size parameter if greater than 16 bytes.
     m = re.match('([^0-9]+)([0-9]+)', state.crash_type, re.DOTALL)

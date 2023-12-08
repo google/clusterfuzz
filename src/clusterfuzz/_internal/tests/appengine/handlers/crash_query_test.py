@@ -144,6 +144,6 @@ class CrashQueryTest(unittest.TestCase):
     self.assertEqual({
         'result': 'new',
         'type': 'Out-of-memory',
-        'state': 'target\n',
+        'state': 'target',
         'security': False,
     }, response.json)

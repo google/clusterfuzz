@@ -247,7 +247,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('android_null_stack.txt')
     expected_type = 'UNKNOWN'
     expected_address = '0xb6e43000'
-    expected_state = 'Surfaceflinger\n'
+    expected_state = 'Surfaceflinger'
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -2454,7 +2454,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('oom4.txt')
     expected_type = 'Out-of-memory'
     expected_address = ''
-    expected_state = 'pdf_jpx_fuzzer\n'
+    expected_state = 'pdf_jpx_fuzzer'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -2539,7 +2539,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('libfuzzer_timeout.txt')
     expected_type = 'Timeout'
     expected_address = ''
-    expected_state = 'pdfium_fuzzer\n'
+    expected_state = 'pdfium_fuzzer'
     expected_stacktrace = data
     expected_security_flag = False
     expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
@@ -2570,7 +2570,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('libfuzzer_oom.txt')
     expected_type = 'Out-of-memory'
     expected_address = ''
-    expected_state = 'freetype2_fuzzer\n'
+    expected_state = 'freetype2_fuzzer'
     expected_stacktrace = data
     expected_security_flag = False
     expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
@@ -2594,7 +2594,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('libfuzzer_oom.txt')
     expected_type = 'Out-of-memory'
     expected_address = ''
-    expected_state = 'freetype2_fuzzer\n'
+    expected_state = 'freetype2_fuzzer'
     expected_stacktrace = data
     expected_security_flag = False
     expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
@@ -3173,7 +3173,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     data = self._read_test_data('libfuzzer_overwrites_const_input.txt')
     expected_type = 'Overwrites-const-input'
     expected_address = ''
-    expected_state = 'ap-mgmt\n'
+    expected_state = 'ap-mgmt'
 
     expected_stacktrace = data
     expected_security_flag = False
