@@ -37,3 +37,43 @@ def get_local_path(device_path):
   return os.path.join(
       root_directory,
       os.path.relpath(device_path, android.constants.DEVICE_FUZZING_DIR))
+
+
+def is_testcase_deprecated(platform_id=None):
+  """Whether or not the Android device is deprecated."""
+
+  # Platform ID for Android is of the form - |android:{codename}_{sanitizer}:{build_version}|
+  platform_id_fields = platform_id.split(':')
+  if len(platform_id_fields) != 3:
+    return False
+
+  codename_fields = platform_id_fields[1].split('_')
+
+  # Check if device is deprecated
+  if codename_fields[0] in android.constants.DEPRECATED_DEVICE_LIST:
+    return True
+
+  # Check if branch is deprecated
+  # Currently only "main" or "m" is active
+  # All other branches including "master" have been deprecated
+  branch = platform_id_fields[2]
+  if (branch <= 'v' or branch == 'master') and branch != 'm':
+    return True
+
+  return False
+
+def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
+  """Whether or not the testcase can run on the current Android device."""
+
+  # Platform ID for Android is of the form - |android:{codename}_{sanitizer}:{build_version}|
+  current_platform_id_fields = current_platform_id.split(':')
+  if len(current_platform_id_fields) != 3:
+    return False
+
+  # Deprecated testcase should run on any latest device and on main
+  # So ignore device information and check for current version
+  # If the current version is 'm' or main, run the test case
+  if current_platform_id_fields[2] == 'm':
+    return True
+
+  return False

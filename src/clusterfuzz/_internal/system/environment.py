@@ -1141,3 +1141,36 @@ def if_redis_available(func):
     return None
 
   return wrapper
+
+
+def is_testcase_deprecated(platform_id=None):
+  """Whether or not the device or branch is deprecated."""
+  if not is_android(platform_id.upper()):
+    return False
+
+  if is_android_cuttlefish(platform_id.upper()):
+    return False
+
+  if is_android(platform_id.upper()):
+    # FIXME: Handle this import in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
+    return android.util.is_testcase_deprecated(platform_id)
+
+  return False
+
+def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
+  """Whether or not the testcase can run on the current platform."""
+  if not is_android(testcase_platform_id.upper()) or not is_android(current_platform_id.upper()):
+    return False
+
+  if is_android_cuttlefish(testcase_platform_id.upper()) and is_android_cuttlefish(current_platform_id.upper()):
+    return True
+
+  if is_android(testcase_platform_id.upper()):
+    # FIXME: Handle this import in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
+    return android.util.can_testcase_run_on_platform(testcase_platform_id, current_platform_id)
+
+  return False
