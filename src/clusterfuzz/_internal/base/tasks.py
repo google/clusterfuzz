@@ -346,6 +346,10 @@ def get_task():
   return task
 
 
+def get_payload(command, argument, job):
+  return ' '.join([command, argument, job])
+
+
 class Task:
   """Represents a task."""
 
@@ -368,7 +372,7 @@ class Task:
 
   def payload(self):
     """Get the payload."""
-    return ' '.join([self.command, self.argument, self.job])
+    return get_payload(self.command, self.argument, self.job)
 
   def to_pubsub_message(self):
     """Convert the task to a pubsub message."""

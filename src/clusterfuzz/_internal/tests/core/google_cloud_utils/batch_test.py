@@ -15,25 +15,24 @@
 
 import unittest
 
-from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-from clusterfuzz._internal.bot.tasks.utasks import regression_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 @test_utils.with_cloud_emulators('datastore')
-class GetSpecTest(unittest.TestCase):
-  """Tests for get_spec."""
+class GetSpecFromConfigTest(unittest.TestCase):
+  """Tests for get_spec_from_config."""
 
   def setUp(self):
     self.maxDiff = None
 
-  def test_nonpreemptible_get_spec(self):
-    """Tests that get_spec works for non-preemptibles as expected."""
+  def test_nonpreemptible_get_spec_from_config(self):
+    """Tests that get_spec_from_config works for non-preemptibles as
+    expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    spec = batch.get_spec(regression_task.__name__, job.name)
+    spec = batch.get_spec_from_config('regression', job.name)
     expected_spec = batch.BatchJobSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
@@ -48,11 +47,11 @@ class GetSpecTest(unittest.TestCase):
 
     self.assertCountEqual(spec, expected_spec)
 
-  def test_preemptible_get_spec(self):
-    """Tests that get_spec works for preemptibles as expected."""
+  def test_preemptible_get_spec_from_config(self):
+    """Tests that get_spec_from_config works for preemptibles as expected."""
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
-    spec = batch.get_spec(fuzz_task.__name__, job.name)
+    spec = batch.get_spec_from_config('fuzz', job.name)
     expected_spec = batch.BatchJobSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
