@@ -158,7 +158,7 @@ def set_task_payload(func):
     payload = tasks.get_payload(task_name, task_argument, job_name)
     environment.set_value('TASK_PAYLOAD', payload)
     try:
-      return funsetc(task_name, task_argument, job_name, *args)
+      return func(task_name, task_argument, job_name, *args)
     except:  # Truly catch *all* exceptions.
       e = sys.exc_info()[1]
       e.extras = {'task_payload': environment.get_value('TASK_PAYLOAD')}
