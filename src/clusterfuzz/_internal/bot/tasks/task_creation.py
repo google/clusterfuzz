@@ -318,9 +318,8 @@ def schedule_tasks(tasks: List[Task]):
     if not task_types.is_remote_utask(task.name):
       taskslib.add_task(task.name, task.argument, task.job,
                         task.queue_for_platform)
-      logs.log(f'UTask {task.name} not remote.')
       continue
     _preprocess(task)
     uworker_tasks.append(task)
-  logs.log(f'Starting utask_mains.')
+
   start_utask_mains(uworker_tasks)
