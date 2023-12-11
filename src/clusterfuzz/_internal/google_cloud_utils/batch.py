@@ -20,7 +20,6 @@ from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -35,7 +34,14 @@ MAX_DURATION = '3600s'
 RETRY_COUNT = 1
 TASK_COUNT = 1
 
-BatchJobSpec = collections.namedtuple('BatchJobSpec', [
+# Controls how many containers (ClusterFuzz tasks) can run on a single VM.
+# THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
+TASK_COUNT_PER_NODE = 1
+
+# See https://cloud.google.com/batch/quotas#job_limits
+MAX_CONCURRENT_VMS_PER_JOB = 1000
+
+BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'disk_size_gb',
     'disk_type',
     'docker_image',
@@ -71,48 +77,82 @@ def get_job_name():
   return 'j-' + str(uuid.uuid4()).lower()
 
 
-def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
-  """This is not a job in ClusterFuzz's meaning of the word."""
+class BatchTask:
+  """Class reprensenting a ClusterFuzz task to be executed on Google Cloud
+  Batch."""
+
+  def __init__(self, module, job_type, input_download_url):
+    self.module_name = module
+    self.job_type = job_type
+    self.input_download_url = input_download_url
+
+
+def create_uworker_main_batch_jobs(batch_tasks):
   # Define what will be done as part of the job.
+  job_specs = collections.defaultdict(list)
+  for batch_task in batch_tasks:
+    spec = get_spec_from_config(batch_task.command, batch_task.job_type)
+    job_specs[spec].append(batch_task.input_download_url)
+
+  return [
+      _create_job(spec, input_urls) for spec, input_urls in job_specs.items()
+  ]
+
+
+def _get_task_spec(batch_workload_spec):
+  """Gets the task spec based on the batch workload spec."""
   runnable = batch.Runnable()
   runnable.container = batch.Runnable.Container()
-  spec = get_spec(module_name, cf_job)
-  runnable.container.image_uri = spec.docker_image
+  runnable.container.image_uri = batch_workload_spec.docker_image
   runnable.container.options = (
-      '--memory-swappiness=40 --shm-size=1.9g --rm --net=host -e HOST_UID=1337 '
-      '-P --privileged --cap-add=all '
+      '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
+      '-e HOST_UID=1337 -P --privileged --cap-add=all '
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
-      f'-e UWORKER_INPUT_DOWNLOAD_URL={input_download_url}')
+      '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
-  # Jobs can be divided into tasks. In this case, we have only one task.
-  task = batch.TaskSpec()
-  task.runnables = [runnable]
-  task.max_retry_count = RETRY_COUNT
+  task_spec = batch.TaskSpec()
+  task_spec.runnables = [runnable]
+  task_spec.max_retry_count = RETRY_COUNT
   # TODO(metzman): Change this for production.
-  task.max_run_duration = MAX_DURATION
+  task_spec.max_run_duration = MAX_DURATION
+  return task_spec
 
-  # Only one of these is currently possible.
-  group = batch.TaskGroup()
-  group.task_count = TASK_COUNT
-  group.task_spec = task
 
-  policy = batch.AllocationPolicy.InstancePolicy()
+def _get_allocation_policy(spec):
+  """Returns the allocation policy for a BatchWorkloadSpec."""
+  instance_policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
   disk.size_gb = spec.disk_size_gb
   disk.type = spec.disk_type
-  policy.boot_disk = disk
-  policy.machine_type = spec.machine_type
+  instance_policy.boot_disk = disk
+  instance_policy.machine_type = spec.machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
-  instances.policy = policy
+  instances.policy = instance_policy
   allocation_policy = batch.AllocationPolicy()
   allocation_policy.instances = [instances]
   service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
+  return allocation_policy
+
+
+def _create_job(spec, input_urls):
+  """Creates and starts a batch job from |spec| that executes all tasks."""
+  task_group = batch.TaskGroup()
+  task_group.task_count = len(input_urls)
+  assert task_group.task_count < MAX_CONCURRENT_VMS_PER_JOB
+  task_environments = [
+      batch.Environment(variables={'UWORKER_INPUT_DOWNLOAD_URL': input_url})
+      for input_url in input_urls
+  ]
+  task_group.task_environments = task_environments
+  task_group.task_spec = _get_task_spec(spec)
+  task_group.task_count_per_node = TASK_COUNT_PER_NODE
+  assert task_group.task_count_per_node == 1, 'This is a security issue'
 
   job = batch.Job()
-  job.task_groups = [group]
-  job.allocation_policy = allocation_policy
+  job.task_groups = [task_group]
+  job.allocation_policy = _get_allocation_policy(spec)
   job.labels = {'env': 'testing', 'type': 'container'}
   job.logs_policy = batch.LogsPolicy()
   job.logs_policy.destination = batch.LogsPolicy.Destination.CLOUD_LOGGING
@@ -125,21 +165,23 @@ def create_uworker_main_batch_job(module_name, cf_job, input_download_url):
   project_id = 'google.com:clusterfuzz'
   region = 'us-central1'
   create_request.parent = f'projects/{project_id}/locations/{region}'
-  result = _create_job(create_request)
+  result = _send_create_job_request(create_request)
   logs.log('Created batch job.')
   return result
 
 
-@retry.wrap(retries=3, delay=2, function='google_cloud_utils.batch._create_job')
-def _create_job(create_request):
+@retry.wrap(
+    retries=3,
+    delay=2,
+    function='google_cloud_utils.batch._send_create_job_request')
+def _send_create_job_request(create_request):
   return _batch_client().create_job(create_request)
 
 
-def get_spec(full_module_name, job_name):
-  """Gets the specifications for a job."""
+def get_spec_from_config(command, job_name):
+  """Gets the configured specifications for a batch workload."""
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   platform = job.platform
-  command = utask_utils.get_command_from_module(full_module_name)
   if command == 'fuzz':
     platform += '-PREEMPTIBLE'
   else:
@@ -153,7 +195,7 @@ def get_spec(full_module_name, job_name):
   user_data = instance_spec['user_data']
   # TODO(https://github.com/google/clusterfuzz/issues/3008): Make this use a
   # low-privilege account.
-  spec = BatchJobSpec(
+  spec = BatchWorkloadSpec(
       docker_image=docker_image,
       user_data=user_data,
       disk_size_gb=instance_spec['disk_size_gb'],
