@@ -33,6 +33,7 @@ def dummy(_):
   """A dummy function."""
   return os.environ['TASK_PAYLOAD']
 
+
 @commands.set_task_payload
 def dummy_exception(_):
   """A dummy function."""
