@@ -93,8 +93,11 @@ def utask_main(uworker_input):
   if the build can reproduce the error."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  testcase_upload_metadata = uworker_io.entity_from_protobuf(
-      uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
+  testcase_upload_metadata = None
+  if uworker_input.HasField('testcase_upload_metadata'):
+    testcase_upload_metadata = uworker_io.entity_from_protobuf(
+        uworker_input.testcase_upload_metadata,
+        data_types.TestcaseUploadMetadata)
   if environment.is_engine_fuzzer_job(testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     # Repeat this because the in-memory executor may allow puts.
