@@ -318,9 +318,9 @@ def schedule_tasks(tasks: List[Task]):
     if not task_types.is_remote_utask(task.name):
       taskslib.add_task(task.name, task.argument, task.job,
                         task.queue_for_platform)
-      continue
+  #   continue
+  # TODO(metzman): Reenable utask_mains after us-west2 is tested.
+  #   _preprocess(task)
+  #   uworker_tasks.append(task)
 
-    _preprocess(task)
-    uworker_tasks.append(task)
-
-  start_utask_mains(uworker_tasks)
+  # start_utask_mains(uworker_tasks)
