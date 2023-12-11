@@ -81,10 +81,19 @@ class BatchTask:
   """Class reprensenting a ClusterFuzz task to be executed on Google Cloud
   Batch."""
 
-  def __init__(self, module, job_type, input_download_url):
-    self.module_name = module
+  def __init__(self, command, job_type, input_download_url):
+    self.command = command
     self.job_type = job_type
     self.input_download_url = input_download_url
+
+
+def create_uworker_main_batch_job(module, job_type, input_download_url):
+  command = get_command_from_module(module)
+  batch_tasks = [BatchTask(command, job_type, input_download_url)]
+  result = create_uworker_main_batch_jobs(batch_tasks)
+  if result is None:
+    return result
+  return result[0]
 
 
 def create_uworker_main_batch_jobs(batch_tasks):
