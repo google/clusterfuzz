@@ -213,10 +213,11 @@ def validate_regression_range(testcase, testcase_file_path, job_type,
   return True
 
 
-def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
-                         ) -> Optional[uworker_io.UworkerOutput]:
+def find_regression_range(uworker_input: uworker_msg_pb2.Input,
+                         ) -> Optional[uworker_msg_pb2.Output]:
   """Attempt to find when the testcase regressed."""
-  testcase = uworker_input.testcase
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   job_type = uworker_input.job_type
 
   deadline = tasks.get_task_completion_deadline()
@@ -233,7 +234,7 @@ def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
       uworker_input.regression_task_input.bad_revisions,
       testcase=testcase)
   if not revision_list:
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
 
   # Pick up where left off in a previous run if necessary.
@@ -248,14 +249,14 @@ def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
   min_index = revisions.find_min_revision_index(revision_list, min_revision)
   if min_index is None:
     error_message = f'Could not find good min revision <= {min_revision}.'
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
         error_message=error_message)
 
   max_index = revisions.find_max_revision_index(revision_list, max_revision)
   if max_index is None:
     error_message = f'Could not find good max revision >= {max_revision}.'
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
         error_message=error_message)
 
@@ -335,7 +336,7 @@ def find_regression_range(uworker_input: uworker_io.DeserializedUworkerMsg,
 
 
 def utask_preprocess(testcase_id: str, job_type: str,
-                     uworker_env: Dict) -> Optional[uworker_io.UworkerInput]:
+                     uworker_env: Dict) -> Optional[uworker_msg_pb2.Input]:
   """Prepares inputs for `utask_main()` to run on an untrusted worker.
 
   Runs on a trusted worker.
@@ -358,12 +359,12 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
   setup_input = setup.preprocess_setup_testcase(testcase)
 
-  task_input = uworker_io.RegressionTaskInput()
-  task_input.bad_revisions.extend(build_manager.get_job_bad_revisions())
+  task_input = uworker_msg_pb2.RegressionTaskInput(
+      bad_revisions=build_manager.get_job_bad_revisions())
 
-  return uworker_io.UworkerInput(
+  return uworker_msg_pb2.Input(
       testcase_id=testcase_id,
-      testcase=testcase,
+      testcase=uworker_io.entity_to_protobuf(testcase),
       job_type=job_type,
       uworker_env=uworker_env,
       setup_input=setup_input,
@@ -371,13 +372,13 @@ def utask_preprocess(testcase_id: str, job_type: str,
   )
 
 
-def handle_revision_list_error(output: uworker_io.DeserializedUworkerMsg):
+def handle_revision_list_error(output: uworker_msg_pb2.Output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.close_testcase_with_error(testcase,
                                          'Failed to fetch revision list')
 
 
-def handle_build_not_found_error(output: uworker_io.DeserializedUworkerMsg):
+def handle_build_not_found_error(output: uworker_msg_pb2.Output):
   # If an expected build no longer exists, we can't continue.
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   testcase.regression = 'NA'
@@ -391,20 +392,20 @@ _HANDLED_ERRORS = [
 ] + setup.HANDLED_ERRORS
 
 
-def utask_postprocess(output: uworker_io.DeserializedUworkerMsg) -> None:
+def utask_postprocess(output: uworker_msg_pb2.Output) -> None:
   """Handles the output of `utask_main()` run on an untrusted worker.
 
   Runs on a trusted worker.
   """
-  if output.error_type is not None:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, _HANDLED_ERRORS)
     return
 
   # TODO: migrate more stuff out of `utask_main()`.
 
 
-def utask_main(uworker_input: uworker_io.DeserializedUworkerMsg,
-              ) -> Optional[uworker_io.UworkerOutput]:
+def utask_main(uworker_input: uworker_msg_pb2.Input,
+              ) -> Optional[uworker_msg_pb2.Output]:
   """Runs regression task and handles potential errors.
 
   Runs on an untrusted worker.
