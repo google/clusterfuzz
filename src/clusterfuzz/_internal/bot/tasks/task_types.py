@@ -15,16 +15,13 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
 class BaseTask:
   """Base module for tasks."""
-
-  @staticmethod
-  def is_execution_remote():
-    return False
 
   def __init__(self, module):
     self.module = module
@@ -71,10 +68,6 @@ class BaseUTask(BaseTask):
     logs.log('Utask local: done.')
 
 
-def is_remote_utask(command):
-  return COMMAND_TYPES[command].is_execution_remote()
-
-
 class UTaskLocalExecutor(BaseUTask):
   """Represents an untrusted task. Executes it entirely locally and in
   memory."""
@@ -89,32 +82,24 @@ class UTask(BaseUTask):
   an untrusted machine, and postprocess on another trusted machine if
   opted-in. Otherwise executes locally."""
 
-  @staticmethod
-  def is_execution_remote():
-    return is_remotely_executing_utasks()
-
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
     if (not is_production() or
         not environment.get_value('REMOTE_UTASK_EXECUTION') or
         environment.platform() != 'LINUX'):
       self.execute_locally(task_argument, job_type, uworker_env)
-      return None
+      return
 
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
                                                 job_type, uworker_env)
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
-      return None
+      return
 
     logs.log('Utask: done with preprocess.')
-    return download_url
-
-
-def is_remotely_executing_utasks():
-  return (is_production() and
-          environment.get_value('REMOTE_UTASK_EXECUTION') and
-          environment.platform() == 'LINUX')
+    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
+                                        download_url)
+    logs.log('Utask: done creating main.')
 
 
 class PostprocessTask(BaseTask):
