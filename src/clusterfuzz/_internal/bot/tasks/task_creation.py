@@ -313,7 +313,7 @@ def schedule_tasks(tasks: List[Task]):
   remotely, then they are put on the queue. If they are executed remotely, then
   the utask_mains are scheduled on batch, since preprocess has already been done
   in this module on this bot."""
-  uworker_tasks = []
+  # uworker_tasks = []
   for task in tasks:
     if not task_types.is_remote_utask(task.name):
       taskslib.add_task(task.name, task.argument, task.job,
