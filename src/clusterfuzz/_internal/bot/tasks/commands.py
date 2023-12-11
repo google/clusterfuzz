@@ -151,11 +151,12 @@ def set_task_payload(func):
   """Set TASK_PAYLOAD and unset TASK_PAYLOAD."""
 
   @functools.wraps(func)
-  def wrapper(task):
+  def wrapper(task_name, task_argument, job_name, *args):
     """Wrapper."""
-    environment.set_value('TASK_PAYLOAD', task.payload())
+    payload = tasks.construct_payload(task_name, task_argument, job_name)
+    environment.set_value('TASK_PAYLOAD', payload)
     try:
-      return func(task)
+      return func(task_name, task_argument, job_name, *args)
     except:  # Truly catch *all* exceptions.
       e = sys.exc_info()[1]
       e.extras = {'task_payload': environment.get_value('TASK_PAYLOAD')}
@@ -191,12 +192,16 @@ def start_web_server_if_needed():
     logs.log_error('Failed to start web server, skipping.')
 
 
-def run_command(task_name, task_argument, job_name, uworker_env):
+def run_command(task_name,
+                task_argument,
+                job_name,
+                uworker_env,
+                preprocess=False):
   """Run the command."""
   task = COMMAND_MAP.get(task_name)
   if not task:
     logs.log_error("Unknown command '%s'" % task_name)
-    return
+    return None
 
   # If applicable, ensure this is the only instance of the task running.
   task_state_name = ' '.join([task_name, task_argument, job_name])
@@ -207,8 +212,12 @@ def run_command(task_name, task_argument, job_name, uworker_env):
                'running, exiting.'.format(task_state_name))
       raise AlreadyRunningError
 
+  result = None
   try:
-    task.execute(task_argument, job_name, uworker_env)
+    if not preprocess:
+      result = task.execute(task_argument, job_name, uworker_env)
+    else:
+      result = task.preprocess(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -226,24 +235,31 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   if should_update_task_status(task_name):
     data_handler.update_task_status(task_state_name,
                                     data_types.TaskState.FINISHED)
+  return result
 
 
-# pylint: disable=too-many-nested-blocks
-# TODO(mbarbella): Rewrite this function to avoid nesting issues.
-@set_task_payload
 def process_command(task):
   """Figures out what to do with the given task and executes the command."""
   logs.log(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
     logs.log_error('Empty task received.')
-    return
+    return None
 
+  return process_command_impl(task.command, task.argument, task.job,
+                              task.high_end, task.is_command_override)
+
+
+# pylint: disable=too-many-nested-blocks
+# TODO(mbarbella): Rewrite this function to avoid nesting issues.
+@set_task_payload
+def process_command_impl(task_name,
+                         task_argument,
+                         job_name,
+                         high_end,
+                         is_command_override,
+                         preprocess=False):
+  """Implmentation of process_command."""
   uworker_env = None
-  # Parse task payload.
-  task_name = task.command
-  task_argument = task.argument
-  job_name = task.job
-
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
@@ -253,7 +269,7 @@ def process_command(task):
     # raised and causing this task to be retried by another bot.
     if not job:
       logs.log_error("Job '%s' not found." % job_name)
-      return
+      return None
 
     if not job.platform:
       error_string = "No platform set for job '%s'" % job_name
@@ -272,14 +288,14 @@ def process_command(task):
 
       # Try to recreate the job in the correct task queue.
       new_queue = (
-          tasks.high_end_queue() if task.high_end else tasks.regular_queue())
+          tasks.high_end_queue() if high_end else tasks.regular_queue())
       new_queue += job_queue_suffix
 
       # Command override is continuously run by a bot. If we keep failing
       # and recreating the task, it will just DoS the entire task queue.
       # So, we don't create any new tasks in that case since it needs
       # manual intervention to fix the override anyway.
-      if not task.is_command_override:
+      if not is_command_override:
         try:
           tasks.add_task(task_name, task_argument, job_name, new_queue)
         except Exception:
@@ -291,7 +307,7 @@ def process_command(task):
       # Add a wait interval to avoid overflowing task creation.
       failure_wait_interval = environment.get_value('FAIL_WAIT')
       time.sleep(failure_wait_interval)
-      return
+      return None
 
     if task_name != 'fuzz':
       # Make sure that our platform id matches that of the testcase (for
@@ -315,7 +331,7 @@ def process_command(task):
               task_argument,
               job_name,
               wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
-          return
+          return None
 
     # Some fuzzers contain additional environment variables that should be
     # set for them. Append these for tests generated by these fuzzers and for
@@ -384,7 +400,7 @@ def process_command(task):
         task_argument,
         job_name,
         wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
-    return
+    return None
 
   # Initial cleanup.
   cleanup_task_state()
@@ -392,7 +408,8 @@ def process_command(task):
   start_web_server_if_needed()
 
   try:
-    run_command(task_name, task_argument, job_name, uworker_env)
+    return run_command(task_name, task_argument, job_name, uworker_env,
+                       preprocess)
   finally:
     # Final clean up.
     cleanup_task_state()

@@ -22,7 +22,6 @@ import zlib
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -34,6 +33,7 @@ from clusterfuzz._internal.metrics import fuzzer_logs
 from clusterfuzz._internal.metrics import fuzzer_stats
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
@@ -1113,7 +1113,8 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
                              extension_config_file_path)
 
 
-def check_for_bad_build(job_type, crash_revision):
+def check_for_bad_build(job_type: str,
+                        crash_revision: int) -> uworker_msg_pb2.BuildData:
   """
   Checks whether the target binary fails to execute at the given revision.
 
@@ -1133,7 +1134,7 @@ def check_for_bad_build(job_type, crash_revision):
   if not environment.get_value('BAD_BUILD_CHECK'):
     # should_ignore_crash_result set to True because build metadata does not
     # need to be updated in this case.
-    return uworker_io.BuildData(
+    return uworker_msg_pb2.BuildData(
         is_bad_build=False,
         should_ignore_crash_result=True,
         build_run_console_output='')
@@ -1196,13 +1197,14 @@ def check_for_bad_build(job_type, crash_revision):
         'Bad bot environment detected, exiting.',
         output=build_run_console_output,
         snapshot=process_handler.get_runtime_snapshot())
-  return uworker_io.BuildData(
+  return uworker_msg_pb2.BuildData(
       is_bad_build=is_bad_build,
       should_ignore_crash_result=crash_result.should_ignore(),
       build_run_console_output=build_run_console_output)
 
 
-def update_build_metadata(job_type, crash_revision, build_data):
+def update_build_metadata(job_type: str, crash_revision: int,
+                          build_data: uworker_msg_pb2.BuildData):
   """
   Updates the corresponding build metadata.
 

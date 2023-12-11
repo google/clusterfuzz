@@ -5,6 +5,8 @@ enable=
   indexing-exception,
   old-raise-syntax,
 
+load-plugins=pylint_protobuf
+
 # List of checkers and warnings to disable.
 # TODO: Shrink this list to as small as possible.
 disable=

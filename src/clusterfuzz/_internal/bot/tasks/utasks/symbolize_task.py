@@ -62,18 +62,19 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
-  return uworker_io.UworkerInput(
+  return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=testcase_id,
       uworker_env=uworker_env,
       setup_input=setup_input,
-      testcase=testcase)
+      testcase=uworker_io.entity_to_protobuf(testcase))
 
 
 def utask_main(uworker_input):
   """Execute the untrusted part of a symbolize command."""
   job_type = uworker_input.job_type
-  testcase = uworker_input.testcase
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   setup_input = uworker_input.setup_input
 
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
@@ -107,7 +108,7 @@ def utask_main(uworker_input):
   crash_revision = environment.get_value('APP_REVISION')
 
   if not build_manager.check_app_path():
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_message='Build setup failed',
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
 
@@ -157,7 +158,7 @@ def utask_main(uworker_input):
   if (not symbolized_builds or
       (not build_manager.check_app_path() and
        not build_manager.check_app_path('APP_PATH_DEBUG'))):
-    return uworker_io.UworkerOutput(
+    return uworker_msg_pb2.Output(
         error_message='Build setup failed',
         error_type=uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
 
@@ -177,7 +178,7 @@ def utask_main(uworker_input):
       get_symbolized_stacktraces(testcase_file_path, testcase,
                                  old_crash_stacktrace, sym_crash_state))
 
-  symbolize_task_outptut = uworker_io.SymbolizeTaskOutput(
+  symbolize_task_output = uworker_msg_pb2.SymbolizeTaskOutput(
       crash_type=sym_crash_type,
       crash_address=sym_crash_address,
       crash_state=sym_crash_state,
@@ -188,7 +189,7 @@ def utask_main(uworker_input):
   if result:
     build_url = environment.get_value('BUILD_URL')
     if build_url:
-      symbolize_task_outptut.build_url = build_url
+      symbolize_task_output.build_url = str(build_url)
 
   # Switch current directory before builds cleanup.
   root_directory = environment.get_value('ROOT_DIR')
@@ -196,7 +197,7 @@ def utask_main(uworker_input):
 
   # Cleanup symbolized builds which are space-heavy.
   symbolized_builds.delete()
-  return uworker_io.UworkerOutput(symbolize_task_output=symbolize_task_outptut)
+  return uworker_msg_pb2.Output(symbolize_task_output=symbolize_task_output)
 
 
 def get_symbolized_stacktraces(testcase_file_path, testcase,
@@ -293,7 +294,7 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
-  if output.error_type is not None:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
