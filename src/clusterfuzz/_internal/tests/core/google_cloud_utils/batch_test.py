@@ -33,7 +33,7 @@ class GetSpecFromConfigTest(unittest.TestCase):
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
     spec = batch.get_spec_from_config('regression', job.name)
-    expected_spec = batch.BatchJobSpec(
+    expected_spec = batch.BatchWorkloadSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
         disk_size_gb=110,
@@ -52,7 +52,7 @@ class GetSpecFromConfigTest(unittest.TestCase):
     job = data_types.Job(name='libfuzzer_chrome_asan', platform='LINUX')
     job.put()
     spec = batch.get_spec_from_config('fuzz', job.name)
-    expected_spec = batch.BatchJobSpec(
+    expected_spec = batch.BatchWorkloadSpec(
         docker_image='gcr.io/clusterfuzz-images/base:a2f4dd6-202202070654',
         user_data='file://linux-init.yaml',
         disk_size_gb=75,
