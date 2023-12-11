@@ -348,7 +348,7 @@ def get_task():
 
 def construct_payload(command, argument, job):
   """Constructs payload for task, a standard description of tasks."""
-  return ' '.join([command, argument, job])
+  return ' '.join([command, str(argument), str(job)])
 
 
 class Task:
