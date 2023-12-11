@@ -485,7 +485,7 @@ def utask_main(uworker_input):
         '(crashed %d/%d)' % (len(crash_times), crash_retries))
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    create_additional_tasks(testcase)
+    task_creation.create_postminimize_tasks(testcase)
     return None
 
   test_runner.set_test_expectations(testcase.security_flag, flaky_stack,
@@ -644,18 +644,7 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
   # based on other testcases.
   data_handler.handle_duplicate_entry(testcase)
 
-  create_additional_tasks(testcase)
-
-
-def create_additional_tasks(testcase):
-  """Create post-minimization tasks for this reproducible testcase such as
-  impact, regression, progression, variant and symbolize."""
-  # No need to create progression task. It is automatically created by the cron
-  # handler.
-  task_creation.create_impact_task_if_needed(testcase)
-  task_creation.create_regression_task_if_needed(testcase)
-  task_creation.create_symbolize_task_if_needed(testcase)
-  task_creation.create_variant_tasks_if_needed(testcase)
+  task_creation.create_postminimize_tasks(testcase)
 
 
 def should_attempt_phase(testcase, phase):
@@ -1294,7 +1283,7 @@ def _skip_minimization(testcase, message, crash_result=None, command=None):
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        message)
-  create_additional_tasks(testcase)
+  task_creation.create_postminimize_tasks(testcase)
 
 
 def do_libfuzzer_minimization(testcase, testcase_file_path):
