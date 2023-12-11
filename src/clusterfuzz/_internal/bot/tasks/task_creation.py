@@ -32,6 +32,11 @@ from clusterfuzz._internal.system import environment
 @dataclasses.dataclass
 class Task:
   """Representing a Task."""
+  name: str
+  argument: str
+  job: str
+  queue_for_platform: Optional[str] = None
+  uworker_input = None
 
   def __init__(self,
                name: str,

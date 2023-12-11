@@ -153,7 +153,7 @@ def set_task_payload(func):
   @functools.wraps(func)
   def wrapper(task_name, task_argument, job_name, *args):
     """Wrapper."""
-    payload = tasks.get_payload(task_name, task_argument, job_name)
+    payload = tasks.construct_payload(task_name, task_argument, job_name)
     environment.set_value('TASK_PAYLOAD', payload)
     try:
       return func(task_name, task_argument, job_name, *args)
@@ -215,7 +215,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
     # during processing. Rather than trying to catch by checking every point
     # where a test case is reloaded from the datastore, just abort the task.
     logs.log_warn('Test case %s no longer exists.' % task_argument)
-  except BaseException as e:
+  except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
