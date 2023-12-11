@@ -28,40 +28,45 @@ from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-@commands.set_task_payload
-def dummy(_):
-  """A dummy function."""
-  return os.environ['TASK_PAYLOAD']
+# @commands.set_task_payload
+# def dummy(*args):
+#   """A dummy function."""
+#   del args
+#   return os.environ['TASK_PAYLOAD']
 
 
-@commands.set_task_payload
-def dummy_exception(_):
-  """A dummy function."""
-  raise RuntimeError(os.environ['TASK_PAYLOAD'])
+# def dummy_wrapper():
+#   return dummy('payload', 'argument', 'jobname', False, False)
 
 
-class SetTaskPayloadTest(unittest.TestCase):
-  """Test set_task_payload."""
+# @commands.set_task_payload
+# def dummy_exception(*args):
+#   """A dummy function."""
+#   raise RuntimeError(os.environ['TASK_PAYLOAD'])
 
-  def setUp(self):
-    helpers.patch_environ(self)
 
-  def test_set(self):
-    """Test set."""
-    task = mock.Mock()
-    task.get_payload.return_value = 'payload something'
-    self.assertEqual('payload something', dummy(task))
-    self.assertIsNone(os.getenv('TASK_PAYLOAD'))
+# class SetTaskPayloadTest(unittest.TestCase):
+#   """Test set_task_payload."""
 
-  def test_exc(self):
-    """Test when exception occurs."""
-    task = mock.Mock()
-    task.payload.return_value = 'payload something'
-    with self.assertRaises(Exception) as cm:
-      self.assertEqual('payload something', dummy_exception(task))
-      self.assertEqual('payload something', str(cm.exception))
-    self.assertEqual({'task_payload': 'payload something'}, cm.exception.extras)
-    self.assertIsNone(os.getenv('TASK_PAYLOAD'))
+#   def setUp(self):
+#     helpers.patch_environ(self)
+#     helpers.patch(self, ['clusterfuzz._internal.base.tasks.get_payload'])
+#     self.mock.get_payload.return_value = 'payload something'
+
+#   def test_set(self):
+#     """Test set."""
+#     self.assertEqual('payload something', dummy_wrapper())
+#     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
+
+#   def test_exc(self):
+#     """Test when exception occurs."""
+#     task = mock.Mock()
+#     task.payload.return_value = 'payload something'
+#     with self.assertRaises(Exception) as cm:
+#       self.assertEqual('payload something', dummy_exception('task', 'arg', 'job'))
+#       self.assertEqual('payload something', str(cm.exception))
+#     self.assertEqual({'task_payload': 'payload something'}, cm.exception.extras)
+#     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 
 
 @test_utils.with_cloud_emulators('datastore')

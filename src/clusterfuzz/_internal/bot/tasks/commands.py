@@ -153,8 +153,6 @@ def set_task_payload(func):
   @functools.wraps(func)
   def wrapper(task_name, task_argument, job_name, *args):
     """Wrapper."""
-    del high_end
-    del is_command_override
     payload = tasks.get_payload(task_name, task_argument, job_name)
     environment.set_value('TASK_PAYLOAD', payload)
     try:
@@ -211,13 +209,13 @@ def run_command(task_name, task_argument, job_name, uworker_env):
       raise AlreadyRunningError
 
   try:
-    return task.execute(task_argument, job_name, uworker_env)
+    task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
     # where a test case is reloaded from the datastore, just abort the task.
     logs.log_warn('Test case %s no longer exists.' % task_argument)
-  except BaseException:
+  except BaseException as e:
     # On any other exceptions, update state to reflect error and re-raise.
     if should_update_task_status(task_name):
       data_handler.update_task_status(task_state_name,
