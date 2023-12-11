@@ -89,7 +89,7 @@ class BatchTask:
 
 
 def create_uworker_main_batch_job(module, job_type, input_download_url):
-  command = get_command_from_module(module)
+  command = utask_utils.get_command_from_module(module)
   batch_tasks = [BatchTask(command, job_type, input_download_url)]
   result = create_uworker_main_batch_jobs(batch_tasks)
   if result is None:
