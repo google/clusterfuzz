@@ -49,7 +49,7 @@ class SetTaskPayloadTest(unittest.TestCase):
   def test_set(self):
     """Test set."""
     task = mock.Mock()
-    task.payload.return_value = 'payload something'
+    task.get_payload.return_value = 'payload something'
     self.assertEqual('payload something', dummy(task))
     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 
@@ -59,7 +59,7 @@ class SetTaskPayloadTest(unittest.TestCase):
     task.payload.return_value = 'payload something'
     with self.assertRaises(Exception) as cm:
       self.assertEqual('payload something', dummy_exception(task))
-    self.assertEqual('payload something', str(cm.exception))
+      self.assertEqual('payload something', str(cm.exception))
     self.assertEqual({'task_payload': 'payload something'}, cm.exception.extras)
     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 
