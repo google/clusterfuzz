@@ -15,6 +15,7 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
@@ -70,6 +71,10 @@ class BaseUTask(BaseTask):
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.log('Utask local: done.')
 
+  def preprocess(self, task_argument, job_type, uworker_env):
+    """Executes preprocessing."""
+    raise NotImplementedError('Child class must implement.')
+
 
 def is_remote_utask(command):
   return COMMAND_TYPES[command].is_execution_remote()
@@ -82,6 +87,10 @@ class UTaskLocalExecutor(BaseUTask):
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally in-memory."""
     self.execute_locally(task_argument, job_type, uworker_env)
+
+  def preprocess(self, task_argument, job_type, uworker_env):
+    """Executes preprocessing."""
+    raise NotImplementedError('Only needed for utasks.')
 
 
 class UTask(BaseUTask):
@@ -99,14 +108,21 @@ class UTask(BaseUTask):
         not environment.get_value('REMOTE_UTASK_EXECUTION') or
         environment.platform() != 'LINUX'):
       self.execute_locally(task_argument, job_type, uworker_env)
-      return None
+      return
 
+    download_url = self.preprocess(task_argument, job_type, uworker_env)
+    if download_url is None:
+      return
+
+    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
+                                        download_url)
+
+  def preprocess(self, task_argument, job_type, uworker_env):
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
                                                 job_type, uworker_env)
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
       return None
-
     logs.log('Utask: done with preprocess.')
     return download_url
 
