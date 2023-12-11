@@ -647,7 +647,6 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
   task_creation.create_postminimize_tasks(testcase)
 
 
-
 def should_attempt_phase(testcase, phase):
   """Return true if we should we attempt a minimization phase."""
   if (phase == MinimizationPhase.ARGUMENTS and
