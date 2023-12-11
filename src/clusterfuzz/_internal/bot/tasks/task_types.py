@@ -70,6 +70,10 @@ class BaseUTask(BaseTask):
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.log('Utask local: done.')
 
+  def preprocess(self):
+    """Executes preprocessing."""
+    raise NotImplementedError('Child class must implement.')
+
 
 def is_remote_utask(command):
   return COMMAND_TYPES[command].is_execution_remote()
@@ -101,12 +105,15 @@ class UTask(BaseUTask):
       self.execute_locally(task_argument, job_type, uworker_env)
       return None
 
+    download_url = self.preprocess(task_argument, job_name, uworker_env)
+    return download_url
+
+  def preprocess(self, task_argument, job_name, uworker_env):
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
                                                 job_type, uworker_env)
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
       return None
-
     logs.log('Utask: done with preprocess.')
     return download_url
 
