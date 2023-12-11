@@ -72,20 +72,20 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
   setup_input = setup.preprocess_setup_testcase(testcase)
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
       original_job_type=original_job_type,
       testcase=uworker_io.entity_to_protobuf(testcase),
-      testcase_upload_metadata=),
       uworker_env=uworker_env,
       testcase_id=testcase_id,
       setup_input=setup_input,
   )
+  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   if testcase_upload_metadata:
     uworker_input.testcase_upload_metadata = uworker_io.entity_to_protobuf(
-      testcase_upload_metadata)
+        testcase_upload_metadata)
+  return uworker_input
 
 
 def utask_main(uworker_input):
