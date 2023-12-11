@@ -193,7 +193,7 @@ class UtaskMainTest(unittest.TestCase):
         testcase=uworker_io.entity_to_protobuf(self.testcase),
         job_type='job_type',
         setup_input=uworker_msg_pb2.SetupInput(),
-        symbolize_task_input=uworker_io.SymbolizeTaskInput(
+        symbolize_task_input=uworker_msg_pb2.SymbolizeTaskInput(
             old_crash_stacktrace='some crash stacktrace'))
     result = symbolize_task.utask_main(uworker_input)
     self.assertEqual(result.error_type,
