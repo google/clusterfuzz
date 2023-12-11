@@ -485,7 +485,7 @@ def utask_main(uworker_input):
         '(crashed %d/%d)' % (len(crash_times), crash_retries))
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
-    create_additional_tasks(testcase)
+    task_creation.create_additional_tasks(testcase)
     return None
 
   test_runner.set_test_expectations(testcase.security_flag, flaky_stack,
