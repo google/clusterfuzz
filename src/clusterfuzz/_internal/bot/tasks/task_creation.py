@@ -282,7 +282,6 @@ def create_postminimize_tasks(testcase):
   tasks.append(create_regression_task_if_needed(testcase))
   tasks.append(create_symbolize_task_if_needed(testcase))
   tasks.extend(create_variant_tasks_if_needed(testcase))
-  tasks = [task for task in tasks if task is not None]
   schedule_tasks(tasks)
 
 
@@ -314,10 +313,11 @@ def schedule_tasks(tasks: List[Task]):
   the utask_mains are scheduled on batch, since preprocess has already been done
   in this module on this bot."""
   # uworker_tasks = []
+  tasks = [task for task in tasks if task is not None]
   for task in tasks:
-    if not task_types.is_remote_utask(task.name):
-      taskslib.add_task(task.name, task.argument, task.job,
-                        task.queue_for_platform)
+    # if not task_types.is_remote_utask(task.name):
+    taskslib.add_task(task.name, task.argument, task.job,
+                      task.queue_for_platform)
   #   continue
   # TODO(metzman): Reenable utask_mains after us-west2 is tested.
   #   _preprocess(task)
