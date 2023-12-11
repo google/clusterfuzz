@@ -1116,6 +1116,9 @@ class ConvertGroupsToCrashesTest(unittest.TestCase):
     groups[0].is_new.return_value = False
     groups[1].is_new.return_value = True
 
+    crashes = fuzz_task.convert_groups_to_crashes(groups)
+    job_run_crashes = fuzz_task.convert_crashes_to_dicts(crashes)
+
     self.assertEqual([
         {
             'is_new': False,
@@ -1131,7 +1134,7 @@ class ConvertGroupsToCrashesTest(unittest.TestCase):
             'crash_state': 's2',
             'security_flag': False
         },
-    ], fuzz_task.convert_groups_to_crashes(groups))
+    ], job_run_crashes)
 
 
 class TestCorpusSync(fake_filesystem_unittest.TestCase):

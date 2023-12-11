@@ -363,17 +363,18 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(
       testcase, fuzzer_override=minimize_fuzzer_override)
 
-  return uworker_io.UworkerInput(
+  return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=str(testcase_id),
-      testcase=testcase,
+      testcase=uworker_io.entity_to_protobuf(testcase),
       setup_input=setup_input,
       uworker_env=uworker_env)
 
 
 def utask_main(uworker_input):
   """Attempt to minimize a given testcase."""
-  testcase = uworker_input.testcase
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
 
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -399,10 +400,7 @@ def utask_main(uworker_input):
   # to setup correctly.
   if not build_manager.check_app_path():
     logs.log_error('Unable to setup build for minimization.')
-    build_fail_wait = environment.get_value('FAIL_WAIT')
-    return uworker_io.UworkerOutput(
-        minimize_task_output=uworker_io.MinimizeTaskOutput(
-            build_fail_wait=build_fail_wait),
+    return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
@@ -584,10 +582,10 @@ def utask_main(uworker_input):
   store_minimized_testcase(testcase, input_directory, file_list, data,
                            testcase_file_path)
 
-  minimize_task_output = uworker_io.MinimizeTaskOutput(
+  minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
       last_crash_result_dict=_extract_crash_result(last_crash_result, command),
       flaky_stack=flaky_stack)
-  return uworker_io.UworkerOutput(minimize_task_output=minimize_task_output)
+  return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)
 
 
 HANDLED_ERRORS = [
@@ -599,7 +597,7 @@ HANDLED_ERRORS = [
 
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
-  if output.error_type:
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
@@ -613,17 +611,18 @@ def handle_minimize_setup_error(output):
   """Handles errors occuring during setup."""
 
   if environment.get_value('ORIGINAL_JOB_NAME'):
-    _skip_minimization(output.uworker_input.testcase,
-                       'Failed to setup build for overridden job.')
+    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+    _skip_minimization(testcase, 'Failed to setup build for overridden job.')
   else:
     # Only recreate task if this isn't an overriden job. It's possible that a
     # revision exists for the original job, but doesn't exist for the
     # overriden job.
+    build_fail_wait = environment.get_value('FAIL_WAIT')
     tasks.add_task(
         'minimize',
         output.uworker_input.testcase_id,
         output.uworker_input.job_type,
-        wait_time=output.minimize_task_output.build_fail_wait)
+        wait_time=build_fail_wait)
 
 
 def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):

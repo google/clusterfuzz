@@ -21,8 +21,8 @@ from google.cloud import ndb
 
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.bot.tasks import commands
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -99,7 +99,7 @@ class RunCommandTest(unittest.TestCase):
   def test_run_command_fuzz(self):
     """Test run_command with a normal command."""
     self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
-        uworker_io.SetupInput())
+        uworker_msg_pb2.SetupInput())
     commands.run_command('fuzz', 'fuzzer', 'job', {})
 
     uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
@@ -114,8 +114,8 @@ class RunCommandTest(unittest.TestCase):
   def test_run_command_progression(self):
     """Test run_command with a progression task."""
 
-    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
-        job_type='job', testcase_id='123', uworker_env={})
+    self.mock.progression_utask_preprocess.return_value = uworker_msg_pb2.Input(
+        job_type='job', testcase_id='123')
     commands.run_command('progression', '123', 'job', {})
 
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
@@ -204,8 +204,8 @@ class RunCommandTest(unittest.TestCase):
         time=datetime.datetime(1970, 1, 1),
         status='started').put()
 
-    self.mock.progression_utask_preprocess.return_value = uworker_io.UworkerInput(
-        job_type='job', testcase_id='123', uworker_env={})
+    self.mock.progression_utask_preprocess.return_value = uworker_msg_pb2.Input(
+        job_type='job', testcase_id='123')
     commands.run_command('progression', '123', 'job', {})
     self.assertEqual(1, self.mock.progression_utask_main.call_count)
 
