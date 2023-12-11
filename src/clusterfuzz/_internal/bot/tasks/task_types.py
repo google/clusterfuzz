@@ -23,10 +23,6 @@ from clusterfuzz._internal.system import environment
 class BaseTask:
   """Base module for tasks."""
 
-  @staticmethod
-  def is_execution_remote():
-    return False
-
   def __init__(self, module):
     self.module = module
 
@@ -71,14 +67,6 @@ class BaseUTask(BaseTask):
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.log('Utask local: done.')
 
-  def preprocess(self, task_argument, job_type, uworker_env):
-    """Executes preprocessing."""
-    raise NotImplementedError('Child class must implement.')
-
-
-def is_remote_utask(command):
-  return COMMAND_TYPES[command].is_execution_remote()
-
 
 class UTaskLocalExecutor(BaseUTask):
   """Represents an untrusted task. Executes it entirely locally and in
@@ -88,19 +76,11 @@ class UTaskLocalExecutor(BaseUTask):
     """Executes a utask locally in-memory."""
     self.execute_locally(task_argument, job_type, uworker_env)
 
-  def preprocess(self, task_argument, job_type, uworker_env):
-    """Executes preprocessing."""
-    raise NotImplementedError('Only needed for utasks.')
-
 
 class UTask(BaseUTask):
   """Represents an untrusted task. Executes preprocess on this machine, main on
   an untrusted machine, and postprocess on another trusted machine if
   opted-in. Otherwise executes locally."""
-
-  @staticmethod
-  def is_execution_remote():
-    return is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
@@ -110,27 +90,16 @@ class UTask(BaseUTask):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
-    download_url = self.preprocess(task_argument, job_type, uworker_env)
-    if download_url is None:
-      return
-
-    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
-                                        download_url)
-
-  def preprocess(self, task_argument, job_type, uworker_env):
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
                                                 job_type, uworker_env)
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
-      return None
+      return
+
     logs.log('Utask: done with preprocess.')
-    return download_url
-
-
-def is_remotely_executing_utasks():
-  return (is_production() and
-          environment.get_value('REMOTE_UTASK_EXECUTION') and
-          environment.platform() == 'LINUX')
+    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
+                                        download_url)
+    logs.log('Utask: done creating main.')
 
 
 class PostprocessTask(BaseTask):
@@ -184,7 +153,7 @@ COMMAND_TYPES = {
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTask,
+    'variant': UTaskLocalExecutor,
 }
 
 
