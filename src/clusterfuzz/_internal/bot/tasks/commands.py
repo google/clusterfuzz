@@ -230,7 +230,7 @@ def run_command(task_name, task_argument, job_name, uworker_env):
   return None
 
 
-def process_task(task):
+def process_command(task):
   """Figures out what to do with the given task and executes the command."""
   logs.log(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
