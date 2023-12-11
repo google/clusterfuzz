@@ -313,14 +313,14 @@ def schedule_tasks(tasks: List[Task]):
   remotely, then they are put on the queue. If they are executed remotely, then
   the utask_mains are scheduled on batch, since preprocess has already been done
   in this module on this bot."""
-  uworker_tasks = []
+  # uworker_tasks = []
   for task in tasks:
     if not task_types.is_remote_utask(task.name):
       taskslib.add_task(task.name, task.argument, task.job,
                         task.queue_for_platform)
-      continue
+  #   continue
+  # TODO(metzman): Reenable utask_mains after us-west2 is tested.
+  #   _preprocess(task)
+  #   uworker_tasks.append(task)
 
-    _preprocess(task)
-    uworker_tasks.append(task)
-
-  start_utask_mains(uworker_tasks)
+  # start_utask_mains(uworker_tasks)
