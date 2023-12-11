@@ -151,12 +151,12 @@ def set_task_payload(func):
   """Set TASK_PAYLOAD and unset TASK_PAYLOAD."""
 
   @functools.wraps(func)
-  def wrapper(task_name, task_argument, job_name, *args):
+  def wrapper(task_name, task_argument, job_name, *args, **kwargs):
     """Wrapper."""
     payload = tasks.construct_payload(task_name, task_argument, job_name)
     environment.set_value('TASK_PAYLOAD', payload)
     try:
-      return func(task_name, task_argument, job_name, *args)
+      return func(task_name, task_argument, job_name, *args, **kwargs)
     except:  # Truly catch *all* exceptions.
       e = sys.exc_info()[1]
       e.extras = {'task_payload': environment.get_value('TASK_PAYLOAD')}

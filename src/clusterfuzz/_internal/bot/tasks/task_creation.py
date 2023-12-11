@@ -296,7 +296,12 @@ def _preprocess(task: Task) -> None:
   """Runs preprocess portion of task and saves the uworker_input to task."""
   from clusterfuzz._internal.bot.tasks import commands
   task.uworker_input = commands.process_command_impl(
-      task.name, task.argument, task.job, preprocess=True)
+      task.name,
+      task.argument,
+      task.job,
+      high_end=True,
+      is_command_override=False,
+      preprocess=True)
 
 
 def start_utask_mains(tasks: List[Task]) -> None:

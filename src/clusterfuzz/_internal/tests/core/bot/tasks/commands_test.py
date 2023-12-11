@@ -29,14 +29,15 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 @commands.set_task_payload
-def dummy(*args):
+def dummy(*args, **kwargs):
   """A dummy function."""
   del args
+  del kwargs
   return os.environ['TASK_PAYLOAD']
 
 
 def dummy_wrapper():
-  return dummy('payload', 'argument', 'jobname', False, False)
+  return dummy('payload', 'argument', 'jobname', False, preprocess=False)
 
 
 @commands.set_task_payload
