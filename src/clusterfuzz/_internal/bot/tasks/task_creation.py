@@ -295,8 +295,8 @@ def is_remote_utask(task: Task) -> bool:
 def _preprocess(task: Task) -> None:
   """Runs preprocess portion of task and saves the uworker_input to task."""
   import commands
-  task.uworker_input = commands.process_command_impl(
-      task.name, task.argument, task.job, preprocess=True)
+  task.uworker_input = commands.process_command_impl(task.name, task.argument,
+                                                     task.job)
 
 
 def start_utask_mains(tasks: List[Task]) -> None:

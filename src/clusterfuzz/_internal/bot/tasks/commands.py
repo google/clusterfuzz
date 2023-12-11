@@ -192,11 +192,7 @@ def start_web_server_if_needed():
     logs.log_error('Failed to start web server, skipping.')
 
 
-def run_command(task_name,
-                task_argument,
-                job_name,
-                uworker_env,
-                preprocess=False):
+def run_command(task_name, task_argument, job_name, uworker_env):
   """Run the command."""
   task = COMMAND_MAP.get(task_name)
   if not task:
@@ -212,12 +208,8 @@ def run_command(task_name,
                'running, exiting.'.format(task_state_name))
       raise AlreadyRunningError
 
-  result = None
   try:
-    if not preprocess:
-      result = task.execute(task_argument, job_name, uworker_env)
-    else:
-      result = task.preprocess(task_argument, job_name, uworker_env)
+    task.execute(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -235,7 +227,7 @@ def run_command(task_name,
   if should_update_task_status(task_name):
     data_handler.update_task_status(task_state_name,
                                     data_types.TaskState.FINISHED)
-  return result
+  return None
 
 
 def process_command(task):
@@ -252,12 +244,8 @@ def process_command(task):
 # pylint: disable=too-many-nested-blocks
 # TODO(mbarbella): Rewrite this function to avoid nesting issues.
 @set_task_payload
-def process_command_impl(task_name,
-                         task_argument,
-                         job_name,
-                         high_end,
-                         is_command_override,
-                         preprocess=False):
+def process_command_impl(task_name, task_argument, job_name, high_end,
+                         is_command_override):
   """Implmentation of process_command."""
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
@@ -408,8 +396,7 @@ def process_command_impl(task_name,
   start_web_server_if_needed()
 
   try:
-    return run_command(task_name, task_argument, job_name, uworker_env,
-                       preprocess)
+    return run_command(task_name, task_argument, job_name, uworker_env)
   finally:
     # Final clean up.
     cleanup_task_state()

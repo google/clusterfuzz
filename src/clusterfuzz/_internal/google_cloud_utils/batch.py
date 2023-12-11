@@ -20,7 +20,6 @@ from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -82,19 +81,10 @@ class BatchTask:
   """Class reprensenting a ClusterFuzz task to be executed on Google Cloud
   Batch."""
 
-  def __init__(self, command, job_type, input_download_url):
-    self.command = command
+  def __init__(self, module, job_type, input_download_url):
+    self.module_name = module
     self.job_type = job_type
     self.input_download_url = input_download_url
-
-
-def create_uworker_main_batch_job(module, job_type, input_download_url):
-  command = utask_utils.get_command_from_module(module)
-  batch_tasks = [BatchTask(command, job_type, input_download_url)]
-  result = create_uworker_main_batch_jobs(batch_tasks)
-  if result is None:
-    return result
-  return result[0]
 
 
 def create_uworker_main_batch_jobs(batch_tasks):
