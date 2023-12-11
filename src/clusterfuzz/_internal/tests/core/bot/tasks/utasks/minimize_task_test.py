@@ -86,18 +86,21 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
     self.mock._run_libfuzzer_testcase.return_value = CrashResult(  # pylint: disable=protected-access
         1, 1.0, stacktrace)
 
-    self.mock._run_libfuzzer_tool.return_value = (None, None)  # pylint: disable=protected-access
+    self.mock._run_libfuzzer_tool.return_value = (None, None, None)  # pylint: disable=protected-access
 
-    minimize_task.do_libfuzzer_minimization(testcase, '/testcase_file_path')
-
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
-    self.assertEqual('Heap-buffer-overflow', testcase.crash_type)
-    self.assertEqual('frame0\nframe1\nframe2\n', testcase.crash_state)
-    self.assertEqual('0x61b00001f7d0', testcase.crash_address)
+    output = minimize_task.do_libfuzzer_minimization(testcase,
+                                                     '/testcase_file_path')
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED)
+    crash_result_dict = output.minimize_task_output.last_crash_result_dict
+    self.assertEqual('Heap-buffer-overflow', crash_result_dict['crash_type'])
+    self.assertEqual('frame0\nframe1\nframe2\n',
+                     crash_result_dict['crash_state'])
+    self.assertEqual('0x61b00001f7d0', crash_result_dict['crash_address'])
     self.assertEqual(
         '+----------------------------------------Release Build Stacktrace'
         '----------------------------------------+\n%s' % stacktrace,
-        testcase.crash_stacktrace)
+        crash_result_dict['crash_stacktrace'])
 
 
 class MinimizeTaskTestUntrusted(
@@ -195,9 +198,11 @@ class MinimizeTaskTestUntrusted(
         testcase=uworker_io.entity_to_protobuf(testcase),
         setup_input=setup_input,
         testcase_id=str(testcase.key.id()))
-    minimize_task.utask_main(uworker_input)
-
+    output = minimize_task.utask_main(uworker_input)
+    output.uworker_input.CopyFrom(uworker_input)
+    minimize_task.update_testcase(output)
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
+
     self.assertNotEqual('', testcase.minimized_keys)
     self.assertNotEqual('NA', testcase.minimized_keys)
     self.assertNotEqual(testcase.fuzzed_keys, testcase.minimized_keys)
@@ -281,13 +286,15 @@ class UTaskPostprocessTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.minimize_task.finalize_testcase',
+        'clusterfuzz._internal.system.environment.is_engine_fuzzer_job',
     ])
 
   def _get_generic_input(self):
     testcase = data_types.Testcase()
+    testcase.put()
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type',
-        testcase_id='testcase_id',
+        testcase_id=str(testcase.key.id()),
         testcase=uworker_io.entity_to_protobuf(testcase))
     return uworker_input
 
@@ -301,6 +308,7 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_generic_output_finalizes_testcase(self):
     """Checks that an output with all critical fields finalizes a testcase."""
     self.mock.finalize_testcase.return_value = None
+    self.mock.is_engine_fuzzer_job.return_value = False
     last_crash_result_dict = {'crash_type': 'type', 'crash_state': 'state'}
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=last_crash_result_dict)
