@@ -104,6 +104,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
     spec = get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 
+  logs.log('Creating batch jobs', specs=job_specs)
   return [
       _create_job(spec, input_urls) for spec, input_urls in job_specs.items()
   ]
