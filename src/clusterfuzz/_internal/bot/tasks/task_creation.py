@@ -43,9 +43,9 @@ class Task:
                arg: str,
                job: str,
                queue_for_platform: Optional[str] = None):
-    self.name = str(name)
-    self.argument = str(arg)
-    self.job = str(job)
+    self.name = name
+    self.argument = arg
+    self.job = job
     self.queue_for_platform = queue_for_platform
     self.uworker_input = None
 
