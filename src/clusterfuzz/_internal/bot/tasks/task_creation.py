@@ -328,5 +328,4 @@ def schedule_tasks(tasks: List[Task]):
     _preprocess(task)
     uworker_tasks.append(task)
   logs.log(f'Starting utask_mains: {len(uworker_tasks)}.')
-  if uworker_tasks:
-    start_utask_mains(uworker_tasks)
+  start_utask_mains(uworker_tasks)
