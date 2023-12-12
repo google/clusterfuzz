@@ -29,7 +29,7 @@ _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
 
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'  # Uses Repeated Enums
-_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'  # Uses Repated Enums
+_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'  # Uses Repeated Enums
 
 # TODO(rmistry): This is using the field ID of Respin because FoundIn has not
 # been created yet. Update it to use the real field ID when it exists.
