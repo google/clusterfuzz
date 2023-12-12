@@ -131,6 +131,8 @@ def _get_task_spec(batch_workload_spec):
 
 def _get_allocation_policy(spec):
   """Returns the allocation policy for a BatchWorkloadSpec."""
+  location_policy = batch.AllocationPolicy.LocationPolicy()
+  location_policy.allowed_locations = [f'zones/{spec.gce_zone}']
   instance_policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
@@ -141,6 +143,7 @@ def _get_allocation_policy(spec):
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
   allocation_policy = batch.AllocationPolicy()
+  allocation_policy.location = location_policy
   allocation_policy.instances = [instances]
   service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
@@ -167,9 +170,6 @@ def _create_job(spec, input_urls):
   job.labels = {'env': 'testing', 'type': 'container'}
   job.logs_policy = batch.LogsPolicy()
   job.logs_policy.destination = batch.LogsPolicy.Destination.CLOUD_LOGGING
-  location_policy = batch.AllocationPolicy.LocationPolicy()
-  location_policy.allowed_locations = [f'zones/{spec.gce_zone}']
-  job.location = location_policy
 
   create_request = batch.CreateJobRequest()
   create_request.job = job
