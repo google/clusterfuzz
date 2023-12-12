@@ -29,6 +29,7 @@ _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
 
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'  # Uses Repeated Enums
+_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'  # Uses Repated Enums
 
 # TODO(rmistry): This is using the field ID of Respin because FoundIn has not
 # been created yet. Update it to use the real field ID when it exists.
@@ -52,19 +53,6 @@ class IssueTrackerNotFoundError(IssueTrackerError):
 
 class IssueTrackerPermissionError(IssueTrackerError):
   """Permission error."""
-
-
-class _SingleComponentStore(issue_tracker.LabelStore):
-  """LabelStore that only accepts 1 item."""
-
-  def get_single(self):
-    """Get the single component, or None."""
-    return next(iter(self), None)
-
-  def add(self, label):
-    """Add a component, overwriting the last component added if any."""
-    self.clear()
-    super(_SingleComponentStore, self).add(label)
 
 
 def _extract_all_labels(labels, prefix):
@@ -121,11 +109,38 @@ class Issue(issue_tracker.Issue):
         for hotlist_id in data['issueState'].get('hotlistIds', [])
     ]
     self._labels = issue_tracker.LabelStore(labels)
-    components = [str(data['issueState']['componentId'])]
-    self._components = _SingleComponentStore(components)
+
+    component_tags = self._get_component_tags()
+    self._component_tags = issue_tracker.LabelStore(component_tags)
+
     self._body = None
     self._changed = set()
     self._issue_access_limit = IssueAccessLevel.LIMIT_NONE
+
+  def _get_component_tags(self):
+    """Returns the value of the Component Tags custom field."""
+    custom_fields = self._data['issueState'].get('customFields', [])
+    for cf in custom_fields:
+      if cf.get('customFieldId') == _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID:
+        enum_values = cf.get('repeatedEnumValue')
+        if enum_values:
+          return enum_values.get('values') or []
+    return []
+
+  def _filter_custom_field_enum_values(self, custom_field_id, values):
+    """Filters out invalid enum values from the provided values."""
+    filtered_values = []
+    for cf in self._data.get('customFields', []):
+      if cf['customFieldId'] == custom_field_id:
+        allowed_values = cf['enumValues']
+        for v in values:
+          if v in allowed_values:
+            filtered_values.append(v)
+          else:
+            logs.log('google_issue_tracker: Value %s for CustomFieldId %s was '
+                     'not in allowed values' % (v, custom_field_id))
+        break
+    return filtered_values
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -133,7 +148,7 @@ class Issue(issue_tracker.Issue):
     self._ccs.reset_tracking()
     self._collaborators.reset_tracking()
     self._labels.reset_tracking()
-    self._components.reset_tracking()
+    self._component_tags.reset_tracking()
 
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
@@ -263,9 +278,14 @@ class Issue(issue_tracker.Issue):
     return self._labels
 
   @property
+  def component_id(self):
+    """The issue's component ID."""
+    return self._data['issueState']['componentId']
+
+  @property
   def components(self):
-    """The issue component list."""
-    return self._components
+    """The issue's component tags."""
+    return self._component_tags
 
   @property
   def actions(self):
@@ -408,6 +428,20 @@ class Issue(issue_tracker.Issue):
     # hotlist IDs.
     self.labels.remove_by_prefix('OS-')
 
+    # Special case Component Tags custom field.
+    if self.components.added:
+      values = self._filter_custom_field_enum_values(
+          _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID, self.components)
+      if values:
+        logs.log('google_issue_tracker: Going to add these components to '
+                 'component tags: %s' % values)
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': values,
+            }
+        })
+
     if custom_field_entries:
       added.append('customFields')
       update_body['add']['customFields'] = custom_field_entries
@@ -438,15 +472,6 @@ class Issue(issue_tracker.Issue):
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().modify(
               issueId=str(self.id), body=update_body))
-    # Special case: components.
-    new_component = next(iter(self.components.added), None)
-    if new_component:
-      self.issue_tracker._execute(self.issue_tracker.client.issues().move(
-          issueId=str(self.id),
-          body={
-              'componentId': int(new_component),
-          },
-      ))
     # Special case: hotlists.
     # TODO(ochang): Investigate batching.
     added_hotlists = self.labels.added
@@ -487,6 +512,16 @@ class Issue(issue_tracker.Issue):
                 'values': oses
             },
         })
+      if list(self.components):
+        logs.log(
+            'google_issue_tracker: In save. Going to add these components to '
+            'component tags: %s' % list(self.components))
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': list(self.components)
+            },
+        })
       if custom_field_entries:
         self._data['issueState']['customFields'] = custom_field_entries
 
@@ -500,9 +535,8 @@ class Issue(issue_tracker.Issue):
       severity = _get_severity_from_crash_text(severity_text)
       self._data['issueState']['severity'] = severity
 
-      component_id = self._components.get_single()
-      if component_id:
-        self._data['issueState']['componentId'] = int(component_id)
+      if self.component_id:
+        self._data['issueState']['componentId'] = int(self.component_id)
       ccs = list(self._ccs)
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
@@ -666,16 +700,8 @@ class Action(issue_tracker.Action):
 
   @property
   def components(self):
-    """The issue component change list."""
-    # We need to use the snake_case version of the field here, as that's the
-    # string value the backend actually uses.
-    old_value, new_value = self._get_field_update_single('component_id')
-    change_list = issue_tracker.ChangeList()
-    if new_value:
-      change_list.added.append(new_value)
-    if old_value:
-      change_list.removed.append(old_value)
-    return change_list
+    # Component tags will be handled by _update_issue and save.
+    return issue_tracker.ChangeList()
 
 
 class IssueTracker(issue_tracker.IssueTracker):
@@ -847,6 +873,8 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.labels.add('OS-Android')
 #   issue.labels.add('FoundIn-123')
 #   issue.labels.add('FoundIn-789')
+#   issue.components.add('OS>Software>Enterprise>Policies')
+#   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')
 #   issue.apply_extension_fields({
 #       '_ext_collaborators': [
 #           'rmistry@google.com',
@@ -863,4 +891,9 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   queried_issue.labels.add('OS-ChromeOS')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
+#   queried_issue.components.add('Blink>JavaScript>Compiler>Sparkplug')
+#   queried_issue.components.add('OS>Software>Enterprise>ChromeApps')
+#   queried_issue.components.add('OS>Systems>Network>General')
+#   queried_issue.components.add('asdfasdfasdf')
+#   queried_issue.components.add(123123123)
 #   queried_issue._update_issue()
