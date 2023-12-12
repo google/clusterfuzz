@@ -30,6 +30,7 @@ message AnalyzeTaskInput {
 }
 
 message SymbolizeTaskInput {
+  optional string old_crash_stacktrace = 1;
 }
 
 message FuzzTaskInput {

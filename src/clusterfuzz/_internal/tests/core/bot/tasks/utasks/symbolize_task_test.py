@@ -31,14 +31,15 @@ class UtaskPreprocessTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase',
-        'clusterfuzz._internal.build_management.build_manager.has_symbolized_builds'
+        'clusterfuzz._internal.build_management.build_manager.has_symbolized_builds',
+        'clusterfuzz._internal.datastore.data_handler.get_stacktrace',
     ])
     self.mock.preprocess_setup_testcase.return_value = uworker_msg_pb2.SetupInput(
     )
+    self.mock.get_stacktrace.return_value = 'some crash stacktrace'
     self.testcase = test_utils.create_generic_testcase()
     self.testcase.fixed = 'Yes'
     self.testcase.put()
-    # os.environ['JOB_NAME'] = 'symbolize'
 
   def test_no_symbolized_builds(self):
     """Ensure that nothing is done when symbolized builds are missing."""
@@ -54,6 +55,8 @@ class UtaskPreprocessTest(unittest.TestCase):
     returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
                                                         data_types.Testcase)
     self.assertEqual(returned_testcase.key.id(), self.testcase.key.id())
+    self.assertEqual(result.symbolize_task_input.old_crash_stacktrace,
+                     'some crash stacktrace')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -189,7 +192,9 @@ class UtaskMainTest(unittest.TestCase):
     uworker_input = uworker_msg_pb2.Input(
         testcase=uworker_io.entity_to_protobuf(self.testcase),
         job_type='job_type',
-        setup_input=uworker_msg_pb2.SetupInput())
+        setup_input=uworker_msg_pb2.SetupInput(),
+        symbolize_task_input=uworker_msg_pb2.SymbolizeTaskInput(
+            old_crash_stacktrace='some crash stacktrace'))
     result = symbolize_task.utask_main(uworker_input)
     self.assertEqual(result.error_type,
                      uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR)
