@@ -78,8 +78,9 @@ class UTask(BaseUTask):
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
     if (not environment.is_production() or
-        not environment.get_value('REMOTE_UTASK_EXECUTION')):
-      super().execute(task_argument, job_type, uworker_env)
+        not environment.get_value('REMOTE_UTASK_EXECUTION') or
+        environment.platform() != 'LINUX'):
+      self.execute_locally(task_argument, job_type, uworker_env)
       return
 
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
