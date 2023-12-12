@@ -29,19 +29,13 @@ from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 @commands.set_task_payload
-def dummy(*args, **kwargs):
+def dummy(_):
   """A dummy function."""
-  del args
-  del kwargs
   return os.environ['TASK_PAYLOAD']
 
 
-def dummy_wrapper():
-  return dummy('payload', 'argument', 'jobname', False, preprocess=False)
-
-
 @commands.set_task_payload
-def dummy_exception(*args, **kwargs):
+def dummy_exception(_):
   """A dummy function."""
   raise RuntimeError(os.environ['TASK_PAYLOAD'])
 
@@ -51,12 +45,12 @@ class SetTaskPayloadTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
-    helpers.patch(self, ['clusterfuzz._internal.base.tasks.construct_payload'])
-    self.mock.construct_payload.return_value = 'payload something'
 
   def test_set(self):
     """Test set."""
-    self.assertEqual('payload something', dummy_wrapper())
+    task = mock.Mock()
+    task.payload.return_value = 'payload something'
+    self.assertEqual('payload something', dummy(task))
     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 
   def test_exc(self):
@@ -64,9 +58,8 @@ class SetTaskPayloadTest(unittest.TestCase):
     task = mock.Mock()
     task.payload.return_value = 'payload something'
     with self.assertRaises(Exception) as cm:
-      self.assertEqual('payload something', dummy_exception(
-          'task', 'arg', 'job'))
-      self.assertEqual('payload something', str(cm.exception))
+      self.assertEqual('payload something', dummy_exception(task))
+    self.assertEqual('payload something', str(cm.exception))
     self.assertEqual({'task_payload': 'payload something'}, cm.exception.extras)
     self.assertIsNone(os.getenv('TASK_PAYLOAD'))
 
