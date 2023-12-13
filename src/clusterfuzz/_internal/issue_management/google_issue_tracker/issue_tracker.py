@@ -909,6 +909,8 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.labels.add('OS-Android')
 #   issue.labels.add('FoundIn-123')
 #   issue.labels.add('FoundIn-789')
+#   issue.labels.add('ReleaseBlock-Dev')
+#   issue.labels.add('ReleaseBlock-Beta')
 #   issue.components.add('OS>Software>Enterprise>Policies')
 #   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')
 #   issue.apply_extension_fields({
@@ -927,6 +929,8 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   queried_issue.labels.add('OS-ChromeOS')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
+#   queried_issue.labels.add('ReleaseBlock-Beta')
+#   queried_issue.labels.add('ReleaseBlock-Dev')
 #   queried_issue.components.add('Blink>JavaScript>Compiler>Sparkplug')
 #   queried_issue.components.add('OS>Software>Enterprise>ChromeApps')
 #   queried_issue.components.add('OS>Systems>Network>General')
