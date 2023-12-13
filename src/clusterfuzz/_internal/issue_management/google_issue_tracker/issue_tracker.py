@@ -31,7 +31,7 @@ _ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
 # These custom fields use repeated enums.
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
 _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
-_CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'  
+_CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'
 
 # TODO(rmistry): This is using the field ID of Respin because FoundIn has not
 # been created yet. Update it to use the real field ID when it exists.

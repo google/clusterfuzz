@@ -308,18 +308,18 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'type':
                         'BUG',
                     'customFields': [
-                      {
-                        'customFieldId': '1223084',
-                        'repeatedEnumValue': {
-                            'values': ['Linux', 'Android']
-                        }
-                      },
-                      {
-                        'customFieldId': '1223086',
-                        'repeatedEnumValue': {
-                            'values': ['Dev', 'Beta']
-                        }
-                      },
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223086',
+                            'repeatedEnumValue': {
+                                'values': ['Dev', 'Beta']
+                            }
+                        },
                     ],
                     'foundInVersions': ['123', '789'],
                     'severity':
@@ -653,18 +653,18 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'emailAddress': 'cc@google.com'
                     }],
                     'customFields': [
-                      {
-                        'customFieldId': '1223084',
-                        'repeatedEnumValue': {
-                            'values': ['Linux', 'Android']
-                        }
-                      },
-                      {
-                        'customFieldId': '1223086',
-                        'repeatedEnumValue': {
-                            'values': ['Dev', 'Beta', 'Stable']
-                        }
-                      },
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223086',
+                            'repeatedEnumValue': {
+                                'values': ['Dev', 'Beta', 'Stable']
+                            }
+                        },
                     ],
                     'foundInVersions': ['123', '789'],
                 },

@@ -1053,8 +1053,9 @@ def update_component_labels(policy, testcase, issue):
   for filtered_component in filtered_components:
     issue.components.add(filtered_component)
 
-  issue.labels.add(policy.substitution_mapping(
-      data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))
+  issue.labels.add(
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))
   label_text = issue.issue_tracker.label_text(
       data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
   issue_comment = (
@@ -1219,8 +1220,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
 
     # We have high confidence for the single-CL case, so we assign the owner.
     logs.log('Updating issue')
-    issue.labels.add(policy.substitution_mapping(
-      data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL))
+    issue.labels.add(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL))
     issue.assignee = suspected_cl['author']
     issue.status = policy.status('assigned')
     issue_comment = (
@@ -1279,8 +1281,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
 
     label_text = issue.issue_tracker.label_text(
         data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)
-    issue.labels.add(policy.substitution_mapping(
-        data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))
+    issue.labels.add(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))
     issue_comment += (
         'If this is incorrect, please let us know why and apply the '
         f'{label_text}.')
