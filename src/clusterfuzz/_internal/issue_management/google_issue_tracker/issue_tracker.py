@@ -28,8 +28,10 @@ from clusterfuzz._internal.metrics import logs
 _NUM_RETRIES = 3
 _ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
 
-_CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'  # Uses Repeated Enums
-_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'  # Uses Repeated Enums
+# These custom fields use repeated enums.
+_CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
+_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
+_CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'  
 
 # TODO(rmistry): This is using the field ID of Respin because FoundIn has not
 # been created yet. Update it to use the real field ID when it exists.
@@ -315,6 +317,17 @@ class Issue(issue_tracker.Issue):
     return []
 
   @property
+  def _releaseblock_custom_field_values(self):
+    """ReleaseBlock custom field values."""
+    custom_fields = self._data['issueState'].get('customFields', [])
+    for cf in custom_fields:
+      if cf.get('customFieldId') == _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID:
+        enum_values = cf.get('repeatedEnumValue')
+        if enum_values:
+          return enum_values.get('values') or []
+    return []
+
+  @property
   def _foundin_versions(self):
     """FoundIn versions."""
     foundin_versions = self._data['issueState'].get('foundInVersions')
@@ -428,6 +441,21 @@ class Issue(issue_tracker.Issue):
     # hotlist IDs.
     self.labels.remove_by_prefix('OS-')
 
+    # Special case ReleaseBlock custom field.
+    added_releaseblocks = _get_labels(self.labels.added, 'ReleaseBlock-')
+    if added_releaseblocks:
+      releaseblocks = self._releaseblock_custom_field_values
+      releaseblocks.extend(added_releaseblocks)
+      custom_field_entries.append({
+          'customFieldId': _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID,
+          'repeatedEnumValue': {
+              'values': releaseblocks,
+          }
+      })
+    # Remove all ReleaseBlock labels or they will be attempted to be added as
+    # hotlist IDs.
+    self.labels.remove_by_prefix('ReleaseBlock-')
+
     # Special case Component Tags custom field.
     if self.components.added:
       values = self._filter_custom_field_enum_values(
@@ -510,6 +538,14 @@ class Issue(issue_tracker.Issue):
             'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
             'repeatedEnumValue': {
                 'values': oses
+            },
+        })
+      releaseblocks = _extract_all_labels(self.labels, 'ReleaseBlock-')
+      if releaseblocks:
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': releaseblocks
             },
         })
       if list(self.components):

@@ -264,8 +264,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
-  def test_new_issue_with_os_and_foundin_labels(self):
-    """Test new issue creation with os and foundin labels."""
+  def test_new_issue_with_os_foundin_releaseblock_labels(self):
+    """Test new issue creation with os, foundin, releaseblock labels."""
     issue = self.issue_tracker.new_issue()
     issue.reporter = 'reporter@google.com'
     issue.assignee = 'assignee@google.com'
@@ -276,6 +276,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.labels.add('OS-Android')
     issue.labels.add('FoundIn-123')
     issue.labels.add('FoundIn-789')
+    issue.labels.add('ReleaseBlock-Dev')
+    issue.labels.add('ReleaseBlock-Beta')
     issue.status = 'ASSIGNED'
     issue.title = 'issue title'
     issue.save()
@@ -305,12 +307,20 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'issue title',
                     'type':
                         'BUG',
-                    'customFields': [{
+                    'customFields': [
+                      {
                         'customFieldId': '1223084',
                         'repeatedEnumValue': {
                             'values': ['Linux', 'Android']
                         }
-                    },],
+                      },
+                      {
+                        'customFieldId': '1223086',
+                        'repeatedEnumValue': {
+                            'values': ['Dev', 'Beta']
+                        }
+                      },
+                    ],
                     'foundInVersions': ['123', '789'],
                     'severity':
                         'S4',
@@ -553,7 +563,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         mock.call().execute(http=None, num_retries=3),
     ])
 
-  def test_update_issue_with_os_foundin_labels(self):
+  def test_update_issue_with_os_foundin_releaseblock_labels(self):
     """Test updating an existing issue with OS and FoundIn labels."""
     self.client.issues().get().execute.return_value = {
         'issueId': '68828938',
@@ -567,6 +577,12 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'customFieldId': '1223084',
                     'repeatedEnumValue': {
                         'values': ['Linux']  # Existing OS-Linux.
+                    },
+                },
+                {
+                    'customFieldId': '1223086',
+                    'repeatedEnumValue': {
+                        'values': ['Dev']  # Existing ReleaseBlock-Dev.
                     },
                 },
             ],
@@ -613,6 +629,9 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.labels.add('OS-Android')
     # Adding FoundIn 789 here (in addition to the 123 already set).
     issue.labels.add('FoundIn-789')
+    # Adding ReleaseBlock Beta and Stable (in addition to Dev already set).
+    issue.labels.add('ReleaseBlock-Beta')
+    issue.labels.add('ReleaseBlock-Stable')
     issue.save()
 
     self.client.issues().modify.assert_has_calls([
@@ -633,12 +652,20 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
-                    'customFields': [{
+                    'customFields': [
+                      {
                         'customFieldId': '1223084',
                         'repeatedEnumValue': {
                             'values': ['Linux', 'Android']
                         }
-                    },],
+                      },
+                      {
+                        'customFieldId': '1223086',
+                        'repeatedEnumValue': {
+                            'values': ['Dev', 'Beta', 'Stable']
+                        }
+                      },
+                    ],
                     'foundInVersions': ['123', '789'],
                 },
                 'addMask':
