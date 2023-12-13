@@ -121,7 +121,7 @@ class UTask(BaseUTask):
 
 
 def is_remotely_executing_utasks():
-  return (is_production() and
+  return (environment.is_production() and
           environment.get_value('REMOTE_UTASK_EXECUTION') and
           environment.platform() == 'LINUX')
 
