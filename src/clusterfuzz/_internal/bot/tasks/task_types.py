@@ -45,13 +45,6 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-def is_production():
-  return not (environment.is_local_development() or
-              environment.get_value('UNTRUSTED_RUNNER_TESTS') or
-              environment.get_value('LOCAL_DEVELOPMENT') or
-              environment.get_value('UTASK_TESTS'))
-
-
 class BaseUTask(BaseTask):
   """Base class representing an untrusted task. Children must decide to execute
   locally or remotely."""
@@ -104,7 +97,7 @@ class UTask(BaseUTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    if (not is_production() or
+    if (not environment.is_production() or
         not environment.get_value('REMOTE_UTASK_EXECUTION') or
         environment.platform() != 'LINUX'):
       self.execute_locally(task_argument, job_type, uworker_env)
@@ -184,7 +177,7 @@ COMMAND_TYPES = {
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTask,
+    'variant': UTaskLocalExecutor,
 }
 
 

@@ -118,16 +118,19 @@ def get_fuzz_task_payload(platform=None):
   if base_platform != platform:
     platforms.append(base_platform)
 
-  query = data_types.FuzzerJobs.query()
-  if environment.is_local_development():
-    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
-    mappings = list(ndb_utils.get_all_from_query(query))[:1]
-  else:
+  if environment.is_production():
+    query = data_types.FuzzerJobs.query()
     query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
     mappings = []
     for entity in query:
       mappings.extend(entity.fuzzer_jobs)
+  else:
+    # 'FuzzerJobs' may not exist locally because they are created by
+    # the 'batch_fuzzer_jobs' cron job
+    query = data_types.FuzzerJob.query()
+    query = query.filter(data_types.FuzzerJob.platform.IN(platforms))
+    mappings = list(ndb_utils.get_all_from_query(query))[:1]
 
   if not mappings:
     return None, None
