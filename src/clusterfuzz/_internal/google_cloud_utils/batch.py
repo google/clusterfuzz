@@ -104,7 +104,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
     spec = get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 
-  logs.log('Creating batch jobs.', specs=job_specs)
+  logs.log('Creating batch jobs.')
   return [
       _create_job(spec, input_urls) for spec, input_urls in job_specs.items()
   ]
@@ -131,8 +131,6 @@ def _get_task_spec(batch_workload_spec):
 
 def _get_allocation_policy(spec):
   """Returns the allocation policy for a BatchWorkloadSpec."""
-  location_policy = batch.AllocationPolicy.LocationPolicy()
-  location_policy.allowed_locations = [f'zones/{spec.gce_zone}']
   instance_policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
@@ -143,7 +141,6 @@ def _get_allocation_policy(spec):
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
   allocation_policy = batch.AllocationPolicy()
-  allocation_policy.location = location_policy
   allocation_policy.instances = [instances]
   service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
@@ -177,8 +174,7 @@ def _create_job(spec, input_urls):
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
   project_id = 'google.com:clusterfuzz'
-  region = 'us-central1'
-  create_request.parent = f'projects/{project_id}/locations/{region}'
+  create_request.parent = f'projects/{project_id}/locations/us-central1'
   result = _send_create_job_request(create_request)
   logs.log('Created batch job.')
   return result
