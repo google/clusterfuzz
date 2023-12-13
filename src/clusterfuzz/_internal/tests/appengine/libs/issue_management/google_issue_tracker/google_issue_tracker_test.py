@@ -367,20 +367,17 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         'issue title',
                     'type':
                         'BUG',
-                    'customFields': [
-                      {
+                    'customFields': [{
                         'customFieldId': '1223084',
                         'repeatedEnumValue': {
                             'values': ['Linux', 'Android']
-                          },
-                      },
-                      {
+                        },
+                    }, {
                         'customFieldId': '1222907',
                         'repeatedEnumValue': {
                             'values': ['ABC>DEF', 'IJK>XYZ']
                         }
-                      }
-                    ],
+                    }],
                     'foundInVersions': ['123', '789'],
                     'severity':
                         'S4',
@@ -659,13 +656,12 @@ class GoogleIssueTrackerTest(unittest.TestCase):
   def test_update_issue_with_component_tags(self):
     """Test updating an existing issue with component tags."""
     self.client.issues().get().execute.return_value = {
-        'issueId': '68828938',
-        'customFields': [
-          {
+        'issueId':
+            '68828938',
+        'customFields': [{
             'customFieldId': '1222907',
             'enumValues': ['ABC>DEF', 'IJK', 'XYZ'],
-          }
-        ],
+        }],
         'issueState': {
             'componentId':
                 '29002',
@@ -698,13 +694,16 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             'retention':
                 'COMPONENT_DEFAULT',
         },
-        'createdTime': '2019-06-25T01:29:30.021Z',
-        'modifiedTime': '2019-06-25T01:29:30.021Z',
+        'createdTime':
+            '2019-06-25T01:29:30.021Z',
+        'modifiedTime':
+            '2019-06-25T01:29:30.021Z',
         'userData': {},
         'accessLimit': {
             'accessLevel': 'INTERNAL'
         },
-        'etag': 'TmpnNE1qZzVNemd0TUMweA==',
+        'etag':
+            'TmpnNE1qZzVNemd0TUMweA==',
         'lastModifier': {
             'emailAddress': 'user1@google.com',
             'userGaiaStatus': 'ACTIVE'
@@ -749,13 +748,10 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                         }
                     },],
                 },
-                'addMask':
-                    'status,assignee,reporter,title,ccs,customFields',
+                'addMask': 'status,assignee,reporter,title,ccs,customFields',
                 'remove': {},
-                'removeMask':
-                    '',
-                'significanceOverride':
-                    'MAJOR',
+                'removeMask': '',
+                'significanceOverride': 'MAJOR',
             },
         ),
         mock.call().execute(http=None, num_retries=3),
