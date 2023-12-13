@@ -88,7 +88,11 @@ class UTask(BaseUTask):
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
       return
+
     logs.log('Utask: done with preprocess.')
+    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
+                                        download_url)
+    logs.log('Utask: done creating main.')
 
 
 class PostprocessTask(BaseTask):
