@@ -23,6 +23,7 @@ from clusterfuzz._internal.system import environment
 # https://github.com/google/clusterfuzz/pull/3512/#issuecomment-1857737156
 # Linter throwing a false positive for the is_production() call
 
+
 class BaseTask:
   """Base module for tasks."""
 
