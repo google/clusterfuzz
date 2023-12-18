@@ -77,6 +77,9 @@ class UTask(BaseUTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
+    # pylint: disable=undefined-variable
+    # https://github.com/google/clusterfuzz/pull/3512/#issuecomment-1857737156
+    # Linter throwing a false positive for the is_production() call
     if (not environment.is_production() or
         not environment.get_value('REMOTE_UTASK_EXECUTION') or
         environment.platform() != 'LINUX'):
