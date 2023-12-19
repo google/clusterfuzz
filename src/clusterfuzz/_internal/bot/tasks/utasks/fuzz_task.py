@@ -1787,7 +1787,8 @@ class FuzzingSession:
                                                       crash_revision)
     # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
     # postprocess.
-    testcase_manager.update_build_metadata(self.job_type, build_data)
+    testcase_manager.update_build_metadata(self.job_type, crash_revision,
+                                           build_data)
     _track_build_run_result(self.job_type, crash_revision,
                             build_data.is_bad_build)
     if build_data.is_bad_build:
