@@ -148,10 +148,9 @@ message VariantTaskOutput {
 }
 
 message BuildData{
-  optional int64 revision = 1;
-  optional bool is_bad_build = 2;
-  optional bool should_ignore_crash_result = 3;
-  optional string build_run_console_output = 4;
+  optional bool is_bad_build = 1;
+  optional bool should_ignore_crash_result = 2;
+  optional string build_run_console_output = 3;
 }
 
 message ProgressionTaskOutput{
@@ -169,7 +168,6 @@ message ProgressionTaskOutput{
   // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
   map<string, string> issue_metadata = 10;
-  repeated BuildData build_data_list = 11;
 }
 
 enum ErrorType {

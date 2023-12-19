@@ -86,39 +86,31 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
     self.mock.check_app_path.return_value = True
-    build_data = uworker_msg_pb2.BuildData(
-        revision=1,
+    self.mock.check_for_bad_build.return_value = uworker_msg_pb2.BuildData(
         is_bad_build=True,
         should_ignore_crash_result=False,
         build_run_console_output='')
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
-    self.mock.check_for_bad_build.return_value = build_data
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         None, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(result)
     self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
     self.assertEqual(worker_output.error_message, 'Bad build at r1. Skipping')
-    self.assertEqual(len(progression_task_output.build_data_list), 1)
-    self.assertEqual(progression_task_output.build_data_list[0], build_data)
 
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
     self.mock.check_app_path.return_value = True
-    build_data = uworker_msg_pb2.BuildData(
-        revision=1,
+    self.mock.check_for_bad_build.return_value = uworker_msg_pb2.BuildData(
         is_bad_build=False,
         should_ignore_crash_result=False,
         build_run_console_output='')
-    self.mock.check_for_bad_build.return_value = build_data
     testcase = data_types.Testcase()
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
         testcase, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(worker_output)
     self.assertIsNotNone(result)
-    self.assertEqual(len(progression_task_output.build_data_list), 1)
-    self.assertEqual(progression_task_output.build_data_list[0], build_data)
 
 
 @test_utils.with_cloud_emulators('datastore')
