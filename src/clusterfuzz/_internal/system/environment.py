@@ -1070,6 +1070,13 @@ def is_local_development():
   return bool(get_value('LOCAL_DEVELOPMENT') and not get_value('PY_UNITTESTS'))
 
 
+def is_production():
+  """Returns True if there are no environmental indicators
+  of local development ocurring."""
+  return not (is_local_development() or get_value('UNTRUSTED_RUNNER_TESTS') or
+              get_value('LOCAL_DEVELOPMENT') or get_value('UTASK_TESTS'))
+
+
 def local_noop(func):
   """Wrap a function into no-op and return None if running in local
   development environment."""

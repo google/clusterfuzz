@@ -19,6 +19,10 @@ from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
+# pylint: disable=undefined-variable
+# https://github.com/google/clusterfuzz/pull/3512/#issuecomment-1857737156
+# Linter throwing a false positive for the is_production() call
+
 
 class BaseTask:
   """Base module for tasks."""
@@ -43,13 +47,6 @@ class TrustedTask(BaseTask):
     # Simple tasks can just use the environment they don't need the uworker env.
     del uworker_env
     self.module.execute_task(task_argument, job_type)
-
-
-def is_production():
-  return not (environment.is_local_development() or
-              environment.get_value('UNTRUSTED_RUNNER_TESTS') or
-              environment.get_value('LOCAL_DEVELOPMENT') or
-              environment.get_value('UTASK_TESTS'))
 
 
 class BaseUTask(BaseTask):
@@ -104,7 +101,7 @@ class UTask(BaseUTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    if (not is_production() or
+    if (not environment.is_production() or
         not environment.get_value('REMOTE_UTASK_EXECUTION') or
         environment.platform() != 'LINUX'):
       self.execute_locally(task_argument, job_type, uworker_env)
