@@ -1219,11 +1219,10 @@ def update_build_metadata(job_type: str, build_data: uworker_msg_pb2.BuildData):
   if build_data.should_ignore_crash_result:
     return
 
-  build_state = data_handler.get_build_state(job_type,
-                                             build_data.crash_revision)
+  build_state = data_handler.get_build_state(job_type, build_data.revision)
   # If none of the other bots have added information about this build,
   # then add it now.
   if build_state == data_types.BuildState.UNMARKED:
-    data_handler.add_build_metadata(job_type, build_data.crash_revision,
+    data_handler.add_build_metadata(job_type, build_data.revision,
                                     build_data.is_bad_build,
                                     build_data.build_run_console_output)
