@@ -174,7 +174,7 @@ def _create_job(spec, input_urls):
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
   project_id = 'google.com:clusterfuzz'
-  create_request.parent = f'projects/{project_id}/locations/us-central1'
+  create_request.parent = f'projects/{project_id}/locations/us-west1'
   result = _send_create_job_request(create_request)
   logs.log('Created batch job.')
   return result
