@@ -144,7 +144,7 @@ def _get_allocation_policy(spec):
   # Don't use external ip addresses which use quota, cost money, and are
   # unnecessary.
   network_interface = batch.AllocationPolicy.NetworkInterface()
-  network_interface.no_external_ip_address = True
+  network_interface.no_external_ip_addresses = True
   network_interfaces = [network_interface]
   network_policy = batch.AllocationPolicy.NetworkPolicy()
   network_policy.network_interfaces = network_interfaces
