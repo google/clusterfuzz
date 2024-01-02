@@ -131,17 +131,27 @@ def _get_task_spec(batch_workload_spec):
 
 def _get_allocation_policy(spec):
   """Returns the allocation policy for a BatchWorkloadSpec."""
-  instance_policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
   disk.size_gb = spec.disk_size_gb
   disk.type = spec.disk_type
+  instance_policy = batch.AllocationPolicy.InstancePolicy()
   instance_policy.boot_disk = disk
   instance_policy.machine_type = spec.machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
+
+  # Don't use external ip addresses which use quota, cost money, and are
+  # unnecessary.
+  network_interface = batch.AllocationPolicy.NetworkInterface()
+  network_interface.no_external_ip_address = True
+  network_interfaces = [network_interface]
+  network_policy = batch.AllocationPolicy.NetworkPolicy()
+  network_policy.network_interfaces = network_interfaces
+
   allocation_policy = batch.AllocationPolicy()
   allocation_policy.instances = [instances]
+  allocation_policy.network = network_policy
   service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
   return allocation_policy
