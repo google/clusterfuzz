@@ -177,7 +177,7 @@ COMMAND_TYPES = {
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTaskLocalExecutor,
+    'variant': UTask,
 }
 
 
