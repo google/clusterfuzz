@@ -26,6 +26,8 @@ from clusterfuzz._internal.google_cloud_utils import batch
     'clusterfuzz._internal.system.environment.get_config_directory',
     return_value=os.environ['BATCH_TEST_CONFIG_PATH'])
 def _send_test_job(get_config_directory, get_job):
+  """Creates a test batch job for local manual testing to ensure job creation
+  actually works."""
   del get_config_directory
   del get_job
   tasks = [batch.BatchTask('variant', 'libfuzzer_chrome_asan', 'https://fake/')]
