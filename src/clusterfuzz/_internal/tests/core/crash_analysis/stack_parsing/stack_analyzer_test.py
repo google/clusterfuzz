@@ -3411,6 +3411,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_googletest(self):
+    """Test googletest stacktrace."""
+    data = self._read_test_data('googletest.txt')
+    expected_type = 'Abrt'
+    expected_state = 'v8::internal::SingleString\ncentipede::RunOneInput\nExecuteInputsFromShmem\n'
+    expected_address = '0x0539000a18ab'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_android_kasan_510(self):
     """Test android kasan 5.10 stacktrace."""
     data = self._read_test_data('android_kernel_kasan_510.txt')
