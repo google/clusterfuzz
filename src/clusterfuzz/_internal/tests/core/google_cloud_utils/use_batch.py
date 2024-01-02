@@ -13,15 +13,18 @@
 # limitations under the License.
 """Cloud Batch helpers for local testing"""
 
-from unittest import mock
 import os
+from unittest import mock
 
 from clusterfuzz._internal.google_cloud_utils import batch
 
-@mock.patch('clusterfuzz._internal.google_cloud_utils.batch._get_job',
-            return_value=mock.Mock(platform='LINUX'))
-@mock.patch('clusterfuzz._internal.system.environment.get_config_directory',
-            return_value=os.environ['BATCH_TEST_CONFIG_PATH'])
+
+@mock.patch(
+    'clusterfuzz._internal.google_cloud_utils.batch._get_job',
+    return_value=mock.Mock(platform='LINUX'))
+@mock.patch(
+    'clusterfuzz._internal.system.environment.get_config_directory',
+    return_value=os.environ['BATCH_TEST_CONFIG_PATH'])
 def _send_test_job(get_config_directory, get_job):
   del get_config_directory
   del get_job

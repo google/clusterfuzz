@@ -146,8 +146,10 @@ def _get_allocation_policy(spec):
   network_interface = batch.AllocationPolicy.NetworkInterface()
   network_interface.no_external_ip_address = True
   # TODO(metzman): Make configurable.
-  network_interface.network = 'projects/google.com:clusterfuzz/global/networks/batch'
-  network_interface.subnetwork = 'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1-a'
+  network_interface.network = (
+      'projects/google.com:clusterfuzz/global/networks/batch')
+  network_interface.subnetwork = (
+      'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1-a')
 
   network_interfaces = [network_interface]
   network_policy = batch.AllocationPolicy.NetworkPolicy()
