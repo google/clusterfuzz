@@ -101,7 +101,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
   # Define what will be done as part of the job.
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
-    spec = get_spec_from_config(batch_task.command, batch_task.job_type)
+    spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 
   logs.log('Creating batch jobs.')
@@ -145,6 +145,10 @@ def _get_allocation_policy(spec):
   # unnecessary.
   network_interface = batch.AllocationPolicy.NetworkInterface()
   network_interface.no_external_ip_address = True
+  # TODO(metzman): Make configurable.
+  network_interface.network = 'projects/google.com:clusterfuzz/global/networks/batch'
+  network_interface.subnetwork = 'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1-a'
+
   network_interfaces = [network_interface]
   network_policy = batch.AllocationPolicy.NetworkPolicy()
   network_policy.network_interfaces = network_interfaces
@@ -191,22 +195,33 @@ def _create_job(spec, input_urls):
 
 
 @retry.wrap(
-    retries=3,
-    delay=2,
+    retries=1,
+    delay=1,
     function='google_cloud_utils.batch._send_create_job_request')
 def _send_create_job_request(create_request):
   return _batch_client().create_job(create_request)
 
 
-def get_spec_from_config(command, job_name):
+def _get_batch_config():
+  """Returns the batch config. This function was made to make mocking easier."""
+  return local_config.BatchConfig()
+
+
+def _get_job(job_name):
+  """Returns the Job entity named by |job_name|. This function was made to make
+  mocking easier."""
+  return data_types.Job.query(data_types.Job.name == job_name).get()
+
+
+def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
-  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  job = _get_job(job_name)
   platform = job.platform
   if command == 'fuzz':
     platform += '-PREEMPTIBLE'
   else:
     platform += '-NONPREEMPTIBLE'
-  batch_config = local_config.BatchConfig()
+  batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(platform, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {platform}')
