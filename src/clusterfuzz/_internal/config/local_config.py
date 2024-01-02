@@ -242,8 +242,8 @@ class IssueTrackerConfig(Config):
 class BatchConfig(Config):
   """Batch config."""
 
-  def __init__(self, batch_path=BATCH_PATH):
-    super().__init__(batch_path)
+  def __init__(self):
+    super().__init__(BATCH_PATH)
 
 
 class GCEClustersConfig(Config):

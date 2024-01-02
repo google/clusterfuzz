@@ -149,7 +149,7 @@ def _get_allocation_policy(spec):
   network_interface.network = (
       'projects/google.com:clusterfuzz/global/networks/batch')
   network_interface.subnetwork = (
-      'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1-a')
+      'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1a')
 
   network_interfaces = [network_interface]
   network_policy = batch.AllocationPolicy.NetworkPolicy()
@@ -197,8 +197,8 @@ def _create_job(spec, input_urls):
 
 
 @retry.wrap(
-    retries=1,
-    delay=1,
+    retries=3,
+    delay=2,
     function='google_cloud_utils.batch._send_create_job_request')
 def _send_create_job_request(create_request):
   return _batch_client().create_job(create_request)
