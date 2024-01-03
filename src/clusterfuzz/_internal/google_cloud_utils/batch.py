@@ -16,7 +16,7 @@ import collections
 import threading
 import uuid
 
-from google.cloud import batch_v1 as batch
+from google.cloud import batch_v1alpha as batch
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -119,8 +119,12 @@ def _get_task_spec(batch_workload_spec):
       '--memory-swappiness=40 --shm-size=1.9g --rm --net=host '
       '-e HOST_UID=1337 -P --privileged --cap-add=all '
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
-      '-e UWORKER_INPUT_DOWNLOAD_URL')
+      '-e UWORKER_INPUT_DOWNLOAD_URL -e BATCH_JOB_NAME')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
+
+  # For much faster startup times.
+  runnable.container.enable_image_streaming = True
+
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   task_spec.max_retry_count = RETRY_COUNT
@@ -168,8 +172,10 @@ def _create_job(spec, input_urls):
   task_group = batch.TaskGroup()
   task_group.task_count = len(input_urls)
   assert task_group.task_count < MAX_CONCURRENT_VMS_PER_JOB
+  job_name = get_job_name()
   task_environments = [
-      batch.Environment(variables={'UWORKER_INPUT_DOWNLOAD_URL': input_url})
+      batch.Environment(variables={'UWORKER_INPUT_DOWNLOAD_URL': input_url,
+                                   'BATCH_JOB_NAME': job_name})
       for input_url in input_urls
   ]
   task_group.task_environments = task_environments
@@ -186,7 +192,6 @@ def _create_job(spec, input_urls):
 
   create_request = batch.CreateJobRequest()
   create_request.job = job
-  job_name = get_job_name()
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
   project_id = 'google.com:clusterfuzz'
