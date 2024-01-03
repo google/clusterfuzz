@@ -16,7 +16,7 @@ import collections
 import threading
 import uuid
 
-from google.cloud import batch_v1 as batch
+from google.cloud import batch_v1alpha as batch
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -121,6 +121,10 @@ def _get_task_spec(batch_workload_spec):
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
+
+  # For much faster startup times.
+  runnable.container.enable_image_streaming = True
+
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   task_spec.max_retry_count = RETRY_COUNT
@@ -197,8 +201,8 @@ def _create_job(spec, input_urls):
 
 
 @retry.wrap(
-    retries=3,
-    delay=2,
+    retries=1,
+    delay=1,
     function='google_cloud_utils.batch._send_create_job_request')
 def _send_create_job_request(create_request):
   return _batch_client().create_job(create_request)
