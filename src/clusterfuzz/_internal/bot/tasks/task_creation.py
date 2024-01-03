@@ -285,13 +285,6 @@ def create_postminimize_tasks(testcase):
   schedule_tasks(tasks)
 
 
-def is_remote_utask(task: Task) -> bool:
-  """Returns True if |task| is supposed to be executed remotely (i.e. preprocess
-  utask_main and postprocess on different machines."""
-  command = task.name
-  return task_types.COMMAND_TYPES[command].is_execution_remote()
-
-
 def _preprocess(task: Task) -> None:
   """Runs preprocess portion of task and saves the uworker_input to task."""
   from clusterfuzz._internal.bot.tasks import commands
@@ -320,7 +313,7 @@ def schedule_tasks(tasks: List[Task]):
   uworker_tasks = []
   tasks = [task for task in tasks if task is not None]
   for task in tasks:
-    if not task_types.is_remote_utask(task.name):
+    if not task_types.is_remote_utask(task.name, task.job):
       taskslib.add_task(task.name, task.argument, task.job,
                         task.queue_for_platform)
       logs.log(f'UTask {task.name} not remote.')

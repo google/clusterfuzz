@@ -24,7 +24,8 @@ class BaseTask:
   """Base module for tasks."""
 
   @staticmethod
-  def is_execution_remote():
+  def is_execution_remote(job_name):
+    del job_name
     return False
 
   def __init__(self, module):
@@ -69,8 +70,8 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
 
-def is_remote_utask(command):
-  return COMMAND_TYPES[command].is_execution_remote()
+def is_remote_utask(command, job_name):
+  return COMMAND_TYPES[command].is_execution_remote(job_name)
 
 
 class UTaskLocalExecutor(BaseUTask):
@@ -92,8 +93,8 @@ class UTask(BaseUTask):
   opted-in. Otherwise executes locally."""
 
   @staticmethod
-  def is_execution_remote():
-    return is_remotely_executing_utasks()
+  def is_execution_remote(job_name):
+    return is_remotely_executing_utasks(job_name)
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
@@ -130,10 +131,15 @@ class UTaskCombined(UTask):
     self.execute_locally(task_argument, job_type, uworker_env)
 
 
-def is_remotely_executing_utasks():
-  return bool(environment.is_production() and
-              environment.get_value('REMOTE_UTASK_EXECUTION') and
-              environment.platform() == 'LINUX')
+def is_remotely_executing_utasks(job_name):
+  if (not environment.is_production() or not
+      environment.get_value('REMOTE_UTASK_EXECUTION')):
+    return False
+  if environment.is_uworker():
+    # Return True even if we can't query the db.
+    return True
+  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  return job.platform == 'LINUX'
 
 
 class PostprocessTask(BaseTask):
