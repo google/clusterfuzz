@@ -125,7 +125,6 @@ class Issue(issue_tracker.Issue):
           return enum_values.get('values') or []
     return []
 
-  # HERE HERE
   def _get_component_paths(self, component_tags):
     """Converts component IDs from component tags into component paths.
     
@@ -475,7 +474,6 @@ class Issue(issue_tracker.Issue):
     # hotlist IDs.
     self.labels.remove_by_prefix('ReleaseBlock-')
 
-    # HERE HERE - for update.
     # Special case Component Tags custom field.
     if self.components.added:
       component_paths = self._get_component_paths(self.components)
@@ -570,7 +568,6 @@ class Issue(issue_tracker.Issue):
             },
         })
       if list(self.components):
-        # HERE HERE in new
         component_paths = self._get_component_paths(self.components)
         logs.log(
             'google_issue_tracker: In save. Going to add these components to '
@@ -822,7 +819,6 @@ class IssueTracker(issue_tracker.IssueTracker):
     }
     return Issue(data, True, self)
   
-  # HERE HERE
   def get_relative_component_path(self, component_id):
     """"Gets the component path relative to the default component path.
     
@@ -834,13 +830,8 @@ class IssueTracker(issue_tracker.IssueTracker):
     This matches the allowed values format of the Chromium component tags
     custom field.
     """""
-    print('NNNNNNNN')
-    print('NNNNNNNN')
-    print('NNNNNNNN')
     try:
       component = self._execute(self.client.components().get(componentId=str(component_id)))
-      print('HERE HERE)')
-      print(component)
     except IssueTrackerError as e:
       if isinstance(e, IssueTrackerNotFoundError):
         return None
