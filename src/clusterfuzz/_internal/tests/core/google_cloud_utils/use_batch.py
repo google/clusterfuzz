@@ -13,10 +13,18 @@
 # limitations under the License.
 """Cloud Batch helpers for local testing"""
 
+import multiprocessing.pool
 import os
 from unittest import mock
 
 from clusterfuzz._internal.google_cloud_utils import batch
+
+
+def _create_many():
+  """Creates many jobs."""
+  many = [None for _ in range(2000)]
+  with multiprocessing.pool.Pool(120) as pool:
+    pool.map(_send_test_job, many)
 
 
 @mock.patch(
@@ -25,10 +33,14 @@ from clusterfuzz._internal.google_cloud_utils import batch
 @mock.patch(
     'clusterfuzz._internal.system.environment.get_config_directory',
     return_value=os.environ['BATCH_TEST_CONFIG_PATH'])
-def _send_test_job(get_config_directory, get_job):
+def _send_test_job(_=None, get_config_directory=None, get_job=None):
   """Creates a test batch job for local manual testing to ensure job creation
   actually works."""
+  del _
   del get_config_directory
   del get_job
-  tasks = [batch.BatchTask('variant', 'libfuzzer_chrome_asan', 'https://fake/')]
+  tasks = [
+      batch.BatchTask('variant', 'libfuzzer_chrome_asan', 'https://fake/')
+      for _ in range(10)
+  ]
   batch.create_uworker_main_batch_jobs(tasks)
