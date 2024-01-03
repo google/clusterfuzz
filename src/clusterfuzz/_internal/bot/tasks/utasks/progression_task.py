@@ -15,6 +15,7 @@
 
 import os
 import time
+from typing import List
 
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import tasks
@@ -49,6 +50,14 @@ def _maybe_clear_progression_last_min_max_metadata(
     testcase.delete_metadata('last_progression_min', update_testcase=False)
     testcase.delete_metadata('last_progression_max', update_testcase=False)
     testcase.put()
+
+
+def _update_build_metadata(job_type: str,
+                           build_data_list: List[uworker_msg_pb2.BuildData]):
+  """A helper method to update the build metadata corresponding to a
+  job_type."""
+  for build_data in build_data_list:
+    testcase_manager.update_build_metadata(job_type, build_data)
 
 
 def _save_current_fixed_range_indices(testcase, uworker_output):
@@ -302,9 +311,7 @@ def _testcase_reproduces_in_revision(
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
   build_data = testcase_manager.check_for_bad_build(job_type, revision)
-  # TODO(https://github.com/google/clusterfuzz/issues/3008): Move this to
-  # postprocess.
-  testcase_manager.update_build_metadata(job_type, revision, build_data)
+  progression_task_output.build_data_list.append(build_data)
   if build_data.is_bad_build:
     # TODO(alhijazi): This is not logged for recoverable builds.
     error_message = f'Bad build at r{revision}. Skipping'
@@ -429,7 +436,7 @@ def find_fixed_range(uworker_input):
   min_revision = testcase.get_metadata('last_progression_min')
   max_revision = testcase.get_metadata('last_progression_max')
   progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
-      clear_min_max_metadata=False)
+      clear_min_max_metadata=False, build_data_list=[])
   if min_revision or max_revision:
     # Clear these to avoid using them in next run. If this run fails, then we
     # should try next run without them to see it succeeds. If this run succeeds,
@@ -607,6 +614,8 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
   if output.HasField('progression_task_output'):
     task_output = output.progression_task_output
     _update_issue_metadata(testcase, task_output.issue_metadata)
+    _update_build_metadata(output.uworker_input.job_type,
+                           task_output.build_data_list)
 
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
