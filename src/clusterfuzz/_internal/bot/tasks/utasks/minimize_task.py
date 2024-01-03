@@ -529,8 +529,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
         deadline, testcase, input_directory, file_list, data,
         testcase_file_path, minimize_task_output):
       return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.
-          PARTIAL_MINIMIZATION_DEADLINE_EXCEEDED,
+          error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
           minimize_task_output=minimize_task_output)
 
     testcase.set_metadata('minimization_phase', MinimizationPhase.FILE_LIST,
@@ -547,8 +546,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
           deadline, testcase, input_directory, file_list, data,
           testcase_file_path, minimize_task_output):
         return uworker_msg_pb2.Output(
-            error_type=uworker_msg_pb2.ErrorType.
-            PARTIAL_MINIMIZATION_DEADLINE_EXCEEDED,
+            error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
             minimize_task_output=minimize_task_output)
     else:
       logs.log('Skipping minimization of file list.')
@@ -568,8 +566,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
             deadline, testcase, input_directory, file_list, data,
             testcase_file_path, minimize_task_output):
           return uworker_msg_pb2.Output(
-              error_type=uworker_msg_pb2.ErrorType.
-              PARTIAL_MINIMIZATION_DEADLINE_EXCEEDED,
+              error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
               minimize_task_output=minimize_task_output)
     else:
       logs.log('Skipping minimization of resources.')
@@ -589,8 +586,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
         deadline, testcase, input_directory, file_list, data,
         testcase_file_path, minimize_task_output):
       return uworker_msg_pb2.Output(
-          error_type=uworker_msg_pb2.ErrorType.
-          PARTIAL_MINIMIZATION_DEADLINE_EXCEEDED,
+          error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
           minimize_task_output=minimize_task_output)
 
   command = testcase_manager.get_command_line_for_application(
@@ -614,7 +610,6 @@ HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY,
     uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
     uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE,
-    uworker_msg_pb2.ErrorType.PARTIAL_MINIMIZATION_DEADLINE_EXCEEDED,
     uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE,
     uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED,
     uworker_msg_pb2.ErrorType.UNHANDLED
@@ -658,7 +653,7 @@ def update_testcase(output: uworker_msg_pb2.Output):
   if minimize_task_output.gestures:
     testcase.gestures = minimize_task_output.gestures
 
-  if minimize_task_output.minimized_keys:
+  if minimize_task_output.HasField('minimized_keys'):
     testcase.minimized_keys = minimize_task_output.minimized_keys
 
   testcase.put()
@@ -711,6 +706,7 @@ def handle_minimize_unreproducible_crash(output):
 
 
 def handle_minimize_crash_too_flaky(output):
+  """Schedules postminimize tasks when the crash is too flaky."""
   # We reproduced this crash at least once. It's too flaky to minimize, but
   # maybe we'll have more luck in the other jobs.
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
@@ -722,7 +718,8 @@ def handle_minimize_crash_too_flaky(output):
 
 
 def handle_minimize_deadline_exceeded_in_main_file_phase(output):
-  """some description."""
+  """Reschedules the minimize task when the deadline is exceeded just before
+  starting the main file phase."""
   tasks.add_task('minimize', output.uworker_input.testcase_id,
                  output.uworker_input.job_type)
 
@@ -956,8 +953,7 @@ def check_deadline_exceeded_and_store_partial_minimized_testcase(
   return time.time() > deadline
 
 
-def handle_partial_minimization_deadline_exceeded(
-    output: uworker_msg_pb2.Output):
+def handle_minimize_deadline_exceeded(output: uworker_msg_pb2.Output):
   """Reschedules a minimize task when minimization deadline is exceeded or
   calls _skip_minimization when the number of reattempts is surpassed."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
@@ -1403,7 +1399,7 @@ def _skip_minimization(testcase: data_types.Testcase,
 
 def handle_libfuzzer_minimization_unreproducible(
     output: uworker_msg_pb2.Output):
-  """Handles when libfuzzer minimization task fails to reproduce the issue."""
+  """Handles libfuzzer minimization task's failure to reproduce the issue."""
   testcase = data_handler.get_testcase_by_id(output.uworker_intput.testcase_id)
   # Be more lenient with marking testcases as unreproducible when this is a
   # job override.
@@ -1415,7 +1411,7 @@ def handle_libfuzzer_minimization_unreproducible(
 
 
 def handle_libfuzzer_minimization_failed(output: uworker_msg_pb2.Output):
-  """Handles when libfuzzer minimization task fails."""
+  """Handles libfuzzer minimization task failure."""
   testcase = data_handler.get_testcase_by_id(output.uworker_intput.testcase_id)
   _skip_minimization(
       testcase,
@@ -1511,7 +1507,7 @@ def do_libfuzzer_minimization(
   if env:
     testcase.set_metadata('env', env, False)
 
-  minimized_keys = ''
+  minimized_keys = None
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
   for round_number in range(1, rounds + 1):
@@ -1527,19 +1523,19 @@ def do_libfuzzer_minimization(
       last_crash_result = crash_result
       current_testcase_path = output_file_path
 
-  if not minimized_keys:
-    minimized_keys = ''
   if not last_crash_result:
     repro_command = testcase_manager.get_command_line_for_application(
         file_to_run=testcase_file_path, needs_http=testcase.http_flag)
     crash_result_dict = _extract_crash_result(initial_crash_result,
                                               repro_command)
+    minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
+        last_crash_result_dict=crash_result_dict,
+        memory_tool_options=memory_tool_options)
+    if minimized_keys:
+      minimize_task_output.minimized_keys = str(minimized_keys)
     return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED,
-        minimize_task_output=uworker_msg_pb2.MinimizeTaskOutput(
-            last_crash_result_dict=crash_result_dict,
-            minimized_keys=minimized_keys,
-            memory_tool_options=memory_tool_options))
+        minimize_task_output=minimize_task_output)
 
   logs.log('LibFuzzer minimization succeeded.')
 
@@ -1558,13 +1554,12 @@ def do_libfuzzer_minimization(
 
   # Clean up after we're done.
   shell.clear_testcase_directories()
-  if not minimized_keys:
-    minimized_keys = ''
-  return uworker_msg_pb2.Output(
-      minimize_task_output=uworker_msg_pb2.MinimizeTaskOutput(
-          last_crash_result_dict=last_crash_result_dict,
-          minimized_keys=minimized_keys,
-          memory_tool_options=memory_tool_options))
+  minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
+      last_crash_result_dict=last_crash_result_dict,
+      memory_tool_options=memory_tool_options)
+  if minimized_keys:
+    minimize_task_output.minimized_keys = str(minimized_keys)
+  return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)
 
 
 def do_libfuzzer_cleanse(testcase, testcase_file_path, expected_crash_state):

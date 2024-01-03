@@ -139,8 +139,7 @@ message MinimizeTaskOutput {
   optional string minimized_arguments = 8;
   optional int32 archive_state = 9;
   optional string absolute_path = 10;
-  optional string repro_command = 11;
-  map<string, string> memory_tool_options = 12;
+  map<string, string> memory_tool_options = 11;
 }
 
 message RegressionTaskOutput {
@@ -209,9 +208,8 @@ enum ErrorType {
   MINIMIZE_CRASH_TOO_FLAKY = 23;
   MINIMIZE_DEADLINE_EXCEEDED = 24;
   MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE =25;
-  PARTIAL_MINIMIZATION_DEADLINE_EXCEEDED = 26;
-  LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE = 27;
-  LIBFUZZER_MINIMIZATION_FAILED = 28;
+  LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE = 26;
+  LIBFUZZER_MINIMIZATION_FAILED = 27;
 
 }
 
