@@ -16,7 +16,7 @@ import collections
 import threading
 import uuid
 
-from google.cloud import batch_v1 as batch
+from google.cloud import batch_v1alpha as batch
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
@@ -201,8 +201,8 @@ def _create_job(spec, input_urls):
 
 
 @retry.wrap(
-    retries=3,
-    delay=2,
+    retries=1,
+    delay=1,
     function='google_cloud_utils.batch._send_create_job_request')
 def _send_create_job_request(create_request):
   return _batch_client().create_job(create_request)
