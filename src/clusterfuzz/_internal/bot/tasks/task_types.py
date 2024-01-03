@@ -120,7 +120,7 @@ class UTask(BaseUTask):
     return download_url
 
 
-class UTaskCombined(BaseUTask):
+class UTaskCombined(BaseUTask):  # pylint: disable=abstract-method
   """Special kind of UTask where tasks are created as utasks and treated as
   tasks within a batch job. Tasks received on the queue will still execute
   locally. This should ease the transition to UTask and prevent batch from being
