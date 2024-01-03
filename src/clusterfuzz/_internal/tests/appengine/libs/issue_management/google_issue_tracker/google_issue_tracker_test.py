@@ -336,6 +336,11 @@ class GoogleIssueTrackerTest(unittest.TestCase):
 
   def test_new_issue_with_component_tags(self):
     """Test new issue creation with component tags."""
+    self.client.components().get().execute.return_value = {
+        'componentId': '1456567',
+        'name': 'Component ABC',
+        'parentComponentId': '1337',
+    }
     issue = self.issue_tracker.new_issue()
     issue.reporter = 'reporter@google.com'
     issue.assignee = 'assignee@google.com'
@@ -348,9 +353,14 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.labels.add('FoundIn-789')
     issue.components.add('ABC>DEF')
     issue.components.add('IJK>XYZ')
+    issue.components.add('1456567')
     issue.status = 'ASSIGNED'
     issue.title = 'issue title'
     issue.save()
+    self.client.components().get.assert_has_calls([
+        mock.call(componentId='1456567'),
+        mock.call().execute(http=None, num_retries=3),
+    ])
     self.client.issues().create.assert_has_calls([
         mock.call(
             body={
@@ -385,7 +395,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     }, {
                         'customFieldId': '1222907',
                         'repeatedEnumValue': {
-                            'values': ['ABC>DEF', 'IJK>XYZ']
+                            'values': ['ABC>DEF', 'Component ABC', 'IJK>XYZ']
                         }
                     }],
                     'foundInVersions': ['123', '789'],
@@ -682,12 +692,17 @@ class GoogleIssueTrackerTest(unittest.TestCase):
 
   def test_update_issue_with_component_tags(self):
     """Test updating an existing issue with component tags."""
+    self.client.components().get().execute.return_value = {
+        'componentId': '1456567',
+        'name': 'Component ABC',
+        'parentComponentId': '1337',
+    }
     self.client.issues().get().execute.return_value = {
         'issueId':
             '68828938',
         'customFields': [{
             'customFieldId': '1222907',
-            'enumValues': ['ABC>DEF', 'IJK', 'XYZ'],
+            'enumValues': ['ABC>DEF', 'Component ABC', 'IJK', 'XYZ'],
         }],
         'issueState': {
             'componentId':
@@ -743,13 +758,22 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.labels.add('12345')
     issue.status = 'ASSIGNED'
     issue.title = 'issue title2'
-    # Adding three more Component Tags here.
+    # Adding more Component Tags here.
+    # Adding component names.
     issue.components.add('IJK')
     issue.components.add('XYZ')
+    # Adding component IDs.
+    issue.components.add('1456567')
+    # Will not be added because does not correspond to a component.
+    issue.components.add('1111111')
     # Will be rejected because it is not in allowed enum values.
     issue.components.add('AAA')
     issue.save()
 
+    self.client.components().get.assert_has_calls([
+        mock.call(componentId='1456567'),
+        mock.call().execute(http=None, num_retries=3),
+    ])
     self.client.issues().modify.assert_has_calls([
         mock.call(
             issueId='68828938',
@@ -771,7 +795,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'customFields': [{
                         'customFieldId': '1222907',
                         'repeatedEnumValue': {
-                            'values': ['ABC>DEF', 'IJK', 'XYZ']
+                            'values': ['ABC>DEF', 'Component ABC', 'IJK', 'XYZ']
                         }
                     },],
                 },
