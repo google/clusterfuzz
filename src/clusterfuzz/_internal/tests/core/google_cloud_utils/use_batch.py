@@ -27,17 +27,20 @@ def _create_many():
     pool.map(_send_test_job, many)
 
 
+@mock.patch(
+    'clusterfuzz._internal.google_cloud_utils.batch._get_job',
+    return_value=mock.Mock(platform='LINUX'))
+@mock.patch(
+    'clusterfuzz._internal.system.environment.get_config_directory',
+    return_value=os.environ['BATCH_TEST_CONFIG_PATH'])
 def _send_test_job(_=None, get_config_directory=None, get_job=None):
   """Creates a test batch job for local manual testing to ensure job creation
   actually works."""
   del _
+  del get_config_directory
+  del get_job
   tasks = [
       batch.BatchTask('variant', 'libfuzzer_chrome_asan', 'https://fake/')
-      for _ in range(1)
+      for _ in range(10)
   ]
-  with mock.patch(
-      'clusterfuzz._internal.system.environment.get_config_directory',
-      return_value=os.environ['BATCH_TEST_CONFIG_PATH']):
-    with mock.patch('clusterfuzz._internal.google_cloud_utils.batch._get_job',
-                    return_value=mock.Mock(platform='LINUX')):
-      batch.create_uworker_main_batch_jobs(tasks)
+  batch.create_uworker_main_batch_jobs(tasks)
