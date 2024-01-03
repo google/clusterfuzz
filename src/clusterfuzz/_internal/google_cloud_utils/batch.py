@@ -32,7 +32,7 @@ from . import credentials
 _local = threading.local()
 
 MAX_DURATION = '3600s'
-RETRY_COUNT = 1
+RETRY_COUNT = 0
 TASK_COUNT = 1
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
@@ -175,6 +175,7 @@ def _create_job(spec, input_urls):
   task_group.task_environments = task_environments
   task_group.task_spec = _get_task_spec(spec)
   task_group.task_count_per_node = TASK_COUNT_PER_NODE
+  task_group.permissive_ssh = False
   assert task_group.task_count_per_node == 1, 'This is a security issue'
 
   job = batch.Job()

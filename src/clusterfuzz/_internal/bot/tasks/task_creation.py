@@ -16,6 +16,8 @@
 import dataclasses
 from typing import List
 from typing import Optional
+import random
+import time
 
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import tasks as taskslib
@@ -309,6 +311,8 @@ def start_utask_mains(tasks: List[Task]) -> None:
   batch_tasks = [
       batch.BatchTask(task.name, task.job, task.uworker_input) for task in tasks
   ]
+  sleep_time = random.randint(1, tasklib.TASK_CREATION_WAIT_INTERVAL)
+  time.sleep(sleep_time)
   batch.create_uworker_main_batch_jobs(batch_tasks)
 
 
