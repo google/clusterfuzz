@@ -121,6 +121,10 @@ def _get_task_spec(batch_workload_spec):
       '--name=clusterfuzz -e UNTRUSTED_WORKER=False -e UWORKER=True '
       '-e UWORKER_INPUT_DOWNLOAD_URL')
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
+
+  # For much faster startup times.
+  runnable.container.enable_image_streaming = True
+
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
   task_spec.max_retry_count = RETRY_COUNT
