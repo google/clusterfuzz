@@ -20,9 +20,12 @@ from clusterfuzz._internal.tests.test_libs import helpers
 
 
 class UTaskCombinedTest(unittest.TestCase):
+
   def setUp(self):
     helpers.patch_environ(self)
 
   def test_is_remote(self):
-    with mock.patch('clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks', return_value=True):
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        return_value=True):
       self.assertTrue(task_types.UTaskCombined.is_execution_remote())
