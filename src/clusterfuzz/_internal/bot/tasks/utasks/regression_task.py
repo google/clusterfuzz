@@ -266,7 +266,8 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
   crashes_in_max_revision = _testcase_reproduces_in_revision(
       testcase, testcase_file_path, job_type, max_revision, should_log=False)
   if not crashes_in_max_revision:
-    testcase = testcase.key.get()
+    # TODO: Error handling should be moved to postprocess.
+    testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
     error_message = f'Known crash revision {max_revision} did not crash'
     data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                          error_message)
@@ -326,7 +327,8 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
 
   # If we've broken out of the above loop, we timed out. We'll finish by
   # running another regression task and picking up from this point.
-  testcase = testcase.key.get()
+  # TODO: Error handling should be moved to postprocess.
+  testcase = data_handler.get_testcase_by_id(uworker_input.testcase_id)
   error_message = 'Timed out, current range r%d:r%d' % (
       revision_list[min_index], revision_list[max_index])
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
