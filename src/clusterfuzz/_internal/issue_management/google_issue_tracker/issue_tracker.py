@@ -127,8 +127,8 @@ class Issue(issue_tracker.Issue):
 
   def _get_component_paths(self, component_tags):
     """Converts component IDs from component tags into component paths.
-    
-    Eg:  component_id=1456567 will be translated into 
+
+    Eg:  component_id=1456567 will be translated into
          "Blink>JavaScript>Compiler>Sparkplug".
     """
     component_paths = set()
@@ -140,12 +140,10 @@ class Issue(issue_tracker.Issue):
                         'a component path' % ct)
           continue
         component_paths.add(component_path)
-        pass
       else:
         # The component tag is already a component path.
         component_paths.add(ct)
     return sorted(component_paths)
-
 
   def _filter_custom_field_enum_values(self, custom_field_id, values):
     """Filters out invalid enum values from the provided values."""
@@ -818,10 +816,10 @@ class IssueTracker(issue_tracker.IssueTracker):
         }
     }
     return Issue(data, True, self)
-  
+
   def get_relative_component_path(self, component_id):
-    """"Gets the component path relative to the default component path.
-    
+    """Gets the component path relative to the default component path.
+
     For component_id=1456567 (Sparkplug) and
     default_component_id=1363614 (Chromium).
     This method will return "Blink>JavaScript>Compiler>Sparkplug" and not
@@ -829,23 +827,25 @@ class IssueTracker(issue_tracker.IssueTracker):
 
     This matches the allowed values format of the Chromium component tags
     custom field.
-    """""
+    """
     try:
-      component = self._execute(self.client.components().get(componentId=str(component_id)))
+      component = self._execute(
+          self.client.components().get(componentId=str(component_id)))
     except IssueTrackerError as e:
       if isinstance(e, IssueTrackerNotFoundError):
         return None
       logs.log_error('Failed to retrieve component.', component_id=component_id)
       return None
-    
+
     if component['componentId'] == str(self._default_component_id):
       return ''
-    elif component.get('parentComponentId'):
+    if component.get('parentComponentId'):
       parent_component_id = component['parentComponentId']
       component_name = component.get('name', '')
       if parent_component_id == str(self._default_component_id):
         return component_name
-      return self.get_relative_component_path(parent_component_id) + ">" + component_name
+      return self.get_relative_component_path(
+          parent_component_id) + ">" + component_name
     return ''
 
   def get_issue(self, issue_id):
@@ -948,7 +948,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 
 # if __name__ == '__main__':
 #   it = IssueTracker('chromium', None, {'default_component_id': 1363614})
-# 
+#
 #   # Test _get_component_paths.
 #   issue = it.new_issue()
 #   issue.components.add('1456407')  # 'Blink'
@@ -994,7 +994,8 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   queried_issue.labels.add('FoundIn-6')
 #   queried_issue.labels.add('ReleaseBlock-Beta')
 #   queried_issue.labels.add('ReleaseBlock-Dev')
-#   queried_issue.components.add('1456567')  # 'Blink>JavaScript>Compiler>Sparkplug'
+#   # 'Blink>JavaScript>Compiler>Sparkplug'
+#   queried_issue.components.add('1456567')
 #   queried_issue.components.add('OS>Software>Enterprise>ChromeApps')
 #   queried_issue.components.add('OS>Systems>Network>General')
 #   queried_issue.components.add('asdfasdfasdf')  # Should be filtered out

@@ -795,7 +795,9 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'customFields': [{
                         'customFieldId': '1222907',
                         'repeatedEnumValue': {
-                            'values': ['ABC>DEF', 'Component ABC', 'IJK', 'XYZ']
+                            'values': [
+                                'ABC>DEF', 'Component ABC', 'IJK', 'XYZ'
+                            ]
                         }
                     },],
                 },
