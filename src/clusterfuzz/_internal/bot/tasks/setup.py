@@ -208,7 +208,7 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None):
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
   if fuzzer_name and not with_deps:
-    logs.log('Skipping fuzzer preprocess.')
+    logs.log(f'Skipping fuzzer preprocess: {fuzzer_name}.')
   if fuzzer_name and with_deps:
     # This branch is taken when we assume fuzzer needs to be set up for a
     # testcase to be executed (i.e. when a testcase was found by a fuzzer).
