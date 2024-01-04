@@ -203,11 +203,11 @@ def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
 HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]
 
 
-def preprocess_setup_testcase(testcase, fuzzer_override=None):
+def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
   """Preprocessing for setup_testcase function."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
-  if fuzzer_name:
+  if fuzzer_name and with_deps:
     # This branch is taken when we assume fuzzer needs to be set up for a
     # testcase to be executed (i.e. when a testcase was found by a fuzzer).
     # It's not the case for testcases uploaded by users.
@@ -238,8 +238,8 @@ def setup_testcase(
     job_type: str,
     setup_input: uworker_msg_pb2.SetupInput,
     metadata: Optional[data_types.TestcaseUploadMetadata] = None):
-  """Sets up the testcase and needed dependencies like fuzzer,
-  data bundle, etc."""
+  """Sets up the testcase and needed dependencies like fuzzer, data bundle,
+  etc."""
   testcase_id = testcase.key.id()
   # Prepare an error result to return in case of error.
   # Only include uworker_input for callers that aren't deserializing the output
