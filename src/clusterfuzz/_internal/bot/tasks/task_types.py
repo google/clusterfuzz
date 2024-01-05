@@ -45,13 +45,6 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-def is_production():
-  return not (environment.is_local_development() or
-              environment.get_value('UNTRUSTED_RUNNER_TESTS') or
-              environment.get_value('LOCAL_DEVELOPMENT') or
-              environment.get_value('UTASK_TESTS'))
-
-
 class BaseUTask(BaseTask):
   """Base class representing an untrusted task. Children must decide to execute
   locally or remotely."""
@@ -104,7 +97,7 @@ class UTask(BaseUTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    if (not is_production() or
+    if (not environment.is_production() or
         not environment.get_value('REMOTE_UTASK_EXECUTION') or
         environment.platform() != 'LINUX'):
       self.execute_locally(task_argument, job_type, uworker_env)
@@ -127,10 +120,20 @@ class UTask(BaseUTask):
     return download_url
 
 
+class UTaskCombined(UTask):
+  """Special kind of UTask where tasks are created as utasks and treated as
+  tasks within a batch job. Tasks received on the queue will still execute
+  locally. This should ease the transition to UTask and prevent batch from being
+  DoSed."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    self.execute_locally(task_argument, job_type, uworker_env)
+
+
 def is_remotely_executing_utasks():
-  return (is_production() and
-          environment.get_value('REMOTE_UTASK_EXECUTION') and
-          environment.platform() == 'LINUX')
+  return bool(environment.is_production() and
+              environment.get_value('REMOTE_UTASK_EXECUTION') and
+              environment.platform() == 'LINUX')
 
 
 class PostprocessTask(BaseTask):
