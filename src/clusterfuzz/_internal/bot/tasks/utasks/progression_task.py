@@ -541,8 +541,12 @@ def find_fixed_range(uworker_input):
     if max_index - min_index < 1:
       progression_task_output.min_revision = int(min_revision)
       progression_task_output.max_revision = int(max_revision)
-      progression_task_output.last_progression_min = int(last_progression_min)
-      progression_task_output.last_progression_max = int(last_progression_max)
+      # We could be in a bad state from the beginning of this loop. In that
+      # case, both last_progression_min and last_progression_max would be None.
+      if last_progression_min:
+        progression_task_output.last_progression_min = int(last_progression_min)
+      if last_progression_max:
+        progression_task_output.last_progression_max = int(last_progression_max)
       return uworker_msg_pb2.Output(
           progression_task_output=progression_task_output,
           error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
