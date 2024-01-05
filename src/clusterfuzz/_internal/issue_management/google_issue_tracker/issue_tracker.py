@@ -134,7 +134,7 @@ class Issue(issue_tracker.Issue):
     component_paths = set()
     for ct in component_tags:
       if ct.isnumeric():
-        component_path = self._issue_tracker.get_relative_component_path(ct)
+        component_path = self._issue_tracker._get_relative_component_path(ct)
         if not component_path:
           logs.log_warn('google_issue_tracker: Component ID %s did not return '
                         'a component path' % ct)
@@ -817,7 +817,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     }
     return Issue(data, True, self)
 
-  def get_relative_component_path(self, component_id):
+  def _get_relative_component_path(self, component_id):
     """Gets the component path relative to the default component path.
 
     For component_id=1456567 (Sparkplug) and
@@ -838,15 +838,15 @@ class IssueTracker(issue_tracker.IssueTracker):
       return None
 
     if component['componentId'] == str(self._default_component_id):
-      return ''
+      return None
     if component.get('parentComponentId'):
       parent_component_id = component['parentComponentId']
       component_name = component.get('name', '')
       if parent_component_id == str(self._default_component_id):
         return component_name
-      return self.get_relative_component_path(
+      return self._get_relative_component_path(
           parent_component_id) + ">" + component_name
-    return ''
+    return None
 
   def get_issue(self, issue_id):
     """Gets the issue with the given ID."""
