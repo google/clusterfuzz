@@ -56,8 +56,8 @@ def _job_to_dict(job):
   result = job.to_dict()
   result['id'] = job.key.id()
   # Adding all associated fuzzers with each job.
-  fuzzers = data_types.Fuzzer.query().filter(data_types.Fuzzer.jobs == job.name)
-  result['fuzzers'] = [fuzzer.name for fuzzer in fuzzers]
+  fuzzers = data_types.Fuzzer.query().filter()
+  result['fuzzers'] = [fuzzer.name for fuzzer in fuzzers if job.name in fuzzer.jobs]
   return result
 
 

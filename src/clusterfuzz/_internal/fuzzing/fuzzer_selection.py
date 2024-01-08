@@ -64,9 +64,7 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
 
 def update_mappings_for_job(job, mappings):
   """Clear existing mappings for a job, and replace them."""
-  existing_fuzzers_query = data_types.Fuzzer.query(
-      data_types.Fuzzer.jobs == job.name)
-  existing_fuzzers = {fuzzer.name: fuzzer for fuzzer in existing_fuzzers_query}
+  existing_fuzzers = {fuzzer.name: fuzzer for fuzzer in existing_fuzzers_query if job.name in fuzzer.jobs}
   modified_fuzzers = []
 
   for fuzzer_name in mappings:

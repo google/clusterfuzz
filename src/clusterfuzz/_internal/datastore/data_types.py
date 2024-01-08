@@ -320,7 +320,7 @@ class Fuzzer(Model):
   sample_testcase = ndb.StringProperty()
 
   # Job types for this fuzzer.
-  jobs = ndb.StringProperty(repeated=True)
+  jobs = ndb.StringProperty(repeated=True, indexed=False)
 
   # Is the fuzzer coming from an external contributor ? Useful for adding
   # reward flags.
