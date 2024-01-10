@@ -53,7 +53,7 @@ FLASH_IMAGE_FILES = [
 ]
 FLASH_DEFAULT_BUILD_TARGET = '-next-userdebug'
 FLASH_DEFAULT_IMAGES_DIR = os.path.join(
-    environment.get_value('ROOT_DIR'), 'bot', 'inputs', 'images')
+    environment.get_value('ROOT_DIR', ''), 'bot', 'inputs', 'images')
 FLASH_INTERVAL = 1 * 24 * 60 * 60
 FLASH_RETRIES = 3
 FLASH_REBOOT_BOOTLOADER_WAIT = 15
