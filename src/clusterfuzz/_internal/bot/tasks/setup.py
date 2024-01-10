@@ -240,8 +240,8 @@ def setup_testcase(
     job_type: str,
     setup_input: uworker_msg_pb2.SetupInput,
     metadata: Optional[data_types.TestcaseUploadMetadata] = None):
-  """Sets up the testcase and needed dependencies like fuzzer,
-  data bundle, etc."""
+  """Sets up the testcase and needed dependencies like fuzzer, data bundle,
+  etc."""
   testcase_id = testcase.key.id()
   # Prepare an error result to return in case of error.
   # Only include uworker_input for callers that aren't deserializing the output
