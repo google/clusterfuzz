@@ -31,7 +31,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
-BAD_STATE_WAIT = 60 * 60 # 60 mins
+BAD_STATE_WAIT = 60 * 60  # 60 mins
 BOOT_WAIT_INTERVAL = 60 * 2
 CUTTLEFISH_USER = 'vsoc-01'
 CUTTLEFISH_CVD_PORT = 6520
