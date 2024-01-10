@@ -17,7 +17,7 @@ ENV UPDATE_WEB_TESTS True
 
 # Note: snapcraft installation seems to always fail.
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections && \
-    curl 'https://chromium.googlesource.com/chromium/src/+/main/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py && \
+    curl 'https://chromium.googlesource.com/chromium/src/+/47a8cc65544f631dd7770dc6029e350581bfef3b/build/install-build-deps.py?format=TEXT' | base64 -d > /tmp/install-build-deps.py && \
     sed -i s/snapcraft/doesnotexist/ /tmp/install-build-deps.py && \
     chmod u+x /tmp/install-build-deps.py && \
     /tmp/install-build-deps.py --backwards-compatible --no-prompt --no-chromeos-fonts --syms --lib32

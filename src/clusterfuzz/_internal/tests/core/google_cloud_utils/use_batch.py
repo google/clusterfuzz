@@ -43,4 +43,4 @@ def _send_test_job(_=None, get_config_directory=None, get_job=None):
       batch.BatchTask('variant', 'libfuzzer_chrome_asan', 'https://fake/')
       for _ in range(10)
   ]
-  batch.create_uworker_main_batch_jobs(tasks)
+  return batch.create_uworker_main_batch_jobs(tasks)
