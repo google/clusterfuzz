@@ -50,9 +50,9 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
                       output_filename):
   """Download one artifact."""
   logs.log('reached download_artifact')
-  logs.log('artifact to download: %', name)
-  logs.log('output_directory: %', output_directory)
-  logs.log('output_filename: %', output_filename)
+  logs.log('artifact to download: %s' % name)
+  logs.log('output_directory: %s' % output_directory)
+  logs.log('output_filename: %s' % output_filename)
   artifact_query = client.buildartifact().get(
       buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
   artifact = execute_request_with_retries(artifact_query)
@@ -86,7 +86,7 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
 
   logs.log('Downloading artifact %s.' % name)
   output_dir = os.path.dirname(output_path)
-  logs.log('Output dir: %', output_dir)
+  logs.log('Output dir: %s' % output_dir)
   if not os.path.exists(output_dir):
     logs.log(f'Creating directory {output_dir}')
     os.mkdir(output_dir)
