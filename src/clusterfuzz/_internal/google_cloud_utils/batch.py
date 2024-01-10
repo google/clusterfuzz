@@ -31,9 +31,8 @@ from . import credentials
 
 _local = threading.local()
 
-MAX_DURATION = '3600s'
-RETRY_COUNT = 1
-TASK_COUNT = 1
+MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
+RETRY_COUNT = 0
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
