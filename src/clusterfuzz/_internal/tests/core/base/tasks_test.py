@@ -78,7 +78,6 @@ class InitializeTaskTest(unittest.TestCase):
     self.assertEqual(task.job, 'none')
 
 
-
 class GetMachineTemplateForQueueTests(unittest.TestCase):
   """Tests that we know the specs of an instance to launch a batch task on."""
 
