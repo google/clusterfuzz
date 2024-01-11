@@ -33,10 +33,6 @@ _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
 _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
 _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'
 
-# TODO(rmistry): This is using the field ID of Respin because FoundIn has not
-# been created yet. Update it to use the real field ID when it exists.
-_CHROMIUM_FOUNDIN_CUSTOM_FIELD_ID = '1223034'  # Uses Repeated Text
-
 
 class IssueAccessLevel(str, enum.Enum):
   LIMIT_NONE = 'LIMIT_NONE'
@@ -128,6 +124,26 @@ class Issue(issue_tracker.Issue):
         if enum_values:
           return enum_values.get('values') or []
     return []
+
+  def _get_component_paths(self, component_tags):
+    """Converts component IDs from component tags into component paths.
+
+    Eg:  component_id=1456567 will be translated into
+         "Blink>JavaScript>Compiler>Sparkplug".
+    """
+    component_paths = set()
+    for ct in component_tags:
+      if ct.isnumeric():
+        component_path = self._issue_tracker._get_relative_component_path(ct)
+        if not component_path:
+          logs.log_warn('google_issue_tracker: Component ID %s did not return '
+                        'a component path' % ct)
+          continue
+        component_paths.add(component_path)
+      else:
+        # The component tag is already a component path.
+        component_paths.add(ct)
+    return sorted(component_paths)
 
   def _filter_custom_field_enum_values(self, custom_field_id, values):
     """Filters out invalid enum values from the provided values."""
@@ -458,8 +474,9 @@ class Issue(issue_tracker.Issue):
 
     # Special case Component Tags custom field.
     if self.components.added:
+      component_paths = self._get_component_paths(self.components)
       values = self._filter_custom_field_enum_values(
-          _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID, self.components)
+          _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID, component_paths)
       if values:
         logs.log('google_issue_tracker: Going to add these components to '
                  'component tags: %s' % values)
@@ -549,13 +566,14 @@ class Issue(issue_tracker.Issue):
             },
         })
       if list(self.components):
+        component_paths = self._get_component_paths(self.components)
         logs.log(
             'google_issue_tracker: In save. Going to add these components to '
-            'component tags: %s' % list(self.components))
+            'component tags: %s' % component_paths)
         custom_field_entries.append({
             'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
             'repeatedEnumValue': {
-                'values': list(self.components)
+                'values': component_paths
             },
         })
       if custom_field_entries:
@@ -799,6 +817,37 @@ class IssueTracker(issue_tracker.IssueTracker):
     }
     return Issue(data, True, self)
 
+  def _get_relative_component_path(self, component_id):
+    """Gets the component path relative to the default component path.
+
+    For component_id=1456567 (Sparkplug) and
+    default_component_id=1363614 (Chromium).
+    This method will return "Blink>JavaScript>Compiler>Sparkplug" and not
+    "Chromium Public Trackers>Chromium>Blink>JavaScript>Compiler/Sparkplug"
+
+    This matches the allowed values format of the Chromium component tags
+    custom field.
+    """
+    try:
+      component = self._execute(
+          self.client.components().get(componentId=str(component_id)))
+    except IssueTrackerError as e:
+      if isinstance(e, IssueTrackerNotFoundError):
+        return None
+      logs.log_error('Failed to retrieve component.', component_id=component_id)
+      return None
+
+    if component['componentId'] == str(self._default_component_id):
+      return None
+    if component.get('parentComponentId'):
+      parent_component_id = component['parentComponentId']
+      component_name = component.get('name', '')
+      if parent_component_id == str(self._default_component_id):
+        return component_name
+      return self._get_relative_component_path(
+          parent_component_id) + ">" + component_name
+    return None
+
   def get_issue(self, issue_id):
     """Gets the issue with the given ID."""
     try:
@@ -900,6 +949,17 @@ def _get_severity_from_crash_text(crash_severity_text):
 # if __name__ == '__main__':
 #   it = IssueTracker('chromium', None, {'default_component_id': 1363614})
 #
+#   # Test _get_component_paths.
+#   issue = it.new_issue()
+#   issue.components.add('1456407')  # 'Blink'
+#   issue.components.add('1456567')  # 'Blink>JavaScript>Compiler>Sparkplug'
+#   issue.components.add('1363614')  # 'Chromium'
+#   issue.components.add('OS>Software>Enterprise>Policies')
+#   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')  # Adding again
+#   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')  # Adding again2
+#   component_paths = issue._get_component_paths(issue._component_tags)
+#   print(component_paths)
+#
 #   # Test issue creation.
 #   issue = it.new_issue()
 #   issue.title = 'test issue'
@@ -911,6 +971,9 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.labels.add('FoundIn-789')
 #   issue.labels.add('ReleaseBlock-Dev')
 #   issue.labels.add('ReleaseBlock-Beta')
+#   issue.components.add('1456407')  # 'Blink'
+#   issue.components.add('1456567')  # 'Blink>JavaScript>Compiler>Sparkplug'
+#   issue.components.add('1363614')  # 'Chromium'
 #   issue.components.add('OS>Software>Enterprise>Policies')
 #   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')
 #   issue.apply_extension_fields({
@@ -931,9 +994,10 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   queried_issue.labels.add('FoundIn-6')
 #   queried_issue.labels.add('ReleaseBlock-Beta')
 #   queried_issue.labels.add('ReleaseBlock-Dev')
-#   queried_issue.components.add('Blink>JavaScript>Compiler>Sparkplug')
+#   # 'Blink>JavaScript>Compiler>Sparkplug'
+#   queried_issue.components.add('1456567')
 #   queried_issue.components.add('OS>Software>Enterprise>ChromeApps')
 #   queried_issue.components.add('OS>Systems>Network>General')
-#   queried_issue.components.add('asdfasdfasdf')
-#   queried_issue.components.add(123123123)
+#   queried_issue.components.add('asdfasdfasdf')  # Should be filtered out
+#   queried_issue.components.add(123123123)  # Should be filtered out
 #   queried_issue._update_issue()

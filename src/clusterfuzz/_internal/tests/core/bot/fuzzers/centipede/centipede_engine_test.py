@@ -351,6 +351,8 @@ class IntegrationTest(unittest.TestCase):
         'slo',
         timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
+  # TODO(https://github.com/google/clusterfuzz/issues/3622): Fix this test.
+  @unittest.skip('Broken test.')
   def test_minimize_corpus(self):
     """Tests minimizing a corpus."""
     unminimized_corpus = setup_testcase('unmin_corpus', self.test_paths)

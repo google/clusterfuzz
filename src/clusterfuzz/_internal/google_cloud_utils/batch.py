@@ -31,9 +31,8 @@ from . import credentials
 
 _local = threading.local()
 
-MAX_DURATION = '3600s'
-RETRY_COUNT = 1
-TASK_COUNT = 1
+MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
+RETRY_COUNT = 0
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
@@ -101,7 +100,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
   # Define what will be done as part of the job.
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
-    spec = get_spec_from_config(batch_task.command, batch_task.job_type)
+    spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 
   logs.log('Creating batch jobs.')
@@ -131,17 +130,33 @@ def _get_task_spec(batch_workload_spec):
 
 def _get_allocation_policy(spec):
   """Returns the allocation policy for a BatchWorkloadSpec."""
-  instance_policy = batch.AllocationPolicy.InstancePolicy()
   disk = batch.AllocationPolicy.Disk()
   disk.image = 'batch-cos'
   disk.size_gb = spec.disk_size_gb
   disk.type = spec.disk_type
+  instance_policy = batch.AllocationPolicy.InstancePolicy()
   instance_policy.boot_disk = disk
   instance_policy.machine_type = spec.machine_type
   instances = batch.AllocationPolicy.InstancePolicyOrTemplate()
   instances.policy = instance_policy
+
+  # Don't use external ip addresses which use quota, cost money, and are
+  # unnecessary.
+  network_interface = batch.AllocationPolicy.NetworkInterface()
+  network_interface.no_external_ip_address = True
+  # TODO(metzman): Make configurable.
+  network_interface.network = (
+      'projects/google.com:clusterfuzz/global/networks/batch')
+  network_interface.subnetwork = (
+      'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1a')
+
+  network_interfaces = [network_interface]
+  network_policy = batch.AllocationPolicy.NetworkPolicy()
+  network_policy.network_interfaces = network_interfaces
+
   allocation_policy = batch.AllocationPolicy()
   allocation_policy.instances = [instances]
+  allocation_policy.network = network_policy
   service_account = batch.ServiceAccount(email=spec.service_account_email)  # pylint: disable=no-member
   allocation_policy.service_account = service_account
   return allocation_policy
@@ -174,7 +189,7 @@ def _create_job(spec, input_urls):
   create_request.job_id = job_name
   # The job's parent is the region in which the job will run
   project_id = 'google.com:clusterfuzz'
-  create_request.parent = f'projects/{project_id}/locations/us-central1'
+  create_request.parent = f'projects/{project_id}/locations/us-west1'
   result = _send_create_job_request(create_request)
   logs.log('Created batch job.')
   return result
@@ -188,15 +203,26 @@ def _send_create_job_request(create_request):
   return _batch_client().create_job(create_request)
 
 
-def get_spec_from_config(command, job_name):
+def _get_batch_config():
+  """Returns the batch config. This function was made to make mocking easier."""
+  return local_config.BatchConfig()
+
+
+def _get_job(job_name):
+  """Returns the Job entity named by |job_name|. This function was made to make
+  mocking easier."""
+  return data_types.Job.query(data_types.Job.name == job_name).get()
+
+
+def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
-  job = data_types.Job.query(data_types.Job.name == job_name).get()
+  job = _get_job(job_name)
   platform = job.platform
   if command == 'fuzz':
     platform += '-PREEMPTIBLE'
   else:
     platform += '-NONPREEMPTIBLE'
-  batch_config = local_config.BatchConfig()
+  batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(platform, None)
   if instance_spec is None:
     raise ValueError(f'No mapping for {platform}')
