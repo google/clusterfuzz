@@ -160,11 +160,12 @@ def set_task_payload(func):
   """Set TASK_PAYLOAD and unset TASK_PAYLOAD."""
 
   @functools.wraps(func)
-  def wrapper(task):
+  def wrapper(task_name, task_argument, job_name, *args, **kwargs):
     """Wrapper."""
-    environment.set_value('TASK_PAYLOAD', task.payload())
+    payload = tasks.construct_payload(task_name, task_argument, job_name)
+    environment.set_value('TASK_PAYLOAD', payload)
     try:
-      return func(task)
+      return func(task_name, task_argument, job_name, *args, **kwargs)
     except:  # Truly catch *all* exceptions.
       e = sys.exc_info()[1]
       e.extras = {'task_payload': environment.get_value('TASK_PAYLOAD')}
@@ -200,7 +201,11 @@ def start_web_server_if_needed():
     logs.log_error('Failed to start web server, skipping.')
 
 
-def run_command(task_name, task_argument, job_name, uworker_env):
+def run_command(task_name,
+                task_argument,
+                job_name,
+                uworker_env,
+                preprocess=False):
   """Run the command."""
   task = COMMAND_MAP.get(task_name)
   if not task:
@@ -218,7 +223,10 @@ def run_command(task_name, task_argument, job_name, uworker_env):
 
   result = None
   try:
-    result = task.execute(task_argument, job_name, uworker_env)
+    if not preprocess:
+      result = task.execute(task_argument, job_name, uworker_env)
+    else:
+      result = task.preprocess(task_argument, job_name, uworker_env)
   except errors.InvalidTestcaseError:
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
@@ -243,11 +251,6 @@ def prepare_run_command(task):
   """Prepares to run |task| by setting up the environment and getting the
   necessary details to run the task, which it returns."""
   uworker_env = None
-  # Parse task payload.
-  task_name = task.command
-  task_argument = task.argument
-  job_name = task.job
-
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
@@ -276,14 +279,14 @@ def prepare_run_command(task):
 
       # Try to recreate the job in the correct task queue.
       new_queue = (
-          tasks.high_end_queue() if task.high_end else tasks.regular_queue())
+          tasks.high_end_queue() if high_end else tasks.regular_queue())
       new_queue += job_queue_suffix
 
       # Command override is continuously run by a bot. If we keep failing
       # and recreating the task, it will just DoS the entire task queue.
       # So, we don't create any new tasks in that case since it needs
       # manual intervention to fix the override anyway.
-      if not task.is_command_override:
+      if not is_command_override:
         try:
           tasks.add_task(task_name, task_argument, job_name, new_queue)
         except Exception:

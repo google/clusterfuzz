@@ -162,6 +162,7 @@ def get_newer_source_revision():
     # No source code update found. Source code is current, bail out.
     return None
 
+  logs.log(f'New source code: {source_version}')
   return source_version
 
 

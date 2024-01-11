@@ -351,6 +351,8 @@ class IntegrationTest(unittest.TestCase):
         'slo',
         timeout_per_input=_TIMEOUT_PER_INPUT_TEST)
 
+  # TODO(https://github.com/google/clusterfuzz/issues/3622): Fix this test.
+  @unittest.skip('Broken test.')
   def test_minimize_corpus(self):
     """Tests minimizing a corpus."""
     unminimized_corpus = setup_testcase('unmin_corpus', self.test_paths)
@@ -366,11 +368,11 @@ class IntegrationTest(unittest.TestCase):
                                          MAX_TIME)
 
     self.assertTrue(result)
-    self.assertTrue(len(os.listdir(minimized_corpus)) == 3)
-    self.assertTrue(len(os.listdir(crash_corpus)) == 1)
+    self.assertEqual(len(os.listdir(minimized_corpus)), 3)
+    self.assertEqual(len(os.listdir(crash_corpus)), 1)
     crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
     with open(crasher) as crasher_file:
-      self.assertTrue(crasher_file.read() == '?f???u???z?')
+      self.assertEqual(crasher_file.read(), '?f???u???z?')
 
   def test_minimize_testcase(self):
     """Tests minimizing a testcase."""

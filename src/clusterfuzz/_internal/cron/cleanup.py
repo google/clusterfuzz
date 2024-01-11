@@ -136,7 +136,7 @@ def cleanup_testcases_and_issues():
       update_fuzz_blocker_label(policy, testcase, issue,
                                 top_crashes_by_project_and_platform_map)
       logs.log('maybe updated fuzz blocker')
-      update_component_labels(testcase, issue)
+      update_component_labels(policy, testcase, issue)
       logs.log('maybe updated component labels')
       update_issue_ccs_from_owners_file(policy, testcase, issue)
       logs.log('maybe updated issueccs')
@@ -883,8 +883,8 @@ def _update_issue_when_uploaded_testcase_is_processed(
     issue.title = data_handler.get_issue_summary(testcase)
 
   # Impact labels like impacting head/beta/stable only apply for Chromium.
-  if testcase.project_name == 'chromium':
-    issue_filer.update_issue_impact_labels(testcase, issue)
+  if testcase.project_name in ('chromium', 'chromium-testing'):
+    issue_filer.update_issue_impact_labels(testcase, issue, policy)
 
   # Add severity labels for all project types.
   comment = description + _update_issue_security_severity_and_get_comment(
@@ -1020,7 +1020,7 @@ def update_fuzz_blocker_label(policy, testcase, issue,
   issue.save(new_comment=update_message, notify=True)
 
 
-def update_component_labels(testcase, issue):
+def update_component_labels(policy, testcase, issue):
   """Add components to the issue if needed."""
   if not issue:
     return
@@ -1053,7 +1053,9 @@ def update_component_labels(testcase, issue):
   for filtered_component in filtered_components:
     issue.components.add(filtered_component)
 
-  issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)
+  issue.labels.add(
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))
   label_text = issue.issue_tracker.label_text(
       data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
   issue_comment = (
@@ -1218,7 +1220,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
 
     # We have high confidence for the single-CL case, so we assign the owner.
     logs.log('Updating issue')
-    issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL)
+    issue.labels.add(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL))
     issue.assignee = suspected_cl['author']
     issue.status = policy.status('assigned')
     issue_comment = (
@@ -1277,7 +1281,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
 
     label_text = issue.issue_tracker.label_text(
         data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)
-    issue.labels.add(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)
+    issue.labels.add(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))
     issue_comment += (
         'If this is incorrect, please let us know why and apply the '
         f'{label_text}.')

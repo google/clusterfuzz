@@ -556,6 +556,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*/crosstool/',
     r'.*/gcc/',
     r'.*/glibc\-',
+    r'.*/googletest/',
     r'.*/jemalloc/',
     r'.*/libc\+\+',
     r'.*/libc/',

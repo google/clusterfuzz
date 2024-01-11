@@ -34,8 +34,11 @@ def _get_job_list_for_fuzzer(fuzzer):
 
 def _get_fuzzer_list_for_job(job):
   """Helper function to return the mappings for a job as a list."""
-  fuzzers = data_types.Fuzzer.query().filter(data_types.Fuzzer.jobs == job.name)
-  return [fuzzer.name for fuzzer in fuzzers]
+  return [
+      fuzzer.name
+      for fuzzer in data_types.Fuzzer.query()
+      if job.name in fuzzer.jobs
+  ]
 
 
 @test_utils.with_cloud_emulators('datastore')

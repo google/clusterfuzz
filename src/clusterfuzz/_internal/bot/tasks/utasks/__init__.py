@@ -43,17 +43,12 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
 
   # Deal with the environment.
-  set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
-  delattr(uworker_input, 'uworker_env')
-
+  set_uworker_env(uworker_input.uworker_env)
+  uworker_input.uworker_env.clear()
   uworker_output = utask_module.utask_main(uworker_input)
   if uworker_output is None:
     return None
   return uworker_io.serialize_uworker_output(uworker_output)
-
-
-def add_uworker_input_to_output(uworker_output, uworker_input):
-  uworker_output.uworker_input = uworker_input
 
 
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
@@ -62,8 +57,8 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
   # Do this to simulate out-of-band tamper-proof storage of the input.
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
-  add_uworker_input_to_output(uworker_output, uworker_input)
-  set_uworker_env(uworker_input.uworker_env)  # pylint: disable=no-member
+  uworker_output.uworker_input.CopyFrom(uworker_input)
+  set_uworker_env(uworker_output.uworker_input.uworker_env)
   utask_module.utask_postprocess(uworker_output)
 
 
@@ -106,19 +101,19 @@ def uworker_main(input_download_url) -> None:
   remote executor)."""
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
-  uworker_output_upload_url = uworker_input.uworker_output_upload_url  # pylint: disable=no-member
-  delattr(uworker_input, 'uworker_output_upload_url')
+  uworker_output_upload_url = uworker_input.uworker_output_upload_url
+  uworker_input.ClearField('uworker_output_upload_url')
 
   # Deal with the environment.
-  uworker_env = uworker_input.uworker_env  # pylint: disable=no-member
-  delattr(uworker_input, 'uworker_env')
-  set_uworker_env(uworker_env)
+  set_uworker_env(uworker_input.uworker_env)
+  uworker_input.uworker_env.clear()
 
-  utask_module = get_utask_module(uworker_input.module_name)  # pylint: disable=no-member
+  utask_module = get_utask_module(uworker_input.module_name)
   logs.log('Starting utask_main: %s.' % utask_module)
   uworker_output = utask_module.utask_main(uworker_input)
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
+  logs.log('Finished uworker_main.')
   return True
 
 
@@ -138,6 +133,6 @@ def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
-  set_uworker_env(uworker_output.uworker_input.uworker_env)  # pylint: disable=no-member
-  utask_module = get_utask_module(uworker_output.uworker_input.module_name)  # pylint: disable=no-member
+  set_uworker_env(uworker_output.uworker_input.uworker_env)
+  utask_module = get_utask_module(uworker_output.uworker_input.module_name)
   utask_module.utask_postprocess(uworker_output)
