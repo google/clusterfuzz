@@ -123,7 +123,7 @@ class PubSubClient:
     """Modify acknowledgement deadline of messages."""
     body = {
         'ackIds': ack_ids,
-        'ackDeadlineSeconds': int(seconds),  # since time.time() is float.
+        'ackDeadlineSeconds': int(seconds),  # Since time.time() is float.
     }
 
     request = self._api_client().projects().subscriptions().modifyAckDeadline(

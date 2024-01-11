@@ -439,7 +439,7 @@ def stop_cuttlefish_device():
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
-  logs.log('stop_cvd_cmd: %', str(stop_cvd_cmd))
+  logs.log('stop_cvd_cmd: %s' % str(stop_cvd_cmd))
 
   execute_command(
       stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
@@ -459,7 +459,7 @@ def recreate_cuttlefish_device():
   """Recreate cuttlefish device, restoring from backup images."""
   logs.log('Reimaging cuttlefish device.')
   cvd_dir = environment.get_value('CVD_DIR')
-  logs.log('cvd_dir: %', cvd_dir)
+  logs.log('cvd_dir: %s' % str(cvd_dir))
 
   stop_cuttlefish_device()
 

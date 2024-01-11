@@ -214,6 +214,14 @@ def _get_job(job_name):
   return data_types.Job.query(data_types.Job.name == job_name).get()
 
 
+def is_remote_task(command, job_name):
+  try:
+    _get_spec_from_config(command, job_name)
+    return True
+  except ValueError:
+    return False
+
+
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   job = _get_job(job_name)
