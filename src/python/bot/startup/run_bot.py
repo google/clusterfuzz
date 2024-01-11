@@ -37,6 +37,7 @@ from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -69,7 +70,6 @@ class _Monitor:
         })
 
 
-
 @contextlib.contextmanager
 def lease_merged_tasks(tasks_list):
   """Creates a context manager that leases every task in tasks_list."""
@@ -93,10 +93,14 @@ def task_loop():
     with lease_merged_tasks(tasks_list):
       for task in tasks_list:
         with _Monitor(task):
-          task_module = commands.get_command_module(task.command)
-          input_download_url = commands.process_command(task)
-          module_name = task_module.__name__
-          batch_task = batch.BatchTask(module_name, task.job,
+          input_download_url = commands.process_command_impl(
+              task.name,
+              task.argument,
+              task.job,
+              high_end=True,
+              is_command_override=False,
+              preprocess=True)
+          batch_task = batch.BatchTask(task.command, task.job,
                                        input_download_url)
           batch_tasks.append(batch_task)
       return batch.create_uworker_main_batch_jobs(batch_tasks)
@@ -105,7 +109,7 @@ def task_loop():
     with _Monitor(task):
       with task.lease():
         # Execute the command and delete the task.
-        commands.process_command(task[0])
+        commands.process_command(task)
 
   clean_exit = False
   while True:
@@ -128,10 +132,10 @@ def task_loop():
 
       if not task.is_merged_task():
         # Execute the command and delete the task.
-        commands.process_command(task)
+        process_task(task)
       else:
         # Execute the command and delete the task.
-        commands.process_merged_tasks(task)
+        process_merged_tasks(task.tasks)
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0
