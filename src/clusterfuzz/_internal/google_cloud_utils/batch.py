@@ -104,9 +104,14 @@ def create_uworker_main_batch_jobs(batch_tasks):
     job_specs[spec].append(batch_task.input_download_url)
 
   logs.log('Creating batch jobs.')
-  return [
-      _create_job(spec, input_urls) for spec, input_urls in job_specs.items()
-  ]
+  jobs = []
+
+  for spec, input_urls in job_specs.items():
+    for idx in range(0, len(input_urls), MAX_CONCURRENT_VMS_PER_JOB):
+      input_urls_portion = input_urls[idx:idx + MAX_CONCURRENT_VMS_PER_JOB]
+      jobs.append(_create_job(spec, input_urls_portion))
+
+  return jobs
 
 
 def _get_task_spec(batch_workload_spec):

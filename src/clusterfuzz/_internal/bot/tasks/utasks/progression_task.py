@@ -387,8 +387,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # Set a flag to indicate we are running progression task. This shows pending
   # status on testcase report page and avoid conflicting testcase updates by
   # triage cron.
-  testcase.set_metadata('progression_pending', True)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+  # testcase.set_metadata('progression_pending', True)
+  # data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
   progression_input = uworker_msg_pb2.ProgressionTaskInput(
       custom_binary=build_manager.is_custom_binary(),
       bad_revisions=build_manager.get_job_bad_revisions())
