@@ -445,6 +445,7 @@ def copy_images_to_cuttlefish():
     image_dest = os.path.join(cvd_dir, image_filename)
     copy_to_cuttlefish(image_src, image_dest)
 
+
 def stop_cuttlefish_device():
   """Stops the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
@@ -478,7 +479,7 @@ def recreate_cuttlefish_device():
   # Delete all existing images.
   rm_cmd = f'rm -rf {cvd_dir}/*'
   execute_command(rm_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
-  
+
   copy_images_to_cuttlefish()
   start_cuttlefish_device()
 
