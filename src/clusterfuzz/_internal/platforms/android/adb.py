@@ -434,6 +434,17 @@ def start_cuttlefish_device(use_kernel=False):
       on_cuttlefish_host=True)
 
 
+def copy_images_to_cuttlefish():
+  """Copy and Combine cvd host package and OTA images."""
+  image_directory = environment.get_value('IMAGES_DIR')
+  cvd_dir = environment.get_value('CVD_DIR')
+  for image_filename in os.listdir(image_directory):
+    if image_filename.endswith('.zip') or image_filename.endswith('.tar.gz'):
+      continue
+    image_src = os.path.join(image_directory, image_filename)
+    image_dest = os.path.join(cvd_dir, image_filename)
+    copy_to_cuttlefish(image_src, image_dest)
+
 def stop_cuttlefish_device():
   """Stops the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
@@ -461,21 +472,14 @@ def recreate_cuttlefish_device():
   cvd_dir = environment.get_value('CVD_DIR')
   logs.log('cvd_dir: %s' % str(cvd_dir))
 
+  copy_images_to_cuttlefish()
   stop_cuttlefish_device()
 
   # Delete all existing images.
   rm_cmd = f'rm -rf {cvd_dir}/*'
   execute_command(rm_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
-
-  # Copy and Combine cvd host package and OTA images.
-  image_directory = environment.get_value('IMAGES_DIR')
-  for image_filename in os.listdir(image_directory):
-    if image_filename.endswith('.zip') or image_filename.endswith('.tar.gz'):
-      continue
-    image_src = os.path.join(image_directory, image_filename)
-    image_dest = os.path.join(cvd_dir, image_filename)
-    copy_to_cuttlefish(image_src, image_dest)
-
+  
+  copy_images_to_cuttlefish()
   start_cuttlefish_device()
 
 
