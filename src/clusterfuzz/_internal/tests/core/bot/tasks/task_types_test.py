@@ -13,10 +13,13 @@
 # limitations under the License.
 """Tests for blame task."""
 import unittest
+import os
 from unittest import mock
 
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.tests.test_libs import helpers
+from clusterfuzz._internal.tests.test_libs import test_utils
 
 
 class UTaskCombinedTest(unittest.TestCase):
@@ -29,3 +32,36 @@ class UTaskCombinedTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
         return_value=True):
       self.assertTrue(task_types.UTaskCombined.is_execution_remote())
+
+
+@test_utils.with_cloud_emulators('datastore')
+class IsRemoteUtaskTest(unittest.TestCase):
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_mac(self):
+    job_name = 'libfuzzer_mac_asan'
+
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        return_value=True):
+      data_types.Job(name=job_name, platform='MAC').put()
+      self.assertFalse(task_types.is_remote_utask('variant', job_name))
+
+  def test_linux(self):
+    job_name = 'libfuzzer_linux_asan'
+
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        return_value=True):
+      data_types.Job(name=job_name, platform='LINUX').put()
+      self.assertFalse(task_types.is_remote_utask('variant', job_name))
+
+  def test_trusted(self):
+    job_name = 'libfuzzer_linux_asan'
+
+    with mock.patch(
+        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        return_value=True):
+      data_types.Job(name=job_name, platform='LINUX').put()
+      self.assertFalse(task_types.is_remote_utask('symbolize', job_name))
