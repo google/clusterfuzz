@@ -221,7 +221,7 @@ def _deploy_zip(bucket_name, zip_path, test_deployment=False):
   """Deploy zip to GCS."""
   if test_deployment:
     common.execute(f'gsutil cp {zip_path} gs://{bucket_name}/test-deployment/'
-                   f'{os.path.basename(zip_path}')
+                   f'{os.path.basename(zip_path)}')
   else:
     common.execute('gsutil cp %s gs://%s/%s' % (zip_path, bucket_name,
                                                 os.path.basename(zip_path)))
