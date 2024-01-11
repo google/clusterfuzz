@@ -20,6 +20,7 @@ from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
+import contextlib
 import multiprocessing
 import os
 import sys
@@ -68,10 +69,43 @@ class _Monitor:
         })
 
 
+
+@contextlib.contextmanager
+def lease_merged_tasks(tasks_list):
+  """Creates a context manager that leases every task in tasks_list."""
+  with contextlib.ExitStack() as exit_stack:
+    context_managers = [task.lease for task in tasks_list]
+    for context_manager in context_managers:
+      exit_stack.enter_context(context_manager)
+    yield
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
   from clusterfuzz._internal.bot.tasks import commands
+
+  # Define functions in this loop so that they have access to the commands
+  # module.
+  def process_merged_tasks(merged_tasks):
+    tasks_list = merged_tasks.tasks
+    batch_tasks = []
+    with lease_merged_tasks(tasks_list):
+      for task in tasks_list:
+        with _Monitor(task):
+          task_module = commands.get_command_module(task.command)
+          input_download_url = commands.process_command(task)
+          module_name = task_module.__name__
+          batch_task = batch.BatchTask(module_name, task.job,
+                                       input_download_url)
+          batch_tasks.append(batch_task)
+      return batch.create_uworker_main_batch_jobs(batch_tasks)
+
+  def process_task(task):
+    with _Monitor(task):
+      with task.lease():
+        # Execute the command and delete the task.
+        commands.process_command(task[0])
 
   clean_exit = False
   while True:
