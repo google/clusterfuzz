@@ -356,7 +356,6 @@ class IntegrationTest(unittest.TestCase):
   def test_minimize_corpus(self):
     """Tests minimizing a corpus."""
     unminimized_corpus = setup_testcase('unmin_corpus', self.test_paths)
-    print(unminimized_corpus)
     self.assertTrue(os.path.isdir(unminimized_corpus))
 
     minimized_corpus = self.test_paths.data / 'min_corpus'
@@ -369,6 +368,7 @@ class IntegrationTest(unittest.TestCase):
 
     self.assertTrue(result)
     self.assertEqual(len(os.listdir(minimized_corpus)), 3)
+    self.assertEqual(len(os.listdir(minimized_corpus)), 4)
     self.assertEqual(len(os.listdir(crash_corpus)), 1)
     crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
     with open(crasher) as crasher_file:
