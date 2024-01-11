@@ -126,10 +126,12 @@ def task_loop():
       if not task:
         continue
 
-      with _Monitor(task):
-        with task.lease():
-          # Execute the command and delete the task.
-          commands.process_command(task)
+      if not task.is_merged_task():
+        # Execute the command and delete the task.
+        commands.process_command(task)
+      else:
+        # Execute the command and delete the task.
+        commands.process_merged_tasks(task)
     except SystemExit as e:
       exception_occurred = True
       clean_exit = e.code == 0
