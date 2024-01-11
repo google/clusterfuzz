@@ -13,11 +13,10 @@
 # limitations under the License.
 """Tests for blame task."""
 import unittest
-import os
 from unittest import mock
 
-from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.bot.tasks import task_types
+from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -36,6 +35,8 @@ class UTaskCombinedTest(unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class IsRemoteUtaskTest(unittest.TestCase):
+  """Tests for is_remote_utask."""
+
   def setUp(self):
     helpers.patch_environ(self)
 
