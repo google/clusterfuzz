@@ -93,6 +93,7 @@ def _deploy_app_prod(project,
                      package_zip_paths,
                      deploy_appengine=True):
   """Deploy app in production."""
+  test_deployment = bool(environment.get_value('USE_TEST_DEPLOYMENT'))
   if deploy_appengine:
     services = _get_services(yaml_paths)
     rebased_yaml_paths = appengine.copy_yamls_and_preprocess(
@@ -109,9 +110,13 @@ def _deploy_app_prod(project,
 
   if package_zip_paths:
     for package_zip_path in package_zip_paths:
-      _deploy_zip(deployment_bucket, package_zip_path)
+      _deploy_zip(
+          deployment_bucket, package_zip_path, test_deployment=test_deployment)
 
-    _deploy_manifest(deployment_bucket, constants.PACKAGE_TARGET_MANIFEST_PATH)
+    _deploy_manifest(
+        deployment_bucket,
+        constants.PACKAGE_TARGET_MANIFEST_PATH,
+        test_deployment=test_deployment)
 
 
 def _deploy_app_staging(project, yaml_paths):
@@ -212,22 +217,31 @@ def find_file_exceeding_limit(path, limit):
   return None
 
 
-def _deploy_zip(bucket_name, zip_path):
+def _deploy_zip(bucket_name, zip_path, test_deployment=False):
   """Deploy zip to GCS."""
-  common.execute('gsutil cp %s gs://%s/%s' % (zip_path, bucket_name,
-                                              os.path.basename(zip_path)))
+  if test_deployment:
+    common.execute(f'gsutil cp {zip_path} gs://{bucket_name}/test-deployment/'
+                   f'{os.path.basename(zip_path}')
+  else:
+    common.execute('gsutil cp %s gs://%s/%s' % (zip_path, bucket_name,
+                                                os.path.basename(zip_path)))
 
 
-def _deploy_manifest(bucket_name, manifest_path):
+def _deploy_manifest(bucket_name, manifest_path, test_deployment=False):
   """Deploy source manifest to GCS."""
   if sys.version_info.major == 3:
     manifest_suffix = '.3'
   else:
     manifest_suffix = ''
 
-  common.execute('gsutil cp %s '
-                 'gs://%s/clusterfuzz-source.manifest%s' %
-                 (manifest_path, bucket_name, manifest_suffix))
+  if test_deployment:
+    common.execute(f'gsutil cp {manifest_path} '
+                   f'gs://{bucket_name}/test-deployment/'
+                   f'clusterfuzz-source.manifest{manifest_suffix}')
+  else:
+    common.execute(f'gsutil cp {manifest_path} '
+                   f'gs://{bucket_name}/'
+                   f'clusterfuzz-source.manifest{manifest_suffix}')
 
 
 def _update_deployment_manager(project, name, config_path):
@@ -418,8 +432,8 @@ def _prod_deployment_helper(config_dir,
       deploy_appengine=deploy_appengine)
 
   if deploy_appengine:
-    common.execute('python butler.py run setup --config-dir {config_dir} '
-                   '--non-dry-run'.format(config_dir=config_dir))
+    common.execute(
+        f'python butler.py run setup --config-dir {config_dir} --non-dry-run')
 
   if deploy_k8s:
     _deploy_terraform(config_dir)
