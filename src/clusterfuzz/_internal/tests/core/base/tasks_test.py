@@ -252,6 +252,7 @@ class GetMachineTemplateForQueueTests(unittest.TestCase):
 
 
 class HandleSingleMessageTest(unittest.TestCase):
+  """Tests for handle_single_message."""
 
   def test_no_messages(self):
     self.assertEqual(tasks.handle_single_message(None), (None, False))
@@ -285,3 +286,14 @@ class HandleSingleMessageTest(unittest.TestCase):
         'clusterfuzz._internal.base.tasks.initialize_task',
         return_value=mock_task):
       self.assertEqual(tasks.handle_single_message([None]), (None, True))
+
+
+class MergeTasksTest(unittest.TestCase):
+
+  def test_merge_tasks(self):
+    mock_task = mock.Mock()
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.handle_single_message',
+        return_value=(mock_task, False)):
+      merged_tasks = tasks.merge_tasks([mock.Mock(), mock.Mock()])
+      self.assertEqual(merged_tasks.tasks, [mock_task, mock_task])
