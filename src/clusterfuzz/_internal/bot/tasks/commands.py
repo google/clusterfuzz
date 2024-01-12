@@ -276,10 +276,11 @@ def process_command_impl(task_name,
       logs.log_error(error_string)
       raise errors.BadStateError(error_string)
 
-    # A misconfiguration led to this point. Clean up the job if necessary.
     job_queue_suffix = tasks.queue_suffix_for_platform(job.platform)
-    bot_queue_suffix = tasks.default_queue_suffix()
+    bot_platform = environment.platform().lower()
+    bot_queue_suffix = tasks.queue_suffix_for_platform(environment.base_platform(bot_platform))
 
+    # A misconfiguration led to this point. Clean up the job if necessary.
     if job_queue_suffix != bot_queue_suffix:
       # This happens rarely, store this as a hard exception.
       logs.log_error(
