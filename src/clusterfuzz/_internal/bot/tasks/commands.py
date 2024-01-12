@@ -278,7 +278,8 @@ def process_command_impl(task_name,
 
     job_queue_suffix = tasks.queue_suffix_for_platform(job.platform)
     bot_platform = environment.platform().lower()
-    bot_queue_suffix = tasks.queue_suffix_for_platform(environment.base_platform(bot_platform))
+    bot_queue_suffix = tasks.queue_suffix_for_platform(
+        environment.base_platform(bot_platform))
 
     # A misconfiguration led to this point. Clean up the job if necessary.
     if job_queue_suffix != bot_queue_suffix:
