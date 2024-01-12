@@ -269,8 +269,8 @@ class Engine(engine.Engine):
     Returns:
       A FuzzResult object.
     """
-    runner = libfuzzer.get_runner(target_path)
     libfuzzer.set_sanitizer_options(target_path, fuzz_options=options)
+    runner = libfuzzer.get_runner(target_path)
 
     # Directory to place new units.
     if options.merge_back_new_testcases:
