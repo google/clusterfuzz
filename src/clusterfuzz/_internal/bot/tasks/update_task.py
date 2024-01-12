@@ -75,7 +75,9 @@ def _deployment_file_url(filename):
   if not deployment_bucket:
     return None
 
-  return 'gs://{bucket}/{name}'.format(bucket=deployment_bucket, name=filename)
+  if environment.get_value('USE_TEST_DEPLOYMENT'):
+    return f'gs://{deployment_bucket}/test-deployment/{filename}'
+  return f'gs://{deployment_bucket}/{filename}'
 
 
 def get_source_url():
