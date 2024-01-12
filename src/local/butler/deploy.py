@@ -91,9 +91,9 @@ def _deploy_app_prod(project,
                      deployment_bucket,
                      yaml_paths,
                      package_zip_paths,
-                     deploy_appengine=True):
+                     deploy_appengine=True,
+                     test_deployment=False):
   """Deploy app in production."""
-  test_deployment = bool(environment.get_value('USE_TEST_DEPLOYMENT'))
   if deploy_appengine:
     services = _get_services(yaml_paths)
     rebased_yaml_paths = appengine.copy_yamls_and_preprocess(
@@ -399,7 +399,8 @@ def _prod_deployment_helper(config_dir,
                             package_zip_paths,
                             deploy_appengine=True,
                             deploy_k8s=True,
-                            python3=True):
+                            python3=True,
+                            test_deployment=False):
   """Helper for production deployment."""
   config = local_config.Config()
   deployment_bucket = config.get('project.deployment.bucket')
@@ -429,7 +430,8 @@ def _prod_deployment_helper(config_dir,
       deployment_bucket,
       yaml_paths,
       package_zip_paths,
-      deploy_appengine=deploy_appengine)
+      deploy_appengine=deploy_appengine,
+      test_deployment=test_deployment)
 
   if deploy_appengine:
     common.execute(
@@ -529,6 +531,12 @@ def execute(args):
   deploy_zips = 'zips' in args.targets
   deploy_appengine = 'appengine' in args.targets
   deploy_k8s = 'k8s' in args.targets
+  test_deployment = 'test_deployment' in args.targets
+
+  if test_deploymet:
+    deploy_appengine = False
+    deploy_k8s = False
+    deploy_zips = True
 
   is_python3 = sys.version_info.major == 3
   package_zip_paths = []
@@ -552,6 +560,7 @@ def execute(args):
            ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
     sys.exit(1)
 
+
   if args.staging:
     _staging_deployment_helper(python3=is_python3)
   else:
@@ -560,7 +569,8 @@ def execute(args):
         package_zip_paths,
         deploy_appengine,
         deploy_k8s,
-        python3=is_python3)
+        python3=is_python3,
+        test_deployment=test_deployment)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())
