@@ -533,7 +533,7 @@ def execute(args):
   deploy_k8s = 'k8s' in args.targets
   test_deployment = 'test_deployment' in args.targets
 
-  if test_deploymet:
+  if test_deployment:
     deploy_appengine = False
     deploy_k8s = False
     deploy_zips = True
@@ -559,7 +559,6 @@ def execute(args):
     print(("%s is larger than %d bytes. It wouldn't be deployed to appengine."
            ' Please fix.') % (too_large_file_path, APPENGINE_FILESIZE_LIMIT))
     sys.exit(1)
-
 
   if args.staging:
     _staging_deployment_helper(python3=is_python3)
