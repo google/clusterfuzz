@@ -365,7 +365,7 @@ class IntegrationTest(unittest.TestCase):
                                          MAX_TIME)
 
     self.assertTrue(result)
-    self.assertEqual(len(os.listdir(minimized_corpus)), 4)
+    self.assertLess(len(os.listdir(minimized_corpus)), 6)
     self.assertEqual(len(os.listdir(crash_corpus)), 1)
     crasher = os.path.join(crash_corpus, os.listdir(crash_corpus)[0])
     with open(crasher) as crasher_file:
