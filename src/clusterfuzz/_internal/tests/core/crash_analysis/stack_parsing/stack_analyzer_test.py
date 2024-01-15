@@ -3599,6 +3599,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_ignore_skia_abort(self):
+    """Test ignore  SkAbort_FileLine and SkMutex::~SkMutex"""
+    data = self._read_test_data("skia_abort.txt")
+    expected_type = 'Unexpected-exit'
+    expected_state = ('ImmediateCrash\nImmediateCrash\nSkMakeRuntimeEffect\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ignore_clusterfuzz_file_paths(self):
     """Test ignore ClusterFuzz specific file paths"""
     data = self._read_test_data('windows_crash_log.txt')
