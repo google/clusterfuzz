@@ -18,6 +18,7 @@ import json
 import logging
 from logging import config
 import os
+import socket
 import sys
 import time
 import traceback
@@ -67,6 +68,38 @@ def _is_running_on_k8s():
 def _console_logging_enabled():
   """Return bool on where console logging is enabled, usually for tests."""
   return bool(os.getenv('LOG_TO_CONSOLE'))
+
+
+# TODO(pmeuleman) Revert the changeset that added these once
+# https://github.com/google/clusterfuzz/pull/3422 lands.
+def _file_logging_enabled():
+  """Return bool True when logging to files (bot/logs/*.log) is enabled.
+  This is enabled by default.
+  This is disabled if we are running in app engine or kubernetes as these have
+    their dedicated loggers, see configure_appengine() and configure_k8s().
+  """
+  return bool(os.getenv(
+      'LOG_TO_FILE',
+      'True')) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+
+
+def _fluentd_logging_enabled():
+  """Return bool True where fluentd logging is enabled.
+  This is enabled by default.
+  This is disabled for local development and if we are running in app engine or
+    kubernetes as these have their dedicated loggers, see configure_appengine()
+    and configure_k8s()."""
+  return bool(os.getenv('LOG_TO_FLUENTD', 'True')) and not _is_local(
+  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
+
+
+def _cloud_logging_enabled():
+  """Return bool True where Google Cloud Logging is enabled.
+  This is disabled for local development and if we are running in a app engine
+    or kubernetes as these have their dedicated loggers, see
+    configure_appengine() and configure_k8s()."""
+  return bool(os.getenv('LOG_TO_GCP')) and not _is_local(
+  ) and not _is_running_on_app_engine() and not _is_running_on_k8s()
 
 
 def suppress_unwanted_warnings():
@@ -129,22 +162,12 @@ def get_logging_config_dict(name):
       },
       'handlers': {
           'handler': logging_handler[name],
-          'fluentd': {
-              'class': 'clusterfuzz._internal.metrics.logs.JsonSocketHandler',
-              'level': logging.INFO,
-              'host': '127.0.0.1',
-              'port': 5170,
-          }
       },
       'loggers': {
           name: {
               'handlers': ['handler']
           }
       },
-      'root': {
-          'level': logging.INFO,
-          'handlers': ['fluentd']
-      }
   }
 
 
@@ -326,6 +349,64 @@ def configure_k8s():
   logging.getLogger().setLevel(logging.INFO)
 
 
+def configure_fluentd_logging():
+  fluentd_handler = JsonSocketHandler(
+      host='127.0.0.1',
+      port=5170,
+  )
+  fluentd_handler.setLevel(logging.INFO)
+  logging.getLogger().addHandler(fluentd_handler)
+
+
+def configure_cloud_logging():
+  """ Configure Google cloud logging, for bots not running on appengine nor k8s.
+  """
+  import google.cloud.logging
+
+  # project will default to the service account's project (likely from
+  #   GOOGLE_APPLICATION_CREDENTIALS).
+  # Some clients might need to override this to log in a specific project using
+  #   LOGGING_CLOUD_PROJECT_ID.
+  # Note that CLOUD_PROJECT_ID is not used here, as it might differ from both
+  #   the service account's project and the logging project.
+  client = google.cloud.logging.Client(
+      project=os.getenv("LOGGING_CLOUD_PROJECT_ID"))
+  labels = {
+      'compute.googleapis.com/resource_name': socket.getfqdn().lower(),
+      'bot_name': os.getenv('BOT_NAME'),
+  }
+  handler = client.get_default_handler(labels=labels)
+
+  def cloud_label_filter(record):
+    # Update the labels with additional information.
+    # Ideally we would use json_fields as done in configure_k8s(), but since
+    # src/Pipfile forces google-cloud-logging = "==1.15.0", we have fairly
+    # limited options to format the output, see:
+    #   https://github.com/googleapis/python-logging/blob/6236537b197422d3dcfff38fe7729dee7f361ca9/google/cloud/logging/handlers/handlers.py#L98 # pylint: disable=line-too-long
+    #   https://github.com/googleapis/python-logging/blob/6236537b197422d3dcfff38fe7729dee7f361ca9/google/cloud/logging/handlers/transports/background_thread.py#L233 # pylint: disable=line-too-long
+    handler.labels.update({
+        'task_payload':
+            os.getenv('TASK_PAYLOAD', 'null'),
+        'fuzz_target':
+            os.getenv('FUZZ_TARGET', 'null'),
+        'worker_bot_name':
+            os.getenv('WORKER_BOT_NAME', 'null'),
+        'extra':
+            json.dumps(
+                getattr(record, 'extras', {}), default=_handle_unserializable),
+        'location':
+            json.dumps(
+                getattr(record, 'location', {'Error': True}),
+                default=_handle_unserializable)
+    })
+    return True
+
+  handler.addFilter(cloud_label_filter)
+  handler.setLevel(logging.INFO)
+
+  logging.getLogger().addHandler(handler)
+
+
 def configure(name, extras=None):
   """Set logger. See the list of loggers in bot/config/logging.yaml.
   Also configures the process to log any uncaught exceptions as an error.
@@ -341,10 +422,13 @@ def configure(name, extras=None):
     return
 
   if _console_logging_enabled():
-    logging.basicConfig()
-  else:
+    logging.basicConfig(level=logging.INFO)
+  if _file_logging_enabled():
     config.dictConfig(get_logging_config_dict(name))
-
+  if _fluentd_logging_enabled():
+    configure_fluentd_logging()
+  if _cloud_logging_enabled():
+    configure_cloud_logging()
   logger = logging.getLogger(name)
   logger.setLevel(logging.INFO)
   set_logger(logger)
