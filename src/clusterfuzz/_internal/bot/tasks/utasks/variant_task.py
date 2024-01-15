@@ -71,7 +71,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # a different fuzzing engine.
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
   uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
       original_job_type=original_job_type,

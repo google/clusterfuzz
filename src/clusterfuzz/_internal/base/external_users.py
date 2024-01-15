@@ -36,7 +36,10 @@ def _fuzzers_for_job(job_type, include_parents):
   fuzzers = []
   engine_fuzzers = data_handler.get_fuzzing_engines()
 
-  for fuzzer in data_types.Fuzzer.query(data_types.Fuzzer.jobs == job_type):
+  for fuzzer in data_types.Fuzzer.query():
+    if job_type not in fuzzer.jobs:
+      continue
+
     # Add this if we're including all parents or this is not an engine fuzzer
     # with fuzz targets.
     if include_parents or fuzzer.name not in engine_fuzzers:

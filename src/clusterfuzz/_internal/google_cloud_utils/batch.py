@@ -31,9 +31,8 @@ from . import credentials
 
 _local = threading.local()
 
-MAX_DURATION = '3600s'
-RETRY_COUNT = 1
-TASK_COUNT = 1
+MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
+RETRY_COUNT = 0
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
@@ -213,6 +212,14 @@ def _get_job(job_name):
   """Returns the Job entity named by |job_name|. This function was made to make
   mocking easier."""
   return data_types.Job.query(data_types.Job.name == job_name).get()
+
+
+def is_remote_task(command, job_name):
+  try:
+    _get_spec_from_config(command, job_name)
+    return True
+  except ValueError:
+    return False
 
 
 def _get_spec_from_config(command, job_name):

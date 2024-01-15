@@ -69,8 +69,15 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
 
-def is_remote_utask(command):
-  return COMMAND_TYPES[command].is_execution_remote()
+def is_remote_utask(command, job):
+  if not COMMAND_TYPES[command].is_execution_remote():
+    return False
+
+  if environment.is_uworker():
+    # Return True even if we can't query the db.
+    return True
+
+  return batch.is_remote_task(command, job)
 
 
 class UTaskLocalExecutor(BaseUTask):
@@ -132,8 +139,7 @@ class UTaskCombined(UTask):
 
 def is_remotely_executing_utasks():
   return bool(environment.is_production() and
-              environment.get_value('REMOTE_UTASK_EXECUTION') and
-              environment.platform() == 'LINUX')
+              environment.get_value('REMOTE_UTASK_EXECUTION'))
 
 
 class PostprocessTask(BaseTask):
@@ -183,11 +189,11 @@ COMMAND_TYPES = {
     'minimize': UTaskLocalExecutor,
     'progression': UTaskLocalExecutor,
     'regression': UTaskLocalExecutor,
-    'symbolize': UTaskLocalExecutor,
+    'symbolize': UTaskCombined,
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTaskLocalExecutor,
+    'variant': UTaskCombined,
 }
 
 
