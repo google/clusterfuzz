@@ -614,7 +614,7 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # Skia specific stack frame ignores
     r'^SkAbort_FileLine',
-    r'^SkMutex::~SkMutex', # sometimes released atexit giving a secondary crash
+    r'^SkMutex::~SkMutex',  # sometimes released atexit giving a secondary crash
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
