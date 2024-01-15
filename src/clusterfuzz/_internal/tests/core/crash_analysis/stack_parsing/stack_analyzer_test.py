@@ -3603,7 +3603,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test ignore  SkAbort_FileLine and SkMutex::~SkMutex"""
     data = self._read_test_data("skia_abort.txt")
     expected_type = 'Unexpected-exit'
-    expected_state = ('ImmediateCrash\nImmediateCrash\nSkMakeRuntimeEffect\n')
+    expected_state = 'ImmediateCrash\nImmediateCrash\nSkMakeRuntimeEffect\n'
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False
