@@ -278,15 +278,15 @@ def process_command_impl(task_name,
 
     job_queue_suffix = tasks.queue_suffix_for_platform(job.platform)
     bot_platform = environment.platform().lower()
-    bot_queue_suffix = tasks.queue_suffix_for_platform(
+    bot_base_queue_suffix = tasks.queue_suffix_for_platform(
         environment.base_platform(bot_platform))
 
     # A misconfiguration led to this point. Clean up the job if necessary.
-    if job_queue_suffix != bot_queue_suffix:
+    if job_queue_suffix != bot_base_queue_suffix:
       # This happens rarely, store this as a hard exception.
       logs.log_error(
           'Wrong platform for job %s: job queue [%s], bot queue [%s].' %
-          (job_name, job_queue_suffix, bot_queue_suffix))
+          (job_name, job_queue_suffix, bot_base_queue_suffix))
 
       # Try to recreate the job in the correct task queue.
       new_queue = (
