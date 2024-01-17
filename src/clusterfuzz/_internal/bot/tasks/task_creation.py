@@ -313,7 +313,7 @@ def preprocess_utasks_and_queue_ttasks(tasks: List[Optional[Task]]):
       continue
     if not task_types.is_remote_utask(task.name, task.job):
       taskslib.add_task(task.name, task.argument, task.job,
-                        task.queue_for_platform)
+                        queue=task.queue_for_platform)
       logs.log(f'UTask {task.name} not remote.')
       continue
     _preprocess(task)
