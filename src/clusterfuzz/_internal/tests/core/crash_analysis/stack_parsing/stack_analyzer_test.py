@@ -1764,6 +1764,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_sanitizer_signal_abrt_fuzz_target(self):
+    """Same as above, but this time we specify a fuzz target which should
+    then be used as fallback crash state."""
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+    data = self._read_test_data('sanitizer_signal_abrt_unknown.txt')
+    expected_type = 'Abrt'
+    expected_address = '0x000000000001'
+    expected_state = 'mock-fuzz-target\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_syzkaller_kasan(self):
     """Test syzkaller kasan."""
     data = self._read_test_data('kasan_syzkaller.txt')
