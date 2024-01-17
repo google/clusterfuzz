@@ -99,7 +99,26 @@ def create_uworker_main_batch_job(module, job_type, input_download_url):
   return result[0]
 
 
+def _bunched(iterator, bunch_size):
+  """Implementation of itertools.py's batched that was added after Python3.7."""
+  # TODO(metzman): Replace this with itertools.batched.
+  assert bunch_size > -1
+  idx = 0
+  bunch = []
+  for item in iterator:
+    idx += 1
+    bunch.append(item)
+    if idx == bunch_size:
+      idx = 0
+      yield bunch
+      bunch = []
+
+  if bunch:
+    yield bunch
+
+
 def create_uworker_main_batch_jobs(batch_tasks):
+  """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
     spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
@@ -110,8 +129,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
 
   logs.log(f'Starting utask_mains: {job_specs}.')
   for spec, input_urls in job_specs.items():
-    for idx in range(0, len(input_urls), MAX_CONCURRENT_VMS_PER_JOB):
-      input_urls_portion = input_urls[idx:idx + MAX_CONCURRENT_VMS_PER_JOB]
+    for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
       jobs.append(_create_job(spec, input_urls_portion))
 
   return jobs
@@ -122,10 +140,9 @@ def create_uworker_main_batch_jobs_bunched(batch_tasks):
   batch_tasks takes a very long time to create."""
   # Use term bunch instead of "batch" since "batch" has nothing to do with the
   # cloud service and is thus very confusing in this context.
-  bunch_size = min(TASK_BUNCH_SIZE, MAX_CONCURRENT_VMS_PER_JOB)
   jobs = [
       create_uworker_main_batch_jobs(bunch)
-      for bunch in itertools.batched(batch_tasks, bunch_size)
+      for bunch in _bunched(batch_tasks, TASK_BUNCH_SIZE)
   ]
   return list(itertools.chain(jobs))
 

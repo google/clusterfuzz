@@ -17,7 +17,6 @@ from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
-from clusterfuzz._internal.metrics import logs
 
 
 def schedule(task):
@@ -36,7 +35,7 @@ def schedule(task):
           task,
           testcase.key.id(),
           testcase.job_type,
-          queue_for_platform=task.taskslib.queue_for_testcase(testcase))
+          queue_for_platform=taskslib.queue_for_testcase(testcase))
       for testcase in testcases
   ]
 
