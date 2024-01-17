@@ -263,7 +263,6 @@ def process_command_impl(task_name,
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)
   environment.set_value('JOB_NAME', job_name)
-
   if job_name != 'none':
     job = data_types.Job.query(data_types.Job.name == job_name).get()
     # Job might be removed. In that case, we don't want an exception
