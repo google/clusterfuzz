@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
+import itertools
 import threading
 import uuid
 
@@ -33,6 +34,8 @@ _local = threading.local()
 
 MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
 RETRY_COUNT = 0
+
+TASK_BUNCH_SIZE = 20
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
@@ -97,7 +100,6 @@ def create_uworker_main_batch_job(module, job_type, input_download_url):
 
 
 def create_uworker_main_batch_jobs(batch_tasks):
-  # Define what will be done as part of the job.
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
     spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
@@ -106,12 +108,26 @@ def create_uworker_main_batch_jobs(batch_tasks):
   logs.log('Creating batch jobs.')
   jobs = []
 
+  logs.log(f'Starting utask_mains: {job_specs}.')
   for spec, input_urls in job_specs.items():
     for idx in range(0, len(input_urls), MAX_CONCURRENT_VMS_PER_JOB):
       input_urls_portion = input_urls[idx:idx + MAX_CONCURRENT_VMS_PER_JOB]
       jobs.append(_create_job(spec, input_urls_portion))
 
   return jobs
+
+
+def create_uworker_main_batch_jobs_bunched(batch_tasks):
+  """Creates batch jobs 20 tasks at a time, lazily. This is helpful to use when
+  batch_tasks takes a very long time to create."""
+  # Use term bunch instead of "batch" since "batch" has nothing to do with the
+  # cloud service and is thus very confusing in this context.
+  bunch_size = min(TASK_BUNCH_SIZE, MAX_CONCURRENT_VMS_PER_JOB)
+  jobs = [
+      create_uworker_main_batch_jobs(bunch)
+      for bunch in itertools.batched(batch_tasks, bunch_size)
+  ]
+  return list(itertools.chain(jobs))
 
 
 def _get_task_spec(batch_workload_spec):
