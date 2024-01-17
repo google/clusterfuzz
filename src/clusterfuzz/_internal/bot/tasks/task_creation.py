@@ -299,10 +299,25 @@ def _preprocess(task: Task) -> None:
 
 def start_utask_mains(tasks: List[Task]) -> None:
   """Start utask_main of multiple tasks as batch tasks on batch."""
-  batch_tasks = [
-      batch.BatchTask(task.name, task.job, task.uworker_input) for task in tasks
-  ]
-  batch.create_uworker_main_batch_jobs(batch_tasks)
+  batch_tasks = (
+      batch.BatchTask(task.name, task.job, task.uworker_input)
+      for task in tasks)
+  return batch.create_uworker_main_batch_jobs_bunched(batch_tasks)
+
+
+def preprocess_utasks_and_queue_ttasks(tasks: List[Optional[Task]]):
+  """If a task is a utask, then it is preprocessed yielded, otherwise it is
+  added to the queue (when it is a ttask)."""
+  for task in tasks:
+    if task is None:
+      continue
+    if not task_types.is_remote_utask(task.name, task.job):
+      taskslib.add_task(
+          task.name, task.argument, task.job, queue=task.queue_for_platform)
+      logs.log(f'UTask {task.name} not remote.')
+      continue
+    _preprocess(task)
+    yield task
 
 
 def schedule_tasks(tasks: List[Task]):
@@ -310,16 +325,5 @@ def schedule_tasks(tasks: List[Task]):
   remotely, then they are put on the queue. If they are executed remotely, then
   the utask_mains are scheduled on batch, since preprocess has already been done
   in this module on this bot."""
-  uworker_tasks = []
-  tasks = [task for task in tasks if task is not None]
-  for task in tasks:
-    if not task_types.is_remote_utask(task.name, task.job):
-      taskslib.add_task(task.name, task.argument, task.job,
-                        task.queue_for_platform)
-      logs.log(f'UTask {task.name} not remote.')
-      continue
-    _preprocess(task)
-    uworker_tasks.append(task)
-  logs.log(f'Starting utask_mains: {len(uworker_tasks)}.')
-  if uworker_tasks:
-    start_utask_mains(uworker_tasks)
+  uworker_tasks = preprocess_utasks_and_queue_ttasks(tasks)
+  return start_utask_mains(uworker_tasks)

@@ -13,6 +13,7 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
+import itertools
 import threading
 import uuid
 
@@ -33,6 +34,8 @@ _local = threading.local()
 
 MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
 RETRY_COUNT = 0
+
+TASK_BUNCH_SIZE = 20
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
@@ -96,17 +99,52 @@ def create_uworker_main_batch_job(module, job_type, input_download_url):
   return result[0]
 
 
+def _bunched(iterator, bunch_size):
+  """Implementation of itertools.py's batched that was added after Python3.7."""
+  # TODO(metzman): Replace this with itertools.batched.
+  assert bunch_size > -1
+  idx = 0
+  bunch = []
+  for item in iterator:
+    idx += 1
+    bunch.append(item)
+    if idx == bunch_size:
+      idx = 0
+      yield bunch
+      bunch = []
+
+  if bunch:
+    yield bunch
+
+
 def create_uworker_main_batch_jobs(batch_tasks):
-  # Define what will be done as part of the job.
+  """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
     spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 
   logs.log('Creating batch jobs.')
-  return [
-      _create_job(spec, input_urls) for spec, input_urls in job_specs.items()
+  jobs = []
+
+  logs.log(f'Starting utask_mains: {job_specs}.')
+  for spec, input_urls in job_specs.items():
+    for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
+      jobs.append(_create_job(spec, input_urls_portion))
+
+  return jobs
+
+
+def create_uworker_main_batch_jobs_bunched(batch_tasks):
+  """Creates batch jobs 20 tasks at a time, lazily. This is helpful to use when
+  batch_tasks takes a very long time to create."""
+  # Use term bunch instead of "batch" since "batch" has nothing to do with the
+  # cloud service and is thus very confusing in this context.
+  jobs = [
+      create_uworker_main_batch_jobs(bunch)
+      for bunch in _bunched(batch_tasks, TASK_BUNCH_SIZE)
   ]
+  return list(itertools.chain(jobs))
 
 
 def _get_task_spec(batch_workload_spec):
