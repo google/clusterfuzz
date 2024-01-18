@@ -420,7 +420,7 @@ def start_cuttlefish_device(use_kernel=False):
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
   launch_cvd_command_line = (
-      f'{launch_cvd_path} --daemon --memory_mb={device_memory_mb} '
+      f'sudo {launch_cvd_path} --daemon --memory_mb={device_memory_mb} '
       '--report_anonymous_usage_stats=Y --enable_sandbox=true --resume=false')
   if use_kernel:
     kernel_path = os.path.join(cvd_dir, 'bzImage')
