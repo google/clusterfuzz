@@ -21,6 +21,14 @@ from clusterfuzz._internal.system import environment
 
 
 def ensure_uworker_env_type_safety(uworker_env):
+  """Converts all values in |uworker_env| to str types.
+  ClusterFuzz parses env var values so that the type implied by the value
+  (which in every OS I've seen is a string), is the Python type of the value.
+  E.g. if "DO_BLAH=1" in the environment, environment.get_value('DO_BLAH') is 1,
+  not '1'. This is dangerous when using protos because the environment is a
+  proto map, and values in these can only have one type, which in this case is
+  string. Therefore we must make sure values in uworker_envs are always strings
+  so we don't try to save an int to a string map."""
   for k in uworker_env:
     uworker_env[k] = str(uworker_env[k])
 
