@@ -316,6 +316,9 @@ def preprocess_utasks_and_queue_ttasks(tasks: List[Optional[Task]]):
           task.name, task.argument, task.job, queue=task.queue_for_platform)
       logs.log(f'UTask {task.name} not remote.')
       continue
+    if task.uworker_input is None:
+      logs.log('No uworker_input.')
+      continue
     _preprocess(task)
     yield task
 
