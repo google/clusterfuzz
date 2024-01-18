@@ -20,11 +20,17 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
+def ensure_uworker_env_type_safety(uworker_env):
+  for k in uworker_env:
+    uworker_env[k] = str(uworker_env[k])
+
+
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   serialized output."""
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
@@ -67,6 +73,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   # Do preprocessing.
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
