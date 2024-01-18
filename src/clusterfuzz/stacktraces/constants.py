@@ -611,6 +611,10 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # google3 specific stack frame ignores.
     r'^absl::log_internal::',
+
+    # Skia specific stack frame ignores
+    r'^SkAbort_FileLine',
+    r'^SkMutex::~SkMutex',  # sometimes released atexit giving a secondary crash
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
