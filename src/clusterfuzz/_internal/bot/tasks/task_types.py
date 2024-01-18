@@ -187,7 +187,7 @@ COMMAND_TYPES = {
     'fuzz': UTaskLocalExecutor,
     'impact': TrustedTask,
     'minimize': UTaskLocalExecutor,
-    'progression': UTask,
+    'progression': UTaskCombined,
     'regression': UTaskLocalExecutor,
     'symbolize': UTaskCombined,
     'unpack': TrustedTask,
