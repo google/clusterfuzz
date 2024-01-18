@@ -420,13 +420,13 @@ def start_cuttlefish_device(use_kernel=False):
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
   launch_cvd_command_line = (
-      f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
-      '-report_anonymous_usage_stats Y')
+      f'{launch_cvd_path} --daemon --memory_mb={device_memory_mb} '
+      '--report_anonymous_usage_stats=Y --enable_sandbox=true --resume=false')
   if use_kernel:
     kernel_path = os.path.join(cvd_dir, 'bzImage')
     initramfs_path = os.path.join(cvd_dir, 'initramfs.img')
     launch_cvd_command_line += (
-        f' -kernel_path={kernel_path} -initramfs_path={initramfs_path}')
+        f' --kernel_path={kernel_path} --initramfs_path={initramfs_path}')
 
   execute_command(
       launch_cvd_command_line,
