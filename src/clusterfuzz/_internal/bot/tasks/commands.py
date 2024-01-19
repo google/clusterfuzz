@@ -56,6 +56,7 @@ _COMMAND_MODULE_MAP = {
     'unpack': unpack_task,
     'postprocess': None,
     'uworker_main': None,
+
     'variant': variant_task,
 }
 

@@ -19,7 +19,6 @@ import json
 import threading
 
 import googleapiclient
-import googleapiclient.discovery
 import httplib2
 
 from clusterfuzz._internal.base import retry

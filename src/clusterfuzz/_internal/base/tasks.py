@@ -56,6 +56,8 @@ TASK_LEASE_SECONDS_BY_COMMAND = {
     'regression': 24 * 60 * 60,
 }
 
+MAX_MESSAGES = 20
+
 TASK_QUEUE_DISPLAY_NAMES = {
     'LINUX': 'Linux',
     'LINUX_WITH_GPU': 'Linux (with GPU)',
@@ -209,7 +211,6 @@ def get_utasks():
   queue = get_utasks_queue()
   pubsub_client = pubsub.PubSubClient()
   application_id = utils.get_application_id()
-  max_messages = 50
   messages = _get_messages(
       pubsub_client, application_id, queue, max_messages=max_messages)
   if not messages:
