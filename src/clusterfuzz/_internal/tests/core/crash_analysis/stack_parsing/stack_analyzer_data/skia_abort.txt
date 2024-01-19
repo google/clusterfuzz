@@ -1,0 +1,145 @@
+
+[0115/090948.959721:FATAL:SkMutex.h(41)] check(fOwner == kIllegalThreadID)
+#0 0x56db0c75ad86 <unknown>
+#1 0x792fdb880d94 <unknown>
+#2 0x792fdb758577 <unknown>
+#3 0x792fdb758365 <unknown>
+#4 0x792fdabeb567 <unknown>
+#5 0x792fdabeb0e5 <unknown>
+#6 0x792fcd9dacc9 <unknown>
+#7 0x792fce014b62 <unknown>
+#8 0x792fce014a90 <unknown>
+#9 0x792fce014729 <unknown>
+#10 0x792fb88548a7 <unknown>
+#11 0x792fb8854a60 <unknown>
+#12 0x792fdabee992 <unknown>
+#13 0x792fdac12c57 <unknown>
+#14 0x792fdac129bd <unknown>
+#15 0x792fdabed39b <unknown>
+#16 0x792fdabebf9d <unknown>
+#17 0x792fdabeb0e5 <unknown>
+#18 0x792fcd9dacc9 <unknown>
+#19 0x792fce336f75 <unknown>
+#20 0x792fd08272be <unknown>
+#21 0x792fd082623e <unknown>
+#22 0x792fd0824612 <unknown>
+#23 0x792fd0823eed <unknown>
+#24 0x792fd0822fb0 <unknown>
+#25 0x792fd0820ab2 <unknown>
+#26 0x792fcfcb047b <unknown>
+#27 0x792fcfcb49eb <unknown>
+#28 0x792fd07cd7b5 <unknown>
+#29 0x792fcfcb047b <unknown>
+#30 0x792fcfcb49eb <unknown>
+#31 0x792fd07f477c <unknown>
+#32 0x792fcfcb047b <unknown>
+#33 0x792fcfaf8102 <unknown>
+#34 0x792fcfaebd38 <unknown>
+#35 0x792fcfb38e20 <unknown>
+#36 0x792fcfb2e824 <unknown>
+#37 0x792fcfb2e755 <unknown>
+#38 0x792fcfb2e6f5 <unknown>
+#39 0x792fcfb2e695 <unknown>
+#40 0x792fcfb2e635 <unknown>
+#41 0x792fcfb2e5d5 <unknown>
+#42 0x792fcfb10fe5 <unknown>
+#43 0x792fcfb144ba <unknown>
+#44 0x792fcfb0c989 <unknown>
+#45 0x792fc9b94536 <unknown>
+#46 0x792fc9acfbd0 <unknown>
+#47 0x792fc9acf895 <unknown>
+#48 0x792fc9b0d8df <unknown>
+#49 0x792fc9b0d6c1 <unknown>
+#50 0x792fc9b0820a <unknown>
+#51 0x792fc9ad9f44 <unknown>
+#52 0x792fdfc512fa <unknown>
+#53 0x792fdfc21a48 <unknown>
+#54 0x792fdfc369ff <unknown>
+#55 0x792fdfc3409b <unknown>
+#56 0x792fdd23e662 <unknown>
+#57 0x792fdd23a951 <unknown>
+#58 0x56db0c7f0220 <unknown>
+#59 0x56db0c7efc60 <unknown>
+#60 0x56db0c8d58bc <unknown>
+#61 0x56db0c8542ac <unknown>
+#62 0x56db0c85c465 <unknown>
+#63 0x56db0c806570 <unknown>
+#64 0x792fb8832083 <unknown>
+#65 0x56db0c716afa <unknown>
+==714932== ERROR: libFuzzer: fuzz target exited
+==714932==WARNING: invalid path to external symbolizer!
+==714932==WARNING: Failed to use and restart external symbolizer!
+    #0 0x56db0c7b9ff1 in __sanitizer_print_stack_trace third_party/llvm/compiler-rt/lib/asan/asan_stack.cpp:87:3
+    #1 0x56db0c98eb81 in fuzzer::PrintStackTrace() third_party/libFuzzer/src/FuzzerUtil.cpp:210:5
+    #2 0x56db0c8d22f2 in fuzzer::Fuzzer::ExitCallback() third_party/libFuzzer/src/FuzzerLoop.cpp:248:3
+    #3 0x56db0c8d21e6 in fuzzer::Fuzzer::StaticExitCallback() third_party/libFuzzer/src/FuzzerLoop.cpp:207:6
+    #4 0x792fb88548a6 in __run_exit_handlers /build/glibc-BHL3KM/glibc-2.31/stdlib/exit.c:108:8
+    #5 0x792fb8854a5f in exit /build/glibc-BHL3KM/glibc-2.31/stdlib/exit.c:139:3
+    #6 0x792fdabee991 in ImmediateCrash base/immediate_crash.h:174:3
+    #7 0x792fdabee991 in logging::LogMessage::HandleFatal(unsigned long, std::__Cr::basic_string<char, std::__Cr::char_traits<char>, std::__Cr::allocator<char>> const&) const base/logging.cc:1036:5
+    #8 0x792fdac12c56 in logging::LogMessage::Flush()::$_0::operator()() const base/logging.cc:740:7
+    #9 0x792fdac129bc in absl::cleanup_internal::Storage<logging::LogMessage::Flush()::$_0>::InvokeCallback() third_party/abseil-cpp/absl/cleanup/internal/cleanup.h:87:5
+    #10 0x792fdabed39a in absl::Cleanup<absl::cleanup_internal::Tag, logging::LogMessage::Flush()::$_0>::~Cleanup() third_party/abseil-cpp/absl/cleanup/cleanup.h:106:16
+    #11 0x792fdabebf9c in logging::LogMessage::Flush() base/logging.cc:923:1
+    #12 0x792fdabeb0e4 in logging::LogMessage::~LogMessage() base/logging.cc:695:3
+    #13 0x792fcd9dacc8 in SkAbort_FileLine(char const*, int, char const*, ...) skia/ext/google_logging.cc:42:3
+    #14 0x792fce014b61 in SkMutex::assertNotHeld()::'lambda'()::operator()() const third_party/skia/include/private/base/SkMutex.h:41:9
+    #15 0x792fce014a8f in SkMutex::assertNotHeld() third_party/skia/include/private/base/SkMutex.h:41:9
+    #16 0x792fce014728 in SkMutex::~SkMutex() third_party/skia/include/private/base/SkMutex.h:22:15
+    #17 0x792fb88548a6 in __run_exit_handlers /build/glibc-BHL3KM/glibc-2.31/stdlib/exit.c:108:8
+    #18 0x792fb8854a5f in exit /build/glibc-BHL3KM/glibc-2.31/stdlib/exit.c:139:3
+    #19 0x792fdabee991 in ImmediateCrash base/immediate_crash.h:174:3
+    #20 0x792fdabee991 in logging::LogMessage::HandleFatal(unsigned long, std::__Cr::basic_string<char, std::__Cr::char_traits<char>, std::__Cr::allocator<char>> const&) const base/logging.cc:1036:5
+    #21 0x792fdac12c56 in logging::LogMessage::Flush()::$_0::operator()() const base/logging.cc:740:7
+    #22 0x792fdac129bc in absl::cleanup_internal::Storage<logging::LogMessage::Flush()::$_0>::InvokeCallback() third_party/abseil-cpp/absl/cleanup/internal/cleanup.h:87:5
+    #23 0x792fdabed39a in absl::Cleanup<absl::cleanup_internal::Tag, logging::LogMessage::Flush()::$_0>::~Cleanup() third_party/abseil-cpp/absl/cleanup/cleanup.h:106:16
+    #24 0x792fdabebf9c in logging::LogMessage::Flush() base/logging.cc:923:1
+    #25 0x792fdabeb0e4 in logging::LogMessage::~LogMessage() base/logging.cc:695:3
+    #26 0x792fcd9dacc8 in SkAbort_FileLine(char const*, int, char const*, ...) skia/ext/google_logging.cc:42:3
+    #27 0x792fce336f74 in SkMakeRuntimeEffect(SkRuntimeEffect::Result (*)(SkString, SkRuntimeEffect::Options const&), char const*, SkRuntimeEffect::Options) third_party/skia/src/core/SkRuntimeEffectPriv.h:164:9
+    #28 0x792fd08272bd in get_runtime_effect(int, int)::$_1::operator()(SkISize) const third_party/skia/src/effects/imagefilters/SkMatrixConvolutionImageFilter.cpp:430:16
+    #29 0x792fd082623d in get_runtime_effect(int, int) third_party/skia/src/effects/imagefilters/SkMatrixConvolutionImageFilter.cpp:466:46
+    #30 0x792fd0824611 in (anonymous namespace)::SkMatrixConvolutionImageFilter::createShader(skif::Context const&, sk_sp<SkShader>) const third_party/skia/src/effects/imagefilters/SkMatrixConvolutionImageFilter.cpp:482:19
+    #31 0x792fd0823eec in (anonymous namespace)::SkMatrixConvolutionImageFilter::onFilterImage(skif::Context const&) const::$_0::operator()(SkSpan<sk_sp<SkShader>>) const third_party/skia/src/effects/imagefilters/SkMatrixConvolutionImageFilter.cpp:537:22
+    #32 0x792fd0822faf in skif::FilterResult skif::FilterResult::Builder::eval<(anonymous namespace)::SkMatrixConvolutionImageFilter::onFilterImage(skif::Context const&) const::$_0>((anonymous namespace)::SkMatrixConvolutionImageFilter::onFilterImage(skif::Context const&) const::$_0, std::__Cr::optional<skif::LayerSpace<SkIRect>>, bool) third_party/skia/src/core/SkImageFilterTypes.h:982:33
+    #33 0x792fd0820ab1 in (anonymous namespace)::SkMatrixConvolutionImageFilter::onFilterImage(skif::Context const&) const third_party/skia/src/effects/imagefilters/SkMatrixConvolutionImageFilter.cpp:536:20
+    #34 0x792fcfcb047a in SkImageFilter_Base::filterImage(skif::Context const&) const third_party/skia/src/core/SkImageFilter.cpp:253:20
+    #35 0x792fcfcb49ea in SkImageFilter_Base::getChildOutput(int, skif::Context const&) const third_party/skia/src/core/SkImageFilter.cpp:378:35
+    #36 0x792fd07cd7b4 in (anonymous namespace)::SkBlurImageFilter::onFilterImage(skif::Context const&) const third_party/skia/src/effects/imagefilters/SkBlurImageFilter.cpp:917:44
+    #37 0x792fcfcb047a in SkImageFilter_Base::filterImage(skif::Context const&) const third_party/skia/src/core/SkImageFilter.cpp:253:20
+    #38 0x792fcfcb49ea in SkImageFilter_Base::getChildOutput(int, skif::Context const&) const third_party/skia/src/core/SkImageFilter.cpp:378:35
+    #39 0x792fd07f477b in (anonymous namespace)::SkDisplacementMapImageFilter::onFilterImage(skif::Context const&) const third_party/skia/src/effects/imagefilters/SkDisplacementMapImageFilter.cpp:240:19
+    #40 0x792fcfcb047a in SkImageFilter_Base::filterImage(skif::Context const&) const third_party/skia/src/core/SkImageFilter.cpp:253:20
+    #41 0x792fcfaf8101 in SkCanvas::internalDrawDeviceWithFilter(SkDevice*, SkDevice*, SkSpan<sk_sp<SkImageFilter>>, SkPaint const&, SkCanvas::DeviceCompatibleWithFilter, float, bool) third_party/skia/src/core/SkCanvas.cpp:866:48
+    #42 0x792fcfaebd37 in SkCanvas::internalRestore() third_party/skia/src/core/SkCanvas.cpp:1457:23
+    #43 0x792fcfb38e1f in AutoLayerForImageFilter::~AutoLayerForImageFilter() third_party/skia/src/core/SkCanvasPriv.cpp:212:18
+    #44 0x792fcfb2e823 in std::__Cr::__optional_destruct_base<AutoLayerForImageFilter, false>::~__optional_destruct_base() third_party/libc++/src/include/optional:299:15
+    #45 0x792fcfb2e754 in std::__Cr::__optional_storage_base<AutoLayerForImageFilter, false>::~__optional_storage_base() third_party/libc++/src/include/optional:354:8
+    #46 0x792fcfb2e6f4 in std::__Cr::__optional_copy_base<AutoLayerForImageFilter, false>::~__optional_copy_base() third_party/libc++/src/include/optional:471:8
+    #47 0x792fcfb2e694 in std::__Cr::__optional_move_base<AutoLayerForImageFilter, false>::~__optional_move_base() third_party/libc++/src/include/optional:491:8
+    #48 0x792fcfb2e634 in std::__Cr::__optional_copy_assign_base<AutoLayerForImageFilter, false>::~__optional_copy_assign_base() third_party/libc++/src/include/optional:515:8
+    #49 0x792fcfb2e5d4 in std::__Cr::__optional_move_assign_base<AutoLayerForImageFilter, false>::~__optional_move_assign_base() third_party/libc++/src/include/optional:539:8
+    #50 0x792fcfb10fe4 in std::__Cr::optional<AutoLayerForImageFilter>::~optional() third_party/libc++/src/include/optional:581:36
+    #51 0x792fcfb144b9 in SkCanvas::onDrawPath(SkPath const&, SkPaint const&) third_party/skia/src/core/SkCanvas.cpp:2380:1
+    #52 0x792fcfb0c988 in SkCanvas::drawPath(SkPath const&, SkPaint const&) third_party/skia/src/core/SkCanvas.cpp:2040:11
+    #53 0x792fc9b94535 in cc::DrawPathOp::RasterWithFlags(cc::DrawPathOp const*, cc::PaintFlags const*, SkCanvas*, cc::PlaybackParams const&)::$_0::operator()(SkCanvas*, SkPaint const&) const cc/paint/paint_op.cc:1291:8
+    #54 0x792fc9acfbcf in void cc::PaintFlags::DrawToSk<cc::DrawPathOp::RasterWithFlags(cc::DrawPathOp const*, cc::PaintFlags const*, SkCanvas*, cc::PlaybackParams const&)::$_0>(SkCanvas*, cc::DrawPathOp::RasterWithFlags(cc::DrawPathOp const*, cc::PaintFlags const*, SkCanvas*, cc::PlaybackParams const&)::$_0) const cc/paint/paint_flags.h:225:7
+    #55 0x792fc9acf894 in cc::DrawPathOp::RasterWithFlags(cc::DrawPathOp const*, cc::PaintFlags const*, SkCanvas*, cc::PlaybackParams const&) cc/paint/paint_op.cc:1290:10
+    #56 0x792fc9b0d8de in cc::(anonymous namespace)::Rasterizer<cc::DrawPathOp, true>::Raster(cc::DrawPathOp const*, SkCanvas*, cc::PlaybackParams const&) cc/paint/paint_op.cc:201:5
+    #57 0x792fc9b0d6c0 in cc::(anonymous namespace)::$_29::operator()(cc::PaintOp const*, SkCanvas*, cc::PlaybackParams const&) const cc/paint/paint_op.cc:213:64
+    #58 0x792fc9b08209 in cc::(anonymous namespace)::$_29::__invoke(cc::PaintOp const*, SkCanvas*, cc::PlaybackParams const&) cc/paint/paint_op.cc:213:64
+    #59 0x792fc9ad9f43 in cc::PaintOp::Raster(SkCanvas*, cc::PlaybackParams const&) const cc/paint/paint_op.cc:1697:3
+    #60 0x792fdfc512f9 in gpu::raster::RasterDecoderImpl::DoRasterCHROMIUM(unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int) gpu/command_buffer/service/raster_decoder.cc:3217:22
+    #61 0x792fdfc21a47 in gpu::raster::RasterDecoderImpl::HandleRasterCHROMIUM(unsigned int, void const volatile*) gpu/command_buffer/service/raster_decoder_autogen.h:154:3
+    #62 0x792fdfc369fe in gpu::error::Error gpu::raster::RasterDecoderImpl::DoCommandsImpl<false>(unsigned int, void const volatile*, int, int*) gpu/command_buffer/service/raster_decoder.cc:1596:18
+    #63 0x792fdfc3409a in gpu::raster::RasterDecoderImpl::DoCommands(unsigned int, void const volatile*, int, int*) gpu/command_buffer/service/raster_decoder.cc:1657:12
+    #64 0x792fdd23e661 in gpu::CommandBufferService::Flush(int, gpu::AsyncAPIInterface*) gpu/command_buffer/service/command_buffer_service.cc:232:35
+    #65 0x792fdd23a950 in gpu::CommandBufferDirect::Flush(int) gpu/command_buffer/service/command_buffer_direct.cc:44:12
+    #66 0x56db0c7f021f in gpu::(anonymous namespace)::CommandBufferSetup::RunCommandBuffer(unsigned char const*, unsigned long) gpu/command_buffer/tests/fuzzer_main.cc:560:22
+    #67 0x56db0c7efc5f in LLVMFuzzerTestOneInput gpu/command_buffer/tests/fuzzer_main.cc:679:17
+    #68 0x56db0c8d58bb in fuzzer::Fuzzer::ExecuteCallback(unsigned char const*, unsigned long) third_party/libFuzzer/src/FuzzerLoop.cpp:614:13
+    #69 0x56db0c8542ab in fuzzer::RunOneTest(fuzzer::Fuzzer*, char const*, unsigned long) third_party/libFuzzer/src/FuzzerDriver.cpp:327:6
+    #70 0x56db0c85c464 in fuzzer::FuzzerDriver(int*, char***, int (*)(unsigned char const*, unsigned long)) third_party/libFuzzer/src/FuzzerDriver.cpp:862:9
+    #71 0x56db0c80656f in main third_party/libFuzzer/src/FuzzerMain.cpp:20:10
+    #72 0x792fb8832082 in __libc_start_main /build/glibc-BHL3KM/glibc-2.31/csu/libc-start.c:308:16
+    #73 0x56db0c716af9 in _start
