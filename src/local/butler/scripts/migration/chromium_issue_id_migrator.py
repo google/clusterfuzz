@@ -15,8 +15,8 @@
 
 import csv
 
-# from google.cloud import ndb
-# from clusterfuzz._internal.datastore import data_types
+from google.cloud import ndb
+from clusterfuzz._internal.datastore import data_types
 
 # project_name = 'cluster-fuzz'
 
