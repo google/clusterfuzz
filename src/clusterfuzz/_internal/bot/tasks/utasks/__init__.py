@@ -20,11 +20,25 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
+def ensure_uworker_env_type_safety(uworker_env):
+  """Converts all values in |uworker_env| to str types.
+  ClusterFuzz parses env var values so that the type implied by the value
+  (which in every OS I've seen is a string), is the Python type of the value.
+  E.g. if "DO_BLAH=1" in the environment, environment.get_value('DO_BLAH') is 1,
+  not '1'. This is dangerous when using protos because the environment is a
+  proto map, and values in these can only have one type, which in this case is
+  string. Therefore we must make sure values in uworker_envs are always strings
+  so we don't try to save an int to a string map."""
+  for k in uworker_env:
+    uworker_env[k] = str(uworker_env[k])
+
+
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   serialized output."""
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
@@ -67,6 +81,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   # Do preprocessing.
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
