@@ -53,7 +53,6 @@ def get_monorail_buganizer_issue_id_dictionary(csv_filename):
   # csv should be structured with no headers and contain two columns:
   # a monorail issue id, and a buganizer issue id (ex. row: "600469, 40003765")
   with open(csv_filename, 'r') as csvfile:
-    dict = {}
     reader = csv.reader(csvfile)
     fieldnames = ['monorail_id', 'buganizer_id']
     reader = csv.DictReader(csvfile, fieldnames=fieldnames)
