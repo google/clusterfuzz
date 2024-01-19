@@ -93,6 +93,7 @@ UBSAN_CRASH_TYPES_NON_SECURITY = [
     'Invalid-null-return',
     'Misaligned-address',
     'No-return-value',
+    'Out-of-range',
     'Pointer-overflow',
     'Potential-null-reference',
     'Undefined-shift',
