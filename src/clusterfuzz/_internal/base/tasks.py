@@ -469,9 +469,8 @@ class UTaskMainPubSubTask(PubSubTask):
         input_url=self.attribute('input_url'))
 
 
-def initialize_task(messages):
+def initialize_task(message):
   """Creates a task from |messages|."""
-  message = messages[0]
   if message.attributes.get('eventType', None) == 'OBJECT_FINALIZE':
     # Handle postprocess task.
     # The google cloud API for pub/sub notifications uses the data field unlike
