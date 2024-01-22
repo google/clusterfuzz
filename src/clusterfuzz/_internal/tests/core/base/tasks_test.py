@@ -37,7 +37,7 @@ class InitializeTaskTest(unittest.TestCase):
         'job': self.job,
         'eta': 1,
     }
-    task = tasks.initialize_task([self.message])
+    task = tasks.initialize_task(self.message)
     self.assertIsInstance(task, tasks.PubSubTask)
     self.assertEqual(task.command, self.command)
     self.assertEqual(task.argument, self.argument)
@@ -71,7 +71,7 @@ class InitializeTaskTest(unittest.TestCase):
         b'''"mediaLink": "https://storage.googleapis.com/download/storage/v1/b/uworker-output/o/uworker.output?generation=1698'''
         b'''182630721865&alt=media",\n  "contentLanguage": "en",\n  "crc32c": "AAAAAA==",\n  "etag": "CMmS36PPj4IDEAE="\n}\n'''
     )
-    task = tasks.initialize_task([self.message])
+    task = tasks.initialize_task(self.message)
     self.assertIsInstance(task, tasks.PostprocessPubSubTask)
     self.assertEqual(task.command, 'postprocess')
     self.assertEqual(task.argument, 'gs://uworker-output/worker.output')
