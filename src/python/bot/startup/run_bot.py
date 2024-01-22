@@ -20,6 +20,7 @@ from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
+import contextlib
 import multiprocessing
 import os
 import sys
@@ -28,7 +29,7 @@ import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
@@ -36,6 +37,7 @@ from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -68,6 +70,16 @@ class _Monitor:
         })
 
 
+@contextlib.contextmanager
+def lease_merged_tasks(tasks_list):
+  """Creates a context manager that leases every task in tasks_list."""
+  with contextlib.ExitStack() as exit_stack:
+    context_managers = [task.lease for task in tasks_list]
+    for context_manager in context_managers:
+      exit_stack.enter_context(context_manager)
+    yield
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
@@ -88,7 +100,18 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
-      task = tasks.get_task()
+      utask_mains = taskslib.get_utask_mains()
+      if utask_mains:
+        tasks = utask_mains.tasks
+        batch_tasks = []
+        with lease_merged_tasks(tasks):
+          batch_tasks = [
+              batch.BatchTask(task.command, task.job, task.input_url)
+              for task in tasks
+          ]
+          batch.create_uworker_main_batch_jobs(batch_tasks)
+
+      task = taskslib.get_task()
       if not task:
         continue
 

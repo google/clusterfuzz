@@ -14,9 +14,16 @@
 """Module providing utilities for utask users. This module should not depend on
 any other module in tasks to prevent circular imports."""
 
+from clusterfuzz._internal.system import environment
+
 
 def get_command_from_module(full_module_name):
   module_name = full_module_name.split('.')[-1]
   if not module_name.endswith('_task'):
     raise ValueError(f'{full_module_name} is not a real command')
   return module_name[:-len('_task')]
+
+
+def is_remotely_executing_utasks():
+  return bool(environment.is_production() and
+              environment.get_value('REMOTE_UTASK_EXECUTION'))
