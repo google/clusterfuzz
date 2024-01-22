@@ -483,7 +483,7 @@ def initialize_task(messages):
     return PostprocessPubSubTask(output_url_argument, message)
 
   if message.attributes.get('input_url', None) is not None:
-    return UtaskMainPubSubTask(message)
+    return UTaskMainPubSubTask(message)
 
   return PubSubTask(message)
 
