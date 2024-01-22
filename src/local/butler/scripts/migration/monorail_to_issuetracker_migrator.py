@@ -36,13 +36,14 @@ def execute(args):
       testcase.bug_information = ndb.StringProperty(
           issue_id_dict[testcase.bug_information])
 
-    if testcase.group_bug_information and issue_id_dict.get(testcase.group_bug_information):
+    if testcase.group_bug_information and issue_id_dict.get(
+        testcase.group_bug_information):
       testcase.group_bug_information = ndb.IntegerProperty(
           issue_id_dict[testcase.group_bug_information])
 
     testcases.append(testcase)
 
-    if args.non_dry_run and len(testcases) > 499: # maximum batch size is 500
+    if args.non_dry_run and len(testcases) > 499:  # maximum batch size is 500
       ndb.put_multi(testcases)
       testcases = []
 
