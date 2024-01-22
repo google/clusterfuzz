@@ -365,6 +365,11 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(
       testcase, fuzzer_override=minimize_fuzzer_override)
 
+  if not environment.is_libfuzzer_job() and environment.is_engine_fuzzer_job():
+    # TODO(ochang): More robust check for engine minimization support.
+    _skip_minimization(testcase, 'Engine does not support minimization.')
+    return None
+
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
@@ -409,8 +414,10 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
     return do_libfuzzer_minimization(testcase, testcase_file_path)
 
   if environment.is_engine_fuzzer_job():
-    # TODO(ochang): More robust check for engine minimization support.
-    return uworker_msg_pb2.Output()
+    logs.log_error(
+        'Engine does not support minimization. Something went wrong as this'
+        ' should have been detected in preprocess.')
+    return None
 
   max_threads = utils.maximum_parallel_processes_allowed()
 
@@ -664,12 +671,6 @@ def utask_postprocess(output):
   update_testcase(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     uworker_handle_errors.handle(output, HANDLED_ERRORS)
-    return
-
-  if environment.is_engine_fuzzer_job():
-    # TODO(ochang): More robust check for engine minimization support.
-    testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-    _skip_minimization(testcase, 'Engine does not support minimization.')
     return
 
   finalize_testcase(
@@ -1386,7 +1387,6 @@ def _skip_minimization(testcase: data_types.Testcase,
                        message: str,
                        crash_result_dict: Dict[str, str] = None):
   """Skip minimization for a testcase, only called during postrocess."""
-  testcase = data_handler.get_testcase_by_id(testcase.key.id())
   testcase.minimized_keys = testcase.fuzzed_keys
 
   if crash_result_dict:
