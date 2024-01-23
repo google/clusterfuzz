@@ -20,8 +20,8 @@ import uuid
 from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -91,7 +91,7 @@ class BatchTask:
 
 
 def create_uworker_main_batch_job(module, job_type, input_download_url):
-  command = utask_utils.get_command_from_module(module)
+  command = task_utils.get_command_from_module(module)
   batch_tasks = [BatchTask(command, job_type, input_download_url)]
   result = create_uworker_main_batch_jobs(batch_tasks)
   if result is None:

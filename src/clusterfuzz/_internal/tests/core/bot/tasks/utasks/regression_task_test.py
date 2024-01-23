@@ -60,6 +60,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.build_management.build_manager.setup_regular_build',
+        'clusterfuzz._internal.build_management.build_manager.check_app_path',
         'clusterfuzz._internal.bot.testcase_manager.test_for_crash_with_retries',
         'clusterfuzz._internal.bot.testcase_manager.check_for_bad_build',
     ])
@@ -67,11 +68,36 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_error_on_failed_setup(self):
     """Ensure that we throw an exception if we fail to set up a build."""
     os.environ['APP_NAME'] = 'app_name'
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    self.mock.check_app_path.return_value = False
     # No need to implement a fake setup_regular_build. Since it's doing nothing,
     # we won't have the build directory properly set.
-    with self.assertRaises(errors.BuildSetupError):
-      regression_task._testcase_reproduces_in_revision(
-          None, '/tmp/blah', 'job_type', 1, should_log=False)
+    is_crash, error = regression_task._testcase_reproduces_in_revision(
+        None,
+        '/tmp/blah',
+        'job_type',
+        1,
+        regression_task_output,
+        should_log=False)
+    self.assertIsNone(is_crash)
+    self.assertIsNotNone(error)
+    self.assertEqual(error.error_type,
+                     uworker_msg_pb2.REGRESSION_BUILD_SETUP_ERROR)
+
+  def test_bad_build_error(self):
+    """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
+    self.mock.check_app_path.return_value = True
+    build_data = uworker_msg_pb2.BuildData(
+        revision=1, is_bad_build=True, should_ignore_crash_result=False)
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    self.mock.check_for_bad_build.return_value = build_data
+    result, worker_output = regression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
+        None, '/tmp/blah', 'job_type', 1, regression_task_output)
+    self.assertIsNone(result)
+    self.assertEqual(worker_output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR)
+    self.assertEqual(len(regression_task_output.build_data_list), 1)
+    self.assertEqual(regression_task_output.build_data_list[0], build_data)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -91,45 +117,60 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     self.revision_list = [1, 2, 5, 8, 9, 12, 15, 19, 21, 22]
 
   def test_near_max_revision(self):
-    """Ensure that we return True if this is a very recent regression."""
+    """Ensures that `found_regression_near_extreme_revisions` returns a result
+    if this is a very recent regression."""
 
     def testcase_reproduces(testcase,
                             testcase_file_path,
                             job_type,
                             revision,
+                            regression_task_output,
                             should_log=True,
                             min_revision=None,
                             max_revision=None):
-      return revision > 20
+      return revision > 20, None
 
     self.mock._testcase_reproduces_in_revision.side_effect = testcase_reproduces
-
-    regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9)
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    result = regression_task.found_regression_near_extreme_revisions(
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
+        regression_task_output)
+    self.assertIsNotNone(result)
+    self.assertEqual(result.regression_task_output.regression_range_start, 19)
+    self.assertEqual(result.regression_task_output.regression_range_end, 21)
 
   def test_at_min_revision(self):
-    """Ensure that we return True if we reproduce in min revision."""
-    self.mock._testcase_reproduces_in_revision.return_value = True
-
-    regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9)
+    """Ensures that `found_regression_near_extreme_revisions` returns a result
+    if we reproduce in min revision."""
+    self.mock._testcase_reproduces_in_revision.return_value = True, None
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    result = regression_task.found_regression_near_extreme_revisions(
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
+        regression_task_output)
+    self.assertIsNotNone(result)
+    self.assertEqual(result.regression_task_output.regression_range_start, 0)
+    self.assertEqual(result.regression_task_output.regression_range_end, 1)
 
   def test_not_at_extreme_revision(self):
-    """Ensure that we return False if we didn't regress near an extreme."""
+    """Ensures that `found_regression_near_extreme_revisions` returns None
+    if we didn't regress near an extreme."""
 
     def testcase_reproduces(testcase,
                             testcase_file_path,
                             job_type,
                             revision,
+                            regression_task_output,
                             should_log=True,
                             min_revision=None,
                             max_revision=None):
-      return revision > 10
+      return revision > 10, None
 
     self.mock._testcase_reproduces_in_revision.side_effect = testcase_reproduces
-
-    regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9)
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    result = regression_task.found_regression_near_extreme_revisions(
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
+        regression_task_output)
+    self.assertIsNone(result)
 
 
 def _sample(input_list, count):
@@ -155,43 +196,51 @@ class ValidateRegressionRangeTest(unittest.TestCase):
     testcase = data_types.Testcase()
     testcase.put()
 
-    self.mock._testcase_reproduces_in_revision.return_value = False
-    result = regression_task.validate_regression_range(testcase, '/a/b',
-                                                       'job_type', [0], 0)
-    self.assertTrue(result)
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    self.mock._testcase_reproduces_in_revision.return_value = False, None
+    result = regression_task.validate_regression_range(
+        testcase, '/a/b', 'job_type', [0], 0, regression_task_output)
+    self.assertIsNone(result)
 
   def test_one_earlier_revision(self):
     """Test a corner-case with few revisions earlier than min revision."""
     testcase = data_types.Testcase()
     testcase.put()
-
-    self.mock._testcase_reproduces_in_revision.return_value = False
-    result = regression_task.validate_regression_range(testcase, '/a/b',
-                                                       'job_type', [0, 1, 2], 1)
-    self.assertTrue(result)
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    self.mock._testcase_reproduces_in_revision.return_value = False, None
+    result = regression_task.validate_regression_range(
+        testcase, '/a/b', 'job_type', [0, 1, 2], 1, regression_task_output)
+    self.assertIsNone(result)
 
   def test_invalid_range(self):
     """Ensure that we handle invalid ranges correctly."""
     testcase = data_types.Testcase()
     testcase.put()
 
-    self.mock._testcase_reproduces_in_revision.return_value = True
+    self.mock._testcase_reproduces_in_revision.return_value = True, None
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.validate_regression_range(
-        testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4)
-    self.assertFalse(result)
-
-    testcase = testcase.key.get()
-    self.assertEqual(testcase.regression, 'NA')
+        testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4,
+        regression_task_output)
+    self.assertEqual(
+        result.error_type,
+        uworker_msg_pb2.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE)
+    self.assertEqual(
+        result.error_message,
+        'Low confidence in regression range. Test case crashes in revision r0 but not later revision r4'
+    )
 
   def test_valid_range(self):
     """Ensure that we handle valid ranges correctly."""
     testcase = data_types.Testcase()
     testcase.put()
 
-    self.mock._testcase_reproduces_in_revision.return_value = False
+    regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
+    self.mock._testcase_reproduces_in_revision.return_value = False, None
     result = regression_task.validate_regression_range(
-        testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4)
-    self.assertTrue(result)
+        testcase, '/a/b', 'job_type', [0, 1, 2, 3, 4], 4,
+        regression_task_output)
+    self.assertIsNone(result)
 
 
 @test_utils.with_cloud_emulators('datastore')

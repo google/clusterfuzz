@@ -37,6 +37,7 @@ from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.bot.tasks import trials
 from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
@@ -827,12 +828,13 @@ def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
 
 
 def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
-                             fuzzer_output, fuzzer_return_code, fuzzer_revision,
+                             fuzzer_output, fuzzer_return_code,
                              generated_testcase_count, expected_testcase_count,
-                             generated_testcase_string):
+                             generated_testcase_string, fuzz_task_input):
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
-  fuzzer_logs.upload_script_log(fuzzer_output)
+  fuzzer_logs.upload_script_log(
+      fuzzer_output, signed_upload_url=fuzz_task_input.script_log_upload_url)
 
   # Save the test results for the following cases.
   # 1. There is no result yet.
@@ -851,19 +853,17 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
        fuzzer.return_code == 0 and ' 0/' not in fuzzer.result))
   # pylint: enable=consider-using-in
   if not save_test_results:
-    return
+    return None
 
   logs.log('Started storing results from fuzzer run.')
 
-  # Store the sample testcase in blobstore first. This can take some time, so
-  # do this operation before refreshing fuzzer object.
-  sample_testcase = None
+  fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
-      sample_testcase = blobs.write_blob(sample_testcase_file_handle)
-
-    if not sample_testcase:
-      logs.log_error('Could not save testcase from fuzzer run.')
+      sample_testcase_file = sample_testcase_file_handle.read()
+      fuzzer_run_results_output.uploaded_sample_testcase = True
+      storage.upload_signed_url(sample_testcase_file,
+                                fuzz_task_input.sample_testcase_upload_url)
 
   # Store fuzzer console output.
   bot_name = environment.get_value('BOT_NAME')
@@ -875,22 +875,44 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                                                    data_types.ENTITY_SIZE_LIMIT)
   console_output = (f'{bot_name}: {fuzzer_return_code_string}\n{fuzzer_command}'
                     f'\n{truncated_fuzzer_output}')
+  fuzzer_run_results_output.console_output = console_output
+  fuzzer_run_results_output.generated_testcase_string = (
+      generated_testcase_string)
+  fuzzer_run_results_output.fuzzer_return_code = fuzzer_return_code
+  return fuzzer_run_results_output
 
-  # Refresh the fuzzer object.
-  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer.name).get()
 
-  # Make sure fuzzer is same as the latest revision.
+def preprocess_store_fuzzer_run_results(fuzz_task_input):
+  """Does preprocessing for store_fuzzer_run_results. More specifically, gets
+  URLs to upload a sample testcase and the logs."""
+  fuzz_task_input.sample_testcase_upload_key = blobs.generate_new_blob_name()
+  fuzz_task_input.sample_testcase_upload_url = blobs.get_signed_upload_url(
+      fuzz_task_input.sample_testcase_upload_key)
+  script_log_upload_key = blobs.generate_new_blob_name()
+  fuzz_task_input.script_log_upload_url = blobs.get_signed_upload_url(
+      script_log_upload_key)
+
+
+def postprocess_store_fuzzer_run_results(output):
+  """Postprocess store_fuzzer_run_results."""
+  if not output.fuzz_task_output.fuzzer_run_results:
+    return
+  uworker_input = output.uworker_input
+  fuzzer = data_types.Fuzzer.query(
+      data_types.Fuzzer.name == output.uworker_input.fuzzer_name).get()
   if not fuzzer:
     logs.log_fatal_and_exit('Fuzzer does not exist, exiting.')
-  if fuzzer.revision != fuzzer_revision:
+
+  fuzzer_run_results = output.fuzz_task_output.fuzzer_run_results
+  if fuzzer.revision != output.fuzz_task_output.fuzzer_revision:
     logs.log('Fuzzer was recently updated, skipping results from old version.')
     return
-
-  fuzzer.sample_testcase = sample_testcase
-  fuzzer.console_output = console_output
-  fuzzer.result = generated_testcase_string
+  fuzzer.sample_testcase = (
+      uworker_input.fuzz_task_input.sample_testcase_upload_key)
+  fuzzer.console_output = fuzzer_run_results.console_output
+  fuzzer.result = fuzzer_run_results.generated_testcase_string
   fuzzer.result_timestamp = datetime.datetime.utcnow()
-  fuzzer.return_code = fuzzer_return_code
+  fuzzer.return_code = fuzzer_run_results.fuzzer_return_code
   fuzzer.put()
 
   logs.log('Finished storing results from fuzzer run.')
@@ -1300,6 +1322,12 @@ class FuzzingSession:
     # Fuzzing engine specific state.
     self.fuzz_target = None
     self.gcs_corpus = None
+    self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
+
+  def _get_output(self, **kwargs):
+    for k, v in kwargs.items():
+      setattr(self.fuzz_task_output, k, v)
+    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1363,7 +1391,6 @@ class FuzzingSession:
     """Run the blackbox fuzzer and generate testcases."""
     # Helper variables.
     error_occurred = False
-    fuzzer_revision = fuzzer.revision
     fuzzer_name = fuzzer.name
     sync_corpus_directory = None
 
@@ -1478,10 +1505,12 @@ class FuzzingSession:
             output=fuzzer_output)
 
     # Store fuzzer run results.
-    store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
-                             fuzzer_output, fuzzer_return_code, fuzzer_revision,
-                             generated_testcase_count, testcase_count,
-                             generated_testcase_string)
+    fuzzer_run_results = store_fuzzer_run_results(
+        testcase_file_paths, fuzzer, fuzzer_command, fuzzer_output,
+        fuzzer_return_code, generated_testcase_count, testcase_count,
+        generated_testcase_string, self.uworker_input.fuzz_task_input)
+    if fuzzer_run_results:
+      self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths
@@ -1833,7 +1862,7 @@ class FuzzingSession:
       # re-run of testcase. This is critical for reproducibility.
       environment.remove_key('CHILD_PROCESS_TERMINATION_PATTERN')
 
-      # TODO(unassigned): Need to find a way to this efficiently before every
+      # TODO(unassigned): Need to find a way to do this efficiently before every
       # testcase is analyzed.
       android.device.initialize_device()
 
@@ -1876,22 +1905,24 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
-    fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput(
+    if new_targets_count is not None:
+      self.fuzz_task_output.new_targets_count = new_targets_count
+    return self._get_output(
         fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
         crash_revision=str(crash_revision),
         job_run_timestamp=time.time(),
         new_crash_count=new_crash_count,
         known_crash_count=known_crash_count,
         testcases_executed=testcases_executed,
-        job_run_crashes=convert_groups_to_crashes(processed_groups))
-    if new_targets_count is not None:
-      fuzz_task_output.new_targets_count = int(new_targets_count)
-    return uworker_msg_pb2.Output(fuzz_task_output=fuzz_task_output)
+        job_run_crashes=convert_groups_to_crashes(processed_groups),
+        fuzzer_revision=self.fuzzer.revision,
+    )
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
     # TODO(metzman): Finish this.
     fuzz_task_output = uworker_output.fuzz_task_output
+    postprocess_store_fuzzer_run_results(uworker_output)
     crash_groups = convert_crashes_to_dicts(fuzz_task_output.job_run_crashes)
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
@@ -1946,11 +1977,19 @@ HANDLED_ERRORS = [
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  """Preprocess untrusted task."""
   setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
+  targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
+  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+  if targets_count:
+    targets_count = uworker_io.entity_to_protobuf(targets_count)
+    fuzz_task_input.targets_count.CopyFrom(targets_count)
+  preprocess_store_fuzzer_run_results(fuzz_task_input)
   return uworker_msg_pb2.Input(
+      fuzz_task_input=fuzz_task_input,
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,

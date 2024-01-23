@@ -516,7 +516,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
         minimize_task_output.security_severity = testcase.security_severity
 
     testcase.gestures = gestures
-    minimize_task_output.gestures.clear()
+    del minimize_task_output.gestures[:]
     minimize_task_output.gestures.extend(gestures)
     testcase.set_metadata('minimization_phase', MinimizationPhase.MAIN_FILE,
                           False)
@@ -659,7 +659,8 @@ def update_testcase(output: uworker_msg_pb2.Output):
     testcase.absolute_path = minimize_task_output.absolute_path
 
   if minimize_task_output.gestures:
-    testcase.gestures = minimize_task_output.gestures
+    # One must convert repeated fields to lists in order to save them using ndb.
+    testcase.gestures = list(minimize_task_output.gestures)
 
   if minimize_task_output.HasField('minimized_keys'):
     testcase.minimized_keys = minimize_task_output.minimized_keys

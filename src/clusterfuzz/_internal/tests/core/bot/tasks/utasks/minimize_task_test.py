@@ -351,3 +351,22 @@ class UTaskMainTest(unittest.TestCase):
     uworker_output = minimize_task.utask_main(uworker_input)
     self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UpdateTestcaseTest(unittest.TestCase):
+  """Tests for update_testcase."""
+
+  def test_gestures(self):
+    """Test that gestures save correctly."""
+    testcase = data_types.Testcase()
+    testcase.put()
+    gestures = ['mousemove_relative --sync,-86 -57']
+    minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
+        gestures=['mousemove_relative --sync,-86 -57'])
+    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
+    output = uworker_msg_pb2.Output(
+        minimize_task_output=minimize_task_output, uworker_input=uworker_input)
+    minimize_task.update_testcase(output)
+    testcase = testcase.key.get()
+    self.assertEqual(gestures, testcase.gestures)
