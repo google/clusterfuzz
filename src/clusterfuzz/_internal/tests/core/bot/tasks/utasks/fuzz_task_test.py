@@ -1561,6 +1561,7 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   """Tests for preprocess_store_fuzzer_run_results."""
 
   SIGNED_URL = 'https://signed'
+
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
@@ -1573,12 +1574,10 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
-    self.assertEqual(
-        fuzz_task_input.sample_testcase_upload_url, self.SIGNED_URL)
+    self.assertEqual(fuzz_task_input.sample_testcase_upload_url,
+                     self.SIGNED_URL)
 
-    self.assertEqual(
-        fuzz_task_input.script_log_upload_url,
-        self.SIGNED_URL)
+    self.assertEqual(fuzz_task_input.script_log_upload_url, self.SIGNED_URL)
 
 
 @test_utils.with_cloud_emulators('datastore')
