@@ -168,7 +168,7 @@ T = TypeVar('T', bound=ndb.Model)
 def entity_from_protobuf(entity_proto: entity_pb2.Entity,
                          model_type: Type[T]) -> T:
   """Converts `entity_proto` to the `ndb.Model` of type `model_type` it encodes.
-  
+
   Raises:
     AssertionError: if `entity_proto` does not encode a model of type
     `model_type`
