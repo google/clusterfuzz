@@ -37,7 +37,6 @@ from clusterfuzz._internal.bot.tasks import update_task
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import ndb_init
-from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
@@ -71,13 +70,30 @@ class _Monitor:
 
 
 @contextlib.contextmanager
-def lease_merged_tasks(tasks_list):
+def lease_all_tasks(tasks_list):
   """Creates a context manager that leases every task in tasks_list."""
   with contextlib.ExitStack() as exit_stack:
     context_managers = [task.lease for task in tasks_list]
     for context_manager in context_managers:
       exit_stack.enter_context(context_manager)
     yield
+
+
+def schedule_utask_mains():
+  """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
+  from clusterfuzz._internal.google_cloud_utils import batch
+
+  utask_mains = taskslib.get_utask_mains()
+  if not utask_mains:
+    return
+
+  batch_tasks = []
+  with lease_all_tasks(utask_mains):
+    batch_tasks = [
+        batch.BatchTask(task.command, task.job, task.input_url)
+        for task in utask_mains
+    ]
+    batch.create_uworker_main_batch_jobs(batch_tasks)
 
 
 def task_loop():
@@ -100,16 +116,12 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
-      utask_mains = taskslib.get_utask_mains()
-      if utask_mains:
-        tasks = utask_mains.tasks
-        batch_tasks = []
-        with lease_merged_tasks(tasks):
-          batch_tasks = [
-              batch.BatchTask(task.command, task.job, task.input_url)
-              for task in tasks
-          ]
-          batch.create_uworker_main_batch_jobs(batch_tasks)
+      if environment.get_value('SCHEDULE_UTASK_MAINS'):
+        # If the bot is configured to schedule utask_mains, don't run any other
+        # tasks because scheduling these tasks is more important than executing
+        # any one other task.
+        schedule_utask_mains()
+        continue
 
       task = taskslib.get_task()
       if not task:

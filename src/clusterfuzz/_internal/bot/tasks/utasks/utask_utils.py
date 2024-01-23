@@ -25,5 +25,7 @@ def get_command_from_module(full_module_name):
 
 
 def is_remotely_executing_utasks():
+  """Returns True if the utask_main portions of utasks are being remotely
+  executed on Google cloud batch."""
   return bool(environment.is_production() and
               environment.get_value('REMOTE_UTASK_EXECUTION'))

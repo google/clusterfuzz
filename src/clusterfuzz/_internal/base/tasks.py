@@ -19,6 +19,8 @@ import json
 import random
 import threading
 import time
+from typing import List
+from typing import Optional
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
@@ -82,11 +84,16 @@ TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
+UTASK_MAINS_QUEUE = 'utask_main'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-MAX_MESSAGES = 100
+UTASK_TIME_LIMIT = 15
+
+# The maximum number of utasks we will collect from the utask queue before
+# scheduling on batch.
+MAX_UTASKS = 30
 
 
 class Error(Exception):
@@ -166,56 +173,45 @@ def get_high_end_task():
   return task
 
 
-def handle_single_message(messages):
-  """Returns a single task from |messages| if possible."""
-  if not messages:
-    return None, False
-
+def handle_single_message(message) -> Optional[PubSubTask]:
+  """Returns a task constructed from the first of |messages| if possible."""
   try:
-    task = initialize_task(messages[0])
-    if task is None:
-      return None, False
+    task = initialize_task(message)
   except KeyError:
     logs.log_error('Received an invalid task, discarding...')
-    messages[0].ack()
-    return None, True
+    message.ack()
+    return None
 
   # Check that this task should be run now (past the ETA). Otherwise we defer
   # its execution.
-  if not task.defer():
-    return task, False
-  return None, True
+  if task.defer():
+    return None
+
+  return task
 
 
-def get_utask_mains():
-  """Returns a MergedTasks for preprocessing many utasks on this bot and then
+def get_utask_mains() -> List[PubSubTask]:
+  """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
   if not utask_utils.is_remotely_executing_utasks():
     return None
-  queue = get_utasks_queue()
-  pubsub_client = pubsub.PubSubClient()
-  application_id = utils.get_application_id()
-  messages = _get_messages(
-      pubsub_client, application_id, queue, max_messages=MAX_MESSAGES)
-  if not messages:
-    return None
-  # TODO(metzman): Consider returning a non-combined task.
-  return merge_tasks(messages)
+  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
+  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
+                                                     UTASK_TIME_LIMIT)
+  return handle_multiple_messages(messages)
 
 
-def merge_tasks(messages):
-  """Merge tasks specified in messages into one MergedTasks object for
-  processing on this bot."""
+def handle_multiple_messages(messages) -> List[PubSubTask]:
+  """Merges tasks specified in |messages| into a list for processing on this
+  bot."""
   tasks = []
   for message in messages:
-    task, _ = handle_single_message([message])
+    task = handle_single_message(message)
     if task is None:
       continue
     tasks.append(task)
 
-  if tasks:
-    return MergedTasks(tasks)
-  return None
+  return tasks
 
 
 def get_regular_task(queue=None):
@@ -223,19 +219,16 @@ def get_regular_task(queue=None):
   if not queue:
     queue = regular_queue()
 
-  pubsub_client = pubsub.PubSubClient()
-  application_id = utils.get_application_id()
+  pubsub_puller = PubSubPuller(queue)
+
   while True:
-    messages = _get_messages(
-        pubsub_client, application_id, queue, max_messages=1)
+    messages = pubsub_puller.get_messages(max_messages=1)
     if not messages:
       return None
 
-    task, retry = handle_single_message(messages)
+    task = handle_single_message(messages)
     if task:
       return task
-    if not retry:
-      return None
 
 
 def get_machine_template_for_queue(queue_name):
@@ -278,9 +271,40 @@ def get_machine_templates():
   return conf['instance_templates']
 
 
-def _get_messages(pubsub_client, application_id, queue, max_messages):
-  return pubsub_client.pull_from_subscription(
-      pubsub.subscription_name(application_id, queue), max_messages)
+class PubSubPuller:
+  """PubSub client providing convenience methods for pulling."""
+
+  def __init__(self, queue):
+    self.pubsub_client = pubsub.PubSubClient()
+    self.application_id = utils.get_application_id()
+    self.queue = queue
+
+  def get_messages(self, max_messages=1):
+    return self.pubsub_client.pull_from_subscription(
+        pubsub.subscription_name(self.application_id, self.queue), max_messages)
+
+  def get_messages_time_limited(self, max_messages, time_limit):
+    """Returns up to |max_messages|. Waits up until |time_limit| to get to
+    |max_messages|."""
+    start_time = time.time()
+    messages = []
+
+    def is_done_collecting_messages():
+      curr_time = time.time()
+      if curr_time - start_time >= time_limit:
+        return True
+
+      if len(messages) >= max_messages:
+        return True
+
+      return False
+
+    while not is_done_collecting_messages():
+      new_messages = self.get_messages(max_messages - len(messages))
+      if new_messages:
+        messages.extend(new_messages)
+
+    return messages
 
 
 def get_postprocess_task():
@@ -288,25 +312,29 @@ def get_postprocess_task():
   # This should only be run on non-preemptible bots.
   if not utask_utils.is_remotely_executing_utasks():
     return None
-  pubsub_client = pubsub.PubSubClient()
-  application_id = utils.get_application_id()
+  pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
   logs.log('Pulling from postprocess queue')
-  messages = _get_messages(
-      pubsub_client, application_id, POSTPROCESS_QUEUE, max_messages=1)
-  task, _ = handle_single_message(messages)
+  messages = pubsub_puller.get_messages(max_messages=1)
+  if not messages:
+    return None
+  task = handle_single_message(messages[0])
   if task:
     logs.log('Pulled from postprocess queue.')
   return task
 
 
-def get_task():
-  """Gets a task."""
+def allow_all_tasks():
+  return not environment.get_value('PREEMPTIBLE')
+
+
+def get_task() -> Task:
+  """Returns an ordinary (non-postprocess, non-utask_main) task that is pulled
+  from a ClusterFuzz task queue."""
   task = get_command_override()
   if task:
     return task
 
-  allow_all_tasks = not environment.get_value('PREEMPTIBLE')
-  if allow_all_tasks:
+  if allow_all_tasks():
     # Postprocess tasks need to be executed on a non-preemptible otherwise we
     # can lose the output of a task.
     # Postprocess tasks get priority because they are so quick. They typically
@@ -333,20 +361,12 @@ def get_task():
   return task
 
 
-def get_utasks_queue():
-  return 'utasks'
-
-
 def construct_payload(command, argument, job):
   """Constructs payload for task, a standard description of tasks."""
   return ' '.join([command, str(argument), str(job)])
 
 
-class BaseTask:
-  pass
-
-
-class Task(BaseTask):
+class Task:
   """Represents a task."""
 
   def __init__(self,
@@ -355,15 +375,20 @@ class Task(BaseTask):
                job,
                eta=None,
                is_command_override=False,
-               high_end=False,
-               input_url=None):
+               high_end=False):
     self.command = command
     self.argument = argument
     self.job = job
     self.eta = eta
     self.is_command_override = is_command_override
     self.high_end = high_end
-    self.input_url = input_url
+
+  def attribute(self, _):
+    return None
+
+  def payload(self):
+    """Get the payload."""
+    return construct_payload(self.command, self.argument, self.job)
 
   def to_pubsub_message(self):
     """Convert the task to a pubsub message."""
@@ -373,20 +398,10 @@ class Task(BaseTask):
         'job': self.job,
     }
 
-    if self.input_url:
-      attributes['input_url'] = self.input_url
-
     if self.eta:
       attributes['eta'] = str(utils.utc_datetime_to_timestamp(self.eta))
 
     return pubsub.Message(attributes=attributes)
-
-  def attribute(self, _):
-    return None
-
-  def payload(self):
-    """Get the payload."""
-    return construct_payload(self.command, self.argument, self.job)
 
   @contextlib.contextmanager
   def lease(self):
@@ -395,12 +410,6 @@ class Task(BaseTask):
     track_task_start(self, TASK_LEASE_SECONDS)
     yield
     track_task_end()
-
-
-class MergedTasks(BaseTask):
-
-  def __init__(self, tasks):
-    self.tasks = tasks
 
 
 class PubSubTask(Task):
@@ -457,34 +466,19 @@ class PubSubTask(Task):
     track_task_end()
 
 
-class UTaskMainPubSubTask(PubSubTask):
-
-  def __init__(self, pubsub_message):
-    self._pubsub_message = pubsub_message
-    grandparent_class = super(PubSubTask, self)
-    grandparent_class.__init__(
-        self.attribute('command'),
-        self.attribute('argument'),
-        self.attribute('job'),
-        input_url=self.attribute('input_url'))
-
-
-def initialize_task(message):
+def initialize_task(message) -> PubSubTask:
   """Creates a task from |messages|."""
-  if message.attributes.get('eventType', None) == 'OBJECT_FINALIZE':
-    # Handle postprocess task.
-    # The google cloud API for pub/sub notifications uses the data field unlike
-    # ClusterFuzz which uses attributes more.
-    data = json.loads(message.data)
-    name = data['name']
-    bucket = data['bucket']
-    output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-    return PostprocessPubSubTask(output_url_argument, message)
+  if message.attributes.get('eventType', None) != 'OBJECT_FINALIZE':
+    return PubSubTask(message)
 
-  if message.attributes.get('input_url', None) is not None:
-    return UTaskMainPubSubTask(message)
-
-  return PubSubTask(message)
+  # Handle postprocess task.
+  # The GCS API for pub/sub notifications uses the data field unlike
+  # ClusterFuzz which uses attributes more.
+  data = json.loads(message.data)
+  name = data['name']
+  bucket = data['bucket']
+  output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
+  return PostprocessPubSubTask(output_url_argument, message)
 
 
 class PostprocessPubSubTask(PubSubTask):
@@ -547,17 +541,15 @@ class _PubSubLeaserThread(threading.Thread):
         logs.log_error('Leaser thread failed.')
 
 
-def add_utask_main(command, input_url, job_type):
-  if wait_time is None:
-    wait_time = random.randint(1, TASK_CREATION_WAIT_INTERVAL)
-
-  queue = get_utasks_queue()
-  task = Task(command, None, job_type, input_url=input_url)
-
-  pubsub_client = pubsub.PubSubClient()
-  pubsub_client.publish(
-      pubsub.topic_name(utils.get_application_id(), queue),
-      [task.to_pubsub_message()])
+def add_utask_main(command, input_url, job_type, wait_time=None):
+  """Adds the utask_main portion of a utask to the utasks queue for scheduling
+  on batch. This should only be done after preprocessing."""
+  add_task(
+      command,
+      input_url,
+      job_type,
+      queue=UTASK_MAINS_QUEUE,
+      wait_time=wait_time)
 
 
 def add_task(command, argument, job_type, queue=None, wait_time=None):
