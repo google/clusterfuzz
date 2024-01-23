@@ -51,15 +51,9 @@ def execute(args):
     ndb.put_multi(testcases)
 
 
-"""Creates a mapping of monorail/buganiser issue ids
-
-@type file_loc: str
-@param file_loc: The file location of the csv to be converted into a dict
-@rtype: dictionary
-@returns: a dictionary where the key is a numeric monorail id
-  and the value is a numeric issuetracker id ({ monorail_id: issuetracker_id })
-"""
 def get_monorail_issuetracker_issue_id_dictionary(file_loc):
+  """Creates a mapping of monorail/issuetracker issue ids."""
+
   issue_id_dictionary = {}
   # csv should be structured with no headers and contain two columns:
   # a monorail issue id, and a issuetracker issue id
