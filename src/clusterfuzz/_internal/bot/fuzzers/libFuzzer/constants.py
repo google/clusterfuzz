@@ -21,40 +21,43 @@ defined in this function that end with the suffix "_FLAG" should contain
 
 # libFuzzer flags.
 ARTIFACT_PREFIX_FLAG = '-artifact_prefix='
+ARTIFACT_PREFIX_FLAGNAME = 'artifact_prefix'
 
-DATA_FLOW_TRACE_FLAG = '-data_flow_trace='
+DATA_FLOW_TRACE_FLAGNAME = 'data_flow_trace'
 
-DICT_FLAG = '-dict='
+DICT_FLAGNAME = 'dict'
 
-FOCUS_FUNCTION_FLAG = '-focus_function='
+FOCUS_FUNCTION_FLAGNAME = 'focus_function'
 
-FORK_FLAG = '-fork='
+FORK_FLAGNAME = 'fork'
 
-MAX_LEN_FLAG = '-max_len='
+MAX_LEN_FLAGNAME = 'max_len'
 
-MAX_TOTAL_TIME_FLAG = '-max_total_time='
+MAX_TOTAL_TIME_FLAGNAME = 'max_total_time'
 
-RSS_LIMIT_FLAG = '-rss_limit_mb='
+RSS_LIMIT_FLAGNAME = 'rss_limit_mb'
 
-RUNS_FLAG = '-runs='
+RUNS_FLAGNAME = 'runs'
 
-TIMEOUT_FLAG = '-timeout='
+TIMEOUT_FLAGNAME = 'timeout'
 
-EXACT_ARTIFACT_PATH_FLAG = '-exact_artifact_path='
+EXACT_ARTIFACT_PATH_FLAGNAME = 'exact_artifact_path'
 
-CLEANSE_CRASH_ARGUMENT = '-cleanse_crash=1'
+CLEANSE_CRASH_FLAGNAME = 'cleanse_crash'
 
-MERGE_ARGUMENT = '-merge=1'
+MERGE_FLAGNAME = 'merge'
 
-MERGE_CONTROL_FILE_ARGUMENT = '-merge_control_file='
+MERGE_CONTROL_FILE_FLAGNAME = 'merge_control_file'
 
-MINIMIZE_CRASH_ARGUMENT = '-minimize_crash=1'
+MINIMIZE_CRASH_FLAGNAME = 'minimize_crash'
 
-PRINT_FINAL_STATS_ARGUMENT = '-print_final_stats=1'
+PRINT_FINAL_STATS_FLAGNAME = 'print_final_stats'
+
+DETECT_LEAKS_FLAGNAME = 'detect_leaks'
 
 TMP_ARTIFACT_PREFIX_ARGUMENT = '/tmp/'
 
-VALUE_PROFILE_ARGUMENT = '-use_value_profile=1'
+VALUE_PROFILE_FLAGNAME = 'use_value_profile'
 
 # Default value for rss_limit_mb flag to catch OOM.s
 DEFAULT_RSS_LIMIT_MB = 2560

@@ -75,8 +75,9 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     self.mock.check_app_path.return_value = False
     # No need to implement a fake setup_regular_build. Since it's doing nothing,
     # we won't have the build directory properly set.
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1)
+        None, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(result)
     self.assertIs(worker_output.error_type,
                   uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
@@ -85,30 +86,39 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
   def test_bad_build_error(self):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+    build_data = uworker_msg_pb2.BuildData(
+        revision=1,
         is_bad_build=True,
         should_ignore_crash_result=False,
         build_run_console_output='')
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    self.mock.check_for_bad_build.return_value = build_data
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1)
+        None, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(result)
     self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
     self.assertEqual(worker_output.error_message, 'Bad build at r1. Skipping')
+    self.assertEqual(len(progression_task_output.build_data_list), 1)
+    self.assertEqual(progression_task_output.build_data_list[0], build_data)
 
   def test_no_crash(self):
     """Tests _testcase_reproduces_in_revision behaviour with no crash or error."""
     self.mock.check_app_path.return_value = True
-    self.mock.check_for_bad_build.return_value = uworker_io.BuildData(
+    build_data = uworker_msg_pb2.BuildData(
+        revision=1,
         is_bad_build=False,
         should_ignore_crash_result=False,
         build_run_console_output='')
+    self.mock.check_for_bad_build.return_value = build_data
     testcase = data_types.Testcase()
-    testcase = uworker_io.UworkerEntityWrapper(testcase)
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        testcase, '/tmp/blah', 'job_type', 1)
+        testcase, '/tmp/blah', 'job_type', 1, progression_task_output)
     self.assertIsNone(worker_output)
     self.assertIsNotNone(result)
+    self.assertEqual(len(progression_task_output.build_data_list), 1)
+    self.assertEqual(progression_task_output.build_data_list[0], build_data)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -120,8 +130,15 @@ class UtaskPreprocessTest(unittest.TestCase):
     helpers.patch(
         self,
         ['clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase'])
-    self.mock.preprocess_setup_testcase.return_value = uworker_io.SetupInput()
+    setup_input = uworker_msg_pb2.SetupInput(fuzzer_name='fuzzer_name')
+    self.mock.preprocess_setup_testcase.return_value = setup_input
     os.environ['JOB_NAME'] = 'progression'
+    # Add a bad build.
+    data_handler.add_build_metadata(
+        job_type='progression',
+        is_bad_build=True,
+        crash_revision=8888,
+        console_output='console')
     # Add a bad build.
     data_handler.add_build_metadata(
         job_type='progression',
@@ -151,11 +168,11 @@ class UtaskPreprocessTest(unittest.TestCase):
         str(testcase.key.id()), 'job_type', None)
     self.assertFalse(result.progression_task_input.custom_binary)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = result.testcase
+    returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
+                                                        data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_revisions = result.progression_task_input.bad_revisions
-    self.assertEqual(len(bad_revisions), 1)
-    self.assertEqual(bad_revisions[0], 9999)
+    self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
+    self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
   def test_preprocess_uworker_output_custom_binary(self):
     """Tests the preprocess behaviour for custom binaries."""
@@ -166,11 +183,11 @@ class UtaskPreprocessTest(unittest.TestCase):
         str(testcase.key.id()), 'job_type', None)
     self.assertTrue(result.progression_task_input.custom_binary)
     self.assertEqual('job_type', result.job_type)
-    returned_testcase = result.testcase
+    returned_testcase = uworker_io.entity_from_protobuf(result.testcase,
+                                                        data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
-    bad_revisions = result.progression_task_input.bad_revisions
-    self.assertEqual(len(bad_revisions), 1)
-    self.assertEqual(bad_revisions[0], 9999)
+    self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
+    self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -186,27 +203,11 @@ class UTaskPostprocessTest(unittest.TestCase):
         'clusterfuzz._internal.base.bisection.request_bisection'
     ])
 
-  def _get_generic_input(self):
-    testcase = data_types.Testcase()
-    uworker_input = uworker_io.UworkerInput(
-        job_type='job_type', testcase_id='testcase_id', testcase=testcase)
-    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
-    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
-    return uworker_input
-
-  def _create_output(self, uworker_input=None, **kwargs):
-    uworker_output = uworker_io.UworkerOutput(**kwargs)
-    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
-    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
-    if uworker_input:
-      uworker_output.uworker_input = uworker_input
-    return uworker_output
-
   def test_error_handling_called_on_error(self):
     """Checks that an output with an error is handled properly."""
     testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
-    uworker_output = self._create_output(
+    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_input,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     progression_task.utask_postprocess(uworker_output)
@@ -215,10 +216,10 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_handle_crash_on_latest_revision(self):
     """Tests utask_postprocess behaviour when there is a crash on latest revision."""
     testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
-    progression_task_output = uworker_io.ProgressionTaskOutput(
+    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
         crash_on_latest=True)
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_input,
         progression_task_output=progression_task_output)
     progression_task.utask_postprocess(uworker_output)
@@ -227,18 +228,19 @@ class UTaskPostprocessTest(unittest.TestCase):
 
   def test_handle_custom_binary_postprocess(self):
     """Tests utask_postprocess behaviour for custom binaries in the absence of errors."""
-    progression_task_input = uworker_io.ProgressionTaskInput(custom_binary=True)
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput(
+        custom_binary=True)
     testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_io.UworkerInput(
+    uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
         progression_task_input=progression_task_input)
     self.assertEqual(testcase.fixed, '')
     self.assertTrue(testcase.open)
-    # TODO(alhijazi): Should we wrap the testcase entities passed to utask_main
-    # before returning them through the uworker_output?
-    testcase = uworker_io.UworkerEntityWrapper(testcase)
-    uworker_output = self._create_output(
-        uworker_input=uworker_input, testcase=testcase)
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
+        crash_revision=1)
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=uworker_input,
+        progression_task_output=progression_task_output)
     self.assertTrue(testcase.open)
     self.mock.is_first_attempt_for_task.return_value = False
     progression_task.utask_postprocess(uworker_output)
@@ -252,9 +254,9 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_handle_non_custom_binary_postprocess(self):
     """Tests utask_postprocess behaviour for non_custom binaries in the absence of errors."""
     testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_io.UworkerInput(testcase_id=str(testcase.key.id()))
-    progression_task_output = uworker_io.ProgressionTaskOutput()
-    uworker_output = self._create_output(
+    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_input,
         progression_task_output=progression_task_output)
 
@@ -290,7 +292,6 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.mock.check_app_path.return_value = None
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
-    testcase = uworker_io.UworkerEntityWrapper(testcase)
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
         testcase, testcase_file_path)
     self.assertEqual(result.error_message,
@@ -318,7 +319,6 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.mock.filter_stacktrace.return_value = stacktrace
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
-    testcase = uworker_io.UworkerEntityWrapper(testcase)
 
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
         testcase, testcase_file_path)
@@ -340,7 +340,6 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.mock.is_crash.return_value = False
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
-    testcase = uworker_io.UworkerEntityWrapper(testcase)
 
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
         testcase, testcase_file_path)
@@ -371,7 +370,7 @@ class UpdateIssueMetadataTest(unittest.TestCase):
 
   def test_update_issue_metadata_non_existent(self):
     """Test update issue metadata a testcase with no metadata."""
-    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
@@ -385,7 +384,7 @@ class UpdateIssueMetadataTest(unittest.TestCase):
         'issue_labels': 'label1',
         'issue_components': 'component2',
     })
-    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
@@ -402,7 +401,7 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.testcase.put()
 
     self.testcase.crash_type = 'test'  # Should not be written.
-    progression_task._update_issue_metadata(self.testcase)  # pylint: disable=protected-access
+    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({

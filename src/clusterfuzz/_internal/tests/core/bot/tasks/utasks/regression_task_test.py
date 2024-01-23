@@ -27,18 +27,6 @@ from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
 
-def _roundtrip_input(uworker_input: uworker_io.UworkerInput
-                    ) -> uworker_io.DeserializedUworkerMsg:
-  serialized = uworker_io.serialize_uworker_input(uworker_input)
-  return uworker_io.deserialize_uworker_input(serialized)
-
-
-def _roundtrip_output(uworker_output: uworker_io.UworkerOutput
-                     ) -> uworker_io.DeserializedUworkerMsg:
-  serialized = uworker_io.serialize_uworker_output(uworker_output)
-  return uworker_io.deserialize_uworker_output(serialized)
-
-
 class WriteToBigQueryTest(unittest.TestCase):
   """Test write_to_big_query."""
 
@@ -258,16 +246,18 @@ class UtaskPreprocessTest(unittest.TestCase):
     job_type = 'foo-job'
     uworker_env = {"foo": "bar"}
     fuzzer_name = 'foo-fuzzer'
-    self.mock.preprocess_setup_testcase.return_value = uworker_io.SetupInput(
+    self.mock.preprocess_setup_testcase.return_value = uworker_msg_pb2.SetupInput(
         fuzzer_name=fuzzer_name)
 
     uworker_input = regression_task.utask_preprocess(testcase_id, job_type,
                                                      uworker_env)
 
     self.assertEqual(uworker_input.testcase_id, testcase_id)
-    self.assertEqual(uworker_input.testcase.project_name, testcase.project_name)
+    returned_testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                                        data_types.Testcase)
+    self.assertEqual(returned_testcase.project_name, testcase.project_name)
     self.assertEqual(uworker_input.job_type, job_type)
-    self.assertTrue(uworker_input.HasField("regression_task_input"))
+    self.assertTrue(uworker_input.HasField('regression_task_input'))
 
     testcase = testcase.key.get()
     self.assertRegex(testcase.comments, 'started.$')
@@ -289,47 +279,91 @@ class UtaskMainTest(unittest.TestCase):
   def test_setup_error(self):
     """Verifies that if setting up the testcase fails, the task bails out."""
     testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_io.UworkerInput(
+    uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
-        testcase=testcase,
+        testcase=uworker_io.entity_to_protobuf(testcase),
         job_type='foo-job',
-        setup_input=uworker_io.SetupInput(),
+        setup_input=uworker_msg_pb2.SetupInput(),
         module_name=regression_task.__name__,
     )
 
     self.mock.setup_testcase.return_value = (
         None, None,
-        uworker_io.UworkerOutput(
+        uworker_msg_pb2.Output(
             error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP))
 
-    output = regression_task.utask_main(_roundtrip_input(uworker_input))
+    output = regression_task.utask_main(uworker_input)
     output.error_type = uworker_msg_pb2.ErrorType.TESTCASE_SETUP
 
   def test_empty_revision_list(self):
     """Verifies that if no good revisions can be found, the task fails."""
     testcase = test_utils.create_generic_testcase()
     bad_revisions = [1, 2, 3]
-    uworker_input = uworker_io.UworkerInput(
+    uworker_input = uworker_msg_pb2.Input(
         testcase_id=str(testcase.key.id()),
-        testcase=testcase,
+        testcase=uworker_io.entity_to_protobuf(testcase),
         job_type='foo-job',
-        setup_input=uworker_io.SetupInput(),
-        regression_task_input=uworker_io.RegressionTaskInput(),
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(
+            bad_revisions=bad_revisions),
     )
-    uworker_input.regression_task_input.bad_revisions.extend(bad_revisions)
-
     self.mock.setup_testcase.return_value = (None, None, None)
     # TODO: Set up environment more realistically and avoid mocking these out
     # entirely.
     self.mock.get_primary_bucket_path.return_value = 'gs://foo'
     self.mock.get_revisions_list.return_value = []
 
-    output = regression_task.utask_main(_roundtrip_input(uworker_input))
+    output = regression_task.utask_main(uworker_input)
 
     self.mock.get_revisions_list.assert_called_once()
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
-    self.assertEqual(output.testcase.key, testcase.key)
+
+  def test_min_revision_not_found(self):
+    """Verifies that if the minimum revision in the regression range is not
+    found, the task fails."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.set_metadata('last_regression_min', 100)
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = [101]
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND)
+    self.assertEqual(output.error_message,
+                     'Could not find good min revision <= 100.')
+
+  def test_max_revision_not_found(self):
+    """Verifies that if the maximum revision in the regression range is not
+    found, the task fails."""
+    testcase = test_utils.create_generic_testcase()
+    testcase.set_metadata('last_regression_max', 101)
+    uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(testcase.key.id()),
+        testcase=uworker_io.entity_to_protobuf(testcase),
+        job_type='foo-job',
+        setup_input=uworker_msg_pb2.SetupInput(),
+        regression_task_input=uworker_msg_pb2.RegressionTaskInput(),
+    )
+
+    self.mock.setup_testcase.return_value = (None, None, None)
+    self.mock.get_revisions_list.return_value = [100]
+
+    output = regression_task.utask_main(uworker_input)
+
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND)
+    self.assertEqual(output.error_message,
+                     'Could not find good max revision >= 101.')
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -347,13 +381,14 @@ class UtaskPostprocessTest(unittest.TestCase):
     """
     testcase = test_utils.create_generic_testcase()
 
-    output = uworker_io.UworkerOutput(
-        uworker_input=uworker_io.UworkerInput(
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
             testcase_id=str(testcase.key.id()),
-            module_name=regression_task.__name__),
+            module_name=regression_task.__name__,
+        ),
         error_type=uworker_msg_pb2.ErrorType.TESTCASE_SETUP)
 
-    regression_task.utask_postprocess(_roundtrip_output(output))
+    regression_task.utask_postprocess(output)
 
     # TODO: Set up environment more realistically and check `add_task()` args.
     self.mock.add_task.assert_called()
@@ -363,15 +398,32 @@ class UtaskPostprocessTest(unittest.TestCase):
     the testcase is updated to reflect that."""
     testcase = test_utils.create_generic_testcase()
 
-    output = uworker_io.UworkerOutput(
-        uworker_input=uworker_io.UworkerInput(
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
             testcase_id=str(testcase.key.id()),
             module_name=regression_task.__name__),
-        error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
-        testcase=uworker_io.UworkerEntityWrapper(testcase))
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR)
 
-    regression_task.utask_postprocess(_roundtrip_output(output))
+    regression_task.utask_postprocess(output)
 
     testcase = testcase.key.get()
     self.assertEqual(testcase.fixed, 'NA')
     self.assertRegex(testcase.comments, 'Failed to fetch revision list.$')
+
+  def test_build_not_found_error(self):
+    """Verifies that if the task failed with `REGRESSION_BUILD_NOT_FOUND_ERROR`,
+    then the testcase is updated to reflect that regression failed."""
+    testcase = test_utils.create_generic_testcase()
+
+    output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            testcase_id=str(testcase.key.id()),
+            module_name=regression_task.__name__),
+        error_type=uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
+        error_message='foo')
+
+    regression_task.utask_postprocess(output)
+
+    testcase = testcase.key.get()
+    self.assertEqual(testcase.regression, 'NA')
+    self.assertRegex(testcase.comments, 'foo.$')

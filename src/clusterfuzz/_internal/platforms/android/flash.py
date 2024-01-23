@@ -52,6 +52,8 @@ FLASH_IMAGE_FILES = [
     ('userdata', 'userdata.img'),
 ]
 FLASH_DEFAULT_BUILD_TARGET = '-next-userdebug'
+FLASH_DEFAULT_IMAGES_DIR = os.path.join(
+    environment.get_value('ROOT_DIR', ''), 'bot', 'inputs', 'images')
 FLASH_INTERVAL = 1 * 24 * 60 * 60
 FLASH_RETRIES = 3
 FLASH_REBOOT_BOOTLOADER_WAIT = 15
@@ -64,7 +66,9 @@ def download_latest_build(build_info, image_regexes, image_directory):
   # download it.
   build_id = build_info['bid']
   target = build_info['target']
+  logs.log('target stored in current build_info: %s.' % target)
   last_build_info = persistent_cache.get_value(constants.LAST_FLASH_BUILD_KEY)
+  logs.log('last_build_info take from persisten cache: %s.' % last_build_info)
   if last_build_info and last_build_info['bid'] == build_id:
     return
 
@@ -122,16 +126,22 @@ def flash_to_latest_build_if_needed():
   branch = environment.get_value('BUILD_BRANCH')
   target = environment.get_value('BUILD_TARGET')
   if not target:
+    logs.log('BUILD_TARGET is not set.')
     build_params = settings.get_build_parameters()
     if build_params:
+      logs.log('build_params found on device: %s.' % build_params)
       if environment.is_android_cuttlefish():
         target = build_params.get('target') + FLASH_DEFAULT_BUILD_TARGET
+        logs.log('is_android_cuttlefish() returned True. Target: %s.' % target)
       else:
         target = build_params.get('target') + '-userdebug'
+        logs.log('is_android_cuttlefish() returned False. Target: %s.' % target)
 
       # Cache target in environment. This is also useful for cases when
       # device is bricked and we don't have this information available.
       environment.set_value('BUILD_TARGET', target)
+    else:
+      logs.log('build_params not found.')
 
   if not branch or not target:
     logs.log_warn(
@@ -139,6 +149,11 @@ def flash_to_latest_build_if_needed():
     return
 
   image_directory = environment.get_value('IMAGES_DIR')
+  logs.log('image_directory: %s' % str(image_directory))
+  if not image_directory:
+    logs.log('no image_directory set, setting to default')
+    image_directory = FLASH_DEFAULT_IMAGES_DIR
+    logs.log('image_directory: %s' % image_directory)
   build_info = fetch_artifact.get_latest_artifact_info(branch, target)
   if not build_info:
     logs.log_error('Unable to fetch information on latest build artifact for '

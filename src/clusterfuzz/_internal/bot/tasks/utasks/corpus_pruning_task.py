@@ -41,6 +41,7 @@ from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -325,7 +326,8 @@ class Runner:
     rss_limit = RSS_LIMIT
     max_len = engine_common.CORPUS_INPUT_SIZE_LIMIT
     detect_leaks = 1
-    arguments = [TIMEOUT_FLAG]
+    arguments = options.FuzzerArguments()
+    arguments[constants.TIMEOUT_FLAGNAME] = SINGLE_UNIT_TIMEOUT
 
     if self.fuzzer_options:
       # Default values from above can be customized for a given fuzz target.
@@ -348,12 +350,12 @@ class Runner:
       if custom_detect_leaks is not None:
         detect_leaks = custom_detect_leaks
 
-    arguments.append(RSS_LIMIT_MB_FLAG % rss_limit)
-    arguments.append(MAX_LEN_FLAG % max_len)
-    arguments.append(DETECT_LEAKS_FLAG % detect_leaks)
-    arguments.append(constants.VALUE_PROFILE_ARGUMENT)
+    arguments[constants.RSS_LIMIT_FLAGNAME] = rss_limit
+    arguments[constants.MAX_LEN_FLAGNAME] = max_len
+    arguments[constants.DETECT_LEAKS_FLAGNAME] = detect_leaks
+    arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
 
-    return arguments
+    return arguments.list()
 
   def process_sanitizer_options(self):
     """Process sanitizer options overrides."""
@@ -876,7 +878,9 @@ def _save_coverage_information(context, result):
 
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
-  fuzz_target = uworker_input.corpus_pruning_task_input.fuzz_target
+  fuzz_target = uworker_io.entity_from_protobuf(
+      uworker_input.corpus_pruning_task_input.fuzz_target,
+      data_types.FuzzTarget)
   task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
                f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
@@ -907,12 +911,12 @@ def utask_main(uworker_input):
   except Exception:
     logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
-    return uworker_io.UworkerOutput()
+    return uworker_msg_pb2.Output()
   finally:
     context.cleanup()
 
   data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
-  return uworker_io.UworkerOutput()
+  return uworker_msg_pb2.Output()
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -934,13 +938,14 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     logs.log('A previous corpus pruning task is still running, exiting.')
     return None
 
-  corpus_pruning_task_input = uworker_io.CorpusPruningTaskInput(
-      fuzz_target=fuzz_target, last_execution_failed=last_execution_failed)
+  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
+      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
+      last_execution_failed=last_execution_failed)
 
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
 
-  return uworker_io.UworkerInput(
+  return uworker_msg_pb2.Input(
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,

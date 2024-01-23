@@ -58,10 +58,6 @@ resource "google_container_cluster" "primary" {
     enable_private_nodes    = true
     master_ipv4_cidr_block  = "172.16.0.32/28"
   }
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "google_container_node_pool" "primary_nodes" {
@@ -72,7 +68,8 @@ resource "google_container_node_pool" "primary_nodes" {
 
   node_config {
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/buganizer"
     ]
 
     labels = {
@@ -84,10 +81,6 @@ resource "google_container_node_pool" "primary_nodes" {
     metadata = {
       disable-legacy-endpoints = "true"
     }
-  }
-
-  lifecycle {
-    prevent_destroy = true
   }
 }
 

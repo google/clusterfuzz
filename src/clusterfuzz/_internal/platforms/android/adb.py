@@ -31,8 +31,8 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
 ADB_TIMEOUT = 1200  # Should be lower than |REBOOT_TIMEOUT|.
-BAD_STATE_WAIT = 900
-BOOT_WAIT_INTERVAL = 30
+BAD_STATE_WAIT = 60 * 60  # 60 mins
+BOOT_WAIT_INTERVAL = 60 * 2
 CUTTLEFISH_USER = 'vsoc-01'
 CUTTLEFISH_CVD_PORT = 6520
 DEFAULT_DEVICE_MEMORY_MB = 2048
@@ -48,7 +48,7 @@ KERNEL_LOG_FILES = [
 MONKEY_PROCESS_NAME = 'monkey'
 WAIT_FOR_DEVICE_TIMEOUT = 600
 REBOOT_TIMEOUT = 3600
-RECOVERY_CMD_TIMEOUT = 60
+RECOVERY_CMD_TIMEOUT = 60 * 2
 GET_DEVICE_STATE_TIMEOUT = 20
 STOP_CVD_WAIT = 20
 LAUNCH_CVD_TIMEOUT = 2700
@@ -183,6 +183,7 @@ def copy_to_cuttlefish(src_path, dest_path, timeout=None):
 
 def factory_reset():
   """Reset device to factory state."""
+  logs.log('reached factory_reset')
   if environment.is_android_cuttlefish():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
@@ -419,13 +420,13 @@ def start_cuttlefish_device(use_kernel=False):
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
   launch_cvd_command_line = (
-      f'{launch_cvd_path} -daemon -memory_mb {device_memory_mb} '
-      '-report_anonymous_usage_stats Y')
+      f'sudo {launch_cvd_path} --daemon --memory_mb={device_memory_mb} '
+      '--report_anonymous_usage_stats=Y --enable_sandbox=true --resume=false')
   if use_kernel:
     kernel_path = os.path.join(cvd_dir, 'bzImage')
     initramfs_path = os.path.join(cvd_dir, 'initramfs.img')
     launch_cvd_command_line += (
-        f' -kernel_path={kernel_path} -initramfs_path={initramfs_path}')
+        f' --kernel_path={kernel_path} --initramfs_path={initramfs_path}')
 
   execute_command(
       launch_cvd_command_line,
@@ -433,11 +434,24 @@ def start_cuttlefish_device(use_kernel=False):
       on_cuttlefish_host=True)
 
 
+def copy_images_to_cuttlefish():
+  """Copy and Combine cvd host package and OTA images."""
+  image_directory = environment.get_value('IMAGES_DIR')
+  cvd_dir = environment.get_value('CVD_DIR')
+  for image_filename in os.listdir(image_directory):
+    if image_filename.endswith('.zip') or image_filename.endswith('.tar.gz'):
+      continue
+    image_src = os.path.join(image_directory, image_filename)
+    image_dest = os.path.join(cvd_dir, image_filename)
+    copy_to_cuttlefish(image_src, image_dest)
+
+
 def stop_cuttlefish_device():
   """Stops the cuttlefish device."""
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
+  logs.log('stop_cvd_cmd: %s' % str(stop_cvd_cmd))
 
   execute_command(
       stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
@@ -457,22 +471,16 @@ def recreate_cuttlefish_device():
   """Recreate cuttlefish device, restoring from backup images."""
   logs.log('Reimaging cuttlefish device.')
   cvd_dir = environment.get_value('CVD_DIR')
+  logs.log('cvd_dir: %s' % str(cvd_dir))
 
+  copy_images_to_cuttlefish()
   stop_cuttlefish_device()
 
   # Delete all existing images.
   rm_cmd = f'rm -rf {cvd_dir}/*'
   execute_command(rm_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
 
-  # Copy and Combine cvd host package and OTA images.
-  image_directory = environment.get_value('IMAGES_DIR')
-  for image_filename in os.listdir(image_directory):
-    if image_filename.endswith('.zip') or image_filename.endswith('.tar.gz'):
-      continue
-    image_src = os.path.join(image_directory, image_filename)
-    image_dest = os.path.join(cvd_dir, image_filename)
-    copy_to_cuttlefish(image_src, image_dest)
-
+  copy_images_to_cuttlefish()
   start_cuttlefish_device()
 
 

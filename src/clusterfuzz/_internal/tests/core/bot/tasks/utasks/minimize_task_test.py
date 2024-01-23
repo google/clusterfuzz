@@ -190,9 +190,9 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
     setup_input = setup.preprocess_setup_testcase(testcase)
-    uworker_input = uworker_io.DeserializedUworkerMsg(
+    uworker_input = uworker_msg_pb2.Input(
         job_type='libfuzzer_asan_job',
-        testcase=testcase,
+        testcase=uworker_io.entity_to_protobuf(testcase),
         setup_input=setup_input,
         testcase_id=str(testcase.key.id()))
     minimize_task.utask_main(uworker_input)
@@ -285,23 +285,15 @@ class UTaskPostprocessTest(unittest.TestCase):
 
   def _get_generic_input(self):
     testcase = data_types.Testcase()
-    uworker_input = uworker_io.UworkerInput(
-        job_type='job_type', testcase_id='testcase_id', testcase=testcase)
-    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
-    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    uworker_input = uworker_msg_pb2.Input(
+        job_type='job_type',
+        testcase_id='testcase_id',
+        testcase=uworker_io.entity_to_protobuf(testcase))
     return uworker_input
-
-  def _create_output(self, uworker_input=None, **kwargs):
-    uworker_output = uworker_io.UworkerOutput(**kwargs)
-    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
-    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
-    if uworker_input:
-      uworker_output.uworker_input = uworker_input
-    return uworker_output
 
   def test_error_does_not_finalize_testcase(self):
     """Checks that an output with an error does not finalize a testcase."""
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     minimize_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.finalize_testcase.called)
@@ -309,10 +301,10 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_generic_output_finalizes_testcase(self):
     """Checks that an output with all critical fields finalizes a testcase."""
     self.mock.finalize_testcase.return_value = None
-    last_crash_result_dict = {'crash_type': 'placeholder'}
-    minimize_task_output = uworker_io.MinimizeTaskOutput(
+    last_crash_result_dict = {'crash_type': 'type', 'crash_state': 'state'}
+    minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=last_crash_result_dict)
-    uworker_output = self._create_output(
+    uworker_output = uworker_msg_pb2.Output(
         uworker_input=self._get_generic_input(),
         minimize_task_output=minimize_task_output)
 
@@ -345,17 +337,9 @@ class UTaskMainTest(unittest.TestCase):
     del check_app_path
     testcase = data_types.Testcase()
     testcase.put()
-    testcase_id = testcase.key.id()
-    build_fail_wait = 10
     environment.set_value('FAIL_WAIT', 10)
-    uworker_input = uworker_io.UworkerInput(testcase=testcase)
-    uworker_input = uworker_io.serialize_uworker_input(uworker_input)
-    uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
+    uworker_input = uworker_msg_pb2.Input(
+        testcase=uworker_io.entity_to_protobuf(testcase))
     uworker_output = minimize_task.utask_main(uworker_input)
-    uworker_output = uworker_io.serialize_uworker_output(uworker_output)
-    uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
-    self.assertEqual(uworker_output.testcase.key.id(), testcase_id)
-    self.assertEqual(uworker_output.minimize_task_output.build_fail_wait,
-                     build_fail_wait)
     self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)

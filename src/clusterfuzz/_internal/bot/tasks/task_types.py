@@ -15,12 +15,17 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
 class BaseTask:
   """Base module for tasks."""
+
+  @staticmethod
+  def is_execution_remote():
+    return False
 
   def __init__(self, module):
     self.module = module
@@ -40,34 +45,15 @@ class TrustedTask(BaseTask):
     self.module.execute_task(task_argument, job_type)
 
 
-class UTask(BaseTask):
-  """Represents an untrusted task. Executes the preprocess part on this machine
-  and causes the other parts to be executed on on other machines."""
+class BaseUTask(BaseTask):
+  """Base class representing an untrusted task. Children must decide to execute
+  locally or remotely."""
 
   def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    preprocess_result = utasks.tworker_preprocess(self.module, task_argument,
-                                                  job_type, uworker_env)
+    """Executes a task."""
+    raise NotImplementedError('Child class must implement.')
 
-    if preprocess_result is None:
-      return
-
-    # TODO(metzman): Execute main on other machines.
-
-
-def is_production():
-  return not (environment.is_local_development() or
-              environment.get_value('UNTRUSTED_RUNNER_TESTS') or
-              environment.get_value('LOCAL_DEVELOPMENT') or
-              environment.get_value('UTASK_TESTS'))
-
-
-class UTaskLocalExecutor(BaseTask):
-  """Represents an untrusted task. Executes it entirely locally and in
-  memory."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally in-memory."""
+  def execute_locally(self, task_argument, job_type, uworker_env):
     uworker_input = utasks.tworker_preprocess_no_io(self.module, task_argument,
                                                     job_type, uworker_env)
     if uworker_input is None:
@@ -78,27 +64,82 @@ class UTaskLocalExecutor(BaseTask):
     utasks.tworker_postprocess_no_io(self.module, uworker_output, uworker_input)
     logs.log('Utask local: done.')
 
+  def preprocess(self, task_argument, job_type, uworker_env):
+    """Executes preprocessing."""
+    raise NotImplementedError('Child class must implement.')
 
-class UTaskLocalPreprocessAndMain(UTaskLocalExecutor):
-  """Represents an untrusted task. Executes the preprocess and main parts on
-  this machine and causes postprocess to be executed on on other machines."""
 
-  # TODO(metzman): Delete this once we start using UTasks. Its only purpose is
-  # for incremental development.
+def is_remote_utask(command, job):
+  if not COMMAND_TYPES[command].is_execution_remote():
+    return False
+
+  if environment.is_uworker():
+    # Return True even if we can't query the db.
+    return True
+
+  return batch.is_remote_task(command, job)
+
+
+class UTaskLocalExecutor(BaseUTask):
+  """Represents an untrusted task. Executes it entirely locally and in
+  memory."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    """Executes a utask locally in-memory."""
+    self.execute_locally(task_argument, job_type, uworker_env)
+
+  def preprocess(self, task_argument, job_type, uworker_env):
+    """Executes preprocessing."""
+    raise NotImplementedError('Only needed for utasks.')
+
+
+class UTask(BaseUTask):
+  """Represents an untrusted task. Executes preprocess on this machine, main on
+  an untrusted machine, and postprocess on another trusted machine if
+  opted-in. Otherwise executes locally."""
+
+  @staticmethod
+  def is_execution_remote():
+    return is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    if (not is_production() or
-        not environment.get_value('REMOTE_UTASK_EXECUTION')):
-      super().execute(task_argument, job_type, uworker_env)
+    if (not environment.is_production() or
+        not environment.get_value('REMOTE_UTASK_EXECUTION') or
+        environment.platform() != 'LINUX'):
+      self.execute_locally(task_argument, job_type, uworker_env)
       return
 
+    download_url = self.preprocess(task_argument, job_type, uworker_env)
+    if download_url is None:
+      return
+
+    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
+                                        download_url)
+
+  def preprocess(self, task_argument, job_type, uworker_env):
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
                                                 job_type, uworker_env)
-
+    if not download_url:
+      logs.log_error('No download_url returned from preprocess.')
+      return None
     logs.log('Utask: done with preprocess.')
-    utasks.uworker_main(download_url)
-    logs.log('Utask: done with main.')
+    return download_url
+
+
+class UTaskCombined(UTask):
+  """Special kind of UTask where tasks are created as utasks and treated as
+  tasks within a batch job. Tasks received on the queue will still execute
+  locally. This should ease the transition to UTask and prevent batch from being
+  DoSed."""
+
+  def execute(self, task_argument, job_type, uworker_env):
+    self.execute_locally(task_argument, job_type, uworker_env)
+
+
+def is_remotely_executing_utasks():
+  return bool(environment.is_production() and
+              environment.get_value('REMOTE_UTASK_EXECUTION'))
 
 
 class PostprocessTask(BaseTask):
@@ -140,7 +181,7 @@ class UworkerMainTask(BaseTask):
 
 
 COMMAND_TYPES = {
-    'analyze': UTaskLocalPreprocessAndMain,
+    'analyze': UTaskLocalExecutor,
     'blame': TrustedTask,
     'corpus_pruning': UTaskLocalExecutor,
     'fuzz': UTaskLocalExecutor,
@@ -148,11 +189,11 @@ COMMAND_TYPES = {
     'minimize': UTaskLocalExecutor,
     'progression': UTaskLocalExecutor,
     'regression': UTaskLocalExecutor,
-    'symbolize': UTaskLocalExecutor,
+    'symbolize': UTaskCombined,
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTaskLocalExecutor,
+    'variant': UTaskCombined,
 }
 
 

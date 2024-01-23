@@ -36,7 +36,7 @@ class CrashInfo:
     self.crash_stacktrace = ''
     self.crash_categories = set()
     self.frame_count = 0
-    self.process_name = 'NULL'
+    self.process_name = None
     self.process_died = False
 
     # Following fields are for internal use only and subject to change. Do not
@@ -59,6 +59,9 @@ class CrashInfo:
 
     # Additional tracking for lkl bugs.
     self.lkl_kernel_build_id = None
+
+    # Additional tracking for fuzzing directory frames,
+    self.fuzzer_dir_frames = 0
 
     self.is_kasan = False
     self.is_lkl = False
@@ -149,10 +152,18 @@ class StackParser:
     return False
 
   def get_rank(self, crash_type):
-    """Return the assignment priority of a given crash type."""
-    if crash_type in ['Timeout']:
-      return 1
-    return 0
+    """Return the assignment rank of a given crash type."""
+    # Higher ranked types will not be overwritten with lower ranked types.
+    # Types missing in this list have a default rank of 0.
+    high_rank_types = {'V8 sandbox violation': 2, 'Timeout': 1}
+    return high_rank_types.get(crash_type, 0)
+
+  def update_crash_type(self, state: CrashInfo, new_type):
+    # Prioritize the crash type associated with the latest stack frame, unless
+    # the previous type has an explicitly assigned higher priority.
+    if new_type is not None and self.get_rank(new_type) >= self.get_rank(
+        state.crash_type):
+      state.crash_type = new_type
 
   def update_state_on_match(self,
                             compiled_regex: re.Pattern,
@@ -178,13 +189,10 @@ class StackParser:
       state.crash_address = ''
       state.crash_state = ''
       state.frame_count = 0
+      state.fuzzer_dir_frames = 0
 
     # Direct updates.
-    if new_type is not None and self.get_rank(new_type) >= self.get_rank(
-        state.crash_type):
-      # Prioritize the crash type associated with the latest stack frame,
-      # unless explicit ordering is available.
-      state.crash_type = new_type
+    self.update_crash_type(state, new_type)
 
     if new_state is not None:
       state.crash_state = new_state
@@ -197,7 +205,8 @@ class StackParser:
 
     # Updates from match groups.
     if type_from_group is not None:
-      state.crash_type = type_filter(match.group(type_from_group)).strip()
+      self.update_crash_type(state,
+                             type_filter(match.group(type_from_group)).strip())
 
     if address_from_group is not None:
       state.crash_address = address_filter(
@@ -293,6 +302,8 @@ class StackParser:
     if state.frame_count < MAX_CRASH_STATE_FRAMES:
       state.crash_state += filtered_frame + '\n'
       state.frame_count += 1
+      if FUZZER_DIR_REGEX.match(line):
+        state.fuzzer_dir_frames += 1
 
     return match
 
@@ -343,10 +354,10 @@ class StackParser:
         else:
           state.crash_state += line[:LINE_LENGTH_CAP] + '\n'
 
-    # Don't return an empty crash state if we have a crash type. Either set
-    # to NULL or use the crashing process name if available.
+    # Don't return an empty crash state if we have a crash type. Use the
+    # process name or fuzz target if available, or set to 'NULL'.
     if state.crash_type and not state.crash_state.strip():
-      state.crash_state = state.process_name
+      state.crash_state = state.process_name or self.fuzz_target or 'NULL'
 
     # For timeout, OOMs, const-input-overwrites in fuzz targets, force use of
     # fuzz target name since stack itself is not usable for deduplication.
@@ -679,7 +690,7 @@ class StackParser:
               SAN_SIGNAL_REGEX.match(stacktrace)):
             continue
 
-        state.crash_type = 'UNKNOWN'
+        self.update_crash_type(state, 'UNKNOWN')
         state.crash_address = temp_crash_address
         state.crash_state = ''
         state.frame_count = 0
@@ -1068,6 +1079,13 @@ class StackParser:
             new_type='V8 correctness failure',
             reset=True)
 
+        # V8 sandbox violations.
+        self.update_state_on_match(
+            V8_SANDBOX_VIOLATION_REGEX,
+            line,
+            state,
+            new_type='V8 sandbox violation')
+
         # Generic SEGV handler errors.
         self.update_state_on_match(
             GENERIC_SEGV_HANDLER_REGEX,
@@ -1309,6 +1327,16 @@ class StackParser:
       if state.is_trusty and self.add_frame_on_match(
           TRUSTY_STACK_FRAME_REGEX, line, state, group=4):
         continue
+
+    # Add label if majority of crash_state arises from fuzzing directories.
+    if state.fuzzer_dir_frames >= state.frame_count / 2:
+      state.crash_categories.add('Fuzzer-crash-state')
+
+    # Add label to Android crashes if frame #0 was not found outside of logcat.
+    frame_0_idx, logcat_idx = stacktrace.find('    #0'), stacktrace.find(
+        '\n\nLogcat:\n')
+    if logcat_idx != -1 and (frame_0_idx == -1 or frame_0_idx > logcat_idx):
+      state.crash_categories.add('Missing-libfuzzer-stacktrace')
 
     # Detect cycles in stack overflow bugs and update crash state.
     update_crash_state_for_stack_overflow_if_needed(state)

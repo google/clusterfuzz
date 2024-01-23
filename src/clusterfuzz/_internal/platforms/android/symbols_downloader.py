@@ -26,6 +26,8 @@ from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
 
+from . import constants
+
 
 def get_repo_prop_archive_filename(build_id, target):
   return f'{target}-{build_id}-repo.prop'
@@ -139,6 +141,8 @@ def download_system_symbols_if_needed(symbols_directory):
   build_id = build_params.get('build_id')
   target = build_params.get('target')
   build_type = build_params.get('type')
+  if environment.is_android():
+    build_type = constants.RELEASE_CONFIGURATION + '-' + build_type
   if not build_id or not target or not build_type:
     logs.log_error('Null build parameters found, exiting.')
     return

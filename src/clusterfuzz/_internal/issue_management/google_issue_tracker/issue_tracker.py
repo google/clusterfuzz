@@ -26,7 +26,12 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import client
 from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
-_ISSUE_TRACKER_URL = 'https://issuetracker.googleapis.com/v1/issues'
+_ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
+
+# These custom fields use repeated enums.
+_CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
+_CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID = '1222907'
+_CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID = '1223086'
 
 
 class IssueAccessLevel(str, enum.Enum):
@@ -48,17 +53,18 @@ class IssueTrackerPermissionError(IssueTrackerError):
   """Permission error."""
 
 
-class _SingleComponentStore(issue_tracker.LabelStore):
-  """LabelStore that only accepts 1 item."""
-
-  def get_single(self):
-    """Get the single component, or None."""
-    return next(iter(self), None)
-
-  def add(self, label):
-    """Add a component, overwriting the last component added if any."""
-    self.clear()
-    super(_SingleComponentStore, self).add(label)
+def _extract_all_labels(labels, prefix):
+  """Extract all label values."""
+  results = []
+  labels_to_remove = []
+  for label in labels:
+    if not label.startswith(prefix):
+      continue
+    results.append(label[len(prefix):])
+    labels_to_remove.append(label)
+  for label in labels_to_remove:
+    labels.remove(label)
+  return results
 
 
 def _extract_label(labels, prefix):
@@ -70,6 +76,16 @@ def _extract_label(labels, prefix):
     labels.remove(label)
     return result
   return None
+
+
+def _get_labels(labels_dict, prefix):
+  """Return all label values from labels.added or labels.removed"""
+  results = []
+  for label in labels_dict:
+    if not label.startswith(prefix):
+      continue
+    results.append(label[len(prefix):])
+  return results
 
 
 class Issue(issue_tracker.Issue):
@@ -91,11 +107,58 @@ class Issue(issue_tracker.Issue):
         for hotlist_id in data['issueState'].get('hotlistIds', [])
     ]
     self._labels = issue_tracker.LabelStore(labels)
-    components = [str(data['issueState']['componentId'])]
-    self._components = _SingleComponentStore(components)
+
+    component_tags = self._get_component_tags()
+    self._component_tags = issue_tracker.LabelStore(component_tags)
+
     self._body = None
     self._changed = set()
     self._issue_access_limit = IssueAccessLevel.LIMIT_NONE
+
+  def _get_component_tags(self):
+    """Returns the value of the Component Tags custom field."""
+    custom_fields = self._data['issueState'].get('customFields', [])
+    for cf in custom_fields:
+      if cf.get('customFieldId') == _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID:
+        enum_values = cf.get('repeatedEnumValue')
+        if enum_values:
+          return enum_values.get('values') or []
+    return []
+
+  def _get_component_paths(self, component_tags):
+    """Converts component IDs from component tags into component paths.
+
+    Eg:  component_id=1456567 will be translated into
+         "Blink>JavaScript>Compiler>Sparkplug".
+    """
+    component_paths = set()
+    for ct in component_tags:
+      if ct.isnumeric():
+        component_path = self._issue_tracker._get_relative_component_path(ct)
+        if not component_path:
+          logs.log_warn('google_issue_tracker: Component ID %s did not return '
+                        'a component path' % ct)
+          continue
+        component_paths.add(component_path)
+      else:
+        # The component tag is already a component path.
+        component_paths.add(ct)
+    return sorted(component_paths)
+
+  def _filter_custom_field_enum_values(self, custom_field_id, values):
+    """Filters out invalid enum values from the provided values."""
+    filtered_values = []
+    for cf in self._data.get('customFields', []):
+      if cf['customFieldId'] == custom_field_id:
+        allowed_values = cf['enumValues']
+        for v in values:
+          if v in allowed_values:
+            filtered_values.append(v)
+          else:
+            logs.log('google_issue_tracker: Value %s for CustomFieldId %s was '
+                     'not in allowed values' % (v, custom_field_id))
+        break
+    return filtered_values
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -103,16 +166,22 @@ class Issue(issue_tracker.Issue):
     self._ccs.reset_tracking()
     self._collaborators.reset_tracking()
     self._labels.reset_tracking()
-    self._components.reset_tracking()
+    self._component_tags.reset_tracking()
 
   def apply_extension_fields(self, extension_fields):
     """Applies _ext_ prefixed extension fields."""
+    logs.log('google_issue_tracker: In apply_extension_fields with %s' %
+             extension_fields)
     if extension_fields.get('_ext_collaborators'):
+      logs.log('google_issue_tracker: In apply_extension_fields for '
+               'collaborators: %s' % extension_fields['_ext_collaborators'])
       self._changed.add('_ext_collaborators')
       for collaborator in extension_fields['_ext_collaborators']:
         self._collaborators.add(collaborator)
 
     if extension_fields.get('_ext_issue_access_limit'):
+      logs.log('google_issue_tracker: In apply_extension_fields for IAL: %s' %
+               extension_fields['_ext_issue_access_limit'])
       self._changed.add('_issue_access_limit')
       self._issue_access_limit = extension_fields['_ext_issue_access_limit']
 
@@ -227,9 +296,14 @@ class Issue(issue_tracker.Issue):
     return self._labels
 
   @property
+  def component_id(self):
+    """The issue's component ID."""
+    return self._data['issueState']['componentId']
+
+  @property
   def components(self):
-    """The issue component list."""
-    return self._components
+    """The issue's component tags."""
+    return self._component_tags
 
   @property
   def actions(self):
@@ -246,6 +320,36 @@ class Issue(issue_tracker.Issue):
       page_token = result.get('nextPageToken')
       if not page_token:
         break
+
+  @property
+  def _os_custom_field_values(self):
+    """OS custom field values."""
+    custom_fields = self._data['issueState'].get('customFields', [])
+    for cf in custom_fields:
+      if cf.get('customFieldId') == _CHROMIUM_OS_CUSTOM_FIELD_ID:
+        enum_values = cf.get('repeatedEnumValue')
+        if enum_values:
+          return enum_values.get('values') or []
+    return []
+
+  @property
+  def _releaseblock_custom_field_values(self):
+    """ReleaseBlock custom field values."""
+    custom_fields = self._data['issueState'].get('customFields', [])
+    for cf in custom_fields:
+      if cf.get('customFieldId') == _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID:
+        enum_values = cf.get('repeatedEnumValue')
+        if enum_values:
+          return enum_values.get('values') or []
+    return []
+
+  @property
+  def _foundin_versions(self):
+    """FoundIn versions."""
+    foundin_versions = self._data['issueState'].get('foundInVersions')
+    if not foundin_versions:
+      return []
+    return foundin_versions
 
   @property
   def _verifier(self):
@@ -333,6 +437,71 @@ class Issue(issue_tracker.Issue):
                                 'collaborators', _make_users)
     self._add_update_single(update_body, added, removed, '_issue_access_limit',
                             'access_limit')
+
+    # Custom fields are modified by providing the complete value of the
+    # customFieldId.
+    custom_field_entries = []
+
+    # Special case OS custom field.
+    added_oses = _get_labels(self.labels.added, 'OS-')
+    if added_oses:
+      oses = self._os_custom_field_values
+      oses.extend(added_oses)
+      custom_field_entries.append({
+          'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+          'repeatedEnumValue': {
+              'values': oses,
+          }
+      })
+    # Remove all OS labels or they will be attempted to be added as
+    # hotlist IDs.
+    self.labels.remove_by_prefix('OS-')
+
+    # Special case ReleaseBlock custom field.
+    added_releaseblocks = _get_labels(self.labels.added, 'ReleaseBlock-')
+    if added_releaseblocks:
+      releaseblocks = self._releaseblock_custom_field_values
+      releaseblocks.extend(added_releaseblocks)
+      custom_field_entries.append({
+          'customFieldId': _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID,
+          'repeatedEnumValue': {
+              'values': releaseblocks,
+          }
+      })
+    # Remove all ReleaseBlock labels or they will be attempted to be added as
+    # hotlist IDs.
+    self.labels.remove_by_prefix('ReleaseBlock-')
+
+    # Special case Component Tags custom field.
+    if self.components.added:
+      component_paths = self._get_component_paths(self.components)
+      values = self._filter_custom_field_enum_values(
+          _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID, component_paths)
+      if values:
+        logs.log('google_issue_tracker: Going to add these components to '
+                 'component tags: %s' % values)
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': values,
+            }
+        })
+
+    if custom_field_entries:
+      added.append('customFields')
+      update_body['add']['customFields'] = custom_field_entries
+
+    # Special case FoundIn versions.
+    added_foundins = _get_labels(self.labels.added, 'FoundIn-')
+    if added_foundins:
+      foundins = self._foundin_versions
+      foundins.extend(added_foundins)
+      added.append('foundInVersions')
+      update_body['add']['foundInVersions'] = foundins
+    # Remove FoundIn labels or they will be attempted to be added as
+    # hotlist IDs.
+    self.labels.remove_by_prefix('FoundIn-')
+
     update_body['addMask'] = ','.join(added)
     update_body['removeMask'] = ','.join(removed)
     if notify:
@@ -348,19 +517,12 @@ class Issue(issue_tracker.Issue):
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().modify(
               issueId=str(self.id), body=update_body))
-    # Special case: components.
-    new_component = next(iter(self.components.added), None)
-    if new_component:
-      self.issue_tracker._execute(self.issue_tracker.client.issues().move(
-          issueId=str(self.id),
-          body={
-              'componentId': int(new_component),
-          },
-      ))
     # Special case: hotlists.
     # TODO(ochang): Investigate batching.
     added_hotlists = self.labels.added
     removed_hotlists = self.labels.removed
+    logs.log('google_issue_tracker: added_hotlists: %s' % added_hotlists)
+    logs.log('google_issue_tracker: removed_hotlists: %s' % removed_hotlists)
     for hotlist in added_hotlists:
       self.issue_tracker._execute(
           self.issue_tracker.client.hotlists().createEntries(
@@ -379,22 +541,67 @@ class Issue(issue_tracker.Issue):
   def save(self, new_comment=None, notify=True):
     """Saves the issue."""
     if self._is_new:
+      logs.log('google_issue_tracker: Creating new issue..')
       priority = _extract_label(self.labels, 'Pri-')
       issue_type = _extract_label(self.labels, 'Type-') or 'BUG'
       self._data['issueState']['type'] = issue_type
       if priority:
         self._data['issueState']['priority'] = priority
-      component_id = self._components.get_single()
-      if component_id:
-        self._data['issueState']['componentId'] = int(component_id)
+
+      custom_field_entries = []
+      oses = _extract_all_labels(self.labels, 'OS-')
+      if oses:
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': oses
+            },
+        })
+      releaseblocks = _extract_all_labels(self.labels, 'ReleaseBlock-')
+      if releaseblocks:
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_RELEASE_BLOCK_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': releaseblocks
+            },
+        })
+      if list(self.components):
+        component_paths = self._get_component_paths(self.components)
+        logs.log(
+            'google_issue_tracker: In save. Going to add these components to '
+            'component tags: %s' % component_paths)
+        custom_field_entries.append({
+            'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
+            'repeatedEnumValue': {
+                'values': component_paths
+            },
+        })
+      if custom_field_entries:
+        self._data['issueState']['customFields'] = custom_field_entries
+
+      foundin_values = _extract_all_labels(self.labels, 'FoundIn-')
+      if foundin_values:
+        self._data['issueState']['foundInVersions'] = foundin_values
+
+      logs.log('google_issue_tracker: labels: %s' % list(self.labels))
+      severity_text = _extract_label(self.labels, 'Security_Severity-')
+      logs.log('google_issue_tracker: severity_text: %s' % severity_text)
+      severity = _get_severity_from_crash_text(severity_text)
+      self._data['issueState']['severity'] = severity
+
+      if self.component_id:
+        self._data['issueState']['componentId'] = int(self.component_id)
       ccs = list(self._ccs)
       if ccs:
         self._data['issueState']['ccs'] = _make_users(ccs)
       collaborators = list(self._collaborators)
       if collaborators:
+        logs.log(
+            'google_issue_tracker: Setting collaborators: %s' % collaborators)
         self._data['issueState']['collaborators'] = _make_users(collaborators)
       access_limit = self._issue_access_limit
       if access_limit:
+        logs.log('google_issue_tracker: Setting ial: %s' % access_limit)
         self._data['issueState']['accessLimit'] = {'accessLevel': access_limit}
       self._data['issueState']['hotlistIds'] = [
           int(label) for label in self.labels
@@ -403,14 +610,19 @@ class Issue(issue_tracker.Issue):
         self._data['issueComment'] = {
             'comment': self._body,
         }
+      logs.log(
+          'google_issue_tracker: Executing issue creation with self._data: %s' %
+          self._data)
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().create(
               body=self._data, templateOptions_applyTemplate=True))
       self._is_new = False
     else:
+      logs.log('google_issue_tracker: Updating issue..')
       result = self._update_issue(new_comment=new_comment, notify=notify)
     self._reset_tracking()
     self._data = result
+    logs.log('google_issue_tracker: self._data: %s' % self._data)
 
 
 class Action(issue_tracker.Action):
@@ -542,16 +754,8 @@ class Action(issue_tracker.Action):
 
   @property
   def components(self):
-    """The issue component change list."""
-    # We need to use the snake_case version of the field here, as that's the
-    # string value the backend actually uses.
-    old_value, new_value = self._get_field_update_single('component_id')
-    change_list = issue_tracker.ChangeList()
-    if new_value:
-      change_list.added.append(new_value)
-    if old_value:
-      change_list.removed.append(old_value)
-    return change_list
+    # Component tags will be handled by _update_issue and save.
+    return issue_tracker.ChangeList()
 
 
 class IssueTracker(issue_tracker.IssueTracker):
@@ -612,6 +816,37 @@ class IssueTracker(issue_tracker.IssueTracker):
         }
     }
     return Issue(data, True, self)
+
+  def _get_relative_component_path(self, component_id):
+    """Gets the component path relative to the default component path.
+
+    For component_id=1456567 (Sparkplug) and
+    default_component_id=1363614 (Chromium).
+    This method will return "Blink>JavaScript>Compiler>Sparkplug" and not
+    "Chromium Public Trackers>Chromium>Blink>JavaScript>Compiler/Sparkplug"
+
+    This matches the allowed values format of the Chromium component tags
+    custom field.
+    """
+    try:
+      component = self._execute(
+          self.client.components().get(componentId=str(component_id)))
+    except IssueTrackerError as e:
+      if isinstance(e, IssueTrackerNotFoundError):
+        return None
+      logs.log_error('Failed to retrieve component.', component_id=component_id)
+      return None
+
+    if component['componentId'] == str(self._default_component_id):
+      return None
+    if component.get('parentComponentId'):
+      parent_component_id = component['parentComponentId']
+      component_name = component.get('name', '')
+      if parent_component_id == str(self._default_component_id):
+        return component_name
+      return self._get_relative_component_path(
+          parent_component_id) + ">" + component_name
+    return None
 
   def get_issue(self, issue_id):
     """Gets the issue with the given ID."""
@@ -688,6 +923,20 @@ def _get_query(keywords, only_open):
   return query
 
 
+def _get_severity_from_crash_text(crash_severity_text):
+  """Get Google issue tracker severity from crash severity text."""
+  if crash_severity_text == 'Critical':
+    return 'S0'
+  if crash_severity_text == 'High':
+    return 'S1'
+  if crash_severity_text == 'Medium':
+    return 'S2'
+  if crash_severity_text == 'Low':
+    return 'S3'
+  # Default case.
+  return 'S4'
+
+
 # Uncomment for local testing. Will need access to a service account for these
 # steps to work. List of steps taken (for posterity)-
 # 1. gcloud iam service-accounts keys create --iam-account=${service_account} \
@@ -698,21 +947,57 @@ def _get_query(keywords, only_open):
 #    issue_tracker.py
 
 # if __name__ == '__main__':
-#   it = IssueTracker('chromium', None, {'default_component_id': 1434846})
+#   it = IssueTracker('chromium', None, {'default_component_id': 1363614})
+#
+#   # Test _get_component_paths.
+#   issue = it.new_issue()
+#   issue.components.add('1456407')  # 'Blink'
+#   issue.components.add('1456567')  # 'Blink>JavaScript>Compiler>Sparkplug'
+#   issue.components.add('1363614')  # 'Chromium'
+#   issue.components.add('OS>Software>Enterprise>Policies')
+#   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')  # Adding again
+#   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')  # Adding again2
+#   component_paths = issue._get_component_paths(issue._component_tags)
+#   print(component_paths)
 #
 #   # Test issue creation.
 #   issue = it.new_issue()
 #   issue.title = 'test issue'
 #   issue.assignee = 'rmistry@google.com'
 #   issue.status = 'ASSIGNED'
+#   issue.labels.add('OS-Linux')
+#   issue.labels.add('OS-Android')
+#   issue.labels.add('FoundIn-123')
+#   issue.labels.add('FoundIn-789')
+#   issue.labels.add('ReleaseBlock-Dev')
+#   issue.labels.add('ReleaseBlock-Beta')
+#   issue.components.add('1456407')  # 'Blink'
+#   issue.components.add('1456567')  # 'Blink>JavaScript>Compiler>Sparkplug'
+#   issue.components.add('1363614')  # 'Chromium'
+#   issue.components.add('OS>Software>Enterprise>Policies')
+#   issue.components.add('Blink>JavaScript>Compiler>Sparkplug')
 #   issue.apply_extension_fields({
 #       '_ext_collaborators': [
 #           'rmistry@google.com',
-#           'skia-npm-audit-mirror@skia-public.iam.gserviceaccount.com'],
-#       '_ext_issue_access_limit': IssueAccessLevel.LIMIT_VIEW_TRUSTED,
+#           'skia-npm-audit-mirror@skia-public.iam.gserviceaccount.com'
+#       ],
+#       '_ext_issue_access_limit':
+#           IssueAccessLevel.LIMIT_VIEW_TRUSTED,
 #   })
 #   issue.save(new_comment='testing')
 #
 #   # Test issue query.
-#   queried_issue = it.get_issue(307559515)
+#   queried_issue = it.get_issue(314141502)
 #   print(queried_issue._data)
+#   queried_issue.labels.add('OS-ChromeOS')
+#   queried_issue.labels.add('FoundIn-456')
+#   queried_issue.labels.add('FoundIn-6')
+#   queried_issue.labels.add('ReleaseBlock-Beta')
+#   queried_issue.labels.add('ReleaseBlock-Dev')
+#   # 'Blink>JavaScript>Compiler>Sparkplug'
+#   queried_issue.components.add('1456567')
+#   queried_issue.components.add('OS>Software>Enterprise>ChromeApps')
+#   queried_issue.components.add('OS>Systems>Network>General')
+#   queried_issue.components.add('asdfasdfasdf')  # Should be filtered out
+#   queried_issue.components.add(123123123)  # Should be filtered out
+#   queried_issue._update_issue()

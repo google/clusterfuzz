@@ -167,7 +167,7 @@ def _get_impact_from_labels(labels):
   return data_types.SecurityImpact.MISSING
 
 
-def update_issue_impact_labels(testcase, issue):
+def update_issue_impact_labels(testcase, issue, policy):
   """Update impact labels on issue."""
   if testcase.one_time_crasher_flag:
     return
@@ -203,9 +203,13 @@ def update_issue_impact_labels(testcase, issue):
     return
 
   if existing_impact != data_types.SecurityImpact.MISSING:
-    issue.labels.remove('Security_Impact-' + impact_to_string(existing_impact))
+    issue.labels.remove(
+        policy.substitution_mapping('Security_Impact-' +
+                                    impact_to_string(existing_impact)))
 
-  issue.labels.add('Security_Impact-' + impact_to_string(new_impact))
+  issue.labels.add(
+      policy.substitution_mapping('Security_Impact-' +
+                                  impact_to_string(new_impact)))
 
 
 def update_issue_foundin_labels(testcase, issue):
@@ -245,8 +249,9 @@ def apply_substitutions(policy, label, testcase, security_severity=None):
           for label in handler(label, testcase, security_severity)
       ]
 
-  # No match found. Return unmodified label.
-  return [label]
+  # No match found. Return mapped value if it exists else the original label
+  # will be returned.
+  return [policy.substitution_mapping(label)]
 
 
 def get_label_pattern(label):
@@ -328,6 +333,7 @@ def file_issue(testcase,
   logs.log(f'Filing new issue for testcase: {testcase.key.id()}.')
 
   policy = issue_tracker_policy.get(issue_tracker.project)
+  logs.log('policy: %s' % policy)
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
@@ -345,21 +351,22 @@ def file_issue(testcase,
     issue.labels.add(policy.label('reproducible'))
 
   # Chromium-specific labels.
-  if issue_tracker.project == 'chromium':
+  if issue_tracker.project in ('chromium', 'chromium-testing'):
     if testcase.security_flag:
       # Add reward labels if this is from an external fuzzer contribution.
       fuzzer = data_types.Fuzzer.query(
           data_types.Fuzzer.name == testcase.fuzzer_name).get()
       if fuzzer and fuzzer.external_contribution:
-        issue.labels.add('reward-topanel')
-        issue.labels.add('External-Fuzzer-Contribution')
+        issue.labels.add(policy.substitution_mapping('reward-topanel'))
+        issue.labels.add(
+            policy.substitution_mapping('External-Fuzzer-Contribution'))
 
-      update_issue_impact_labels(testcase, issue)
+      update_issue_impact_labels(testcase, issue, policy)
 
     # Check for MiraclePtr in stacktrace.
     miracle_label = check_miracleptr_status(testcase)
     if miracle_label:
-      issue.labels.add(miracle_label)
+      issue.labels.add(policy.substitution_mapping(miracle_label))
 
   # Add additional labels from the job definition and fuzzer.
   additional_labels = data_handler.get_additional_values_for_variable(
@@ -463,7 +470,7 @@ def file_issue(testcase,
     issue.ccs.add(cc)
 
   # Apply extension fields.
-  issue.apply_extension_fields(policy.extension_fields)
+  issue.apply_extension_fields(properties.extension_fields)
 
   # Add additional labels and components from testcase metadata.
   metadata_labels = _get_from_metadata(testcase, 'issue_labels')

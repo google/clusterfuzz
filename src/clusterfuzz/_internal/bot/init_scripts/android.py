@@ -14,6 +14,7 @@
 """Android init scripts."""
 
 from clusterfuzz._internal.bot.init_scripts import init_runner
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.system import environment
 
@@ -26,20 +27,27 @@ def run():
 
   # Set cuttlefish device serial if needed.
   if environment.is_android_cuttlefish():
+    logs.log('Running Android init script on Cuttlefish.')
     android.adb.set_cuttlefish_device_serial()
+  else:
+    logs.log('Running Android init script on non-Cuttlefish.')
 
   # Check if we need to reflash device to latest build.
+  logs.log('Init: flash_to_latest_build_if_needed.')
   android.flash.flash_to_latest_build_if_needed()
 
   # Reconnect to cuttlefish device if connection is ever lost.
   if environment.is_android_cuttlefish():
+    logs.log('Init: connect_to_cuttlefish_device.')
     android.adb.connect_to_cuttlefish_device()
 
   # Reboot to bring device in a good state if not done recently.
   if android.adb.time_since_last_reboot() > TIME_SINCE_REBOOT_MIN_THRESHOLD:
+    logs.log('Init: reboot.')
     android.device.reboot()
 
   # Make sure that device is in a good condition before we move forward.
+  logs.log('Init: wait_until_fully_booted.')
   android.adb.wait_until_fully_booted()
 
   # Wait until battery charges to a minimum level and temperature threshold.

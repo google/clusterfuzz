@@ -17,10 +17,9 @@ import os
 import unittest
 from unittest import mock
 
-from clusterfuzz._internal.bot.tasks import commands
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 
 
@@ -42,7 +41,7 @@ class TworkerPreprocessTest(unittest.TestCase):
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
-    self.uworker_input = uworker_io.UworkerInput(job_type='something')
+    self.uworker_input = uworker_msg_pb2.Input(job_type='something')
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
@@ -100,7 +99,7 @@ class UworkerMainTest(unittest.TestCase):
     ])
     self.module = mock.MagicMock()
     self.mock.get_utask_module.return_value = self.module
-    self.uworker_input = uworker_io.UworkerInput(
+    self.uworker_input = uworker_msg_pb2.Input(
         original_job_type='original_job_type-value',
         uworker_env=self.UWORKER_ENV,
         uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
@@ -111,10 +110,9 @@ class UworkerMainTest(unittest.TestCase):
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
     uworker_output = {
-        'testcase': None,
         'crash_time': 70.1,
     }
-    self.module.utask_main.return_value = uworker_io.UworkerOutput(
+    self.module.utask_main.return_value = uworker_msg_pb2.Output(
         **uworker_output)
     input_download_url = 'http://input'
     utasks.uworker_main(input_download_url)
@@ -128,19 +126,3 @@ class GetUtaskModuleTest(unittest.TestCase):
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
     module_name = analyze_task.__name__
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
-
-
-class GetCommandFromModuleTest(unittest.TestCase):
-  """Tests for get_command_from_module."""
-
-  def test_get_command_from_module(self):
-    # pylint: disable=protected-access
-    """Tests that get_command_from_module returns the correct command."""
-    for command, module in commands._COMMAND_MODULE_MAP.items():
-      if command in {'postprocess', 'uworker_main'}:
-        continue
-      self.assertEqual(command, utasks.get_command_from_module(module.__name__))
-    with self.assertRaises(ValueError):
-      utasks.get_command_from_module('postprocess')
-    with self.assertRaises(ValueError):
-      utasks.get_command_from_module('uworker_main')

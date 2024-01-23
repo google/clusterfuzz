@@ -14,10 +14,12 @@
 """Creates progression tasks."""
 
 from clusterfuzz._internal.cron.helpers import tasks_scheduler
+from clusterfuzz._internal.system import environment
 
 
 def main():
   """Creates progression tasks."""
+  environment.set_bot_environment()
   task = 'progression'
   tasks_scheduler.schedule(task)
   return True
