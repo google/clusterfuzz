@@ -1911,7 +1911,7 @@ class FuzzingSession:
     self.fuzz_task_output.known_crash_count = known_crash_count
     self.fuzz_task_output.testcases_executed = testcases_executed
     self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
-    if job_run_crashes:
+    if processed_groups:
       job_run_crashes = convert_groups_to_crashes(processed_groups)
       self.fuzz_task_output.job_run_crashes.extend(job_run_crashes)
 
