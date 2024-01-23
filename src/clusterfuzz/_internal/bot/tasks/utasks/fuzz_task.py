@@ -1325,7 +1325,7 @@ class FuzzingSession:
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
 
   def _get_output(self, **kwargs):
-    for k, v in kwargs:
+    for k, v in kwargs.items():
       setattr(self.fuzz_task_output, k, v)
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
 
