@@ -185,7 +185,7 @@ def get_regular_task(queue=None):
     if not messages:
       return None
 
-    task = handle_single_message(messages)
+    task = get_task_from_message(messages[0])
     if task:
       return task
 
@@ -276,7 +276,7 @@ def get_postprocess_task():
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  task = handle_single_message(messages[0])
+  task = get_task_from_message(messages[0])
   if task:
     logs.log('Pulled from postprocess queue.')
   return task
@@ -425,7 +425,7 @@ class PubSubTask(Task):
     track_task_end()
 
 
-def handle_single_message(message) -> Optional[PubSubTask]:
+def get_task_from_message(message) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
   if message is None:
     return None
@@ -460,7 +460,7 @@ def handle_multiple_messages(messages) -> List[PubSubTask]:
   bot."""
   tasks = []
   for message in messages:
-    task = handle_single_message(message)
+    task = get_task_from_message(message)
     if task is None:
       continue
     tasks.append(task)

@@ -251,25 +251,25 @@ class GetMachineTemplateForQueueTests(unittest.TestCase):
     self.assertEqual(template, expected_template)
 
 
-class HandleSingleMessageTest(unittest.TestCase):
-  """Tests for handle_single_message."""
+class GetTaskFromMessageTest(unittest.TestCase):
+  """Tests for get_task_from_message."""
 
   def test_no_message(self):
-    self.assertEqual(tasks.handle_single_message(None), None)
+    self.assertEqual(tasks.get_task_from_message(None), None)
 
   def test_success(self):
     mock_task = mock.Mock(defer=mock.Mock(return_value=False))
     with mock.patch(
         'clusterfuzz._internal.base.tasks.initialize_task',
         return_value=mock_task):
-      self.assertEqual(tasks.handle_single_message(mock.Mock()), mock_task)
+      self.assertEqual(tasks.get_task_from_message(mock.Mock()), mock_task)
 
   def test_key_error(self):
     mock_message = mock.Mock()
     with mock.patch(
         'clusterfuzz._internal.base.tasks.initialize_task',
         side_effect=KeyError):
-      self.assertEqual(tasks.handle_single_message(mock_message), None)
+      self.assertEqual(tasks.get_task_from_message(mock_message), None)
       mock_message.ack.assert_called_with()
 
   def test_defer(self):
@@ -277,4 +277,4 @@ class HandleSingleMessageTest(unittest.TestCase):
     with mock.patch(
         'clusterfuzz._internal.base.tasks.initialize_task',
         return_value=mock_task):
-      self.assertEqual(tasks.handle_single_message(mock.Mock()), None)
+      self.assertEqual(tasks.get_task_from_message(mock.Mock()), None)
