@@ -120,6 +120,8 @@ def task_loop():
         # If the bot is configured to schedule utask_mains, don't run any other
         # tasks because scheduling these tasks is more important than executing
         # any one other task.
+
+        # TODO(metzman): Convert this to a k8s cron.
         schedule_utask_mains()
         continue
 

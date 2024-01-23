@@ -89,7 +89,7 @@ UTASK_MAINS_QUEUE = 'utask_main'
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-UTASK_TIME_LIMIT = 60
+UTASK_QUEUE_PULL_SECONDS = 60
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
@@ -234,25 +234,25 @@ class PubSubPuller:
   """PubSub client providing convenience methods for pulling."""
 
   def __init__(self, queue):
-    self.pubsub_client = pubsub.PubSubClient()
+    self.client = pubsub.PubSubClient()
     self.application_id = utils.get_application_id()
     self.queue = queue
 
   def get_messages(self, max_messages=1):
     """Pulls a list of messages up to |max_messages| from self.queue using
     pubsub."""
-    return self.pubsub_client.pull_from_subscription(
+    return self.client.pull_from_subscription(
         pubsub.subscription_name(self.application_id, self.queue), max_messages)
 
-  def get_messages_time_limited(self, max_messages, time_limit):
-    """Returns up to |max_messages|. Waits up until |time_limit| to get to
+  def get_messages_time_limited(self, max_messages, time_limit_secs):
+    """Returns up to |max_messages|. Waits up until |time_limit_secs| to get to
     |max_messages|."""
     start_time = time.time()
     messages = []
 
     def is_done_collecting_messages():
       curr_time = time.time()
-      if curr_time - start_time >= time_limit:
+      if curr_time - start_time >= time_limit_secs:
         return True
 
       if len(messages) >= max_messages:
@@ -453,7 +453,7 @@ def get_utask_mains() -> List[PubSubTask]:
     return None
   pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
-                                                     UTASK_TIME_LIMIT)
+                                                     UTASK_QUEUE_PULL_SECONDS)
   return handle_multiple_messages(messages)
 
 
