@@ -14,8 +14,8 @@
 """Types of tasks. This needs to be seperate from commands.py because
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.bot.tasks import utasks
-from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -101,7 +101,7 @@ class UTask(BaseUTask):
 
   @staticmethod
   def is_execution_remote():
-    return utask_utils.is_remotely_executing_utasks()
+    return task_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""

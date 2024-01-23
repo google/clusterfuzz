@@ -24,8 +24,8 @@ from typing import Optional
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -271,7 +271,7 @@ class PubSubPuller:
 def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
-  if not utask_utils.is_remotely_executing_utasks():
+  if not task_utils.is_remotely_executing_utasks():
     return None
   pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
   logs.log('Pulling from postprocess queue')
@@ -449,7 +449,7 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
 def get_utask_mains() -> List[PubSubTask]:
   """Returns a list of tasks for preprocessing many utasks on this bot and then
   running the uworker_mains in the same batch job."""
-  if not utask_utils.is_remotely_executing_utasks():
+  if not task_utils.is_remotely_executing_utasks():
     return None
   pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,

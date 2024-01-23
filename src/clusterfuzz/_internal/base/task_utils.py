@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module providing utilities for utask users. This module should not depend on
-any other module in tasks to prevent circular imports."""
+any other module in tasks to prevent circular imports and issues with
+appengine."""
 
 from clusterfuzz._internal.system import environment
 
