@@ -33,7 +33,9 @@ from . import credentials
 _local = threading.local()
 
 MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
-RETRY_COUNT = 0
+
+PREEMPTIBLE_RETRY_COUNT = 1
+STANDARD_RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
 
@@ -160,7 +162,12 @@ def _get_task_spec(batch_workload_spec):
   runnable.container.volumes = ['/var/scratch0:/mnt/scratch0']
   task_spec = batch.TaskSpec()
   task_spec.runnables = [runnable]
-  task_spec.max_retry_count = RETRY_COUNT
+
+  if batch_workload_spec.preemptible:
+    task_spec.max_retry_count = PREEMPTIBLE_RETRY_COUNT
+  else:
+    task_spec.max_retry_count = STANDARD_RETRY_COUNT
+
   # TODO(metzman): Change this for production.
   task_spec.max_run_duration = MAX_DURATION
   return task_spec
