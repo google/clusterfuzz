@@ -69,7 +69,7 @@ gcloud auth login
 
 ### Python programming language
 
-[Download Python 3.7](https://www.python.org/downloads/release/python-377/), then install it ([see this guide for instructions](https://realpython.com/installing-python/#how-to-build-python-from-source-code)).
+[Download Python 3.11](https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tar.xz), then install it ([see this guide for instructions](https://realpython.com/installing-python/#how-to-build-python-from-source-code)).
 If you have Python installed already, you can verify its version by running `python --version`.
 You'll want to install Python 3.7 if your local version is different.
 
