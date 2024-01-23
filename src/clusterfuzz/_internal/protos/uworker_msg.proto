@@ -16,15 +16,6 @@ syntax = "proto3";
 
 import "google/cloud/datastore_v1/proto/entity.proto";
 
-message Json {
-  string serialized = 1;
-}
-
-message UworkerEntityWrapper {
-  google.datastore.v1.Entity entity = 1;
-  Json changed = 2;
-}
-
 message SetupInput {
   optional google.datastore.v1.Entity fuzzer = 1;
   optional string fuzzer_name = 2;
@@ -39,10 +30,10 @@ message AnalyzeTaskInput {
 }
 
 message SymbolizeTaskInput {
+  optional string old_crash_stacktrace = 1;
 }
 
 message FuzzTaskInput {
-  optional google.datastore.v1.Entity targets_count = 1;
 }
 
 message MinimizeTaskInput {
@@ -70,7 +61,7 @@ message Input {
   optional google.datastore.v1.Entity testcase = 1;
   optional google.datastore.v1.Entity testcase_upload_metadata = 2;
   optional string testcase_id = 3;
-  optional Json uworker_env = 4;
+  map<string, string> uworker_env = 4;
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
@@ -89,39 +80,78 @@ message Input {
 }
 
 message SymbolizeTaskOutput {
- // TODO(metzman): Fill this out.
+  optional string crash_type = 1;
+  optional string crash_address = 2;
+  optional string crash_state = 3;
+  optional string crash_stacktrace = 4;
+  optional bool symbolized = 5;
+  optional int32 crash_revision = 6;
+  optional string build_url = 7;
 }
 
 message AnalyzeTaskOutput {
- // TODO(metzman): Fill this out.
+  optional int64 crash_revision = 1;
+  optional string absolute_path = 2;
+  optional string minimized_arguments = 3;
+  optional string crash_stacktrace = 4;
+  optional bool crash_info_set = 5;
+  optional bool http_flag = 6;
+  optional string crash_type = 7;
+  optional string crash_address = 8;
+  optional string crash_state = 9;
+  optional bool security_flag = 10;
+  optional int32 security_severity = 11;
+  optional bool one_time_crasher_flag = 12;
+  optional string build_key = 13;
+  optional string build_url = 14;
+  optional string gn_args = 15;
+  optional string platform = 16;
+  optional string platform_id = 17;
+}
+
+message CrashInfo{
+  optional bool is_new = 1;
+  optional int64 count = 2;
+  optional string crash_type = 3;
+  optional string crash_state = 4;
+  optional bool security_flag = 5;
 }
 
 message FuzzTaskOutput {
-  optional string fuzzer_name = 1;
+  optional string fully_qualified_fuzzer_name = 1;
   optional string crash_revision = 2;
   optional float job_run_timestamp = 3;
   optional int64 new_crash_count = 4;
   optional int64 known_crash_count = 5;
   optional int64 testcases_executed = 6;
-  optional Json job_run_crashes = 7;
-  optional string fully_qualified_fuzzer_name = 8;
+  repeated CrashInfo job_run_crashes = 7;
   optional int32 new_targets_count = 9;
 }
 
 message MinimizeTaskOutput {
-  optional Json last_crash_result_dict = 1;
+  map<string, string> last_crash_result_dict = 1;
   optional bool flaky_stack = 2;
-  optional int64 build_fail_wait = 3;
 }
 
 message RegressionTaskOutput {
   // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
 }
 
+message VariantTaskOutput {
+  optional int64 status = 1;
+  optional int64 revision = 2;
+  optional string crash_type = 3;
+  optional string crash_state = 4;
+  optional bool security_flag = 5;
+  optional bool is_similar = 6;
+  optional string platform = 7;
+}
+
 message BuildData{
-  optional bool is_bad_build = 1;
-  optional bool should_ignore_crash_result = 2;
-  optional string build_run_console_output = 3;
+  optional int64 revision = 1;
+  optional bool is_bad_build = 2;
+  optional bool should_ignore_crash_result = 3;
+  optional string build_run_console_output = 4;
 }
 
 message ProgressionTaskOutput{
@@ -138,7 +168,8 @@ message ProgressionTaskOutput{
   // When set to True, we delete the metadata related to: last_progression_min
   // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
-  optional Json issue_metadata = 10;
+  map<string, string> issue_metadata = 10;
+  repeated BuildData build_data_list = 11;
 }
 
 enum ErrorType {
@@ -163,24 +194,23 @@ enum ErrorType {
   PROGRESSION_BUILD_SETUP_ERROR = 18;
   REGRESSION_REVISION_LIST_ERROR = 19;
   REGRESSION_BUILD_NOT_FOUND = 20;
+  SYMBOLIZE_BUILD_SETUP_ERROR = 21;
 }
 
 message Output {
-  optional UworkerEntityWrapper testcase = 1;
-  optional UworkerEntityWrapper testcase_upload_metadata = 2;
-  optional UworkerEntityWrapper variant = 3;
-  optional ErrorType error_type = 4;
+  optional ErrorType error_type = 3;
   // This is only to be used by code that needs to be called by utasks and
   // nonutasks.
-  optional Input uworker_input = 5;
-  optional float test_timeout = 6;
-  optional float crash_time = 7;
-  optional string crash_stacktrace_output = 8;
-  optional AnalyzeTaskOutput analyze_task_output = 9;
-  optional FuzzTaskOutput fuzz_task_output = 10;
-  optional MinimizeTaskOutput minimize_task_output = 11;
-  optional RegressionTaskOutput regression_task_output = 12;
-  optional ProgressionTaskOutput progression_task_output = 13;
-  optional SymbolizeTaskOutput symbolize_task_output = 14;
+  optional Input uworker_input = 4;
+  optional float test_timeout = 5;
+  optional float crash_time = 6;
+  optional string crash_stacktrace_output = 7;
+  optional AnalyzeTaskOutput analyze_task_output = 8;
+  optional FuzzTaskOutput fuzz_task_output = 9;
+  optional MinimizeTaskOutput minimize_task_output = 10;
+  optional RegressionTaskOutput regression_task_output = 11;
+  optional ProgressionTaskOutput progression_task_output = 12;
+  optional SymbolizeTaskOutput symbolize_task_output = 13;
+  optional VariantTaskOutput variant_task_output = 14;
   optional string error_message = 15;
 }

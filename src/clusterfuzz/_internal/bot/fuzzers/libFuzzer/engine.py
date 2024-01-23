@@ -21,6 +21,7 @@ from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import dictionary_manager
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
+from clusterfuzz._internal.bot.fuzzers import options as fuzzer_options
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
 from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
@@ -155,19 +156,19 @@ class Engine(engine.Engine):
       strategy_info.additional_corpus_dirs.append(corpus_dir)
 
     # Check dict argument to make sure that it's valid.
-    dict_path = fuzzer_utils.extract_argument(
-        arguments, constants.DICT_FLAG, remove=False)
+    dict_path = arguments.get(
+        constants.DICT_FLAGNAME, default=None, constructor=str)
     if dict_path and not os.path.exists(dict_path):
       logs.log_error(f'Invalid dict {dict_path} for {target_path}.')
-      fuzzer_utils.extract_argument(arguments, constants.DICT_FLAG)
+      del arguments[constants.DICT_FLAGNAME]
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
-    dict_path = fuzzer_utils.extract_argument(
-        arguments, constants.DICT_FLAG, remove=False)
+    dict_path = arguments.get(
+        constants.DICT_FLAGNAME, default=None, constructor=str)
     if not dict_path:
       dict_path = dictionary_manager.get_default_dictionary_path(target_path)
       if os.path.exists(dict_path):
-        arguments.append(constants.DICT_FLAG + dict_path)
+        arguments[constants.DICT_FLAGNAME] = dict_path
 
     # If we have a dictionary, correct any items that are not formatted properly
     # (e.g. quote items that are missing them).
@@ -176,9 +177,9 @@ class Engine(engine.Engine):
     strategies = stats.process_strategies(
         strategy_info.fuzzing_strategies, name_modifier=lambda x: x)
     return LibFuzzerOptions(
-        corpus_dir, arguments, strategies, strategy_info.additional_corpus_dirs,
-        strategy_info.extra_env, strategy_info.use_dataflow_tracing,
-        strategy_info.is_mutations_run)
+        corpus_dir, arguments.list(), strategies,
+        strategy_info.additional_corpus_dirs, strategy_info.extra_env,
+        strategy_info.use_dataflow_tracing, strategy_info.is_mutations_run)
 
   def _create_empty_testcase_file(self, reproducers_dir):
     """Create an empty testcase file in temporary directory."""
@@ -329,22 +330,23 @@ class Engine(engine.Engine):
         stats.parse_performance_features(log_lines, options.strategies,
                                          options.arguments))
 
+    args = fuzzer_options.FuzzerArguments.from_list(options.arguments)
     # Set some initial stat overrides.
-    timeout_limit = fuzzer_utils.extract_argument(
-        options.arguments, constants.TIMEOUT_FLAG, remove=False)
+    timeout_limit = args.get(
+        constants.TIMEOUT_FLAGNAME, default=None, constructor=int)
 
     actual_duration = int(fuzz_result.time_executed)
     fuzzing_time_percent = 100 * actual_duration / float(max_time)
     parsed_stats.update({
-        'timeout_limit': int(timeout_limit),
+        'timeout_limit': timeout_limit,
         'expected_duration': int(max_time),
         'actual_duration': actual_duration,
         'fuzzing_time_percent': fuzzing_time_percent,
     })
 
     # Remove fuzzing arguments before merge and dictionary analysis step.
-    non_fuzz_arguments = options.arguments.copy()
-    libfuzzer.remove_fuzzing_arguments(non_fuzz_arguments, is_merge=True)
+    non_fuzz_arguments = libfuzzer.strip_fuzzing_arguments(
+        args.list(), is_merge=True)
 
     if options.merge_back_new_testcases:
       self._merge_new_units(target_path, options.corpus_dir, new_corpus_dir,
@@ -354,11 +356,11 @@ class Engine(engine.Engine):
     fuzz_logs = '\n'.join(log_lines)
     crashes = []
     if crash_testcase_file_path:
-      reproduce_arguments = options.arguments[:]
-      libfuzzer.remove_fuzzing_arguments(reproduce_arguments)
+      reproduce_arguments = libfuzzer.strip_fuzzing_arguments(options.arguments)
 
       # Use higher timeout for reproduction.
-      libfuzzer.fix_timeout_argument_for_reproduction(reproduce_arguments)
+      reproduce_arguments = libfuzzer.fix_timeout_argument_for_reproduction(
+          reproduce_arguments)
 
       # Write the new testcase.
       # Copy crash testcase contents into the main testcase path.
@@ -390,14 +392,13 @@ class Engine(engine.Engine):
 
     # Remove fuzzing specific arguments. This is only really needed for legacy
     # testcases, and can be removed in the distant future.
-    arguments = arguments[:]
-    libfuzzer.remove_fuzzing_arguments(arguments)
+    arguments = libfuzzer.strip_fuzzing_arguments(arguments)
+    arguments = fuzzer_options.FuzzerArguments.from_list(arguments)
 
-    runs_argument = constants.RUNS_FLAG + str(constants.RUNS_TO_REPRODUCE)
-    arguments.append(runs_argument)
+    arguments[constants.RUNS_FLAGNAME] = int(constants.RUNS_TO_REPRODUCE)
 
     result = runner.run_single_testcase(
-        input_path, timeout=max_time, additional_args=arguments)
+        input_path, timeout=max_time, additional_args=arguments.list())
 
     if result.timed_out:
       logs.log_warn('Reproducing timed out.', fuzzer_output=result.output)

@@ -116,7 +116,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     self.assertTrue(issue.is_open)
     self.assertEqual('NEW', issue.status)
     self.assertCountEqual([], issue.labels)
-    self.assertCountEqual(['29002'], issue.components)
+    self.assertCountEqual([], issue.components)
     self.assertCountEqual([], issue.ccs)
     self.assertEqual('test body', issue.body)
 
@@ -227,7 +227,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.assignee = 'assignee@google.com'
     issue.body = 'issue body'
     issue.ccs.add('cc@google.com')
-    issue.components.add('9001')
     issue.labels.add('12345')
     issue.status = 'ASSIGNED'
     issue.title = 'issue title'
@@ -254,10 +253,157 @@ class GoogleIssueTrackerTest(unittest.TestCase):
                     'assignee': {
                         'emailAddress': 'assignee@google.com'
                     },
-                    'componentId': 9001,
+                    'componentId': 1337,
                     'hotlistIds': [12345],
                     'type': 'BUG',
                     'severity': 'S4',
+                },
+            },
+            templateOptions_applyTemplate=True,
+        ),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
+  def test_new_issue_with_os_foundin_releaseblock_labels(self):
+    """Test new issue creation with os, foundin, releaseblock labels."""
+    issue = self.issue_tracker.new_issue()
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee@google.com'
+    issue.body = 'issue body'
+    issue.ccs.add('cc@google.com')
+    issue.labels.add('12345')
+    issue.labels.add('OS-Linux')
+    issue.labels.add('OS-Android')
+    issue.labels.add('FoundIn-123')
+    issue.labels.add('FoundIn-789')
+    issue.labels.add('ReleaseBlock-Dev')
+    issue.labels.add('ReleaseBlock-Beta')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title'
+    issue.save()
+    self.client.issues().create.assert_has_calls([
+        mock.call(
+            body={
+                'issueState': {
+                    'componentId':
+                        1337,
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'collaborators': [],
+                    'hotlistIds': [12345],
+                    'accessLimit': {
+                        'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    },
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'assignee': {
+                        'emailAddress': 'assignee@google.com'
+                    },
+                    'status':
+                        'ASSIGNED',
+                    'title':
+                        'issue title',
+                    'type':
+                        'BUG',
+                    'customFields': [
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223086',
+                            'repeatedEnumValue': {
+                                'values': ['Dev', 'Beta']
+                            }
+                        },
+                    ],
+                    'foundInVersions': ['123', '789'],
+                    'severity':
+                        'S4',
+                },
+                'issueComment': {
+                    'comment': 'issue body'
+                },
+            },
+            templateOptions_applyTemplate=True,
+        ),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
+  def test_new_issue_with_component_tags(self):
+    """Test new issue creation with component tags."""
+    self.client.components().get().execute.return_value = {
+        'componentId': '1456567',
+        'name': 'Component ABC',
+        'parentComponentId': '1337',
+    }
+    issue = self.issue_tracker.new_issue()
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee@google.com'
+    issue.body = 'issue body'
+    issue.ccs.add('cc@google.com')
+    issue.labels.add('12345')
+    issue.labels.add('OS-Linux')
+    issue.labels.add('OS-Android')
+    issue.labels.add('FoundIn-123')
+    issue.labels.add('FoundIn-789')
+    issue.components.add('ABC>DEF')
+    issue.components.add('IJK>XYZ')
+    issue.components.add('1456567')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title'
+    issue.save()
+    self.client.components().get.assert_has_calls([
+        mock.call(componentId='1456567'),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+    self.client.issues().create.assert_has_calls([
+        mock.call(
+            body={
+                'issueState': {
+                    'componentId':
+                        1337,
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'collaborators': [],
+                    'hotlistIds': [12345],
+                    'accessLimit': {
+                        'accessLevel': issue_tracker.IssueAccessLevel.LIMIT_NONE
+                    },
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'assignee': {
+                        'emailAddress': 'assignee@google.com'
+                    },
+                    'status':
+                        'ASSIGNED',
+                    'title':
+                        'issue title',
+                    'type':
+                        'BUG',
+                    'customFields': [{
+                        'customFieldId': '1223084',
+                        'repeatedEnumValue': {
+                            'values': ['Linux', 'Android']
+                        },
+                    }, {
+                        'customFieldId': '1222907',
+                        'repeatedEnumValue': {
+                            'values': ['ABC>DEF', 'Component ABC', 'IJK>XYZ']
+                        }
+                    }],
+                    'foundInVersions': ['123', '789'],
+                    'severity':
+                        'S4',
+                },
+                'issueComment': {
+                    'comment': 'issue body'
                 },
             },
             templateOptions_applyTemplate=True,
@@ -277,7 +423,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.assignee = 'assignee@google.com'
     issue.body = 'issue body'
     issue.ccs.add('cc@google.com')
-    issue.components.add('9001')
     issue.labels.add('12345')
     issue.labels.add('67890')
     issue.status = 'ASSIGNED'
@@ -289,7 +434,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             body={
                 'issueState': {
                     'componentId':
-                        9001,
+                        1337,
                     'ccs': [{
                         'emailAddress': 'cc@google.com'
                     }],
@@ -337,7 +482,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         'issueId': '68828938',
         'issueState': {
             'componentId':
-                '9001',
+                '1337',
             'type':
                 'ASSIGNED',
             'status':
@@ -382,7 +527,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.reporter = 'reporter@google.com'
     issue.assignee = 'assignee2@google.com'
     issue.ccs.add('cc@google.com')
-    issue.components.add('9001')
     issue.labels.add('12345')
     issue.status = 'ASSIGNED'
     issue.title = 'issue title2'
@@ -420,16 +564,249 @@ class GoogleIssueTrackerTest(unittest.TestCase):
             }}, hotlistId='12345'),
         mock.call().execute(http=None, num_retries=3),
     ])
-    self.client.issues().move.assert_has_calls([
-        mock.call(body={'componentId': 9001}, issueId='68828938'),
-        mock.call().execute(http=None, num_retries=3),
-    ])
     # Update again, removing the label we just added.
     issue.labels.remove('12345')
     issue.save()
     self.assertEqual(68828938, issue.id)
     self.client.hotlists().entries().delete.assert_has_calls([
         mock.call(hotlistId='12345', issueId='68828938'),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
+  def test_update_issue_with_os_foundin_releaseblock_labels(self):
+    """Test updating an existing issue with OS and FoundIn labels."""
+    self.client.issues().get().execute.return_value = {
+        'issueId': '68828938',
+        'issueState': {
+            'componentId':
+                '29002',
+            'type':
+                'BUG',
+            'customFields': [
+                {
+                    'customFieldId': '1223084',
+                    'repeatedEnumValue': {
+                        'values': ['Linux']  # Existing OS-Linux.
+                    },
+                },
+                {
+                    'customFieldId': '1223086',
+                    'repeatedEnumValue': {
+                        'values': ['Dev']  # Existing ReleaseBlock-Dev.
+                    },
+                },
+            ],
+            'status':
+                'NEW',
+            'priority':
+                'P2',
+            'severity':
+                'S2',
+            'title':
+                'test',
+            'reporter': {
+                'emailAddress': 'user1@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },
+            'assignee': {
+                'emailAddress': 'assignee@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },
+            'retention':
+                'COMPONENT_DEFAULT',
+            'foundInVersions': ['123'],  # Existing FoundIn-123.
+        },
+        'createdTime': '2019-06-25T01:29:30.021Z',
+        'modifiedTime': '2019-06-25T01:29:30.021Z',
+        'userData': {},
+        'accessLimit': {
+            'accessLevel': 'INTERNAL'
+        },
+        'etag': 'TmpnNE1qZzVNemd0TUMweA==',
+        'lastModifier': {
+            'emailAddress': 'user1@google.com',
+            'userGaiaStatus': 'ACTIVE'
+        },
+    }
+    issue = self.issue_tracker.get_issue(68828938)
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee2@google.com'
+    issue.ccs.add('cc@google.com')
+    issue.labels.add('12345')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title2'
+    # Adding OS Android here (in addition to the Linux already set).
+    issue.labels.add('OS-Android')
+    # Adding FoundIn 789 here (in addition to the 123 already set).
+    issue.labels.add('FoundIn-789')
+    # Adding ReleaseBlock Beta and Stable (in addition to Dev already set).
+    issue.labels.add('ReleaseBlock-Beta')
+    issue.labels.add('ReleaseBlock-Stable')
+    issue.save()
+
+    self.client.issues().modify.assert_has_calls([
+        mock.call(
+            issueId='68828938',
+            body={
+                'add': {
+                    'status':
+                        'ASSIGNED',
+                    'assignee': {
+                        'emailAddress': 'assignee2@google.com'
+                    },
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'title':
+                        'issue title2',
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'customFields': [
+                        {
+                            'customFieldId': '1223084',
+                            'repeatedEnumValue': {
+                                'values': ['Linux', 'Android']
+                            }
+                        },
+                        {
+                            'customFieldId': '1223086',
+                            'repeatedEnumValue': {
+                                'values': ['Dev', 'Beta', 'Stable']
+                            }
+                        },
+                    ],
+                    'foundInVersions': ['123', '789'],
+                },
+                'addMask':
+                    'status,assignee,reporter,title,ccs,customFields,foundInVersions',
+                'remove': {},
+                'removeMask':
+                    '',
+                'significanceOverride':
+                    'MAJOR',
+            },
+        ),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+
+  def test_update_issue_with_component_tags(self):
+    """Test updating an existing issue with component tags."""
+    self.client.components().get().execute.return_value = {
+        'componentId': '1456567',
+        'name': 'Component ABC',
+        'parentComponentId': '1337',
+    }
+    self.client.issues().get().execute.return_value = {
+        'issueId':
+            '68828938',
+        'customFields': [{
+            'customFieldId': '1222907',
+            'enumValues': ['ABC>DEF', 'Component ABC', 'IJK', 'XYZ'],
+        }],
+        'issueState': {
+            'componentId':
+                '29002',
+            'type':
+                'BUG',
+            'customFields': [
+                {
+                    'customFieldId': '1222907',
+                    'repeatedEnumValue': {
+                        'values': ['ABC>DEF']  # Existing Component Tag.
+                    },
+                },
+            ],
+            'status':
+                'NEW',
+            'priority':
+                'P2',
+            'severity':
+                'S2',
+            'title':
+                'test',
+            'reporter': {
+                'emailAddress': 'user1@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },
+            'assignee': {
+                'emailAddress': 'assignee@google.com',
+                'userGaiaStatus': 'ACTIVE'
+            },
+            'retention':
+                'COMPONENT_DEFAULT',
+        },
+        'createdTime':
+            '2019-06-25T01:29:30.021Z',
+        'modifiedTime':
+            '2019-06-25T01:29:30.021Z',
+        'userData': {},
+        'accessLimit': {
+            'accessLevel': 'INTERNAL'
+        },
+        'etag':
+            'TmpnNE1qZzVNemd0TUMweA==',
+        'lastModifier': {
+            'emailAddress': 'user1@google.com',
+            'userGaiaStatus': 'ACTIVE'
+        },
+    }
+    issue = self.issue_tracker.get_issue(68828938)
+    issue.reporter = 'reporter@google.com'
+    issue.assignee = 'assignee2@google.com'
+    issue.ccs.add('cc@google.com')
+    issue.labels.add('12345')
+    issue.status = 'ASSIGNED'
+    issue.title = 'issue title2'
+    # Adding more Component Tags here.
+    # Adding component names.
+    issue.components.add('IJK')
+    issue.components.add('XYZ')
+    # Adding component IDs.
+    issue.components.add('1456567')
+    # Will not be added because does not correspond to a component.
+    issue.components.add('1111111')
+    # Will be rejected because it is not in allowed enum values.
+    issue.components.add('AAA')
+    issue.save()
+
+    self.client.components().get.assert_has_calls([
+        mock.call(componentId='1456567'),
+        mock.call().execute(http=None, num_retries=3),
+    ])
+    self.client.issues().modify.assert_has_calls([
+        mock.call(
+            issueId='68828938',
+            body={
+                'add': {
+                    'status':
+                        'ASSIGNED',
+                    'assignee': {
+                        'emailAddress': 'assignee2@google.com'
+                    },
+                    'reporter': {
+                        'emailAddress': 'reporter@google.com'
+                    },
+                    'title':
+                        'issue title2',
+                    'ccs': [{
+                        'emailAddress': 'cc@google.com'
+                    }],
+                    'customFields': [{
+                        'customFieldId': '1222907',
+                        'repeatedEnumValue': {
+                            'values': [
+                                'ABC>DEF', 'Component ABC', 'IJK', 'XYZ'
+                            ]
+                        }
+                    },],
+                },
+                'addMask': 'status,assignee,reporter,title,ccs,customFields',
+                'remove': {},
+                'removeMask': '',
+                'significanceOverride': 'MAJOR',
+            },
+        ),
         mock.call().execute(http=None, num_retries=3),
     ])
 
@@ -440,7 +817,7 @@ class GoogleIssueTrackerTest(unittest.TestCase):
         'issueId': '68828938',
         'issueState': {
             'componentId':
-                '9001',
+                '1337',
             'type':
                 'ASSIGNED',
             'status':
@@ -489,7 +866,6 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     issue.reporter = 'reporter@google.com'
     issue.assignee = 'assignee2@google.com'
     issue.ccs.add('cc@google.com')
-    issue.components.add('9001')
     issue.labels.add('12345')
     issue.status = 'ASSIGNED'
     issue.title = 'issue title2'

@@ -60,13 +60,6 @@ as fuzzer stats are stored in [BigQuery]. The stats are usually delayed by up to
 
 [BigQuery]: https://cloud.google.com/bigquery/
 
-## Performance report
-
-ClusterFuzz provides automatically generated performance reports that identify
-performance issues and give recommendations on how those issues can be resolved.
-The reports also prioritize issues and provide fuzzer logs that demonstrate the
-issues.
-
 ## Coverage report
 
 Code coverage is a very important metric for evaluating fuzzer performance.

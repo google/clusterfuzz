@@ -64,9 +64,11 @@ def update_mappings_for_fuzzer(fuzzer, mappings=None):
 
 def update_mappings_for_job(job, mappings):
   """Clear existing mappings for a job, and replace them."""
-  existing_fuzzers_query = data_types.Fuzzer.query(
-      data_types.Fuzzer.jobs == job.name)
-  existing_fuzzers = {fuzzer.name: fuzzer for fuzzer in existing_fuzzers_query}
+  existing_fuzzers = {
+      fuzzer.name: fuzzer
+      for fuzzer in data_types.Fuzzer.query()
+      if job.name in fuzzer.jobs
+  }
   modified_fuzzers = []
 
   for fuzzer_name in mappings:
@@ -118,16 +120,19 @@ def get_fuzz_task_payload(platform=None):
   if base_platform != platform:
     platforms.append(base_platform)
 
-  query = data_types.FuzzerJobs.query()
-  if environment.is_local_development():
-    query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
-    mappings = list(ndb_utils.get_all_from_query(query))[:1]
-  else:
+  if environment.is_production():
+    query = data_types.FuzzerJobs.query()
     query = query.filter(data_types.FuzzerJobs.platform.IN(platforms))
 
     mappings = []
     for entity in query:
       mappings.extend(entity.fuzzer_jobs)
+  else:
+    # 'FuzzerJobs' may not exist locally because they are created by
+    # the 'batch_fuzzer_jobs' cron job
+    query = data_types.FuzzerJob.query()
+    query = query.filter(data_types.FuzzerJob.platform.IN(platforms))
+    mappings = list(ndb_utils.get_all_from_query(query))[:1]
 
   if not mappings:
     return None, None

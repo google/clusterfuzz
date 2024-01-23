@@ -147,18 +147,18 @@ class StackFrameStructure:
     """Convert StackFrame to process_state.proto format for upload to crash/."""
     frame_proto = process_state_pb2.StackFrame()  # pylint: disable=no-member
     if self.address is not None:
-      frame_proto.instruction = unsigned_to_signed(self.address)
+      frame_proto.instruction = unsigned_to_signed(int(self.address))
     if self.module_base is not None:
       frame_proto.module.base_address = unsigned_to_signed(  # pylint: disable=no-member
           int(self.module_base))
     if self.module_name is not None:
-      frame_proto.module.code_file = self.module_name  # pylint: disable=no-member
+      frame_proto.module.code_file = str(self.module_name)  # pylint: disable=no-member
     if self.function_name is not None:
-      frame_proto.function_name = self.function_name
+      frame_proto.function_name = str(self.function_name)
     if self.function_base is not None:
-      frame_proto.function_base = unsigned_to_signed(self.function_base)
+      frame_proto.function_base = unsigned_to_signed(int(self.function_base))
     if self.filename is not None:
-      frame_proto.source_file_name = self.filename
+      frame_proto.source_file_name = str(self.filename)
     if self.fileline is not None:
       frame_proto.source_line = int(self.fileline)
 

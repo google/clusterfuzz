@@ -556,6 +556,7 @@ STACK_FRAME_IGNORE_REGEXES = [
     r'.*/crosstool/',
     r'.*/gcc/',
     r'.*/glibc\-',
+    r'.*/googletest/',
     r'.*/jemalloc/',
     r'.*/libc\+\+',
     r'.*/libc/',
@@ -610,6 +611,10 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # google3 specific stack frame ignores.
     r'^absl::log_internal::',
+
+    # Skia specific stack frame ignores
+    r'^SkAbort_FileLine',
+    r'^SkMutex::~SkMutex',  # sometimes released atexit giving a secondary crash
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [

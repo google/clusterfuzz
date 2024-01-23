@@ -134,7 +134,6 @@ def get_logging_config_dict(name):
               'level': logging.INFO,
               'host': '127.0.0.1',
               'port': 5170,
-              'logName': 'george',
           }
       },
       'loggers': {

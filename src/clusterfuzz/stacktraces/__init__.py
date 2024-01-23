@@ -36,7 +36,7 @@ class CrashInfo:
     self.crash_stacktrace = ''
     self.crash_categories = set()
     self.frame_count = 0
-    self.process_name = 'NULL'
+    self.process_name = None
     self.process_died = False
 
     # Following fields are for internal use only and subject to change. Do not
@@ -354,10 +354,10 @@ class StackParser:
         else:
           state.crash_state += line[:LINE_LENGTH_CAP] + '\n'
 
-    # Don't return an empty crash state if we have a crash type. Either set
-    # to NULL or use the crashing process name if available.
+    # Don't return an empty crash state if we have a crash type. Use the
+    # process name or fuzz target if available, or set to 'NULL'.
     if state.crash_type and not state.crash_state.strip():
-      state.crash_state = state.process_name
+      state.crash_state = state.process_name or self.fuzz_target or 'NULL'
 
     # For timeout, OOMs, const-input-overwrites in fuzz targets, force use of
     # fuzz target name since stack itself is not usable for deduplication.
@@ -1331,6 +1331,12 @@ class StackParser:
     # Add label if majority of crash_state arises from fuzzing directories.
     if state.fuzzer_dir_frames >= state.frame_count / 2:
       state.crash_categories.add('Fuzzer-crash-state')
+
+    # Add label to Android crashes if frame #0 was not found outside of logcat.
+    frame_0_idx, logcat_idx = stacktrace.find('    #0'), stacktrace.find(
+        '\n\nLogcat:\n')
+    if logcat_idx != -1 and (frame_0_idx == -1 or frame_0_idx > logcat_idx):
+      state.crash_categories.add('Missing-libfuzzer-stacktrace')
 
     # Detect cycles in stack overflow bugs and update crash state.
     update_crash_state_for_stack_overflow_if_needed(state)

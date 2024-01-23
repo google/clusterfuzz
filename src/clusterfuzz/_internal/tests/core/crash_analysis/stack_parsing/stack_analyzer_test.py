@@ -1764,6 +1764,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_sanitizer_signal_abrt_fuzz_target(self):
+    """Same as above, but this time we specify a fuzz target which should
+    then be used as fallback crash state."""
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+    data = self._read_test_data('sanitizer_signal_abrt_unknown.txt')
+    expected_type = 'Abrt'
+    expected_address = '0x000000000001'
+    expected_state = 'mock-fuzz-target\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_syzkaller_kasan(self):
     """Test syzkaller kasan."""
     data = self._read_test_data('kasan_syzkaller.txt')
@@ -3411,6 +3426,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_googletest(self):
+    """Test googletest stacktrace."""
+    data = self._read_test_data('googletest.txt')
+    expected_type = 'Abrt'
+    expected_state = 'v8::internal::SingleString\ncentipede::RunOneInput\nExecuteInputsFromShmem\n'
+    expected_address = '0x0539000a18ab'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_android_kasan_510(self):
     """Test android kasan 5.10 stacktrace."""
     data = self._read_test_data('android_kernel_kasan_510.txt')
@@ -3572,6 +3599,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_ignore_skia_abort(self):
+    """Test ignore  SkAbort_FileLine and SkMutex::~SkMutex"""
+    data = self._read_test_data("skia_abort.txt")
+    expected_type = 'Unexpected-exit'
+    expected_state = 'ImmediateCrash\nImmediateCrash\nSkMakeRuntimeEffect\n'
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_ignore_clusterfuzz_file_paths(self):
     """Test ignore ClusterFuzz specific file paths"""
     data = self._read_test_data('windows_crash_log.txt')
@@ -3667,7 +3706,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_security_flag, expected_categories)
 
   def test_fuzzer_exit_crash_category(self):
-    """Test Fuzzer-exit subtype"""
+    """Test Fuzzer-exit crash category"""
     data = self._read_test_data('fuzzer_exit_tag_mismatch.txt')
     expected_type = 'Tag-mismatch\nREAD 1'
     expected_address = '0x005a5f652fff'
@@ -3678,6 +3717,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_security_flag = True
     expected_categories = {'Fuzzer-exit', 'Fuzzer-crash-state'}
 
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag, expected_categories)
+
+  def test_missing_libfuzzer_stacktrace(self):
+    """Test missing libfuzzer stacktrace crash category"""
+    data = self._read_test_data('missing_libfuzzer_stacktrace.txt')
+    expected_type = 'UNKNOWN'
+    expected_address = '0x72ffbea193'
+    expected_state = (
+        'std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, std::\n'
+        'void std::__1::vector<std::__1::basic_string<char, std::__1::char_traits<char>, \n'
+        'android::C2PlatformComponentStore::C2PlatformComponentStore\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+    expected_categories = {'Missing-libfuzzer-stacktrace'}
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
                                   expected_security_flag, expected_categories)
