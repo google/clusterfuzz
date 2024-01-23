@@ -43,7 +43,6 @@ TEST_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'corpus_pruning_task_data')
 
 TEST_GLOBAL_BUCKET = 'clusterfuzz-test-global-bundle'
-TEST_SHARED_BUCKET = 'clusterfuzz-test-shared-corpus'
 TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
 
 
@@ -140,8 +139,6 @@ class BaseTest:
     """Mock rsync_to_disk."""
     if 'quarantine' in sync_dir:
       corpus_dir = self.quarantine_dir
-    elif 'shared' in sync_dir:
-      corpus_dir = self.shared_corpus_dir
     else:
       corpus_dir = self.corpus_dir
 
@@ -180,6 +177,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
+    self.maxDiff = None
 
   def test_preprocess_existing_task_running(self):
     """Preprocess test when another task is running."""
@@ -219,9 +217,8 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
                      'crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa')
 
     corpus = os.listdir(self.corpus_dir)
-    self.assertEqual(4, len(corpus))
+    self.assertEqual(3, len(corpus))
     self.assertCountEqual([
-        '39e0574a4abfd646565a3e436c548eeb1684fb57',
         '7d157d7c000ae27db146575c08ce30df893d3a64',
         '31836aeaab22dc49555a97edb4c753881432e01d',
         '6fa8c57336628a7d733f684dc9404fbd09020543',
@@ -248,9 +245,9 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
             'corpus_location':
                 'gs://bucket/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
-                8,
+                6,
             'corpus_size_units':
-                4,
+                3,
             'date':
                 today,
             # Coverage numbers are expected to be None as they come from fuzzer
