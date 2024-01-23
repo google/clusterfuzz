@@ -306,7 +306,9 @@ def _testcase_reproduces_in_revision(
   build_manager.setup_build(revision)
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
+    error_message = f'Build setup failed at r{revision}'
     return None, uworker_msg_pb2.Output(
+        error_message=error_message,
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
