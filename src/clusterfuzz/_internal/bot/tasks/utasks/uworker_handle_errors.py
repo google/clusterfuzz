@@ -43,8 +43,6 @@ def get_all_handled_errors():
 def get_handle_all_errors_mapping():
   """Returns a mapping of all uworker errors to their postprocess handlers."""
   mapping = {
-      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP:
-          minimize_task.handle_minimize_setup_error,
       uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
           analyze_task.handle_noncrash,
       uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
@@ -59,6 +57,20 @@ def get_handle_all_errors_mapping():
           fuzz_task.handle_fuzz_build_setup_failure,
       uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:
           fuzz_task.handle_fuzz_data_bundle_setup_failure,
+      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP:
+          minimize_task.handle_minimize_setup_error,
+      uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH:
+          minimize_task.handle_minimize_unreproducible_crash,
+      uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY:
+          minimize_task.handle_minimize_crash_too_flaky,
+      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE:
+          minimize_task.handle_minimize_deadline_exceeded_in_main_file_phase,
+      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED:
+          minimize_task.handle_minimize_deadline_exceeded,
+      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE:
+          minimize_task.handle_libfuzzer_minimization_unreproducible,
+      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED:
+          minimize_task.handle_libfuzzer_minimization_failed,
       uworker_msg_pb2.ErrorType.TESTCASE_SETUP:
           setup.handle_setup_testcase_error,
       uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP:
