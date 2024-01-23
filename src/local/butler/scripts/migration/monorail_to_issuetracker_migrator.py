@@ -59,12 +59,11 @@ def execute(args):
 @returns: a dictionary where the key is a numeric monorail id
   and the value is a numeric issuetracker id ({ monorail_id: issuetracker_id })
 """
-
-
 def get_monorail_issuetracker_issue_id_dictionary(file_loc):
-  dict = {}
+  issue_id_dictionary = {}
   # csv should be structured with no headers and contain two columns:
-  # a monorail issue id, and a issuetracker issue id (ex. row: "600469, 40003765")
+  # a monorail issue id, and a issuetracker issue id
+  # (ex. row: "600469, 40003765")
   with open(file_loc, 'r') as csvfile:
     reader = csv.reader(csvfile)
     fieldnames = ['monorail_id', 'issuetracker_id']
@@ -72,6 +71,6 @@ def get_monorail_issuetracker_issue_id_dictionary(file_loc):
     for row in reader:
       monorail_issue_id = row[fieldnames[0]]
       issuetracker_issue_id = row[fieldnames[1]]
-      dict[monorail_issue_id] = issuetracker_issue_id
+      issue_id_dictionary[monorail_issue_id] = issuetracker_issue_id
 
-  return dict  # { monorail_issue_id: issuetracker_issue_id }
+  return issue_id_dictionary  # { monorail_issue_id: issuetracker_issue_id }
