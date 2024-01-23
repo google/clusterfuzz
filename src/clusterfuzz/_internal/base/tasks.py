@@ -89,7 +89,7 @@ UTASK_MAINS_QUEUE = 'utask_main'
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
 
-UTASK_TIME_LIMIT = 15
+UTASK_TIME_LIMIT = 60
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
