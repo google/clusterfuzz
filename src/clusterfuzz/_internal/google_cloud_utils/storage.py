@@ -1135,7 +1135,7 @@ def _download_url(url):
     function='google_cloud_utils.storage.upload_signed_url')
 def upload_signed_url(data, url):
   """Uploads data to the |signed_url|."""
-  return _provider().upload_signed_url(data, url)
+  return _provider().upload_signed_url(bytes(data, 'utf-8'), url)
 
 
 def download_signed_url(url):
