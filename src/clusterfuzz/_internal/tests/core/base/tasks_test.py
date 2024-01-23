@@ -37,7 +37,7 @@ class InitializeTaskTest(unittest.TestCase):
         'job': self.job,
         'eta': 1,
     }
-    task = tasks.initialize_task([self.message])
+    task = tasks.initialize_task(self.message)
     self.assertIsInstance(task, tasks.PubSubTask)
     self.assertEqual(task.command, self.command)
     self.assertEqual(task.argument, self.argument)
@@ -71,7 +71,7 @@ class InitializeTaskTest(unittest.TestCase):
         b'''"mediaLink": "https://storage.googleapis.com/download/storage/v1/b/uworker-output/o/uworker.output?generation=1698'''
         b'''182630721865&alt=media",\n  "contentLanguage": "en",\n  "crc32c": "AAAAAA==",\n  "etag": "CMmS36PPj4IDEAE="\n}\n'''
     )
-    task = tasks.initialize_task([self.message])
+    task = tasks.initialize_task(self.message)
     self.assertIsInstance(task, tasks.PostprocessPubSubTask)
     self.assertEqual(task.command, 'postprocess')
     self.assertEqual(task.argument, 'gs://uworker-output/worker.output')
@@ -249,3 +249,32 @@ class GetMachineTemplateForQueueTests(unittest.TestCase):
     }
 
     self.assertEqual(template, expected_template)
+
+
+class GetTaskFromMessageTest(unittest.TestCase):
+  """Tests for get_task_from_message."""
+
+  def test_no_message(self):
+    self.assertEqual(tasks.get_task_from_message(None), None)
+
+  def test_success(self):
+    mock_task = mock.Mock(defer=mock.Mock(return_value=False))
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.initialize_task',
+        return_value=mock_task):
+      self.assertEqual(tasks.get_task_from_message(mock.Mock()), mock_task)
+
+  def test_key_error(self):
+    mock_message = mock.Mock()
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.initialize_task',
+        side_effect=KeyError):
+      self.assertEqual(tasks.get_task_from_message(mock_message), None)
+      mock_message.ack.assert_called_with()
+
+  def test_defer(self):
+    mock_task = mock.Mock(defer=mock.Mock(return_value=True))
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.initialize_task',
+        return_value=mock_task):
+      self.assertEqual(tasks.get_task_from_message(mock.Mock()), None)

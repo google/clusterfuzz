@@ -19,10 +19,13 @@ import json
 import random
 import threading
 import time
+from typing import List
+from typing import Optional
 
 from clusterfuzz._internal.base import external_tasks
 from clusterfuzz._internal.base import persistent_cache
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
@@ -81,9 +84,16 @@ TASK_PAYLOAD_KEY = 'task_payload'
 TASK_END_TIME_KEY = 'task_end_time'
 
 POSTPROCESS_QUEUE = 'postprocess'
+UTASK_MAINS_QUEUE = 'utask_main'
 
 # See https://github.com/google/clusterfuzz/issues/3347 for usage
 SUBQUEUE_IDENTIFIER = ':'
+
+UTASK_QUEUE_PULL_SECONDS = 60
+
+# The maximum number of utasks we will collect from the utask queue before
+# scheduling on batch.
+MAX_UTASKS = 30
 
 
 class Error(Exception):
@@ -163,47 +173,20 @@ def get_high_end_task():
   return task
 
 
-def initialize_task(messages):
-  """Creates a task from |messages|."""
-  message = messages[0]
-  if message.attributes.get('eventType', None) != 'OBJECT_FINALIZE':
-    return PubSubTask(message)
-
-  # Handle postprocess task.
-  # The google cloud API for pub/sub notifications uses the data field unlike
-  # ClusterFuzz which uses attributes more.
-  data = json.loads(message.data)
-  name = data['name']
-  bucket = data['bucket']
-  output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
-  return PostprocessPubSubTask(output_url_argument, message)
-
-
 def get_regular_task(queue=None):
   """Get a regular task."""
   if not queue:
     queue = regular_queue()
 
-  pubsub_client = pubsub.PubSubClient()
-  application_id = utils.get_application_id()
-  while True:
-    messages = _get_messages(pubsub_client, application_id, queue)
+  pubsub_puller = PubSubPuller(queue)
 
+  while True:
+    messages = pubsub_puller.get_messages(max_messages=1)
     if not messages:
       return None
 
-    try:
-      task = initialize_task(messages)
-      if task is None:
-        continue
-    except KeyError:
-      logs.log_error('Received an invalid task, discarding...')
-      messages[0].ack()
-      continue
-
-    # Check that this task should be run now (past the ETA). Otherwise we defer
-    # its execution.
-    if not task.defer():
+    task = get_task_from_message(messages[0])
+    if task:
       return task
 
 
@@ -247,40 +230,72 @@ def get_machine_templates():
   return conf['instance_templates']
 
 
-def _get_messages(pubsub_client, application_id, queue):
-  return pubsub_client.pull_from_subscription(
-      pubsub.subscription_name(application_id, queue), max_messages=1)
+class PubSubPuller:
+  """PubSub client providing convenience methods for pulling."""
+
+  def __init__(self, queue):
+    self.client = pubsub.PubSubClient()
+    self.application_id = utils.get_application_id()
+    self.queue = queue
+
+  def get_messages(self, max_messages=1):
+    """Pulls a list of messages up to |max_messages| from self.queue using
+    pubsub."""
+    return self.client.pull_from_subscription(
+        pubsub.subscription_name(self.application_id, self.queue), max_messages)
+
+  def get_messages_time_limited(self, max_messages, time_limit_secs):
+    """Returns up to |max_messages|. Waits up until |time_limit_secs| to get to
+    |max_messages|."""
+    start_time = time.time()
+    messages = []
+
+    def is_done_collecting_messages():
+      curr_time = time.time()
+      if curr_time - start_time >= time_limit_secs:
+        return True
+
+      if len(messages) >= max_messages:
+        return True
+
+      return False
+
+    while not is_done_collecting_messages():
+      new_messages = self.get_messages(max_messages - len(messages))
+      if new_messages:
+        messages.extend(new_messages)
+
+    return messages
 
 
 def get_postprocess_task():
   """Gets a postprocess task if one exists."""
   # This should only be run on non-preemptible bots.
-  if (environment.platform() != 'LINUX' or
-      not environment.get_value('REMOTE_UTASK_EXECUTION')):
+  if not utask_utils.is_remotely_executing_utasks():
     return None
-  pubsub_client = pubsub.PubSubClient()
-  application_id = utils.get_application_id()
+  pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
   logs.log('Pulling from postprocess queue')
-  messages = _get_messages(pubsub_client, application_id, POSTPROCESS_QUEUE)
+  messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
-  try:
-    logs.log('Pulled postprocess queue.')
-    return initialize_task(messages)
-  except KeyError:
-    logs.log_error('Received an invalid task, discarding...')
-    messages[0].ack()
-    return None
+  task = get_task_from_message(messages[0])
+  if task:
+    logs.log('Pulled from postprocess queue.')
+  return task
+
+
+def allow_all_tasks():
+  return not environment.get_value('PREEMPTIBLE')
 
 
 def get_task():
-  """Get a task."""
+  """Returns an ordinary (non-postprocess, non-utask_main) task that is pulled
+  from a ClusterFuzz task queue."""
   task = get_command_override()
   if task:
     return task
 
-  allow_all_tasks = not environment.get_value('PREEMPTIBLE')
-  if allow_all_tasks:
+  if allow_all_tasks():
     # Postprocess tasks need to be executed on a non-preemptible otherwise we
     # can lose the output of a task.
     # Postprocess tasks get priority because they are so quick. They typically
@@ -412,6 +427,65 @@ class PubSubTask(Task):
     track_task_end()
 
 
+def get_task_from_message(message) -> Optional[PubSubTask]:
+  """Returns a task constructed from the first of |messages| if possible."""
+  if message is None:
+    return None
+  try:
+    task = initialize_task(message)
+  except KeyError:
+    logs.log_error('Received an invalid task, discarding...')
+    message.ack()
+    return None
+
+  # Check that this task should be run now (past the ETA). Otherwise we defer
+  # its execution.
+  if task.defer():
+    return None
+
+  return task
+
+
+def get_utask_mains() -> List[PubSubTask]:
+  """Returns a list of tasks for preprocessing many utasks on this bot and then
+  running the uworker_mains in the same batch job."""
+  if not utask_utils.is_remotely_executing_utasks():
+    return None
+  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
+  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
+                                                     UTASK_QUEUE_PULL_SECONDS)
+  return handle_multiple_messages(messages)
+
+
+def handle_multiple_messages(messages) -> List[PubSubTask]:
+  """Merges tasks specified in |messages| into a list for processing on this
+  bot."""
+  tasks = []
+  for message in messages:
+    task = get_task_from_message(message)
+    if task is None:
+      continue
+    tasks.append(task)
+
+  return tasks
+
+
+def initialize_task(message) -> PubSubTask:
+  """Creates a task from |messages|."""
+
+  if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
+    return PubSubTask(message)
+
+  # Handle postprocess task.
+  # The GCS API for pub/sub notifications uses the data field unlike
+  # ClusterFuzz which uses attributes more.
+  data = json.loads(message.data)
+  name = data['name']
+  bucket = data['bucket']
+  output_url_argument = storage.get_cloud_storage_file_path(bucket, name)
+  return PostprocessPubSubTask(output_url_argument, message)
+
+
 class PostprocessPubSubTask(PubSubTask):
   """A postprocess task received over pub/sub."""
 
@@ -427,31 +501,6 @@ class PostprocessPubSubTask(PubSubTask):
     grandparent_class.__init__(command, output_url_argument, job_type, eta,
                                is_command_override, high_end)
     self._pubsub_message = pubsub_message
-
-  @contextlib.contextmanager
-  def lease(self, _event=None):  # pylint: disable=arguments-differ
-    """Maintain a lease for the task."""
-    task_lease_timeout = TASK_LEASE_SECONDS_BY_COMMAND.get(
-        self.command, get_task_lease_timeout())
-
-    environment.set_value('TASK_LEASE_SECONDS', task_lease_timeout)
-    track_task_start(self, task_lease_timeout)
-
-    if _event is None:
-      _event = threading.Event()
-
-    leaser_thread = _PubSubLeaserThread(self._pubsub_message, _event,
-                                        task_lease_timeout)
-    leaser_thread.start()
-    try:
-      yield leaser_thread
-    finally:
-      _event.set()
-      leaser_thread.join()
-
-    # If we get here the task succeeded in running. Acknowledge the message.
-    self._pubsub_message.ack()
-    track_task_end()
 
 
 class _PubSubLeaserThread(threading.Thread):
@@ -495,6 +544,17 @@ class _PubSubLeaserThread(threading.Thread):
           break
       except Exception:
         logs.log_error('Leaser thread failed.')
+
+
+def add_utask_main(command, input_url, job_type, wait_time=None):
+  """Adds the utask_main portion of a utask to the utasks queue for scheduling
+  on batch. This should only be done after preprocessing."""
+  add_task(
+      command,
+      input_url,
+      job_type,
+      queue=UTASK_MAINS_QUEUE,
+      wait_time=wait_time)
 
 
 def add_task(command, argument, job_type, queue=None, wait_time=None):

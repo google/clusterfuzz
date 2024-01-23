@@ -28,7 +28,7 @@ class UTaskCombinedTest(unittest.TestCase):
 
   def test_is_remote(self):
     with mock.patch(
-        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        'clusterfuzz._internal.bot.tasks.utasks.utask_utils.is_remotely_executing_utasks',
         return_value=True):
       self.assertTrue(task_types.UTaskCombined.is_execution_remote())
 
@@ -44,7 +44,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
     job_name = 'libfuzzer_mac_asan'
 
     with mock.patch(
-        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        'clusterfuzz._internal.bot.tasks.utasks.utask_utils.is_remotely_executing_utasks',
         return_value=True):
       data_types.Job(name=job_name, platform='MAC').put()
       self.assertFalse(task_types.is_remote_utask('variant', job_name))
@@ -53,7 +53,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
     job_name = 'libfuzzer_linux_asan'
 
     with mock.patch(
-        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        'clusterfuzz._internal.bot.tasks.utasks.utask_utils.is_remotely_executing_utasks',
         return_value=True):
       data_types.Job(name=job_name, platform='LINUX').put()
       self.assertTrue(task_types.is_remote_utask('variant', job_name))
@@ -62,7 +62,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
     job_name = 'libfuzzer_linux_asan'
 
     with mock.patch(
-        'clusterfuzz._internal.bot.tasks.task_types.is_remotely_executing_utasks',
+        'clusterfuzz._internal.bot.tasks.utasks.utask_utils.is_remotely_executing_utasks',
         return_value=True):
       data_types.Job(name=job_name, platform='LINUX').put()
       self.assertFalse(task_types.is_remote_utask('impact', job_name))

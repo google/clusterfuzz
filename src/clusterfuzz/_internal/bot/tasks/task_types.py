@@ -15,6 +15,7 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal.bot.tasks import utasks
+from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
@@ -100,13 +101,11 @@ class UTask(BaseUTask):
 
   @staticmethod
   def is_execution_remote():
-    return is_remotely_executing_utasks()
+    return utask_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask locally."""
-    if (not environment.is_production() or
-        not environment.get_value('REMOTE_UTASK_EXECUTION') or
-        environment.platform() != 'LINUX'):
+    if (not environment.is_production() or self.is_execution_remote()):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
@@ -135,11 +134,6 @@ class UTaskCombined(UTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     self.execute_locally(task_argument, job_type, uworker_env)
-
-
-def is_remotely_executing_utasks():
-  return bool(environment.is_production() and
-              environment.get_value('REMOTE_UTASK_EXECUTION'))
 
 
 class PostprocessTask(BaseTask):
@@ -195,32 +189,3 @@ COMMAND_TYPES = {
     'uworker_main': UworkerMainTask,
     'variant': UTaskCombined,
 }
-
-
-def is_trusted_portion_of_utask(command_name):
-  """Returns true if |command_name| is asking the bot to execute the
-  trusted-portion of a utask (preprocess and postprocess). The workflow for
-  executing a task is as follows:
-  1. A command such as analyze is given to a bot.
-  2. The bot executes preprocess and schedules uworker_main.
-  3. The uworker_main command is given to the uworker which executes the
-  uworker_main function of the specified task.
-  4. Postprocessing runs (the postprocess task is triggered by GCS when
-  uworker_main writes its output.
-  Therefore, the commands to execute utasks and the "postprocess" command can be
-  executed on Linux bots even if the utask is supposed to run on Windows. This
-  function returns commands that denote these portions.
-  """
-  task_type = COMMAND_TYPES[command_name]
-  # Postprocess and preprocess tasks are executed on tworkers, while utask_mains
-  # are executed on uworkers. Note that the uworker_main command will be used to
-  # execute uworker_main, while the name of the task itself will be used to
-  # request execution of the preprocess step.
-  return task_type in (PostprocessTask, UTask)
-
-
-def get_utask_trusted_portions():
-  return [
-      command_name for command_name in COMMAND_TYPES
-      if is_trusted_portion_of_utask(command_name)
-  ]
