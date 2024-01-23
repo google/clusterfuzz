@@ -87,6 +87,8 @@ def schedule_utask_mains():
   if not utask_mains:
     return
 
+  logs.log(f'Combining {len(utask_mains)} batch tasks.')
+
   batch_tasks = []
   with lease_all_tasks(utask_mains):
     batch_tasks = [
