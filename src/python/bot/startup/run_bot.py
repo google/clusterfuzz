@@ -20,6 +20,7 @@ from clusterfuzz._internal.base import modules
 
 modules.fix_module_search_paths()
 
+import contextlib
 import multiprocessing
 import os
 import sys
@@ -28,7 +29,7 @@ import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
-from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
@@ -68,6 +69,33 @@ class _Monitor:
         })
 
 
+@contextlib.contextmanager
+def lease_all_tasks(tasks_list):
+  """Creates a context manager that leases every task in tasks_list."""
+  with contextlib.ExitStack() as exit_stack:
+    context_managers = [task.lease for task in tasks_list]
+    for context_manager in context_managers:
+      exit_stack.enter_context(context_manager)
+    yield
+
+
+def schedule_utask_mains():
+  """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
+  from clusterfuzz._internal.google_cloud_utils import batch
+
+  utask_mains = taskslib.get_utask_mains()
+  if not utask_mains:
+    return
+
+  batch_tasks = []
+  with lease_all_tasks(utask_mains):
+    batch_tasks = [
+        batch.BatchTask(task.command, task.job, task.input_url)
+        for task in utask_mains
+    ]
+    batch.create_uworker_main_batch_jobs(batch_tasks)
+
+
 def task_loop():
   """Executes tasks indefinitely."""
   # Defer heavy task imports to prevent issues with multiprocessing.Process
@@ -88,7 +116,16 @@ def task_loop():
       update_task.run()
       update_task.track_revision()
 
-      task = tasks.get_task()
+      if environment.get_value('SCHEDULE_UTASK_MAINS'):
+        # If the bot is configured to schedule utask_mains, don't run any other
+        # tasks because scheduling these tasks is more important than executing
+        # any one other task.
+
+        # TODO(metzman): Convert this to a k8s cron.
+        schedule_utask_mains()
+        continue
+
+      task = taskslib.get_task()
       if not task:
         continue
 
