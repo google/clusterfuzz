@@ -83,7 +83,6 @@ def schedule_utask_mains():
   """Schedules utask_mains from preprocessed utasks on Google Cloud Batch."""
   from clusterfuzz._internal.google_cloud_utils import batch
 
-
   utask_mains = taskslib.get_utask_mains()
   if not utask_mains:
     return
