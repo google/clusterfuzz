@@ -239,6 +239,8 @@ class PubSubPuller:
     self.queue = queue
 
   def get_messages(self, max_messages=1):
+    """Pulls a list of messages up to |max_messages| from self.queue using
+    pubsub."""
     return self.pubsub_client.pull_from_subscription(
         pubsub.subscription_name(self.application_id, self.queue), max_messages)
 
