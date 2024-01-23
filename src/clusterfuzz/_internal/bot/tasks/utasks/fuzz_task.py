@@ -1907,16 +1907,19 @@ class FuzzingSession:
 
     if new_targets_count is not None:
       self.fuzz_task_output.new_targets_count = new_targets_count
-    return self._get_output(
+    output = self._get_output(
         fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
         crash_revision=str(crash_revision),
         job_run_timestamp=time.time(),
         new_crash_count=new_crash_count,
         known_crash_count=known_crash_count,
         testcases_executed=testcases_executed,
-        job_run_crashes=convert_groups_to_crashes(processed_groups),
         fuzzer_revision=self.fuzzer.revision,
     )
+    if job_run_crashes:
+      job_run_crashes = convert_groups_to_crashes(processed_groups)
+      output.job_run_crashes.extend(job_run_crashes)
+    return output
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
