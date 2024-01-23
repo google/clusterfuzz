@@ -1135,12 +1135,18 @@ def _download_url(url):
     function='google_cloud_utils.storage.upload_signed_url')
 def upload_signed_url(data, url):
   """Uploads data to the |signed_url|."""
-  return _provider().upload_signed_url(bytes(data, 'utf-8'), url)
+  return _provider().upload_signed_url(str_to_bytes(data), url)
 
 
 def download_signed_url(url):
   """Returns contents of |url|. Writes to |local_path| if provided."""
   return _provider().download_signed_url(url)
+
+
+def str_to_bytes(data):
+  if not isinstance(data, str):
+    return data
+  return bytes(data, 'utf-8')
 
 
 def download_signed_url_to_file(url, filepath):
