@@ -173,47 +173,6 @@ def get_high_end_task():
   return task
 
 
-def handle_single_message(message) -> Optional[PubSubTask]:
-  """Returns a task constructed from the first of |messages| if possible."""
-  try:
-    task = initialize_task(message)
-  except KeyError:
-    logs.log_error('Received an invalid task, discarding...')
-    message.ack()
-    return None
-
-  # Check that this task should be run now (past the ETA). Otherwise we defer
-  # its execution.
-  if task.defer():
-    return None
-
-  return task
-
-
-def get_utask_mains() -> List[PubSubTask]:
-  """Returns a list of tasks for preprocessing many utasks on this bot and then
-  running the uworker_mains in the same batch job."""
-  if not utask_utils.is_remotely_executing_utasks():
-    return None
-  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
-  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
-                                                     UTASK_TIME_LIMIT)
-  return handle_multiple_messages(messages)
-
-
-def handle_multiple_messages(messages) -> List[PubSubTask]:
-  """Merges tasks specified in |messages| into a list for processing on this
-  bot."""
-  tasks = []
-  for message in messages:
-    task = handle_single_message(message)
-    if task is None:
-      continue
-    tasks.append(task)
-
-  return tasks
-
-
 def get_regular_task(queue=None):
   """Get a regular task."""
   if not queue:
@@ -327,7 +286,7 @@ def allow_all_tasks():
   return not environment.get_value('PREEMPTIBLE')
 
 
-def get_task() -> Task:
+def get_task():
   """Returns an ordinary (non-postprocess, non-utask_main) task that is pulled
   from a ClusterFuzz task queue."""
   task = get_command_override()
@@ -466,9 +425,53 @@ class PubSubTask(Task):
     track_task_end()
 
 
+def handle_single_message(message) -> Optional[PubSubTask]:
+  """Returns a task constructed from the first of |messages| if possible."""
+  if message is None:
+    return None
+  try:
+    task = initialize_task(message)
+  except KeyError:
+    logs.log_error('Received an invalid task, discarding...')
+    message.ack()
+    return None
+
+  # Check that this task should be run now (past the ETA). Otherwise we defer
+  # its execution.
+  if task.defer():
+    return None
+
+  return task
+
+
+def get_utask_mains() -> List[PubSubTask]:
+  """Returns a list of tasks for preprocessing many utasks on this bot and then
+  running the uworker_mains in the same batch job."""
+  if not utask_utils.is_remotely_executing_utasks():
+    return None
+  pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
+  messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
+                                                     UTASK_TIME_LIMIT)
+  return handle_multiple_messages(messages)
+
+
+def handle_multiple_messages(messages) -> List[PubSubTask]:
+  """Merges tasks specified in |messages| into a list for processing on this
+  bot."""
+  tasks = []
+  for message in messages:
+    task = handle_single_message(message)
+    if task is None:
+      continue
+    tasks.append(task)
+
+  return tasks
+
+
 def initialize_task(message) -> PubSubTask:
   """Creates a task from |messages|."""
-  if message.attributes.get('eventType', None) != 'OBJECT_FINALIZE':
+
+  if message.attributes.get('eventType') != 'OBJECT_FINALIZE':
     return PubSubTask(message)
 
   # Handle postprocess task.
