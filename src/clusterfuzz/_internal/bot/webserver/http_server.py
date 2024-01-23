@@ -19,6 +19,7 @@ import os
 import socket
 import threading
 
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 
@@ -146,5 +147,13 @@ def start():
   http_port_2 = environment.get_value('HTTP_PORT_2', 8080)
   if not port_is_open(http_host, http_port_1):
     start_server_thread(http_host, http_port_1)
+  else:
+    logs.log_warn(
+        f"HTTP_PORT_1 ({http_port_1}) already open, not starting server thread."
+    )
   if not port_is_open(http_host, http_port_2):
     start_server_thread(http_host, http_port_2)
+  else:
+    logs.log_warn(
+        f"HTTP_PORT_2 ({http_port_2}) already open, not starting server thread."
+    )

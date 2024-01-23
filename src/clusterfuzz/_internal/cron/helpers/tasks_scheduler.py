@@ -13,29 +13,30 @@
 # limitations under the License.
 """Task scheduler used to recreate recurring tasks."""
 
-from clusterfuzz._internal.base import tasks
+from clusterfuzz._internal.base import tasks as taskslib
+from clusterfuzz._internal.bot.tasks import task_creation
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
-from clusterfuzz._internal.metrics import logs
 
 
 def schedule(task):
   """Creates tasks for open reproducible testcases."""
 
+  testcases = []
   for status in ['Processed', 'Duplicate']:
-    testcases = data_types.Testcase.query(
-        ndb_utils.is_true(data_types.Testcase.open),
-        ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
-        data_types.Testcase.status == status)
+    testcases.extend(
+        data_types.Testcase.query(
+            ndb_utils.is_true(data_types.Testcase.open),
+            ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
+            data_types.Testcase.status == status))
 
-    for testcase in testcases:
-      try:
-        tasks.add_task(
-            task,
-            testcase.key.id(),
-            testcase.job_type,
-            queue=tasks.queue_for_testcase(testcase))
-      except Exception:
-        logs.log_error('Failed to add task.')
-        continue
-  logs.log(f'Task {task} added successfully')
+  tasks = [
+      task_creation.Task(
+          task,
+          testcase.key.id(),
+          testcase.job_type,
+          queue_for_platform=taskslib.queue_for_testcase(testcase))
+      for testcase in testcases
+  ]
+
+  task_creation.schedule_tasks(tasks)
