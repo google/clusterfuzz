@@ -1560,24 +1560,25 @@ class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):
 class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   """Tests for preprocess_store_fuzzer_run_results."""
 
+  SIGNED_URL = 'https://signed'
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
-        'clusterfuzz._internal.google_cloud_utils.blobs.generate_new_blob_name',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
     ])
     self.mock._sign_url.side_effect = (
         lambda remote_path, method, minutes: remote_path)
-    self.mock.generate_new_blob_name.return_value = 'e629bd1e-7153-426a-89e1-2c9890e48986'
+    self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
 
   def test_preprocess_store_fuzzer_run_results(self):
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
     self.assertEqual(
-        fuzz_task_input.sample_testcase_upload_url,
-        '/clusterfuzz-ci-blobs/e629bd1e-7153-426a-89e1-2c9890e48986')
+        fuzz_task_input.sample_testcase_upload_url, self.SIGNED_URL)
+
     self.assertEqual(
         fuzz_task_input.script_log_upload_url,
-        '/clusterfuzz-ci-blobs/e629bd1e-7153-426a-89e1-2c9890e48986')
+        self.SIGNED_URL)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -1587,7 +1588,8 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
   def test_postprocess_store_fuzzer_run_results(self):
     """Tests postprocess_store_fuzzer_run_results."""
     fuzzer_name = 'myfuzzer'
-    fuzzer = data_types.Fuzzer(name=fuzzer_name)
+    revision = 1
+    fuzzer = data_types.Fuzzer(name=fuzzer_name, revision=revision)
     fuzzer.put()
     console_output = 'OUTPUT'
     generated_testcase_string = 'GENERATED'
@@ -1599,14 +1601,14 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     sample_testcase_upload_key = 'sample-key'
     fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
         sample_testcase_upload_key=sample_testcase_upload_key)
-    uworker_input = uworker_msg_pb2.UworkerInput(
+    uworker_input = uworker_msg_pb2.Input(
         fuzzer_name=fuzzer_name, fuzz_task_input=fuzz_task_input)
-    output = uworker_msg_pb2.UworkerOutput(
+    output = uworker_msg_pb2.Output(
         fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(
-            fuzzer_run_results=fuzzer_run_results),
+            fuzzer_run_results=fuzzer_run_results, fuzzer_revision=revision),
         uworker_input=uworker_input)
     fuzz_task.postprocess_store_fuzzer_run_results(output)
     fuzzer = fuzzer.key.get()
-    self.assertEqual(fuzzer.console_output, console_output)
     self.assertEqual(fuzzer.return_code, fuzzer_return_code)
+    self.assertEqual(fuzzer.console_output, console_output)
     self.assertEqual(fuzzer.result, generated_testcase_string)
