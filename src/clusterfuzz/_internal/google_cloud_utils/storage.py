@@ -20,6 +20,7 @@ import os
 import shutil
 import threading
 import time
+import uuid
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -1173,3 +1174,10 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   contents."""
   provider = _provider()
   return provider.sign_download_url(remote_path, minutes=minutes)
+
+
+def get_random_blob_upload_url(remote_directory, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  blob_name = str(uuid.uuid4()).lower()
+  url = remote_directory if remote_directory.endswith('/') else remote_directory + '/'
+  url = url + blob_name
+  return get_signed_download_url(url, minutes=minutes)

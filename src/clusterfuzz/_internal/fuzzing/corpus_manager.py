@@ -517,13 +517,10 @@ class FuzzTargetCorpus(GcsCorpus):
     if not sync_corpus_bucket_name:
       raise RuntimeError('No corpus bucket specified.')
 
-    GcsCorpus.__init__(
-        self,
-        sync_corpus_bucket_name,
+    super().__init__(sync_corpus_bucket_name,
         f'/{self._engine}/{self._project_qualified_target_name}',
         log_results=log_results,
-        gsutil_runner_func=gsutil_runner_func,
-    )
+        gsutil_runner_func=gsutil_runner_func)
 
     self._regressions_corpus = GcsCorpus(
         sync_corpus_bucket_name,
@@ -598,9 +595,29 @@ class FuzzTargetCorpus(GcsCorpus):
 
     return result
 
+
+  def preprocess(self, max_uploads=10000):
+    # !!! Are these prefixed with gs:// ?? does that matter?
+    download_urls = [
+        get_signed_download_url(download_url) for download_url in storage.list_blobs(self.get_gcs_url())]
+    upload_urls = get_random_blob_upload_url(max_uploads=max_uploads)
+    regression_download_urls = [
+      get_signed_download_url(download_url)
+      for download_url in storage.list_blobs(self._regressions_corpus.get_gcs_url())]
+    ]
+    return uworker_msg_pb2.Corpus(download_urls=download_urls, upload_urls=upload_urls, regression_download_urls=regression_download_urls)
+
+  def download_untrusted(self, directory, corpus: uworker_msg_pb2.Corpus, timeout=CORPUS_FILES_SYNC_TIMEOUT,
+                         delete=True):
+
+
+
   def get_regressions_corpus_gcs_url(self):
     """Return gcs path to directory containing crash regressions."""
     return self.get_gcs_url(suffix=REGRESSIONS_GCS_PATH_SUFFIX)
+
+
+def download_signed_corpus_urls(urls, directory, timeout):
 
 
 class HoldAsNeededFile(io.RawIOBase):
