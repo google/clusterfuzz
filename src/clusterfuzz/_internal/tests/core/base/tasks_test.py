@@ -264,14 +264,12 @@ class HandleSingleMessageTest(unittest.TestCase):
         return_value=mock_task):
       self.assertEqual(tasks.handle_single_message(mock.Mock()), mock_task)
 
-
   def test_key_error(self):
     mock_message = mock.Mock()
     with mock.patch(
         'clusterfuzz._internal.base.tasks.initialize_task',
         side_effect=KeyError):
-      self.assertEqual(
-          tasks.handle_single_message(mock_message), None)
+      self.assertEqual(tasks.handle_single_message(mock_message), None)
       mock_message.ack.assert_called_with()
 
   def test_defer(self):
