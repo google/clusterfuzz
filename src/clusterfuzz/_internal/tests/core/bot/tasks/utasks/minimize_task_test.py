@@ -358,6 +358,7 @@ class UpdateTestcaseTest(unittest.TestCase):
   """Tests for update_testcase."""
 
   def test_gestures(self):
+    """Test that gestures save correctly."""
     testcase = data_types.Testcase()
     testcase.put()
     gestures = ['mousemove_relative --sync,-86 -57']
