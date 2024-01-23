@@ -1981,7 +1981,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
-  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(targets_count=targets_count)
+  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+      targets_count=uworker_io.entity_to_protobuf(targets_count))
   preprocess_store_fuzzer_run_results(fuzz_task_input)
   return uworker_msg_pb2.Input(
       fuzz_task_input=fuzz_task_input,
