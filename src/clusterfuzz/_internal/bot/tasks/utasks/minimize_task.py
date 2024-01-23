@@ -1402,7 +1402,7 @@ def _skip_minimization(testcase: data_types.Testcase,
 def handle_libfuzzer_minimization_unreproducible(
     output: uworker_msg_pb2.Output):
   """Handles libfuzzer minimization task's failure to reproduce the issue."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase = data_handler.get_testcase_by_id(output.uworker_intput.testcase_id)
   # Be more lenient with marking testcases as unreproducible when this is a
   # job override.
   is_overriden_job = bool(environment.get_value('ORIGINAL_JOB_NAME'))
@@ -1414,7 +1414,7 @@ def handle_libfuzzer_minimization_unreproducible(
 
 def handle_libfuzzer_minimization_failed(output: uworker_msg_pb2.Output):
   """Handles libfuzzer minimization task failure."""
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase = data_handler.get_testcase_by_id(output.uworker_intput.testcase_id)
   _skip_minimization(
       testcase,
       'LibFuzzer minimization failed',
