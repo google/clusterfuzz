@@ -1076,20 +1076,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                     'members': ['serviceAccount:lib1@serviceaccount.com']
                 }]
             },
-            bucket='test-shared-corpus-bucket'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib1@serviceaccount.com']
-                }]
-            },
             bucket='global-corpus.clusterfuzz-external.appspot.com'),
         mock.call(
             body={
@@ -1161,20 +1147,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 }]
             },
             bucket='clusterfuzz-external-deployment'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib2@serviceaccount.com']
-                }]
-            },
-            bucket='test-shared-corpus-bucket'),
         mock.call(
             body={
                 'resourceId':
@@ -1313,20 +1285,6 @@ class OssFuzzProjectSetupTest(unittest.TestCase):
                 }]
             },
             bucket='clusterfuzz-external-deployment'),
-        mock.call(
-            body={
-                'resourceId':
-                    'fake',
-                'kind':
-                    'storage#policy',
-                'etag':
-                    'fake',
-                'bindings': [{
-                    'role': 'roles/storage.objectViewer',
-                    'members': ['serviceAccount:lib3@serviceaccount.com']
-                }]
-            },
-            bucket='test-shared-corpus-bucket'),
         mock.call(
             body={
                 'resourceId':
