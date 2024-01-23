@@ -830,7 +830,7 @@ def upload_job_run_stats(fuzzer_name: str, job_type: str, revision: int,
 def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                              fuzzer_output, fuzzer_return_code,
                              generated_testcase_count, expected_testcase_count,
-                             generated_testcase_string, fuzz_task_input):
+                             generated_testcase_string, fuzz_task_input) -> Optional[uworker_msg_pb2.StoreFuzzerRunResultsOutput]:
   """Store fuzzer run results in database."""
   # Upload fuzzer script output to bucket.
   fuzzer_logs.upload_script_log(
@@ -1509,7 +1509,8 @@ class FuzzingSession:
         testcase_file_paths, fuzzer, fuzzer_command, fuzzer_output,
         fuzzer_return_code, generated_testcase_count, testcase_count,
         generated_testcase_string, self.uworker_input.fuzz_task_input)
-    self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
+    if fuzzer_run_results:
+      self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths
