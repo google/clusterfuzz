@@ -365,6 +365,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(
       testcase, fuzzer_override=minimize_fuzzer_override)
 
+  # TODO(metzman): This should be removed.
   if not environment.is_libfuzzer_job() and environment.is_engine_fuzzer_job():
     # TODO(ochang): More robust check for engine minimization support.
     _skip_minimization(testcase, 'Engine does not support minimization.')
@@ -624,8 +625,8 @@ HANDLED_ERRORS = [
 
 
 def update_testcase(output: uworker_msg_pb2.Output):
-  """Updates the tescase using the values passed from utask_main. This done at
-  the beginning of utask_postprocess and before error handling is called."""
+  """Updates the tescase using the values passed from utask_main. This is done
+  at the beginning of utask_postprocess and before error handling is called."""
   if not output.HasField('minimize_task_output'):
     return
 
