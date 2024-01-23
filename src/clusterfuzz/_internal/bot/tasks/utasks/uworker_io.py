@@ -176,4 +176,3 @@ def entity_from_protobuf(entity_proto: entity_pb2.Entity,
   entity = model._entity_from_protobuf(entity_proto)  # pylint: disable=protected-access
   assert isinstance(entity, model_type)
   return entity
->>>>>>> master

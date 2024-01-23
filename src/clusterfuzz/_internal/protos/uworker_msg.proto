@@ -135,6 +135,7 @@ message FuzzTaskOutput {
   optional int64 new_crash_count = 4;
   optional int64 known_crash_count = 5;
   optional int64 testcases_executed = 6;
+  repeated CrashInfo job_run_crashes = 7;
   optional StoreFuzzerRunResultsOutput fuzzer_run_results = 8;
   optional int32 new_targets_count = 9;
   optional int32 fuzzer_revision = 10;

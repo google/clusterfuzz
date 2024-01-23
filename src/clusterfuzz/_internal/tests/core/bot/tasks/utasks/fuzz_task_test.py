@@ -33,7 +33,6 @@ from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libfuzzer_engine
 from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_handler
@@ -41,6 +40,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -1558,6 +1558,7 @@ class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):
 
 
 class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
+  """Tests for preprocess_store_fuzzer_run_results."""
 
   def setUp(self):
     helpers.patch(self, [
@@ -1569,7 +1570,7 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     self.mock.generate_new_blob_name.return_value = 'e629bd1e-7153-426a-89e1-2c9890e48986'
 
   def test_preprocess_store_fuzzer_run_results(self):
-    fuzz_task_input = uworker_io.FuzzTaskInput()
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
     fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
     self.assertEqual(
         fuzz_task_input.sample_testcase_upload_url,
@@ -1579,36 +1580,32 @@ class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
         '/clusterfuzz-ci-blobs/e629bd1e-7153-426a-89e1-2c9890e48986')
 
 
-def _roundtrip_output(uworker_output: uworker_io.UworkerOutput
-                     ) -> uworker_io.DeserializedUworkerMsg:
-  serialized = uworker_io.serialize_uworker_output(uworker_output)
-  return uworker_io.deserialize_uworker_output(serialized)
-
-
 @test_utils.with_cloud_emulators('datastore')
 class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
+  """Tests for postprocess_store_fuzzer_run_results."""
 
   def test_postprocess_store_fuzzer_run_results(self):
+    """Tests postprocess_store_fuzzer_run_results."""
     fuzzer_name = 'myfuzzer'
     fuzzer = data_types.Fuzzer(name=fuzzer_name)
     fuzzer.put()
     console_output = 'OUTPUT'
     generated_testcase_string = 'GENERATED'
     fuzzer_return_code = 9
-    fuzzer_run_results = uworker_io.StoreFuzzerRunResultsOutput(
+    fuzzer_run_results = uworker_msg_pb2.StoreFuzzerRunResultsOutput(
         console_output=console_output,
         generated_testcase_string=generated_testcase_string,
         fuzzer_return_code=fuzzer_return_code)
     sample_testcase_upload_key = 'sample-key'
-    fuzz_task_input = uworker_io.FuzzTaskInput(
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
         sample_testcase_upload_key=sample_testcase_upload_key)
-    uworker_input = uworker_io.UworkerInput(
+    uworker_input = uworker_msg_pb2.UworkerInput(
         fuzzer_name=fuzzer_name, fuzz_task_input=fuzz_task_input)
-    output = uworker_io.UworkerOutput(
-        fuzz_task_output=uworker_io.FuzzTaskOutput(
+    output = uworker_msg_pb2.UworkerOutput(
+        fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(
             fuzzer_run_results=fuzzer_run_results),
         uworker_input=uworker_input)
-    fuzz_task.postprocess_store_fuzzer_run_results(_roundtrip_output(output))
+    fuzz_task.postprocess_store_fuzzer_run_results(output)
     fuzzer = fuzzer.key.get()
     self.assertEqual(fuzzer.console_output, console_output)
     self.assertEqual(fuzzer.return_code, fuzzer_return_code)

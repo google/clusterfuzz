@@ -856,7 +856,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
 
   logs.log('Started storing results from fuzzer run.')
 
-  fuzzer_run_results_output = uworker_io.StoreFuzzerRunResultsOutput()
+  fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()
   if testcase_file_paths:
     with open(testcase_file_paths[0], 'rb') as sample_testcase_file_handle:
       sample_testcase_file = sample_testcase_file_handle.read()
@@ -1321,12 +1321,12 @@ class FuzzingSession:
     # Fuzzing engine specific state.
     self.fuzz_target = None
     self.gcs_corpus = None
-    self.fuzz_task_output = uworker_io.FuzzTaskOutput()
+    self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
 
   def _get_output(self, **kwargs):
     for k, v in kwargs:
       setattr(self.fuzz_task_output, k, v)
-    return uworker_msg_pb2.UworkerOutput(fuzz_task_output=self.fuzz_task_output)
+    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1508,7 +1508,7 @@ class FuzzingSession:
         testcase_file_paths, fuzzer, fuzzer_command, fuzzer_output,
         fuzzer_return_code, generated_testcase_count, testcase_count,
         generated_testcase_string, self.uworker_input.fuzz_task_input)
-    self.fuzz_task_output.fuzzer_run_results = fuzzer_run_results
+    self.fuzz_task_output.fuzzer_run_results.CopyFrom(fuzzer_run_results)
 
     # Make sure that there are testcases generated. If not, set the error flag.
     error_occurred = not testcase_file_paths
@@ -1981,9 +1981,10 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
-  fuzz_task_input = uworker_io.FuzzTaskInput(targets_count=targets_count)
+  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(targets_count=targets_count)
   preprocess_store_fuzzer_run_results(fuzz_task_input)
   return uworker_msg_pb2.Input(
+      fuzz_task_input=fuzz_task_input,
       job_type=job_type,
       fuzzer_name=fuzzer_name,
       uworker_env=uworker_env,
