@@ -1324,11 +1324,6 @@ class FuzzingSession:
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
 
-  def _get_output(self, **kwargs):
-    for k, v in kwargs.items():
-      setattr(self.fuzz_task_output, k, v)
-    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
-
   @property
   def fully_qualified_fuzzer_name(self):
     """Get the fully qualified fuzzer name."""
@@ -1907,16 +1902,20 @@ class FuzzingSession:
 
     if new_targets_count is not None:
       self.fuzz_task_output.new_targets_count = new_targets_count
-    return self._get_output(
-        fully_qualified_fuzzer_name=self.fully_qualified_fuzzer_name,
-        crash_revision=str(crash_revision),
-        job_run_timestamp=time.time(),
-        new_crash_count=new_crash_count,
-        known_crash_count=known_crash_count,
-        testcases_executed=testcases_executed,
-        job_run_crashes=convert_groups_to_crashes(processed_groups),
-        fuzzer_revision=self.fuzzer.revision,
-    )
+
+      self.fuzz_task_output.fully_qualified_fuzzer_name = (
+          self.fully_qualified_fuzzer_name)
+    self.fuzz_task_output.crash_revision = str(crash_revision)
+    self.fuzz_task_output.job_run_timestamp = time.time()
+    self.fuzz_task_output.new_crash_count = new_crash_count
+    self.fuzz_task_output.known_crash_count = known_crash_count
+    self.fuzz_task_output.testcases_executed = testcases_executed
+    self.fuzz_task_output.fuzzer_revision = self.fuzzer.revision
+    if job_run_crashes:
+      job_run_crashes = convert_groups_to_crashes(processed_groups)
+      self.fuzz_task_output.job_run_crashes.extend(job_run_crashes)
+
+    return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
