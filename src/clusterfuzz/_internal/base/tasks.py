@@ -390,7 +390,7 @@ class PubSubTask(Task):
 
   def defer(self):
     """Defer a task until its ETA. Returns whether or not we deferred."""
-    if eta is None:
+    if self.eta is None:
       return False
     now = utils.utcnow()
     if now >= self.eta:
