@@ -360,9 +360,12 @@ class UpdateTestcaseTest(unittest.TestCase):
   def test_gestures(self):
     testcase = data_types.Testcase()
     testcase.put()
+    gestures = ['mousemove_relative --sync,-86 -57']
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         gestures=['mousemove_relative --sync,-86 -57'])
     uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
     output = uworker_msg_pb2.Output(
         minimize_task_output=minimize_task_output, uworker_input=uworker_input)
     minimize_task.update_testcase(output)
+    testcase = testcase.key.get()
+    self.assertEqual(gestures, testcase.gestures)
