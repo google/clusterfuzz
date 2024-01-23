@@ -391,7 +391,7 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
     else:
       min_index = middle_index
 
-    # save current regression range in case the task dies prematurely.
+    # Save current regression range in case the task dies prematurely.
     regression_task_output.last_regression_min = revision_list[min_index]
     regression_task_output.last_regression_max = revision_list[max_index]
 

@@ -88,10 +88,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     """Tests _testcase_reproduces_in_revision behaviour on bad builds."""
     self.mock.check_app_path.return_value = True
     build_data = uworker_msg_pb2.BuildData(
-        revision=1,
-        is_bad_build=True,
-        should_ignore_crash_result=False,
-        build_run_console_output='')
+        revision=1, is_bad_build=True, should_ignore_crash_result=False)
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     self.mock.check_for_bad_build.return_value = build_data
     result, worker_output = regression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
@@ -120,7 +117,8 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     self.revision_list = [1, 2, 5, 8, 9, 12, 15, 19, 21, 22]
 
   def test_near_max_revision(self):
-    """Ensure that we return a result if this is a very recent regression."""
+    """Ensures that `found_regression_near_extreme_revisions` returns a result
+    if this is a very recent regression."""
 
     def testcase_reproduces(testcase,
                             testcase_file_path,
@@ -142,7 +140,8 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     self.assertEqual(result.regression_task_output.regression_range_end, 21)
 
   def test_at_min_revision(self):
-    """Ensure that we return a result if we reproduce in min revision."""
+    """Ensures that `found_regression_near_extreme_revisions` returns a result
+    if we reproduce in min revision."""
     self.mock._testcase_reproduces_in_revision.return_value = True, None
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.found_regression_near_extreme_revisions(
@@ -153,7 +152,8 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     self.assertEqual(result.regression_task_output.regression_range_end, 1)
 
   def test_not_at_extreme_revision(self):
-    """Ensure that we return None if we didn't regress near an extreme."""
+    """Ensures that `found_regression_near_extreme_revisions` returns None
+    if we didn't regress near an extreme."""
 
     def testcase_reproduces(testcase,
                             testcase_file_path,
