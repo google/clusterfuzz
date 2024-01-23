@@ -25,7 +25,7 @@ def execute(args):
   and/or group_bug_information fields to reflect the Issue Tracker issue
   id rather than the Monorail issue id."""
 
-  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary()
+  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(args.file_loc)
 
   testcases = []
 
