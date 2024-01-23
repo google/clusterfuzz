@@ -123,7 +123,6 @@ class BaseTest:
     os.environ['FUZZ_INPUTS_DISK'] = self.fuzz_inputs_disk
     os.environ['CORPUS_BUCKET'] = 'bucket'
     os.environ['QUARANTINE_BUCKET'] = 'bucket-quarantine'
-    os.environ['SHARED_CORPUS_BUCKET'] = 'bucket-shared'
     os.environ['JOB_NAME'] = 'libfuzzer_asan_job'
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['APP_REVISION'] = '1337'
@@ -437,8 +436,6 @@ class CorpusPruningTestUntrusted(
         engine='libFuzzer',
         job='libfuzzer_asan_job2',
         last_run=datetime.datetime.now()).put()
-
-    environment.set_value('SHARED_CORPUS_BUCKET', TEST_SHARED_BUCKET)
 
     # Set up remote corpora.
     self.corpus = corpus_manager.FuzzTargetCorpus('libFuzzer', 'test_fuzzer')

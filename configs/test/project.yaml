@@ -86,10 +86,6 @@ env:
   # back into the main corpus bucket.
   QUARANTINE_BUCKET: test-quarantine-bucket
 
-  # Default bucket to store shared corpus across all job types. This is planned for future cross
-  # pollination with other data sources on the web.
-  SHARED_CORPUS_BUCKET: test-shared-corpus-bucket
-
   # Default bucket to store fuzzing logs from testcase runs. This is different from the fuzzer logs
   # above which logs the fuzzer run that generates the testcases, whereas this one logs the run of
   # the testcases against the target application.

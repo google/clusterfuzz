@@ -204,9 +204,6 @@ class Context:
         self.fuzz_target.project_qualified_name(),
         quarantine=True)
 
-    shared_corpus_bucket = environment.get_value('SHARED_CORPUS_BUCKET')
-    self.shared_corpus = corpus_manager.GcsCorpus(shared_corpus_bucket)
-
   def restore_quarantined_units(self):
     """Restore units from the quarantine."""
     logs.log('Restoring units from quarantine.')
@@ -241,10 +238,6 @@ class Context:
       logs.log_error(
           'Failed to sync quarantine corpus to disk.',
           fuzz_target=self.fuzz_target)
-
-    if not self.shared_corpus.rsync_to_disk(self.shared_corpus_path):
-      logs.log_error(
-          'Failed to sync shared corpus to disk.', fuzz_target=self.fuzz_target)
 
     self._cross_pollinate_other_fuzzer_corpuses()
 
