@@ -160,6 +160,10 @@ def truncate(msg, limit):
   ])
 
 
+def _is_uworker():
+  return bool(os.getenv('UWORKER'))
+
+
 def format_record(record: logging.LogRecord) -> str:
   """Format LogEntry into JSON string."""
   entry = {
@@ -176,6 +180,9 @@ def format_record(record: logging.LogRecord) -> str:
       'name':
           record.name,
   }
+  if _is_uworker():
+    entry['batch_job_name'] = os.getenv('BATCH_JOB_NAME')
+    entry['uworker'] = True
 
   entry['location'] = getattr(record, 'location', {'error': True})
   entry['extras'] = getattr(record, 'extras', {})
@@ -324,6 +331,9 @@ def configure_k8s():
 
   logging.setLogRecordFactory(record_factory)
   logging.getLogger().setLevel(logging.INFO)
+
+
+
 
 
 def configure(name, extras=None):
