@@ -105,7 +105,7 @@ class UTask(BaseUTask):
 
   def execute(self, task_argument, job_type, uworker_env):
     """Executes a utask."""
-    command = task_utils.get_command_from_module(self.module)
+    command = task_utils.get_command_from_module(self.module.__name__)
     if not (self.is_execution_remote() and
             batch.is_remote_task(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
