@@ -86,6 +86,7 @@ def schedule_utask_mains():
   logs.log('Attempting to combine batch tasks.')
   utask_mains = taskslib.get_utask_mains()
   if not utask_mains:
+    logs.log('No utask mains.')
     return
 
   logs.log(f'Combining {len(utask_mains)} batch tasks.')

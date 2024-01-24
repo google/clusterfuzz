@@ -253,6 +253,7 @@ class PubSubPuller:
     def is_done_collecting_messages():
       curr_time = time.time()
       if curr_time - start_time >= time_limit_secs:
+        logs.log('Timed out collecting messages.')
         return True
 
       if len(messages) >= max_messages:
