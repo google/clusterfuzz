@@ -70,8 +70,6 @@ def bootstrap_gcs(storage_path):
   create_local_bucket(local_gcs_buckets_path,
                       config.get('env.QUARANTINE_BUCKET'))
   create_local_bucket(local_gcs_buckets_path,
-                      config.get('env.SHARED_CORPUS_BUCKET'))
-  create_local_bucket(local_gcs_buckets_path,
                       config.get('env.FUZZ_LOGS_BUCKET'))
 
   # Symlink local GCS bucket path to appengine src dir to bypass sandboxing
