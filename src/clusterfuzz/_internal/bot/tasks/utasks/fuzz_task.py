@@ -1967,12 +1967,14 @@ def _make_session(uworker_input):
   )
 
 
-HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.UNHANDLED,
-    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE,
-    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE,
-    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER,
-]
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
+        handle_fuzz_build_setup_failure,
+    uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:
+        handle_fuzz_data_bundle_setup_failure,
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
+        handle_fuzz_no_fuzzer,
+}).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -1998,7 +2000,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 def utask_postprocess(output):
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    _ERROR_HANDLER.handle(output)
     return
+
   session = _make_session(output.uworker_input)
   session.postprocess(output)

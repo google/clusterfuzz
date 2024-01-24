@@ -12,102 +12,79 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module for handling errors in utasks."""
-from clusterfuzz._internal.bot.tasks import setup
-from clusterfuzz._internal.bot.tasks.utasks import analyze_task
-from clusterfuzz._internal.bot.tasks.utasks import fuzz_task
-from clusterfuzz._internal.bot.tasks.utasks import minimize_task
-from clusterfuzz._internal.bot.tasks.utasks import progression_task
-from clusterfuzz._internal.bot.tasks.utasks import regression_task
-from clusterfuzz._internal.bot.tasks.utasks import symbolize_task
-from clusterfuzz._internal.bot.tasks.utasks import variant_task
+
+from typing import Callable
+from typing import Dict
+
 from clusterfuzz._internal.protos import uworker_msg_pb2
 
+# A handler takes an output object with its `error_type` set, and does whatever
+# it wants with it.
+ErrorHandler = Callable[[uworker_msg_pb2.Output], None]
 
-def noop(*args, **kwargs):
+# Must use string type because of protobuf enum shenanigans.
+HandlerDict = Dict['uworker_msg_pb2.ErrorType', ErrorHandler]
+
+
+class CompositeErrorHandler:
+  """A handler for several different types of uworker errors."""
+
+  def __init__(self, handlers: HandlerDict):
+    """Initializes a handler that delegates to the values in `handlers`.
+
+    For example:
+
+      CompositeErrorHandler({FOO: handle_foo, BAR: handle_bar})
+
+    Will delegate handling `FOO` errors to `handle_foo`, and `BAR` errors
+    to `handle_bar`.
+    """
+    self._handlers = handlers
+
+  # Must use string types because `CompositeErrorHandler` is not defined yet.
+  def compose_with(self,
+                   *args: 'CompositeErrorHandler') -> 'CompositeErrorHandler':
+    """Adds all handlers from the given composite handlers to this instance.
+    Returns `self` for chaining.
+
+    Eachn handler (including `self`) must handle a disjoint set of error types.
+
+    Raises:
+      ValueError: if any two handlers (including `self`) handle the same error
+        type.
+    """
+    for other in args:
+      for error_type, handler in other._handlers.items():  # pylint: disable=protected-access
+        if error_type in self._handlers:
+          raise ValueError(f'Duplicate handlers for error type {error_type}')
+
+        self._handlers[error_type] = handler
+
+    return self
+
+  def is_handled(self, error_type: uworker_msg_pb2.ErrorType) -> bool:
+    """Returns whether the given error type is handled by this instance."""
+    return error_type in self._handlers
+
+  def handle(self, output: uworker_msg_pb2.Output):
+    """Handles the given `output`, delegating to underlying handlers.
+
+    Raises:
+      RuntimeError: if `output.error_type` is not handled by this instance.
+    """
+    handler = self._handlers.get(output.error_type)
+    if handler is None:
+      raise RuntimeError(f'Cannot handle error type {output.error_type}')
+
+    handler(output)
+
+
+def noop_handler(*args, **kwargs):
   del args
   del kwargs
 
 
-def handle(output, handled_errors):
-  """Handles the errors bubbled up from the uworker."""
-  if output.error_type not in handled_errors:
-    error = '<None>' if output.error_type is None else output.error_type
-    raise RuntimeError('Can\'t handle ' + error)
-  return get_handle_all_errors_mapping()[output.error_type](output)
-
-
-def get_all_handled_errors():
-  return set(get_handle_all_errors_mapping().keys())
-
-
-def get_handle_all_errors_mapping():
-  """Returns a mapping of all uworker errors to their postprocess handlers."""
-  mapping = {
-      uworker_msg_pb2.ErrorType.ANALYZE_NO_CRASH:
-          analyze_task.handle_noncrash,
-      uworker_msg_pb2.ErrorType.ANALYZE_BUILD_SETUP:
-          analyze_task.handle_build_setup_error,
-      uworker_msg_pb2.ErrorType.ANALYZE_NO_REVISIONS_LIST:
-          analyze_task.handle_analyze_no_revisions_list_error,
-      uworker_msg_pb2.ANALYZE_NO_REVISION_INDEX:
-          analyze_task.handle_analyze_no_revision_index,
-      uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
-          fuzz_task.handle_fuzz_no_fuzzer,
-      uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
-          fuzz_task.handle_fuzz_build_setup_failure,
-      uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:
-          fuzz_task.handle_fuzz_data_bundle_setup_failure,
-      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP:
-          minimize_task.handle_minimize_setup_error,
-      uworker_msg_pb2.ErrorType.MINIMIZE_UNREPRODUCIBLE_CRASH:
-          minimize_task.handle_minimize_unreproducible_crash,
-      uworker_msg_pb2.ErrorType.MINIMIZE_CRASH_TOO_FLAKY:
-          minimize_task.handle_minimize_crash_too_flaky,
-      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE:
-          minimize_task.handle_minimize_deadline_exceeded_in_main_file_phase,
-      uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED:
-          minimize_task.handle_minimize_deadline_exceeded,
-      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE:
-          minimize_task.handle_libfuzzer_minimization_unreproducible,
-      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED:
-          minimize_task.handle_libfuzzer_minimization_failed,
-      uworker_msg_pb2.ErrorType.TESTCASE_SETUP:
-          setup.handle_setup_testcase_error,
-      uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP:
-          variant_task.handle_build_setup_error,
-      uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR:
-          progression_task.handle_progression_revision_list_error,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND:
-          progression_task.handle_progression_build_not_found,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
-          progression_task.handle_progression_bad_state_min_max,
-      uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH:
-          progression_task.handle_progression_no_crash,
-      uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:
-          progression_task.handle_progression_timeout,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
-          progression_task.handle_progression_bad_build,
-      uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR:
-          progression_task.handle_progression_build_setup_error,
-      uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:
-          regression_task.handle_revision_list_error,
-      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND:
-          regression_task.handle_build_not_found_error,
-      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR:
-          regression_task.handle_regression_build_setup_error,
-      uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR:
-          regression_task.handle_regression_bad_build_error,
-      uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH:
-          regression_task.handle_regression_no_crash,
-      uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR:
-          regression_task.handle_regression_timeout,
-      uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE:
-          regression_task.handle_low_confidence_in_regression_range,
-      uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR:
-          symbolize_task.handle_build_setup_error,
-      uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED:
-          noop,
-      uworker_msg_pb2.ErrorType.UNHANDLED:
-          noop,
-  }
-  return mapping
+# A composite error handler for `UNHANDLED` errors, that ignores such errors.
+UNHANDLED_ERROR_HANDLER = CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.UNHANDLED: noop_handler,
+})
