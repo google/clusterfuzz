@@ -91,8 +91,8 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     """Tests scheduling of progression tasks."""
     schedule_progression_tasks.main()
     self.mock.add_task.assert_has_calls([
-        mock.call('progression', '1', 'job', queue='jobs-linux'),
-        mock.call('progression', '5', 'job_windows', queue='jobs-windows'),
+        mock.call('progression', 1, 'job', queue='jobs-linux'),
+        mock.call('progression', 5, 'job_windows', queue='jobs-windows'),
     ])
 
 
@@ -109,6 +109,6 @@ class ImpactTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     """Tests scheduling of progression tasks."""
     schedule_impact_tasks.main()
     self.mock.add_task.assert_has_calls([
-        mock.call('impact', '1', 'job', queue='jobs-linux'),
-        mock.call('impact', '5', 'job_windows', queue='jobs-windows'),
+        mock.call('impact', 1, 'job', queue='jobs-linux'),
+        mock.call('impact', 5, 'job_windows', queue='jobs-windows'),
     ])
