@@ -15,6 +15,8 @@
 
 import unittest
 
+from google.cloud import batch_v1
+
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -65,3 +67,12 @@ class GetSpecFromConfigTest(unittest.TestCase):
         machine_type='n1-standard-1')
 
     self.assertCountEqual(spec, expected_spec)
+
+
+class AddPreemptibleRetryToTaskSpecTest(unittest.TestCase):
+
+  def test_add_preemptible_retry_to_task_spec(self):
+    task_spec = batch_v1.TaskSpec()
+    batch._add_preemptible_retry_to_task_spec(task_spec)  # pylint: disable=protected-access
+    self.assertEqual(
+        task_spec.lifecycle_policies[0].action_condition.exit_codes, [5001])

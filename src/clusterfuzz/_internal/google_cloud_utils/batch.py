@@ -59,7 +59,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
 ])
 
-VM_PREEMPTION_EXITCODE = 1
+VM_PREEMPTION_EXITCODE = 5001
 
 
 def _create_batch_client_new():
@@ -166,19 +166,23 @@ def _get_task_spec(batch_workload_spec):
   task_spec.runnables = [runnable]
 
   if batch_workload_spec.preemptible:
-    task_spec.max_retry_count = PREEMPTIBLE_RETRY_COUNT
-    lifecycle_policy = batch.types.LifecyclePolicy()
-    lifecycle_policy.action = LifecyclePolicy.Action.RETRY_TASK
-    action_condition = LifecyclePolicy.ActionCondition()
-    action_condition.exit_codes = [VM_PREEMPTION_EXITCODE]
-    lifecycle_policy.action_condition = action_condition
-    task_spec.lifecycle_policies.append(lifecycle_policy)
+    _add_preemptible_retry_to_task_spec(task_spec)
   else:
     task_spec.max_retry_count = STANDARD_RETRY_COUNT
 
   # TODO(metzman): Change this for production.
   task_spec.max_run_duration = MAX_DURATION
   return task_spec
+
+
+def _add_preemptible_retry_to_task_spec(task_spec):
+  task_spec.max_retry_count = PREEMPTIBLE_RETRY_COUNT
+  lifecycle_policy = batch.types.LifecyclePolicy()
+  lifecycle_policy.action = batch.types.LifecyclePolicy.Action.RETRY_TASK
+  action_condition = batch.types.LifecyclePolicy.ActionCondition()
+  action_condition.exit_codes.extend([VM_PREEMPTION_EXITCODE])
+  lifecycle_policy.action_condition = action_condition
+  task_spec.lifecycle_policies.extend([lifecycle_policy])
 
 
 def _get_allocation_policy(spec):
