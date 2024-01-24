@@ -467,7 +467,7 @@ def handle_build_not_found_error(output: uworker_msg_pb2.Output):
                                        output.error_message)
 
 
-_HANDLED_ERRORS = [
+HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR,
@@ -497,7 +497,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output) -> None:
       task_creation.mark_unreproducible_if_flaky(testcase, 'regression', False)
 
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, _HANDLED_ERRORS)
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
 
   save_regression_range(output)

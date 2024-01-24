@@ -950,7 +950,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       corpus_pruning_task_input=corpus_pruning_task_input)
 
 
-_HANDLED_ERRORS = [
+HANDLED_ERRORS = [
     uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED,
 ]
 
@@ -958,5 +958,5 @@ _HANDLED_ERRORS = [
 def utask_postprocess(output):
   """Trusted: Handles errors and writes anything needed to the db."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, _HANDLED_ERRORS)
+    uworker_handle_errors.handle(output, HANDLED_ERRORS)
     return
