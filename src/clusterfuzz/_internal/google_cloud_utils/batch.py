@@ -34,7 +34,7 @@ _local = threading.local()
 
 MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
 
-PREEMPTIBLE_RETRY_COUNT = 4
+PREEMPTIBLE_RETRY_COUNT = 3
 STANDARD_RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
@@ -58,6 +58,8 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'gce_zone',
     'machine_type',
 ])
+
+VM_PREEMPTION_EXITCODE = 1
 
 
 def _create_batch_client_new():
@@ -165,6 +167,12 @@ def _get_task_spec(batch_workload_spec):
 
   if batch_workload_spec.preemptible:
     task_spec.max_retry_count = PREEMPTIBLE_RETRY_COUNT
+    lifecycle_policy = batch.types.LifecyclePolicy()
+    lifecycle_policy.action = LifecyclePolicy.Action.RETRY_TASK
+    action_condition = LifecyclePolicy.ActionCondition()
+    action_condition.exit_codes = [VM_PREEMPTION_EXITCODE]
+    lifecycle_policy.action_condition = action_condition
+    task_spec.lifecycle_policies.append(lifecycle_policy)
   else:
     task_spec.max_retry_count = STANDARD_RETRY_COUNT
 

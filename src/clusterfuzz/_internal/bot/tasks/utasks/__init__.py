@@ -139,11 +139,8 @@ def get_utask_module(module_name):
 def uworker_bot_main():
   """The entrypoint for a uworker."""
   logs.log('Starting utask_main on untrusted worker.')
-  try:
-    input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
-    uworker_main(input_download_url)
-  except Exception as e:
-    logs.log_error(f'Exception {str(e)}')
+  input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
+  uworker_main(input_download_url)
   return 0
 
 
