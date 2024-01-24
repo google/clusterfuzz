@@ -27,6 +27,7 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import constants
 from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks import task_creation
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
@@ -204,9 +205,6 @@ class Context:
         self.fuzz_target.project_qualified_name(),
         quarantine=True)
 
-    shared_corpus_bucket = environment.get_value('SHARED_CORPUS_BUCKET')
-    self.shared_corpus = corpus_manager.GcsCorpus(shared_corpus_bucket)
-
   def restore_quarantined_units(self):
     """Restore units from the quarantine."""
     logs.log('Restoring units from quarantine.')
@@ -241,10 +239,6 @@ class Context:
       logs.log_error(
           'Failed to sync quarantine corpus to disk.',
           fuzz_target=self.fuzz_target)
-
-    if not self.shared_corpus.rsync_to_disk(self.shared_corpus_path):
-      logs.log_error(
-          'Failed to sync shared corpus to disk.', fuzz_target=self.fuzz_target)
 
     self._cross_pollinate_other_fuzzer_corpuses()
 
@@ -889,7 +883,10 @@ def utask_main(uworker_input):
       uworker_input.corpus_pruning_task_input.last_execution_failed)
 
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
-    raise CorpusPruningError('Failed to set up fuzzer %s.' % fuzz_target.engine)
+    error_message = f'Failed to set up fuzzer {fuzz_target.engine}.'
+    logs.log_error(error_message)
+    return uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED)
 
   # TODO(unassigned): Use coverage information for better selection here.
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
@@ -953,5 +950,13 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       corpus_pruning_task_input=corpus_pruning_task_input)
 
 
+_HANDLED_ERRORS = [
+    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED,
+]
+
+
 def utask_postprocess(output):
-  del output
+  """Trusted: Handles errors and writes anything needed to the db."""
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+    uworker_handle_errors.handle(output, _HANDLED_ERRORS)
+    return
