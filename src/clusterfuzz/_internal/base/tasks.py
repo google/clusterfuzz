@@ -93,7 +93,7 @@ UTASK_QUEUE_PULL_SECONDS = 60
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 100
+MAX_UTASKS = 150
 
 
 class Error(Exception):
