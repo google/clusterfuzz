@@ -951,7 +951,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED: uworker_handle_errors.noop_handler,
+    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED:
+        uworker_handle_errors.noop_handler,
 })
 
 
