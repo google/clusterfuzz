@@ -17,6 +17,7 @@ import os
 import unittest
 from unittest import mock
 
+from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -105,3 +106,23 @@ class TaskLoopTest(unittest.TestCase):
     self.assertIn('Exception: text', exception)
     self.assertFalse(clean_exit)
     self.assertEqual('payload', payload)
+
+
+class LeaseAllTasksTest(unittest.TestCase):
+  """Tests for lease_all_tasks."""
+
+  def test_lease_all_tasks_on_pubsubtasks(self):
+    """Tests that lease_all_tasks works with PubSubTasks."""
+    message = mock.Mock(
+        attributes={
+            'command': 'fuzz',
+            'argument': 'libFuzzer',
+            'job': 'libfuzzer_chrome_asan',
+            'eta': 1
+        })
+    with mock.patch(
+        'clusterfuzz._internal.base.tasks.PubSubTask.lease') as lease:
+      tasks = [taskslib.PubSubTask(message)]
+      with run_bot.lease_all_tasks(tasks):
+        pass
+    lease.assert_called_with()
