@@ -255,21 +255,6 @@ def validate_regression_range(
   return None
 
 
-def handle_low_confidence_in_regression_range(output: uworker_msg_pb2.Output):
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  testcase.regression = 'NA'
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       output.error_message)
-
-
-def handle_regression_no_crash(output: uworker_msg_pb2.Output):
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       output.error_message)
-
-  task_creation.mark_unreproducible_if_flaky(testcase, 'regression', True)
-
-
 def find_regression_range(uworker_input: uworker_msg_pb2.Input,
                          ) -> uworker_msg_pb2.Output:
   """Attempt to find when the testcase regressed."""
@@ -408,14 +393,6 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
       error_message=error_message)
 
 
-def handle_regression_timeout(output: uworker_msg_pb2.Output):
-  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
-  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
-                                       output.error_message)
-  tasks.add_task('regression', output.uworker_input.testcase_id,
-                 output.uworker_input.job_type)
-
-
 def utask_preprocess(testcase_id: str, job_type: str,
                      uworker_env: Dict) -> Optional[uworker_msg_pb2.Input]:
   """Prepares inputs for `utask_main()` to run on an untrusted worker.
@@ -453,6 +430,15 @@ def utask_preprocess(testcase_id: str, job_type: str,
   )
 
 
+def utask_main(uworker_input: uworker_msg_pb2.Input,
+              ) -> Optional[uworker_msg_pb2.Output]:
+  """Runs regression task and handles potential errors.
+
+  Runs on an untrusted worker.
+  """
+  return find_regression_range(uworker_input)
+
+
 def handle_revision_list_error(output: uworker_msg_pb2.Output):
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   data_handler.close_testcase_with_error(testcase,
@@ -465,51 +451,6 @@ def handle_build_not_found_error(output: uworker_msg_pb2.Output):
   testcase.regression = 'NA'
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        output.error_message)
-
-
-_HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR,
-    uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND,
-    uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR,
-    uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR,
-    uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH,
-    uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR,
-    uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE,
-] + setup.HANDLED_ERRORS
-
-
-def utask_postprocess(output: uworker_msg_pb2.Output) -> None:
-  """Handles the output of `utask_main()` run on an untrusted worker.
-
-  Runs on a trusted worker.
-  """
-  if output.HasField('regression_task_output'):
-    task_output = output.regression_task_output
-    _update_build_metadata(output.uworker_input.job_type,
-                           task_output.build_data_list)
-    _save_current_regression_range_indices(task_output,
-                                           output.uworker_input.testcase_id)
-    if task_output.is_testcase_reproducible:
-      # Clear metadata from previous runs had it been marked as potentially
-      # flaky.
-      testcase = data_handler.get_testcase_by_id(
-          output.uworker_input.testcase_id)
-      task_creation.mark_unreproducible_if_flaky(testcase, 'regression', False)
-
-  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, _HANDLED_ERRORS)
-    return
-
-  save_regression_range(output)
-
-
-def utask_main(uworker_input: uworker_msg_pb2.Input,
-              ) -> Optional[uworker_msg_pb2.Output]:
-  """Runs regression task and handles potential errors.
-
-  Runs on an untrusted worker.
-  """
-  return find_regression_range(uworker_input)
 
 
 def handle_regression_build_setup_error(output: uworker_msg_pb2.Output):
@@ -536,6 +477,72 @@ def handle_regression_bad_build_error(output: uworker_msg_pb2.Output):
   error_message = 'Unable to recover from bad build'
   data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
                                        error_message)
+
+
+def handle_regression_no_crash(output: uworker_msg_pb2.Output):
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                       output.error_message)
+
+  task_creation.mark_unreproducible_if_flaky(testcase, 'regression', True)
+
+
+def handle_regression_timeout(output: uworker_msg_pb2.Output):
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                       output.error_message)
+  tasks.add_task('regression', output.uworker_input.testcase_id,
+                 output.uworker_input.job_type)
+
+
+def handle_low_confidence_in_regression_range(output: uworker_msg_pb2.Output):
+  testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
+  testcase.regression = 'NA'
+  data_handler.update_testcase_comment(testcase, data_types.TaskState.ERROR,
+                                       output.error_message)
+
+
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR:
+        handle_regression_bad_build_error,
+    uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND:
+        handle_build_not_found_error,
+    uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR:
+        handle_regression_build_setup_error,
+    uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE:
+        handle_low_confidence_in_regression_range,
+    uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH:
+        handle_regression_no_crash,
+    uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:
+        handle_revision_list_error,
+    uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR:
+        handle_regression_timeout,
+}).compose_with(setup.ERROR_HANDLER)
+
+
+def utask_postprocess(output: uworker_msg_pb2.Output) -> None:
+  """Handles the output of `utask_main()` run on an untrusted worker.
+
+  Runs on a trusted worker.
+  """
+  if output.HasField('regression_task_output'):
+    task_output = output.regression_task_output
+    _update_build_metadata(output.uworker_input.job_type,
+                           task_output.build_data_list)
+    _save_current_regression_range_indices(task_output,
+                                           output.uworker_input.testcase_id)
+    if task_output.is_testcase_reproducible:
+      # Clear metadata from previous runs had it been marked as potentially
+      # flaky.
+      testcase = data_handler.get_testcase_by_id(
+          output.uworker_input.testcase_id)
+      task_creation.mark_unreproducible_if_flaky(testcase, 'regression', False)
+
+  if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
+    _ERROR_HANDLER.handle(output)
+    return
+
+  save_regression_range(output)
 
 
 def _update_build_metadata(job_type: str,

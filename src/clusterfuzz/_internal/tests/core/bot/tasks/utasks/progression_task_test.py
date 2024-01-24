@@ -197,7 +197,7 @@ class UTaskPostprocessTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_handle_errors.handle',
+        'clusterfuzz._internal.bot.tasks.utasks.progression_task._ERROR_HANDLER.handle',
         'clusterfuzz._internal.bot.tasks.utasks.progression_task.crash_on_latest',
         'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.base.bisection.request_bisection'
