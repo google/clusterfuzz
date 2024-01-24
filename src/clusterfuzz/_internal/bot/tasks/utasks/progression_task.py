@@ -600,20 +600,20 @@ def utask_main(uworker_input):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR:
-        handle_progression_revision_list_error,
-    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND:
-        handle_progression_build_not_found,
-    uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
-        handle_progression_bad_state_min_max,
-    uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH:
-        handle_progression_no_crash,
-    uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:
-        handle_progression_timeout,
     uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
         handle_progression_bad_build,
+    uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
+        handle_progression_bad_state_min_max,
+    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND:
+        handle_progression_build_not_found,
     uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR:
         handle_progression_build_setup_error,
+    uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH:
+        handle_progression_no_crash,
+    uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR:
+        handle_progression_revision_list_error,
+    uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:
+        handle_progression_timeout,
 }).compose_with(
     setup.ERROR_HANDLER,
     uworker_handle_errors.UNHANDLED_ERROR_HANDLER,

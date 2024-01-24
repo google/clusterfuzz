@@ -503,20 +503,20 @@ def handle_low_confidence_in_regression_range(output: uworker_msg_pb2.Output):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:
-        handle_revision_list_error,
+    uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR:
+        handle_regression_bad_build_error,
     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND:
         handle_build_not_found_error,
     uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR:
         handle_regression_build_setup_error,
-    uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR:
-        handle_regression_bad_build_error,
-    uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH:
-        handle_regression_no_crash,
-    uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR:
-        handle_regression_timeout,
     uworker_msg_pb2.ErrorType.REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE:
         handle_low_confidence_in_regression_range,
+    uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH:
+        handle_regression_no_crash,
+    uworker_msg_pb2.ErrorType.REGRESSION_REVISION_LIST_ERROR:
+        handle_revision_list_error,
+    uworker_msg_pb2.ErrorType.REGRESSION_TIMEOUT_ERROR:
+        handle_regression_timeout,
 }).compose_with(setup.ERROR_HANDLER)
 
 

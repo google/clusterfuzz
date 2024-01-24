@@ -1968,12 +1968,12 @@ def _make_session(uworker_input):
 
 
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
-    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
-        handle_fuzz_no_fuzzer,
     uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
         handle_fuzz_build_setup_failure,
     uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE:
         handle_fuzz_data_bundle_setup_failure,
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
+        handle_fuzz_no_fuzzer,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
 
