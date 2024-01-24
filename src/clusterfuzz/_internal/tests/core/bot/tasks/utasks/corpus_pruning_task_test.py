@@ -205,6 +205,15 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     self.assertTrue(
         uworker_input.corpus_pruning_task_input.last_execution_failed)
 
+  def test_fuzzer_setup_failure(self):
+    """CORPUS_PRUNING_FUZZER_SETUP_FAILED test."""
+    self.mock.update_fuzzer_and_data_bundles.return_value = False
+    uworker_input = _get_deserialized_uworker_input(
+        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+    result = corpus_pruning_task.utask_main(uworker_input)
+    self.assertEqual(result.error_type,
+                     uworker_msg_pb2.CORPUS_PRUNING_FUZZER_SETUP_FAILED)
+
   def test_prune(self):
     """Basic pruning test."""
     uworker_input = _get_deserialized_uworker_input(

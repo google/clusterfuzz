@@ -105,6 +105,8 @@ def get_handle_all_errors_mapping():
           regression_task.handle_low_confidence_in_regression_range,
       uworker_msg_pb2.ErrorType.SYMBOLIZE_BUILD_SETUP_ERROR:
           symbolize_task.handle_build_setup_error,
+      uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED:
+          noop,
       uworker_msg_pb2.ErrorType.UNHANDLED:
           noop,
   }
