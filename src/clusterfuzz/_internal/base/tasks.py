@@ -93,7 +93,7 @@ UTASK_QUEUE_PULL_SECONDS = 60
 
 # The maximum number of utasks we will collect from the utask queue before
 # scheduling on batch.
-MAX_UTASKS = 50
+MAX_UTASKS = 75
 
 
 class Error(Exception):
@@ -253,6 +253,7 @@ class PubSubPuller:
     def is_done_collecting_messages():
       curr_time = time.time()
       if curr_time - start_time >= time_limit_secs:
+        logs.log('Timed out collecting messages.')
         return True
 
       if len(messages) >= max_messages:
