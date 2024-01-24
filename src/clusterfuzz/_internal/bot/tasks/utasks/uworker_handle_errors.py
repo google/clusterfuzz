@@ -93,6 +93,8 @@ def get_handle_all_errors_mapping():
           regression_task.handle_revision_list_error,
       uworker_msg_pb2.ErrorType.REGRESSION_BUILD_NOT_FOUND:
           regression_task.handle_build_not_found_error,
+      uworker_msg_pb2.ErrorType.REGRESSION_BUILD_SETUP_ERROR:
+          regression_task.handle_regression_build_setup_error,
       uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR:
           regression_task.handle_regression_bad_build_error,
       uworker_msg_pb2.ErrorType.REGRESSION_NO_CRASH:

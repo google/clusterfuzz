@@ -130,7 +130,7 @@ def _testcase_reproduces_in_revision(
   regression_task_output.build_data_list.append(build_data)
   if build_data.is_bad_build:
     error_message = f'Bad build at r{revision}. Skipping'
-    logs.log_error(log_message)
+    logs.log_error(error_message)
     return None, uworker_msg_pb2.Output(
         regression_task_output=regression_task_output,
         error_type=uworker_msg_pb2.ErrorType.REGRESSION_BAD_BUILD_ERROR)

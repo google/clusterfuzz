@@ -18,14 +18,14 @@ appengine."""
 from clusterfuzz._internal.system import environment
 
 
-def get_command_from_module(full_module_name):
+def get_command_from_module(full_module_name: str) -> str:
   module_name = full_module_name.split('.')[-1]
   if not module_name.endswith('_task'):
     raise ValueError(f'{full_module_name} is not a real command')
   return module_name[:-len('_task')]
 
 
-def is_remotely_executing_utasks():
+def is_remotely_executing_utasks() -> bool:
   """Returns True if the utask_main portions of utasks are being remotely
   executed on Google cloud batch."""
   return bool(environment.is_production() and

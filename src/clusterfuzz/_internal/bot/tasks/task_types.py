@@ -15,6 +15,7 @@
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
 from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
@@ -104,17 +105,21 @@ class UTask(BaseUTask):
     return task_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    if (not environment.is_production() or self.is_execution_remote()):
+    """Executes a utask."""
+    logs.log('Executing utask.')
+    command = task_utils.get_command_from_module(self.module.__name__)
+    if not (self.is_execution_remote() and
+            batch.is_remote_task(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
+    logs.log('Preprocessing utask.')
     download_url = self.preprocess(task_argument, job_type, uworker_env)
     if download_url is None:
       return
 
-    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
-                                        download_url)
+    logs.log('Queueing utask for remote execution.')
+    tasks.add_utask_main(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
     download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
