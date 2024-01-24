@@ -513,8 +513,7 @@ class CorpusPruningTestUntrusted(
                      testcases[0].get_metadata('fuzzer_binary_name'))
 
     self.mock.add_task.assert_has_calls([
-        mock.call('minimize', testcases[0].key.id(), 'libfuzzer_asan_job',
-                  None),
+        mock.call('minimize', testcases[0].key.id(), 'libfuzzer_asan_job'),
     ])
 
     today = datetime.datetime.utcnow().date()
