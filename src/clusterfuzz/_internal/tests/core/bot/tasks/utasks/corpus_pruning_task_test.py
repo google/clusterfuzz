@@ -396,7 +396,6 @@ class CorpusPruningTestUntrusted(
         'clusterfuzz._internal.base.tasks.add_task',
         'clusterfuzz.fuzz.engine.get',
     ])
-
     self.mock.get.return_value = libFuzzer_engine.Engine()
     self.mock.get_fuzzer_directory.return_value = os.path.join(
         environment.get_value('ROOT_DIR'), 'src', 'clusterfuzz', '_internal',
@@ -516,7 +515,11 @@ class CorpusPruningTestUntrusted(
                      testcases[0].get_metadata('fuzzer_binary_name'))
 
     self.mock.add_task.assert_has_calls([
-        mock.call('minimize', str(testcases[0].key.id()), 'libfuzzer_asan_job'),
+        mock.call(
+            'minimize',
+            str(testcases[0].key.id()),
+            'libfuzzer_asan_job',
+            queue=None),
     ])
 
     today = datetime.datetime.utcnow().date()
