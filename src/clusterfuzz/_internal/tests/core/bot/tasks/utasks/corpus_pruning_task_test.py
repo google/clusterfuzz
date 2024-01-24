@@ -396,7 +396,6 @@ class CorpusPruningTestUntrusted(
         'clusterfuzz._internal.base.tasks.add_task',
         'clusterfuzz.fuzz.engine.get',
     ])
-
     self.mock.get.return_value = libFuzzer_engine.Engine()
     self.mock.get_fuzzer_directory.return_value = os.path.join(
         environment.get_value('ROOT_DIR'), 'src', 'clusterfuzz', '_internal',

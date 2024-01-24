@@ -75,7 +75,7 @@ def lease_all_tasks(tasks_list):
   with contextlib.ExitStack() as exit_stack:
     context_managers = [task.lease for task in tasks_list]
     for context_manager in context_managers:
-      exit_stack.enter_context(context_manager)
+      exit_stack.enter_context(context_manager())
     yield
 
 
