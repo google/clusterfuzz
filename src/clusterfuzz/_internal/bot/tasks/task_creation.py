@@ -20,7 +20,6 @@ from typing import Optional
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -311,16 +310,9 @@ def preprocess_utasks_and_queue_ttasks(tasks: List[Optional[Task]]):
   for task in tasks:
     if task is None:
       continue
-    if not task_types.is_remote_utask(task.name, task.job):
-      taskslib.add_task(
-          task.name, task.argument, task.job, queue=task.queue_for_platform)
-      logs.log(f'UTask {task.name} not remote.')
-      continue
-    _preprocess(task)
-    if task.uworker_input is None:
-      logs.log('No uworker_input.')
-      continue
-    yield task
+    taskslib.add_task(
+        task.name, task.argument, task.job, queue=task.queue_for_platform)
+    logs.log(f'UTask {task.name} not remote.')
 
 
 def schedule_tasks(tasks: List[Task]):
@@ -328,5 +320,4 @@ def schedule_tasks(tasks: List[Task]):
   remotely, then they are put on the queue. If they are executed remotely, then
   the utask_mains are scheduled on batch, since preprocess has already been done
   in this module on this bot."""
-  uworker_tasks = preprocess_utasks_and_queue_ttasks(tasks)
-  return start_utask_mains(uworker_tasks)
+  preprocess_utasks_and_queue_ttasks(tasks)
