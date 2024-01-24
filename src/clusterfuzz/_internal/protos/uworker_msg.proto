@@ -14,12 +14,12 @@
 
 syntax = "proto3";
 
-import "google/cloud/datastore_v1/proto/entity.proto";
+import "google/protobuf/any.proto";
 
 message SetupInput {
-  optional google.datastore.v1.Entity fuzzer = 1;
+  optional google.protobuf.Any fuzzer = 1;
   optional string fuzzer_name = 2;
-  repeated google.datastore.v1.Entity data_bundles = 3;
+  repeated google.protobuf.Any data_bundles = 3;
   optional string fuzzer_log_upload_url = 4;
   optional string fuzzer_download_url = 5;
   optional string testcase_download_url = 6;
@@ -37,7 +37,7 @@ message FuzzTaskInput {
   optional string sample_testcase_upload_key = 1;
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
-  optional google.datastore.v1.Entity targets_count = 4;
+  optional google.protobuf.Any targets_count = 4;
 }
 
 message MinimizeTaskInput {
@@ -55,21 +55,21 @@ message ProgressionTaskInput {
 }
 
 message CorpusPruningTaskInput {
-  optional google.datastore.v1.Entity fuzz_target = 1;
+  optional google.protobuf.Any fuzz_target = 1;
   optional bool last_execution_failed = 2;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
 // field was unset or set to None.
 message Input {
-  optional google.datastore.v1.Entity testcase = 1;
-  optional google.datastore.v1.Entity testcase_upload_metadata = 2;
+  optional google.protobuf.Any testcase = 1;
+  optional google.protobuf.Any testcase_upload_metadata = 2;
   optional string testcase_id = 3;
   map<string, string> uworker_env = 4;
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
-  optional google.datastore.v1.Entity variant = 8;
+  optional google.protobuf.Any variant = 8;
   optional string original_job_type = 9;
   optional string fuzzer_name = 10;
   optional SetupInput setup_input = 11;

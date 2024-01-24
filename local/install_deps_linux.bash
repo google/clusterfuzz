@@ -25,6 +25,8 @@ while [ "$1" != "" ]; do
 done
 
 if [ -z "$PYTHON" ]; then
+  if which python3.11 > /dev/null; then
+    export PYTHON='python3.11'
   if which python3.10 > /dev/null; then
     export PYTHON='python3.10'
   elif which python3.9 > /dev/null; then
