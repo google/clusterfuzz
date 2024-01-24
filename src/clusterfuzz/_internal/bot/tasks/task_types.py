@@ -104,8 +104,10 @@ class UTask(BaseUTask):
     return task_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    if (not environment.is_production() or self.is_execution_remote()):
+    """Executes a utask."""
+    command = task_utils.get_command_from_module(self.module)
+    if not (self.is_execution_remote()
+            and batch.is_remote_task(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
