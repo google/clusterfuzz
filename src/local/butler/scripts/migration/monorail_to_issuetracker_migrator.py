@@ -35,8 +35,8 @@ def execute(args):
   project_name = os.environ.get('PROJECT_NAME')
   if not project_name:
     raise ValueError('Must specify PROJECT_NAME env variable')
-  batch_size = os.environ.get('BATCH_SIZE', DEFAULT_BATCH_SIZE)
-  roll_back = os.environ.get('ROLL_BACK', False)
+  batch_size = int(os.environ.get('BATCH_SIZE', DEFAULT_BATCH_SIZE))
+  roll_back = os.environ.get('ROLL_BACK') == 'True'
 
   issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(
       file_loc, roll_back)
