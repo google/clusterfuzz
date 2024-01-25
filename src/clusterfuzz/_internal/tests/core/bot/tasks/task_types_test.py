@@ -44,7 +44,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
         'clusterfuzz._internal.base.task_utils.is_remotely_executing_utasks',
         return_value=True):
       data_types.Job(name=job_name, platform='LINUX').put()
-      self.assertTrue(task_types.is_remote_utask('variant', job_name))
+      self.assertTrue(task_types.is_remote_utask('progression', job_name))
 
   def test_trusted(self):
     job_name = 'libfuzzer_linux_asan'
