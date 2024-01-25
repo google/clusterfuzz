@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ def execute(args):
   and/or group_bug_information fields to reflect the Issue Tracker issue
   id rather than the Monorail issue id."""
 
-  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(args.file_loc)
+  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(args.file_loc, args.roll_back)
 
   testcases = []
 
@@ -43,7 +43,7 @@ def execute(args):
 
     testcases.append(testcase)
 
-    if args.non_dry_run and len(testcases) > 499:  # maximum batch size is 500
+    if args.non_dry_run and len(testcases) > args.batch_size:
       ndb.put_multi(testcases)
       testcases = []
 
@@ -51,7 +51,7 @@ def execute(args):
     ndb.put_multi(testcases)
 
 
-def get_monorail_issuetracker_issue_id_dictionary(file_loc):
+def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
   """Creates a mapping of monorail/issuetracker issue ids."""
 
   issue_id_dictionary = {}
@@ -60,11 +60,11 @@ def get_monorail_issuetracker_issue_id_dictionary(file_loc):
   # (ex. row: "600469, 40003765")
   with open(file_loc, 'r') as csvfile:
     reader = csv.reader(csvfile)
-    fieldnames = ['monorail_id', 'issuetracker_id']
+    fieldnames = ['key', 'value']
     reader = csv.DictReader(csvfile, fieldnames=fieldnames)
     for row in reader:
-      monorail_issue_id = row[fieldnames[0]]
-      issuetracker_issue_id = row[fieldnames[1]]
-      issue_id_dictionary[monorail_issue_id] = issuetracker_issue_id
+      key_id = row[fieldnames[1]] if roll_back  else row[fieldnames[0]]
+      value_id = row[fieldnames[0]] if roll_back  else row[fieldnames[1]]
+      issue_id_dictionary[key_id] = value_id
 
-  return issue_id_dictionary  # { monorail_issue_id: issuetracker_issue_id }
+  return issue_id_dictionary  # { key_id: value_id }
