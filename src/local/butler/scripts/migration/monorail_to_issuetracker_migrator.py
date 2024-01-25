@@ -40,8 +40,10 @@ def execute(args):
 
   issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(
       file_loc, roll_back)
+  print(f'Size of issue_id_dict: {len(issue_id_dict)}')
 
   testcases = []
+  count_of_updated = 0
 
   for testcase in data_types.Testcase.query(
       # only target testcases in single project
@@ -63,12 +65,14 @@ def execute(args):
 
     if args.non_dry_run and len(testcases) >= batch_size:
       ndb.put_multi(testcases)
-      print(f'Updated {len(testcases)}')
+      count_of_updated += len(testcases)
+      print(f'Updated {len(testcases)}. Total {count_of_updated}')
       testcases = []
 
   if args.non_dry_run and len(testcases) > 0:
     ndb.put_multi(testcases)
-    print(f'Updated {len(testcases)}')
+    count_of_updated += len(testcases)
+    print(f'Updated {len(testcases)}. Total {count_of_updated}')
 
 
 def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
