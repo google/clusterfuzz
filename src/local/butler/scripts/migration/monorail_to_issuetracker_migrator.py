@@ -25,7 +25,8 @@ def execute(args):
   and/or group_bug_information fields to reflect the Issue Tracker issue
   id rather than the Monorail issue id."""
 
-  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(args.file_loc, args.roll_back)
+  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(
+      args.file_loc, args.roll_back)
 
   testcases = []
 
@@ -63,8 +64,8 @@ def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
     fieldnames = ['key', 'value']
     reader = csv.DictReader(csvfile, fieldnames=fieldnames)
     for row in reader:
-      key_id = row[fieldnames[1]] if roll_back  else row[fieldnames[0]]
-      value_id = row[fieldnames[0]] if roll_back  else row[fieldnames[1]]
+      key_id = row[fieldnames[1]] if roll_back else row[fieldnames[0]]
+      value_id = row[fieldnames[0]] if roll_back else row[fieldnames[1]]
       issue_id_dictionary[key_id] = value_id
 
   return issue_id_dictionary  # { key_id: value_id }
