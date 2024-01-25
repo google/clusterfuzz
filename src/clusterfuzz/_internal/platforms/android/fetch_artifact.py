@@ -26,6 +26,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from clusterfuzz._internal.config import db_config
 from clusterfuzz._internal.metrics import logs
 
+from . import adb
+
 # 20 MB default chunk size.
 DEFAULT_CHUNK_SIZE = 20 * 1024 * 1024
 
@@ -129,6 +131,7 @@ def get_artifacts_for_build(client, bid, target, attempt_id='latest'):
   if not artifacts:
     logs.log_error(f'No artifact found for target {target}, build id {bid}.\n'
                    f'request {request_str}, results {results}')
+    adb.bad_state_reached()
 
   return artifacts
 
