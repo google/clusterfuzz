@@ -61,7 +61,7 @@ def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
   # (ex. row: "600469, 40003765")
   with open(file_loc, 'r') as csvfile:
     reader = csv.reader(csvfile)
-    fieldnames = ['key', 'value']
+    fieldnames = ['monorail_id', 'issuetracker_id']
     reader = csv.DictReader(csvfile, fieldnames=fieldnames)
     for row in reader:
       key_id = row[fieldnames[1]] if roll_back else row[fieldnames[0]]
