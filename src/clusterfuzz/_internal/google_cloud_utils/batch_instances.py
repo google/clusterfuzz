@@ -56,10 +56,48 @@ instance_body = {
   }
 }
 
+
+bulk_body = {
+  'namePattern': 'jonbulk-####',
+  'instanceProperties': {
+      'disks': [{
+          'boot': True,
+          'autoDelete': True,
+          'initializeParams': {
+              'sourceImage': 'projects/cos-cloud/global/images/family/cos-stable'
+          }
+      }],
+      'machineType': 'n1-standard-1',
+      'networkInterfaces': [{
+          'network': 'projects/google.com:clusterfuzz/global/networks/batch',
+          'subnetwork': 'projects/google.com:clusterfuzz/regions/us-west1/subnetworks/us-west1a',
+      }],
+      'serviceAccounts': [{
+          'email': 'default',
+          'scopes': ['https://www.googleapis.com/auth/cloud-platform']
+      }],
+      'scheduling': {
+          'maxRunDuration': {
+              'seconds': MAX_RUN_DURATION_SECONDS,
+          },
+          'instanceTerminationAction': 'DELETE',
+          'provisioningModel': 'SPOT',
+      }
+  }
+}
+
 def create(name):
   body = instance_body.copy()
   body['name'] = name
   request = compute.instances().insert(project=project, zone=zone, body=body)
+  response = request.execute()
+  return response
+
+
+def create_bulk(count):
+  body = bulk_body.copy()
+  body['count'] = count
+  request = compute.regionInstances().bulkInsert(project=project, region='us-west1', body=body)
   response = request.execute()
   return response
 
@@ -74,8 +112,9 @@ def delete(name):
 
 def test():
   # x=create('jon-vm-3')
-  pool = multiprocessing.Pool(int(multiprocessing.cpu_count() * 2))
-  x=pool.map(create, [f'jons2-{s}' for s in range(10000)])
+  # pool = multiprocessing.Pool(int(multiprocessing.cpu_count() * 2))
+  # x=pool.map(create, [f'jons2-{s}' for s in range(10000)])
+  create_bulk(5000)
   import pdb; pdb.set_trace()
 
 if __name__ == '__main__':
