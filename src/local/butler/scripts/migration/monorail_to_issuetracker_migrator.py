@@ -33,23 +33,29 @@ def execute(args):
   for testcase in data_types.Testcase.query(
       # only target testcases in single project
       data_types.Testcase.project_name == args.project_name,):
+    testcase_updated = False
     if testcase.bug_information and issue_id_dict.get(testcase.bug_information):
-      testcase.bug_information = ndb.StringProperty(
-          issue_id_dict[testcase.bug_information])
+      testcase.bug_information = issue_id_dict[testcase.bug_information]
+      testcase_updated = True
 
     if testcase.group_bug_information and issue_id_dict.get(
         testcase.group_bug_information):
-      testcase.group_bug_information = ndb.IntegerProperty(
+      testcase.group_bug_information = (
           issue_id_dict[testcase.group_bug_information])
+      testcase_updated = True
 
-    testcases.append(testcase)
+    if testcase_updated:
+      print(f'We will update testcase id: {testcase.key.id()}')
+      testcases.append(testcase)
 
     if args.non_dry_run and len(testcases) > args.batch_size:
       ndb.put_multi(testcases)
+      print(f'Updated {len(testcases)}')
       testcases = []
 
   if args.non_dry_run and len(testcases) > 0:
     ndb.put_multi(testcases)
+    print(f'Updated {len(testcases)}')
 
 
 def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
@@ -61,11 +67,10 @@ def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
   # (ex. row: "600469, 40003765")
   with open(file_loc, 'r') as csvfile:
     reader = csv.reader(csvfile)
-    fieldnames = ['monorail_id', 'issuetracker_id']
-    reader = csv.DictReader(csvfile, fieldnames=fieldnames)
-    for row in reader:
-      key_id = row[fieldnames[1]] if roll_back else row[fieldnames[0]]
-      value_id = row[fieldnames[0]] if roll_back else row[fieldnames[1]]
-      issue_id_dictionary[key_id] = value_id
+    for monorail_id, issuetracker_id in reader:
+      if roll_back:
+        issue_id_dictionary[issuetracker_id] = monorail_id
+      else:
+        issue_id_dictionary[monorail_id] = issuetracker_id
 
-  return issue_id_dictionary  # { key_id: value_id }
+  return issue_id_dictionary
