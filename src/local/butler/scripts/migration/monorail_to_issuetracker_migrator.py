@@ -14,10 +14,13 @@
 """Migrate Issue Ids from Monorail to Issue Tracker."""
 
 import csv
+import os
 
 from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
+
+DEFAULT_BATCH_SIZE = 500
 
 
 def execute(args):
@@ -25,14 +28,24 @@ def execute(args):
   and/or group_bug_information fields to reflect the Issue Tracker issue
   id rather than the Monorail issue id."""
 
+  # Read the required enviroment variables.
+  file_loc = os.environ.get('FILE_LOC')
+  if not file_loc:
+    raise ValueError('Must specify FILE_LOC env variable')
+  project_name = os.environ.get('PROJECT_NAME')
+  if not project_name:
+    raise ValueError('Must specify PROJECT_NAME env variable')
+  batch_size = os.environ.get('BATCH_SIZE', DEFAULT_BATCH_SIZE)
+  roll_back = os.environ.get('ROLL_BACK', False)
+
   issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(
-      args.file_loc, args.roll_back)
+      file_loc, roll_back)
 
   testcases = []
 
   for testcase in data_types.Testcase.query(
       # only target testcases in single project
-      data_types.Testcase.project_name == args.project_name,):
+      data_types.Testcase.project_name == project_name,):
     testcase_updated = False
     if testcase.bug_information and issue_id_dict.get(testcase.bug_information):
       testcase.bug_information = issue_id_dict[testcase.bug_information]
@@ -48,7 +61,7 @@ def execute(args):
       print(f'We will update testcase id: {testcase.key.id()}')
       testcases.append(testcase)
 
-    if args.non_dry_run and len(testcases) > args.batch_size:
+    if args.non_dry_run and len(testcases) >= batch_size:
       ndb.put_multi(testcases)
       print(f'Updated {len(testcases)}')
       testcases = []
