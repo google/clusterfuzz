@@ -178,9 +178,9 @@ COMMAND_TYPES = {
     'minimize': UTaskLocalExecutor,
     'progression': UTask,
     'regression': UTaskLocalExecutor,
-    'symbolize': UTask,
+    'symbolize': UTaskLocalExecutor,
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTask,
+    'variant': UTaskLocalExecutor,
 }
