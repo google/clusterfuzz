@@ -82,7 +82,7 @@ message Input {
   optional RegressionTaskInput regression_task_input = 17;
   optional SymbolizeTaskInput symbolize_task_input = 18;
   optional string module_name = 19;
-  optional Timestamp preprocess_start_time = 20;
+  optional google.protobuf.Timestamp preprocess_start_time = 20;
 }
 
 message SymbolizeTaskOutput {
