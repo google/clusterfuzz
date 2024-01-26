@@ -122,8 +122,13 @@ class UTask(BaseUTask):
     tasks.add_utask_main(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
-    download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
-                                                job_type, uworker_env)
+    result = utasks.tworker_preprocess(self.module, task_argument, job_type,
+                                       uworker_env)
+    if not result:
+      logs.log_error('Nothing returned from preprocess.')
+      return None
+
+    download_url, _ = result
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
       return None
