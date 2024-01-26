@@ -156,24 +156,19 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
-UTASK_FINE_RUN_TIME = monitor.CounterMetric(
-    'utask/fine_time',
-    description=('The task run time in seconds'),
+UTASK_E2E_DURATION_SECS = monitor.CumulativeDistribution(
+    'utask/e2e_duration_secs',
+    description=(
+        'Time elapsed since preprocess started for this task, in ' +
+        'seconds, per subtask ("preprocess", "uworker_main" and ' +
+        '"postprocess"). Subtask "postprocess" being the last, that ' +
+        'measures total e2e task duration. Mode is either "batch" or ' +
+        '"queue" depending on whether uworker_main was scheduled and ' +
+        'executed on Cloud Batch or not, respectively.'),
     field_spec=[
         monitor.StringField('task'),
         monitor.StringField('job'),
         monitor.StringField('subtask'),
-        monitor.StringField('mode'),
-        monitor.StringField('platform'),
-    ],
-)
-
-UTASK_TOTAL_RUN_TIME = monitor.CounterMetric(
-    'utask/total_time',
-    description=('The task run time in seconds'),
-    field_spec=[
-        monitor.StringField('task'),
-        monitor.StringField('job'),
         monitor.StringField('mode'),
         monitor.StringField('platform'),
     ],
