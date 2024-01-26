@@ -26,7 +26,6 @@ from clusterfuzz._internal.bot.fuzzers import options
 from clusterfuzz._internal.bot.fuzzers.libFuzzer import \
     engine as libFuzzer_engine
 from clusterfuzz._internal.bot.tasks import commands
-from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import corpus_pruning_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -44,21 +43,6 @@ TEST_DIR = os.path.join(
 
 TEST_GLOBAL_BUCKET = 'clusterfuzz-test-global-bundle'
 TEST2_BACKUP_BUCKET = 'clusterfuzz-test2-backup-bucket'
-
-
-def _get_deserialized_uworker_input(job_type, fuzzer_name):
-  """Creates a deserialized uworker_input to be passed to utask_main."""
-  fuzz_target = data_handler.get_fuzz_target(fuzzer_name)
-  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
-      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target))
-  setup_input = (
-      setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
-  uworker_input = uworker_msg_pb2.Input(
-      job_type=job_type,
-      fuzzer_name=fuzzer_name,
-      setup_input=setup_input,
-      corpus_pruning_task_input=corpus_pruning_task_input)
-  return uworker_input
 
 
 class BaseTest:
@@ -208,16 +192,20 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_fuzzer_setup_failure(self):
     """CORPUS_PRUNING_FUZZER_SETUP_FAILED test."""
     self.mock.update_fuzzer_and_data_bundles.return_value = False
-    uworker_input = _get_deserialized_uworker_input(
-        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
     result = corpus_pruning_task.utask_main(uworker_input)
     self.assertEqual(result.error_type,
                      uworker_msg_pb2.CORPUS_PRUNING_FUZZER_SETUP_FAILED)
 
   def test_prune(self):
     """Basic pruning test."""
-    uworker_input = _get_deserialized_uworker_input(
-        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
     corpus_pruning_task.utask_main(uworker_input)
 
     quarantined = os.listdir(self.quarantine_dir)
@@ -366,9 +354,10 @@ class CorpusPruningTestFuchsia(unittest.TestCase, BaseTest):
   def test_prune(self):
     """Basic pruning test."""
     self.corpus_dir = self.fuchsia_corpus_dir
-    uworker_input = _get_deserialized_uworker_input(
+    uworker_input = corpus_pruning_task.utask_preprocess(
         job_type='libfuzzer_asan_fuchsia',
-        fuzzer_name='libFuzzer_fuchsia_example-fuzzers-crash_fuzzer')
+        fuzzer_name='libFuzzer_fuchsia_example-fuzzers-crash_fuzzer',
+        uworker_env={})
     corpus_pruning_task.utask_main(uworker_input)
     corpus = os.listdir(self.corpus_dir)
     self.assertEqual(2, len(corpus))
@@ -484,8 +473,10 @@ class CorpusPruningTestUntrusted(
   def test_prune(self):
     """Test pruning."""
     self._setup_env(job_type='libfuzzer_asan_job')
-    uworker_input = _get_deserialized_uworker_input(
-        job_type='libfuzzer_asan_job', fuzzer_name='libFuzzer_test_fuzzer')
+    uworker_input = corpus_pruning_task.utask_preprocess(
+        job_type='libfuzzer_asan_job',
+        fuzzer_name='libFuzzer_test_fuzzer',
+        uworker_env={})
     corpus_pruning_task.utask_main(uworker_input)
 
     corpus_dir = os.path.join(self.temp_dir, 'corpus')

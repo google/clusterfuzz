@@ -18,6 +18,7 @@ import datetime
 import os
 import random
 import shutil
+from typing import List
 
 from google.cloud import ndb
 
@@ -805,7 +806,9 @@ def _select_targets_and_jobs_for_pollination(engine_name, current_fuzzer_name):
   return selected_targets_and_jobs
 
 
-def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name):
+def _get_cross_pollinate_fuzzers(
+    engine_name: str, current_fuzzer_name: str
+) -> List[uworker_msg_pb2.CrossPollinateFuzzerProto]:
   """Return a list of fuzzer objects to use for cross pollination."""
   cross_pollinate_fuzzers = []
 
@@ -827,13 +830,24 @@ def _get_cross_pollinate_fuzzers(engine_name, current_fuzzer_name):
                                              engine_name)
 
     cross_pollinate_fuzzers.append(
-        CrossPollinateFuzzer(
-            target,
-            backup_bucket_name,
-            corpus_engine_name,
+        uworker_msg_pb2.CrossPollinateFuzzerProto(
+            fuzz_target=uworker_io.entity_to_protobuf(target),
+            backup_bucket_name=backup_bucket_name,
+            corpus_engine_name=corpus_engine_name,
         ))
 
   return cross_pollinate_fuzzers
+
+
+def _get_cross_pollinate_fuzzers_from_protos(cross_pollinate_fuzzers_protos):
+  return [
+      CrossPollinateFuzzer(
+          uworker_io.entity_from_protobuf(proto.fuzz_target,
+                                          data_types.FuzzTarget),
+          proto.backup_bucket_name,
+          proto.corpus_engine_name,
+      ) for proto in cross_pollinate_fuzzers_protos
+  ]
 
 
 def _save_coverage_information(context, result):
@@ -888,10 +902,8 @@ def utask_main(uworker_input):
     return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED)
 
-  # TODO(unassigned): Use coverage information for better selection here.
-  cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
-      fuzz_target.engine, uworker_input.fuzzer_name)
-
+  cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers_from_protos(
+      uworker_input.corpus_pruning_task_input.cross_pollinate_fuzzers)
   context = Context(fuzz_target, cross_pollinate_fuzzers)
 
   # Copy global blacklist into local suppressions file if LSan is enabled.
@@ -935,12 +947,17 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
     logs.log('A previous corpus pruning task is still running, exiting.')
     return None
 
-  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
-      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
-      last_execution_failed=last_execution_failed)
-
   setup_input = (
       setup.preprocess_update_fuzzer_and_data_bundles(fuzz_target.engine))
+
+  # TODO(unassigned): Use coverage information for better selection here.
+  cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
+      fuzz_target.engine, fuzzer_name)
+
+  corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
+      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
+      last_execution_failed=last_execution_failed,
+      cross_pollinate_fuzzers=cross_pollinate_fuzzers)
 
   return uworker_msg_pb2.Input(
       job_type=job_type,

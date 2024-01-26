@@ -55,9 +55,16 @@ message ProgressionTaskInput {
   repeated int64 bad_revisions = 2;
 }
 
+message CrossPollinateFuzzerProto{
+  optional google.datastore.v1.Entity fuzz_target = 1;
+  optional string backup_bucket_name = 2;
+  optional string corpus_engine_name = 3;
+}
+
 message CorpusPruningTaskInput {
   optional google.datastore.v1.Entity fuzz_target = 1;
   optional bool last_execution_failed = 2;
+  repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
