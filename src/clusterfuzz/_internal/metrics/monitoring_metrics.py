@@ -156,6 +156,29 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
+UTASK_FINE_RUN_TIME = monitor.CounterMetric(
+    'utask/fine_time',
+    description=('The task run time in seconds'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+    ],
+)
+
+UTASK_TOTAL_RUN_TIME = monitor.CounterMetric(
+    'utask/total_time',
+    description=('The task run time in seconds'),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+    ],
+)
+
 ANDROID_UPTIME = monitor.CounterMetric(
     'android_device_uptime',
     description='Android device uptime',
