@@ -14,10 +14,13 @@
 """Migrate Issue Ids from Monorail to Issue Tracker."""
 
 import csv
+import os
 
 from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
+
+DEFAULT_BATCH_SIZE = 500
 
 
 def execute(args):
@@ -25,33 +28,54 @@ def execute(args):
   and/or group_bug_information fields to reflect the Issue Tracker issue
   id rather than the Monorail issue id."""
 
-  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(args.file_loc)
+  # Read the required enviroment variables.
+  file_loc = os.environ.get('FILE_LOC')
+  if not file_loc:
+    raise ValueError('Must specify FILE_LOC env variable')
+  project_name = os.environ.get('PROJECT_NAME')
+  if not project_name:
+    raise ValueError('Must specify PROJECT_NAME env variable')
+  batch_size = int(os.environ.get('BATCH_SIZE', DEFAULT_BATCH_SIZE))
+  roll_back = os.environ.get('ROLL_BACK') == 'True'
+
+  issue_id_dict = get_monorail_issuetracker_issue_id_dictionary(
+      file_loc, roll_back)
+  print(f'Size of issue_id_dict: {len(issue_id_dict)}')
 
   testcases = []
+  count_of_updated = 0
 
   for testcase in data_types.Testcase.query(
       # only target testcases in single project
-      data_types.Testcase.project_name == args.project_name,):
+      data_types.Testcase.project_name == project_name,):
+    testcase_updated = False
     if testcase.bug_information and issue_id_dict.get(testcase.bug_information):
-      testcase.bug_information = ndb.StringProperty(
-          issue_id_dict[testcase.bug_information])
+      testcase.bug_information = issue_id_dict[testcase.bug_information]
+      testcase_updated = True
 
     if testcase.group_bug_information and issue_id_dict.get(
         testcase.group_bug_information):
-      testcase.group_bug_information = ndb.IntegerProperty(
+      testcase.group_bug_information = (
           issue_id_dict[testcase.group_bug_information])
+      testcase_updated = True
 
-    testcases.append(testcase)
+    if testcase_updated:
+      print(f'We will update testcase id: {testcase.key.id()}')
+      testcases.append(testcase)
 
-    if args.non_dry_run and len(testcases) > 499:  # maximum batch size is 500
+    if args.non_dry_run and len(testcases) >= batch_size:
       ndb.put_multi(testcases)
+      count_of_updated += len(testcases)
+      print(f'Updated {len(testcases)}. Total {count_of_updated}')
       testcases = []
 
   if args.non_dry_run and len(testcases) > 0:
     ndb.put_multi(testcases)
+    count_of_updated += len(testcases)
+    print(f'Updated {len(testcases)}. Total {count_of_updated}')
 
 
-def get_monorail_issuetracker_issue_id_dictionary(file_loc):
+def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
   """Creates a mapping of monorail/issuetracker issue ids."""
 
   issue_id_dictionary = {}
@@ -60,11 +84,10 @@ def get_monorail_issuetracker_issue_id_dictionary(file_loc):
   # (ex. row: "600469, 40003765")
   with open(file_loc, 'r') as csvfile:
     reader = csv.reader(csvfile)
-    fieldnames = ['monorail_id', 'issuetracker_id']
-    reader = csv.DictReader(csvfile, fieldnames=fieldnames)
-    for row in reader:
-      monorail_issue_id = row[fieldnames[0]]
-      issuetracker_issue_id = row[fieldnames[1]]
-      issue_id_dictionary[monorail_issue_id] = issuetracker_issue_id
+    for monorail_id, issuetracker_id in reader:
+      if roll_back:
+        issue_id_dictionary[issuetracker_id] = monorail_id
+      else:
+        issue_id_dictionary[monorail_id] = issuetracker_id
 
-  return issue_id_dictionary  # { monorail_issue_id: issuetracker_issue_id }
+  return issue_id_dictionary
