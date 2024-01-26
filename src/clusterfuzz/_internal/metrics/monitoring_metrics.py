@@ -156,7 +156,7 @@ TASK_TOTAL_RUN_TIME = monitor.CounterMetric(
     ],
 )
 
-UTASK_E2E_DURATION_SECS = monitor.CumulativeDistribution(
+UTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     'utask/e2e_duration_secs',
     description=(
         'Time elapsed since preprocess started for this task, in ' +
@@ -165,6 +165,7 @@ UTASK_E2E_DURATION_SECS = monitor.CumulativeDistribution(
         'measures total e2e task duration. Mode is either "batch" or ' +
         '"queue" depending on whether uworker_main was scheduled and ' +
         'executed on Cloud Batch or not, respectively.'),
+    bucketer=monitor.GeometricBucketer(),
     field_spec=[
         monitor.StringField('task'),
         monitor.StringField('job'),
