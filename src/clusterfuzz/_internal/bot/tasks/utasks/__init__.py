@@ -16,11 +16,16 @@
 import importlib
 import time
 
+from google.protobuf import timestamp_pb2
+
 from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
+
+# Lint doesn't understand protos
+# pylint: disable=no-member
 
 
 def ensure_uworker_env_type_safety(uworker_env):
@@ -40,10 +45,11 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   serialized output."""
+  start = timestamp_pb2.Timestamp()
+  start.GetCurrentTime()
   logs.log('Starting utask_preprocess: %s.' % utask_module)
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
-  start = time.time()
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
@@ -63,7 +69,8 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
 def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  start = time.time()
+  start = timestamp_pb2.Timestamp()
+  start.GetCurrentTime()
   logs.log('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
 
@@ -84,7 +91,8 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   the same bot as the uworker)."""
   # TODO(metzman): Stop passing module to this function and uworker_main_no_io.
   # Make them consistent with the I/O versions.
-  start = time.time()
+  start = timestamp_pb2.Timestamp()
+  start.GetCurrentTime()
   uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
   # Do this to simulate out-of-band tamper-proof storage of the input.
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
@@ -100,11 +108,12 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
+  start = timestamp_pb2.Timestamp()
+  start.GetCurrentTime()
   logs.log('Starting utask_preprocess: %s.' % utask_module)
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   # Do preprocessing.
-  start = time.time()
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   uworker_input.preprocess_start_time.CopyFrom(start)
@@ -139,7 +148,8 @@ def set_uworker_env(uworker_env: dict) -> None:
 def uworker_main(input_download_url) -> None:
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  start = time.time()
+  start = timestamp_pb2.Timestamp()
+  start.GetCurrentTime()
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
   uworker_output_upload_url = uworker_input.uworker_output_upload_url
@@ -181,8 +191,9 @@ def queue_record_finished_metrics(start, utask_module, job_type, subtask):
 
 
 def _record_finished_metrics(start, utask_module, job_type, subtask, mode):
-  end = time.time()
-  duration = end - start
+  end = timestamp_pb2.Timestamp()
+  end.GetCurrentTime()
+  duration = end.seconds - start.seconds
   monitoring_metrics.UTASK_FINE_RUN_TIME.increment_by(
       int(duration), {
           'task': task_utils.get_command_from_module(utask_module.__name__),
@@ -194,8 +205,10 @@ def _record_finished_metrics(start, utask_module, job_type, subtask, mode):
 
 
 def save_total_time_metric(uworker_output, utask_module, mode):
-  end = time.time()
-  duration = end - uworker_output.uworker_input.preprocess_start_time
+  end = timestamp_pb2.Timestamp()
+  end.GetCurrentTime()
+  duration = (
+      end.seconds - uworker_output.uworker_input.preprocess_start_time.seconds)
   monitoring_metrics.UTASK_TOTAL_RUN_TIME.increment_by(
       int(duration), {
           'task': task_utils.get_command_from_module(utask_module.__name__),
@@ -207,7 +220,8 @@ def save_total_time_metric(uworker_output, utask_module, mode):
 
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
-  start = time.time()
+  start = timestamp_pb2.Timestamp()
+  start.GetCurrentTime()
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
   set_uworker_env(uworker_output.uworker_input.uworker_env)
