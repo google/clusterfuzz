@@ -70,12 +70,15 @@ class _Monitor:
 
 
 @contextlib.contextmanager
-def lease_all_tasks(tasks_list):
+def lease_all_tasks(task_list):
   """Creates a context manager that leases every task in tasks_list."""
   with contextlib.ExitStack() as exit_stack:
-    context_managers = [task.lease for task in tasks_list]
-    for context_manager in context_managers:
-      exit_stack.enter_context(context_manager())
+    for task in task_list:
+      monitoring_metrics.TASK_COUNT.increment({
+          'task': task.command or '',
+          'job': task.job or '',
+      })
+      exit_stack.enter_context(task.lease())
     yield
 
 
