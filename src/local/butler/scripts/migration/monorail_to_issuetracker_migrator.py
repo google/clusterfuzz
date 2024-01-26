@@ -76,7 +76,17 @@ def execute(args):
       testcases.append(testcase)
 
     if args.non_dry_run and len(testcases) >= batch_size:
-      ndb.put_multi(testcases)
+      try:
+        ndb.put_multi(testcases)
+      except Exception as e:
+        if '400 Request payload size exceeds the limit' in str(e):
+          print(f'Got exception: {e}')
+          print('Opening debugger to investigate further:')
+          # pylint: disable=forgotten-debug-statement
+          import pdb
+          pdb.set_trace()
+        raise
+
       count_of_updated += len(testcases)
       print(f'Updated {len(testcases)}. Total {count_of_updated}')
       testcases = []
