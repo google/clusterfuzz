@@ -75,8 +75,8 @@ def lease_all_tasks(task_list):
   with contextlib.ExitStack() as exit_stack:
     for task in task_list:
       monitoring_metrics.TASK_COUNT.increment({
-        'task': task.command or '',
-        'job': task.job or '',
+          'task': task.command or '',
+          'job': task.job or '',
       })
       exit_stack.enter_context(task.lease())
     yield
