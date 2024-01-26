@@ -37,6 +37,7 @@ class IsRemoteUtaskTest(unittest.TestCase):
       data_types.Job(name=job_name, platform='MAC').put()
       self.assertFalse(task_types.is_remote_utask('variant', job_name))
 
+  @unittest.skip('No remote utasks')
   def test_linux(self):
     job_name = 'libfuzzer_linux_asan'
 

@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 import "google/cloud/datastore_v1/proto/entity.proto";
+import "google/protobuf/timestamp.proto";
 
 message SetupInput {
   optional google.datastore.v1.Entity fuzzer = 1;
@@ -81,6 +82,7 @@ message Input {
   optional RegressionTaskInput regression_task_input = 17;
   optional SymbolizeTaskInput symbolize_task_input = 18;
   optional string module_name = 19;
+  optional google.protobuf.Timestamp preprocess_start_time = 20;
 }
 
 message SymbolizeTaskOutput {
