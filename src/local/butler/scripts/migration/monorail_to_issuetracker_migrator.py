@@ -15,8 +15,8 @@
 
 Run locally with this command:
 
-PROJECT_NAME=chromium BATCH_SIZE=100 FILE_LOC=${mapping_file_location} python \
-    butler.py run -c ${internal_config_dir} --non-dry-run  \
+PROJECT_NAME=chromium [BATCH_SIZE=100] FILE_LOC=${mapping_file_location} python \
+    butler.py run -c ${internal_config_dir} [--non-dry-run]  \
     migration.monorail_to_issuetracker_migrator
 
 The mapping_file_location must point to a CSV file containing
