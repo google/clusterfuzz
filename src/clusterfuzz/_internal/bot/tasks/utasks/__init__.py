@@ -50,7 +50,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
     logs.log_error('No uworker_input returned from preprocess')
     return None
 
-  uworker_input.preprocess_start_time = start
+  uworker_input.preprocess_start_time.CopyFrom(start)
 
   assert not uworker_input.module_name
   uworker_input.module_name = utask_module.__name__
@@ -107,7 +107,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   start = time.time()
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
-  uworker_input.preprocess_start_time = start
+  uworker_input.preprocess_start_time.CopyFrom(start)
 
   if not uworker_input:
     # Bail if preprocessing failed since we can't proceed.
