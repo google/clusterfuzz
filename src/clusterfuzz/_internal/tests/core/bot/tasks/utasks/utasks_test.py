@@ -45,7 +45,7 @@ class TworkerPreprocessTest(unittest.TestCase):
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
-    module = analyze_task
+    module = mock.MagicMock(__name__='tasks.analyze_task')
     module.utask_preprocess.return_value = self.uworker_input
     module.__name__ = 'mock_task'
     result = utasks.tworker_preprocess(module, self.TASK_ARGUMENT,
@@ -97,7 +97,7 @@ class UworkerMainTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.uworker_io.serialize_and_upload_uworker_output',
         'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
     ])
-    self.module = mock.MagicMock()
+    self.module = mock.MagicMock(__name__='tasks.analyze_task')
     self.mock.get_utask_module.return_value = self.module
     self.uworker_input = uworker_msg_pb2.Input(
         original_job_type='original_job_type-value',
