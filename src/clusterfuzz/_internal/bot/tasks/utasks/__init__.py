@@ -13,6 +13,7 @@
 # limitations under the License.
 """Module for executing the different parts of a utask."""
 
+import enum
 import importlib
 import time
 
@@ -24,8 +25,45 @@ from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
 
-# Lint doesn't understand protos
-# pylint: disable=no-member
+# Define an alias to appease pylint.
+Timestamp = timestamp_pb2.Timestamp  # pylint: disable=no-member
+
+
+class _Mode(enum.Enum):
+  """The execution mode of `uworker_main` tasks in a bot process."""
+
+  # `uworker_main` tasks are executed on Cloud Batch.
+  BATCH = "batch"
+
+  # `uworker_main` tasks are executed on bots via a Pub/Sub queue.
+  QUEUE = "queue"
+
+
+class _Subtask(enum.Enum):
+  """Parts of a task that may be executed on separate machines."""
+
+  PREPROCESS = "preprocess"
+  UWORKER_MAIN = "uworker_main"
+  POSTPROCESS = "postprocess"
+
+
+def timestamp_now() -> Timestamp:
+  ts = Timestamp()
+  ts.GetCurrentTime()
+  return ts
+
+
+def record_e2e_duration(start: Timestamp, utask_module, job_type: str,
+                        subtask: _Subtask, mode: _Mode):
+  duration = start.ToSeconds() - time.time()
+  monitoring_metrics.UTASK_E2E_DURATION_SECS.add(
+      duration, {
+          'task': task_utils.get_command_from_module(utask_module.__name__),
+          'job': job_type,
+          'subtask': subtask,
+          'mode': mode,
+          'platform': environment.platform(),
+      })
 
 
 def ensure_uworker_env_type_safety(uworker_env):
@@ -45,8 +83,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   serialized output."""
-  start = timestamp_pb2.Timestamp()
-  start.GetCurrentTime()
+  start = timestamp_now()
   logs.log('Starting utask_preprocess: %s.' % utask_module)
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
@@ -62,15 +99,15 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
   uworker_input.module_name = utask_module.__name__
 
   result = uworker_io.serialize_uworker_input(uworker_input)
-  queue_record_finished_metrics(start, utask_module, job_type, 'preprocess')
+  record_e2e_duration(start, utask_module, job_type, _Subtask.PREPROCESS,
+                      _Mode.QUEUE)
   return result
 
 
 def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  start = timestamp_pb2.Timestamp()
-  start.GetCurrentTime()
+  start = timestamp_now()
   logs.log('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
 
@@ -81,8 +118,8 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   if uworker_output is None:
     return None
   result = uworker_io.serialize_uworker_output(uworker_output)
-  queue_record_finished_metrics(start, utask_module, uworker_input.job_type,
-                                'uworker_main')
+  record_e2e_duration(start, utask_module, uworker_input.job_type,
+                      _Subtask.UWORKER_MAIN, _Mode.QUEUE)
   return result
 
 
@@ -91,25 +128,22 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   the same bot as the uworker)."""
   # TODO(metzman): Stop passing module to this function and uworker_main_no_io.
   # Make them consistent with the I/O versions.
-  start = timestamp_pb2.Timestamp()
-  start.GetCurrentTime()
+  start = timestamp_now()
   uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
   # Do this to simulate out-of-band tamper-proof storage of the input.
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
   uworker_output.uworker_input.CopyFrom(uworker_input)
   set_uworker_env(uworker_output.uworker_input.uworker_env)
   utask_module.utask_postprocess(uworker_output)
-  queue_record_finished_metrics(start, utask_module, uworker_input.job_type,
-                                'postprocess')
-  save_total_time_metric(uworker_output, utask_module, 'queue')
+  record_e2e_duration(start, utask_module, uworker_input.job_type,
+                      _Subtask.POSTPROCESS, _Mode.QUEUE)
 
 
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
-  start = timestamp_pb2.Timestamp()
-  start.GetCurrentTime()
+  start = timestamp_now()
   logs.log('Starting utask_preprocess: %s.' % utask_module)
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
@@ -130,7 +164,8 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   uworker_input_signed_download_url, uworker_output_download_gcs_url = (
       uworker_io.serialize_and_upload_uworker_input(uworker_input))
 
-  batch_record_finished_metrics(start, utask_module, job_type, 'preprocess')
+  record_e2e_duration(start, utask_module, job_type, _Subtask.PREPROCESS,
+                      _Mode.BATCH)
 
   # Return the uworker_input_signed_download_url for the remote executor to pass
   # to the batch job and for the local executor to download locally. Return
@@ -148,8 +183,7 @@ def set_uworker_env(uworker_env: dict) -> None:
 def uworker_main(input_download_url) -> None:
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  start = timestamp_pb2.Timestamp()
-  start.GetCurrentTime()
+  start = timestamp_now()
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
   uworker_output_upload_url = uworker_input.uworker_output_upload_url
@@ -165,8 +199,9 @@ def uworker_main(input_download_url) -> None:
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
   logs.log('Finished uworker_main.')
-  batch_record_finished_metrics(start, utask_module, uworker_input.job_type,
-                                'uworker_main')
+  record_e2e_duration(start, utask_module,
+                      uworker_output.uworker_input.job_type,
+                      _Subtask.UWORKER_MAIN, _Mode.BATCH)
   return True
 
 
@@ -182,51 +217,14 @@ def uworker_bot_main():
   return 0
 
 
-def batch_record_finished_metrics(start, utask_module, job_type, subtask):
-  _record_finished_metrics(start, utask_module, job_type, subtask, 'batch')
-
-
-def queue_record_finished_metrics(start, utask_module, job_type, subtask):
-  _record_finished_metrics(start, utask_module, job_type, subtask, 'queue')
-
-
-def _record_finished_metrics(start, utask_module, job_type, subtask, mode):
-  end = timestamp_pb2.Timestamp()
-  end.GetCurrentTime()
-  duration = end.seconds - start.seconds
-  monitoring_metrics.UTASK_FINE_RUN_TIME.increment_by(
-      int(duration), {
-          'task': task_utils.get_command_from_module(utask_module.__name__),
-          'job': job_type,
-          'subtask': subtask,
-          'mode': mode,
-          'platform': environment.platform(),
-      })
-
-
-def save_total_time_metric(uworker_output, utask_module, mode):
-  end = timestamp_pb2.Timestamp()
-  end.GetCurrentTime()
-  duration = (
-      end.seconds - uworker_output.uworker_input.preprocess_start_time.seconds)
-  monitoring_metrics.UTASK_TOTAL_RUN_TIME.increment_by(
-      int(duration), {
-          'task': task_utils.get_command_from_module(utask_module.__name__),
-          'job': uworker_output.uworker_input.job_type,
-          'mode': mode,
-          'platform': environment.platform(),
-      })
-
-
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
-  start = timestamp_pb2.Timestamp()
-  start.GetCurrentTime()
+  start = timestamp_now()
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
   set_uworker_env(uworker_output.uworker_input.uworker_env)
   utask_module = get_utask_module(uworker_output.uworker_input.module_name)
   utask_module.utask_postprocess(uworker_output)
   job_type = uworker_output.uworker_input.job_type
-  batch_record_finished_metrics(start, utask_module, job_type, 'postprocess')
-  save_total_time_metric(uworker_output, utask_module, 'batch')
+  record_e2e_duration(start, utask_module, job_type, _Subtask.POSTPROCESS,
+                      _Mode.BATCH)
