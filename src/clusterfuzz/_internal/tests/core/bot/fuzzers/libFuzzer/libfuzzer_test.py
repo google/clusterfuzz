@@ -211,5 +211,12 @@ class SelectGeneratorTest(unittest.TestCase):
                                                     self.FUZZER_PATH))  # pylint: disable=protected-access
 
 
+class AndroidLogcatTests(unittest.TestCase):
+  """Tests for Android logcat extraction."""
+
+  def test_parse_logcat(self):
+    """Tests that False is returned for non hashes."""
+    self.assertFalse(libfuzzer.is_sha1_hash(''))
+
 if __name__ == '__main__':
   unittest.main()

@@ -152,6 +152,14 @@ def get_sanitizer_tool_name():
 
   return None
 
+def get_memory_tool_name():
+  """Return memory tool name."""
+  build_flavor = get_build_flavor()
+  if 'mte' in build_flavor:
+    return 'mte'
+
+  return None
+
 
 def get_security_patch_level():
   """Return the security patch level reported by the device."""

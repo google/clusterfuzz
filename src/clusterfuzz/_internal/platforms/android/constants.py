@@ -24,7 +24,14 @@ DEVICE_TMP_DIR = '/data/local/tmp'
 # Directory to keep fuzzing artifacts for grey-box fuzzers e.g. corpus.
 DEVICE_FUZZING_DIR = '/data/fuzz'
 
+DEVICE_MTE_DIR = '/system/lib64'
 DEVICE_SANITIZER_DIR = '/system/lib64'
+
+MTE_STACKTRACE_BEGIN = 'Build fingerprint:'
+MTE_STACKTRACE_END = 'mte-reports'
+
+TRUSTY_STACKTRACE_BEGIN = 'panic notifier - trusty version'
+TRUSTY_STACKTRACE_END = 'Built:'
 
 # The format of logcat when lowmemorykiller kills a process. See:
 # https://android.googlesource.com/platform/system/core/+/master/lmkd/lmkd.c#586
