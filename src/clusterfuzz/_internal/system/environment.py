@@ -29,7 +29,8 @@ from clusterfuzz._internal import fuzzing
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER', 'MTE'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER',
+    'MTE'
 ]
 
 SANITIZER_NAME_MAP = {
@@ -1124,6 +1125,7 @@ def is_android_real_device():
 def is_using_mte():
   """Return True if device is using Memory Tagging Extension."""
   return "USES_MTE" in os.environ
+
 
 def is_lib():
   """Whether or not we're in libClusterFuzz."""

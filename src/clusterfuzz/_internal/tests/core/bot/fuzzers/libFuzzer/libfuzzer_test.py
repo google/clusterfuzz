@@ -218,5 +218,6 @@ class AndroidLogcatTests(unittest.TestCase):
     """Tests that False is returned for non hashes."""
     self.assertFalse(libfuzzer.is_sha1_hash(''))
 
+
 if __name__ == '__main__':
   unittest.main()

@@ -812,7 +812,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       executable_dir = os.path.dirname(executable_path)
       deps_path = os.path.join(self._get_device_path(executable_dir), 'lib')
       ld_library_path += deps_path
-      memory_tool_path = android.sanitizer.get_ld_library_path_for_memory_tools()
+      memory_tool_path = android.sanitizer.get_ld_library_path_for_memory_tools(
+      )
       if memory_tool_path:
         ld_library_path += ':' + memory_tool_path
       default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
@@ -920,7 +921,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     return '+-- Logcat excerpt: Trusted App crash stacktrace --+\
       \n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
         ta_stacktrace=ta_stacktrace, output=output, logcat_output=logcat)
-  
+
   def _extract_mte_stacktrace_from_logcat(self, logcat):
     """Finds and returns the MTE stacktrace from a logcat."""
     begin = android.constants.MTE_STACKTRACE_BEGIN
@@ -969,7 +970,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
     if environment.is_android_emulator():
       return self._add_trusty_stacktrace_if_needed(output)
-    
+
     if environment.is_using_mte():
       return self._add_mte_stacktrace_if_needed(output)
 
