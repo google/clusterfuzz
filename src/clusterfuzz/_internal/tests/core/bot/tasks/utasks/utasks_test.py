@@ -64,9 +64,12 @@ class TworkerPreprocessTest(unittest.TestCase):
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
 
-    self.mock.serialize_and_upload_uworker_input.assert_called_with(uworker_input)
-    self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(), start_time_ns)
-    self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(), end_time_ns)
+    self.mock.serialize_and_upload_uworker_input.assert_called_with(
+        uworker_input)
+    self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(),
+                            start_time_ns)
+    self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(),
+                         end_time_ns)
 
     durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
         'task': 'mock',
@@ -76,7 +79,9 @@ class TworkerPreprocessTest(unittest.TestCase):
         'platform': 'LINUX',
     })
     self.assertEqual(durations.count, 1)
-    self.assertLess(durations.sum * 10**9, end_time_ns - uworker_input.preprocess_start_time.ToNanoseconds())
+    self.assertLess(
+        durations.sum * 10**9,
+        end_time_ns - uworker_input.preprocess_start_time.ToNanoseconds())
 
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
