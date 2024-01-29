@@ -115,7 +115,6 @@ def put_multi(testcases):
           # pylint: disable=forgotten-debug-statement
           import pdb
           pdb.set_trace()
-        raise
     else:
       raise
 
