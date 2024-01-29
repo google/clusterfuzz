@@ -18,8 +18,11 @@ import time
 import unittest
 from unittest import mock
 
+from google.protobuf import timestamp_pb2
+
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.tests.test_libs import helpers
 
@@ -109,24 +112,44 @@ class UworkerMainTest(unittest.TestCase):
     ])
     self.module = mock.MagicMock(__name__='tasks.analyze_task')
     self.mock.get_utask_module.return_value = self.module
-    self.uworker_input = uworker_msg_pb2.Input(
-        original_job_type='original_job_type-value',
-        uworker_env=self.UWORKER_ENV,
-        uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
-    )
-    self.mock.download_and_deserialize_uworker_input.return_value = (
-        self.uworker_input)
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
+    start_time_ns = time.time_ns()
+    start_timestamp = timestamp_pb2.Timestamp()
+    start_timestamp.FromNanoseconds(start_time_ns)
+
+    uworker_input = uworker_msg_pb2.Input(
+        job_type='job_type-value',
+        original_job_type='original_job_type-value',
+        uworker_env=self.UWORKER_ENV,
+        uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
+        preprocess_start_time=start_timestamp,
+    )
+    self.mock.download_and_deserialize_uworker_input.return_value = (uworker_input)
+
     uworker_output = {
         'crash_time': 70.1,
     }
     self.module.utask_main.return_value = uworker_msg_pb2.Output(
         **uworker_output)
     input_download_url = 'http://input'
+
     utasks.uworker_main(input_download_url)
-    self.module.utask_main.assert_called_with(self.uworker_input)
+
+    end_time_ns = time.time_ns()
+
+    self.module.utask_main.assert_called_with(uworker_input)
+
+    durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
+        'task': 'analyze',
+        'job': uworker_input.job_type,
+        'subtask': 'uworker_main',
+        'mode': 'batch',
+        'platform': 'LINUX',
+    })
+    self.assertEqual(durations.count, 1)
+    self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
 
 
 class GetUtaskModuleTest(unittest.TestCase):

@@ -200,7 +200,7 @@ def uworker_main(input_download_url) -> None:
                                                  uworker_output_upload_url)
   logs.log('Finished uworker_main.')
   _record_e2e_duration(start, utask_module,
-                       uworker_output.uworker_input.job_type,
+                       uworker_input.job_type,
                        _Subtask.UWORKER_MAIN, _Mode.BATCH)
   return True
 
