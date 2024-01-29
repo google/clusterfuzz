@@ -188,6 +188,8 @@ class TworkerPostprocessTest(unittest.TestCase):
     ])
 
   def test_success(self):
+    """Tests that if utask_postprocess suceeds, uworker_postprocess does too.
+    """
     download_url = 'https://uworker_output_download_url'
     uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_msg_pb2.Input(job_type='foo-job',),)
