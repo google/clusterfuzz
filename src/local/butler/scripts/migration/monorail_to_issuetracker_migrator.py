@@ -72,8 +72,8 @@ def execute(args):
     if testcase.group_bug_information and issue_id_dict.get(
         str(testcase.group_bug_information)):
       # group_bug_information is an int unlike bug_information which is a str.
-      testcase.group_bug_information = int(
-          issue_id_dict[str(testcase.group_bug_information)])
+      testcase.group_bug_information = int(issue_id_dict[str(
+          testcase.group_bug_information)])
       testcase_updated = True
 
     if testcase_updated:
@@ -101,11 +101,11 @@ def put_multi(testcases):
     ndb.put_multi(testcases)
   except Exception as e:
     if PAYLOAD_SIZE_ERROR in str(e) and len(testcases) > 1:
-      half_batch_size = len(testcases)//2
+      half_batch_size = len(testcases) // 2
       print('Reached payload size limit. Retrying batch put with half the '
             f'specified batch size: {half_batch_size}')
       try:
-        ndb.put_multi(testcases[0:half_batch_size])
+        ndb.put_multi(testcases[:half_batch_size])
         ndb.put_multi(testcases[half_batch_size:])
       except Exception as e:
         if PAYLOAD_SIZE_ERROR in str(e):
