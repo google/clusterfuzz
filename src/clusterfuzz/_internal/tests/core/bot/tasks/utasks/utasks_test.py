@@ -14,6 +14,7 @@
 """Tests for uworker_io."""
 
 import os
+import time
 import unittest
 from unittest import mock
 
@@ -41,20 +42,29 @@ class TworkerPreprocessTest(unittest.TestCase):
         self.OUTPUT_SIGNED_UPLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
     self.mock.serialize_and_upload_uworker_input.return_value = (
         self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL)
-    self.uworker_input = uworker_msg_pb2.Input(job_type='something')
 
   def test_tworker_preprocess(self):
     """Tests that tworker_preprocess works as intended."""
     module = mock.MagicMock(__name__='tasks.analyze_task')
-    module.utask_preprocess.return_value = self.uworker_input
     module.__name__ = 'mock_task'
+
+    uworker_input = uworker_msg_pb2.Input(job_type='something')
+    module.utask_preprocess.return_value = uworker_input
+
+    time_before = time.time_ns()
+
     result = utasks.tworker_preprocess(module, self.TASK_ARGUMENT,
                                        self.JOB_TYPE, self.UWORKER_ENV)
 
+    time_after = time.time_ns()
+
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
-    self.mock.serialize_and_upload_uworker_input.assert_called_with(
-        self.uworker_input)
+
+    self.mock.serialize_and_upload_uworker_input.assert_called_with(uworker_input)
+    self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(), time_before)
+    self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(), time_after)
+
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
