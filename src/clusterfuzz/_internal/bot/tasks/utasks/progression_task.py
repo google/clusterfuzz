@@ -346,7 +346,9 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
   _write_to_bigquery(testcase, min_revision, max_revision)
 
 
-def _store_testcase_for_regression_testing(testcase, testcase_file_path):
+def _store_testcase_for_regression_testing(
+    testcase: data_types.Testcase, testcase_file_path: str,
+    progression_task_input: uworker_msg_pb2.ProgressionTaskInput):
   """Stores reproduction testcase for future regression testing in corpus
   pruning task."""
   if testcase.open:
@@ -357,6 +359,29 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
     # Only store crashes with bugs associated with them.
     return
 
+  if not progression_task_input.HasField('regression_testcase_url'):
+    # No work to do.
+    return
+
+  regression_testcase_url = progression_task_input.regression_testcase_url
+
+  with open(testcase_file_path, 'rb') as testcase_file_handle:
+    testcase_file = testcase_file_handle.read()
+    if storage.upload_signed_url(testcase_file, regression_testcase_url):
+      logs.log('Successfully stored testcase for regression testing: ' +
+               regression_testcase_url)
+    else:
+      logs.log_error('Failed to store testcase for regression testing: ' +
+                     regression_testcase_url)
+
+
+def _set_regression_testcase_upload_url(
+    progression_input: uworker_msg_pb2.ProgressionTaskInput,
+    testcase: data_types.Testcase):
+  """Determines and sets the signed regression_testcase_url (if any) in
+  the progression task input.
+  Raises RuntimeError in case of UUID collision on the generated filename.
+  """
   fuzz_target = data_handler.get_fuzz_target(testcase.overridden_fuzzer_name)
   if not fuzz_target:
     # No work to do, only applicable for engine fuzzers.
@@ -366,14 +391,12 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
                                            fuzz_target.project_qualified_name())
   regression_testcase_url = os.path.join(
       corpus.get_regressions_corpus_gcs_url(),
-      utils.file_hash(testcase_file_path))
+      uworker_io.generate_new_input_file_name())
 
-  if storage.copy_file_to(testcase_file_path, regression_testcase_url):
-    logs.log('Successfully stored testcase for regression testing: ' +
-             regression_testcase_url)
-  else:
-    logs.log_error('Failed to store testcase for regression testing: ' +
-                   regression_testcase_url)
+  if storage.get(regression_testcase_url):
+    raise RuntimeError(f'UUID collision found: {regression_testcase_url}.')
+  progression_input.regression_testcase_url = storage.get_signed_upload_url(
+      regression_testcase_url)
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
@@ -396,6 +419,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       bad_revisions=build_manager.get_job_bad_revisions())
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
+
+  _set_regression_testcase_upload_url(progression_input, testcase)
   return uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=str(testcase_id),
@@ -530,9 +555,9 @@ def find_fixed_range(uworker_input):
     # If the min and max revisions are one apart this is as much as we can
     # narrow the range.
     if max_index - min_index == 1:
-      # TODO(alhijazi): This should be moved to postprocess.
       testcase.open = False
-      _store_testcase_for_regression_testing(testcase, testcase_file_path)
+      _store_testcase_for_regression_testing(
+          testcase, testcase_file_path, uworker_input.progression_task_input)
       progression_task_output.min_revision = int(min_revision)
       progression_task_output.max_revision = int(max_revision)
       return uworker_msg_pb2.Output(
