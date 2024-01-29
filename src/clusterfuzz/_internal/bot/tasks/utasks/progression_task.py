@@ -360,17 +360,17 @@ def _store_testcase_for_regression_testing(
     return
 
   if not progression_task_input.HasField('regression_testcase_url'):
-    # No work to do.
     return
 
   regression_testcase_url = progression_task_input.regression_testcase_url
 
   with open(testcase_file_path, 'rb') as testcase_file_handle:
     testcase_file = testcase_file_handle.read()
-    if storage.upload_signed_url(testcase_file, regression_testcase_url):
+    try:
+      storage.upload_signed_url(testcase_file, regression_testcase_url)
       logs.log('Successfully stored testcase for regression testing: ' +
                regression_testcase_url)
-    else:
+    except Exception:
       logs.log_error('Failed to store testcase for regression testing: ' +
                      regression_testcase_url)
 
