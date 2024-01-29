@@ -60,8 +60,8 @@ def _record_e2e_duration(start: Timestamp, utask_module, job_type: str,
       duration, {
           'task': task_utils.get_command_from_module(utask_module.__name__),
           'job': job_type,
-          'subtask': subtask,
-          'mode': mode,
+          'subtask': subtask.value,
+          'mode': mode.value,
           'platform': environment.platform(),
       })
 
