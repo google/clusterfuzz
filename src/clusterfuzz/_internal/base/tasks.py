@@ -274,6 +274,9 @@ def get_postprocess_task():
   # This should only be run on non-preemptible bots.
   if not task_utils.is_remotely_executing_utasks():
     return None
+  # Postprocess is platform-agnostic, so we run all such tasks on our
+  # most generic and plentiful bots only. In other words, we avoid
+  # wasting our precious non-linux bots on generic postprocess tasks.
   if not environment.platform().lower() == 'linux':
     return None
   pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
