@@ -274,6 +274,8 @@ def get_postprocess_task():
   # This should only be run on non-preemptible bots.
   if not task_utils.is_remotely_executing_utasks():
     return None
+  if not environment.platform().lower() == 'linux':
+    return None
   pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
   logs.log('Pulling from postprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
