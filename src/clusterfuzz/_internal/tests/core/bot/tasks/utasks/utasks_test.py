@@ -54,19 +54,19 @@ class TworkerPreprocessTest(unittest.TestCase):
     uworker_input = uworker_msg_pb2.Input(job_type='something')
     module.utask_preprocess.return_value = uworker_input
 
-    time_before = time.time_ns()
+    start_time_ns = time.time_ns()
 
     result = utasks.tworker_preprocess(module, self.TASK_ARGUMENT,
                                        self.JOB_TYPE, self.UWORKER_ENV)
 
-    time_after = time.time_ns()
+    end_time_ns = time.time_ns()
 
     module.utask_preprocess.assert_called_with(self.TASK_ARGUMENT,
                                                self.JOB_TYPE, self.UWORKER_ENV)
 
     self.mock.serialize_and_upload_uworker_input.assert_called_with(uworker_input)
-    self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(), time_before)
-    self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(), time_after)
+    self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(), start_time_ns)
+    self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(), end_time_ns)
 
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
