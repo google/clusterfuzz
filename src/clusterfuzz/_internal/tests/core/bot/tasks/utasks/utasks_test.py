@@ -176,6 +176,7 @@ class GetUtaskModuleTest(unittest.TestCase):
     module_name = analyze_task.__name__
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
 
+
 class TworkerPostprocessTest(unittest.TestCase):
   """Tests that tworker_postprocess works as intended."""
 
@@ -189,11 +190,9 @@ class TworkerPostprocessTest(unittest.TestCase):
   def test_success(self):
     download_url = 'https://uworker_output_download_url'
     uworker_output = uworker_msg_pb2.Output(
-        uworker_input=uworker_msg_pb2.Input(
-            job_type='foo-job',
-        ),
-    )
-    self.mock.download_and_deserialize_uworker_output.return_value = (uworker_output)
+        uworker_input=uworker_msg_pb2.Input(job_type='foo-job',),)
+    self.mock.download_and_deserialize_uworker_output.return_value = (
+        uworker_output)
 
     module = mock.MagicMock(__name__='mock_task')
     self.mock.get_utask_module.return_value = module
@@ -202,7 +201,8 @@ class TworkerPostprocessTest(unittest.TestCase):
     utasks.tworker_postprocess(download_url)
     end_time_ns = time.time_ns()
 
-    self.mock.download_and_deserialize_uworker_output.assert_called_with(download_url)
+    self.mock.download_and_deserialize_uworker_output.assert_called_with(
+        download_url)
     module.utask_postprocess.assert_called_with(uworker_output)
 
     durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
