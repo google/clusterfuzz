@@ -199,8 +199,7 @@ def uworker_main(input_download_url) -> None:
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
   logs.log('Finished uworker_main.')
-  _record_e2e_duration(start, utask_module,
-                       uworker_input.job_type,
+  _record_e2e_duration(start, utask_module, uworker_input.job_type,
                        _Subtask.UWORKER_MAIN, _Mode.BATCH)
   return True
 

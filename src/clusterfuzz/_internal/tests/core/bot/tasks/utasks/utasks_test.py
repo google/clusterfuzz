@@ -136,7 +136,8 @@ class UworkerMainTest(unittest.TestCase):
         uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
         preprocess_start_time=start_timestamp,
     )
-    self.mock.download_and_deserialize_uworker_input.return_value = (uworker_input)
+    self.mock.download_and_deserialize_uworker_input.return_value = (
+        uworker_input)
 
     uworker_output = {
         'crash_time': 70.1,
@@ -169,3 +170,42 @@ class GetUtaskModuleTest(unittest.TestCase):
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
     module_name = analyze_task.__name__
     self.assertEqual(utasks.get_utask_module(module_name), analyze_task)
+
+class TworkerPostprocessTest(unittest.TestCase):
+  """Tests that tworker_postprocess works as intended."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.utasks.uworker_io.download_and_deserialize_uworker_output',
+        'clusterfuzz._internal.bot.tasks.utasks.get_utask_module',
+    ])
+
+  def test_success(self):
+    download_url = 'https://uworker_output_download_url'
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=uworker_msg_pb2.Input(
+            job_type='foo-job',
+        ),
+    )
+    self.mock.download_and_deserialize_uworker_output.return_value = (uworker_output)
+
+    module = mock.MagicMock(__name__='mock_task')
+    self.mock.get_utask_module.return_value = module
+
+    start_time_ns = time.time_ns()
+    utasks.tworker_postprocess(download_url)
+    end_time_ns = time.time_ns()
+
+    self.mock.download_and_deserialize_uworker_output.assert_called_with(download_url)
+    module.utask_postprocess.assert_called_with(uworker_output)
+
+    durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
+        'task': 'mock',
+        'job': 'foo-job',
+        'subtask': 'postprocess',
+        'mode': 'batch',
+        'platform': 'LINUX',
+    })
+    self.assertEqual(durations.count, 1)
+    self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
