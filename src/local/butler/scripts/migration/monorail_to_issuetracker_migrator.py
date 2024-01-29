@@ -92,11 +92,12 @@ def execute(args):
     print(f'Updated {len(testcases)}. Total {count_of_updated}')
 
 
-# Attempts to batch put the specified slice of testcases. If there is
-# a 'payload size exceeds the limit' error then it will halve the
-# testcases and try again. If that does not work then will go into
-# a debugger.
 def put_multi(testcases):
+  """Attempts to batch put the specified slice of testcases.
+
+  If there is a 'payload size exceeds the limit' error then it will halve the
+  testcases and try again. If that does not work then will go into a debugger.
+  """
   try:
     ndb.put_multi(testcases)
   except Exception as e:
@@ -107,8 +108,8 @@ def put_multi(testcases):
       try:
         ndb.put_multi(testcases[:half_batch_size])
         ndb.put_multi(testcases[half_batch_size:])
-      except Exception as e:
-        if PAYLOAD_SIZE_ERROR in str(e):
+      except Exception as ie:
+        if PAYLOAD_SIZE_ERROR in str(ie):
           print(f'Got exception: {e}')
           print('Opening debugger to investigate further:')
           # pylint: disable=forgotten-debug-statement
