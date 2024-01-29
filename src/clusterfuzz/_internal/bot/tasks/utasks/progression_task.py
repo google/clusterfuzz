@@ -370,7 +370,7 @@ def _store_testcase_for_regression_testing(
       storage.upload_signed_url(testcase_file, regression_testcase_url)
       logs.log('Successfully stored testcase for regression testing: ' +
                regression_testcase_url)
-    except Exception:
+    except:
       logs.log_error('Failed to store testcase for regression testing: ' +
                      regression_testcase_url)
 
