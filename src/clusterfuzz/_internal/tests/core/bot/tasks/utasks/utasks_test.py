@@ -68,6 +68,16 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.assertGreaterEqual(uworker_input.preprocess_start_time.ToNanoseconds(), start_time_ns)
     self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(), end_time_ns)
 
+    durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
+        'task': 'mock',
+        'job': self.JOB_TYPE,
+        'subtask': 'preprocess',
+        'mode': 'batch',
+        'platform': 'LINUX',
+    })
+    self.assertEqual(durations.count, 1)
+    self.assertLess(durations.sum * 10**9, end_time_ns - uworker_input.preprocess_start_time.ToNanoseconds())
+
     self.assertEqual(
         (self.INPUT_SIGNED_DOWNLOAD_URL, self.OUTPUT_DOWNLOAD_GCS_URL), result)
 
