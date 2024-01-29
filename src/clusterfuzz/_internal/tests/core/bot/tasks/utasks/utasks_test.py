@@ -130,7 +130,7 @@ class UworkerMainTest(unittest.TestCase):
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
-    start_time_ns = time.time_ns()
+    start_time_ns = time.time_ns() - 42 * 10**9  # Sometime in the past.
     start_timestamp = timestamp_pb2.Timestamp()
     start_timestamp.FromNanoseconds(start_time_ns)
 
@@ -166,6 +166,7 @@ class UworkerMainTest(unittest.TestCase):
     })
     self.assertEqual(durations.count, 1)
     self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
+    self.assertGreaterEqual(durations.sum, 42)
 
 
 class GetUtaskModuleTest(unittest.TestCase):
@@ -191,15 +192,20 @@ class TworkerPostprocessTest(unittest.TestCase):
     """Tests that if utask_postprocess suceeds, uworker_postprocess does too.
     """
     download_url = 'https://uworker_output_download_url'
+
+    start_time_ns = time.time_ns() - 42 * 10**9  # Sometime in the past.
+    start_timestamp = timestamp_pb2.Timestamp()
+    start_timestamp.FromNanoseconds(start_time_ns)
+
     uworker_output = uworker_msg_pb2.Output(
-        uworker_input=uworker_msg_pb2.Input(job_type='foo-job',),)
+        uworker_input=uworker_msg_pb2.Input(
+            job_type='foo-job', preprocess_start_time=start_timestamp),)
     self.mock.download_and_deserialize_uworker_output.return_value = (
         uworker_output)
 
     module = mock.MagicMock(__name__='mock_task')
     self.mock.get_utask_module.return_value = module
 
-    start_time_ns = time.time_ns()
     utasks.tworker_postprocess(download_url)
     end_time_ns = time.time_ns()
 
@@ -216,3 +222,4 @@ class TworkerPostprocessTest(unittest.TestCase):
     })
     self.assertEqual(durations.count, 1)
     self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
+    self.assertGreaterEqual(durations.sum, 42)
