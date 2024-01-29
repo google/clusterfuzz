@@ -11,7 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Migrate Issue Ids from Monorail to Issue Tracker."""
+"""Migrate Issue Ids from Monorail to Issue Tracker.
+
+Run locally with this command:
+
+PROJECT_NAME=chromium [BATCH_SIZE=100] FILE_LOC=${mapping_file_location} \
+    python butler.py run -c ${internal_config_dir} [--non-dry-run]  \
+    migration.monorail_to_issuetracker_migrator
+
+The mapping_file_location must point to a CSV file containing
+"monorail_id,buganizer_id" in each line.
+"""
 
 import csv
 import os
@@ -20,7 +30,9 @@ from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
 
-DEFAULT_BATCH_SIZE = 500
+# Values more than 100 resulted in this error:
+# 400 Request payload size exceeds the limit: 11534336 bytes.
+DEFAULT_BATCH_SIZE = 100
 
 
 def execute(args):
@@ -64,7 +76,17 @@ def execute(args):
       testcases.append(testcase)
 
     if args.non_dry_run and len(testcases) >= batch_size:
-      ndb.put_multi(testcases)
+      try:
+        ndb.put_multi(testcases)
+      except Exception as e:
+        if '400 Request payload size exceeds the limit' in str(e):
+          print(f'Got exception: {e}')
+          print('Opening debugger to investigate further:')
+          # pylint: disable=forgotten-debug-statement
+          import pdb
+          pdb.set_trace()
+        raise
+
       count_of_updated += len(testcases)
       print(f'Updated {len(testcases)}. Total {count_of_updated}')
       testcases = []
