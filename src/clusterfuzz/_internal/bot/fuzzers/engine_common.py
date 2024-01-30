@@ -649,23 +649,25 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
   try:
     reader = archive.open(seed_corpus_archive_path)
   except:
-    logs.log_error(f"Failed reading archive: {seed_corpus_archive_path}")
+    logs.log_error(f'Failed reading archive: {seed_corpus_archive_path}')
     return
 
   idx = 0
-  for file in reader.list_members():
-    if file.is_dir:
-      continue
+  with reader:
+    for file in reader.list_members():
+      if file.is_dir:
+        continue
 
-    if file.size_bytes > max_bytes:
-      continue
+      if file.size_bytes > max_bytes:
+        continue
 
-    output_filename = '%016d' % idx
-    output_file_path = os.path.join(corpus_directory, output_filename)
-    with open(output_file_path, 'wb') as file_handle:
-      shutil.copyfileobj(reader.open(file.name), file_handle)
+      output_filename = '%016d' % idx
+      output_file_path = os.path.join(corpus_directory, output_filename)
+      with open(output_file_path, 'wb') as file_handle:
+        with reader.open(file.name) as file:
+          shutil.copyfileobj(file, file_handle)
 
-    idx += 1
+      idx += 1
 
   logs.log('Unarchiving %d files from seed corpus %s.' %
            (idx, seed_corpus_archive_path))

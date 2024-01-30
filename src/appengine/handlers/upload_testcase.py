@@ -136,10 +136,10 @@ def guess_input_file(uploaded_file, filename):
   """Guess the main test case file from an archive."""
   for file_pattern in RUN_FILE_PATTERNS:
     blob_reader = _read_to_bytesio(uploaded_file.gcs_path)
-    reader = archive.open(filename, blob_reader)
-    file_path_input = reader.get_first_file_matching(file_pattern)
-    if file_path_input:
-      return file_path_input
+    with archive.open(filename, blob_reader) as reader:
+      file_path_input = reader.get_first_file_matching(file_pattern)
+      if file_path_input:
+        return file_path_input
 
   return None
 

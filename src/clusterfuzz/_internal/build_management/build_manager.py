@@ -543,7 +543,7 @@ class Build(BaseBuild):
     try:
       reader = archive.open(build_local_archive)
     except:
-      logs.log_error('Unable to open build archive %s.' % build_local_archive)
+      logs.log_error(f'Unable to open build archive {build_local_archive}.')
       return False
 
     if not unpack_everything:
@@ -582,6 +582,7 @@ class Build(BaseBuild):
       logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
       return False
 
+    reader.close()
     if unpack_everything:
       # Set a random fuzz target now that the build has been unpacked, if we
       # didn't set one earlier. For an auxiliary build, fuzz target is already
@@ -845,8 +846,8 @@ class CuttlefishKernelBuild(RegularBuild):
     # Extract syzkaller binary.
     syzkaller_path = os.path.join(self.build_dir, 'syzkaller')
     shell.remove_directory(syzkaller_path)
-    reader = archive.open(archive_dst_path)
-    archive.unpack(reader, syzkaller_path)
+    with archive.open(archive_dst_path) as reader:
+      archive.unpack(reader, syzkaller_path)
     shell.remove_file(archive_dst_path)
 
     environment.set_value('VMLINUX_PATH', self.build_dir)
@@ -990,6 +991,7 @@ class CustomBuild(Build):
       # Remove the archive.
       shell.remove_file(build_local_archive)
 
+    reader.close()
     self._pick_fuzz_target(
         self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
     return True

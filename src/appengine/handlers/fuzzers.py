@@ -97,8 +97,8 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
       executable_path = 'run'  # Check for default.
 
     reader = self._read_to_bytesio(upload_info.gcs_path)
-    archive_reader = archive.open(upload_info.filename, reader)
-    return archive_reader.get_first_file_matching(executable_path)
+    with archive.open(upload_info.filename, reader) as archive_reader:
+      return archive_reader.get_first_file_matching(executable_path)
 
   def _get_launcher_script(self, upload_info):
     """Get launcher script path."""

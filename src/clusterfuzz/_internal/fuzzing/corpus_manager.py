@@ -334,8 +334,8 @@ class GcsCorpus:
           continue
         if not storage.copy_file_from(zipcorpus_url, temp_zip_filename):
           continue
-        reader = archive.open(temp_zip_filename)
-        archive.unpack(reader, dst_dir)
+        with archive.open(temp_zip_filename) as reader:
+          archive.unpack(reader, dst_dir)
 
   def rsync_to_disk(self,
                     directory,

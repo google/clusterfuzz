@@ -256,8 +256,7 @@ def update_source_code():
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True
-      logs.log_error(
-          'Failed to extract file %s from source archive.' % file.name)
+      logs.log_error(f'Failed to extract file {file.name} from source archive.')
 
   reader.close()
 
@@ -311,9 +310,8 @@ def update_tests_if_needed():
     try:
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)
-      reader = archive.open(temp_archive)
-      archive.unpack(reader, data_directory, trusted=True)
-      reader.close()
+      with archive.open(temp_archive) as reader:
+        archive.unpack(reader, data_directory, trusted=True)
       shell.remove_file(temp_archive)
       error_occured = False
       break

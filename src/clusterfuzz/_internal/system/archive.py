@@ -218,6 +218,12 @@ class TarArchiveReader(ArchiveReader):
       self._archive = tarfile.open(archive_path, mode=mode)
     self._archive_path = archive_path
 
+  def __enter__(self):
+    return self
+
+  def __exit__(self, *args):
+    self._archive.close()
+
   def list_members(self) -> List[ArchiveMemberInfo]:
     return [
         ArchiveMemberInfo(
@@ -262,6 +268,12 @@ class ZipArchiveReader(ArchiveReader):
 
   def __init__(self, file) -> None:
     self._zip_archive = zipfile.ZipFile(file, mode='r')
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, *args):
+    self._zip_archive.close()
 
   def list_members(self) -> List[ArchiveMemberInfo]:
     return [
