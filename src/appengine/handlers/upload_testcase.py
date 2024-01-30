@@ -523,11 +523,14 @@ class UploadHandlerCommon:
           metadata.fuzzer_binary_name = target_name
           metadata.put()
 
+          # Use wait_time=None to execute the task ASAP, since it is
+          # user-facing.
           tasks.add_task(
               'unpack',
               str(metadata.key.id()),
               job_type,
-              queue=tasks.queue_for_job(job_type))
+              queue=tasks.queue_for_job(job_type),
+              wait_time=None)
 
           # Create a testcase metadata object to show the user their upload.
           upload_metadata = data_types.TestcaseUploadMetadata()
