@@ -1124,7 +1124,7 @@ def is_android_real_device():
 
 def is_using_mte():
   """Return True if device is using Memory Tagging Extension."""
-  return "USES_MTE" in os.environ
+  return get_value('USE_MTE')
 
 
 def is_lib():

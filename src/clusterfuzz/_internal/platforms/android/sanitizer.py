@@ -40,7 +40,7 @@ def get_ld_library_path_for_memory_tools():
   if tool:
     return constants.DEVICE_SANITIZER_DIR
 
-  tool = settings.get_memory_tool_name()
+  tool = settings.is_mte_build()
   if tool:
     return constants.DEVICE_MTE_DIR
 
