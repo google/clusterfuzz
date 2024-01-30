@@ -698,8 +698,8 @@ def redo_testcase(testcase, tasks, user_email):
       keys_only=True)
   ndb_utils.delete_multi(notifications)
 
-  # Use wait_time=None to execute the task ASAP, since it is user-facing.
-  wait_time = None
+  # Use wait_time=0 to execute the task ASAP, since it is user-facing.
+  wait_time = 0
 
   # If we are re-doing minimization, other tasks will be done automatically
   # after minimization completes. So, don't add those tasks.
