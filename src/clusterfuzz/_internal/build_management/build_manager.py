@@ -398,7 +398,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
           llvm_symbolizer_path = os.path.join(root, llvm_symbolizer_filename)
           set_env_var('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
 
-  if not absolute_file_path:
+  if app_name and not absolute_file_path:
     logs.log_error(f'Could not find app {app_name!r} in search directories.')
 
 
