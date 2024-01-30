@@ -144,10 +144,14 @@ class LowLatencyUTask(UTask):
   """Represents an untrusted task. This is the same as UTask except the task is
   scheduled to run on batch immediately, skipping the utask_main queue. This
   reduces task latency."""
+
   def request_remote_execution(self, command, download_url, job_type):
     del command
-    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
-                                        download_url)
+    batch.create_uworker_main_batch_job(
+        self.module.__name__,
+        job_type,
+        download_url,
+        priority=batch.HIGH_PRIORITY)
 
 
 class PostprocessTask(BaseTask):
