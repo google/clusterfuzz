@@ -202,8 +202,8 @@ class SelectGeneratorTest(unittest.TestCase):
         'clusterfuzz._internal.bot.fuzzers.engine_common.is_lpm_fuzz_target',
         'clusterfuzz._internal.bot.fuzzers.strategy_selection.StrategyPool.do_strategy'
     ])
-    self.mock.do_strategy.return_value = True
     self.mock.is_lpm_fuzz_target.return_value = True
+    self.mock.do_strategy.return_value = True
 
   def test_lpm_fuzz_target(self):
     self.assertEqual(engine_common.Generator.NONE,
@@ -214,9 +214,39 @@ class SelectGeneratorTest(unittest.TestCase):
 class AndroidLogcatTests(unittest.TestCase):
   """Tests for Android logcat extraction."""
 
-  def test_parse_logcat(self):
-    """Tests that False is returned for non hashes."""
-    self.assertFalse(libfuzzer.is_sha1_hash(''))
+  def test_add_logcat_output_if_needed_false(self):
+    """Test that verifies logcat parsing behavior with sanitizer."""
+    input = 'Sanitizer: 1, 2, 3, 4, 5'
+    expected = 'Sanitizer: 1, 2, 3, 4, 5'
+    actual = libfuzzer.AndroidLibFuzzerRunner._add_logcat_output_if_needed(
+        self, input)
+    self.assertEquals(expected, actual)
+
+  def test_add_logcat_output_if_needed_true(self):
+    """Test that verifies logcat parsing behavior without sanitizer."""
+    input = 'No Sanitize: 1'
+    expected = 'No Sanitize: 1\n\nLogcat:\n'
+    actual = libfuzzer.AndroidLibFuzzerRunner._add_logcat_output_if_needed(
+        self, input)
+    self.assertEquals(expected, actual)
+
+  def test_parse_logcat_without_mte_stracktrace(self):
+    """Test that verifies logcat parsing behavior with no MTE crash."""
+    input = 'No Sanitize: 1'
+    expected = 'No MTE crash stacktrace found in logcat.\n'
+    actual = libfuzzer.AndroidLibFuzzerRunner._extract_mte_stacktrace_from_logcat(
+        self, input)
+    print(actual)
+    self.assertEquals(expected, actual)
+
+  def test_parse_logcat_with_mte_stracktrace(self):
+    """Test that verifies logcat parsing behavior with MTE crash."""
+    input = 'Logcat\n Build fingerprint: \n<REPORT> mte-reports'
+    expected = 'MTE Stacktrace:\n\n Build fingerprint: \n<REPORT>'
+    actual = libfuzzer.AndroidLibFuzzerRunner._extract_mte_stacktrace_from_logcat(
+        self, input)
+    print(actual)
+    self.assertEquals(expected, actual)
 
 
 if __name__ == '__main__':

@@ -935,7 +935,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       end_idx += logcat[end_idx:].find(end)
       end_idx += logcat[end_idx:].find('\n')
 
-      mte_stacktrace = []
+      mte_stacktrace = ['MTE Stacktrace:']
       for line in logcat[begin:end_idx].splitlines():
         mte_stacktrace.append(line)
 
