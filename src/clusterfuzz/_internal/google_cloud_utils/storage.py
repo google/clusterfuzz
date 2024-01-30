@@ -379,6 +379,7 @@ class GcsProvider(StorageProvider):
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
     requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
+    return True
 
 
 # TODO(metzman): Consider whether to remove this since it's not making any calls

@@ -175,17 +175,17 @@ class UworkerMainTask(BaseTask):
 
 
 COMMAND_TYPES = {
-    'analyze': UTaskLocalExecutor,
+    'analyze': UTask,
     'blame': TrustedTask,
     'corpus_pruning': UTaskLocalExecutor,
     'fuzz': UTaskLocalExecutor,
     'impact': TrustedTask,
-    'minimize': UTaskLocalExecutor,
-    'progression': UTaskLocalExecutor,
-    'regression': UTaskLocalExecutor,
-    'symbolize': UTaskLocalExecutor,
+    'minimize': UTask,
+    'progression': UTask,
+    'regression': UTask,
+    'symbolize': UTask,
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTaskLocalExecutor,
+    'variant': UTask,
 }

@@ -53,6 +53,7 @@ message RegressionTaskInput {
 message ProgressionTaskInput {
   optional bool custom_binary = 1;
   repeated int64 bad_revisions = 2;
+  optional string regression_testcase_url = 3;
 }
 
 message CrossPollinateFuzzerProto{

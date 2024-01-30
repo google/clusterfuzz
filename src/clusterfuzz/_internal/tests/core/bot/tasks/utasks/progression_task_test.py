@@ -414,12 +414,15 @@ class UpdateIssueMetadataTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
   """Test _store_testcase_for_regression_testing."""
+  SIGNED_URL = 'https://signed'
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
+        'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url',
+        'clusterfuzz._internal.google_cloud_utils.storage.get',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_url'
     ])
 
     os.environ['CORPUS_BUCKET'] = 'corpus'
@@ -445,36 +448,42 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
     """Test that an open testcase is not stored for regression testing."""
     self.testcase.open = True
     self.testcase.put()
-
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.assertEqual(0, self.mock.copy_file_to.call_count)
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.assertEqual(0, self.mock.upload_signed_url.call_count)
 
   def test_testcase_with_no_issue(self):
     """Test that a testcase with no associated issue is not stored for
     regression testing."""
     self.testcase.bug_information = ''
     self.testcase.put()
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
 
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.assertEqual(0, self.mock.copy_file_to.call_count)
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.assertEqual(0, self.mock.upload_signed_url.call_count)
 
   def test_testcase_with_no_fuzz_target(self):
     """Test that a testcase with no associated fuzz target is not stored for
     regression testing."""
     self.testcase.overridden_fuzzer_name = 'libFuzzer_not_exist'
     self.testcase.put()
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
+    progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
+        progression_task_input, self.testcase)
 
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.assertEqual(0, self.mock.copy_file_to.call_count)
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.assertEqual(0, self.mock.upload_signed_url.call_count)
 
   def test_testcase_stored(self):
     """Test that a testcase is stored for regression testing."""
+    self.mock.get.return_value = False
+    self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
+    progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
+        progression_task_input, self.testcase)
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.mock.copy_file_to.assert_called_with(
-        '/testcase',
-        'gs://corpus/libFuzzer/test_project_test_fuzzer_regressions/'
-        '6dcd4ce23d88e2ee9568ba546c007c63d9131c1b')
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.mock.upload_signed_url.assert_called_with(b'A', self.SIGNED_URL)
