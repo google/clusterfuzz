@@ -1097,7 +1097,8 @@ def setup_user_profile_directory_if_needed(user_profile_directory):
     # Unpack the fuzzPriv extension.
     extension_archive = os.path.join(environment.get_resources_directory(),
                                      'firefox', 'fuzzPriv-extension.zip')
-    archive.unpack(extension_archive, extensions_directory)
+    with archive.open(extension_archive) as reader:
+      archive.unpack(reader, extensions_directory)
 
     # Add this extension in the extensions configuration file.
     extension_config_file_path = os.path.join(user_profile_directory,
