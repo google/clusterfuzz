@@ -11,7 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Migrate Issue Ids from Monorail to Issue Tracker."""
+"""Migrate Issue Ids from Monorail to Issue Tracker.
+
+Run locally with this command:
+
+PROJECT_NAME=chromium [BATCH_SIZE=100] FILE_LOC=${mapping_file_location} \
+    python butler.py run -c ${internal_config_dir} [--non-dry-run]  \
+    migration.monorail_to_issuetracker_migrator
+
+The mapping_file_location must point to a CSV file containing
+"monorail_id,buganizer_id" in each line.
+"""
 
 import csv
 import os
@@ -20,7 +30,13 @@ from google.cloud import ndb
 
 from clusterfuzz._internal.datastore import data_types
 
-DEFAULT_BATCH_SIZE = 500
+# Values more than 100 resulted in this error:
+# 400 Request payload size exceeds the limit: 11534336 bytes.
+DEFAULT_BATCH_SIZE = 100
+
+# Error returned by ndb when we go past the allowable datastore transaction
+# limit.
+PAYLOAD_SIZE_ERROR = '400 Request payload size exceeds the limit'
 
 
 def execute(args):
@@ -54,9 +70,10 @@ def execute(args):
       testcase_updated = True
 
     if testcase.group_bug_information and issue_id_dict.get(
-        testcase.group_bug_information):
-      testcase.group_bug_information = (
-          issue_id_dict[testcase.group_bug_information])
+        str(testcase.group_bug_information)):
+      # group_bug_information is an int unlike bug_information which is a str.
+      testcase.group_bug_information = int(issue_id_dict[str(
+          testcase.group_bug_information)])
       testcase_updated = True
 
     if testcase_updated:
@@ -64,15 +81,42 @@ def execute(args):
       testcases.append(testcase)
 
     if args.non_dry_run and len(testcases) >= batch_size:
-      ndb.put_multi(testcases)
+      put_multi(testcases)
       count_of_updated += len(testcases)
       print(f'Updated {len(testcases)}. Total {count_of_updated}')
       testcases = []
 
   if args.non_dry_run and len(testcases) > 0:
-    ndb.put_multi(testcases)
+    put_multi(testcases)
     count_of_updated += len(testcases)
     print(f'Updated {len(testcases)}. Total {count_of_updated}')
+
+
+def put_multi(testcases):
+  """Attempts to batch put the specified slice of testcases.
+
+  If there is a 'payload size exceeds the limit' error then it will halve the
+  testcases and try again. If that does not work then will go into a debugger.
+  """
+  try:
+    ndb.put_multi(testcases)
+  except Exception as e:
+    if PAYLOAD_SIZE_ERROR in str(e) and len(testcases) > 1:
+      half_batch_size = len(testcases) // 2
+      print('Reached payload size limit. Retrying batch put with half the '
+            f'specified batch size: {half_batch_size}')
+      try:
+        ndb.put_multi(testcases[:half_batch_size])
+        ndb.put_multi(testcases[half_batch_size:])
+      except Exception as ie:
+        if PAYLOAD_SIZE_ERROR in str(ie):
+          print(f'Got exception: {e}')
+          print('Opening debugger to investigate further:')
+          # pylint: disable=forgotten-debug-statement
+          import pdb
+          pdb.set_trace()
+    else:
+      raise
 
 
 def get_monorail_issuetracker_issue_id_dictionary(file_loc, roll_back):
