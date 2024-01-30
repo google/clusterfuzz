@@ -62,6 +62,7 @@ def is_testcase_deprecated(platform_id=None):
 
   return False
 
+
 def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
   """Whether or not the testcase can run on the current Android device."""
 
