@@ -55,13 +55,13 @@ def _timestamp_now() -> Timestamp:
 
 def _record_e2e_duration(start: Timestamp, utask_module, job_type: str,
                          subtask: _Subtask, mode: _Mode):
-  duration = start.ToSeconds() - time.time()
+  duration_secs = (time.time_ns() - start.ToNanoseconds()) / 10**9
   monitoring_metrics.UTASK_E2E_DURATION_SECS.add(
-      duration, {
+      duration_secs, {
           'task': task_utils.get_command_from_module(utask_module.__name__),
           'job': job_type,
-          'subtask': subtask,
-          'mode': mode,
+          'subtask': subtask.value,
+          'mode': mode.value,
           'platform': environment.platform(),
       })
 
@@ -107,7 +107,6 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
 def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  start = _timestamp_now()
   logs.log('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
 
@@ -118,8 +117,9 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   if uworker_output is None:
     return None
   result = uworker_io.serialize_uworker_output(uworker_output)
-  _record_e2e_duration(start, utask_module, uworker_input.job_type,
-                       _Subtask.UWORKER_MAIN, _Mode.QUEUE)
+  _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
+                       uworker_input.job_type, _Subtask.UWORKER_MAIN,
+                       _Mode.QUEUE)
   return result
 
 
@@ -128,15 +128,15 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   the same bot as the uworker)."""
   # TODO(metzman): Stop passing module to this function and uworker_main_no_io.
   # Make them consistent with the I/O versions.
-  start = _timestamp_now()
   uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
   # Do this to simulate out-of-band tamper-proof storage of the input.
   uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
   uworker_output.uworker_input.CopyFrom(uworker_input)
   set_uworker_env(uworker_output.uworker_input.uworker_env)
   utask_module.utask_postprocess(uworker_output)
-  _record_e2e_duration(start, utask_module, uworker_input.job_type,
-                       _Subtask.POSTPROCESS, _Mode.QUEUE)
+  _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
+                       uworker_input.job_type, _Subtask.POSTPROCESS,
+                       _Mode.QUEUE)
 
 
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
@@ -183,7 +183,6 @@ def set_uworker_env(uworker_env: dict) -> None:
 def uworker_main(input_download_url) -> None:
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  start = _timestamp_now()
   uworker_input = uworker_io.download_and_deserialize_uworker_input(
       input_download_url)
   uworker_output_upload_url = uworker_input.uworker_output_upload_url
@@ -199,9 +198,9 @@ def uworker_main(input_download_url) -> None:
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
   logs.log('Finished uworker_main.')
-  _record_e2e_duration(start, utask_module,
-                       uworker_output.uworker_input.job_type,
-                       _Subtask.UWORKER_MAIN, _Mode.BATCH)
+  _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
+                       uworker_input.job_type, _Subtask.UWORKER_MAIN,
+                       _Mode.BATCH)
   return True
 
 
@@ -219,12 +218,11 @@ def uworker_bot_main():
 
 def tworker_postprocess(output_download_url) -> None:
   """Executes the postprocess step on the trusted (t)worker."""
-  start = _timestamp_now()
   uworker_output = uworker_io.download_and_deserialize_uworker_output(
       output_download_url)
   set_uworker_env(uworker_output.uworker_input.uworker_env)
   utask_module = get_utask_module(uworker_output.uworker_input.module_name)
   utask_module.utask_postprocess(uworker_output)
-  job_type = uworker_output.uworker_input.job_type
-  _record_e2e_duration(start, utask_module, job_type, _Subtask.POSTPROCESS,
-                       _Mode.BATCH)
+  _record_e2e_duration(uworker_output.uworker_input.preprocess_start_time,
+                       utask_module, uworker_output.uworker_input.job_type,
+                       _Subtask.POSTPROCESS, _Mode.BATCH)
