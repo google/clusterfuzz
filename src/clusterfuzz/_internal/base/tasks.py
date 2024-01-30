@@ -698,31 +698,51 @@ def redo_testcase(testcase, tasks, user_email):
       keys_only=True)
   ndb_utils.delete_multi(notifications)
 
-    # Use wait_time=None to execute the task ASAP, since it is user-facing.
+  # Use wait_time=None to execute the task ASAP, since it is user-facing.
   wait_time = None
 
   # If we are re-doing minimization, other tasks will be done automatically
   # after minimization completes. So, don't add those tasks.
   if minimize:
-    add_task('minimize', testcase_id, testcase.job_type,
-             queue_for_testcase(testcase), wait_time=wait_time)
+    add_task(
+        'minimize',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
     return
 
   if regression:
-    add_task('regression', testcase_id, testcase.job_type,
-             queue_for_testcase(testcase), wait_time=wait_time)
+    add_task(
+        'regression',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
   if progression:
-    add_task('progression', testcase_id, testcase.job_type,
-             queue_for_testcase(testcase), wait_time=wait_time)
+    add_task(
+        'progression',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
   if impact:
-    add_task('impact', testcase_id, testcase.job_type,
-             queue_for_testcase(testcase), wait_time=wait_time)
+    add_task(
+        'impact',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
   if blame:
-    add_task('blame', testcase_id, testcase.job_type,
-             queue_for_testcase(testcase), wait_time=wait_time)
+    add_task(
+        'blame',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
 
 def get_task_payload():
