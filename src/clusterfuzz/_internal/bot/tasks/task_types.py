@@ -96,9 +96,10 @@ class UTaskLocalExecutor(BaseUTask):
 
 
 class UTask(BaseUTask):
-  """Represents an untrusted task. Executes preprocess on this machine, main on
-  an untrusted machine, and postprocess on another trusted machine if
-  opted-in. Otherwise executes locally."""
+  """Represents an untrusted task. Executes preprocess on this machine, then
+  queues up the task for scheduling on batch by putting it in the utask_main
+  queue. Then executes utask_main on an untrusted machine, and postprocess on
+  another trusted machine if opted-in. Otherwise executes locally."""
 
   @staticmethod
   def is_execution_remote():
@@ -113,15 +114,18 @@ class UTask(BaseUTask):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
-    logs.log('Preprocessing utask.')
     download_url = self.preprocess(task_argument, job_type, uworker_env)
     if download_url is None:
       return
 
-    logs.log('Queueing utask for remote execution.')
+    logs.log('Requesting remote execution for utask.')
+    self.request_remote_execution(command, download_url, job_type)
+
+  def request_remote_execution(self, command, download_url, job_type):
     tasks.add_utask_main(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
+    logs.log('Preprocessing utask.')
     result = utasks.tworker_preprocess(self.module, task_argument, job_type,
                                        uworker_env)
     if not result:
@@ -134,6 +138,16 @@ class UTask(BaseUTask):
       return None
     logs.log('Utask: done with preprocess.')
     return download_url
+
+
+class LowLatencyUTask(UTask):
+  """Represents an untrusted task. This is the same as UTask except the task is
+  scheduled to run on batch immediately, skipping the utask_main queue. This
+  reduces task latency."""
+  def request_remote_execution(self, command, download_url, job_type):
+    del command
+    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
+                                        download_url)
 
 
 class PostprocessTask(BaseTask):
@@ -175,7 +189,7 @@ class UworkerMainTask(BaseTask):
 
 
 COMMAND_TYPES = {
-    'analyze': UTask,
+    'analyze': LowLatencyUTask,
     'blame': TrustedTask,
     'corpus_pruning': UTaskLocalExecutor,
     'fuzz': UTaskLocalExecutor,
