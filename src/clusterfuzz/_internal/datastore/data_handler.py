@@ -1396,7 +1396,8 @@ def create_user_uploaded_testcase(key,
   metadata.put()
 
   # Create the job to analyze the testcase.
-  tasks.add_task('analyze', testcase_id, job.name, queue)
+  # Use wait_time=0 to execute the task ASAP, since it is user-facing.
+  tasks.add_task('analyze', testcase_id, job.name, queue, wait_time=0)
   return testcase.key.id()
 
 

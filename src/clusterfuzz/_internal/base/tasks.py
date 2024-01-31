@@ -629,7 +629,8 @@ def queue_for_job(job_name, is_high_end=False):
 
 
 def redo_testcase(testcase, tasks, user_email):
-  """Redo specific tasks for a testcase."""
+  """Redo specific tasks for a testcase. This is requested by the user from the
+  web interface."""
   for task in tasks:
     if task not in VALID_REDO_TASKS:
       raise InvalidRedoTask(task)
@@ -697,27 +698,51 @@ def redo_testcase(testcase, tasks, user_email):
       keys_only=True)
   ndb_utils.delete_multi(notifications)
 
+  # Use wait_time=0 to execute the task ASAP, since it is user-facing.
+  wait_time = 0
+
   # If we are re-doing minimization, other tasks will be done automatically
   # after minimization completes. So, don't add those tasks.
   if minimize:
-    add_task('minimize', testcase_id, testcase.job_type,
-             queue_for_testcase(testcase))
-  else:
-    if regression:
-      add_task('regression', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+    add_task(
+        'minimize',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
+    return
 
-    if progression:
-      add_task('progression', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+  if regression:
+    add_task(
+        'regression',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
-    if impact:
-      add_task('impact', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+  if progression:
+    add_task(
+        'progression',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
-    if blame:
-      add_task('blame', testcase_id, testcase.job_type,
-               queue_for_testcase(testcase))
+  if impact:
+    add_task(
+        'impact',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
+
+  if blame:
+    add_task(
+        'blame',
+        testcase_id,
+        testcase.job_type,
+        queue_for_testcase(testcase),
+        wait_time=wait_time)
 
 
 def get_task_payload():
