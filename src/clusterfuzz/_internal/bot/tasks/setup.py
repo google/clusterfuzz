@@ -390,7 +390,7 @@ def unpack_testcase(testcase, testcase_download_url):
   file_list = []
   if archived:
     with archive.open(temp_filename) as reader:
-      archive.unpack(reader, input_directory)
+      reader.extract_all(input_directory)
       file_list = [f.name for f in reader.list_members()]
 
     shell.remove_file(temp_filename)
@@ -603,7 +603,7 @@ def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput,
 
   try:
     with archive.open(archive_path) as reader:
-      archive.unpack(reader, fuzzer_directory)
+      reader.extract_all(fuzzer_directory)
   except Exception:
     error_message = (f'Failed to unpack fuzzer archive {fuzzer.filename} '
                      '(bad archive or unsupported format).')

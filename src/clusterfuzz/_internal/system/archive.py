@@ -139,19 +139,36 @@ class ArchiveReader(abc.ABC):
     """
     raise NotImplementedError
 
-  @abc.abstractmethod
   def extract_all(self,
                   path: Union[str, os.PathLike],
                   members: Optional[List[str]] = None,
-                  trusted: bool = False) -> None:
+                  trusted: bool = False) -> bool:
     """Extract the whole archive content or the members listed in `members`.
 
     Args:
         path: the path where the members should be extracted.
         members: the member names.
         trusted: whether the archive is trusted or not.
+
+    Returns:
+        whether the extraction was successful.
     """
-    raise NotImplementedError
+    if not members:
+      members = [f.name for f in self.list_members()]
+
+    archive_file_unpack_count = 0
+    archive_file_total_count = len(members)
+    error_occurred = False
+    for file in members:
+      error_occurred |= self.extract(
+          member=file, path=path, trusted=trusted) is None
+      # Keep heartbeat happy by updating with our progress.
+      archive_file_unpack_count += 1
+      if archive_file_unpack_count % 1000 == 0:
+        logs.log('Unpacked %d/%d.' % (archive_file_unpack_count,
+                                      archive_file_total_count))
+
+    return not error_occurred
 
   def try_open(self, member: str) -> Optional[BinaryIO]:
     """Tries to open the archive. Does not throw.
@@ -253,14 +270,6 @@ class TarArchiveReader(ArchiveReader):
     self._archive.extract(member=member, path=output_directory)
     return os.path.realpath(os.path.join(output_directory, member))
 
-  def extract_all(self,
-                  path: Union[str, os.PathLike],
-                  members: Optional[List[str]] = None,
-                  trusted: bool = False) -> None:
-    to_extract = members if members is not None else self._archive.namelist()
-    for member in to_extract:
-      self.extract(member=member, path=path, trusted=trusted)
-
 
 class ZipArchiveReader(ArchiveReader):
   """A zip archive reader.
@@ -344,15 +353,6 @@ class ZipArchiveReader(ArchiveReader):
                     % (member, repr(e)))
       return None
 
-  def extract_all(self,
-                  path: Union[str, os.PathLike],
-                  members: Optional[List[str]] = None,
-                  trusted: bool = False) -> None:
-    to_extract = members if members is not None else self._zip_archive.namelist(
-    )
-    for member in to_extract:
-      self.extract(member=member, path=path, trusted=trusted)
-
 
 class ArchiveError(Exception):
   """ArchiveError"""
@@ -431,44 +431,3 @@ def is_archive(filename: str) -> bool:
       whether the provided file is an archive.
   """
   return get_archive_type(filename) != ArchiveType.UNKNOWN
-
-
-def unpack(reader: ArchiveReader,
-           output_dir: Union[str, os.PathLike],
-           trusted: bool = False,
-           file_match_callback: MatchCallback = None):
-  """Unpacks the current archive opened with `reader`. If `file_match_callback`
-  is None, unpacks all the archive. Otherwise, this only unpacks the files
-  matched by the callback.
-
-  Args:
-      reader: the archive reader
-      output_dir: the output directory to unpack the archive to.
-      trusted: whether the archive is trusted.
-      file_match_callback: the file matching callback.
-
-  Returns:
-      bool: whether an error occurred.
-  """
-  assert reader
-
-  file_list = [
-      f.name
-      for f in reader.list_members()
-      if not file_match_callback or file_match_callback(f.name)
-  ]
-
-  archive_file_unpack_count = 0
-  archive_file_total_count = len(file_list)
-
-  error_occurred = False
-  for file in file_list:
-    error_occurred |= reader.extract(
-        member=file, path=output_dir, trusted=trusted) is None
-    # Keep heartbeat happy by updating with our progress.
-    archive_file_unpack_count += 1
-    if archive_file_unpack_count % 1000 == 0:
-      logs.log('Unpacked %d/%d.' % (archive_file_unpack_count,
-                                    archive_file_total_count))
-
-  return not error_occurred

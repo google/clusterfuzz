@@ -417,8 +417,8 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
+        'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
-        'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
 
@@ -446,7 +446,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     ]
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
-    self.mock.unpack.return_value = True
+    self.mock.open.return_value.extract_all.return_value = True
     self.mock.time.return_value = 1000.0
 
     os.environ['RELEASE_BUILD_BUCKET_PATH'] = (
@@ -490,7 +490,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
-    self.assertEqual(1, self.mock.unpack.call_count)
+    self.assertEqual(1, self.mock.open.return_value.extract_all.call_count)
 
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
@@ -504,9 +504,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # If it was a partial build, the unpack should be called again.
     if unpack_all == 'True':
-      self.assertEqual(1, self.mock.unpack.call_count)
+      self.assertEqual(1, self.mock.open.return_value.extract_all.call_count)
     else:
-      self.assertEqual(2, self.mock.unpack.call_count)
+      self.assertEqual(2, self.mock.open.return_value.extract_all.call_count)
 
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
@@ -529,7 +529,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self._assert_env_vars()
     self.assertEqual(os.environ['APP_REVISION'], '2')
 
-    self.assertEqual(2, self.mock.unpack.call_count)
+    self.assertEqual(2, self.mock.open.return_value.extract_all.call_count)
 
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
@@ -541,9 +541,9 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # If it was a partial build, the unpack should be called again.
     if unpack_all == 'True':
-      self.assertEqual(2, self.mock.unpack.call_count)
+      self.assertEqual(2, self.mock.open.return_value.extract_all.call_count)
     else:
-      self.assertEqual(4, self.mock.unpack.call_count)
+      self.assertEqual(4, self.mock.open.return_value.extract_all.call_count)
 
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
@@ -558,35 +558,34 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     build = build_manager.setup_regular_build(2)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
-    self.assertEqual(1, self.mock.unpack.call_count)
+    self.assertEqual(1, self.mock.open.return_value.extract_all.call_count)
     if unpack_all == 'True':
       self.assertIsNone(build_manager._get_file_match_callback())
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    class FileMatchCallbackChecker:
+    class MembersChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
-      def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
+      def __eq__(_, members):  # pylint: disable=no-self-argument
         if unpack_all == 'True':
           # Ensure that |file_match_callback| is always None when we are
           # unpacking everything.
-          self.assertIsNone(file_match_callback)
+          self.assertEqual(members, [])
           return True
 
-        self.assertIsNotNone(file_match_callback)
-        self.assertEqual(file_match_callback.__name__, 'file_match_callback')
-        self.assertTrue(isinstance(file_match_callback, types.FunctionType))
+        self.assertIsNotNone(members)
+        self.assertTrue(isinstance(members, list))
+        self.assertTrue(all(isinstance(elem, str) for elem in members))
         return True
 
-    file_match_callback_checker = FileMatchCallbackChecker()
+    members_checker = MembersChecker()
     self.mock.open.assert_called_with(
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
         'revisions/file-release-2.zip',)
-    self.mock.unpack.assert_called_with(
-        self.mock.open.return_value,
+    self.mock.open.return_value.extract_all.assert_called_with(
         '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-        file_match_callback=file_match_callback_checker,
+        members=members_checker,
         trusted=True)
     self.assertEqual('target3', os.environ['FUZZ_TARGET'])
 
@@ -595,14 +594,13 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # If it was a partial build, the unpack should be called again.
     if unpack_all != 'True':
-      self.assertEqual(2, self.mock.unpack.call_count)
+      self.assertEqual(2, self.mock.open.return_value.extract_all.call_count)
       self.mock.open.assert_called_with(
           '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/'
           'revisions/file-release-2.zip',)
-      self.mock.unpack.assert_called_with(
-          self.mock.open.return_value,
+      self.mock.open.return_value.extract_all.assert_called_with(
           '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-          file_match_callback=file_match_callback_checker,
+          members=members_checker,
           trusted=True)
 
     self.assertEqual('target3', os.environ['FUZZ_TARGET'])
@@ -619,39 +617,37 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     build = build_manager.setup_regular_build(2)
     self.assertIsInstance(build, build_manager.RegularBuild)
 
-    self.assertEqual(2, self.mock.unpack.call_count)
+    self.assertEqual(2, self.mock.open.return_value.extract_all.call_count)
     if unpack_all == 'True':
       self.assertIsNone(build_manager._get_file_match_callback())
     else:
       self.assertIsNotNone(build_manager._get_file_match_callback())
 
-    class FileMatchCallbackChecker:
+    class MembersChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
-      def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
+      def __eq__(_, members):  # pylint: disable=no-self-argument
         if unpack_all == 'True':
           # Ensure that |file_match_callback| is always None when we are
           # unpacking everything.
-          self.assertIsNone(file_match_callback)
+          self.assertEqual(members, [])
           return True
 
-        self.assertIsNotNone(file_match_callback)
-        self.assertEqual(file_match_callback.__name__, 'file_match_callback')
-        self.assertTrue(isinstance(file_match_callback, types.FunctionType))
+        self.assertIsNotNone(members)
+        self.assertTrue(isinstance(members, list))
+        self.assertTrue(all(isinstance(elem, str) for elem in members))
         return True
 
-    file_match_callback_checker = FileMatchCallbackChecker()
-    self.mock.unpack.assert_has_calls([
+    members_checker = MembersChecker()
+    self.mock.open.return_value.extract_all.assert_has_calls([
         mock.call(
-            self.mock.open.return_value,
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-            file_match_callback=file_match_callback_checker,
+            members=members_checker,
             trusted=True),
         mock.call(
-            self.mock.open.return_value,
             '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
             '__extra_build',
-            file_match_callback=file_match_callback_checker,
+            members=members_checker,
             trusted=True)
     ])
     self.assertEqual('target3', os.environ['FUZZ_TARGET'])
@@ -661,18 +657,16 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # If it was a partial build, the unpack should be called again.
     if unpack_all != 'True':
-      self.assertEqual(4, self.mock.unpack.call_count)
-      self.mock.unpack.assert_has_calls([
+      self.assertEqual(4, self.mock.open.return_value.extract_all.call_count)
+      self.mock.open.return_value.extract_all.assert_has_calls([
           mock.call(
-              self.mock.open.return_value,
               '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions',
-              file_match_callback=file_match_callback_checker,
+              members=members_checker,
               trusted=True),
           mock.call(
-              self.mock.open.return_value,
               '/builds/path_be4c9ca0267afcd38b7c1a3eebb5998d0908f025/revisions/'
               '__extra_build',
-              file_match_callback=file_match_callback_checker,
+              members=members_checker,
               trusted=True)
       ])
 
@@ -995,8 +989,8 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.build_manager._make_space_for_build',
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.blobs.read_blob_to_disk',
+        'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
-        'clusterfuzz._internal.system.archive.unpack',
         'time.sleep',
         'time.time',
     ])
@@ -1014,12 +1008,12 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
 
     test_utils.set_up_pyfakefs(self)
     self.mock._make_space_for_build.return_value = True
-    self.mock.unpack.side_effect = self._mock_unpack
+    self.mock.open.return_value.extract_all.side_effect = self._mock_extract_all
     self.mock.read_blob_to_disk.return_value = True
 
   # pylint: disable=unused-argument
-  def _mock_unpack(self, _, build_dir, trusted=True):
-    """mock archive.unpack."""
+  def _mock_extract_all(self, build_dir, trusted=True):
+    """mock archive.ArchiveReader.extract_all."""
     _mock_unpack_build(None, None, build_dir, None)
 
   def _assert_env_vars(self):
@@ -1052,8 +1046,8 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
     # reader object along in the build manager
     self.mock.open.assert_called_once_with(
         '/builds/job_custom/custom/custom_binary.zip',)
-    self.mock.unpack.assert_called_once_with(
-        self.mock.open.return_value, '/builds/job_custom/custom', trusted=True)
+    self.mock.open.return_value.extract_all.assert_called_once_with(
+        '/builds/job_custom/custom', trusted=True)
 
     self._assert_env_vars()
 
@@ -1062,7 +1056,7 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
                           build_manager.CustomBuild)
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
     self.assertEqual(self.mock.read_blob_to_disk.call_count, 1)
-    self.assertEqual(self.mock.unpack.call_count, 1)
+    self.assertEqual(self.mock.open.return_value.extract_all.call_count, 1)
     self._assert_env_vars()
 
   def test_setup_shared(self):
@@ -1082,8 +1076,8 @@ class CustomBuildTest(fake_filesystem_unittest.TestCase):
     # reader object along in the build manager
     self.mock.open.assert_called_once_with(
         '/builds/job_custom/custom/custom_binary.zip',)
-    self.mock.unpack.assert_called_once_with(
-        self.mock.open.return_value, '/builds/job_custom/custom', trusted=True)
+    self.mock.open.return_value.extract_all.assert_called_once_with(
+        '/builds/job_custom/custom', trusted=True)
 
     self._assert_env_vars()
     self.assertEqual(os.environ['JOB_NAME'], 'job_share')
@@ -1247,7 +1241,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.system.shell.clear_temp_directory',
         'clusterfuzz._internal.google_cloud_utils.storage.copy_file_from',
         'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
-        'clusterfuzz._internal.system.archive.unpack',
+        'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
         'time.time',
     ])
@@ -1276,7 +1270,7 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     ]
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
-    self.mock.unpack.return_value = True
+    self.mock.open.return_value.extract_all.return_value = True
     self.mock.time.return_value = 1000.0
 
     os.environ['DATAFLOW_BUILD_BUCKET_PATH'] = (
@@ -1307,19 +1301,19 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     os.environ['TASK_NAME'] = 'fuzz'
     self.mock.time.return_value = 1000.0
 
-    class FileMatchCallbackChecker:
+    class MembersChecker:
       """Used to verify that the callback passed to unpack is what we expect."""
 
-      def __eq__(_, file_match_callback):  # pylint: disable=no-self-argument
+      def __eq__(_, members):  # pylint: disable=no-self-argument
         if unpack_all == 'True':
           # Ensure that |file_match_callback| is always None when we are
           # unpacking everything.
-          self.assertIsNone(file_match_callback)
+          self.assertEqual(members, [])
           return True
 
-        self.assertIsNotNone(file_match_callback)
-        self.assertEqual(file_match_callback.__name__, 'file_match_callback')
-        self.assertTrue(isinstance(file_match_callback, types.FunctionType))
+        self.assertIsNotNone(members)
+        self.assertTrue(isinstance(members, list))
+        self.assertTrue(all(isinstance(elem, str) for elem in members))
         return True
 
     # Test setting up build with a fuzz target specified (comes from regular
@@ -1340,15 +1334,14 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
     self._assert_env_vars()
 
-    self.assertEqual(1, self.mock.unpack.call_count)
-    file_match_callback_checker = FileMatchCallbackChecker()
+    self.assertEqual(1, self.mock.open.return_value.extract_all.call_count)
+    members_checker = MembersChecker()
     self.mock.open.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
         'dataflow/file-dataflow-10.zip',)
-    self.mock.unpack.assert_called_with(
-        self.mock.open.return_value,
+    self.mock.open.return_value.extract_all.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
-        file_match_callback=file_match_callback_checker,
+        members=members_checker,
         trusted=True)
 
     os.environ['FUZZ_TARGET'] = 'target3'
@@ -1365,17 +1358,16 @@ class AuxiliaryRegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
 
     # If it was a partial build, the unpack should be called again.
     if unpack_all == 'True':
-      self.assertEqual(1, self.mock.unpack.call_count)
+      self.assertEqual(1, self.mock.open.return_value.extract_all.call_count)
     else:
-      self.assertEqual(2, self.mock.unpack.call_count)
+      self.assertEqual(2, self.mock.open.return_value.extract_all.call_count)
 
     self.mock.open.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/'
         'dataflow/file-dataflow-10.zip',)
-    self.mock.unpack.assert_called_with(
-        self.mock.open.return_value,
+    self.mock.open.return_value.extract_all.assert_called_with(
         '/builds/path_2992e823e35fd34a63e0f8733cdafd6875036a1d/dataflow',
-        file_match_callback=file_match_callback_checker,
+        members=members_checker,
         trusted=True)
 
   def test_delete(self):
@@ -1944,8 +1936,8 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.google_cloud_utils.storage.get_object_size',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.read_data',
+        'clusterfuzz._internal.system.archive.ArchiveReader',
         'clusterfuzz._internal.system.archive.open',
-        'clusterfuzz._internal.system.archive.unpack',
         'time.time',
     ])
 
@@ -1978,7 +1970,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
 
     self.mock._make_space.return_value = True
     self.mock._make_space_for_build.return_value = True
-    self.mock.unpack.return_value = True
+    self.mock.open.return_value.extract_all.return_value = True
     self.mock.time.return_value = 1000.0
 
     os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = (
@@ -2014,15 +2006,14 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
     self._assert_env_vars('target2', 10)
 
-    self.assertEqual(1, self.mock.unpack.call_count)
+    self.assertEqual(1, self.mock.open.return_value.extract_all.call_count)
     self.mock.open.assert_called_with(
         '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions/10.zip',)
-    self.mock.unpack.assert_called_with(
-        self.mock.open.return_value,
+    self.mock.open.return_value.extract_all.assert_called_with(
         '/builds/bucket_subdir_target2_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions',
-        file_match_callback=None,
+        members=[],
         trusted=True)
     self.assertCountEqual(build.fuzz_targets, [])
 
@@ -2042,15 +2033,14 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
     self.assertEqual('target1', os.environ['FUZZ_TARGET'])
     self._assert_env_vars('target1', 8)
 
-    self.assertEqual(1, self.mock.unpack.call_count)
+    self.assertEqual(1, self.mock.open.return_value.extract_all.call_count)
     self.mock.open.assert_called_with(
         '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions/8.zip',)
-    self.mock.unpack.assert_called_with(
-        self.mock.open.return_value,
+    self.mock.open.return_value.extract_all.assert_called_with(
         '/builds/bucket_subdir_target1_77651789446b3c3a04b9f492ff141f003d437347'
         '/revisions',
-        file_match_callback=None,
+        members=[],
         trusted=True)
     self.assertEqual(build.fuzz_targets, [])
 
