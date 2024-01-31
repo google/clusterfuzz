@@ -49,6 +49,7 @@ from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.platforms import android
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -355,6 +356,18 @@ class TestRunner:
     return results
 
 
+def _get_minimize_task_input():
+  blobs_bucket = storage.blobs_bucket()
+  blob_name = blobs.generate_new_blob_name()
+
+  gcs_path = storage.get_cloud_storage_file_path(blobs_bucket, blob_name)
+  if storage.get(gcs_path):
+    raise RuntimeError('UUID collision found: %s' % blob_name)
+  return uworker_msg_pb2.MinimizeTaskInput(
+      testcase_upload_url=storage.get_signed_upload_url(gcs_path),
+      blob_name=blob_name)
+
+
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Preprocess in a trusted bot."""
   # Locate the testcase associated with the id.
@@ -379,6 +392,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=str(testcase_id),
       testcase=uworker_io.entity_to_protobuf(testcase),
       setup_input=setup_input,
+      minimize_task_input=_get_minimize_task_input(),
       uworker_env=uworker_env)
 
 
@@ -386,7 +400,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   """Attempt to minimize a given testcase."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-
+  minimize_task_input = uworker_input.minimize_task_input
   # Setup testcase and its dependencies.
   file_list, testcase_file_path, uworker_error_output = setup.setup_testcase(
       testcase, uworker_input.job_type, uworker_input.setup_input)
@@ -412,7 +426,8 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
-    return do_libfuzzer_minimization(testcase, testcase_file_path)
+    return do_libfuzzer_minimization(minimize_task_input, testcase,
+                                     testcase_file_path)
 
   if environment.is_engine_fuzzer_job():
     logs.log_error(
@@ -535,7 +550,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
 
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, testcase, input_directory, file_list, data,
-        testcase_file_path, minimize_task_output):
+        testcase_file_path, minimize_task_input, minimize_task_output):
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
           minimize_task_output=minimize_task_output)
@@ -552,7 +567,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
 
       if check_deadline_exceeded_and_store_partial_minimized_testcase(
           deadline, testcase, input_directory, file_list, data,
-          testcase_file_path, minimize_task_output):
+          testcase_file_path, minimize_task_input, minimize_task_output):
         return uworker_msg_pb2.Output(
             error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
             minimize_task_output=minimize_task_output)
@@ -572,7 +587,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
 
         if check_deadline_exceeded_and_store_partial_minimized_testcase(
             deadline, testcase, input_directory, file_list, data,
-            testcase_file_path, minimize_task_output):
+            testcase_file_path, minimize_task_input, minimize_task_output):
           return uworker_msg_pb2.Output(
               error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
               minimize_task_output=minimize_task_output)
@@ -592,7 +607,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
 
     if check_deadline_exceeded_and_store_partial_minimized_testcase(
         deadline, testcase, input_directory, file_list, data,
-        testcase_file_path, minimize_task_output):
+        testcase_file_path, minimize_task_input, minimize_task_output):
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.MINIMIZE_DEADLINE_EXCEEDED,
           minimize_task_output=minimize_task_output)
@@ -602,7 +617,8 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   last_crash_result = test_runner.last_failing_result
 
   store_minimized_testcase(testcase, input_directory, file_list, data,
-                           testcase_file_path, minimize_task_output)
+                           testcase_file_path, minimize_task_input,
+                           minimize_task_output)
 
   minimize_task_output.last_crash_result_dict.clear()
   minimize_task_output.last_crash_result_dict.update(
@@ -916,6 +932,7 @@ def minimize_arguments(test_runner, app_arguments):
 def store_minimized_testcase(
     testcase: data_types.Testcase, base_directory: str, file_list: List[str],
     file_to_run_data: str, file_to_run: str,
+    minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,
     minimize_task_output: uworker_msg_pb2.MinimizeTaskOutput):
   """Store all files that make up this testcase."""
   # Write the main file data.
@@ -979,8 +996,9 @@ def store_minimized_testcase(
     minimize_task_output.archive_state = testcase.archive_state
 
   # Store the testcase.
-  # TODO(alhijazi): This cannot be done from an untrusted worker.
-  minimized_keys = blobs.write_blob(file_handle)
+  data = file_handle.read()
+  storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
+  minimized_keys = minimize_task_input.blob_name
   file_handle.close()
 
   testcase.minimized_keys = minimized_keys
@@ -993,11 +1011,12 @@ def store_minimized_testcase(
 def check_deadline_exceeded_and_store_partial_minimized_testcase(
     deadline, testcase: data_types.Testcase, input_directory: str, file_list,
     file_to_run_data, main_file_path: str,
+    minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,
     minimize_task_output: uworker_msg_pb2.MinimizeTaskOutput) -> bool:
   """Store the partially minimized test and check the deadline."""
   store_minimized_testcase(testcase, input_directory, file_list,
                            file_to_run_data, main_file_path,
-                           minimize_task_output)
+                           minimize_task_input, minimize_task_output)
 
   return time.time() > deadline
 
@@ -1320,6 +1339,7 @@ def _run_libfuzzer_tool(tool_name: str,
                         testcase_file_path: str,
                         timeout: int,
                         expected_crash_state: str,
+                        minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,
                         set_dedup_flags: bool = False):
   """Run libFuzzer tool to either minimize or cleanse."""
   memory_tool_options_var = environment.get_current_memory_tool_var()
@@ -1381,8 +1401,9 @@ def _run_libfuzzer_tool(tool_name: str,
     return None, None, None
 
   with open(output_file_path, 'rb') as file_handle:
-    #TODO(alhijazi): Cannot be done from an untrusted bot.
-    minimized_keys = blobs.write_blob(file_handle)
+    data = file_handle.read()
+    storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
+    minimized_keys = minimize_task_input.blob_name
 
   testcase.minimized_keys = minimized_keys
 
@@ -1442,6 +1463,7 @@ def _update_testcase_memory_tool_options(testcase: data_types.Testcase,
 
 
 def do_libfuzzer_minimization(
+    minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,
     testcase: data_types.Testcase,
     testcase_file_path: str) -> uworker_msg_pb2.Output:
   """Use libFuzzer's built-in minimizer where appropriate."""
@@ -1528,6 +1550,7 @@ def do_libfuzzer_minimization(
         current_testcase_path,
         timeout,
         expected_state.crash_state,
+        minimize_task_input,
         set_dedup_flags=True)
     if output_file_path:
       last_crash_result = crash_result
@@ -1552,7 +1575,8 @@ def do_libfuzzer_minimization(
   if utils.is_oss_fuzz():
     # Scrub the testcase of non-essential data.
     cleansed_testcase_path, minimized_keys = do_libfuzzer_cleanse(
-        testcase, current_testcase_path, expected_state.crash_state)
+        testcase, current_testcase_path, expected_state.crash_state,
+        minimize_task_input)
     if cleansed_testcase_path:
       current_testcase_path = cleansed_testcase_path
 
@@ -1572,11 +1596,13 @@ def do_libfuzzer_minimization(
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)
 
 
-def do_libfuzzer_cleanse(testcase, testcase_file_path, expected_crash_state):
+def do_libfuzzer_cleanse(testcase, testcase_file_path, expected_crash_state,
+                         minimize_task_input):
   """Cleanse testcase using libFuzzer."""
   timeout = environment.get_value('LIBFUZZER_CLEANSE_TIMEOUT', 180)
   output_file_path, _, minimized_keys = _run_libfuzzer_tool(
-      'cleanse', testcase, testcase_file_path, timeout, expected_crash_state)
+      'cleanse', testcase, testcase_file_path, timeout, expected_crash_state,
+      minimize_task_input)
 
   if output_file_path:
     logs.log('LibFuzzer cleanse succeeded.')

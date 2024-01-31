@@ -22,7 +22,6 @@ from unittest import mock
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
-from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -88,8 +87,9 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
 
     self.mock._run_libfuzzer_tool.return_value = (None, None, None)  # pylint: disable=protected-access
 
-    output = minimize_task.do_libfuzzer_minimization(testcase,
-                                                     '/testcase_file_path')
+    minimize_task_input = uworker_msg_pb2.MinimizeTaskInput()
+    output = minimize_task.do_libfuzzer_minimization(
+        minimize_task_input, testcase, '/testcase_file_path')
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED)
     crash_result_dict = output.minimize_task_output.last_crash_result_dict
@@ -157,8 +157,18 @@ class MinimizeTaskTestUntrusted(
 
   def test_minimize(self):
     """Test minimize."""
-    helpers.patch(self, ['clusterfuzz._internal.base.utils.is_oss_fuzz'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_oss_fuzz',
+        'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url'
+    ])
     self.mock.is_oss_fuzz.return_value = True
+
+    # signing urls is not possible within tests, mock `upload_signed_url` to mimick blobs.write_blob behaviour.
+    def upload_signed_url(data, signed_url):
+      from clusterfuzz._internal.google_cloud_utils import storage
+      storage.write_data(data, signed_url)
+
+    self.mock.upload_signed_url.side_effect = upload_signed_url
 
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
@@ -192,12 +202,8 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
-    setup_input = setup.preprocess_setup_testcase(testcase)
-    uworker_input = uworker_msg_pb2.Input(
-        job_type='libfuzzer_asan_job',
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        setup_input=setup_input,
-        testcase_id=str(testcase.key.id()))
+    uworker_input = minimize_task.utask_preprocess(
+        str(testcase.key.id()), 'libfuzzer_asan_job', {})
     output = minimize_task.utask_main(uworker_input)
     output.uworker_input.CopyFrom(uworker_input)
     minimize_task.update_testcase(output)

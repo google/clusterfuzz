@@ -43,7 +43,7 @@ message FuzzTaskInput {
 
 message MinimizeTaskInput {
   optional string testcase_upload_url = 1;
-  // TODO(pgrace): Finish this.
+  optional string blob_name = 2;
 }
 
 message RegressionTaskInput {
