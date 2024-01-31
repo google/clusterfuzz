@@ -157,8 +157,18 @@ class MinimizeTaskTestUntrusted(
 
   def test_minimize(self):
     """Test minimize."""
-    helpers.patch(self, ['clusterfuzz._internal.base.utils.is_oss_fuzz'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_oss_fuzz',
+        'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url'
+    ])
     self.mock.is_oss_fuzz.return_value = True
+
+    # signing urls is not possible within tests, mock `upload_signed_url` to mimick blobs.write_blob behaviour.
+    def upload_signed_url(data, signed_url):
+      from clusterfuzz._internal.google_cloud_utils import storage
+      storage.write_data(data, signed_url)
+
+    self.mock.upload_signed_url.side_effect = upload_signed_url
 
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
