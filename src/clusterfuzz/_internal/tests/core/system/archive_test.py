@@ -30,8 +30,7 @@ class UnpackTest(unittest.TestCase):
     """Test unpack with trusted=False passes with file having './' prefix."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
-    with archive.open(tgz_path) as reader:
-      archive.unpack(reader, output_directory, trusted=False)
+    archive.unpack(tgz_path, output_directory, trusted=False)
 
     test_file_path = os.path.join(output_directory, 'test')
     self.assertTrue(os.path.exists(test_file_path))
@@ -39,45 +38,31 @@ class UnpackTest(unittest.TestCase):
 
     shell.remove_directory(output_directory)
 
-  def test_extract(self):
-    tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
-    with archive.open(tar_xz_path) as reader:
-      self.assertEqual(reader.extracted_size(), 7)
 
-  def test_file_list(self):
-    tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
-    with archive.open(tar_xz_path) as reader:
-      self.assertCountEqual(
-          [f.name for f in reader.list_members()],
-          ["archive_dir", "archive_dir/bye", "archive_dir/hi"])
-
-
-class ArchiveReaderTest(unittest.TestCase):
+class IteratorTest(unittest.TestCase):
   """Tests for the archive.iterator function."""
 
   def test_tar_xz(self):
     """Test that a .tar.xz file is handled properly by iterator()."""
     tar_xz_path = os.path.join(TESTDATA_PATH, 'archive.tar.xz')
     expected_results = {'archive_dir/hi': b'hi\n', 'archive_dir/bye': b'bye\n'}
-    with archive.open(tar_xz_path) as reader:
-      actual_results = {}
-      for member in reader.list_members():
-        if not member.is_dir:
-          with reader.open(member.name) as f:
-            actual_results[member.name] = f.read()
-      self.assertEqual(actual_results, expected_results)
+    actual_results = {
+        archive_file.name: archive_file.handle.read()
+        for archive_file in archive.iterator(tar_xz_path)
+        if archive_file.handle
+    }
+    self.assertEqual(actual_results, expected_results)
 
   def test_cwd_prefix(self):
     """Test that a .tgz file with cwd prefix is handled."""
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     expected_results = {'./test': b'abc\n'}
-    with archive.open(tgz_path) as reader:
-      actual_results = {}
-      for member in reader.list_members():
-        if not member.is_dir:
-          with reader.open(member.name) as f:
-            actual_results[member.name] = f.read()
-      self.assertEqual(actual_results, expected_results)
+    actual_results = {
+        archive_file.name: archive_file.handle.read()
+        for archive_file in archive.iterator(tgz_path)
+        if archive_file.handle
+    }
+    self.assertEqual(actual_results, expected_results)
 
   def test_tar_xz_broken_links(self):
     """Test that a .tar file with broken links is handled properly by
@@ -86,28 +71,30 @@ class ArchiveReaderTest(unittest.TestCase):
 
     archive_name = 'broken-links.tar.xz'
     archive_path = os.path.join(TESTDATA_PATH, archive_name)
-    with archive.open(archive_path) as reader:
 
-      # Get the results we expect from iterator().
-      actual_results = []
-      for file in reader.list_members():
-        # This means we can read the file.
-        handle = reader.try_open(file.name)
-        if handle is not None:
-          actual_results.append((file.name, file.size_bytes, handle.read()))
-          handle.close()
-        else:
-          actual_results.append((file.name, file.size_bytes, None))
+    # Get the results we expect from iterator().
+    actual_results = []
+    for archive_file in archive.iterator(archive_path):
+      if archive_file.handle is not None:
+        actual_results.append((archive_file.name, archive_file.size,
+                               archive_file.handle.read()))
+      else:
+        actual_results.append((archive_file.name, archive_file.size, None))
 
-      # Check that iterator returns what we expect it to.
-      expected_results = [
-          ('testdir', 0, None),
-          ('testdir/1', 0, None),
-          ('testdir/1/a', 12, b'hello world\n'),
-          ('testdir/2', 0, None),
-          ('testdir/2/c', 0, b'hello world\n'),  # Working link
-          ('testdir/2/a', 0, None),
-          ('testdir/2/b', 0, None)
-      ]
+    # Check that iterator returns what we expect it to.
+    expected_results = [
+        ('testdir', 0, None),
+        ('testdir/1', 0, None),
+        ('testdir/1/a', 12, b'hello world\n'),
+        ('testdir/2', 0, None),
+        ('testdir/2/c', 0, b'hello world\n'),  # Working link
+        ('testdir/2/a', 0, None),
+        ('testdir/2/b', 0, None)
+    ]
 
-      self.assertEqual(expected_results, actual_results)
+    self.assertEqual(expected_results, actual_results)
+
+    # Check that iterator calls log_warn on a broken link.
+    self.mock.log_warn.assert_called_with(
+        'Check archive %s for broken links.' % archive_path,
+        error_filepaths=['testdir/2/a', 'testdir/2/b'])

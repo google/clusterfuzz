@@ -646,28 +646,24 @@ def unpack_seed_corpus_if_needed(fuzz_target_path,
   if force_unpack:
     logs.log('Forced unpack: %s.' % seed_corpus_archive_path)
 
-  try:
-    reader = archive.open(seed_corpus_archive_path)
-  except:
-    logs.log_error(f'Failed reading archive: {seed_corpus_archive_path}')
-    return
-
+  archive_iterator = archive.iterator(seed_corpus_archive_path)
+  # Unpack seed corpus recursively into the root of the main corpus directory.
   idx = 0
-  with reader:
-    for file in reader.list_members():
-      if file.is_dir:
-        continue
+  for seed_corpus_file in archive_iterator:
+    # Ignore directories.
+    if seed_corpus_file.name.endswith('/'):
+      continue
 
-      if file.size_bytes > max_bytes:
-        continue
+    # Allow callers to opt-out of unpacking large files.
+    if seed_corpus_file.size > max_bytes:
+      continue
 
-      output_filename = '%016d' % idx
-      output_file_path = os.path.join(corpus_directory, output_filename)
-      with open(output_file_path, 'wb') as file_handle:
-        with reader.open(file.name) as file:
-          shutil.copyfileobj(file, file_handle)
+    output_filename = '%016d' % idx
+    output_file_path = os.path.join(corpus_directory, output_filename)
+    with open(output_file_path, 'wb') as file_handle:
+      shutil.copyfileobj(seed_corpus_file.handle, file_handle)
 
-      idx += 1
+    idx += 1
 
   logs.log('Unarchiving %d files from seed corpus %s.' %
            (idx, seed_corpus_archive_path))

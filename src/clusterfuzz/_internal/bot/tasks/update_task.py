@@ -18,6 +18,7 @@ import os
 import platform
 import sys
 import time
+import zipfile
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import persistent_cache
@@ -207,22 +208,23 @@ def update_source_code():
     return
 
   try:
-    reader = archive.open(temp_archive)
-  except Exception as e:
-    logs.log_error('Bad zip file: %s.' % repr(e))
+    file_list = archive.get_file_list(temp_archive)
+    zip_archive = zipfile.ZipFile(temp_archive, 'r')
+  except Exception:
+    logs.log_error('Bad zip file.')
     return
 
   src_directory = os.path.join(root_directory, 'src')
   error_occurred = False
   normalized_file_set = set()
-  for file in reader.list_members():
-    filename = os.path.basename(file.name)
+  for filepath in file_list:
+    filename = os.path.basename(filepath)
 
     # This file cannot be updated on the fly since it is running as server.
     if filename == 'adb':
       continue
 
-    absolute_filepath = os.path.join(cf_source_root_parent_dir, file.name)
+    absolute_filepath = os.path.join(cf_source_root_parent_dir, filepath)
     if os.path.altsep:
       absolute_filepath = absolute_filepath.replace(os.path.altsep, os.path.sep)
 
@@ -250,15 +252,17 @@ def update_source_code():
                      'version.' % absolute_filepath)
 
     try:
-      extracted_path = reader.extract(file.name, cf_source_root_parent_dir)
-      mode = file.mode
+      extracted_path = zip_archive.extract(filepath, cf_source_root_parent_dir)
+      external_attr = zip_archive.getinfo(filepath).external_attr
+      mode = (external_attr >> 16) & 0o777
       mode |= 0o440
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True
-      logs.log_error(f'Failed to extract file {file.name} from source archive.')
+      logs.log_error(
+          'Failed to extract file %s from source archive.' % filepath)
 
-  reader.close()
+  zip_archive.close()
 
   if error_occurred:
     return
@@ -310,8 +314,7 @@ def update_tests_if_needed():
     try:
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)
-      with archive.open(temp_archive) as reader:
-        archive.unpack(reader, data_directory, trusted=True)
+      archive.unpack(temp_archive, data_directory, trusted=True)
       shell.remove_file(temp_archive)
       error_occured = False
       break
