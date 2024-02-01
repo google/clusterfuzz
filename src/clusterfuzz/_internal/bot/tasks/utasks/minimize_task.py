@@ -210,7 +210,7 @@ class TestRunner:
                                              file_to_rename)
       try:
         os.rename(absolute_file_to_rename,
-                  '%s%s' % (absolute_file_to_rename, file_rename_suffix))
+                  f'{absolute_file_to_rename}{file_rename_suffix}')
       except OSError:
         # This can happen if we have already renamed a directory with files
         # under it. In this case, make sure we don't try to change the name
@@ -228,7 +228,7 @@ class TestRunner:
     for file_to_rename in files_to_rename:
       absolute_file_to_rename = os.path.join(self.input_directory,
                                              file_to_rename)
-      os.rename('%s%s' % (absolute_file_to_rename, file_rename_suffix),
+      os.rename(f'{absolute_file_to_rename}{file_rename_suffix}',
                 absolute_file_to_rename)
 
     return self._handle_test_result(result)
@@ -307,7 +307,7 @@ class TestRunner:
         user_profile_index=profile_index,
         write_command_line_file=arguments_changed)
     if log_command:
-      logs.log('Executing command: %s' % command)
+      logs.log(f'Executing command: {command}')
 
     return_code, crash_time, output = process_handler.run_process(
         command, timeout=timeout, gestures=gestures)
@@ -362,7 +362,7 @@ def _get_minimize_task_input():
 
   gcs_path = storage.get_cloud_storage_file_path(blobs_bucket, blob_name)
   if storage.get(gcs_path):
-    raise RuntimeError('UUID collision found: %s' % blob_name)
+    raise RuntimeError(f'UUID collision found: {blob_name}')
   return uworker_msg_pb2.MinimizeTaskInput(
       testcase_upload_url=storage.get_signed_upload_url(gcs_path),
       blob_name=blob_name)
@@ -446,8 +446,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   additional_required_arguments = testcase.get_metadata(
       'additional_required_app_args')
   if additional_required_arguments:
-    required_arguments = '%s %s' % (required_arguments,
-                                    additional_required_arguments)
+    required_arguments = f'{required_arguments} {additional_required_arguments}'
 
   input_directory = environment.get_value('FUZZ_INPUTS')
   # Get deadline to finish this task.
@@ -461,7 +460,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   result = test_runner.run(timeout=warmup_timeout, log_command=True)
   if result.is_crash():
     warmup_crash_occurred = True
-    logs.log('Warmup crash occurred in %d seconds.' % result.crash_time)
+    logs.log(f'Warmup crash occurred in {result.crash_time} seconds.')
 
   saved_unsymbolized_crash_state, flaky_stack, crash_times = (
       check_for_initial_crash(test_runner, crash_retries, testcase))
@@ -499,7 +498,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   if not is_redo and len(crash_times) < reproducible_crash_count:
     error_message = (
         'Crash occurs, but not too consistently. Skipping minimization '
-        '(crashed %d/%d)' % (len(crash_times), crash_retries))
+        f'(crashed {len(crash_times)}/{crash_retries})')
     return uworker_msg_pb2.Output(
         error_message=error_message,
         minimize_task_output=minimize_task_output,
@@ -510,7 +509,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
 
   # Use the max crash time unless this would be greater than the max timeout.
   test_timeout = min(max(crash_times), max_timeout) + 1
-  logs.log('Using timeout %d (was %d)' % (test_timeout, max_timeout))
+  logs.log(f'Using timeout {test_timeout} (was {max_timeout})')
   test_runner.timeout = test_timeout
 
   logs.log('Starting minimization.')
@@ -837,7 +836,7 @@ def minimize_gestures(test_runner, testcase):
         progress_report_function=functools.partial(logs.log))
     gestures = gesture_minimizer.minimize(gestures)
 
-  logs.log('Minimized gestures: %s' % str(gestures))
+  logs.log(f'Minimized gestures: {str(gestures)}')
   return gestures
 
 
@@ -878,7 +877,7 @@ def minimize_file_list(test_runner, file_list, input_directory, main_file):
   if fixed_testcase_file_path not in file_list:
     file_list.append(fixed_testcase_file_path)
 
-  logs.log('Minimized file list: %s' % str(file_list))
+  logs.log(f'Minimized file list: {str(file_list)}')
   return file_list
 
 
@@ -910,7 +909,7 @@ def minimize_resource(test_runner, dependency, input_directory, main_file):
           delete_temp_files=False))
   utils.write_data_to_file(dependency_data, dependency_absolute_path)
 
-  logs.log('Minimized dependency file: %s' % dependency)
+  logs.log(f'Minimized dependency file: {dependency}')
 
 
 def minimize_arguments(test_runner, app_arguments):
@@ -1060,9 +1059,9 @@ def check_for_initial_crash(test_runner, crash_retries, testcase):
     if not crash_comparer.is_similar():
       flaky_stack = True
 
-  logs.log('Total crash count: %d/%d. Flaky: %s. Security: %s. State:\n%s' %
-           (len(crash_times), crash_retries, flaky_stack, saved_security_flag,
-            saved_crash_state))
+  logs.log(f'Total crash count: {len(crash_times)}/{crash_retries}.'
+           f'Flaky: {flaky_stack}. Security: {saved_security_flag}.'
+           f'State:\n{saved_crash_state}')
 
   return saved_unsymbolized_crash_state, flaky_stack, crash_times
 
@@ -1382,7 +1381,7 @@ def _run_libfuzzer_tool(tool_name: str,
     _unset_dedup_flags()
 
   if not os.path.exists(output_file_path):
-    logs.log_warn('LibFuzzer %s run failed.' % tool_name, output=result.output)
+    logs.log_warn(f'LibFuzzer {tool_name} run failed.', output=result.output)
     return None, None, None
 
   # Ensure that the crash parameters match. It's possible that we will
@@ -1392,12 +1391,11 @@ def _run_libfuzzer_tool(tool_name: str,
   security_flag = crash_result.is_security_issue()
   if (security_flag != testcase.security_flag or
       state.crash_state != expected_crash_state):
-    logs.log_warn('Ignoring unrelated crash.\n'
-                  'State: %s (expected %s)\n'
-                  'Security: %s (expected %s)\n'
-                  'Output: %s\n' %
-                  (state.crash_state, expected_crash_state, security_flag,
-                   testcase.security_flag, state.crash_stacktrace))
+    logs.log_warn(
+        'Ignoring unrelated crash.\n'
+        f'State: {state.crash_state} (expected {expected_crash_state})\n'
+        f'Security: {security_flag} (expected {testcase.security_flag})\n'
+        f'Output: {state.crash_stacktrace}\n')
     return None, None, None
 
   with open(output_file_path, 'rb') as file_handle:
@@ -1487,7 +1485,7 @@ def do_libfuzzer_minimization(
                                   LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE)
 
   expected_state = initial_crash_result.get_symbolized_data()
-  logs.log('Initial crash state: %s\n' % expected_state.crash_state)
+  logs.log(f'Initial crash state: {expected_state.crash_state}\n')
 
   # Minimize *_OPTIONS env variable first.
   env = {}
@@ -1543,7 +1541,7 @@ def do_libfuzzer_minimization(
   # We attempt minimization multiple times in case one round results in an
   # incorrect state, or runs into another issue such as a slow unit.
   for round_number in range(1, rounds + 1):
-    logs.log('Minimizing round %d.' % round_number)
+    logs.log(f'Minimizing round {round_number}.')
     output_file_path, crash_result, minimized_keys = _run_libfuzzer_tool(
         'minimize',
         testcase,
