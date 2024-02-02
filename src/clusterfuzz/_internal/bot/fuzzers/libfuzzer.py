@@ -971,7 +971,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
     if environment.is_android_emulator():
       return self._add_trusty_stacktrace_if_needed(output)
 
-    if android.settings.is_mte_build():
+    if environment.is_android() and android.settings.is_mte_build():
       return self._add_mte_stacktrace_if_needed(output)
 
     return '{output}\n\nLogcat:\n{logcat_output}'.format(
