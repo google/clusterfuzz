@@ -1122,11 +1122,6 @@ def is_android_real_device():
   return base_platform(platform()) == 'ANDROID'
 
 
-def is_using_mte():
-  """Return True if device is using Memory Tagging Extension."""
-  return get_value('USE_MTE')
-
-
 def is_lib():
   """Whether or not we're in libClusterFuzz."""
   return get_value('LIB_CF')

@@ -36,9 +36,6 @@ definition.
   values used by ClusterFuzz. The same type of variable is available for the
   other sanitizers, i.e. **ADDITIONAL_MSAN_OPTIONS** or
   **ADDITIONAL_UBSAN_OPTIONS** (see an example below on this page).
-* **USES_MTE**: indicates whether a device is fuzzing with the Memory Tagging
-  Extension (MTE) enabled. Use `USES_MTE = True` if to fuzz using MTE.
-  Currently this feature is only supported for Android phones.
 
 ### LibFuzzer and AFL specific
 

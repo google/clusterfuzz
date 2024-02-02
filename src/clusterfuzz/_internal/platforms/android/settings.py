@@ -154,7 +154,7 @@ def get_sanitizer_tool_name():
 
 
 def is_mte_build():
-  """Return memory tool name."""
+  """Return True if device is using Memory Tagging Extension."""
   build_flavor = get_build_flavor()
   return 'mte' in build_flavor
 
