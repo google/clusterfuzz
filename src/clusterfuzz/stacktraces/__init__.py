@@ -454,8 +454,9 @@ class StackParser:
       if not self.detect_ooms_and_hangs and OUT_OF_MEMORY_REGEX.match(line):
         return CrashInfo()
 
-      # Ignore aborts, breakpoints, ills and traps for asserts, check and
-      # dcheck failures. These are intended, retain their original state.
+      # Ignore aborts, breakpoints, ills and traps after certain crash types
+      # listed in IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS. The first
+      # crash type is more specific and should be kept.
       if (SAN_ABRT_REGEX.match(line) or SAN_BREAKPOINT_REGEX.match(line) or
           SAN_ILL_REGEX.match(line) or SAN_TRAP_REGEX.match(line)):
         if state.crash_type in IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS:

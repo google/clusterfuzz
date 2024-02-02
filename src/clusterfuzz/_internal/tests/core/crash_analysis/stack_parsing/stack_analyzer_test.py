@@ -1001,6 +1001,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_v8_oom(self):
     """Test a v8 JavaScript out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('v8_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = 'Allocation failed - JavaScript heap out of memory\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_oom_notdetected(self):
+    """Test a v8 JavaScript out of memory condition but without setting
+    REPORT_OOMS_AND_HANGS."""
     data = self._read_test_data('v8_oom.txt')
     expected_type = ''
     expected_address = ''
@@ -1014,11 +1030,47 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_v8_process_oom(self):
     """Test a v8 process out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('v8_process_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = (
+        'Fatal process out of memory: base::SmallVector::Grow in small-vector.h\n'
+        'v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::G\n'
+        'v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::G\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom_notdetected(self):
+    """Test a v8 process out of memory condition without setting
+    REPORT_OOMS_AND_HANGS."""
     data = self._read_test_data('v8_process_oom.txt')
     expected_type = ''
     expected_address = ''
     expected_state = ''
     expected_stacktrace = ''
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom_with_asan_abrt(self):
+    """Test a v8 process out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+
+    data = self._read_test_data('v8_process_oom_with_asan_abrt.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = 'mock-fuzz-target\n'
+    expected_stacktrace = data
     expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
