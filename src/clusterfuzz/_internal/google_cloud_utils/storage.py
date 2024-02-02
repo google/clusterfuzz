@@ -21,6 +21,7 @@ import shutil
 import threading
 import time
 import uuid
+import multiprocessing.pool
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -720,6 +721,14 @@ def _signing_creds():
   return _local.signing_creds
 
 
+def _thread_pool():
+  if hasattr(_local, 'thread_pool'):
+    return _local.thread_pool
+
+  _local.thread_pool = multiprocessing.pool.ThreadPool(16)
+  return _local.thread_pool
+
+
 def get_bucket_name_and_path(cloud_storage_file_path):
   """Return bucket name and path given a full cloud storage path."""
   filtered_path = utils.strip_from_left(cloud_storage_file_path, GS_PREFIX)
@@ -1118,9 +1127,10 @@ def _integration_test_env_doesnt_support_signed_urls():
       'UNTRUSTED_RUNNER_TESTS')
 
 
+# Don't retry so hard. We don't want to slow down corpus downloading.
 @retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
+    retries=1,
+    delay=1,
     function='google_cloud_utils.storage._download_url',
     exception_types=_TRANSIENT_ERRORS)
 def _download_url(url):
@@ -1176,8 +1186,45 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return provider.sign_download_url(remote_path, minutes=minutes)
 
 
-def get_random_blob_upload_url(remote_directory, minutes=SIGNED_URL_EXPIRATION_MINUTES):
-  blob_name = str(uuid.uuid4()).lower()
-  url = remote_directory if remote_directory.endswith('/') else remote_directory + '/'
-  url = url + blob_name
-  return get_signed_download_url(url, minutes=minutes)
+def exists(remote_path):
+  for _ in list_blobs(remote_path):
+    return True
+  return False
+
+
+def _error_tolerant_download_signed_url_to_file(url, path):
+  try:
+    return download_signed_url_to_file(url, path)
+  except *_TRANSIENT_ERRORS:
+    return False
+
+
+
+def download_signed_urls(signed_urls, directory):
+  thread_pool = _thread_pool()
+  # TODO(metzman): Use the actual names of the files stored on GCS instead of
+  # renaming them.
+  filepaths = [os.path.join(directory, str(idx))
+               for idx in range(len(signed_urls))]
+  thread_pool.starmap(_error_tolerant_download_signed_url_to_file,
+                      zip(signed_urls, filepaths))
+
+
+def get_arbitrary_signed_upload_urls(remote_directory, num_urls):
+  # We verify there are no collisions for uuid4s in CF because it would be bad
+  # if there is a collision and in most cases it's cheap. It is not cheap if we
+  # had to do this 10,000 times. Instead create a prefix filename and check that
+  # no file has that name. Then the arbitrary names will all use that prefix.
+  unique_id = uuid.uuid4()
+  base_name = unique_id.hex()
+  remote_directory = remote_directory.endswith('/') else remote_directory + '/'
+  base_path = f'{remote_directory}/{base_name}'
+  base_search_path = f'{base_path}*'
+  if exists(base_search_path):
+    # Raise the error and let retry go again. There is a vanishingly small
+    # chance that we get more collisions. This is vulnerable to races, but is
+    # probably unneeded anyway.
+    raise ValueError(f'UUID collision found {str(unique_id)}'
+
+  return [get_signed_upload_url(f'{base_path}-{idx}')
+          for idx in range(num_urls)]

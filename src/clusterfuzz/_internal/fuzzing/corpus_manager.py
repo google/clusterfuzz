@@ -599,15 +599,25 @@ class FuzzTargetCorpus(GcsCorpus):
   def preprocess(self, max_uploads=10000):
     # !!! Are these prefixed with gs:// ?? does that matter?
     download_urls = [
-        get_signed_download_url(download_url) for download_url in storage.list_blobs(self.get_gcs_url())]
-    upload_urls = get_random_blob_upload_url(max_uploads=max_uploads)
-    regression_download_urls = [
-      get_signed_download_url(download_url)
-      for download_url in storage.list_blobs(self._regressions_corpus.get_gcs_url())]
+        get_signed_download_url(download_url) for download_url in storage.list_blobs(self.get_gcs_url())
     ]
-    return uworker_msg_pb2.Corpus(download_urls=download_urls, upload_urls=upload_urls, regression_download_urls=regression_download_urls)
+    upload_urls = get_arbitrary_signed_upload_urls(
+        remote_directory, max_uploads)
 
-  def download_untrusted(self, directory, corpus: uworker_msg_pb2.Corpus, timeout=CORPUS_FILES_SYNC_TIMEOUT,
+    # regression_download_urls = [
+    #   get_signed_download_url(download_url)
+    #   for download_url in storage.list_blobs(self._regressions_corpus.get_gcs_url())]
+    # ]
+    return uworker_msg_pb2.Corpus(
+        download_urls=download_urls,
+        upload_urls=upload_urls,
+        # Test this.
+        last_updated_time=
+        # regression_download_urls=regression_download_urls
+    )
+
+  def download_untrusted(self, directory, corpus: uworker_msg_pb2.Corpus,
+                         timeout=CORPUS_FILES_SYNC_TIMEOUT,
                          delete=True):
 
 
@@ -617,7 +627,9 @@ class FuzzTargetCorpus(GcsCorpus):
     return self.get_gcs_url(suffix=REGRESSIONS_GCS_PATH_SUFFIX)
 
 
-def download_signed_corpus_urls(urls, directory, timeout):
+def download_corpus(corpus, directory):
+  storage.download_signed_urls(corpus.download_urls, directory)
+  storage.download_signed_urls(corpus.regression_download_urls, directory)
 
 
 class HoldAsNeededFile(io.RawIOBase):

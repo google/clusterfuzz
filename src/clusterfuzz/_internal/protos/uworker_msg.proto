@@ -263,3 +263,9 @@ message Output {
   optional VariantTaskOutput variant_task_output = 14;
   optional string error_message = 15;
 }
+
+message Corpus {
+  optional repeated string download_urls = 1;
+  optional repeated string upload_urls = 2;
+  optional google.protobuf.Timestamp last_updated_time = 3;
+}
