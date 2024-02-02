@@ -93,6 +93,12 @@ class ArchiveReader(abc.ABC):
   """Abstract class for representing an archive reader.
   """
 
+  def __enter__(self):
+    return self
+
+  def __exit__(self, *args):
+    self.close()
+
   @abc.abstractmethod
   def list_members(self) -> List[ArchiveMemberInfo]:
     """Lists all members contained in the archives.
@@ -219,6 +225,25 @@ class ArchiveReader(abc.ABC):
                for f in self.list_members()
                if not file_match_callback or file_match_callback(f.name))
 
+  def root_dir(self) -> str:
+    """Returns the root directory of this archive. If there is None, returns an
+    empty string.
+    """
+    return os.path.commonpath([f.name for f in self.list_members()])
+
+  def file_exists(self, path: str) -> bool:
+    """Returns whether the path exists in the archive. The path must exactly
+    match.
+
+    Args:
+        path: the path
+
+    Returns:
+        bool: whether the archive contains the file.
+    """
+    members = self.list_members()
+    return any(member.name == path for member in members)
+
 
 class TarArchiveReader(ArchiveReader):
   """A tar archive reader. Currently supports TAR and TAR_LZMA archives.
@@ -234,12 +259,6 @@ class TarArchiveReader(ArchiveReader):
       mode = 'r' if archive_type == ArchiveType.TAR else 'r:xz'
       self._archive = tarfile.open(archive_path, mode=mode)
     self._archive_path = archive_path
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, *args):
-    self._archive.close()
 
   def list_members(self) -> List[ArchiveMemberInfo]:
     return [
@@ -277,12 +296,6 @@ class ZipArchiveReader(ArchiveReader):
 
   def __init__(self, file) -> None:
     self._zip_archive = zipfile.ZipFile(file, mode='r')
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, *args):
-    self._zip_archive.close()
 
   def list_members(self) -> List[ArchiveMemberInfo]:
     return [
