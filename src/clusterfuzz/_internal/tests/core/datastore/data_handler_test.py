@@ -26,6 +26,8 @@ from pyfakefs import fake_filesystem_unittest
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -458,6 +460,48 @@ class DataHandlerTest(unittest.TestCase):
     self.mock.project_config_get.return_value = 'custom.suffix.com'
     self.assertEqual('test-corpus.custom.suffix.com',
                      data_handler.get_data_bundle_bucket_name('test'))
+
+
+class FilterStackTraceTest(fake_filesystem_unittest.TestCase):
+  """Tests for data_handler.filter_stacktrace."""
+
+  def setUp(self):
+    test_utils.set_up_pyfakefs(self)
+    self.limit = data_types.STACKTRACE_LENGTH_LIMIT
+    data_types.STACKTRACE_LENGTH_LIMIT = 1
+    helpers.patch_environ(self)
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
+    helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_url'
+    ])
+
+    def get_signed_upload_url(gcs_path):
+      return gcs_path
+
+    self.mock.get_signed_upload_url.side_effect = get_signed_upload_url
+
+  def test_filter_stack_trace_upload(self):
+    """tests data_handler.filter_stacktrace behaviour when stacktrace length
+    exceeds limit and an upload_url is provided."""
+    blob_name = blobs.generate_new_blob_name()
+    blobs_bucket = 'blobs_bucket'
+    storage._provider().create_bucket(blobs_bucket, None, None)  # pylint: disable=protected-access
+
+    gcs_path = storage.get_cloud_storage_file_path(blobs_bucket, blob_name)
+    signed_upload_url = storage.get_signed_upload_url(gcs_path)
+    result = data_handler.filter_stacktrace('abcde', blob_name,
+                                            signed_upload_url)
+
+    self.assertTrue(result.startswith(data_types.BLOBSTORE_STACK_PREFIX))
+    blob_key = result.strip(data_types.BLOBSTORE_STACK_PREFIX)
+
+    resulting_stacktrace_gcs_path = storage.get_cloud_storage_file_path(
+        blobs_bucket, blob_key)
+    data = storage.read_data(resulting_stacktrace_gcs_path)
+    self.assertEqual(b'abcde', data)
+
+  def tearDown(self):
+    data_types.STACKTRACE_LENGTH_LIMIT = self.limit
 
 
 @test_utils.with_cloud_emulators('datastore')
