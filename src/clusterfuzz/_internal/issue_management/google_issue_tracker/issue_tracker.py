@@ -162,7 +162,8 @@ class Issue(issue_tracker.Issue):
 
   def _filter_labels(self):
     """Filters out and logs labels that are not hotlist IDs."""
-    logs.log('google_issue_tracker: Labels before filtering: %s' % list(self.labels))
+    logs.log(
+        'google_issue_tracker: Labels before filtering: %s' % list(self.labels))
     labels_to_remove = []
     for label in self.labels:
       if not label.isnumeric():
@@ -171,7 +172,8 @@ class Issue(issue_tracker.Issue):
         labels_to_remove.append(label)
     for remove_label in labels_to_remove:
       self.labels.remove(remove_label)
-    logs.log('google_issue_tracker: Labels after filtering: %s' % list(self.labels))
+    logs.log(
+        'google_issue_tracker: Labels after filtering: %s' % list(self.labels))
 
   def _reset_tracking(self):
     """Resets diff tracking."""
