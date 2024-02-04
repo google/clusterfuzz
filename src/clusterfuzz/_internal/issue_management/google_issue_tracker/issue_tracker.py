@@ -160,6 +160,19 @@ class Issue(issue_tracker.Issue):
         break
     return filtered_values
 
+  def _filter_labels(self):
+    """Filters out and logs labels that are not hotlist IDs."""
+    logs.log('google_issue_tracker: Labels before filtering: %s' % list(self.labels))
+    labels_to_remove = []
+    for label in self.labels:
+      if not label.isnumeric():
+        logs.log_warn('google_issue_tracker: Label %s was not a hotlist ID. '
+                      'Removing it.' % label)
+        labels_to_remove.append(label)
+    for remove_label in labels_to_remove:
+      self.labels.remove(remove_label)
+    logs.log('google_issue_tracker: Labels after filtering: %s' % list(self.labels))
+
   def _reset_tracking(self):
     """Resets diff tracking."""
     self._changed.clear()
@@ -517,6 +530,10 @@ class Issue(issue_tracker.Issue):
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().modify(
               issueId=str(self.id), body=update_body))
+
+    # Make sure self.labels contains only hotlist IDs.
+    self._filter_labels()
+
     # Special case: hotlists.
     # TODO(ochang): Investigate batching.
     added_hotlists = self.labels.added
@@ -583,11 +600,13 @@ class Issue(issue_tracker.Issue):
       if foundin_values:
         self._data['issueState']['foundInVersions'] = foundin_values
 
-      logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
       logs.log('google_issue_tracker: severity_text: %s' % severity_text)
       severity = _get_severity_from_crash_text(severity_text)
       self._data['issueState']['severity'] = severity
+
+      # Make sure self.labels contains only hotlist IDs.
+      self._filter_labels()
 
       if self.component_id:
         self._data['issueState']['componentId'] = int(self.component_id)
@@ -971,6 +990,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.labels.add('FoundIn-789')
 #   issue.labels.add('ReleaseBlock-Dev')
 #   issue.labels.add('ReleaseBlock-Beta')
+#   issue.labels.add('UNKNOWN-LABEL')  # Should be filtered out
 #   issue.components.add('1456407')  # 'Blink'
 #   issue.components.add('1456567')  # 'Blink>JavaScript>Compiler>Sparkplug'
 #   issue.components.add('1363614')  # 'Chromium'
@@ -987,13 +1007,14 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.save(new_comment='testing')
 #
 #   # Test issue query.
-#   queried_issue = it.get_issue(314141502)
+#   queried_issue = it.get_issue(323696390)
 #   print(queried_issue._data)
 #   queried_issue.labels.add('OS-ChromeOS')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
 #   queried_issue.labels.add('ReleaseBlock-Beta')
 #   queried_issue.labels.add('ReleaseBlock-Dev')
+#   queried_issue.labels.add('UNKNOWN-LABEL')  # Should be filtered out
 #   # 'Blink>JavaScript>Compiler>Sparkplug'
 #   queried_issue.components.add('1456567')
 #   queried_issue.components.add('OS>Software>Enterprise>ChromeApps')
