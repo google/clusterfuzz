@@ -918,18 +918,18 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     url = self.issue_tracker.find_issues_url(
         keywords=['abc', 'def'], only_open=True)
     self.assertEqual(
-        'https://issuetracker.google.com/issues?q=%22abc%22+%22def%22+status%3Aopen',
+        'https://issues.chromium.org/issues?q=%22abc%22+%22def%22+status%3Aopen',
         url,
     )
     url = self.issue_tracker.find_issues_url(
         keywords=['abc', 'def'], only_open=False)
-    self.assertEqual(
-        'https://issuetracker.google.com/issues?q=%22abc%22+%22def%22', url)
+    self.assertEqual('https://issues.chromium.org/issues?q=%22abc%22+%22def%22',
+                     url)
 
   def test_issue_url(self):
     """Test issue_url."""
     url = self.issue_tracker.issue_url(123)
-    self.assertEqual('https://issuetracker.google.com/issues/123', url)
+    self.assertEqual('https://issues.chromium.org/issues/123', url)
 
   def test_get_severity_from_crash_text(self):
     """Test _get_severity_from_crash_text."""

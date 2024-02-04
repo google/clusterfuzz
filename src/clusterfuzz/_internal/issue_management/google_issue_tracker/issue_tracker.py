@@ -26,7 +26,7 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import client
 from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
-_ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
+_ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues'
 
 # These custom fields use repeated enums.
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
