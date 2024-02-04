@@ -294,9 +294,6 @@ class Issue(issue_tracker.Issue):
     assignee = self._data['issueState'].get('assignee')
     if not assignee:
       return None
-    logs.log('google_issue_tracker: assignee: %s' % assignee)
-
-
     return assignee['emailAddress']
 
   @assignee.setter
