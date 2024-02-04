@@ -923,8 +923,8 @@ class GoogleIssueTrackerTest(unittest.TestCase):
     )
     url = self.issue_tracker.find_issues_url(
         keywords=['abc', 'def'], only_open=False)
-    self.assertEqual(
-        'https://issues.chromium.org/issues?q=%22abc%22+%22def%22', url)
+    self.assertEqual('https://issues.chromium.org/issues?q=%22abc%22+%22def%22',
+                     url)
 
   def test_issue_url(self):
     """Test issue_url."""
