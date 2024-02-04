@@ -73,8 +73,8 @@ def _sanitize_oses(oses):
   The OS custom field no longer has the 'Chrome' value.
   It was replaced by 'ChromeOS'.
   """
-  for i in range(len(oses)):
-    if oses[i] == 'Chrome':
+  for i, os in enumerate(oses):
+    if os == 'Chrome':
       oses[i] = 'ChromeOS'
 
 
@@ -547,6 +547,11 @@ class Issue(issue_tracker.Issue):
           self.issue_tracker.client.issues().modify(
               issueId=str(self.id), body=update_body))
       logs.log('google_issue_tracker: modify result: %s' % result)
+      # Do not use results from modify call, it could contain obfuscated emails
+      # See crbug/323736910. Do a seperate get issue call.
+      result = self.issue_tracker._execute(
+          self.issue_tracker.client.issues().get(issueId=str(self.id)))
+      logs.log('google_issue_tracker: get after modify result: %s' % result)
 
     # Make sure self.labels contains only hotlist IDs.
     self._filter_labels()
@@ -1034,6 +1039,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   print(queried_issue.assignee)
 #   queried_issue.labels.add('OS-ChromeOS')
 #   queried_issue.labels.add('OS-Chrome')
+#   queried_issue.labels.add('OS-Android')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
 #   queried_issue.labels.add('ReleaseBlock-Beta')
@@ -1045,4 +1051,4 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   queried_issue.components.add('OS>Systems>Network>General')
 #   queried_issue.components.add('asdfasdfasdf')  # Should be filtered out
 #   queried_issue.components.add(123123123)  # Should be filtered out
-#   queried_issue._update_issue()
+  queried_issue._update_issue()
