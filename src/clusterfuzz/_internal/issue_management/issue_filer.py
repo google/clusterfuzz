@@ -371,10 +371,17 @@ def file_issue(testcase,
     # Force all chromium labels to go through the substitution mapping.
     logs.log(
         'google_issue_tracker pre-sanitized labels: %s' % list(issue.labels))
-    sanitized_labels = []
+    substituted_labels_to_add = []
+    replaced_labels_to_remove = []
     for label in issue.labels:
-      sanitized_labels.append(policy.substitution_mapping(label))
-    issue.labels = sanitized_labels
+      substituted_label = policy.substitution_mapping(label)
+      if substituted_label not in issue.labels:
+        substituted_labels_to_add.append(substituted_label)
+        replaced_labels_to_remove.append(label)
+    for substituted_label in substituted_labels_to_add:
+      issue.labels.add(substituted_label)
+    for replaced_label in replaced_labels_to_remove:
+      issue.labels.remove(replaced_label)
     logs.log('google_issue_tracker sanitized labels: %s' % list(issue.labels))
 
   # Add additional labels from the job definition and fuzzer.
@@ -496,8 +503,8 @@ def file_issue(testcase,
   issue.reporter = user_email
 
   if issue_tracker.project in ('chromium', 'chromium-testing'):
-    logs.log('google_issue_tracker labels before saving: %s' %
-             list(issue.labels))
+    logs.log(
+        'google_issue_tracker labels before saving: %s' % list(issue.labels))
 
   recovered_exception = None
   try:
