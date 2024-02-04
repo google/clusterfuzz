@@ -273,6 +273,7 @@ class Issue(issue_tracker.Issue):
                                                issueId=str(self.id),
                                                pageSize=1,
                                                sortBy='ASC'))
+      logs.log('google_issue_tracker: is_new: %s' % result)
       if 'issueUpdates' not in result:
         return self._body
       if len(result['issueUpdates']) < 1:
@@ -529,9 +530,11 @@ class Issue(issue_tracker.Issue):
       }
     result = self._data
     if added or removed or new_comment:
+      logs.log('google_issue_tracker: modify update_body: %s' % update_body)
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().modify(
               issueId=str(self.id), body=update_body))
+      logs.log('google_issue_tracker: modify result: %s' % result)
 
     # Make sure self.labels contains only hotlist IDs.
     self._filter_labels()
@@ -637,6 +640,7 @@ class Issue(issue_tracker.Issue):
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().create(
               body=self._data, templateOptions_applyTemplate=True))
+      logs.log('google_issue_tracker: result of create: %s' % result)
       self._is_new = False
     else:
       logs.log('google_issue_tracker: Updating issue..')
@@ -873,6 +877,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     """Gets the issue with the given ID."""
     try:
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
+      logs.log('google_issue_tracker: get_issue. issue: %s' % issue)
       return Issue(issue, False, self)
     except IssueTrackerError as e:
       if isinstance(e, IssueTrackerNotFoundError):
@@ -889,6 +894,7 @@ class IssueTracker(issue_tracker.IssueTracker):
       if "issues" not in issues:
         return
       for issue in issues['issues']:
+        logs.log('google_issue_tracker: find_issues. issue: %s' % issue)
         yield Issue(issue, False, self)
       page_token = issues.get('nextPageToken')
       if not page_token:
@@ -1011,6 +1017,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   # Test issue query.
 #   queried_issue = it.get_issue(323696390)
 #   print(queried_issue._data)
+#   print(queried_issue.assignee)
 #   queried_issue.labels.add('OS-ChromeOS')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
