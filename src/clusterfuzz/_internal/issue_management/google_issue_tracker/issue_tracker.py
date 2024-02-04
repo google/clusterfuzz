@@ -1026,7 +1026,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 #       '_ext_issue_access_limit':
 #           IssueAccessLevel.LIMIT_VIEW_TRUSTED,
 #   })
-#  issue.save(new_comment='testing')
+#   issue.save(new_comment='testing')
 #
 #   # Test issue query.
 #   queried_issue = it.get_issue(323696390)
