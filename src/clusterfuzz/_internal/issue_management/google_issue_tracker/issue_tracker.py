@@ -73,8 +73,8 @@ def _sanitize_oses(oses):
   The OS custom field no longer has the 'Chrome' value.
   It was replaced by 'ChromeOS'.
   """
-  for i, os in enumerate(oses):
-    if os == 'Chrome':
+  for i, os_field in enumerate(oses):
+    if os_field == 'Chrome':
       oses[i] = 'ChromeOS'
 
 
