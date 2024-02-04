@@ -67,6 +67,17 @@ def _extract_all_labels(labels, prefix):
   return results
 
 
+def _sanitize_oses(oses):
+  """Sanitize the OS custom field values.
+
+  The OS custom field no longer has the 'Chrome' value.
+  It was replaced by 'ChromeOS'.
+  """
+  for i in range(len(oses)):
+    if oses[i] == 'Chrome':
+      oses[i] = 'ChromeOS'
+
+
 def _extract_label(labels, prefix):
   """Extract a label value."""
   for label in labels:
@@ -463,6 +474,7 @@ class Issue(issue_tracker.Issue):
     if added_oses:
       oses = self._os_custom_field_values
       oses.extend(added_oses)
+      _sanitize_oses(oses)
       custom_field_entries.append({
           'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
           'repeatedEnumValue': {
@@ -573,6 +585,7 @@ class Issue(issue_tracker.Issue):
       custom_field_entries = []
       oses = _extract_all_labels(self.labels, 'OS-')
       if oses:
+        _sanitize_oses(oses)
         custom_field_entries.append({
             'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
             'repeatedEnumValue': {
@@ -994,6 +1007,7 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.status = 'ASSIGNED'
 #   issue.labels.add('OS-Linux')
 #   issue.labels.add('OS-Android')
+#   issue.labels.add('OS-Chrome')
 #   issue.labels.add('FoundIn-123')
 #   issue.labels.add('FoundIn-789')
 #   issue.labels.add('ReleaseBlock-Dev')
@@ -1012,13 +1026,14 @@ def _get_severity_from_crash_text(crash_severity_text):
 #       '_ext_issue_access_limit':
 #           IssueAccessLevel.LIMIT_VIEW_TRUSTED,
 #   })
-#   issue.save(new_comment='testing')
+#  issue.save(new_comment='testing')
 #
 #   # Test issue query.
 #   queried_issue = it.get_issue(323696390)
 #   print(queried_issue._data)
 #   print(queried_issue.assignee)
 #   queried_issue.labels.add('OS-ChromeOS')
+#   queried_issue.labels.add('OS-Chrome')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
 #   queried_issue.labels.add('ReleaseBlock-Beta')
