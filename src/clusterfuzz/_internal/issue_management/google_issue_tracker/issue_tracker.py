@@ -1051,4 +1051,4 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   queried_issue.components.add('OS>Systems>Network>General')
 #   queried_issue.components.add('asdfasdfasdf')  # Should be filtered out
 #   queried_issue.components.add(123123123)  # Should be filtered out
-  queried_issue._update_issue()
+#   queried_issue._update_issue()
