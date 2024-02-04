@@ -877,7 +877,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     """Gets the issue with the given ID."""
     try:
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
-      logs.log('google_issue_tracker: get_issue. issue: %s' % issue);
+      logs.log('google_issue_tracker: get_issue. issue: %s' % issue)
       return Issue(issue, False, self)
     except IssueTrackerError as e:
       if isinstance(e, IssueTrackerNotFoundError):
