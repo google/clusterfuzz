@@ -368,6 +368,15 @@ def file_issue(testcase,
     if miracle_label:
       issue.labels.add(policy.substitution_mapping(miracle_label))
 
+    # Force all chromium labels to go through the substitution mapping.
+    logs.log(
+        'google_issue_tracker pre-sanitized labels: %s' % list(issue.labels))
+    sanitized_labels = []
+    for label in issue.labels:
+      sanitized_labels.append(policy.substitution_mapping(label))
+    issue.labels = sanitized_labels
+    logs.log('google_issue_tracker sanitized labels: %s' % list(issue.labels))
+
   # Add additional labels from the job definition and fuzzer.
   additional_labels = data_handler.get_additional_values_for_variable(
       'AUTOMATIC_LABELS', testcase.job_type, testcase.fuzzer_name)
@@ -485,6 +494,10 @@ def file_issue(testcase,
     issue.components.add(policy.unreproducible_component)
 
   issue.reporter = user_email
+
+  if issue_tracker.project in ('chromium', 'chromium-testing'):
+    logs.log('google_issue_tracker labels before saving: %s' %
+             list(issue.labels))
 
   recovered_exception = None
   try:
