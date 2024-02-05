@@ -111,6 +111,21 @@ def handle_progression_revision_list_error(
                                          'Failed to fetch revision list')
 
 
+def _cleanup_stacktrace_blob_from_storage(
+    uworker_output: uworker_msg_pb2.Output):
+  """Cleanup the blob created in preprocess if it wasn't used to store the
+  filterd stacktrace."""
+  if (uworker_output.HasField('progression_task_output') and
+      uworker_output.progression_task_output.last_tested_crash_stacktrace.
+      startswith(data_types.BLOBSTORE_STACK_PREFIX)):
+    return
+
+  assert uworker_output.uworker_input.progression_task_input.blob_name
+  blob_name = uworker_output.uworker_input.progression_task_input.blob_name
+
+  storage.delete_blob(blob_name)
+
+
 def crash_on_latest(uworker_output: uworker_msg_pb2.Output):
   """Handles crash on latest revision, or custom binary crashes. Saves the crash
   info for non-custom binaries."""
@@ -228,7 +243,9 @@ def _log_output(revision, crash_result):
       output=crash_result.get_stacktrace(symbolized=True))
 
 
-def _check_fixed_for_custom_binary(testcase, testcase_file_path):
+def _check_fixed_for_custom_binary(
+    testcase: data_types.Testcase, testcase_file_path: str,
+    progression_task_input: uworker_msg_pb2.ProgressionTaskInput):
   """Simplified fixed check for test cases using custom binaries."""
   build_manager.setup_build()
   # 'APP_REVISION' is set during setup_build().
@@ -257,7 +274,9 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
     stacktrace = utils.get_crash_stacktrace_output(
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
-    last_tested_crash_stacktrace = data_handler.filter_stacktrace(stacktrace)
+    last_tested_crash_stacktrace = data_handler.filter_stacktrace(
+        stacktrace, progression_task_input.blob_name,
+        progression_task_input.stacktrace_upload_url)
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message='Still crashes on latest custom build.',
@@ -414,9 +433,12 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # triage cron.
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+  blob_name, blob_upload_url = storage.get_blob_signed_upload_url()
   progression_input = uworker_msg_pb2.ProgressionTaskInput(
       custom_binary=build_manager.is_custom_binary(),
-      bad_revisions=build_manager.get_job_bad_revisions())
+      bad_revisions=build_manager.get_job_bad_revisions(),
+      blob_name=blob_name,
+      stacktrace_upload_url=blob_upload_url)
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
 
@@ -445,7 +467,8 @@ def find_fixed_range(uworker_input):
 
   # Custom binaries are handled as special cases.
   if build_manager.is_custom_binary():
-    return _check_fixed_for_custom_binary(testcase, testcase_file_path)
+    return _check_fixed_for_custom_binary(testcase, testcase_file_path,
+                                          uworker_input.progression_task_input)
 
   build_bucket_path = build_manager.get_primary_bucket_path()
   bad_revisions = uworker_input.progression_task_input.bad_revisions
@@ -515,7 +538,9 @@ def find_fixed_range(uworker_input):
     stacktrace = utils.get_crash_stacktrace_output(
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
 
-    last_tested_crash_stacktrace = data_handler.filter_stacktrace(stacktrace)
+    last_tested_crash_stacktrace = data_handler.filter_stacktrace(
+        stacktrace, uworker_input.progression_task_input.blob_name,
+        uworker_input.progression_task_input.stacktrace_upload_url)
 
     crash_on_latest_message = ('Still crashes on latest'
                                f' revision r{max_revision}.')
@@ -650,6 +675,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   _maybe_clear_progression_last_min_max_metadata(testcase, output)
+  _cleanup_stacktrace_blob_from_storage(output)
   task_output = None
   if output.HasField('progression_task_output'):
     task_output = output.progression_task_output

@@ -1170,3 +1170,30 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   contents."""
   provider = _provider()
   return provider.sign_download_url(remote_path, minutes=minutes)
+
+
+def get_blob_signed_upload_url():
+  """Returns a pair of (blob_name,signed_upload_url) to be used from utask_main
+  to upload blobs."""
+  bucket = blobs_bucket()
+  import blobs
+  blob_name = blobs.generate_new_blob_name()
+  gcs_path = get_cloud_storage_file_path(bucket, blob_name)
+  # keep generating paths until no collision is encountered.
+  while get(gcs_path):
+    blob_name = blobs.generate_new_blob_name()
+    gcs_path = get_cloud_storage_file_path(bucket, blob_name)
+
+  # Write something to the file to avoid collision between calls.
+  write_data('', gcs_path)
+  signed_upload_url = get_signed_upload_url(gcs_path)
+  return blob_name, signed_upload_url
+
+
+def delete_blob(blob_name: str):
+  """Removes the blob from the `blobs_bucket()`. This method was introduced to
+  cleanup the generated blob in `get_blob_signed_upload_url` in case it was not
+  used by utask_main. This should be called from utask_postprocess."""
+  bucket = blobs_bucket()
+  gcs_path = get_cloud_storage_file_path(bucket, blob_name)
+  _provider().delete(gcs_path)
