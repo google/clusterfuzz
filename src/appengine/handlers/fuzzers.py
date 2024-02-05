@@ -97,8 +97,8 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
       executable_path = 'run'  # Check for default.
 
     reader = self._read_to_bytesio(upload_info.gcs_path)
-    return archive.get_first_file_matching(executable_path, reader,
-                                           upload_info.filename)
+    with archive.open(upload_info.filename, reader) as archive_reader:
+      return archive_reader.get_first_file_matching(executable_path)
 
   def _get_launcher_script(self, upload_info):
     """Get launcher script path."""
@@ -113,8 +113,8 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
       return launcher_script
 
     reader = self._read_to_bytesio(upload_info.gcs_path)
-    launcher_script = archive.get_first_file_matching(launcher_script, reader,
-                                                      upload_info.filename)
+    archive_reader = archive.open(upload_info.filename, reader)
+    launcher_script = archive_reader.get_first_file_matching(launcher_script)
     if not launcher_script:
       raise helpers.EarlyExitError(
           'Specified launcher script was not found in archive!', 400)
