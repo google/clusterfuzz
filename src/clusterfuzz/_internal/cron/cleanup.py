@@ -1050,12 +1050,17 @@ def update_component_labels(policy, testcase, issue):
       'google_issue_tracker: Checking if auto_components_label %s (policy %s) '
       'is in %s. Result: %s' %
       (data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL,
-       policy.label(data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL),
+       policy.substitution_mapping(
+           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL),
        list(issue.labels),
        issue_tracker_utils.was_label_added(
-           issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)))
+           issue,
+           policy.substitution_mapping(
+               data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))))
   if issue_tracker_utils.was_label_added(
-      issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL):
+      issue,
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)):
     return
 
   for filtered_component in filtered_components:
@@ -1202,9 +1207,13 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
   # If we've assigned an owner or cc once before, it likely means we were
   # incorrect. Don't try again for this particular issue.
   if (issue_tracker_utils.was_label_added(
-      issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL) or
+      issue,
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL)) or
       issue_tracker_utils.was_label_added(
-          issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)):
+          issue,
+          policy.substitution_mapping(
+              data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))):
     return
   logs.log('never assigned')
 
