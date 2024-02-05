@@ -223,6 +223,8 @@ def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
   unicode_stacktrace = utils.decode_to_unicode(stacktrace)
   if len(unicode_stacktrace) <= data_types.STACKTRACE_LENGTH_LIMIT:
     return unicode_stacktrace
+  # TODO(alhijazi): Once the migration is done, callers are expected to
+  # always pass a `blob_name` and a `signed_upload_url`.
   if signed_upload_url:
     try:
       storage.upload_signed_url(
