@@ -506,14 +506,18 @@ class Issue(issue_tracker.Issue):
       values = self._filter_custom_field_enum_values(
           _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID, component_paths)
       if values:
-        logs.log('google_issue_tracker: Going to add these components to '
-                 'component tags: %s' % values)
-        custom_field_entries.append({
-            'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
-            'repeatedEnumValue': {
-                'values': values,
-            }
-        })
+        # Validation check: Do not update component tags if they are the same
+        # as on the issue.
+        existing_tags = self._get_component_tags()
+        if not set(values).issubset(set(existing_tags)):
+          logs.log('google_issue_tracker: Going to add these components to '
+                   'component tags: %s' % values)
+          custom_field_entries.append({
+              'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
+              'repeatedEnumValue': {
+                  'values': values,
+              }
+          })
 
     if custom_field_entries:
       added.append('customFields')
