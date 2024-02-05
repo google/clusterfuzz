@@ -35,7 +35,7 @@ DATA_DIR = os.path.join(TEST_PATH, 'data')
 
 def get_fuzz_timeout(fuzz_time):
   """Return timeout for fuzzing."""
-  return (fuzz_time + launcher.AflRunner.AFL_CLEAN_EXIT_TIME +
+  return (fuzz_time + launcher.AFL_CLEAN_EXIT_TIME +
           launcher.AflRunner.SIGTERM_WAIT_TIME)
 
 
