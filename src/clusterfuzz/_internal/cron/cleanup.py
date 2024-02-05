@@ -1047,11 +1047,12 @@ def update_component_labels(policy, testcase, issue):
   # labels are removed manually. This may cause issues in the event that we
   # rerun a test case, but it seems like a reasonable tradeoff to avoid spam.
   logs.log(
-      'google_issue_tracker: Checking if auto_components_label %s is in %s. Result: %s'
-      % (data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL,
-         list(issue.labels),
-         issue_tracker_utils.was_label_added(
-             issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)))
+      'google_issue_tracker: Checking if auto_components_label %s is in %s. '
+      'Result: %s' %
+      (data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL,
+       list(issue.labels),
+       issue_tracker_utils.was_label_added(
+           issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)))
   if issue_tracker_utils.was_label_added(
       issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL):
     return
