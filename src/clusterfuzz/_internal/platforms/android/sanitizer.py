@@ -34,12 +34,17 @@ SANITIZER_TOOL_TO_FILE_MAPPINGS = {
 }
 
 
-def get_ld_library_path_for_sanitizers():
-  """Return LD_LIBRARY_PATH setting for sanitizers, None otherwise."""
-  if not settings.get_sanitizer_tool_name():
-    return None
+def get_ld_library_path_for_memory_tools():
+  """Return LD_LIBRARY_PATH setting for memory tools, None otherwise."""
+  tool = settings.get_sanitizer_tool_name()
+  if tool:
+    return constants.DEVICE_SANITIZER_DIR
 
-  return constants.DEVICE_SANITIZER_DIR
+  tool = settings.is_mte_build()
+  if tool:
+    return constants.DEVICE_MTE_DIR
+
+  return None
 
 
 def get_options_file_path(sanitizer_tool_name):

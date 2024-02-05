@@ -29,7 +29,8 @@ from clusterfuzz._internal import fuzzing
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER',
+    'MTE'
 ]
 
 SANITIZER_NAME_MAP = {

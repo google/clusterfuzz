@@ -202,8 +202,8 @@ class SelectGeneratorTest(unittest.TestCase):
         'clusterfuzz._internal.bot.fuzzers.engine_common.is_lpm_fuzz_target',
         'clusterfuzz._internal.bot.fuzzers.strategy_selection.StrategyPool.do_strategy'
     ])
-    self.mock.do_strategy.return_value = True
     self.mock.is_lpm_fuzz_target.return_value = True
+    self.mock.do_strategy.return_value = True
 
   def test_lpm_fuzz_target(self):
     self.assertEqual(engine_common.Generator.NONE,
