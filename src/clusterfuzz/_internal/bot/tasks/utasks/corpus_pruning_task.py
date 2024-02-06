@@ -197,14 +197,10 @@ class Context:
         '%s_bad_units' % self.fuzz_target.project_qualified_name())
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
-    self.corpus = corpus_manager.FuzzTargetCorpus(
-        self.fuzz_target.engine,
-        self.fuzz_target.project_qualified_name(),
-        include_regressions=True)
-    self.quarantine_corpus = corpus_manager.FuzzTargetCorpus(
-        self.fuzz_target.engine,
-        self.fuzz_target.project_qualified_name(),
-        quarantine=True)
+    self.corpus = corpus_manager.get_fuzz_target_corpus(
+        self.fuzz_target.engine, self.fuzz_target.project_qualified_name(), include_regressions=True)
+    self.quarantine_corpus = corpus_manager.get_fuzz_target_corpus(
+        self.fuzz_target.engine, self.fuzz_target.project_qualified_name(), quarantine=True)
 
   def restore_quarantined_units(self):
     """Restore units from the quarantine."""
@@ -232,11 +228,12 @@ class Context:
 
   def sync_to_disk(self):
     """Sync required corpora to disk."""
-    if not self.corpus.rsync_to_disk(
+    if not corpus_manager.sync_corpus_to_disk(self.corpus,
         self.initial_corpus_path, timeout=SYNC_TIMEOUT):
       raise CorpusPruningError('Failed to sync corpus to disk.')
 
-    if not self.quarantine_corpus.rsync_to_disk(self.quarantine_corpus_path):
+    if not corpus_manager.sync_corpus_to_disk(
+        self.quarantine_corpus, self.quarantine_corpus_path):
       logs.log_error(
           'Failed to sync quarantine corpus to disk.',
           fuzz_target=self.fuzz_target)
@@ -245,7 +242,7 @@ class Context:
 
   def sync_to_gcs(self):
     """Sync corpora to GCS post merge."""
-    if not self.corpus.rsync_from_disk(self.minimized_corpus_path):
+    if not corpus_manager.rsync_from_disk(self.minimized_corpus_path):
       raise CorpusPruningError('Failed to sync minimized corpus to gcs.')
 
   def cleanup(self):

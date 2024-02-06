@@ -950,11 +950,11 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     return False
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.last_updated',
-    exception_types=_TRANSIENT_ERRORS)
+# @retry.wrap(
+#     retries=DEFAULT_FAIL_RETRIES,
+#     delay=DEFAULT_FAIL_WAIT,
+#     function='google_cloud_utils.storage.last_updated',
+#     exception_types=_TRANSIENT_ERRORS)
 def last_updated(cloud_storage_file_path):
   """Return last updated value by parsing stats for all blobs under a cloud
   storage path."""
@@ -1195,7 +1195,7 @@ def exists(remote_path):
 def _error_tolerant_download_signed_url_to_file(url, path):
   try:
     return download_signed_url_to_file(url, path)
-  except *_TRANSIENT_ERRORS:
+  except _TRANSIENT_ERRORS:
     return False
 
 
@@ -1217,14 +1217,15 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_urls):
   # no file has that name. Then the arbitrary names will all use that prefix.
   unique_id = uuid.uuid4()
   base_name = unique_id.hex()
-  remote_directory = remote_directory.endswith('/') else remote_directory + '/'
+  if not remote_directory.endswith('/'):
+    remote_directory = remote_directory + '/'
   base_path = f'{remote_directory}/{base_name}'
   base_search_path = f'{base_path}*'
   if exists(base_search_path):
     # Raise the error and let retry go again. There is a vanishingly small
     # chance that we get more collisions. This is vulnerable to races, but is
     # probably unneeded anyway.
-    raise ValueError(f'UUID collision found {str(unique_id)}'
+    raise ValueError(f'UUID collision found {str(unique_id)}')
 
   return [get_signed_upload_url(f'{base_path}-{idx}')
           for idx in range(num_urls)]

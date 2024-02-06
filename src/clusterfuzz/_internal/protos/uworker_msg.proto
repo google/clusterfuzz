@@ -39,7 +39,23 @@ message FuzzTaskInput {
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
   optional google.datastore.v1.Entity targets_count = 4;
+  optional FuzzTargetCorpus corpus = 5;
 }
+
+message FuzzTargetCorpus {
+  optional Corpus corpus = 1;
+  optional Corpus regressions_corpus = 2;
+}
+
+message Corpus {
+  map<string, string> corpus_urls = 1;
+  optional google.protobuf.Timestamp last_updated_time = 2;
+  optional string gcs_url = 3;
+  // This is not set during preprocess, it is set during uworker_main for book
+  // keeping.
+  map<string, string> filenames_to_delete_urls_mapping = 4;
+}
+
 
 message MinimizeTaskInput {
   optional string testcase_upload_url = 1;
@@ -262,10 +278,4 @@ message Output {
   optional SymbolizeTaskOutput symbolize_task_output = 13;
   optional VariantTaskOutput variant_task_output = 14;
   optional string error_message = 15;
-}
-
-message Corpus {
-  optional repeated string download_urls = 1;
-  optional repeated string upload_urls = 2;
-  optional google.protobuf.Timestamp last_updated_time = 3;
 }
