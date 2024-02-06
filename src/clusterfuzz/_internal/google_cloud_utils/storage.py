@@ -1176,7 +1176,7 @@ def get_blob_signed_upload_url():
   """Returns a pair of (blob_name,signed_upload_url) to be used from utask_main
   to upload blobs."""
   bucket = blobs_bucket()
-  import blobs
+  from clusterfuzz._internal.google_cloud_utils import blobs
   blob_name = blobs.generate_new_blob_name()
   gcs_path = get_cloud_storage_file_path(bucket, blob_name)
   # keep generating paths until no collision is encountered.
