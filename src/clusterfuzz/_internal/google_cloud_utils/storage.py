@@ -651,8 +651,11 @@ class GcsBlobInfo:
       self.size = size
     else:
       gcs_object = get(get_cloud_storage_file_path(bucket, object_path))
-
-      self.filename = gcs_object['metadata'].get(BLOB_FILENAME_METADATA_KEY)
+      if 'metadata' in gcs_object.keys():
+        self.filename = gcs_object['metadata'].get(BLOB_FILENAME_METADATA_KEY,
+                                                   None)
+      if not self.filename:
+        logs.log('No BLOB_FILENAME_METADATA_KEY found for: {object_path}')
       self.size = int(gcs_object['size'])
 
     self.legacy_key = legacy_key
