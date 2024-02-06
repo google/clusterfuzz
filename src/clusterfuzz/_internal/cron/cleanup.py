@@ -1070,7 +1070,8 @@ def update_component_labels(policy, testcase, issue):
       policy.substitution_mapping(
           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))
   label_text = issue.issue_tracker.label_text(
-      data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL))
   issue_comment = (
       'Automatically applying components based on crash stacktrace and '
       'information from OWNERS files.\n\n'
@@ -1247,13 +1248,15 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
             data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL))
     issue.assignee = suspected_cl['author']
     issue.status = policy.status('assigned')
+    label_text = issue.issue_tracker.label_text(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL))
     issue_comment = (
         'Automatically assigning owner based on suspected regression '
         f'changelist {suspected_cl["url"]} ({suspected_cl["description"]}).\n\n'
         'If this is incorrect, please let us know why and apply the '
-        f'{data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL} '
-        'label. If you aren\'t the correct owner for this issue, please '
-        'unassign yourself as soon as possible so it can be re-triaged.')
+        f'{label_text}. If you aren\'t the correct owner for this issue, '
+        'please unassign yourself as soon as possible so it can be re-triaged.')
 
   else:
     if testcase.get_metadata('has_issue_ccs_from_predator_results'):
@@ -1302,7 +1305,8 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       return
 
     label_text = issue.issue_tracker.label_text(
-        data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL))
     issue.labels.add(
         policy.substitution_mapping(
             data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))
