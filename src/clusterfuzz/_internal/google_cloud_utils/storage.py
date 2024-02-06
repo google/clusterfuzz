@@ -646,7 +646,6 @@ class GcsBlobInfo:
     self.bucket = bucket
     self.object_path = object_path
 
-
     if filename is not None and size is not None:
       self.filename = filename
       self.size = size
