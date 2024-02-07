@@ -422,8 +422,14 @@ def group_testcases():
         testcase_attributes.issue_id = (
             cached_issue_map[project_name][issue_id])
       else:
-        issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
-            testcase)
+        try:
+          issue_tracker = issue_tracker_utils.get_issue_tracker_for_testcase(
+              testcase)
+        except ValueError:
+          logs.log_error('Couldn\'t get issue tracker for issue.')
+          del testcase_map[testcase_id]
+          continue
+
         if not issue_tracker:
           logs.log_error(
               'Unable to access issue tracker for issue %d.' % issue_id)
