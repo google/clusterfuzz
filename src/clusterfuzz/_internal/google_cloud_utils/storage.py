@@ -1188,7 +1188,7 @@ def download_signed_url_to_file(url, filepath):
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
     fp.write(contents)
-  return True
+  return filepath
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1209,7 +1209,7 @@ def _error_tolerant_download_signed_url_to_file(url, path):
   try:
     return download_signed_url_to_file(url, path)
   except Exception:
-    return False
+    return None
 
 
 def _error_tolerant_upload_signed_url(url, path):
