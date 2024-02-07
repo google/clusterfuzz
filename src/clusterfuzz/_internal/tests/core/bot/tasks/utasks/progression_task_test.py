@@ -129,7 +129,7 @@ class UtaskPreprocessTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_blob_signed_upload_url'
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_signed_upload_url'
     ])
     setup_input = uworker_msg_pb2.SetupInput(fuzzer_name='fuzzer_name')
     self.mock.preprocess_setup_testcase.return_value = setup_input
@@ -210,7 +210,7 @@ class UTaskPostprocessTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.progression_task.crash_on_latest',
         'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
         'clusterfuzz._internal.base.bisection.request_bisection',
-        'clusterfuzz._internal.google_cloud_utils.storage.delete_blob'
+        'clusterfuzz._internal.google_cloud_utils.blobs.delete_blob'
     ])
     self.testcase = test_utils.create_generic_testcase()
     self.progression_task_input = uworker_msg_pb2.ProgressionTaskInput(

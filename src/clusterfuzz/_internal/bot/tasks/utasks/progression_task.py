@@ -32,6 +32,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -120,10 +121,11 @@ def _cleanup_stacktrace_blob_from_storage(
       startswith(data_types.BLOBSTORE_STACK_PREFIX)):
     return
 
-  assert uworker_output.uworker_input.progression_task_input.blob_name
+  if not uworker_output.uworker_input.progression_task_input.blob_name:
+    raise ValueError('blob_name should not be empty here.')
   blob_name = uworker_output.uworker_input.progression_task_input.blob_name
 
-  storage.delete_blob(blob_name)
+  blobs.delete_blob(blob_name)
 
 
 def crash_on_latest(uworker_output: uworker_msg_pb2.Output):
@@ -433,7 +435,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # triage cron.
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
-  blob_name, blob_upload_url = storage.get_blob_signed_upload_url()
+  blob_name, blob_upload_url = blobs.get_blob_signed_upload_url()
   progression_input = uworker_msg_pb2.ProgressionTaskInput(
       custom_binary=build_manager.is_custom_binary(),
       bad_revisions=build_manager.get_job_bad_revisions(),
