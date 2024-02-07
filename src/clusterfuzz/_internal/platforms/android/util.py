@@ -42,7 +42,8 @@ def get_local_path(device_path):
 def is_testcase_deprecated(platform_id=None):
   """Whether or not the Android device is deprecated."""
 
-  # Platform ID for Android is of the form - |android:{codename}_{sanitizer}:{build_version}|
+  # Platform ID for Android is of the form as shown below
+  # |android:{codename}_{sanitizer}:{build_version}|
   platform_id_fields = platform_id.split(':')
   if len(platform_id_fields) != 3:
     return False
@@ -66,7 +67,10 @@ def is_testcase_deprecated(platform_id=None):
 def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
   """Whether or not the testcase can run on the current Android device."""
 
-  # Platform ID for Android is of the form - |android:{codename}_{sanitizer}:{build_version}|
+  del testcase_platform_id # Unused argument for now
+
+  # Platform ID for Android is of the form as shown below
+  # |android:{codename}_{sanitizer}:{build_version}|
   current_platform_id_fields = current_platform_id.split(':')
   if len(current_platform_id_fields) != 3:
     return False

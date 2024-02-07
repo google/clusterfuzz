@@ -326,7 +326,8 @@ def process_command_impl(task_name,
             not utils.fields_match(testcase_platform_id, current_platform_id)):
 
           logs.log(
-              f'Testcase {testcase_id} platform {testcase_platform_id} does not match with ours {current_platform_id}, checking ...'
+              f'Testcase {testcase_id} platform {testcase_platform_id}\
+               does not match with ours {current_platform_id}, checking ...'
           )
 
           # Check if the device or branch is deprecated.
@@ -335,7 +336,8 @@ def process_command_impl(task_name,
                   environment.can_testcase_run_on_platform(
                       testcase_platform_id, current_platform_id)):
             logs.log(
-                'Testcase %d platform (%s) does not match with ours (%s), exiting'
+                'Testcase %d platform (%s) does not match with ours\
+                 (%s), exiting'
                 % (testcase.key.id(), testcase_platform_id,
                    current_platform_id))
             tasks.add_task(
@@ -346,7 +348,8 @@ def process_command_impl(task_name,
             return None
 
           logs.log(
-              f'Testcase {testcase_id} platform {testcase_platform_id} can run on current platform {current_platform_id}'
+              f'Testcase {testcase_id} platform {testcase_platform_id}\
+               can run on current platform {current_platform_id}'
           )
 
     # Some fuzzers contain additional environment variables that should be
