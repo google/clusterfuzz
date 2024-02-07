@@ -275,7 +275,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
   def test_get_libfuzzer_flags(self):
     """Test get_libfuzzer_flags logic."""
     fuzz_target = data_handler.get_fuzz_target('libFuzzer_test_fuzzer')
-    context = corpus_pruning_task.Context(fuzz_target, [])
+    context = corpus_pruning_task.Context(None, fuzz_target, [])
 
     runner = corpus_pruning_task.Runner(self.build_dir, context)
     flags = runner.get_libfuzzer_flags()

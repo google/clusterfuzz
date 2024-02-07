@@ -519,7 +519,7 @@ class GcsCorpus:
     # wrapper when untrusted runner is removed.
     if self.untrusted_runner_gcs_corpus:
       return self.untrusted_runner_gcs_corpus.get_gcs_url()
-    return self.proto_gcs_corpus.gcs_url
+    return self.proto_gcs_corpus.corpus.gcs_url
 
   def _sync_to_disk(self, corpus_directory):
     if self.untrusted_runner_gcs_corpus:
@@ -576,8 +576,9 @@ class GcsCorpus:
     if self.untrusted_runner_gcs_corpus:
       result = self.untrusted_runner_gcs_corpus.upload_files(new_files)
     else:
-      result = corpus_manager.proto_upload_files(self.proto_gcs_corpus,
-                                                 new_files)
+      result = corpus_manager.corpus_upload_files(self.proto_gcs_corpus,
+                                                  new_files)
+
     self._synced_files.update(new_files)
     return result
 

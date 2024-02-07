@@ -238,11 +238,11 @@ class Context:
   def sync_to_disk(self):
     """Sync required corpora to disk."""
     if not corpus_manager.fuzz_target_corpus_sync_to_disk(
-        self.corpus, self.initial_corpus_path, timeout=SYNC_TIMEOUT):
+        self.corpus, self.initial_corpus_path):
       raise CorpusPruningError('Failed to sync corpus to disk.')
 
-    if not corpus_manager.sync_corpus_to_disk(self.quarantine_corpus,
-                                              self.quarantine_corpus_path):
+    if not corpus_manager.fuzz_target_corpus_sync_to_disk(
+        self.quarantine_corpus, self.quarantine_corpus_path):
       logs.log_error(
           'Failed to sync quarantine corpus to disk.',
           fuzz_target=self.fuzz_target)
@@ -251,7 +251,8 @@ class Context:
 
   def sync_to_gcs(self):
     """Sync corpora to GCS post merge."""
-    if not corpus_manager.rsync_from_disk(self.minimized_corpus_path):
+    if not corpus_manager.fuzz_target_corpus_sync_from_disk(
+        self.corpus, self.minimized_corpus_path):
       raise CorpusPruningError('Failed to sync minimized corpus to gcs.')
 
   def cleanup(self):
@@ -583,8 +584,7 @@ def do_corpus_pruning(context, revision):
 
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import tasks_host
-    return tasks_host.do_corpus_pruning(context, last_execution_failed,
-                                        revision)
+    return tasks_host.do_corpus_pruning(context, revision)
 
   if not build_manager.setup_build(revision=revision):
     raise CorpusPruningError('Failed to setup build.')
@@ -889,9 +889,6 @@ def utask_main(uworker_input):
                f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
 
-  last_execution_failed = (
-      uworker_input.corpus_pruning_task_input.last_execution_failed)
-
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     error_message = f'Failed to set up fuzzer {fuzz_target.engine}.'
     logs.log_error(error_message)
@@ -909,7 +906,7 @@ def utask_main(uworker_input):
     leak_blacklist.copy_global_to_local_blacklist()
 
   try:
-    result = do_corpus_pruning(context, last_execution_failed, revision)
+    result = do_corpus_pruning(context, revision)
     _record_cross_pollination_stats(result.cross_pollination_stats)
     _save_coverage_information(context, result)
     _process_corpus_crashes(context, result)
@@ -959,16 +956,16 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
-      cross_pollinate_fuzzers=cross_pollinate_fuzzers)
+      cross_pollinate_fuzzers=cross_pollinate_fuzzers,
+      corpus=corpus,
+      quarantine_corpus=quarantine_corpus)
 
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
   if last_execution_failed:
     # TODO(metzman): Is this too expensive to do in preprocess?
-    for corpus_url in [
-        context.corpus.gcs_url, context.quarantine_corpus.gcs_url
-    ]:
+    for corpus_url in [corpus.corpus.gcs_url, quarantine_corpus.corpus.gcs_url]:
       _limit_corpus_size(corpus_url)
 
   return uworker_msg_pb2.Input(

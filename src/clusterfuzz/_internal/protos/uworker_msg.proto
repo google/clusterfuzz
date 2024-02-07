@@ -55,6 +55,7 @@ message Corpus {
   // This is not set during preprocess, it is set during uworker_main for book
   // keeping.
   map<string, string> filenames_to_delete_urls_mapping = 4;
+  repeated string upload_urls = 5;
 }
 
 
@@ -83,8 +84,8 @@ message CorpusPruningTaskInput {
   optional google.datastore.v1.Entity fuzz_target = 1;
   optional bool last_execution_failed = 2;
   repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
-  optional Corpus corpus = 4;
-  optional Quarantine quarantine_corpus = 5;
+  optional FuzzTargetCorpus corpus = 4;
+  optional FuzzTargetCorpus quarantine_corpus = 5;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
