@@ -112,18 +112,17 @@ def handle_progression_revision_list_error(
                                          'Failed to fetch revision list')
 
 
-def _cleanup_stacktrace_blob_from_storage(
-    uworker_output: uworker_msg_pb2.Output):
+def _cleanup_stacktrace_blob_from_storage(output: uworker_msg_pb2.Output):
   """Cleanup the blob created in preprocess if it wasn't used to store the
   filterd stacktrace."""
-  if (uworker_output.HasField('progression_task_output') and
-      uworker_output.progression_task_output.last_tested_crash_stacktrace.
-      startswith(data_types.BLOBSTORE_STACK_PREFIX)):
-    return
+  if output.HasField('progression_task_output'):
+    stacktrace = output.progression_task_output.last_tested_crash_stacktrace
+    if stacktrace.startswith(data_types.BLOBSTORE_STACK_PREFIX):
+      return
 
-  if not uworker_output.uworker_input.progression_task_input.blob_name:
+  if not output.uworker_input.progression_task_input.blob_name:
     raise ValueError('blob_name should not be empty here.')
-  blob_name = uworker_output.uworker_input.progression_task_input.blob_name
+  blob_name = output.uworker_input.progression_task_input.blob_name
 
   blobs.delete_blob(blob_name)
 
