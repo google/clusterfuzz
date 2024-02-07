@@ -167,7 +167,7 @@ class CrossPollinateFuzzer:
 class Context:
   """Pruning state."""
 
-  def __init__(self, fuzz_target, cross_pollinate_fuzzers):
+  def __init__(self, uworker_input, fuzz_target, cross_pollinate_fuzzers):
 
     self.fuzz_target = fuzz_target
     self.cross_pollinate_fuzzers = cross_pollinate_fuzzers
@@ -197,10 +197,19 @@ class Context:
         '%s_bad_units' % self.fuzz_target.project_qualified_name())
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
-    self.corpus = corpus_manager.get_fuzz_target_corpus(
-        self.fuzz_target.engine, self.fuzz_target.project_qualified_name(), include_regressions=True)
-    self.quarantine_corpus = corpus_manager.get_fuzz_target_corpus(
-        self.fuzz_target.engine, self.fuzz_target.project_qualified_name(), quarantine=True)
+    if uworker_input is not None:
+      self.corpus = uworker_input.corpus
+      self.quarantine_corpus = uworker_input.quarantine_corpus
+    else:
+      # Delete this branch after we get rid of untrusted runnner.
+      self.corpus = corpus_manager.FuzzTargetCorpus(
+          self.fuzz_target.engine,
+          self.fuzz_target.project_qualified_name(),
+          include_regressions=True)
+      self.quarantine_corpus = corpus_manager.FuzzTargetCorpus(
+          self.fuzz_target.engine,
+          self.fuzz_target.project_qualified_name(),
+          quarantine=True)
 
   def restore_quarantined_units(self):
     """Restore units from the quarantine."""
@@ -228,12 +237,12 @@ class Context:
 
   def sync_to_disk(self):
     """Sync required corpora to disk."""
-    if not corpus_manager.sync_corpus_to_disk(self.corpus,
-        self.initial_corpus_path, timeout=SYNC_TIMEOUT):
+    if not corpus_manager.fuzz_target_corpus_sync_to_disk(
+        self.corpus, self.initial_corpus_path, timeout=SYNC_TIMEOUT):
       raise CorpusPruningError('Failed to sync corpus to disk.')
 
-    if not corpus_manager.sync_corpus_to_disk(
-        self.quarantine_corpus, self.quarantine_corpus_path):
+    if not corpus_manager.sync_corpus_to_disk(self.quarantine_corpus,
+                                              self.quarantine_corpus_path):
       logs.log_error(
           'Failed to sync quarantine corpus to disk.',
           fuzz_target=self.fuzz_target)
@@ -566,7 +575,7 @@ def _record_cross_pollination_stats(stats):
   client.insert([big_query.Insert(row=bigquery_row, insert_id=None)])
 
 
-def do_corpus_pruning(context, last_execution_failed, revision):
+def do_corpus_pruning(context, revision):
   """Run corpus pruning."""
   # Set |FUZZ_TARGET| environment variable to help with unarchiving only fuzz
   # target and its related files.
@@ -585,16 +594,6 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   runner = Runner(build_directory, context)
   pruner = CorpusPruner(runner)
   fuzzer_binary_name = os.path.basename(runner.target_path)
-
-  # If our last execution failed, shrink to a randomized corpus of usable size
-  # to prevent corpus from growing unbounded and recurring failures when trying
-  # to minimize it.
-  if last_execution_failed:
-    for corpus_url in [
-        context.corpus.get_gcs_url(),
-        context.quarantine_corpus.get_gcs_url()
-    ]:
-      _limit_corpus_size(corpus_url)
 
   # Get initial corpus to process from GCS.
   context.sync_to_disk()
@@ -661,8 +660,8 @@ def do_corpus_pruning(context, last_execution_failed, revision):
   coverage_info.quarantine_size_units = quarantine_corpus_size
   coverage_info.quarantine_size_bytes = quarantine_corpus_dir_size
   coverage_info.corpus_backup_location = corpus_backup_url
-  coverage_info.corpus_location = context.corpus.get_gcs_url()
-  coverage_info.quarantine_location = context.quarantine_corpus.get_gcs_url()
+  coverage_info.corpus_location = context.corpus.gcs_url
+  coverage_info.quarantine_location = context.quarantine_corpus.gcs_url
 
   # Calculate remaining time to use for shared corpus merging.
   time_remaining = _get_time_remaining(start_time)
@@ -901,7 +900,7 @@ def utask_main(uworker_input):
 
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers_from_protos(
       uworker_input.corpus_pruning_task_input.cross_pollinate_fuzzers)
-  context = Context(fuzz_target, cross_pollinate_fuzzers)
+  context = Context(uworker_input, fuzz_target, cross_pollinate_fuzzers)
 
   # Copy global blacklist into local suppressions file if LSan is enabled.
   is_lsan_enabled = environment.get_value('LSAN')
@@ -951,10 +950,26 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
       fuzz_target.engine, fuzzer_name)
 
+  corpus = corpus_manager.get_fuzz_target_corpus(
+      fuzz_target.engine,
+      fuzz_target.project_qualified_name(),
+      include_regressions=True)
+  quarantine_corpus = corpus_manager.get_fuzz_target_corpus(
+      fuzz_target.engine, fuzz_target.project_qualified_name(), quarantine=True)
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
       cross_pollinate_fuzzers=cross_pollinate_fuzzers)
+
+  # If our last execution failed, shrink to a randomized corpus of usable size
+  # to prevent corpus from growing unbounded and recurring failures when trying
+  # to minimize it.
+  if last_execution_failed:
+    # TODO(metzman): Is this too expensive to do in preprocess?
+    for corpus_url in [
+        context.corpus.gcs_url, context.quarantine_corpus.gcs_url
+    ]:
+      _limit_corpus_size(corpus_url)
 
   return uworker_msg_pb2.Input(
       job_type=job_type,

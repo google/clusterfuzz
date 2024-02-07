@@ -44,13 +44,12 @@ def _proto_to_cross_pollinate_fuzzer(proto):
 def prune_corpus(request, _):
   """Prune corpus."""
   context = corpus_pruning_task.Context(
-      _proto_to_fuzz_target(request.fuzz_target), [
+      None, _proto_to_fuzz_target(request.fuzz_target), [
           _proto_to_cross_pollinate_fuzzer(proto)
           for proto in request.cross_pollinate_fuzzers
       ])
 
-  result = corpus_pruning_task.do_corpus_pruning(
-      context, request.last_execution_failed, request.revision)
+  result = corpus_pruning_task.do_corpus_pruning(context, request.revision)
 
   cross_pollination_stats = None
   if result.cross_pollination_stats:

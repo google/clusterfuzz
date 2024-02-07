@@ -13,7 +13,6 @@
 # limitations under the License.
 """Test to see if test cases are fixed."""
 
-import os
 import time
 from typing import List
 
@@ -388,7 +387,7 @@ def _set_regression_testcase_upload_url(
     return
   progression_input.regression_testcase_url = (
       corpus_manager.get_regressions_signed_upload_url(
-          fuzz_target.engine, fuzz_target.project_qualified_name())
+          fuzz_target.engine, fuzz_target.project_qualified_name()))
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):

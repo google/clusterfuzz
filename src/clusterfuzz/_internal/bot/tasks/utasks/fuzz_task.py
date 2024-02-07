@@ -100,8 +100,9 @@ Context = collections.namedtuple('Context', [
 ])
 Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
 
-GenerateBlackboxTestcasesResult = collections.namedtuple('GenerateBlackboxTestcasesResult',
-                                                         ['success', 'testcase_file_paths', 'fuzzer_metadata'])
+GenerateBlackboxTestcasesResult = collections.namedtuple(
+    'GenerateBlackboxTestcasesResult',
+    ['success', 'testcase_file_paths', 'fuzzer_metadata'])
 
 
 def do_multiarmed_bandit_strategy_selection(uworker_env):
@@ -488,14 +489,15 @@ class GcsCorpus:
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as remote_corpus_manager
-      self.untrusted_runner_gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
-          engine_name, project_qualified_target_name)
+      self.untrusted_runner_gcs_corpus = (
+          remote_corpus_manager.RemoteFuzzTargetCorpus(
+              engine_name, project_qualified_target_name))
       self.proto_gcs_corpus = None
     else:
       # TODO(metzman): After fuzz target selection is moved to preprocess, move
       # this to preprocess.
       self.untrusted_runner_gcs_corpus = None
-      self.proto_gcs_corpus = get_fuzz_target_corpus(
+      self.proto_gcs_corpus = corpus_manager.get_fuzz_target_corpus(
           engine_name, project_qualified_target_name)
 
     self._corpus_directory = corpus_directory
@@ -512,7 +514,6 @@ class GcsCorpus:
         for filename in files:
           yield os.path.join(root, filename)
 
-
   def _get_gcs_url(self):
     # TODO(https://github.com/google/clusterfuzz/issues/3726): Get rid of this
     # wrapper when untrusted runner is removed.
@@ -520,13 +521,13 @@ class GcsCorpus:
       return self.untrusted_runner_gcs_corpus.get_gcs_url()
     return self.proto_gcs_corpus.gcs_url
 
-
   def _sync_to_disk(self, corpus_directory):
     if self.untrusted_runner_gcs_corpus:
       self.untrusted_runner_gcs_corpus.rsync_to_disk(corpus_directory)
       return
 
-    corpus_manager.fuzz_target_corpus_sync_to_disk(self.proto_gcs_corpus)
+    corpus_manager.fuzz_target_corpus_sync_to_disk(self.proto_gcs_corpus,
+                                                   corpus_directory)
 
   def sync_from_gcs(self):
     """Update sync state after a sync from GCS."""
@@ -573,9 +574,10 @@ class GcsCorpus:
   def upload_files(self, new_files):
     """Update state after files are uploaded."""
     if self.untrusted_runner_gcs_corpus:
-      result = self.untrusted_runner_gcs_corpus.upload_files(files)
+      result = self.untrusted_runner_gcs_corpus.upload_files(new_files)
     else:
-      result = corpus_manager.proto_upload_files(self.proto_gcs_corpus, files)
+      result = corpus_manager.proto_upload_files(self.proto_gcs_corpus,
+                                                 new_files)
     self._synced_files.update(new_files)
     return result
 
@@ -1402,8 +1404,8 @@ class FuzzingSession:
 
     self.gcs_corpus.upload_files(filtered_new_files)
 
-  def generate_blackbox_testcases(self, fuzzer, fuzzer_directory,
-                                  testcase_count) -> GenerateBlackboxTestcasesResult:
+  def generate_blackbox_testcases(self, fuzzer, fuzzer_directory, testcase_count
+                                 ) -> GenerateBlackboxTestcasesResult:
     """Run the blackbox fuzzer and generate testcases."""
     # Helper variables.
     fuzzer_name = fuzzer.name
@@ -1531,8 +1533,8 @@ class FuzzingSession:
 
     # Make sure that there are testcases generated. If not, set the error flag.
     success = bool(testcase_file_paths)
-    return GenerateBlackboxTestcasesResult(success, testcase_file_paths fuzzer_metadata)
-
+    return GenerateBlackboxTestcasesResult(success, testcase_file_paths,
+                                           fuzzer_metadata)
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
@@ -1562,7 +1564,7 @@ class FuzzingSession:
 
     # Do the actual fuzzing.
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
-      logs.log('Fuzzing round {}.'.format(fuzzing_round))
+      logs.log(f'Fuzzing round {fuzzing_round}.')
       result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
           engine_impl, self.fuzz_target.binary, sync_corpus_directory,
           self.testcase_directory)
@@ -1622,7 +1624,8 @@ class FuzzingSession:
 
     # Run the fuzzer to generate testcases. If error occurred while trying
     # to run the fuzzer, bail out.
-    generate_result = self.generate_blackbox_testcases(fuzzer, fuzzer_directory, testcase_count)
+    generate_result = self.generate_blackbox_testcases(fuzzer, fuzzer_directory,
+                                                       testcase_count)
 
     if not generate_result.success:
       return None, None, None, None
@@ -1766,10 +1769,8 @@ class FuzzingSession:
       crashes = [
           Crash.from_testcase_manager_crash(crash) for crash in crashes if crash
       ]
-    return (generate_result.fuzzer_metadata,
-            testcase_file_paths,
-            testcases_metadata,
-            crashes)
+    return (generate_result.fuzzer_metadata, testcase_file_paths,
+            testcases_metadata, crashes)
 
   def run(self):
     """Run the fuzzing session."""

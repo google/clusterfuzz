@@ -98,12 +98,25 @@ def _count_corpus_files(directory):
   return shell.get_directory_file_count(directory)
 
 
+def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
+                            project_qualified_target_name, date):
+  """Build GCS URL for corpus backup file for the given date.
+
+  Returns:
+    A string giving the GCS url.
+  """
+  backup_dir = gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
+                                            project_qualified_target_name)
+  backup_file = str(date) + os.extsep + BACKUP_ARCHIVE_FORMAT
+  return f'{backup_dir.rstrip("/")}/{backup_file}'
+
+
 def backup_corpus(backup_bucket_name, corpus, directory):
   """Archive and store corpus as a backup.
 
   Args:
     backup_bucket_name: Backup bucket.
-    corpus: The FuzzTargetCorpus.
+    corpus: uworker_msg.FuzzTargetCorpus.
     directory: Path to directory to be archived and backuped.
 
   Returns:
@@ -163,9 +176,8 @@ def gcs_url_for_backup_directory(backup_bucket_name, fuzzer_name,
 
 def _get_regressions_corpus_gcs_url(bucket_name, bucket_path):
   """Return gcs path to directory containing crash regressions."""
-  return _get_gcs_url(self.bucket_name,
-                      self.bucket_path,
-                      suffix=REGRESSIONS_GCS_PATH_SUFFIX)
+  return _get_gcs_url(
+      self.bucket_name, self.bucket_path, suffix=REGRESSIONS_GCS_PATH_SUFFIX)
 
 
 def download_corpus(corpus, directory):
@@ -189,6 +201,7 @@ def _get_gcs_url(bucket_name, bucket_path, suffix=''):
 
   return url
 
+
 def get_proto_corpus(bucket_name, bucket_path):
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
   corpus_urls = {}
@@ -201,15 +214,14 @@ def get_proto_corpus(bucket_name, bucket_path):
     corpus_urls[get_signed_download_url(corpus_element_url)] = (
         get_signed_delete_url(corpus_element_url))
 
-  upload_urls = get_arbitrary_signed_upload_urls(
-        remote_directory, max_uploads)
+  upload_urls = get_arbitrary_signed_upload_urls(remote_directory, max_uploads)
   last_updated = storage.last_updated(get_gcs_url(bucket_name, bucket_path))
   corpus = uworker_msg_pb2.Corpus(
-        download_urls=download_urls,
-        delete_urls=delete_urls,
-        upload_urls=upload_urls,
-        gcs_url=gcs_url,
-    )
+      download_urls=download_urls,
+      delete_urls=delete_urls,
+      upload_urls=upload_urls,
+      gcs_url=gcs_url,
+  )
   if last_updated:
     timestamp = timestamp_pb2.Timestamp()
     corpus.last_updated = timestamp.FromDatetime(timestamp)
@@ -217,7 +229,9 @@ def get_proto_corpus(bucket_name, bucket_path):
   return corpus
 
 
-def get_target_bucket_and_path(engine, project_qualified_target_name, quarantine=False):
+def get_target_bucket_and_path(engine,
+                               project_qualified_target_name,
+                               quarantine=False):
   engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
   if quarantine:
     sync_corpus_bucket_name = environment.get_value('QUARANTINE_BUCKET')
@@ -228,7 +242,10 @@ def get_target_bucket_and_path(engine, project_qualified_target_name, quarantine
   return sync_corpus_bucket_name, f'/{engine}/{project_qualified_target_name}'
 
 
-def get_fuzz_target_corpus(engine, project_qualified_target_name, quarantine=False, include_regressions=False):
+def get_fuzz_target_corpus(engine,
+                           project_qualified_target_name,
+                           quarantine=False,
+                           include_regressions=False):
   fuzz_target_corpus = uworker_msg.FuzzTargetCorpus()
   bucket_name, bucket_path = get_target_bucket_and_path(
       engine, project_qualified_target_name, quarantine)
@@ -243,8 +260,8 @@ def get_fuzz_target_corpus(engine, project_qualified_target_name, quarantine=Fal
 
 
 def get_regressions_signed_upload_url(engine, project_qualified_target_name):
-  bucket, path = get_target_bucket_and_path(
-      engine, project_qualified_target_name)
+  bucket, path = get_target_bucket_and_path(engine,
+                                            project_qualified_target_name)
   regression_url = _get_regressions_corpus_gcs_url(bucket, path)
   return get_arbitrary_signed_upload_url(regression_url)
 
@@ -257,7 +274,9 @@ def _sync_corpus_to_disk(corpus, directory, timeout):
   return result.count(False) < MAX_SYNC_ERRORS
 
 
-def fuzz_target_corpus_sync_to_disk(fuzz_target_corpus, directory, timeout=SYNC_TIMEOUT) -> bool:
+def fuzz_target_corpus_sync_to_disk(fuzz_target_corpus,
+                                    directory,
+                                    timeout=SYNC_TIMEOUT) -> bool:
   if not _sync_corpus_to_disk(
       fuzz_target_corpus.corpus, directory, timeout=timeout, delete=delete):
     return False

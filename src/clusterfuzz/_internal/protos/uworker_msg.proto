@@ -83,6 +83,8 @@ message CorpusPruningTaskInput {
   optional google.datastore.v1.Entity fuzz_target = 1;
   optional bool last_execution_failed = 2;
   repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
+  optional Corpus corpus = 4;
+  optional Quarantine quarantine_corpus = 5;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
