@@ -1207,7 +1207,7 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 def _error_tolerant_download_signed_url_to_file(url, path):
   try:
-    return download_signed_url_to_file(url, path)
+    return download_signed_url_to_file(url, path), url
   except Exception:
     return None
 

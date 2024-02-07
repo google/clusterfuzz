@@ -535,9 +535,13 @@ def get_regressions_signed_upload_url(engine, project_qualified_target_name):
 
 def _sync_corpus_to_disk(corpus, directory):
   shell.create_directory(directory, create_intermediates=True)
-  result = storage.download_signed_urls(corpus.corpus_urls, directory)
+  results = storage.download_signed_urls(corpus.corpus_urls, directory)
+  for filepath, upload_url in results:
+    corpus.filenames_to_delete_urls_mapping[filepath] = (
+        corpus.corpus_urls[upload_url])
+
   # TODO(metzman): Add timeout and tolerance for missing URLs.
-  return result.count(None) < MAX_SYNC_ERRORS
+  return results.count(None) < MAX_SYNC_ERRORS
 
 
 def fuzz_target_corpus_sync_to_disk(fuzz_target_corpus, directory) -> bool:
@@ -563,15 +567,15 @@ def corpus_upload_files(corpus, filepaths):
 
 def fuzz_target_corpus_sync_from_disk(fuzz_target_corpus, directory) -> bool:
   """Sync fuzz target corpus from disk to GCS."""
-  files_to_delete = (
+  files_to_delete_urls = (
       fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping.copy())
   files_to_upload = []
   for filepath in shell.get_files_list(directory):
     files_to_upload.append(filepath)
-    if filepath in files_to_delete:
-      del files_to_delete[filepath]
+    if filepath in files_to_delete_urls:
+      del files_to_delete_urls[filepath]
   results = corpus_upload_files(fuzz_target_corpus.corpus, files_to_upload)
-  storage.delete_signed_urls(files_to_delete.values())
+  storage.delete_signed_urls(files_to_delete_urls.values())
   logs.log(f'{results.count(True)} corpus files uploaded.')
   return results.count(False) < MAX_SYNC_ERRORS
 

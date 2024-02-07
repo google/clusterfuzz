@@ -359,7 +359,7 @@ def _is_testcase_minimized(testcase):
 
 def download_testcase(testcase_download_url, dst):
   logs.log(f'Downloading testcase from: {testcase_download_url}')
-  return bool(storage.download_signed_url_to_file(testcase_download_url, dst))
+  return storage.download_signed_url_to_file(testcase_download_url, dst)
 
 
 def unpack_testcase(testcase, testcase_download_url):
