@@ -210,7 +210,7 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.update_task.get_source_url',
         'clusterfuzz._internal.base.utils.read_data_from_file',
     ])
-    self.mock.get_source_url.return_value = 'gs://clusterfuzz-deployment/test-deployment/linux-3.zip'
+    self.mock.get_source_url.return_value = 'gs://clusterfuzz-deployment/linux-3.zip'
     self.mock.read_data_from_file.return_value = b'version'
 
   def tearDown(self):
@@ -238,8 +238,8 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
     """Tests that all files in the zip archive are correctly unpacked."""
     update_task.update_source_code()
     zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
-    storage.copy_file_from(
-        'gs://clusterfuzz-deployment/test-deployment/linux-3.zip', zipfile_path)
+    storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
+                           zipfile_path)
     archive = zipfile.ZipFile(zipfile_path)
     for file in archive.namelist():
       if os.path.basename(file) == 'adb':
@@ -250,8 +250,8 @@ class UpdateSourceCodeIntegrationTest(unittest.TestCase):
     """Tests that the exectuable bit is correctly propagated to source files."""
     update_task.update_source_code()
     zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
-    storage.copy_file_from(
-        'gs://clusterfuzz-deployment/test-deployment/linux-3.zip', zipfile_path)
+    storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
+                           zipfile_path)
     archive = zipfile.ZipFile(zipfile_path)
     for member in archive.infolist():
       if os.path.basename(member.filename) == 'adb':

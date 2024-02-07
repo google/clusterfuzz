@@ -113,11 +113,11 @@ class BaseEditHandler(base_handler.GcsUploadHandler):
       return launcher_script
 
     reader = self._read_to_bytesio(upload_info.gcs_path)
-    archive_reader = archive.open(upload_info.filename, reader)
-    launcher_script = archive_reader.get_first_file_matching(launcher_script)
-    if not launcher_script:
-      raise helpers.EarlyExitError(
-          'Specified launcher script was not found in archive!', 400)
+    with archive.open(upload_info.filename, reader) as archive_reader:
+      launcher_script = archive_reader.get_first_file_matching(launcher_script)
+      if not launcher_script:
+        raise helpers.EarlyExitError(
+            'Specified launcher script was not found in archive!', 400)
 
     return launcher_script
 

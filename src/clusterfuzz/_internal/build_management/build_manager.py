@@ -612,10 +612,12 @@ class Build(BaseBuild):
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
     for archive_file in reader.list_members():
-      if fuzzer_utils.is_fuzz_target_local(archive_file.name,
-                                           reader.try_open(archive_file.name)):
+      file_handle = reader.try_open(archive_file.name)
+      if fuzzer_utils.is_fuzz_target_local(archive_file.name, file_handle):
         fuzz_target = _normalize_target_name(archive_file.name)
         yield fuzz_target
+      if file_handle:
+        file_handle.close()
 
   def _get_fuzz_targets_from_dir(self, build_dir):
     """Get iterator of fuzz targets from build dir."""
