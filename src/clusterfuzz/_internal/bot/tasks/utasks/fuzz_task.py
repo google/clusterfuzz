@@ -492,9 +492,11 @@ class GcsCorpus:
           engine_name, project_qualified_target_name)
       self.proto_gcs_corpus = None
     else:
+      # TODO(metzman): After fuzz target selection is moved to preprocess, move
+      # this to preprocess.
       self.untrusted_runner_gcs_corpus = None
-      # !!!
-      self.proto_gcs_corpus = get_proto_corpus(engine_name, project_qualified_target_name)
+      self.proto_gcs_corpus = get_fuzz_target_corpus(
+          engine_name, project_qualified_target_name)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -572,9 +574,9 @@ class GcsCorpus:
     """Update state after files are uploaded."""
     if self.untrusted_runner_gcs_corpus:
       result = self.untrusted_runner_gcs_corpus.upload_files(files)
-    result = corpus_manager.proto_upload_files(self.proto_gcs_corpus)
+    else:
+      result = corpus_manager.proto_upload_files(self.proto_gcs_corpus, files)
     self._synced_files.update(new_files)
-
     return result
 
   def get_new_files(self):

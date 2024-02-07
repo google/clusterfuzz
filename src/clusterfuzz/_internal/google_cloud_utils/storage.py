@@ -154,6 +154,14 @@ class StorageProvider:
     """Uploads |data| to |signed_url|."""
     raise NotImplementedError
 
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    raise NotImplementedError
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
+    raise NotImplementedError
+
 
 class GcsProvider(StorageProvider):
   """GCS storage provider."""
@@ -382,6 +390,14 @@ class GcsProvider(StorageProvider):
     """Uploads |data| to |signed_url|."""
     requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
     return True
+
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+     return _sign_url(remote_path, method='DELETE', SIGNED_URL_EXPIRATION_MINUTES)
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
+    requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
 
 
 # TODO(metzman): Consider whether to remove this since it's not making any calls
@@ -634,6 +650,15 @@ class FileSystemProvider(StorageProvider):
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
     return self.write_data(data, signed_url)
+
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    del minutes
+    return remote_path
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
+    self.delete(remote_path)
 
 
 class GcsBlobInfo:
@@ -1195,20 +1220,55 @@ def exists(remote_path):
 def _error_tolerant_download_signed_url_to_file(url, path):
   try:
     return download_signed_url_to_file(url, path)
-  except _TRANSIENT_ERRORS:
+  except Exception:
     return False
 
+
+def _error_tolerant_upload_signed_url(url, path):
+  try:
+    with open(path, 'rb') as fp:
+      return upload_signed_url(fp.read(), url)
+  except Exception:
+    return False
+
+
+def delete_signed_url(url):
+  """Makes a DELETE HTTP request to |url|."""
+  _provider().delete_signed_url(url)
+
+
+def _error_tolerant_delete_signed_url(url):
+  try:
+    return delete_signed_url(url)
+  except Exception:
+    return False
+
+
+def upload_signed_urls(signed_urls, files):
+  thread_pool = _thread_pool()
+  return thread_pool.starmap(_error_tolerant_download_signed_url_to_file,
+                             zip(signed_urls, files))
+
+def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  return _provider().sign_delete_url(remote_path, minutes)
 
 
 def download_signed_urls(signed_urls, directory):
   thread_pool = _thread_pool()
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
-  filepaths = [os.path.join(directory, str(idx))
+  basename = uuid.uuid4().hex()
+  filepaths = [os.path.join(directory, f'{basename}-{idx}'))
                for idx in range(len(signed_urls))]
-  thread_pool.starmap(_error_tolerant_download_signed_url_to_file,
-                      zip(signed_urls, filepaths))
+  return thread_pool.starmap(_error_tolerant_download_signed_url_to_file,
+                             zip(signed_urls, filepaths))
 
+def delete_signed_urls(urls):
+  return thread_pool.starmap(_error_tolerant_delete_signed_url,
+                             urls)
+
+def get_arbitrary_signed_upload_url(remote_directory):
+  return get_arbitrary_signed_upload_urls(remote_directory, num_urls=1)[0]
 
 def get_arbitrary_signed_upload_urls(remote_directory, num_urls):
   # We verify there are no collisions for uuid4s in CF because it would be bad

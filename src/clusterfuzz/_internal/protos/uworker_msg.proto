@@ -48,6 +48,7 @@ message FuzzTargetCorpus {
 }
 
 message Corpus {
+  // URLs for downloading and deleting corpus elements.
   map<string, string> corpus_urls = 1;
   optional google.protobuf.Timestamp last_updated_time = 2;
   optional string gcs_url = 3;
