@@ -141,7 +141,7 @@ def _make_space(requested_size, current_build_dir=None):
       return True
 
     if not _evict_build(current_build_dir):
-      logs.log_error(error_message)
+      logs.log_perror(error_message)
       return False
 
   free_disk_space = shell.get_free_disk_space(builds_directory)
@@ -303,7 +303,7 @@ def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
     logs.log_error('No fuzz targets found. Unable to pick random one.')
     return None
 
-  environment.set_value('FUZZ_TARGET_COUNT', len(fuzz_targets))
+  environment.set_value('FUZZ_TARGETS', ','.join(fuzz_targets))
 
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
@@ -398,7 +398,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
           llvm_symbolizer_path = os.path.join(root, llvm_symbolizer_filename)
           set_env_var('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
 
-  if app_name and not absolute_file_path:
+  if not absolute_file_path:
     logs.log_error(f'Could not find app {app_name!r} in search directories.')
 
 
@@ -423,11 +423,12 @@ class BaseBuild:
 class Build(BaseBuild):
   """Represent a build type at a particular revision."""
 
-  def __init__(self, base_build_dir, revision, build_prefix=''):
+  def __init__(self, base_build_dir, revision, build_prefix='', fuzz_targets=None):
     super().__init__(base_build_dir)
     self.revision = revision
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
+    self.fuzz_targets = fuzz_targets
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -622,6 +623,7 @@ class Build(BaseBuild):
 
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """Selects a fuzz target for fuzzing."""
+    self.fuzz_targets = fuzz_targets
     return _set_random_fuzz_target_for_fuzzing_if_needed(
         fuzz_targets, target_weights)
 
@@ -728,7 +730,8 @@ class RegularBuild(Build):
                revision,
                build_url,
                target_weights=None,
-               build_prefix=''):
+               build_prefix='',
+               fuzz_targets=None):
     super().__init__(base_build_dir, revision, build_prefix)
     self.build_url = build_url
 
@@ -811,6 +814,7 @@ class FuchsiaBuild(RegularBuild):
 
     # Select a fuzzer, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
+    self.fuzz_targets = fuzz_targets
     _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
                                                   self.target_weights)
 
@@ -1221,7 +1225,8 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
 
-  return setup_regular_build(revision, bucket_path=fuzz_target_bucket_path)
+  return setup_regular_build(revision, bucket_path=fuzz_target_bucket_path,
+                             fuzz_targets=targets_list)
 
 
 def _get_latest_revision(bucket_paths):
@@ -1281,7 +1286,8 @@ def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
 def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
-                        target_weights=None):
+                        target_weights=None,
+                        fuzz_targets=None):
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1317,7 +1323,8 @@ def setup_regular_build(revision,
       revision,
       build_url,
       target_weights=target_weights,
-      build_prefix=build_prefix)
+      build_prefix=build_prefix,
+      fuzz_targets=fuzz_targets)
   if build.setup():
     result = build
   else:
