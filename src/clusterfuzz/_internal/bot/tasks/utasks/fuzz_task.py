@@ -524,10 +524,10 @@ class GcsCorpus:
   def _sync_to_disk(self, corpus_directory):
     if self.untrusted_runner_gcs_corpus:
       self.untrusted_runner_gcs_corpus.rsync_to_disk(corpus_directory)
-      return
-
+      return True
     corpus_manager.fuzz_target_corpus_sync_to_disk(self.proto_gcs_corpus,
                                                    corpus_directory)
+    return True
 
   def sync_from_gcs(self):
     """Update sync state after a sync from GCS."""
@@ -576,8 +576,8 @@ class GcsCorpus:
     if self.untrusted_runner_gcs_corpus:
       result = self.untrusted_runner_gcs_corpus.upload_files(new_files)
     else:
-      result = corpus_manager.corpus_upload_files(self.proto_gcs_corpus,
-                                                  new_files)
+      result = corpus_manager.fuzz_target_corpus_upload_files(
+          self.proto_gcs_corpus, new_files)
 
     self._synced_files.update(new_files)
     return result
@@ -1627,7 +1627,6 @@ class FuzzingSession:
     # to run the fuzzer, bail out.
     generate_result = self.generate_blackbox_testcases(fuzzer, fuzzer_directory,
                                                        testcase_count)
-
     if not generate_result.success:
       return None, None, None, None
 
@@ -1751,9 +1750,6 @@ class FuzzingSession:
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import file_host
       file_host.pull_testcases_from_worker()
-
-    # Synchronize corpus files with GCS after fuzzing
-    self.sync_new_corpus_files()
 
     # Currently, the decision to do fuzzing or running the testcase is based on
     # the value of |FUZZ_CORPUS_DIR|. Reset it to None, so that later runs of

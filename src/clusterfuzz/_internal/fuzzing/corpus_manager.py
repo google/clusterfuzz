@@ -489,7 +489,8 @@ def get_proto_corpus(bucket_name, bucket_path):
   )
   if last_updated:
     timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
-    corpus.last_updated_time.CopyFrom(timestamp_pb2.FromDatetime(timestamp))
+    timestamp.FromDatetime(last_updated)
+    corpus.last_updated_time.CopyFrom(timestamp)
 
   return corpus
 
@@ -558,26 +559,29 @@ def fuzz_target_corpus_sync_to_disk(fuzz_target_corpus, directory) -> bool:
   return True
 
 
-def corpus_upload_files(corpus, filepaths):
+def fuzz_target_corpus_upload_files(corpus, filepaths):
   results = storage.upload_signed_urls(corpus.corpus.upload_urls, filepaths)
   # Make sure we don't reuse upload_urls.
-  corpus.corpus.upload_urls = corpus.corpus.upload_urls[:len(results)]
+  urls_remaining = corpus.corpus.upload_urls[:len(results)]
+  del corpus.corpus.upload_urls[:]
+  corpus.corpus.upload_urls.extend(urls_remaining)
   return results
 
 
 def fuzz_target_corpus_sync_from_disk(fuzz_target_corpus, directory) -> bool:
   """Sync fuzz target corpus from disk to GCS."""
-  files_to_delete_urls = (
-      fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping.copy())
+  files_to_delete = list(
+      fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping.keys())
   files_to_upload = []
   for filepath in shell.get_files_list(directory):
     files_to_upload.append(filepath)
-    if filepath in files_to_delete_urls:
-      del files_to_delete_urls[filepath]
-  results = corpus_upload_files(fuzz_target_corpus.corpus, files_to_upload)
-  storage.delete_signed_urls(files_to_delete_urls.values())
+    if filepath in files_to_delete:
+      del files_to_delete[filepath]
+  results = fuzz_target_corpus_upload_files(fuzz_target_corpus, files_to_upload)
+  urls_to_delete = [
+      fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping[filename]
+      for filename in files_to_delete
+  ]
+  storage.delete_signed_urls(urls_to_delete)
   logs.log(f'{results.count(True)} corpus files uploaded.')
   return results.count(False) < MAX_SYNC_ERRORS
-
-
-# !!! Save filenames when downloading for deletion later.

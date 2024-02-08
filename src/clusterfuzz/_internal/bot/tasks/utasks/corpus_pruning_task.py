@@ -198,8 +198,9 @@ class Context:
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
     if uworker_input is not None:
-      self.corpus = uworker_input.corpus
-      self.quarantine_corpus = uworker_input.quarantine_corpus
+      self.corpus = uworker_input.corpus_pruning_task_input.corpus
+      self.quarantine_corpus = (
+          uworker_input.corpus_pruning_task_input.quarantine_corpus)
     else:
       # Delete this branch after we get rid of untrusted runnner.
       self.corpus = corpus_manager.FuzzTargetCorpus(
@@ -604,6 +605,7 @@ def do_corpus_pruning(context, revision):
   context.restore_quarantined_units()
 
   # Shrink to a minimized corpus using corpus merge.
+
   pruner_stats = pruner.run(context.initial_corpus_path,
                             context.minimized_corpus_path,
                             context.bad_units_path)
@@ -638,7 +640,8 @@ def do_corpus_pruning(context, revision):
   crashes = {}
   pruner.process_bad_units(context.bad_units_path,
                            context.quarantine_corpus_path, crashes)
-  context.quarantine_corpus.rsync_from_disk(context.quarantine_corpus_path)
+  corpus_manager.fuzz_target_corpus_sync_from_disk(
+      context.quarantine_corpus, context.quarantine_corpus_path)
 
   # Store corpus stats into CoverageInformation entity.
   project_qualified_name = context.fuzz_target.project_qualified_name()
@@ -660,8 +663,8 @@ def do_corpus_pruning(context, revision):
   coverage_info.quarantine_size_units = quarantine_corpus_size
   coverage_info.quarantine_size_bytes = quarantine_corpus_dir_size
   coverage_info.corpus_backup_location = corpus_backup_url
-  coverage_info.corpus_location = context.corpus.gcs_url
-  coverage_info.quarantine_location = context.quarantine_corpus.gcs_url
+  coverage_info.corpus_location = context.corpus.corpus.gcs_url
+  coverage_info.quarantine_location = context.quarantine_corpus.corpus.gcs_url
 
   # Calculate remaining time to use for shared corpus merging.
   time_remaining = _get_time_remaining(start_time)
@@ -876,6 +879,8 @@ def _save_coverage_information(context, result):
         _try_save_coverage_information,
         retries=data_handler.DEFAULT_FAIL_RETRIES)
   except Exception as e:
+    # TODO(metzman): Don't catch every exception, it makes testing almost
+    # impossible.
     raise CorpusPruningError(
         'Failed to save corpus pruning result: %s.' % repr(e))
 
@@ -911,6 +916,8 @@ def utask_main(uworker_input):
     _save_coverage_information(context, result)
     _process_corpus_crashes(context, result)
   except Exception:
+    # TODO(metzman): Don't catch every exception, it makes testing almost
+    # impossible.
     logs.log_error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
     return uworker_msg_pb2.Output()

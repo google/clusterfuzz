@@ -58,18 +58,30 @@ class BaseTest:
         'clusterfuzz._internal.bot.tasks.setup.preprocess_update_fuzzer_and_data_bundles',
         'clusterfuzz._internal.fuzzing.corpus_manager.backup_corpus',
         'clusterfuzz._internal.fuzzing.corpus_manager.GcsCorpus.rsync_to_disk',
+        'clusterfuzz._internal.fuzzing.corpus_manager.fuzz_target_corpus_sync_to_disk',
         'clusterfuzz._internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_from_disk',
+        'clusterfuzz._internal.fuzzing.corpus_manager.fuzz_target_corpus_sync_from_disk',
         'clusterfuzz._internal.google_cloud_utils.blobs.write_blob',
         'clusterfuzz._internal.google_cloud_utils.storage.write_data',
         'clusterfuzz.fuzz.engine.get',
+        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_blobs',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
     ])
     self.mock.get.return_value = libFuzzer_engine.Engine()
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
+    self.mock.fuzz_target_corpus_sync_to_disk.side_effect = self._mock_rsync_to_disk
     self.mock.rsync_from_disk.side_effect = self._mock_rsync_from_disk
+    self.mock.fuzz_target_corpus_sync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
     self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
+    self.mock.list_blobs.return_value = []
+    self.mock.get_arbitrary_signed_upload_urls.return_value = (
+        ['https://upload'] * 10000)
+    self.mock.last_updated.return_value = None
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -157,7 +169,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         'clusterfuzz._internal.build_management.build_manager.setup_build',
         'clusterfuzz._internal.base.utils.get_application_id',
         'clusterfuzz._internal.datastore.data_handler.update_task_status',
-        'clusterfuzz._internal.datastore.data_handler.get_task_status'
+        'clusterfuzz._internal.datastore.data_handler.get_task_status',
     ])
     self.mock.setup_build.side_effect = self._mock_setup_build
     self.mock.get_application_id.return_value = 'project'
@@ -206,6 +218,7 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         job_type='libfuzzer_asan_job',
         fuzzer_name='libFuzzer_test_fuzzer',
         uworker_env={})
+    # from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     corpus_pruning_task.utask_main(uworker_input)
 
     quarantined = os.listdir(self.quarantine_dir)

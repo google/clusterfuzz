@@ -1233,8 +1233,8 @@ def _error_tolerant_delete_signed_url(url):
 
 
 def upload_signed_urls(signed_urls, files):
-  return _thread_pool.starmap(_error_tolerant_download_signed_url_to_file,
-                              zip(signed_urls, files))
+  return _thread_pool().starmap(_error_tolerant_download_signed_url_to_file,
+                                zip(signed_urls, files))
 
 
 def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
