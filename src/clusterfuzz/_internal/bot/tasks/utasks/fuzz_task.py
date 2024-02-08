@@ -1903,8 +1903,8 @@ class FuzzingSession:
     if new_targets_count is not None:
       self.fuzz_task_output.new_targets_count = new_targets_count
 
-      self.fuzz_task_output.fully_qualified_fuzzer_name = (
-          self.fully_qualified_fuzzer_name)
+    self.fuzz_task_output.fully_qualified_fuzzer_name = (
+        self.fully_qualified_fuzzer_name)
     self.fuzz_task_output.crash_revision = str(crash_revision)
     self.fuzz_task_output.job_run_timestamp = time.time()
     self.fuzz_task_output.new_crash_count = new_crash_count
@@ -1923,6 +1923,8 @@ class FuzzingSession:
     fuzz_task_output = uworker_output.fuzz_task_output
     postprocess_store_fuzzer_run_results(uworker_output)
     crash_groups = convert_crashes_to_dicts(fuzz_task_output.job_run_crashes)
+    logs.log('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
+             f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
