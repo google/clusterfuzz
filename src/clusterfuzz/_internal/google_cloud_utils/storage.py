@@ -17,6 +17,7 @@ import copy
 import datetime
 import json
 import multiprocessing.pool
+import multiprocessing
 import os
 import shutil
 import threading
@@ -46,6 +47,9 @@ try:
 except ImportError:
   # This is expected to fail on AppEngine.
   pass
+
+
+import itertools
 
 # Usually, authentication time have expiry of ~30 minutes, but keeping this
 # values lower to avoid failures and any future changes.
@@ -744,7 +748,7 @@ def _thread_pool():
   if hasattr(_local, 'thread_pool'):
     return _local.thread_pool
 
-  _local.thread_pool = multiprocessing.pool.ThreadPool(16)
+  _local.thread_pool = multiprocessing.Pool(16)
   return _local.thread_pool
 
 
@@ -1184,8 +1188,11 @@ def str_to_bytes(data):
 
 
 def download_signed_url_to_file(url, filepath):
+  # print('filepath', filepath)
   contents = download_signed_url(url)
-  os.makedirs(os.path.dirname(filepath), exist_ok=True)
+  # !!!
+  # os.makedirs(os.path.dirname(filepath), exist_ok=True)
+  # print('b filepath', filepath)
   with open(filepath, 'wb') as fp:
     fp.write(contents)
   return filepath
@@ -1206,18 +1213,21 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 
 def _error_tolerant_download_signed_url_to_file(url, path):
-  try:
-    return download_signed_url_to_file(url, path), url
-  except Exception:
-    return None
+  return download_signed_url_to_file(url, path), url
+  # try:
+  #   print('j')
+  #   return download_signed_url_to_file(url, path), url
+  # except Exception:
+  #   return None
 
 
 def _error_tolerant_upload_signed_url(url, path):
-  try:
-    with open(path, 'rb') as fp:
-      return upload_signed_url(fp.read(), url)
-  except Exception:
-    return False
+  # !!!
+  # try:
+  with open(path, 'rb') as fp:
+    return upload_signed_url(fp, url)
+  # except Exception:
+  #   return False
 
 
 def delete_signed_url(url):
@@ -1233,7 +1243,8 @@ def _error_tolerant_delete_signed_url(url):
 
 
 def upload_signed_urls(signed_urls, files):
-  return _thread_pool().starmap(_error_tolerant_download_signed_url_to_file,
+  # !!!
+  return _thread_pool().starmap(_error_tolerant_upload_signed_url,
                                 zip(signed_urls, files))
 
 
@@ -1249,12 +1260,24 @@ def download_signed_urls(signed_urls, directory):
       os.path.join(directory, f'{basename}-{idx}')
       for idx in range(len(signed_urls))
   ]
+  print('z')
   return _thread_pool().starmap(_error_tolerant_download_signed_url_to_file,
                                 zip(signed_urls, filepaths))
 
 
 def delete_signed_urls(urls):
   return _thread_pool().starmap(_error_tolerant_delete_signed_url, urls)
+
+
+def _sign_urls_for_existing_file(corpus_element_url):
+  download = get_signed_download_url(corpus_element_url)
+  delete = sign_delete_url(corpus_element_url)
+  return (download, delete)
+
+
+def sign_urls_for_existing_files(urls):
+  # !!! _thread_pool()
+  return _thread_pool().map(_sign_urls_for_existing_file, urls)
 
 
 def get_arbitrary_signed_upload_url(remote_directory):

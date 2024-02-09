@@ -213,6 +213,7 @@ class GcsCorpus:
     shell.create_directory(directory, create_intermediates=True)
 
     corpus_gcs_url = self.get_gcs_url()
+    print(corpus_gcs_url)
     result = self._gsutil_runner.rsync(corpus_gcs_url, directory, timeout,
                                        delete)
 
@@ -467,18 +468,23 @@ def _get_gcs_url(bucket_name, bucket_path, suffix=''):
 def get_proto_corpus(bucket_name, bucket_path):
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
-  corpus_urls = {}
   # TODO(metzman): Allow this step to be skipped by trusted fuzzers.
-  for corpus_element_url in storage.list_blobs(gcs_url):
-    # Save a mapping from the download url to the deletion url. That way when we
-    # want to delete, a file, we can find the deletion URL.
-    # TODO(metzman): Make this configurable/optional to save time fuzzing where
-    # it isn't needed (time will probably never exceed 10 seconds).
-    corpus_urls[storage.get_signed_download_url(corpus_element_url)] = (
-        storage.sign_delete_url(corpus_element_url))
+  urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}' for url in storage.list_blobs(gcs_url))
+  corpus_urls = dict(storage.sign_urls_for_existing_files(urls))
+  # for corpus_element_url in storage.list_blobs(gcs_url):
+  #   # Save a mapping from the download url to the deletion url. That way when we
+  #   # want to delete, a file, we can find the deletion URL.
+  #   # TODO(metzman): Make this configurable/optional to save time fuzzing where
+  #   # it isn't needed (time will probably never exceed 10 seconds).
+  #   # !!! Make this work locally.
+  #   corpus_element_url = (
+  #       f'{storage.GS_PREFIX}/{bucket_name}/{corpus_element_url}')
+  #   corpus_urls[storage.get_signed_download_url(corpus_element_url)] = (
+  #       storage.sign_delete_url(corpus_element_url))
 
   # TODO(metzman): Add config to skip doing this when not needed (e.g. fuzz task
   # will not update regressions corpus).
+  # !!!
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=10000)
   last_updated = storage.last_updated(_get_gcs_url(bucket_name, bucket_path))
@@ -518,6 +524,7 @@ def get_fuzz_target_corpus(engine,
   bucket_name, bucket_path = get_target_bucket_and_path(
       engine, project_qualified_target_name, quarantine)
   corpus = get_proto_corpus(bucket_name, bucket_path)
+  print('bucket_name', bucket_name, 'bucket_path', bucket_path, corpus.gcs_url)
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
   if include_regressions:
@@ -562,7 +569,7 @@ def fuzz_target_corpus_sync_to_disk(fuzz_target_corpus, directory) -> bool:
 def fuzz_target_corpus_upload_files(corpus, filepaths):
   results = storage.upload_signed_urls(corpus.corpus.upload_urls, filepaths)
   # Make sure we don't reuse upload_urls.
-  urls_remaining = corpus.corpus.upload_urls[:len(results)]
+  urls_remaining = corpus.corpus.upload_urls[len(results):]
   del corpus.corpus.upload_urls[:]
   corpus.corpus.upload_urls.extend(urls_remaining)
   return results
@@ -570,18 +577,20 @@ def fuzz_target_corpus_upload_files(corpus, filepaths):
 
 def fuzz_target_corpus_sync_from_disk(fuzz_target_corpus, directory) -> bool:
   """Sync fuzz target corpus from disk to GCS."""
+  print('mapping', fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping)
   files_to_delete = list(
       fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping.keys())
   files_to_upload = []
   for filepath in shell.get_files_list(directory):
     files_to_upload.append(filepath)
     if filepath in files_to_delete:
-      del files_to_delete[filepath]
+      del fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping[filepath]
   results = fuzz_target_corpus_upload_files(fuzz_target_corpus, files_to_upload)
   urls_to_delete = [
       fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping[filename]
       for filename in files_to_delete
   ]
+  print(urls_to_delete)
   storage.delete_signed_urls(urls_to_delete)
   logs.log(f'{results.count(True)} corpus files uploaded.')
   return results.count(False) < MAX_SYNC_ERRORS
