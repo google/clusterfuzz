@@ -16,8 +16,8 @@
 import copy
 import datetime
 import json
-import multiprocessing.pool
 import multiprocessing
+import multiprocessing.pool
 import os
 import shutil
 import threading
@@ -47,9 +47,6 @@ try:
 except ImportError:
   # This is expected to fail on AppEngine.
   pass
-
-
-import itertools
 
 # Usually, authentication time have expiry of ~30 minutes, but keeping this
 # values lower to avoid failures and any future changes.
@@ -1270,9 +1267,9 @@ def delete_signed_urls(urls):
 
 
 def _sign_urls_for_existing_file(corpus_element_url):
-  download = get_signed_download_url(corpus_element_url)
-  delete = sign_delete_url(corpus_element_url)
-  return (download, delete)
+  download_url = get_signed_download_url(corpus_element_url)
+  delete_url = sign_delete_url(corpus_element_url)
+  return (download_url, delete_url)
 
 
 def sign_urls_for_existing_files(urls):

@@ -469,30 +469,20 @@ def get_proto_corpus(bucket_name, bucket_path):
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
   # TODO(metzman): Allow this step to be skipped by trusted fuzzers.
-  urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}' for url in storage.list_blobs(gcs_url))
+  urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
+          for url in storage.list_blobs(gcs_url))
   corpus_urls = dict(storage.sign_urls_for_existing_files(urls))
-  # for corpus_element_url in storage.list_blobs(gcs_url):
-  #   # Save a mapping from the download url to the deletion url. That way when we
-  #   # want to delete, a file, we can find the deletion URL.
-  #   # TODO(metzman): Make this configurable/optional to save time fuzzing where
-  #   # it isn't needed (time will probably never exceed 10 seconds).
-  #   # !!! Make this work locally.
-  #   corpus_element_url = (
-  #       f'{storage.GS_PREFIX}/{bucket_name}/{corpus_element_url}')
-  #   corpus_urls[storage.get_signed_download_url(corpus_element_url)] = (
-  #       storage.sign_delete_url(corpus_element_url))
 
   # TODO(metzman): Add config to skip doing this when not needed (e.g. fuzz task
   # will not update regressions corpus).
-  # !!!
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=10000)
-  last_updated = storage.last_updated(_get_gcs_url(bucket_name, bucket_path))
   corpus = uworker_msg_pb2.Corpus(
       corpus_urls=corpus_urls,
       upload_urls=upload_urls,
       gcs_url=gcs_url,
   )
+  last_updated = storage.last_updated(_get_gcs_url(bucket_name, bucket_path))
   if last_updated:
     timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
     timestamp.FromDatetime(last_updated)
