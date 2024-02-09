@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Handler used for setting up oss-fuzz jobs."""
+"""Handler used for setting up oss-fuzz and android jobs."""
 
 import base64
 import collections
@@ -165,6 +165,7 @@ JOB_MAP = {
         },
         'arm': {
             'hardware': LIBFUZZER_HWASAN_JOB,
+            'none': LIBFUZZER_NONE_JOB,
         },
     },
     'afl': {
