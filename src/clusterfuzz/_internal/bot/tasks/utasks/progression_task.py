@@ -536,8 +536,7 @@ def find_fixed_range(uworker_input):
     return error
 
   if result and not result.is_crash():
-    error_message = (
-        f'Minimum revision r{min_revision} did not crash.')
+    error_message = (f'Minimum revision r{min_revision} did not crash.')
     progression_task_output.crash_revision = int(min_revision)
     return uworker_msg_pb2.Output(
         progression_task_output=progression_task_output,
