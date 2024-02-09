@@ -67,7 +67,7 @@ def is_testcase_deprecated(platform_id=None):
 def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
   """Whether or not the testcase can run on the current Android device."""
 
-  del testcase_platform_id # Unused argument for now
+  del testcase_platform_id  # Unused argument for now
 
   # Platform ID for Android is of the form as shown below
   # |android:{codename}_{sanitizer}:{build_version}|
