@@ -2119,8 +2119,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         'BOOL_VAR = True\n'
         'INT_VAR = 0\n'
         'STRING_VAR = VAL-android\n', job.environment_string)
-    self.assertCountEqual(['libfuzzer', 'android', 'prune'],
-                          job.templates)
+    self.assertCountEqual(['libfuzzer', 'android', 'prune'], job.templates)
     self.assertEqual(None, job.external_reproduction_topic)
     self.assertEqual(None, job.external_updates_subscription)
     self.assertFalse(job.is_external())
@@ -2145,7 +2144,7 @@ class GenericProjectSetupTest(unittest.TestCase):
         ['projects/clusterfuzz-external/subscriptions/jobs-android-x86-pixel8'],
         pubsub_client.list_topic_subscriptions(
             'projects/clusterfuzz-external/topics/jobs-android-x86-pixel8'))
-    
+
     self.assertCountEqual(
         ['projects/clusterfuzz-external/subscriptions/jobs-android-mte-pixel8'],
         pubsub_client.list_topic_subscriptions(
