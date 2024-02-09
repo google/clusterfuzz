@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
-import aiohttp
-import aiofiles
-import asyncio
-import concurrent.futures
 
 import copy
 import datetime
@@ -52,6 +48,8 @@ except ImportError:
   # This is expected to fail on AppEngine.
   pass
 
+
+import itertools
 
 # Usually, authentication time have expiry of ~30 minutes, but keeping this
 # values lower to avoid failures and any future changes.
@@ -746,7 +744,7 @@ def _signing_creds():
   return _local.signing_creds
 
 
-def _pool():
+def _thread_pool():
   if hasattr(_local, 'thread_pool'):
     return _local.thread_pool
 
@@ -975,11 +973,11 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     return False
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage.last_updated',
-    exception_types=_TRANSIENT_ERRORS)
+# @retry.wrap(
+#     retries=DEFAULT_FAIL_RETRIES,
+#     delay=DEFAULT_FAIL_WAIT,
+#     function='google_cloud_utils.storage.last_updated',
+#     exception_types=_TRANSIENT_ERRORS)
 def last_updated(cloud_storage_file_path):
   """Return last updated value by parsing stats for all blobs under a cloud
   storage path."""
@@ -1190,21 +1188,14 @@ def str_to_bytes(data):
 
 
 def download_signed_url_to_file(url, filepath):
-  os.makedirs(os.path.dirname(filepath), exist_ok=True)
-  return _download_signed_url_to_file(url, filepath)
-
-def _download_signed_url_to_file(url, filepath):
+  # print('filepath', filepath)
   contents = download_signed_url(url)
+  # !!!
+  # os.makedirs(os.path.dirname(filepath), exist_ok=True)
+  # print('b filepath', filepath)
   with open(filepath, 'wb') as fp:
     fp.write(contents)
   return filepath
-
-
-def _adownload_signed_url_to_file2(url, filepath):
-  pass
-
-def _adownload_signed_url_to_file(url, filepath):
-  asyncio.run(_adownload_signed_url_to_file2(url, filepath))
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1222,18 +1213,21 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 
 def _error_tolerant_download_signed_url_to_file(url, path):
-  try:
-    return _download_signed_url_to_file(url, path), url
-  except Exception:
-    return None
+  return download_signed_url_to_file(url, path), url
+  # try:
+  #   print('j')
+  #   return download_signed_url_to_file(url, path), url
+  # except Exception:
+  #   return None
 
 
 def _error_tolerant_upload_signed_url(url, path):
-  try:
-    with open(path, 'rb') as fp:
-      return upload_signed_url(fp, url)
-  except Exception:
-    return False
+  # !!!
+  # try:
+  with open(path, 'rb') as fp:
+    return upload_signed_url(fp, url)
+  # except Exception:
+  #   return False
 
 
 def delete_signed_url(url):
@@ -1249,40 +1243,13 @@ def _error_tolerant_delete_signed_url(url):
 
 
 def upload_signed_urls(signed_urls, files):
-  return _pool().starmap(_error_tolerant_upload_signed_url,
+  # !!!
+  return _thread_pool().starmap(_error_tolerant_upload_signed_url,
                                 zip(signed_urls, files))
 
 
 def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return _provider().sign_delete_url(remote_path, minutes)
-
-
-async def dsu(session, url, filepath):
-  loop = asyncio.get_event_loop()
-  async with session.get(url) as response:
-    if not response.ok:
-      print(f"Invalid status code: {resp.status}")
-    else:
-      try:
-        print('jj')
-        with open(filepath, "wb+") as afp:
-          print('gg')
-          async for chunk in response.content.iter_chunked(1024 * 512):   # 500 KB
-            afp.write(chunk)
-      except asyncio.TimeoutError:
-        print(f"A timeout ocurred while downloading '{filename}'")
-    print('soo')
-  return filepath, url
-
-
-async def dsus(args):
-  print('fsus')
-  tasks = []
-  async with aiohttp.ClientSession() as session:
-    for arg in args:
-      tasks.append(dsu(session, arg[0], arg[1]))
-    result = await asyncio.gather(*tasks)
-  return result
 
 
 def download_signed_urls(signed_urls, directory):
@@ -1293,20 +1260,13 @@ def download_signed_urls(signed_urls, directory):
       os.path.join(directory, f'{basename}-{idx}')
       for idx in range(len(signed_urls))
   ]
-  # return _pool().starmap(_error_tolerant_download_signed_url_to_file,
-  #                               zip(signed_urls, filepaths))
-
-  executor = concurrent.futures.ProcessPoolExecutor(max_workers=16)
-  loop = asyncio.new_event_loop()
-  loop.set_default_executor(executor)
-  result = loop.run_until_complete(dsus(zip(signed_urls, filepaths)))
-  return result
-
-
+  print('z')
+  return _thread_pool().starmap(_error_tolerant_download_signed_url_to_file,
+                                zip(signed_urls, filepaths))
 
 
 def delete_signed_urls(urls):
-  return _pool().starmap(_error_tolerant_delete_signed_url, urls)
+  return _thread_pool().starmap(_error_tolerant_delete_signed_url, urls)
 
 
 def _sign_urls_for_existing_file(corpus_element_url):
@@ -1316,7 +1276,8 @@ def _sign_urls_for_existing_file(corpus_element_url):
 
 
 def sign_urls_for_existing_files(urls):
-  return _pool().map(_sign_urls_for_existing_file, urls)
+  # !!! _thread_pool()
+  return _thread_pool().map(_sign_urls_for_existing_file, urls)
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
