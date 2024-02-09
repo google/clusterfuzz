@@ -24,7 +24,6 @@ import sys
 import yaml
 
 from clusterfuzz._internal import fuzzing
-from clusterfuzz._internal.platforms import android
 
 # Tools supporting customization of options via ADDITIONAL_{TOOL_NAME}_OPTIONS.
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
@@ -213,6 +212,8 @@ def get_asan_options(redzone_size, malloc_context_size, quarantine_size_mb,
 def get_cpu_arch():
   """Return cpu architecture."""
   if is_android():
+    # FIXME: Handle this import in a cleaner way.
+    from clusterfuzz._internal.platforms import android
     return android.settings.get_cpu_arch()
 
   # FIXME: Add support for desktop architectures as needed.
@@ -282,6 +283,9 @@ def get_environment_settings_as_string():
 
   # Add Android specific variables.
   if is_android():
+    # FIXME: Handle this import in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
     build_fingerprint = get_value(
         'BUILD_FINGERPRINT') or android.settings.get_build_fingerprint()
     environment_string += '[Environment] Build fingerprint: %s\n' % (
@@ -480,6 +484,9 @@ def get_platform_id():
   if is_android_cuttlefish():
     return bot_platform.lower()
   if is_android(bot_platform):
+    # FIXME: Handle this import in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
     platform_id = get_value('PLATFORM_ID', android.settings.get_platform_id())
     return platform_id.lower()
 
@@ -856,6 +863,8 @@ def reset_current_memory_tool_options(redzone_size=0,
                                       disable_ubsan=False):
   """Resets environment variables for memory debugging tool to default
   values."""
+  # FIXME: Handle these imports in a cleaner way.
+  from clusterfuzz._internal.platforms import android
 
   # Set common environment variable useful for memory debugging tools.
   set_common_environment_variables()
@@ -1139,6 +1148,9 @@ def is_testcase_deprecated(platform_id=None):
 
   if is_android(
       platform_id.upper()) and not is_android_cuttlefish(platform_id.upper()):
+    # FIXME: Handle these imports in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
     return android.util.is_testcase_deprecated(platform_id)
 
   return False
@@ -1156,6 +1168,9 @@ def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
     return True
 
   if is_android(testcase_platform_id.upper()):
+    # FIXME: Handle these imports in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
     return android.util.can_testcase_run_on_platform(testcase_platform_id,
                                                      current_platform_id)
 
