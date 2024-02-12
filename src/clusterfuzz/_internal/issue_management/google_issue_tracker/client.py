@@ -20,7 +20,6 @@ from googleapiclient import errors
 import httplib2
 
 from clusterfuzz._internal.base import retry
-from clusterfuzz._internal.metrics import logs
 
 _ROLE_ACCOUNT = "cluster-fuzz@appspot.gserviceaccount.com"
 
@@ -50,8 +49,8 @@ def build_http():
     retries=2,
     delay=2,
     exception_types=[UnknownApiNameOrVersion],
-    function='issue_issue_management.google_issue_tracker,client._call_discovery'
-)
+    function='issue_issue_management.google_issue_tracker,client.'
+    '_call_discovery')
 def _call_discovery(api, http):
   """Calls the discovery service.
 
