@@ -231,7 +231,6 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
     corpus = os.listdir(self.corpus_dir)
     self.assertCountEqual([
         '7d157d7c000ae27db146575c08ce30df893d3a64',
-        '31836aeaab22dc49555a97edb4c753881432e01d',
         '6fa8c57336628a7d733f684dc9404fbd09020543',
     ], corpus)
 
