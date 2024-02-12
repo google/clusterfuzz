@@ -660,8 +660,9 @@ def do_corpus_pruning(context, revision):
   coverage_info.quarantine_size_units = quarantine_corpus_size
   coverage_info.quarantine_size_bytes = quarantine_corpus_dir_size
   coverage_info.corpus_backup_location = corpus_backup_url
-  coverage_info.corpus_location = context.corpus.corpus.gcs_url
-  coverage_info.quarantine_location = context.quarantine_corpus.corpus.gcs_url
+  coverage_info.corpus_location = context.corpus.corpus.get_gcs_url()
+  coverage_info.quarantine_location = (
+      context.quarantine_corpus.corpus.get_gcs_url())
 
   # Calculate remaining time to use for shared corpus merging.
   time_remaining = _get_time_remaining(start_time)

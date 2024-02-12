@@ -1144,8 +1144,8 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for test corpus sync."""
     helpers.patch(self, [
-        'clusterfuzz._internal.fuzzing.corpus_manager.fuzz_target_corpus_sync_to_disk',
-        'clusterfuzz._internal.fuzzing.corpus_manager.fuzz_target_upload_and_consume_urls',
+        'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.rsync_to_disk',
+        'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.upload_files',
         'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls'
@@ -1173,20 +1173,20 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     """Test corpus sync."""
     corpus = fuzz_task.GcsCorpus('parent', 'child', '/dir', '/dir1')
 
-    self.mock.fuzz_target_corpus_sync_to_disk.side_effect = self._write_corpus_files
+    self.mock.rsync_to_disk.side_effect = self._write_corpus_files
     corpus.upload_files(corpus.get_new_files())
     self.assertTrue(corpus.sync_from_gcs())
     assert len(os.listdir('/dir')) == 2, os.listdir('/dir')
     self.assertTrue(os.path.exists('/dir1/.child_sync'))
     self.assertEqual(('/dir',),
-                     self.mock.fuzz_target_corpus_sync_to_disk.call_args[0][1:])
+                     self.mock.rsync_to_disk.call_args[0][1:])
     self.fs.create_file('/dir/c')
     self.assertListEqual(['/dir/c'], corpus.get_new_files())
 
     corpus.upload_files(corpus.get_new_files())
     self.assertEqual(
         (['/dir/c'],),
-        self.mock.fuzz_target_corpus_upload_and_consume_urls.call_args[0][1:])
+        self.mock.upload_files.call_args[0][1:])
 
     self.assertListEqual([], corpus.get_new_files())
 
@@ -1198,7 +1198,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     self.mock.last_updated.return_value = (
         datetime.datetime.utcnow() - datetime.timedelta(days=1))
     self.assertTrue(corpus.sync_from_gcs())
-    self.assertEqual(0, self.mock.fuzz_target_corpus_sync_to_disk.call_count)
+    self.assertEqual(0, self.mock.rsync_to_disk.call_count)
 
   def test_sync_with_failed_last_update(self):
     """Test corpus sync when failed to get last update info from gcs."""
@@ -1207,7 +1207,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     utils.write_data_to_file(time.time(), '/dir1/.child_sync')
     self.mock.last_updated.return_value = None
     self.assertTrue(corpus.sync_from_gcs())
-    self.assertEqual(1, self.mock.fuzz_target_corpus_sync_to_disk.call_count)
+    self.assertEqual(1, self.mock.rsync_to_disk.call_count)
 
 
 @test_utils.with_cloud_emulators('datastore')

@@ -741,12 +741,15 @@ def _signing_creds():
   return _local.signing_creds
 
 
-def _thread_pool():
-  if hasattr(_local, 'thread_pool'):
-    return _local.thread_pool
+def _pool():
+  if hasattr(_local, 'pool'):
+    return _local.pool
 
-  _local.thread_pool = multiprocessing.Pool(16)
-  return _local.thread_pool
+  if environment.get_value('PY_UNITTESTS'):
+    _local.pool = multiprocessing.pool.ThreadPool(16)
+  else:
+    _local.pool = multiprocessing.Pool(16)
+  return _local.pool
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -1241,7 +1244,7 @@ def _error_tolerant_delete_signed_url(url):
 
 def upload_signed_urls(signed_urls, files):
   # !!!
-  return _thread_pool().starmap(_error_tolerant_upload_signed_url,
+  return _pool().starmap(_error_tolerant_upload_signed_url,
                                 zip(signed_urls, files))
 
 
@@ -1258,12 +1261,12 @@ def download_signed_urls(signed_urls, directory):
       for idx in range(len(signed_urls))
   ]
   print('z')
-  return _thread_pool().starmap(_error_tolerant_download_signed_url_to_file,
+  return _pool().starmap(_error_tolerant_download_signed_url_to_file,
                                 zip(signed_urls, filepaths))
 
 
 def delete_signed_urls(urls):
-  return _thread_pool().starmap(_error_tolerant_delete_signed_url, urls)
+  return _pool().starmap(_error_tolerant_delete_signed_url, urls)
 
 
 def _sign_urls_for_existing_file(corpus_element_url):
@@ -1273,8 +1276,7 @@ def _sign_urls_for_existing_file(corpus_element_url):
 
 
 def sign_urls_for_existing_files(urls):
-  # !!! _thread_pool()
-  return _thread_pool().map(_sign_urls_for_existing_file, urls)
+  return _pool().map(_sign_urls_for_existing_file, urls)
 
 
 def get_arbitrary_signed_upload_url(remote_directory):

@@ -436,7 +436,7 @@ class ProtoFuzzTargetCorpus(GcsCorpus):
     return results
 
   def get_gcs_url(self):
-    return self.proto_corpus.gcs_url
+    return self.proto_corpus.corpus.gcs_url
 
 
 def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
