@@ -660,9 +660,8 @@ def do_corpus_pruning(context, revision):
   coverage_info.quarantine_size_units = quarantine_corpus_size
   coverage_info.quarantine_size_bytes = quarantine_corpus_dir_size
   coverage_info.corpus_backup_location = corpus_backup_url
-  coverage_info.corpus_location = context.corpus.corpus.get_gcs_url()
-  coverage_info.quarantine_location = (
-      context.quarantine_corpus.corpus.get_gcs_url())
+  coverage_info.corpus_location = context.corpus.get_gcs_url()
+  coverage_info.quarantine_location = context.quarantine_corpus.get_gcs_url()
 
   # Calculate remaining time to use for shared corpus merging.
   time_remaining = _get_time_remaining(start_time)
@@ -905,7 +904,6 @@ def utask_main(uworker_input):
   # Copy global blacklist into local suppressions file if LSan is enabled.
   is_lsan_enabled = environment.get_value('LSAN')
   if is_lsan_enabled:
-    # TODO(ochang): Copy this to untrusted worker.
     leak_blacklist.copy_global_to_local_blacklist()
 
   try:
