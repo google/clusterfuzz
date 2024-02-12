@@ -1178,15 +1178,12 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     self.assertTrue(corpus.sync_from_gcs())
     assert len(os.listdir('/dir')) == 2, os.listdir('/dir')
     self.assertTrue(os.path.exists('/dir1/.child_sync'))
-    self.assertEqual(('/dir',),
-                     self.mock.rsync_to_disk.call_args[0][1:])
+    self.assertEqual(('/dir',), self.mock.rsync_to_disk.call_args[0][1:])
     self.fs.create_file('/dir/c')
     self.assertListEqual(['/dir/c'], corpus.get_new_files())
 
     corpus.upload_files(corpus.get_new_files())
-    self.assertEqual(
-        (['/dir/c'],),
-        self.mock.upload_files.call_args[0][1:])
+    self.assertEqual((['/dir/c'],), self.mock.upload_files.call_args[0][1:])
 
     self.assertListEqual([], corpus.get_new_files())
 
