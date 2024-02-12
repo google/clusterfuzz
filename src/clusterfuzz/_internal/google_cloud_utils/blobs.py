@@ -229,3 +229,20 @@ def get_signed_upload_url(blob_key):
   to by |blob_key|."""
   gcs_path = get_gcs_path(blob_key)
   return storage.get_signed_upload_url(gcs_path)
+
+
+def get_blob_signed_upload_url():
+  """Returns a pair of (blob_name,signed_upload_url) to be used from utask_main
+  to upload blobs."""
+  bucket = storage.blobs_bucket()
+  blob_name = generate_new_blob_name()
+  gcs_path = storage.get_cloud_storage_file_path(bucket, blob_name)
+  # Keep generating paths until no collision is encountered.
+  while storage.get(gcs_path):
+    blob_name = generate_new_blob_name()
+    gcs_path = storage.get_cloud_storage_file_path(bucket, blob_name)
+
+  # Write something to the file to avoid collision between calls.
+  storage.write_data('', gcs_path)
+  signed_upload_url = storage.get_signed_upload_url(gcs_path)
+  return blob_name, signed_upload_url
