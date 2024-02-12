@@ -255,9 +255,9 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
             'corpus_location':
                 'gs://bucket/libFuzzer/test_fuzzer/',
             'corpus_size_bytes':
-                6,
+                4,
             'corpus_size_units':
-                3,
+                2,
             'date':
                 today,
             # Coverage numbers are expected to be None as they come from fuzzer
