@@ -609,3 +609,14 @@ def get_regressions_signed_upload_url(engine, project_qualified_target_name):
                                             project_qualified_target_name)
   regression_url = _get_regressions_corpus_gcs_url(bucket, path)
   return storage.get_arbitrary_signed_upload_url(regression_url)
+
+
+def _sync_corpus_to_disk(corpus, directory):
+  shell.create_directory(directory, create_intermediates=True)
+  results = storage.download_signed_urls(corpus.corpus_urls, directory)
+  for filepath, upload_url in results:
+    corpus.filenames_to_delete_urls_mapping[filepath] = (
+        corpus.corpus_urls[upload_url])
+
+  # TODO(metzman): Add timeout and tolerance for missing URLs.
+  return results.count(None) < MAX_SYNC_ERRORS
