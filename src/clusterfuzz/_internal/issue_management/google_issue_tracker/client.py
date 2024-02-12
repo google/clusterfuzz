@@ -19,6 +19,8 @@ from googleapiclient import discovery
 from googleapiclient import errors
 import httplib2
 
+from clusterfuzz._internal.metrics import logs
+
 _ROLE_ACCOUNT = "cluster-fuzz@appspot.gserviceaccount.com"
 
 _DISCOVERY_URL = ('https://issuetracker.googleapis.com/$discovery/rest?'
@@ -26,7 +28,7 @@ _DISCOVERY_URL = ('https://issuetracker.googleapis.com/$discovery/rest?'
 _SCOPE = 'https://www.googleapis.com/auth/buganizer'
 _REQUEST_TIMEOUT = 60
 
-HttpError = errors.HttpError
+UnknownApiNameOrVersion = errors.UnknownApiNameOrVersion
 
 
 def user():
@@ -42,13 +44,25 @@ def build_http():
       creds, http=httplib2.Http(timeout=_REQUEST_TIMEOUT))
 
 
-def build(api='issuetracker', http=None):
-  """Builds a google api client for buganizer."""
-  if not http:
-    http = build_http()
+def _call_discovery(api, http):
   return discovery.build(
       api,
       'v1',
       discoveryServiceUrl=_DISCOVERY_URL,
       http=http,
       cache_discovery=False)
+
+
+def build(api='issuetracker', http=None):
+  """Builds a google api client for buganizer.
+
+  Retries once if there are any UnknownApiNameOrVersion errors.
+  """
+  if not http:
+    http = build_http()
+  try:
+    return _call_discovery(api, http)
+  except UnknownApiNameOrVersion as err:
+    logs.log_warn(f'google_issue_tracker: Error when calling discovery: {err}.'
+                  ' Going to retry...')
+    return _call_discovery(api, http)
