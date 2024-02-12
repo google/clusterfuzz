@@ -973,11 +973,11 @@ def exists(cloud_storage_file_path, ignore_errors=False):
     return False
 
 
-# @retry.wrap(
-#     retries=DEFAULT_FAIL_RETRIES,
-#     delay=DEFAULT_FAIL_WAIT,
-#     function='google_cloud_utils.storage.last_updated',
-#     exception_types=_TRANSIENT_ERRORS)
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.storage.last_updated',
+    exception_types=_TRANSIENT_ERRORS)
 def last_updated(cloud_storage_file_path):
   """Return last updated value by parsing stats for all blobs under a cloud
   storage path."""
@@ -1190,9 +1190,7 @@ def str_to_bytes(data):
 def download_signed_url_to_file(url, filepath):
   # print('filepath', filepath)
   contents = download_signed_url(url)
-  # !!!
-  # os.makedirs(os.path.dirname(filepath), exist_ok=True)
-  # print('b filepath', filepath)
+  os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
     fp.write(contents)
   return filepath
@@ -1214,20 +1212,11 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 def _error_tolerant_download_signed_url_to_file(url, path):
   return download_signed_url_to_file(url, path), url
-  # try:
-  #   print('j')
-  #   return download_signed_url_to_file(url, path), url
-  # except Exception:
-  #   return None
 
 
 def _error_tolerant_upload_signed_url(url, path):
-  # !!!
-  # try:
   with open(path, 'rb') as fp:
     return upload_signed_url(fp, url)
-  # except Exception:
-  #   return False
 
 
 def delete_signed_url(url):
@@ -1243,7 +1232,6 @@ def _error_tolerant_delete_signed_url(url):
 
 
 def upload_signed_urls(signed_urls, files):
-  # !!!
   return _pool().starmap(_error_tolerant_upload_signed_url,
                          zip(signed_urls, files))
 
