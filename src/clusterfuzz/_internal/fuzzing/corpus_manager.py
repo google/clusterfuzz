@@ -160,12 +160,12 @@ class GcsCorpus:
   def bucket_path(self):
     return self._bucket_path
 
-  def get_gcs_url(self, suffix=''):
+  def get_gcs_url(self):
     """Build corpus GCS URL for gsutil.
     Returns:
       A string giving the GCS URL.
     """
-    url = f'gs://{self.bucket_name}{self.bucket_path}{suffix}'
+    url = f'gs://{self.bucket_name}{self.bucket_path}'
     if not url.endswith('/'):
       # Ensure that the bucket path is '/' terminated. Without this, when a
       # single file is being uploaded, it is renamed to the trailing non-/
@@ -356,9 +356,87 @@ class FuzzTargetCorpus(GcsCorpus):
 
     return result
 
-  def get_regressions_corpus_gcs_url(self):
-    """Return gcs path to directory containing crash regressions."""
-    return self.get_gcs_url(suffix=REGRESSIONS_GCS_PATH_SUFFIX)
+
+class ProtoFuzzTargetCorpus(GcsCorpus):
+  """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
+  targets."""
+
+  def __init__(self, proto_corpus):  # pylint: disable=super-init-not-called
+    self.proto_corpus = proto_corpus
+    self.filenames_to_delete_urls_mapping = {}
+
+  def rsync_from_disk(self,
+                      directory,
+                      timeout=CORPUS_FILES_SYNC_TIMEOUT,
+                      delete=True):
+    """Upload local files to GCS and remove files which do not exist locally.
+
+    Overridden to have additional logging.
+
+    Args:
+      directory: Path to directory to sync to.
+      timeout: Timeout for gsutil.
+      delete: Whether or not to delete files on GCS that don't exist locally.
+
+    Returns:
+      A bool indicating whether or not the command succeeded.
+    """
+    files_to_delete = list(self.filenames_to_delete_urls_mapping.keys())
+    files_to_upload = []
+
+    for filepath in shell.get_files_list(directory):
+      files_to_upload.append(filepath)
+      if filepath in files_to_delete:
+        del self.proto_corpus.corpus.filenames_to_delete_urls_mapping[filepath]
+
+    results = self.upload_files(files_to_upload)
+
+    urls_to_delete = [
+        self.proto_corpus.corpus.filenames_to_delete_urls_mapping[filename]
+        for filename in files_to_delete
+    ]
+    storage.delete_signed_urls(urls_to_delete)
+    logs.log(f'{results.count(True)} corpus files uploaded.')
+    return results.count(False) < MAX_SYNC_ERRORS
+
+  def rsync_to_disk(self,
+                    directory,
+                    timeout=CORPUS_FILES_SYNC_TIMEOUT,
+                    delete=True) -> bool:
+    """Sync fuzz target corpus to disk."""
+    if not _sync_corpus_to_disk(self.proto_corpus.corpus, directory):
+      return False
+
+    if self.proto_corpus.HasField('regressions_corpus'):
+      regressions_dir = os.path.join(directory, 'regressions')
+      _sync_corpus_to_disk(self.proto_corpus.regressions_corpus,
+                           regressions_dir)
+
+    num_files = _count_corpus_files(directory)
+    logs.log(f'{num_files} corpus files downloaded.')
+    return True
+
+  def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
+    del timeout
+    num_upload_urls = len(self.proto_corpus.corpus.upload_urls)
+    if len(file_paths) > num_upload_urls:
+      logs.log_error(
+          f'Cannot upload {len(file_paths)} filepaths, only have '
+          f'{len(self.proto_corpus.corpus.upload_urls)} upload urls.')
+      file_paths = file_paths[:len(num_upload_urls)]
+
+    results = storage.upload_signed_urls(self.proto_corpus.corpus.upload_urls,
+                                         file_paths)
+
+    # Make sure we don't reuse upload_urls.
+    urls_remaining = self.proto_corpus.corpus.upload_urls[len(results):]
+    del self.proto_corpus.corpus.upload_urls[:]
+    self.proto_corpus.corpus.upload_urls.extend(urls_remaining)
+
+    return results
+
+  def get_gcs_url(self):
+    return self.proto_corpus.gcs_url
 
 
 def gcs_url_for_backup_file(backup_bucket_name, fuzzer_name,
@@ -385,6 +463,7 @@ def backup_corpus(backup_bucket_name, corpus, directory):
   Returns:
     The backup GCS url, or None on failure.
   """
+  # TODO(metzman): Make this safe to run on a uworker.
   if not backup_bucket_name:
     logs.log('No backup bucket provided, skipping corpus backup.')
     return None
@@ -521,7 +600,8 @@ def get_fuzz_target_corpus(engine,
     regressions_bucket_path = f'{bucket_path}{REGRESSIONS_GCS_PATH_SUFFIX}'
     fuzz_target_corpus.regressions_corpus.CopyFrom(
         get_proto_corpus(bucket_name, regressions_bucket_path))
-  return fuzz_target_corpus
+
+  return ProtoFuzzTargetCorpus(fuzz_target_corpus)
 
 
 def get_regressions_signed_upload_url(engine, project_qualified_target_name):
@@ -540,47 +620,3 @@ def _sync_corpus_to_disk(corpus, directory):
 
   # TODO(metzman): Add timeout and tolerance for missing URLs.
   return results.count(None) < MAX_SYNC_ERRORS
-
-
-def fuzz_target_corpus_sync_to_disk(fuzz_target_corpus, directory) -> bool:
-  """Sync fuzz target corpus to disk."""
-  if not _sync_corpus_to_disk(fuzz_target_corpus.corpus, directory):
-    return False
-
-  if fuzz_target_corpus.HasField('regressions_corpus'):
-    regressions_dir = os.path.join(directory, 'regressions')
-    _sync_corpus_to_disk(fuzz_target_corpus.regressions_corpus, regressions_dir)
-
-  num_files = _count_corpus_files(directory)
-  logs.log(f'{num_files} corpus files downloaded.')
-  return True
-
-
-def fuzz_target_corpus_upload_files(corpus, filepaths):
-  results = storage.upload_signed_urls(corpus.corpus.upload_urls, filepaths)
-  # Make sure we don't reuse upload_urls.
-  urls_remaining = corpus.corpus.upload_urls[len(results):]
-  del corpus.corpus.upload_urls[:]
-  corpus.corpus.upload_urls.extend(urls_remaining)
-  return results
-
-
-def fuzz_target_corpus_sync_from_disk(fuzz_target_corpus, directory) -> bool:
-  """Sync fuzz target corpus from disk to GCS."""
-  print('mapping', fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping)
-  files_to_delete = list(
-      fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping.keys())
-  files_to_upload = []
-  for filepath in shell.get_files_list(directory):
-    files_to_upload.append(filepath)
-    if filepath in files_to_delete:
-      del fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping[filepath]
-  results = fuzz_target_corpus_upload_files(fuzz_target_corpus, files_to_upload)
-  urls_to_delete = [
-      fuzz_target_corpus.corpus.filenames_to_delete_urls_mapping[filename]
-      for filename in files_to_delete
-  ]
-  print(urls_to_delete)
-  storage.delete_signed_urls(urls_to_delete)
-  logs.log(f'{results.count(True)} corpus files uploaded.')
-  return results.count(False) < MAX_SYNC_ERRORS

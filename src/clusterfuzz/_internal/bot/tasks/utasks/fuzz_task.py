@@ -489,15 +489,12 @@ class GcsCorpus:
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as remote_corpus_manager
-      self.untrusted_runner_gcs_corpus = (
-          remote_corpus_manager.RemoteFuzzTargetCorpus(
-              engine_name, project_qualified_target_name))
-      self.proto_gcs_corpus = None
+      self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
+          engine_name, project_qualified_target_name)
     else:
       # TODO(metzman): After fuzz target selection is moved to preprocess, move
       # this to preprocess.
-      self.untrusted_runner_gcs_corpus = None
-      self.proto_gcs_corpus = corpus_manager.get_fuzz_target_corpus(
+      self.gcs_corpus = corpus_manager.get_fuzz_target_corpus(
           engine_name, project_qualified_target_name)
 
     self._corpus_directory = corpus_directory
@@ -517,16 +514,10 @@ class GcsCorpus:
   def _get_gcs_url(self):
     # TODO(https://github.com/google/clusterfuzz/issues/3726): Get rid of this
     # wrapper when untrusted runner is removed.
-    if self.untrusted_runner_gcs_corpus:
-      return self.untrusted_runner_gcs_corpus.get_gcs_url()
-    return self.proto_gcs_corpus.corpus.gcs_url
+    return self.gcs_corpus.get_gcs_url()
 
   def _sync_to_disk(self, corpus_directory):
-    if self.untrusted_runner_gcs_corpus:
-      self.untrusted_runner_gcs_corpus.rsync_to_disk(corpus_directory)
-      return True
-    corpus_manager.fuzz_target_corpus_sync_to_disk(self.proto_gcs_corpus,
-                                                   corpus_directory)
+    self.gcs_corpus.rsync_to_disk(corpus_directory)
     return True
 
   def sync_from_gcs(self):
@@ -573,12 +564,7 @@ class GcsCorpus:
 
   def upload_files(self, new_files):
     """Update state after files are uploaded."""
-    if self.untrusted_runner_gcs_corpus:
-      result = self.untrusted_runner_gcs_corpus.upload_files(new_files)
-    else:
-      result = corpus_manager.fuzz_target_corpus_upload_files(
-          self.proto_gcs_corpus, new_files)
-
+    result = self.gcs_corpus.upload_files(new_files)
     self._synced_files.update(new_files)
     return result
 

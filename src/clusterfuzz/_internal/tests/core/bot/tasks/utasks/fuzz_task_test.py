@@ -1145,7 +1145,7 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     """Setup for test corpus sync."""
     helpers.patch(self, [
         'clusterfuzz._internal.fuzzing.corpus_manager.fuzz_target_corpus_sync_to_disk',
-        'clusterfuzz._internal.fuzzing.corpus_manager.fuzz_target_corpus_upload_files',
+        'clusterfuzz._internal.fuzzing.corpus_manager.fuzz_target_upload_and_consume_urls',
         'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls'
@@ -1184,8 +1184,9 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     self.assertListEqual(['/dir/c'], corpus.get_new_files())
 
     corpus.upload_files(corpus.get_new_files())
-    self.assertEqual((['/dir/c'],),
-                     self.mock.fuzz_target_corpus_upload_files.call_args[0][1:])
+    self.assertEqual(
+        (['/dir/c'],),
+        self.mock.fuzz_target_corpus_upload_and_consume_urls.call_args[0][1:])
 
     self.assertListEqual([], corpus.get_new_files())
 

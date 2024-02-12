@@ -198,8 +198,9 @@ class Context:
     self.merge_tmp_dir = self._create_temp_corpus_directory('merge_workdir')
 
     if uworker_input is not None:
-      self.corpus = uworker_input.corpus_pruning_task_input.corpus
-      self.quarantine_corpus = (
+      self.corpus = corpus_manager.ProtoFuzzTargetCorpus(
+          uworker_input.corpus_pruning_task_input.corpus)
+      self.quarantine_corpus = corpus_manager.ProtoFuzzTargetCorpus(
           uworker_input.corpus_pruning_task_input.quarantine_corpus)
     else:
       # Delete this branch after we get rid of untrusted runnner.
@@ -238,12 +239,10 @@ class Context:
 
   def sync_to_disk(self):
     """Sync required corpora to disk."""
-    if not corpus_manager.fuzz_target_corpus_sync_to_disk(
-        self.corpus, self.initial_corpus_path):
+    if not self.corpus.rsync_to_disk(self.initial_corpus_path):
       raise CorpusPruningError('Failed to sync corpus to disk.')
 
-    if not corpus_manager.fuzz_target_corpus_sync_to_disk(
-        self.quarantine_corpus, self.quarantine_corpus_path):
+    if not self.quarantine_corpus.rsync_to_disk(self.initial_corpus_path):
       logs.log_error(
           'Failed to sync quarantine corpus to disk.',
           fuzz_target=self.fuzz_target)
@@ -252,8 +251,7 @@ class Context:
 
   def sync_to_gcs(self):
     """Sync corpora to GCS post merge."""
-    if not corpus_manager.fuzz_target_corpus_sync_from_disk(
-        self.corpus, self.minimized_corpus_path):
+    if not self.corpus.rsync_from_disk(self.minimized_corpus_path):
       raise CorpusPruningError('Failed to sync minimized corpus to gcs.')
 
   def cleanup(self):
@@ -640,8 +638,7 @@ def do_corpus_pruning(context, revision):
   crashes = {}
   pruner.process_bad_units(context.bad_units_path,
                            context.quarantine_corpus_path, crashes)
-  corpus_manager.fuzz_target_corpus_sync_from_disk(
-      context.quarantine_corpus, context.quarantine_corpus_path)
+  context.quarantine_corpus.rsync_from_disk(context.quarantine_corpus_path)
 
   # Store corpus stats into CoverageInformation entity.
   project_qualified_name = context.fuzz_target.project_qualified_name()
@@ -964,15 +961,15 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
-      corpus=corpus,
-      quarantine_corpus=quarantine_corpus)
+      corpus=corpus.proto_corpus,
+      quarantine_corpus=quarantine_corpus.proto_corpus)
 
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
   # to minimize it.
   if last_execution_failed:
     # TODO(metzman): Is this too expensive to do in preprocess?
-    for corpus_url in [corpus.corpus.gcs_url, quarantine_corpus.corpus.gcs_url]:
+    for corpus_url in [corpus.get_gcs_url(), quarantine_corpus.get_gcs_url()]:
       _limit_corpus_size(corpus_url)
 
   return uworker_msg_pb2.Input(

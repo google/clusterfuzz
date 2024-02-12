@@ -52,10 +52,7 @@ message Corpus {
   map<string, string> corpus_urls = 1;
   optional google.protobuf.Timestamp last_updated_time = 2;
   optional string gcs_url = 3;
-  // This is not set during preprocess, it is set during uworker_main for book
-  // keeping.
-  map<string, string> filenames_to_delete_urls_mapping = 4;
-  repeated string upload_urls = 5;
+  repeated string upload_urls = 4;
 }
 
 
