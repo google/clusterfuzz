@@ -16,10 +16,13 @@
 import copy
 import datetime
 import json
+import multiprocessing
+import multiprocessing.pool
 import os
 import shutil
 import threading
 import time
+import uuid
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -150,6 +153,14 @@ class StorageProvider:
 
   def upload_signed_url(self, data, signed_url):
     """Uploads |data| to |signed_url|."""
+    raise NotImplementedError
+
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    raise NotImplementedError
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
     raise NotImplementedError
 
 
@@ -381,14 +392,16 @@ class GcsProvider(StorageProvider):
     requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
     return True
 
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    return _sign_url(
+        remote_path, method='DELETE', minutes=SIGNED_URL_EXPIRATION_MINUTES)
 
-# TODO(metzman): Consider whether to remove this since it's not making any calls
-# over the network that aren't already wrapped in retry (only network call is
-# _signing_creds).
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.storage._sign_url')
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
+    requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
+
+
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
@@ -633,6 +646,15 @@ class FileSystemProvider(StorageProvider):
     """Uploads |data| to |signed_url|."""
     return self.write_data(data, signed_url)
 
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+    """Signs a DELETE URL for a remote file."""
+    del minutes
+    return remote_path
+
+  def delete_signed_url(self, signed_url):
+    """Makes a DELETE HTTP request to |signed_url|."""
+    self.delete(signed_url)
+
 
 class GcsBlobInfo:
   """GCS blob info."""
@@ -717,6 +739,17 @@ def _signing_creds():
     return _local.signing_creds
   _local.signing_creds = credentials.get_signing_credentials()
   return _local.signing_creds
+
+
+def _pool():
+  if hasattr(_local, 'pool'):
+    return _local.pool
+
+  if environment.get_value('PY_UNITTESTS'):
+    _local.pool = multiprocessing.pool.ThreadPool(16)
+  else:
+    _local.pool = multiprocessing.Pool(16)
+  return _local.pool
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -1117,9 +1150,10 @@ def _integration_test_env_doesnt_support_signed_urls():
       'UNTRUSTED_RUNNER_TESTS')
 
 
+# Don't retry so hard. We don't want to slow down corpus downloading.
 @retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
+    retries=1,
+    delay=1,
     function='google_cloud_utils.storage._download_url',
     exception_types=_TRANSIENT_ERRORS)
 def _download_url(url):
@@ -1154,11 +1188,12 @@ def str_to_bytes(data):
 
 
 def download_signed_url_to_file(url, filepath):
+  # print('filepath', filepath)
   contents = download_signed_url(url)
   os.makedirs(os.path.dirname(filepath), exist_ok=True)
   with open(filepath, 'wb') as fp:
     fp.write(contents)
-  return True
+  return filepath
 
 
 def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1173,3 +1208,94 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   contents."""
   provider = _provider()
   return provider.sign_download_url(remote_path, minutes=minutes)
+
+
+def _error_tolerant_download_signed_url_to_file(url, path):
+  return download_signed_url_to_file(url, path), url
+
+
+def _error_tolerant_upload_signed_url(url, path):
+  with open(path, 'rb') as fp:
+    return upload_signed_url(fp, url)
+
+
+def delete_signed_url(url):
+  """Makes a DELETE HTTP request to |url|."""
+  _provider().delete_signed_url(url)
+
+
+def _error_tolerant_delete_signed_url(url):
+  try:
+    return delete_signed_url(url)
+  except Exception:
+    return False
+
+
+def upload_signed_urls(signed_urls, files):
+  return _pool().starmap(_error_tolerant_upload_signed_url,
+                         zip(signed_urls, files))
+
+
+def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  return _provider().sign_delete_url(remote_path, minutes)
+
+
+def download_signed_urls(signed_urls, directory):
+  # TODO(metzman): Use the actual names of the files stored on GCS instead of
+  # renaming them.
+  basename = uuid.uuid4().hex
+  filepaths = [
+      os.path.join(directory, f'{basename}-{idx}')
+      for idx in range(len(signed_urls))
+  ]
+  print('z')
+  return _pool().starmap(_error_tolerant_download_signed_url_to_file,
+                         zip(signed_urls, filepaths))
+
+
+def delete_signed_urls(urls):
+  return _pool().starmap(_error_tolerant_delete_signed_url, urls)
+
+
+def _sign_urls_for_existing_file(corpus_element_url):
+  download_url = get_signed_download_url(corpus_element_url)
+  delete_url = sign_delete_url(corpus_element_url)
+  return (download_url, delete_url)
+
+
+def sign_urls_for_existing_files(urls):
+  return _pool().map(_sign_urls_for_existing_file, urls)
+
+
+def get_arbitrary_signed_upload_url(remote_directory):
+  return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
+
+
+@retry.wrap(
+    retries=DEFAULT_FAIL_RETRIES,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils.get_arbitrary_signed_upload_urls')
+def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
+  """Returns |num_uploads| number of signed upload URLs to upload files with
+  unique arbitrary names to remote_directory."""
+  # We verify there are no collisions for uuid4s in CF because it would be bad
+  # if there is a collision and in most cases it's cheap (and because we
+  # probably didn't understand the likelihood of this happening when we started,
+  # see https://stackoverflow.com/a/24876263). It is not cheap if we had to do
+  # this 10,000 times. Instead create a prefix filename and check that no file
+  # has that name. Then the arbitrary names will all use that prefix.
+  unique_id = uuid.uuid4()
+  base_name = unique_id.hex
+  if not remote_directory.endswith('/'):
+    remote_directory = remote_directory + '/'
+  base_path = f'{remote_directory}/{base_name}'
+  base_search_path = f'{base_path}*'
+  if exists(base_search_path):
+    # Raise the error and let retry go again. There is a vanishingly small
+    # chance that we get more collisions. This is vulnerable to races, but is
+    # probably unneeded anyway.
+    raise ValueError(f'UUID collision found {str(unique_id)}')
+
+  return [
+      get_signed_upload_url(f'{base_path}-{idx}') for idx in range(num_uploads)
+  ]
