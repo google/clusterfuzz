@@ -54,6 +54,8 @@ message ProgressionTaskInput {
   optional bool custom_binary = 1;
   repeated int64 bad_revisions = 2;
   optional string regression_testcase_url = 3;
+  optional string blob_name = 4;
+  optional string stacktrace_upload_url = 5;
 }
 
 message CrossPollinateFuzzerProto{
