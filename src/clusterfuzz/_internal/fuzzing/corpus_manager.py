@@ -363,7 +363,7 @@ class ProtoFuzzTargetCorpus(GcsCorpus):
 
   def __init__(self, proto_corpus):  # pylint: disable=super-init-not-called
     self.proto_corpus = proto_corpus
-    self.filenames_to_delete_urls_mapping = {}
+    self._filenames_to_delete_urls_mapping = {}
 
   def rsync_from_disk(self,
                       directory,
@@ -381,18 +381,18 @@ class ProtoFuzzTargetCorpus(GcsCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    files_to_delete = list(self.filenames_to_delete_urls_mapping.keys())
+    files_to_delete = list(self._filenames_to_delete_urls_mapping.keys())
     files_to_upload = []
 
     for filepath in shell.get_files_list(directory):
       files_to_upload.append(filepath)
       if filepath in files_to_delete:
-        del self.proto_corpus.corpus.filenames_to_delete_urls_mapping[filepath]
+        del self._filenames_to_delete_urls_mapping[filepath]
 
     results = self.upload_files(files_to_upload)
 
     urls_to_delete = [
-        self.proto_corpus.corpus.filenames_to_delete_urls_mapping[filename]
+        self._filenames_to_delete_urls_mapping[filename]
         for filename in files_to_delete
     ]
     storage.delete_signed_urls(urls_to_delete)
@@ -609,14 +609,3 @@ def get_regressions_signed_upload_url(engine, project_qualified_target_name):
                                             project_qualified_target_name)
   regression_url = _get_regressions_corpus_gcs_url(bucket, path)
   return storage.get_arbitrary_signed_upload_url(regression_url)
-
-
-def _sync_corpus_to_disk(corpus, directory):
-  shell.create_directory(directory, create_intermediates=True)
-  results = storage.download_signed_urls(corpus.corpus_urls, directory)
-  for filepath, upload_url in results:
-    corpus.filenames_to_delete_urls_mapping[filepath] = (
-        corpus.corpus_urls[upload_url])
-
-  # TODO(metzman): Add timeout and tolerance for missing URLs.
-  return results.count(None) < MAX_SYNC_ERRORS
