@@ -86,7 +86,8 @@ def download_latest_build(build_info, image_regexes, image_directory):
 
     for file_path in image_file_paths:
       if file_path.endswith('.zip') or file_path.endswith('.tar.gz'):
-        archive.unpack(file_path, image_directory)
+        with archive.open(file_path) as reader:
+          archive.unpack(reader, image_directory)
 
 
 def flash_to_latest_build_if_needed():
