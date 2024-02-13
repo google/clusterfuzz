@@ -33,6 +33,7 @@ import requests.exceptions
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.config import local_config
+from clusterfuzz._internal.google_cloud_utils.third_party import sign_url_utils
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import shell
@@ -410,20 +411,15 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
     return remote_path
-  minutes = datetime.timedelta(minutes=minutes)
+  minutes = minutes * 60
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
-  signing_creds, access_token = _signing_creds()
-  client = _storage_client()
-  bucket = client.bucket(bucket_name)
-  blob = bucket.blob(object_path)
-  url = blob.generate_signed_url(
-      version='v4',
+  signing_creds, _ = _signing_creds()
+  return sign_url_utils.generate_signed_url(
+      signing_creds,
+      bucket_name,
+      object_path,
       expiration=minutes,
-      method=method,
-      credentials=signing_creds,
-      access_token=access_token,
-      service_account_email=signing_creds.service_account_email)
-  return url
+      http_method=method)
 
 
 class FileSystemProvider(StorageProvider):
