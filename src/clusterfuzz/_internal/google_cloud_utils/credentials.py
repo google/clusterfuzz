@@ -34,6 +34,8 @@ except ImportError:
 FAIL_RETRIES = 5
 FAIL_WAIT = 10
 
+_SCOPES = ['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/prodxmon']
+
 
 def _use_anonymous_credentials():
   """Returns whether or not to use anonymous credentials."""
@@ -59,10 +61,10 @@ def get_default(scopes=None):
   return google.auth.default(scopes=scopes)
 
 
-# @retry.wrap(
-#     retries=FAIL_RETRIES,
-#     delay=FAIL_WAIT,
-#     function='google_cloud_utils.credentials.get_signing_credentials')
+@retry.wrap(
+    retries=FAIL_RETRIES,
+    delay=FAIL_WAIT,
+    function='google_cloud_utils.credentials.get_signing_credentials')
 def get_signing_credentials():
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
@@ -74,7 +76,7 @@ def get_signing_credentials():
     # Handle cases like android and Mac where bots are run outside of Google
     # Cloud Platform and don't have access to metadata server.
     creds = service_account.Credentials.from_service_account_file(
-        google_application_credentials, scopes=['https://www.googleapis.com/auth/cloud-platform', 'https://www.googleapis.com/auth/prodxmon'])
+        google_application_credentials, scopes=_SCOPES)
   else:
     # The normal case, when we are on GCE.
     creds, _ = get_default()
