@@ -61,7 +61,7 @@ def _call_discovery(api, http):
       'v1',
       discoveryServiceUrl=_DISCOVERY_URL,
       http=http,
-      cache_discovery=False)
+      static_discovery=False)
 
 
 def build(api='issuetracker', http=None):
