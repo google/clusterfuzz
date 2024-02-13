@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 antlr4-python3-runtime = "==4.7.2"
 cryptography = "==41.0.3"
-google-api-python-client = "==1.8.3"
+google-api-python-client = "==2.24.0"
 google-auth = "==1.25.0"
 google-auth-oauthlib = "==0.4.1"
 google-cloud-batch = "==0.11.0"
@@ -33,7 +33,6 @@ requests = "==2.21.0"
 sendgrid = "==6.0.4"
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
-
 
 [dev-packages]
 firebase-admin = "==2.16.0"
