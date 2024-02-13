@@ -408,7 +408,7 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
     return remote_path
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
-  signing_creds = _signing_creds()
+  signing_creds, access_token = _signing_creds()
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
@@ -416,7 +416,9 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
       version='v4',
       expiration=minutes,
       method=method,
-      credentials=signing_creds)
+      credentials=signing_creds,
+      access_token=access_token,
+      service_account_email=signing_creds.service_account_email)
   return url
 
 
@@ -727,17 +729,24 @@ def _create_storage_client_new():
 
 def _storage_client():
   """Get the storage client, creating it if it does not exist."""
-  if hasattr(_local, 'client'):
-    return _local.client
-
-  _local.client = _create_storage_client_new()
+  if not hasattr(_local, 'client'):
+    _local.client = _create_storage_client_new()
   return _local.client
 
 
-def _signing_creds():
-  if hasattr(_local, 'signing_creds'):
-    return _local.signing_creds
+def _new_signing_creds():
+  _local.signing_creds_expiration = datetime.datetime.now(
+  ) + datetime.timedelta(minutes=45)
   _local.signing_creds = credentials.get_signing_credentials()
+
+
+def _signing_creds():
+  if not hasattr(_local, 'signing_creds'):
+    _new_signing_creds()
+
+  if datetime.datetime.now() >= _local.signing_creds_expiration:
+    _new_signing_creds()
+
   return _local.signing_creds
 
 
@@ -1248,7 +1257,6 @@ def download_signed_urls(signed_urls, directory):
       os.path.join(directory, f'{basename}-{idx}')
       for idx in range(len(signed_urls))
   ]
-  print('z')
   return _pool().starmap(_error_tolerant_download_signed_url_to_file,
                          zip(signed_urls, filepaths))
 
@@ -1257,9 +1265,10 @@ def delete_signed_urls(urls):
   return _pool().starmap(_error_tolerant_delete_signed_url, urls)
 
 
-def _sign_urls_for_existing_file(corpus_element_url):
-  download_url = get_signed_download_url(corpus_element_url)
-  delete_url = sign_delete_url(corpus_element_url)
+def _sign_urls_for_existing_file(corpus_element_url,
+                                 minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  download_url = get_signed_download_url(corpus_element_url, minutes)
+  delete_url = sign_delete_url(corpus_element_url, minutes)
   return (download_url, delete_url)
 
 
@@ -1271,10 +1280,10 @@ def get_arbitrary_signed_upload_url(remote_directory):
   return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
 
 
-@retry.wrap(
-    retries=DEFAULT_FAIL_RETRIES,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils.get_arbitrary_signed_upload_urls')
+# @retry.wrap(
+#     retries=DEFAULT_FAIL_RETRIES,
+#     delay=DEFAULT_FAIL_WAIT,
+#     function='google_cloud_utils.get_arbitrary_signed_upload_urls')
 def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
@@ -1296,6 +1305,5 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
     # probably unneeded anyway.
     raise ValueError(f'UUID collision found {str(unique_id)}')
 
-  return [
-      get_signed_upload_url(f'{base_path}-{idx}') for idx in range(num_uploads)
-  ]
+  urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
+  return _pool().map(get_signed_upload_url, urls)

@@ -22,6 +22,7 @@ from google.cloud import ndb
 from clusterfuzz._internal.base import memoize
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 from . import storage
@@ -244,5 +245,8 @@ def get_blob_signed_upload_url():
 
   # Write something to the file to avoid collision between calls.
   storage.write_data('', gcs_path)
+  if not storage.get(gcs_path):
+    raise BlobsError(f'Failed to create blob under: {gcs_path}')
+  logs.log(f'created blob with gcs_path: {gcs_path}')
   signed_upload_url = storage.get_signed_upload_url(gcs_path)
   return blob_name, signed_upload_url
