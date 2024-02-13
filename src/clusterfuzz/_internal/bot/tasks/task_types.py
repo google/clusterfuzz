@@ -178,7 +178,7 @@ COMMAND_TYPES = {
     'analyze': UTask,
     'blame': TrustedTask,
     'corpus_pruning': UTaskLocalExecutor,
-    'fuzz': UTaskLocalExecutor,
+    'fuzz': UTask,
     'impact': TrustedTask,
     'minimize': UTask,
     'progression': UTask,
