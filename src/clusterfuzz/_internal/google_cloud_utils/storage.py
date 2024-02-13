@@ -1266,7 +1266,7 @@ def download_signed_urls(signed_urls, directory):
 
 
 def delete_signed_urls(urls):
-  return _pool().starmap(_error_tolerant_delete_signed_url, urls)
+  return _pool().map(_error_tolerant_delete_signed_url, urls)
 
 
 def _sign_urls_for_existing_file(corpus_element_url,
