@@ -402,6 +402,10 @@ class GcsProvider(StorageProvider):
     requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
 
 
+@retry.wrap(
+    retries=3,
+    delay=DEFAULT_FAIL_WAIT,
+    function='google_cloud_utils._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
@@ -1280,10 +1284,6 @@ def get_arbitrary_signed_upload_url(remote_directory):
   return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
 
 
-# @retry.wrap(
-#     retries=DEFAULT_FAIL_RETRIES,
-#     delay=DEFAULT_FAIL_WAIT,
-#     function='google_cloud_utils.get_arbitrary_signed_upload_urls')
 def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
