@@ -139,14 +139,11 @@ class StorageProvider:
 
   def sign_download_url(self,
                         remote_path,
-                        minutes=SIGNED_URL_EXPIRATION_MINUTES,
-                        signing_creds=None):
+                        minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a download URL for a remote file."""
     raise NotImplementedError
 
-  def sign_upload_url(self,
-                      remote_path,
-                      minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs an upload URL for a remote file."""
     raise NotImplementedError
 
@@ -158,9 +155,7 @@ class StorageProvider:
     """Uploads |data| to |signed_url|."""
     raise NotImplementedError
 
-  def sign_delete_url(self,
-                      remote_path,
-                      minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a DELETE URL for a remote file."""
     raise NotImplementedError
 
@@ -380,18 +375,13 @@ class GcsProvider(StorageProvider):
 
   def sign_download_url(self,
                         remote_path,
-                        minutes=SIGNED_URL_EXPIRATION_MINUTES,
-                        signing_creds=None):
+                        minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a download URL for a remote file."""
-    return _sign_url(
-        remote_path, method='GET', minutes=minutes, signing_creds=signing_creds)
+    return _sign_url(remote_path, method='GET', minutes=minutes)
 
-  def sign_upload_url(self,
-                      remote_path,
-                      minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs an upload URL for a remote file."""
-    return _sign_url(
-        remote_path, method='PUT', minutes=minutes)
+    return _sign_url(remote_path, method='PUT', minutes=minutes)
 
   def download_signed_url(self, signed_url):
     """Downloads |signed_url|."""
@@ -402,23 +392,17 @@ class GcsProvider(StorageProvider):
     requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
     return True
 
-  def sign_delete_url(self,
-                      remote_path,
-                      minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a DELETE URL for a remote file."""
     return _sign_url(
-        remote_path,
-        method='DELETE',
-        minutes=SIGNED_URL_EXPIRATION_MINUTES)
+        remote_path, method='DELETE', minutes=SIGNED_URL_EXPIRATION_MINUTES)
 
   def delete_signed_url(self, signed_url):
     """Makes a DELETE HTTP request to |signed_url|."""
     requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
 
 
-def _sign_url(remote_path,
-              minutes=SIGNED_URL_EXPIRATION_MINUTES,
-              method='GET'):
+def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
     return remote_path
@@ -644,21 +628,16 @@ class FileSystemProvider(StorageProvider):
 
   def sign_download_url(self,
                         remote_path,
-                        minutes=SIGNED_URL_EXPIRATION_MINUTES,
-                        signing_creds=None):
+                        minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
     download."""
     del minutes
-    del signing_creds
     return remote_path
 
-  def sign_upload_url(self,
-                      remote_path,
-                      minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  def sign_upload_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Returns remote_path since we are pretending to sign a URL for
     upload."""
     del minutes
-    del signing_creds
     return remote_path
 
   def download_signed_url(self, signed_url):
@@ -669,18 +648,13 @@ class FileSystemProvider(StorageProvider):
     """Uploads |data| to |signed_url|."""
     return self.write_data(data, signed_url)
 
-  def sign_delete_url(self,
-                      remote_path,
-                      minutes=SIGNED_URL_EXPIRATION_MINUTES,
-                      signing_creds=None):
+  def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a DELETE URL for a remote file."""
     del minutes
-    del signing_creds
     return remote_path
 
-  def delete_signed_url(self, signed_url, signing_creds=None):
+  def delete_signed_url(self, signed_url):
     """Makes a DELETE HTTP request to |signed_url|."""
-    del signing_creds
     self.delete(signed_url)
 
 
@@ -1231,23 +1205,18 @@ def download_signed_url_to_file(url, filepath):
   return filepath
 
 
-def get_signed_upload_url(remote_path,
-                          minutes=SIGNED_URL_EXPIRATION_MINUTES):
+def get_signed_upload_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   """Returns a signed upload URL for |remote_path|. Does not download the
   contents."""
   provider = _provider()
-  return provider.sign_upload_url(
-      remote_path, minutes=minutes)
+  return provider.sign_upload_url(remote_path, minutes=minutes)
 
 
-def get_signed_download_url(remote_path,
-                            minutes=SIGNED_URL_EXPIRATION_MINUTES,
-                            signing_creds=None):
+def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   """Returns a signed download URL for |remote_path|. Does not download the
   contents."""
   provider = _provider()
-  return provider.sign_download_url(
-      remote_path, minutes=minutes, signing_creds=signing_creds)
+  return provider.sign_download_url(remote_path, minutes=minutes)
 
 
 def _error_tolerant_download_signed_url_to_file(url, path):
@@ -1261,8 +1230,7 @@ def _error_tolerant_upload_signed_url(url, path):
 
 def delete_signed_url(url):
   """Makes a DELETE HTTP request to |url|."""
-  signing_creds = _signing_creds()
-  _provider().delete_signed_url(url, signing_creds=signing_creds)
+  _provider().delete_signed_url(url)
 
 
 def _error_tolerant_delete_signed_url(url):
@@ -1277,10 +1245,8 @@ def upload_signed_urls(signed_urls, files):
                          zip(signed_urls, files))
 
 
-def sign_delete_url(remote_path,
-                    minutes=SIGNED_URL_EXPIRATION_MINUTES):
+def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return _provider().sign_delete_url(remote_path, minutes)
-      
 
 
 def download_signed_urls(signed_urls, directory):
@@ -1300,17 +1266,14 @@ def delete_signed_urls(urls):
 
 
 def _sign_urls_for_existing_file(corpus_element_url,
-                                 signing_creds,
                                  minutes=SIGNED_URL_EXPIRATION_MINUTES):
-  download_url = get_signed_download_url(corpus_element_url, minutes,
-                                         signing_creds)
+  download_url = get_signed_download_url(corpus_element_url, minutes)
   delete_url = sign_delete_url(corpus_element_url, minutes)
   return (download_url, delete_url)
 
 
-def sign_urls_for_existing_files(urls, signing_creds=None):
-  args = zip(urls, [signing_creds for _ in urls])
-  return _pool().starmap(_sign_urls_for_existing_file, args)
+def sign_urls_for_existing_files(urls):
+  return _pool().map(_sign_urls_for_existing_file, urls)
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
@@ -1321,9 +1284,7 @@ def get_arbitrary_signed_upload_url(remote_directory):
 #     retries=DEFAULT_FAIL_RETRIES,
 #     delay=DEFAULT_FAIL_WAIT,
 #     function='google_cloud_utils.get_arbitrary_signed_upload_urls')
-def get_arbitrary_signed_upload_urls(remote_directory,
-                                     num_uploads,
-                                     minutes=SIGNED_URL_EXPIRATION_MINUTES):
+def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
   # We verify there are no collisions for uuid4s in CF because it would be bad
@@ -1344,7 +1305,5 @@ def get_arbitrary_signed_upload_urls(remote_directory,
     # probably unneeded anyway.
     raise ValueError(f'UUID collision found {str(unique_id)}')
 
-  signing_creds = _signing_creds()
-  args = zip([f'{base_path}-{idx}' for idx in range(num_uploads)],
-             [minutes] * num_uploads)
-  return _pool().starmap(get_signed_upload_url, args)
+  urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
+  return _pool().map(get_signed_upload_url, urls)
