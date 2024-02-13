@@ -24,6 +24,7 @@ import threading
 import time
 import uuid
 
+import google.auth.exceptions
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import requests
@@ -87,6 +88,7 @@ _TRANSIENT_ERRORS = [
     requests.exceptions.ConnectionError,
     requests.exceptions.ChunkedEncodingError,
     ConnectionResetError,
+    google.auth.exceptions.TransportError,
 ]
 
 
@@ -403,9 +405,7 @@ class GcsProvider(StorageProvider):
 
 
 @retry.wrap(
-    retries=3,
-    delay=DEFAULT_FAIL_WAIT,
-    function='google_cloud_utils._sign_url')
+    retries=3, delay=DEFAULT_FAIL_WAIT, function='google_cloud_utils._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
