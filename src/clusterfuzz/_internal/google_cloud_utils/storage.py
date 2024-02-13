@@ -768,7 +768,8 @@ def _storage_client():
 
 
 def _new_signing_creds():
-  _local.signing_creds_expiration = datetime.datetime.now() + datetime.timedelta(minutes=45)
+  _local.signing_creds_expiration = datetime.datetime.now(
+  ) + datetime.timedelta(minutes=45)
   _local.signing_creds = credentials.get_signing_credentials()
 
 
