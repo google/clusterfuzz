@@ -12,6 +12,7 @@ py_library(
         "logs.py",
         "monitor.py",
         "monitoring_metrics.py",
+        "profiler.py",
     ],
     srcs_version = "PY2ONLY",
     deps = [],
