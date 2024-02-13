@@ -223,9 +223,10 @@ def update_issue_foundin_labels(testcase, issue):
       ] if x
   ]
   milestones_foundin = {x.split('.')[0] for x in versions_foundin}
+  if milestones_foundin:
+    # Only cleanup previous FoundIn labels if we have new ones to add.
+    issue.labels.remove_by_prefix('FoundIn-')
   for found_milestone in milestones_foundin:
-    if f'foundin-{found_milestone}' in issue.labels:
-      continue
     issue.labels.add('FoundIn-' + found_milestone)
 
 
