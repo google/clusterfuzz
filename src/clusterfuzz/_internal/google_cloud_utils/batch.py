@@ -57,6 +57,8 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
 ])
 
+HIGH_PRIORITY = 50
+
 
 def _create_batch_client_new():
   """Creates a batch client."""
@@ -90,10 +92,13 @@ class BatchTask:
     self.input_download_url = input_download_url
 
 
-def create_uworker_main_batch_job(module, job_type, input_download_url):
+def create_uworker_main_batch_job(module,
+                                  job_type,
+                                  input_download_url,
+                                  priority=None):
   command = task_utils.get_command_from_module(module)
   batch_tasks = [BatchTask(command, job_type, input_download_url)]
-  result = create_uworker_main_batch_jobs(batch_tasks)
+  result = create_uworker_main_batch_jobs(batch_tasks, priority)
   if result is None:
     return result
   return result[0]
@@ -117,7 +122,7 @@ def _bunched(iterator, bunch_size):
     yield bunch
 
 
-def create_uworker_main_batch_jobs(batch_tasks):
+def create_uworker_main_batch_jobs(batch_tasks, priority=None):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
@@ -130,7 +135,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
   logs.log(f'Starting utask_mains: {job_specs}.')
   for spec, input_urls in job_specs.items():
     for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
-      jobs.append(_create_job(spec, input_urls_portion))
+      jobs.append(_create_job(spec, input_urls_portion, priority))
 
   return jobs
 
@@ -200,7 +205,7 @@ def _get_allocation_policy(spec):
   return allocation_policy
 
 
-def _create_job(spec, input_urls):
+def _create_job(spec, input_urls, priority):
   """Creates and starts a batch job from |spec| that executes all tasks."""
   task_group = batch.TaskGroup()
   task_group.task_count = len(input_urls)
@@ -220,6 +225,8 @@ def _create_job(spec, input_urls):
   job.labels = {'env': 'testing', 'type': 'container'}
   job.logs_policy = batch.LogsPolicy()
   job.logs_policy.destination = batch.LogsPolicy.Destination.CLOUD_LOGGING
+  if priority is not None:
+    job.priority = priority
 
   create_request = batch.CreateJobRequest()
   create_request.job = job
