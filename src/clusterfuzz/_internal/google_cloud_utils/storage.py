@@ -768,7 +768,7 @@ def _storage_client():
 
 
 def _new_signing_creds():
-  _local.signing_creds_expiration = time.time() + datetime.timedelta(minutes=45)
+  _local.signing_creds_expiration = datetime.datetime.now() + datetime.timedelta(minutes=45)
   _local.signing_creds = credentials.get_signing_credentials()
 
 
@@ -776,7 +776,7 @@ def _signing_creds():
   if not hasattr(_local, 'signing_creds'):
     _new_signing_creds()
 
-  if time.time() >= _local.signing_creds_expiration:
+  if datetime.datetime.now() >= _local.signing_creds_expiration:
     _new_signing_creds()
 
   return _local.signing_creds
@@ -1314,7 +1314,7 @@ def _sign_urls_for_existing_file(corpus_element_url, signing_creds):
 
 
 def sign_urls_for_existing_files(urls, signing_creds=None):
-  args = zip(urls, [signing_creds] * len(urls))
+  args = zip(urls, (signing_creds for _ in urls))
   return _pool().starmap(_sign_urls_for_existing_file, args)
 
 
@@ -1349,5 +1349,5 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
 
   signing_creds = _signing_creds()
   args = ((f'{base_path}-{idx}' for idx in range(num_uploads)),
-          [signing_creds] * len(num_uploads))
+          [signing_creds] * num_uploads)
   return _pool().starmap(get_signed_upload_url, args)
