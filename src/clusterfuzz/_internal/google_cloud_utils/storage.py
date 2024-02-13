@@ -408,7 +408,7 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
     return remote_path
   minutes = datetime.timedelta(minutes=minutes)
   bucket_name, object_path = get_bucket_name_and_path(remote_path)
-  signing_creds = _signing_creds()
+  signing_creds, access_token = _signing_creds()
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
@@ -416,7 +416,9 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
       version='v4',
       expiration=minutes,
       method=method,
-      credentials=signing_creds)
+      credentials=signing_creds,
+      access_token=access_token,
+      service_account_email=signing_creds.service_account_email)
   return url
 
 
