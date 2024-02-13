@@ -78,6 +78,8 @@ def get_signing_credentials():
     # Cloud Platform and don't have access to metadata server.
     signing_creds = service_account.Credentials.from_service_account_file(
         google_application_credentials, scopes=_SCOPES)
+    request = requests.Request()
+    signing_creds.refresh(request)
     token = signing_creds.token
   else:
     # The normal case, when we are on GCE.
