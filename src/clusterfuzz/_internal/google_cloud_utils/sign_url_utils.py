@@ -14,7 +14,8 @@
 """This application demonstrates how to construct a Signed URL for objects in
    Google Cloud Storage.
 
-Originally from https://github.com/GoogleCloudPlatform/python-docs-samples/blob/HEAD/storage/signed_urls/generate_signed_urls.py
+Originally from
+https://github.com/GoogleCloudPlatform/python-docs-samples/blob/HEAD/storage/signed_urls/generate_signed_urls.py
 """
 
 import binascii
@@ -22,6 +23,8 @@ import collections
 import datetime
 import hashlib
 import urllib.parse
+
+import six
 
 from clusterfuzz._internal.metrics import logs
 
@@ -37,7 +40,7 @@ def generate_signed_url(
     headers=None,
 ):
   if expiration > 604800:
-    logs.log_error(
+    raise ValueError(
         'Expiration time can\'t be longer than 604800 seconds (7 days).')
     return None
 
@@ -54,7 +57,7 @@ def generate_signed_url(
   credential = f'{client_email}/{credential_scope}'
 
   if headers is None:
-    headers = dict()
+    headers = {}
   host = f'{bucket_name}.storage.googleapis.com'
   headers['host'] = host
 
@@ -72,7 +75,7 @@ def generate_signed_url(
   signed_headers = signed_headers[:-1]  # remove trailing ';'.
 
   if query_parameters is None:
-    query_parameters = dict()
+    query_parameters = {}
   query_parameters['X-Goog-Algorithm'] = 'GOOG4-RSA-SHA256'
   query_parameters['X-Goog-Credential'] = credential
   query_parameters['X-Goog-Date'] = request_timestamp
