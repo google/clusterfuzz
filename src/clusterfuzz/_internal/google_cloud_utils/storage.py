@@ -1308,9 +1308,12 @@ def delete_signed_urls(urls):
   return _pool().starmap(_error_tolerant_delete_signed_url, urls)
 
 
-def _sign_urls_for_existing_file(corpus_element_url, signing_creds):
-  download_url = get_signed_download_url(corpus_element_url, signing_creds)
-  delete_url = sign_delete_url(corpus_element_url, signing_creds)
+def _sign_urls_for_existing_file(corpus_element_url,
+                                 signing_creds,
+                                 minutes=SIGNED_URL_EXPIRATION_MINUTES):
+  download_url = get_signed_download_url(corpus_element_url, minutes,
+                                         signing_creds)
+  delete_url = sign_delete_url(corpus_element_url, minutes, signing_creds)
   return (download_url, delete_url)
 
 
