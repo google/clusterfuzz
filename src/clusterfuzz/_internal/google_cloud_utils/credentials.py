@@ -77,7 +77,7 @@ def get_signing_credentials():
     # Handle cases like android and Mac where bots are run outside of Google
     # Cloud Platform and don't have access to metadata server.
     signing_creds = service_account.Credentials.from_service_account_file(
-      google_application_credentials, scopes=_SCOPES)
+        google_application_credentials, scopes=_SCOPES)
     token = signing_creds.token
   else:
     # The normal case, when we are on GCE.
@@ -87,6 +87,6 @@ def get_signing_credentials():
     creds.refresh(request)
 
     signing_creds = compute_engine.IDTokenCredentials(
-      request, '', service_account_email=creds.service_account_email)
+        request, '', service_account_email=creds.service_account_email)
     token = creds.token
   return signing_creds, token
