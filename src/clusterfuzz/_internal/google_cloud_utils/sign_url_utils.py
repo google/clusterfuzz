@@ -26,8 +26,6 @@ import urllib.parse
 
 import six
 
-from clusterfuzz._internal.metrics import logs
-
 
 def generate_signed_url(
     google_credentials,
@@ -39,10 +37,10 @@ def generate_signed_url(
     query_parameters=None,
     headers=None,
 ):
+  """Signs a URL locally."""
   if expiration > 604800:
     raise ValueError(
         'Expiration time can\'t be longer than 604800 seconds (7 days).')
-    return None
 
   escaped_object_name = urllib.parse.quote(
       six.ensure_binary(object_name), safe=b'/~')
