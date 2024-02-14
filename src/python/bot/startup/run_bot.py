@@ -40,6 +40,7 @@ from clusterfuzz._internal.datastore import ndb_init
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.metrics import profiler
 from clusterfuzz._internal.system import environment
 
 
@@ -178,6 +179,9 @@ def main():
   dates.initialize_timezone_from_environment()
   environment.set_bot_environment()
   monitor.initialize()
+
+  if not profiler.start_if_needed('python_profiler_bot'):
+    sys.exit(-1)
 
   fuzzers_init.run()
 
