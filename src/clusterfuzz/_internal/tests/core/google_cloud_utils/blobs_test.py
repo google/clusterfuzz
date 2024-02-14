@@ -17,7 +17,10 @@ import os
 import unittest
 from unittest import mock
 
+from pyfakefs import fake_filesystem_unittest
+
 from clusterfuzz._internal.google_cloud_utils import blobs
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
 
@@ -168,3 +171,27 @@ class BlobsTest(unittest.TestCase):
     self.mock.read_data.assert_has_calls([
         mock.call('/blobs-bucket/legacy'),
     ])
+
+
+class BlobSignedURLTest(fake_filesystem_unittest.TestCase):
+  """Tests the behaviour of get_blob_signed_upload_url and delete_blob."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    self.provider = storage.FileSystemProvider('/local')
+    test_utils.set_up_pyfakefs(self)
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = '/local'
+    os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
+    self.provider.create_bucket('blobs-bucket', None, None)
+
+  def test_get_blob_signed_upload_url_then_delete_blob(self):
+    """Tests get_blob_signed_upload_url."""
+    blob_name, _ = blobs.get_blob_signed_upload_url()
+    local_file_name = f'/local/blobs-bucket/objects/{blob_name}'
+    # Make sure the file was created.
+    with open(local_file_name, 'rb') as fp:
+      self.assertEqual(fp.read(), b'')
+
+    blobs.delete_blob(blob_name)
+    with self.assertRaises(FileNotFoundError):
+      open(local_file_name, 'rb')
