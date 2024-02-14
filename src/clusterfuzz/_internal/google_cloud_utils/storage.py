@@ -751,8 +751,8 @@ def _storage_client():
 def _new_signing_creds():
   now = datetime.datetime.now()
   new_expiry = now + datetime.timedelta(minutes=40)
-  logs.log(f'Credentials expiring: {_local.signing_creds_expiration}. '
-           f'New: {new_expiry}.')
+  prev = getattr(_local, 'signing_creds_expiration', None)
+  logs.log(f'Credentials expiring: {prev}. New: {new_expiry}.')
   _local.signing_creds_expiration = new_expiry
   _local.signing_creds = credentials.get_signing_credentials()
 
