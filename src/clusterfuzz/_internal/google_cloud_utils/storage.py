@@ -425,6 +425,7 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
         access_token=access_token,
         service_account_email=signing_creds.service_account_email)
   except google.auth.exceptions.TransportError:
+    logs.log('_sign_url: Trying to renew credentials.')
     _new_signing_creds()
     return blob.generate_signed_url(
         version='v4',
@@ -748,8 +749,11 @@ def _storage_client():
 
 
 def _new_signing_creds():
-  _local.signing_creds_expiration = datetime.datetime.now(
-  ) + datetime.timedelta(minutes=40)
+  now = datetime.datetime.now()
+  new_expiry = now + datetime.timedelta(minutes=40)
+  logs.log(f'Credentials expiring: {_local.signing_creds_expiration}. '
+           f'New: {now}.')
+  _local.signing_creds_expiration = new_expiry
   _local.signing_creds = credentials.get_signing_credentials()
 
 
