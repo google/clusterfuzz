@@ -812,9 +812,10 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       executable_dir = os.path.dirname(executable_path)
       deps_path = os.path.join(self._get_device_path(executable_dir), 'lib')
       ld_library_path += deps_path
-      sanitizer_path = android.sanitizer.get_ld_library_path_for_sanitizers()
-      if sanitizer_path:
-        ld_library_path += ':' + sanitizer_path
+      memory_tool_path = android.sanitizer.get_ld_library_path_for_memory_tools(
+      )
+      if memory_tool_path:
+        ld_library_path += ':' + memory_tool_path
       default_args.append('LD_LIBRARY_PATH=' + ld_library_path)
 
     # Add sanitizer options.
@@ -870,7 +871,8 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
   def _extract_trusty_stacktrace_from_logcat(self, logcat):
     """Finds and returns a TA stacktrace from a logcat"""
-    begin, end = 'panic notifier - trusty version', 'Built:'
+    begin = android.constants.TRUSTY_STACKTRACE_BEGIN
+    end = android.constants.TRUSTY_STACKTRACE_END
     target_idx = logcat.rfind(begin)
 
     if target_idx != -1:
@@ -920,6 +922,46 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
       \n{ta_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
         ta_stacktrace=ta_stacktrace, output=output, logcat_output=logcat)
 
+  def _extract_mte_stacktrace_from_logcat(self, logcat):
+    """Finds and returns the MTE stacktrace from a logcat."""
+    begin = android.constants.MTE_STACKTRACE_BEGIN
+    end = android.constants.MTE_STACKTRACE_END
+    target_idx = logcat.rfind(begin)
+
+    if target_idx != -1:
+      # Logcat contains MTE crash
+      begin = logcat[:target_idx].rfind('\n')
+      end_idx = target_idx + logcat[target_idx:].find('\n')
+      end_idx += logcat[end_idx:].find(end)
+      end_idx += logcat[end_idx:].find('\n')
+
+      mte_stacktrace = ['MTE Stacktrace:']
+      for line in logcat[begin:end_idx].splitlines():
+        mte_stacktrace.append(line)
+
+      return '\n'.join(mte_stacktrace)
+
+    begin = '---------'
+    target = 'Backtrace for thread:'
+    target_idx = logcat.rfind(target)
+    if target_idx == -1:
+      return 'No MTE crash stacktrace found in logcat.\n'
+
+    begin_idx = logcat[:target_idx].rfind(begin)
+    end_idx = target_idx + logcat[target_idx:].find(end)
+    end_idx += logcat[end_idx:].find('\n')
+
+    return logcat[begin_idx:end_idx]
+
+  def _add_mte_stacktrace_if_needed(self, output):
+    """Add mte stacktrace to beginning of output if found in logcat."""
+    logcat = android.logger.log_output()
+    mte_stacktrace = self._extract_mte_stacktrace_from_logcat(logcat)
+
+    return '+-- Logcat excerpt: MTE crash stacktrace --+\
+      \n{mte_stacktrace}\n\n{output}\n\nLogcat:\n{logcat_output}'.format(
+        mte_stacktrace=mte_stacktrace, output=output, logcat_output=logcat)
+
   def _add_logcat_output_if_needed(self, output):
     """Add logcat output to end of output to capture crashes from related
     processes if current output has no sanitizer crash."""
@@ -928,6 +970,9 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
 
     if environment.is_android_emulator():
       return self._add_trusty_stacktrace_if_needed(output)
+
+    if environment.is_android() and android.settings.is_mte_build():
+      return self._add_mte_stacktrace_if_needed(output)
 
     return '{output}\n\nLogcat:\n{logcat_output}'.format(
         output=output, logcat_output=android.logger.log_output())
@@ -1327,7 +1372,8 @@ def use_peach_mutator(extra_env, grammar):
   unzipped = os.path.join(peach_dir, 'mutator')
   source = os.path.join(peach_dir, 'peach_mutator.zip')
 
-  archive.unpack(source, unzipped, trusted=True)
+  with archive.open(source) as reader:
+    archive.unpack(reader, unzipped, trusted=True)
 
   # Set LD_PRELOAD.
   peach_path = os.path.join(unzipped, 'peach_mutator', 'src', 'peach.so')

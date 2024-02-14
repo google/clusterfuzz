@@ -13,7 +13,7 @@ permalink: /getting-started/prerequisites/
 This page explains how to set up your environment for using ClusterFuzz.
 
 - TOC
-  {:toc}
+{:toc}
 
 ---
 
@@ -49,23 +49,11 @@ where X.Y.Z is the release version (for example, 1.0.1).
 
 ### Google Cloud SDK
 
+This step is only necessary on the **macOS** platform. For **Linux** user, Google Cloud SDK
+will be installed later by the script under the "[Other dependencies](#other-dependencies)" section.
+
 Install the Google Cloud SDK by following the [online
 instructions](https://cloud.google.com/sdk/).
-
-### Log in to your Google Cloud account
-
-**Note:** This is **not** necessary if you're [running ClusterFuzz locally].
-
-If you're planning to [set up ClusterFuzz in production], you should
-authenticate your account with the `gcloud` tool:
-
-```bash
-gcloud auth application-default login
-gcloud auth login
-```
-
-[set up ClusterFuzz in production]: {{ "/production-setup/" | relative_url }}
-[running ClusterFuzz locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
 ### Python programming language
 
@@ -104,6 +92,21 @@ local/install_deps.bash
 ```
 
 [homebrew]: https://brew.sh/
+
+## Log in to your Google Cloud account
+
+**Note:** This is **not** necessary if you're [running ClusterFuzz locally].
+
+If you're planning to [set up ClusterFuzz in production], you should
+authenticate your account with the `gcloud` tool:
+
+```bash
+gcloud auth application-default login
+gcloud auth login
+```
+
+[set up ClusterFuzz in production]: {{ "/production-setup/" | relative_url }}
+[running ClusterFuzz locally]: {{ "/getting-started/local-instance/" | relative_url }}
 
 ## Loading pipenv
 

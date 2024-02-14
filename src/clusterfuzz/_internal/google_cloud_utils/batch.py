@@ -13,14 +13,15 @@
 # limitations under the License.
 """Cloud Batch helpers."""
 import collections
+import itertools
 import threading
 import uuid
 
 from google.cloud import batch_v1 as batch
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.bot.tasks.utasks import utask_utils
 from clusterfuzz._internal.config import local_config
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.metrics import logs
@@ -33,6 +34,8 @@ _local = threading.local()
 
 MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
 RETRY_COUNT = 0
+
+TASK_BUNCH_SIZE = 20
 
 # Controls how many containers (ClusterFuzz tasks) can run on a single VM.
 # THIS SHOULD BE 1 OR THERE WILL BE SECURITY PROBLEMS.
@@ -53,6 +56,8 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'gce_zone',
     'machine_type',
 ])
+
+_UNPRIVILEGED_TASKS = {'variant'}
 
 
 def _create_batch_client_new():
@@ -88,7 +93,7 @@ class BatchTask:
 
 
 def create_uworker_main_batch_job(module, job_type, input_download_url):
-  command = utask_utils.get_command_from_module(module)
+  command = task_utils.get_command_from_module(module)
   batch_tasks = [BatchTask(command, job_type, input_download_url)]
   result = create_uworker_main_batch_jobs(batch_tasks)
   if result is None:
@@ -96,17 +101,52 @@ def create_uworker_main_batch_job(module, job_type, input_download_url):
   return result[0]
 
 
+def _bunched(iterator, bunch_size):
+  """Implementation of itertools.py's batched that was added after Python3.7."""
+  # TODO(metzman): Replace this with itertools.batched.
+  assert bunch_size > -1
+  idx = 0
+  bunch = []
+  for item in iterator:
+    idx += 1
+    bunch.append(item)
+    if idx == bunch_size:
+      idx = 0
+      yield bunch
+      bunch = []
+
+  if bunch:
+    yield bunch
+
+
 def create_uworker_main_batch_jobs(batch_tasks):
-  # Define what will be done as part of the job.
+  """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
     spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 
   logs.log('Creating batch jobs.')
-  return [
-      _create_job(spec, input_urls) for spec, input_urls in job_specs.items()
+  jobs = []
+
+  logs.log(f'Starting utask_mains: {job_specs}.')
+  for spec, input_urls in job_specs.items():
+    for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
+      jobs.append(_create_job(spec, input_urls_portion))
+
+  return jobs
+
+
+def create_uworker_main_batch_jobs_bunched(batch_tasks):
+  """Creates batch jobs 20 tasks at a time, lazily. This is helpful to use when
+  batch_tasks takes a very long time to create."""
+  # Use term bunch instead of "batch" since "batch" has nothing to do with the
+  # cloud service and is thus very confusing in this context.
+  jobs = [
+      create_uworker_main_batch_jobs(bunch)
+      for bunch in _bunched(batch_tasks, TASK_BUNCH_SIZE)
   ]
+  return list(itertools.chain(jobs))
 
 
 def _get_task_spec(batch_workload_spec):
@@ -225,15 +265,19 @@ def is_remote_task(command, job_name):
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   job = _get_job(job_name)
-  platform = job.platform
+  config_name = job.platform
   if command == 'fuzz':
-    platform += '-PREEMPTIBLE'
+    config_name += '-PREEMPTIBLE'
   else:
-    platform += '-NONPREEMPTIBLE'
+    config_name += '-NONPREEMPTIBLE'
+  # TODO(metzman): Get rid of this when we stop doing privileged operations in
+  # utasks.
+  if command in _UNPRIVILEGED_TASKS:
+    config_name += '-UNPRIVILEGED'
   batch_config = _get_batch_config()
-  instance_spec = batch_config.get('mapping').get(platform, None)
+  instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
-    raise ValueError(f'No mapping for {platform}')
+    raise ValueError(f'No mapping for {config_name}')
   project_name = batch_config.get('project')
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']

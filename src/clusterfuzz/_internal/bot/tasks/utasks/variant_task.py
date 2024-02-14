@@ -201,16 +201,18 @@ def handle_build_setup_error(output):
       f'Build setup failed with job: {output.uworker_input.testcase_id}')
 
 
-HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP,
-    uworker_msg_pb2.ErrorType.UNHANDLED
-] + setup.HANDLED_ERRORS
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.VARIANT_BUILD_SETUP: handle_build_setup_error,
+}).compose_with(
+    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+    setup.ERROR_HANDLER,
+)
 
 
 def utask_postprocess(output):
   """Handle the output from utask_main."""
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    _ERROR_HANDLER.handle(output)
     return
 
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)

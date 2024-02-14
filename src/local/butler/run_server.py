@@ -70,8 +70,6 @@ def bootstrap_gcs(storage_path):
   create_local_bucket(local_gcs_buckets_path,
                       config.get('env.QUARANTINE_BUCKET'))
   create_local_bucket(local_gcs_buckets_path,
-                      config.get('env.SHARED_CORPUS_BUCKET'))
-  create_local_bucket(local_gcs_buckets_path,
                       config.get('env.FUZZ_LOGS_BUCKET'))
 
   # Symlink local GCS bucket path to appengine src dir to bypass sandboxing
@@ -178,13 +176,12 @@ def execute(args):
   os.environ['PUBSUB_EMULATOR_HOST'] = constants.PUBSUB_EMULATOR_HOST
   os.environ['GAE_ENV'] = 'dev'
   cron_server = common.execute_async(
-      'gunicorn -b :{port} main:app'.format(port=constants.CRON_SERVICE_PORT),
+      f'gunicorn -b 127.0.0.1:{constants.CRON_SERVICE_PORT} main:app',
       cwd=os.path.join('src', 'appengine'))
   try:
 
     common.execute(
-        'gunicorn -b :{port} main:app'.format(
-            port=constants.DEV_APPSERVER_PORT),
+        f'gunicorn -b 127.0.0.1:{constants.DEV_APPSERVER_PORT} main:app',
         cwd=os.path.join('src', 'appengine'))
   except KeyboardInterrupt:
     print('Server has been stopped. Exit.')

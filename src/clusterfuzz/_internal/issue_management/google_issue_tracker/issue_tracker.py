@@ -26,7 +26,7 @@ from clusterfuzz._internal.issue_management.google_issue_tracker import client
 from clusterfuzz._internal.metrics import logs
 
 _NUM_RETRIES = 3
-_ISSUE_TRACKER_URL = 'https://issuetracker.google.com/issues'
+_ISSUE_TRACKER_URL = 'https://issues.chromium.org/issues'
 
 # These custom fields use repeated enums.
 _CHROMIUM_OS_CUSTOM_FIELD_ID = '1223084'
@@ -65,6 +65,17 @@ def _extract_all_labels(labels, prefix):
   for label in labels_to_remove:
     labels.remove(label)
   return results
+
+
+def _sanitize_oses(oses):
+  """Sanitize the OS custom field values.
+
+  The OS custom field no longer has the 'Chrome' value.
+  It was replaced by 'ChromeOS'.
+  """
+  for i, os_field in enumerate(oses):
+    if os_field == 'Chrome':
+      oses[i] = 'ChromeOS'
 
 
 def _extract_label(labels, prefix):
@@ -159,6 +170,21 @@ class Issue(issue_tracker.Issue):
                      'not in allowed values' % (v, custom_field_id))
         break
     return filtered_values
+
+  def _filter_labels(self):
+    """Filters out and logs labels that are not hotlist IDs."""
+    logs.log(
+        'google_issue_tracker: Labels before filtering: %s' % list(self.labels))
+    labels_to_remove = []
+    for label in self.labels:
+      if not label.isnumeric():
+        logs.log_warn('google_issue_tracker: Label %s was not a hotlist ID. '
+                      'Removing it.' % label)
+        labels_to_remove.append(label)
+    for remove_label in labels_to_remove:
+      self.labels.remove(remove_label)
+    logs.log(
+        'google_issue_tracker: Labels after filtering: %s' % list(self.labels))
 
   def _reset_tracking(self):
     """Resets diff tracking."""
@@ -258,6 +284,7 @@ class Issue(issue_tracker.Issue):
                                                issueId=str(self.id),
                                                pageSize=1,
                                                sortBy='ASC'))
+      logs.log('google_issue_tracker: is_new: %s' % result)
       if 'issueUpdates' not in result:
         return self._body
       if len(result['issueUpdates']) < 1:
@@ -447,6 +474,7 @@ class Issue(issue_tracker.Issue):
     if added_oses:
       oses = self._os_custom_field_values
       oses.extend(added_oses)
+      _sanitize_oses(oses)
       custom_field_entries.append({
           'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
           'repeatedEnumValue': {
@@ -478,14 +506,18 @@ class Issue(issue_tracker.Issue):
       values = self._filter_custom_field_enum_values(
           _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID, component_paths)
       if values:
-        logs.log('google_issue_tracker: Going to add these components to '
-                 'component tags: %s' % values)
-        custom_field_entries.append({
-            'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
-            'repeatedEnumValue': {
-                'values': values,
-            }
-        })
+        # Validation check: Do not update component tags if they are the same
+        # as on the issue.
+        existing_tags = self._get_component_tags()
+        if not set(values).issubset(set(existing_tags)):
+          logs.log('google_issue_tracker: Going to add these components to '
+                   'component tags: %s' % values)
+          custom_field_entries.append({
+              'customFieldId': _CHROMIUM_COMPONENT_TAGS_CUSTOM_FIELD_ID,
+              'repeatedEnumValue': {
+                  'values': values,
+              }
+          })
 
     if custom_field_entries:
       added.append('customFields')
@@ -514,9 +546,20 @@ class Issue(issue_tracker.Issue):
       }
     result = self._data
     if added or removed or new_comment:
+      logs.log('google_issue_tracker: modify update_body: %s' % update_body)
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().modify(
               issueId=str(self.id), body=update_body))
+      logs.log('google_issue_tracker: modify result: %s' % result)
+      # Do not use results from modify call, it could contain obfuscated emails
+      # See crbug/323736910. Do a seperate get issue call.
+      result = self.issue_tracker._execute(
+          self.issue_tracker.client.issues().get(issueId=str(self.id)))
+      logs.log('google_issue_tracker: get after modify result: %s' % result)
+
+    # Make sure self.labels contains only hotlist IDs.
+    self._filter_labels()
+
     # Special case: hotlists.
     # TODO(ochang): Investigate batching.
     added_hotlists = self.labels.added
@@ -551,6 +594,7 @@ class Issue(issue_tracker.Issue):
       custom_field_entries = []
       oses = _extract_all_labels(self.labels, 'OS-')
       if oses:
+        _sanitize_oses(oses)
         custom_field_entries.append({
             'customFieldId': _CHROMIUM_OS_CUSTOM_FIELD_ID,
             'repeatedEnumValue': {
@@ -583,11 +627,13 @@ class Issue(issue_tracker.Issue):
       if foundin_values:
         self._data['issueState']['foundInVersions'] = foundin_values
 
-      logs.log('google_issue_tracker: labels: %s' % list(self.labels))
       severity_text = _extract_label(self.labels, 'Security_Severity-')
       logs.log('google_issue_tracker: severity_text: %s' % severity_text)
       severity = _get_severity_from_crash_text(severity_text)
       self._data['issueState']['severity'] = severity
+
+      # Make sure self.labels contains only hotlist IDs.
+      self._filter_labels()
 
       if self.component_id:
         self._data['issueState']['componentId'] = int(self.component_id)
@@ -616,6 +662,7 @@ class Issue(issue_tracker.Issue):
       result = self.issue_tracker._execute(
           self.issue_tracker.client.issues().create(
               body=self._data, templateOptions_applyTemplate=True))
+      logs.log('google_issue_tracker: result of create: %s' % result)
       self._is_new = False
     else:
       logs.log('google_issue_tracker: Updating issue..')
@@ -852,6 +899,7 @@ class IssueTracker(issue_tracker.IssueTracker):
     """Gets the issue with the given ID."""
     try:
       issue = self._execute(self.client.issues().get(issueId=str(issue_id)))
+      logs.log('google_issue_tracker: get_issue. issue: %s' % issue)
       return Issue(issue, False, self)
     except IssueTrackerError as e:
       if isinstance(e, IssueTrackerNotFoundError):
@@ -868,6 +916,7 @@ class IssueTracker(issue_tracker.IssueTracker):
       if "issues" not in issues:
         return
       for issue in issues['issues']:
+        logs.log('google_issue_tracker: find_issues. issue: %s' % issue)
         yield Issue(issue, False, self)
       page_token = issues.get('nextPageToken')
       if not page_token:
@@ -967,10 +1016,12 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.status = 'ASSIGNED'
 #   issue.labels.add('OS-Linux')
 #   issue.labels.add('OS-Android')
+#   issue.labels.add('OS-Chrome')
 #   issue.labels.add('FoundIn-123')
 #   issue.labels.add('FoundIn-789')
 #   issue.labels.add('ReleaseBlock-Dev')
 #   issue.labels.add('ReleaseBlock-Beta')
+#   issue.labels.add('UNKNOWN-LABEL')  # Should be filtered out
 #   issue.components.add('1456407')  # 'Blink'
 #   issue.components.add('1456567')  # 'Blink>JavaScript>Compiler>Sparkplug'
 #   issue.components.add('1363614')  # 'Chromium'
@@ -987,13 +1038,17 @@ def _get_severity_from_crash_text(crash_severity_text):
 #   issue.save(new_comment='testing')
 #
 #   # Test issue query.
-#   queried_issue = it.get_issue(314141502)
+#   queried_issue = it.get_issue(323696390)
 #   print(queried_issue._data)
+#   print(queried_issue.assignee)
 #   queried_issue.labels.add('OS-ChromeOS')
+#   queried_issue.labels.add('OS-Chrome')
+#   queried_issue.labels.add('OS-Android')
 #   queried_issue.labels.add('FoundIn-456')
 #   queried_issue.labels.add('FoundIn-6')
 #   queried_issue.labels.add('ReleaseBlock-Beta')
 #   queried_issue.labels.add('ReleaseBlock-Dev')
+#   queried_issue.labels.add('UNKNOWN-LABEL')  # Should be filtered out
 #   # 'Blink>JavaScript>Compiler>Sparkplug'
 #   queried_issue.components.add('1456567')
 #   queried_issue.components.add('OS>Software>Enterprise>ChromeApps')

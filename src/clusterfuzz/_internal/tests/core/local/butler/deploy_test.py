@@ -70,8 +70,6 @@ class DeployTest(fake_filesystem_unittest.TestCase):
       self.assertEqual('test-corpus-bucket', env_variables['CORPUS_BUCKET'])
       self.assertEqual('test-quarantine-bucket',
                        env_variables['QUARANTINE_BUCKET'])
-      self.assertEqual('test-shared-corpus-bucket',
-                       env_variables['SHARED_CORPUS_BUCKET'])
 
   def _check_no_env_variables(self, yaml_paths):
     """Check that environment variables are not written to yaml paths."""

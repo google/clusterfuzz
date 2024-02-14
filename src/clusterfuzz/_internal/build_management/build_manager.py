@@ -151,13 +151,12 @@ def _make_space(requested_size, current_build_dir=None):
   return result
 
 
-def _make_space_for_build(build_local_archive,
+def _make_space_for_build(archive_reader,
                           current_build_dir,
                           file_match_callback=None):
   """Make space for extracting the build archive by deleting the least recently
   used builds."""
-  extracted_size = archive.extracted_size(
-      build_local_archive, file_match_callback=file_match_callback)
+  extracted_size = archive_reader.extracted_size(file_match_callback)
 
   return _make_space(extracted_size, current_build_dir=current_build_dir)
 
@@ -398,7 +397,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
           llvm_symbolizer_path = os.path.join(root, llvm_symbolizer_filename)
           set_env_var('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
 
-  if not absolute_file_path:
+  if app_name and not absolute_file_path:
     logs.log_error(f'Could not find app {app_name!r} in search directories.')
 
 
@@ -540,6 +539,13 @@ class Build(BaseBuild):
 
     unpack_everything = environment.get_value(
         'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
+
+    try:
+      reader = archive.open(build_local_archive)
+    except:
+      logs.log_error(f'Unable to open build archive {build_local_archive}.')
+      return False
+
     if not unpack_everything:
       # For fuzzing, pick a random fuzz target so that we only un-archive that
       # particular fuzz target and its dependencies and save disk space.  If we
@@ -550,16 +556,14 @@ class Build(BaseBuild):
       # large builds (such as Chrome OS). Defer setting it until after the build
       # has been unpacked.
       self._pick_fuzz_target(
-          self._get_fuzz_targets_from_archive(build_local_archive),
-          target_weights)
+          self._get_fuzz_targets_from_archive(reader), target_weights)
 
     # Actual list of files to unpack can be smaller if we are only unarchiving
     # a particular fuzz target.
     file_match_callback = _get_file_match_callback()
     assert not (unpack_everything and file_match_callback is not None)
 
-    if not _make_space_for_build(build_local_archive, base_build_dir,
-                                 file_match_callback):
+    if not _make_space_for_build(reader, base_build_dir, file_match_callback):
       shell.clear_data_directories()
       logs.log_fatal_and_exit(
           'Failed to make space for build. '
@@ -570,7 +574,7 @@ class Build(BaseBuild):
     trusted = not utils.is_oss_fuzz()
     try:
       archive.unpack(
-          build_local_archive,
+          reader,
           build_dir,
           trusted=trusted,
           file_match_callback=file_match_callback)
@@ -578,6 +582,7 @@ class Build(BaseBuild):
       logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
       return False
 
+    reader.close()
     if unpack_everything:
       # Set a random fuzz target now that the build has been unpacked, if we
       # didn't set one earlier. For an auxiliary build, fuzz target is already
@@ -601,16 +606,18 @@ class Build(BaseBuild):
 
     return True
 
-  def _get_fuzz_targets_from_archive(self, archive_path):
+  def _get_fuzz_targets_from_archive(self, reader):
     """Get iterator of fuzz targets from archive path."""
     # Import here as this path is not available in App Engine context.
     from clusterfuzz._internal.bot.fuzzers import utils as fuzzer_utils
 
-    for archive_file in archive.iterator(archive_path):
-      if fuzzer_utils.is_fuzz_target_local(archive_file.name,
-                                           archive_file.handle):
+    for archive_file in reader.list_members():
+      file_handle = reader.try_open(archive_file.name)
+      if fuzzer_utils.is_fuzz_target_local(archive_file.name, file_handle):
         fuzz_target = _normalize_target_name(archive_file.name)
         yield fuzz_target
+      if file_handle:
+        file_handle.close()
 
   def _get_fuzz_targets_from_dir(self, build_dir):
     """Get iterator of fuzz targets from build dir."""
@@ -841,7 +848,8 @@ class CuttlefishKernelBuild(RegularBuild):
     # Extract syzkaller binary.
     syzkaller_path = os.path.join(self.build_dir, 'syzkaller')
     shell.remove_directory(syzkaller_path)
-    archive.unpack(archive_dst_path, syzkaller_path)
+    with archive.open(archive_dst_path) as reader:
+      archive.unpack(reader, syzkaller_path)
     shell.remove_file(archive_dst_path)
 
     environment.set_value('VMLINUX_PATH', self.build_dir)
@@ -959,17 +967,24 @@ class CustomBuild(Build):
     if not blobs.read_blob_to_disk(self.custom_binary_key, build_local_archive):
       return False
 
+    try:
+      reader = archive.open(build_local_archive)
+    except:
+      logs.log_error('Unable to open build archive %s.' % build_local_archive)
+      return False
+
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
-      if not _make_space_for_build(build_local_archive, self.base_build_dir):
+      if not _make_space_for_build(reader, self.base_build_dir):
         # Remove downloaded archive to free up space and otherwise, it won't get
         # deleted until next job run.
+        reader.close()
         shell.remove_file(build_local_archive)
 
         logs.log_fatal_and_exit('Could not make space for build.')
 
       try:
-        archive.unpack(build_local_archive, self.build_dir, trusted=True)
+        archive.unpack(reader, self.build_dir, trusted=True)
       except:
         logs.log_error(
             'Unable to unpack build archive %s.' % build_local_archive)
@@ -978,6 +993,7 @@ class CustomBuild(Build):
       # Remove the archive.
       shell.remove_file(build_local_archive)
 
+    reader.close()
     self._pick_fuzz_target(
         self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
     return True

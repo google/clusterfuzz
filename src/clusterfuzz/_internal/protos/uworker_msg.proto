@@ -15,6 +15,7 @@
 syntax = "proto3";
 
 import "google/cloud/datastore_v1/proto/entity.proto";
+import "google/protobuf/timestamp.proto";
 
 message SetupInput {
   optional google.datastore.v1.Entity fuzzer = 1;
@@ -34,11 +35,30 @@ message SymbolizeTaskInput {
 }
 
 message FuzzTaskInput {
+  optional string sample_testcase_upload_key = 1;
+  optional string sample_testcase_upload_url = 2;
+  optional string script_log_upload_url = 3;
+  optional google.datastore.v1.Entity targets_count = 4;
+  optional FuzzTargetCorpus corpus = 5;
 }
+
+message FuzzTargetCorpus {
+  optional Corpus corpus = 1;
+  optional Corpus regressions_corpus = 2;
+}
+
+message Corpus {
+  // URLs for downloading and deleting corpus elements.
+  map<string, string> corpus_urls = 1;
+  optional google.protobuf.Timestamp last_updated_time = 2;
+  optional string gcs_url = 3;
+  repeated string upload_urls = 4;
+}
+
 
 message MinimizeTaskInput {
   optional string testcase_upload_url = 1;
-  // TODO(pgrace): Finish this.
+  optional string blob_name = 2;
 }
 
 message RegressionTaskInput {
@@ -48,11 +68,23 @@ message RegressionTaskInput {
 message ProgressionTaskInput {
   optional bool custom_binary = 1;
   repeated int64 bad_revisions = 2;
+  optional string regression_testcase_url = 3;
+  optional string blob_name = 4;
+  optional string stacktrace_upload_url = 5;
+}
+
+message CrossPollinateFuzzerProto{
+  optional google.datastore.v1.Entity fuzz_target = 1;
+  optional string backup_bucket_name = 2;
+  optional string corpus_engine_name = 3;
 }
 
 message CorpusPruningTaskInput {
   optional google.datastore.v1.Entity fuzz_target = 1;
   optional bool last_execution_failed = 2;
+  repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
+  optional FuzzTargetCorpus corpus = 4;
+  optional FuzzTargetCorpus quarantine_corpus = 5;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
@@ -77,6 +109,7 @@ message Input {
   optional RegressionTaskInput regression_task_input = 17;
   optional SymbolizeTaskInput symbolize_task_input = 18;
   optional string module_name = 19;
+  optional google.protobuf.Timestamp preprocess_start_time = 20;
 }
 
 message SymbolizeTaskOutput {
@@ -117,6 +150,13 @@ message CrashInfo{
   optional bool security_flag = 5;
 }
 
+message StoreFuzzerRunResultsOutput {
+  optional int32 fuzzer_return_code = 1;
+  optional string generated_testcase_string = 2;
+  optional string console_output = 3;
+  optional bool uploaded_sample_testcase = 4;
+}
+
 message FuzzTaskOutput {
   optional string fully_qualified_fuzzer_name = 1;
   optional string crash_revision = 2;
@@ -125,16 +165,32 @@ message FuzzTaskOutput {
   optional int64 known_crash_count = 5;
   optional int64 testcases_executed = 6;
   repeated CrashInfo job_run_crashes = 7;
+  optional StoreFuzzerRunResultsOutput fuzzer_run_results = 8;
   optional int32 new_targets_count = 9;
+  optional int32 fuzzer_revision = 10;
 }
 
 message MinimizeTaskOutput {
   map<string, string> last_crash_result_dict = 1;
   optional bool flaky_stack = 2;
+  optional bool security_severity_updated = 3;
+  optional int32 security_severity = 4;
+  optional int32 minimization_phase = 5;
+  repeated string gestures = 6;
+  optional string minimized_keys = 7;
+  optional string minimized_arguments = 8;
+  optional int32 archive_state = 9;
+  optional string absolute_path = 10;
+  map<string, string> memory_tool_options = 11;
 }
 
 message RegressionTaskOutput {
-  // TODO(https://github.com/google/clusterfuzz/issues/3008): Fill this in.
+  optional int64 regression_range_start = 1;
+  optional int64 regression_range_end = 2;
+  optional int64 last_regression_min = 3;
+  optional int64 last_regression_max = 4;
+  repeated BuildData build_data_list = 5;
+  optional bool is_testcase_reproducible = 6;
 }
 
 message VariantTaskOutput {
@@ -194,7 +250,19 @@ enum ErrorType {
   PROGRESSION_BUILD_SETUP_ERROR = 18;
   REGRESSION_REVISION_LIST_ERROR = 19;
   REGRESSION_BUILD_NOT_FOUND = 20;
-  SYMBOLIZE_BUILD_SETUP_ERROR = 21;
+  REGRESSION_BUILD_SETUP_ERROR = 21;
+  REGRESSION_BAD_BUILD_ERROR = 22;
+  REGRESSION_NO_CRASH = 23;
+  REGRESSION_TIMEOUT_ERROR = 24;
+  REGRESSION_LOW_CONFIDENCE_IN_REGRESSION_RANGE = 25;
+  SYMBOLIZE_BUILD_SETUP_ERROR = 26;
+  MINIMIZE_UNREPRODUCIBLE_CRASH = 27;
+  MINIMIZE_CRASH_TOO_FLAKY = 28;
+  MINIMIZE_DEADLINE_EXCEEDED = 29;
+  MINIMIZE_DEADLINE_EXCEEDED_IN_MAIN_FILE_PHASE = 30;
+  LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE = 31;
+  LIBFUZZER_MINIMIZATION_FAILED = 32;
+  CORPUS_PRUNING_FUZZER_SETUP_FAILED = 33;
 }
 
 message Output {

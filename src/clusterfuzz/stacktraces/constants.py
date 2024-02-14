@@ -611,6 +611,10 @@ STACK_FRAME_IGNORE_REGEXES = [
 
     # google3 specific stack frame ignores.
     r'^absl::log_internal::',
+
+    # Skia specific stack frame ignores
+    r'^SkAbort_FileLine',
+    r'^SkMutex::~SkMutex',  # sometimes released atexit giving a secondary crash
 ]
 
 STACK_FRAME_IGNORE_REGEXES_IF_SYMBOLIZED = [
@@ -630,6 +634,7 @@ IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS = [
     'Fatal error',
     'Security CHECK failure',
     'Security DCHECK failure',
+    'Out-of-memory',
     'Unreachable code',
     'V8 API error',
     'V8 sandbox violation',

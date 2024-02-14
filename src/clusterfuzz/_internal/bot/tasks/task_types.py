@@ -14,6 +14,8 @@
 """Types of tasks. This needs to be seperate from commands.py because
 base/tasks.py depends on this module and many things commands.py imports depend
 on base/tasks.py (i.e. avoiding circular imports)."""
+from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.bot.tasks import utasks
 from clusterfuzz._internal.google_cloud_utils import batch
 from clusterfuzz._internal.metrics import logs
@@ -100,46 +102,38 @@ class UTask(BaseUTask):
 
   @staticmethod
   def is_execution_remote():
-    return is_remotely_executing_utasks()
+    return task_utils.is_remotely_executing_utasks()
 
   def execute(self, task_argument, job_type, uworker_env):
-    """Executes a utask locally."""
-    if (not environment.is_production() or
-        not environment.get_value('REMOTE_UTASK_EXECUTION') or
-        environment.platform() != 'LINUX'):
+    """Executes a utask."""
+    logs.log('Executing utask.')
+    command = task_utils.get_command_from_module(self.module.__name__)
+    if not (self.is_execution_remote() and
+            batch.is_remote_task(command, job_type)):
       self.execute_locally(task_argument, job_type, uworker_env)
       return
 
+    logs.log('Preprocessing utask.')
     download_url = self.preprocess(task_argument, job_type, uworker_env)
     if download_url is None:
       return
 
-    batch.create_uworker_main_batch_job(self.module.__name__, job_type,
-                                        download_url)
+    logs.log('Queueing utask for remote execution.')
+    tasks.add_utask_main(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
-    download_url, _ = utasks.tworker_preprocess(self.module, task_argument,
-                                                job_type, uworker_env)
+    result = utasks.tworker_preprocess(self.module, task_argument, job_type,
+                                       uworker_env)
+    if not result:
+      logs.log_error('Nothing returned from preprocess.')
+      return None
+
+    download_url, _ = result
     if not download_url:
       logs.log_error('No download_url returned from preprocess.')
       return None
     logs.log('Utask: done with preprocess.')
     return download_url
-
-
-class UTaskCombined(UTask):
-  """Special kind of UTask where tasks are created as utasks and treated as
-  tasks within a batch job. Tasks received on the queue will still execute
-  locally. This should ease the transition to UTask and prevent batch from being
-  DoSed."""
-
-  def execute(self, task_argument, job_type, uworker_env):
-    self.execute_locally(task_argument, job_type, uworker_env)
-
-
-def is_remotely_executing_utasks():
-  return bool(environment.is_production() and
-              environment.get_value('REMOTE_UTASK_EXECUTION'))
 
 
 class PostprocessTask(BaseTask):
@@ -181,46 +175,17 @@ class UworkerMainTask(BaseTask):
 
 
 COMMAND_TYPES = {
-    'analyze': UTaskLocalExecutor,
+    'analyze': UTask,
     'blame': TrustedTask,
-    'corpus_pruning': UTaskLocalExecutor,
+    'corpus_pruning': UTask,
     'fuzz': UTaskLocalExecutor,
     'impact': TrustedTask,
-    'minimize': UTaskLocalExecutor,
-    'progression': UTaskLocalExecutor,
-    'regression': UTaskLocalExecutor,
-    'symbolize': UTaskCombined,
+    'minimize': UTask,
+    'progression': UTask,
+    'regression': UTask,
+    'symbolize': UTask,
     'unpack': TrustedTask,
     'postprocess': PostprocessTask,
     'uworker_main': UworkerMainTask,
-    'variant': UTaskCombined,
+    'variant': UTask,
 }
-
-
-def is_trusted_portion_of_utask(command_name):
-  """Returns true if |command_name| is asking the bot to execute the
-  trusted-portion of a utask (preprocess and postprocess). The workflow for
-  executing a task is as follows:
-  1. A command such as analyze is given to a bot.
-  2. The bot executes preprocess and schedules uworker_main.
-  3. The uworker_main command is given to the uworker which executes the
-  uworker_main function of the specified task.
-  4. Postprocessing runs (the postprocess task is triggered by GCS when
-  uworker_main writes its output.
-  Therefore, the commands to execute utasks and the "postprocess" command can be
-  executed on Linux bots even if the utask is supposed to run on Windows. This
-  function returns commands that denote these portions.
-  """
-  task_type = COMMAND_TYPES[command_name]
-  # Postprocess and preprocess tasks are executed on tworkers, while utask_mains
-  # are executed on uworkers. Note that the uworker_main command will be used to
-  # execute uworker_main, while the name of the task itself will be used to
-  # request execution of the preprocess step.
-  return task_type in (PostprocessTask, UTask)
-
-
-def get_utask_trusted_portions():
-  return [
-      command_name for command_name in COMMAND_TYPES
-      if is_trusted_portion_of_utask(command_name)
-  ]

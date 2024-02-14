@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Handler used for setting up oss-fuzz jobs."""
+"""Handler used for setting up oss-fuzz and android jobs."""
 
 import base64
 import collections
@@ -35,7 +35,6 @@ from clusterfuzz._internal.fuzzing import fuzzer_selection
 from clusterfuzz._internal.google_cloud_utils import pubsub
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
-from clusterfuzz._internal.system import environment
 
 from . import service_accounts
 
@@ -166,6 +165,7 @@ JOB_MAP = {
         },
         'arm': {
             'hardware': LIBFUZZER_HWASAN_JOB,
+            'none': LIBFUZZER_NONE_JOB,
         },
     },
     'afl': {
@@ -657,10 +657,6 @@ class ProjectSetup:
     """Deployment bucket name."""
     return f'{utils.get_application_id()}-deployment'
 
-  def _shared_corpus_bucket_name(self):
-    """Shared corpus bucket name."""
-    return environment.get_value('SHARED_CORPUS_BUCKET')
-
   def _backup_bucket_name(self, project_name):
     """Return the backup_bucket_name."""
     return project_name + '-backup.' + data_handler.bucket_domain_suffix()
@@ -707,11 +703,8 @@ class ProjectSetup:
     except Exception as e:
       logs.log_error(f'Failed to add bucket IAMs for {project}: {e}.')
 
-    # Grant the service account read access to deployment, shared corpus and
-    # mutator plugin buckets.
+    # Grant the service account read access to deployment bucket.
     add_service_account_to_bucket(client, self._deployment_bucket_name(),
-                                  service_account, OBJECT_VIEWER_IAM_ROLE)
-    add_service_account_to_bucket(client, self._shared_corpus_bucket_name(),
                                   service_account, OBJECT_VIEWER_IAM_ROLE)
     data_bundles = {
         fuzzer_entity.get().data_bundle_name

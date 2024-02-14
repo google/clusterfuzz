@@ -36,7 +36,7 @@ class CrashInfo:
     self.crash_stacktrace = ''
     self.crash_categories = set()
     self.frame_count = 0
-    self.process_name = 'NULL'
+    self.process_name = None
     self.process_died = False
 
     # Following fields are for internal use only and subject to change. Do not
@@ -354,10 +354,10 @@ class StackParser:
         else:
           state.crash_state += line[:LINE_LENGTH_CAP] + '\n'
 
-    # Don't return an empty crash state if we have a crash type. Either set
-    # to NULL or use the crashing process name if available.
+    # Don't return an empty crash state if we have a crash type. Use the
+    # process name or fuzz target if available, or set to 'NULL'.
     if state.crash_type and not state.crash_state.strip():
-      state.crash_state = state.process_name
+      state.crash_state = state.process_name or self.fuzz_target or 'NULL'
 
     # For timeout, OOMs, const-input-overwrites in fuzz targets, force use of
     # fuzz target name since stack itself is not usable for deduplication.
@@ -454,8 +454,9 @@ class StackParser:
       if not self.detect_ooms_and_hangs and OUT_OF_MEMORY_REGEX.match(line):
         return CrashInfo()
 
-      # Ignore aborts, breakpoints, ills and traps for asserts, check and
-      # dcheck failures. These are intended, retain their original state.
+      # Ignore aborts, breakpoints, ills and traps after certain crash types
+      # listed in IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS. The first
+      # crash type is more specific and should be kept.
       if (SAN_ABRT_REGEX.match(line) or SAN_BREAKPOINT_REGEX.match(line) or
           SAN_ILL_REGEX.match(line) or SAN_TRAP_REGEX.match(line)):
         if state.crash_type in IGNORE_CRASH_TYPES_FOR_ABRT_BREAKPOINT_AND_ILLS:

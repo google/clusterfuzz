@@ -40,6 +40,7 @@ from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import big_query
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -1143,9 +1144,11 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
   def setUp(self):
     """Setup for test corpus sync."""
     helpers.patch(self, [
-        'clusterfuzz._internal.fuzzing.corpus_manager.FuzzTargetCorpus.rsync_to_disk',
-        'clusterfuzz._internal.fuzzing.corpus_manager.FuzzTargetCorpus.upload_files',
+        'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.rsync_to_disk',
+        'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.upload_files',
         'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
+        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls'
     ])
 
     helpers.patch_environ(self)
@@ -1153,10 +1156,13 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     os.environ['FAIL_RETRIES'] = '1'
     os.environ['CORPUS_BUCKET'] = 'bucket'
 
-    self.mock.rsync_to_disk.return_value = True
+    self.mock.get_arbitrary_signed_upload_urls.return_value = ['https://a'
+                                                              ] * 1000
     test_utils.set_up_pyfakefs(self)
     self.fs.create_dir('/dir')
     self.fs.create_dir('/dir1')
+    self.mock.list_blobs.return_value = []
+    self.mock.last_updated.return_value = None
 
   def _write_corpus_files(self, *args, **kwargs):  # pylint: disable=unused-argument
     self.fs.create_file('/dir/a')
@@ -1168,7 +1174,9 @@ class TestCorpusSync(fake_filesystem_unittest.TestCase):
     corpus = fuzz_task.GcsCorpus('parent', 'child', '/dir', '/dir1')
 
     self.mock.rsync_to_disk.side_effect = self._write_corpus_files
+    corpus.upload_files(corpus.get_new_files())
     self.assertTrue(corpus.sync_from_gcs())
+    assert len(os.listdir('/dir')) == 2, os.listdir('/dir')
     self.assertTrue(os.path.exists('/dir1/.child_sync'))
     self.assertEqual(('/dir',), self.mock.rsync_to_disk.call_args[0][1:])
     self.fs.create_file('/dir/c')
@@ -1288,9 +1296,9 @@ class DoBlackboxFuzzingTest(fake_filesystem_unittest.TestCase):
     session.generate_blackbox_testcases = mock.MagicMock()
     expected_testcase_file_paths = ['/tests/0', '/tests/1', '/tests/2']
     session.generate_blackbox_testcases.return_value = (
-        False, expected_testcase_file_paths, None, {
-            'fuzzer_binary_name': 'fantasy_fuzz'
-        })
+        fuzz_task.GenerateBlackboxTestcasesResult(
+            True, expected_testcase_file_paths,
+            {'fuzzer_binary_name': 'fantasy_fuzz'}))
 
     fuzzer = data_types.Fuzzer()
     fuzzer.name = 'fantasy_fuzz'
@@ -1337,6 +1345,9 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
         'clusterfuzz._internal.metrics.fuzzer_stats.upload_stats',
+        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
     ])
     test_utils.set_up_pyfakefs(self)
 
@@ -1364,6 +1375,10 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'link_text': 'rev',
     }]
     self.mock.current_timestamp.return_value = 0.0
+    self.mock.list_blobs.return_value = []
+    self.mock.get_arbitrary_signed_upload_urls.return_value = (
+        ['https://upload'] * 10000)
+    self.mock.last_updated.return_value = None
 
   def test_basic(self):
     """Test basic fuzzing session."""
@@ -1554,3 +1569,59 @@ class AddIssueMetadataFromEnvironmentTest(unittest.TestCase):
     self.assertDictEqual({
         'issue_labels': '123,456',
     }, metadata)
+
+
+class PreprocessStoreFuzzerRunResultsTest(unittest.TestCase):
+  """Tests for preprocess_store_fuzzer_run_results."""
+
+  SIGNED_URL = 'https://signed'
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.google_cloud_utils.storage._sign_url',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_signed_upload_url',
+    ])
+    self.mock._sign_url.side_effect = (
+        lambda remote_path, method, minutes: remote_path)
+    self.mock.get_signed_upload_url.return_value = self.SIGNED_URL
+
+  def test_preprocess_store_fuzzer_run_results(self):
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
+    fuzz_task.preprocess_store_fuzzer_run_results(fuzz_task_input)
+    self.assertEqual(fuzz_task_input.sample_testcase_upload_url,
+                     self.SIGNED_URL)
+
+    self.assertEqual(fuzz_task_input.script_log_upload_url, self.SIGNED_URL)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
+  """Tests for postprocess_store_fuzzer_run_results."""
+
+  def test_postprocess_store_fuzzer_run_results(self):
+    """Tests postprocess_store_fuzzer_run_results."""
+    fuzzer_name = 'myfuzzer'
+    revision = 1
+    fuzzer = data_types.Fuzzer(name=fuzzer_name, revision=revision)
+    fuzzer.put()
+    console_output = 'OUTPUT'
+    generated_testcase_string = 'GENERATED'
+    fuzzer_return_code = 9
+    fuzzer_run_results = uworker_msg_pb2.StoreFuzzerRunResultsOutput(
+        console_output=console_output,
+        generated_testcase_string=generated_testcase_string,
+        fuzzer_return_code=fuzzer_return_code)
+    sample_testcase_upload_key = 'sample-key'
+    fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+        sample_testcase_upload_key=sample_testcase_upload_key)
+    uworker_input = uworker_msg_pb2.Input(
+        fuzzer_name=fuzzer_name, fuzz_task_input=fuzz_task_input)
+    output = uworker_msg_pb2.Output(
+        fuzz_task_output=uworker_msg_pb2.FuzzTaskOutput(
+            fuzzer_run_results=fuzzer_run_results, fuzzer_revision=revision),
+        uworker_input=uworker_input)
+    fuzz_task.postprocess_store_fuzzer_run_results(output)
+    fuzzer = fuzzer.key.get()
+    self.assertEqual(fuzzer.return_code, fuzzer_return_code)
+    self.assertEqual(fuzzer.console_output, console_output)
+    self.assertEqual(fuzzer.result, generated_testcase_string)

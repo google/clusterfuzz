@@ -217,12 +217,25 @@ def get_crash_type_string(testcase):
                                  CRASH_TYPE_DIMENSION_MAP[crash_type])
 
 
-def filter_stacktrace(stacktrace):
+def filter_stacktrace(stacktrace, blob_name=None, signed_upload_url=None):
   """Filters stacktrace and returns content appropriate for storage as an
   appengine entity."""
   unicode_stacktrace = utils.decode_to_unicode(stacktrace)
   if len(unicode_stacktrace) <= data_types.STACKTRACE_LENGTH_LIMIT:
     return unicode_stacktrace
+  # TODO(alhijazi): Once the migration is done, callers are expected to
+  # always pass a `blob_name` and a `signed_upload_url`.
+  if signed_upload_url:
+    try:
+      storage.upload_signed_url(
+          unicode_stacktrace.encode('utf-8'), signed_upload_url)
+      logs.log('Uploaded stacktrace using signed url.')
+    except Exception:
+      print("uplaod failed")
+      logs.log_error('Unable to upload crash stacktrace to signed url.')
+      return unicode_stacktrace[(-1 * data_types.STACKTRACE_LENGTH_LIMIT):]
+
+    return '%s%s' % (data_types.BLOBSTORE_STACK_PREFIX, blob_name)
 
   tmpdir = environment.get_value('BOT_TMPDIR')
   tmp_stacktrace_file = os.path.join(tmpdir, 'stacktrace.tmp')
@@ -1396,7 +1409,8 @@ def create_user_uploaded_testcase(key,
   metadata.put()
 
   # Create the job to analyze the testcase.
-  tasks.add_task('analyze', testcase_id, job.name, queue)
+  # Use wait_time=0 to execute the task ASAP, since it is user-facing.
+  tasks.add_task('analyze', testcase_id, job.name, queue, wait_time=0)
   return testcase.key.id()
 
 

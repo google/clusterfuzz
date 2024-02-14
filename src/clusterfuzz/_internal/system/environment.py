@@ -29,7 +29,8 @@ from clusterfuzz._internal import fuzzing
 # FIXME: Support ADDITIONAL_UBSAN_OPTIONS and ADDITIONAL_LSAN_OPTIONS in an
 # ASAN instrumented build.
 SUPPORTED_MEMORY_TOOLS_FOR_OPTIONS = [
-    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER'
+    'HWASAN', 'ASAN', 'KASAN', 'CFI', 'MSAN', 'TSAN', 'UBSAN', 'NOSANITIZER',
+    'MTE'
 ]
 
 SANITIZER_NAME_MAP = {
@@ -1141,3 +1142,37 @@ def if_redis_available(func):
     return None
 
   return wrapper
+
+
+def is_testcase_deprecated(platform_id=None):
+  """Whether or not the device or branch is deprecated."""
+
+  if is_android(
+      platform_id.upper()) and not is_android_cuttlefish(platform_id.upper()):
+    # FIXME: Handle these imports in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
+    return android.util.is_testcase_deprecated(platform_id)
+
+  return False
+
+
+def can_testcase_run_on_platform(testcase_platform_id, current_platform_id):
+  """Whether or not the testcase can run on the current platform."""
+  if not is_android(testcase_platform_id.upper()) or not is_android(
+      current_platform_id.upper()):
+    return False
+
+  if is_android_cuttlefish(
+      testcase_platform_id.upper()) and is_android_cuttlefish(
+          current_platform_id.upper()):
+    return True
+
+  if is_android(testcase_platform_id.upper()):
+    # FIXME: Handle these imports in a cleaner way.
+    from clusterfuzz._internal.platforms import android
+
+    return android.util.can_testcase_run_on_platform(testcase_platform_id,
+                                                     current_platform_id)
+
+  return False

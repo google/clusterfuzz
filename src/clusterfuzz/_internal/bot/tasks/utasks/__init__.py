@@ -13,27 +13,95 @@
 # limitations under the License.
 """Module for executing the different parts of a utask."""
 
+import enum
 import importlib
+import time
 
+from google.protobuf import timestamp_pb2
+
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.metrics import logs
+from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.system import environment
+
+# Define an alias to appease pylint.
+Timestamp = timestamp_pb2.Timestamp  # pylint: disable=no-member
+
+
+class _Mode(enum.Enum):
+  """The execution mode of `uworker_main` tasks in a bot process."""
+
+  # `uworker_main` tasks are executed on Cloud Batch.
+  BATCH = "batch"
+
+  # `uworker_main` tasks are executed on bots via a Pub/Sub queue.
+  QUEUE = "queue"
+
+
+class _Subtask(enum.Enum):
+  """Parts of a task that may be executed on separate machines."""
+
+  PREPROCESS = "preprocess"
+  UWORKER_MAIN = "uworker_main"
+  POSTPROCESS = "postprocess"
+
+
+def _timestamp_now() -> Timestamp:
+  ts = Timestamp()
+  ts.GetCurrentTime()
+  return ts
+
+
+def _record_e2e_duration(start: Timestamp, utask_module, job_type: str,
+                         subtask: _Subtask, mode: _Mode):
+  duration_secs = (time.time_ns() - start.ToNanoseconds()) / 10**9
+  monitoring_metrics.UTASK_E2E_DURATION_SECS.add(
+      duration_secs, {
+          'task': task_utils.get_command_from_module(utask_module.__name__),
+          'job': job_type,
+          'subtask': subtask.value,
+          'mode': mode.value,
+          'platform': environment.platform(),
+      })
+
+
+def ensure_uworker_env_type_safety(uworker_env):
+  """Converts all values in |uworker_env| to str types.
+  ClusterFuzz parses env var values so that the type implied by the value
+  (which in every OS I've seen is a string), is the Python type of the value.
+  E.g. if "DO_BLAH=1" in the environment, environment.get_value('DO_BLAH') is 1,
+  not '1'. This is dangerous when using protos because the environment is a
+  proto map, and values in these can only have one type, which in this case is
+  string. Therefore we must make sure values in uworker_envs are always strings
+  so we don't try to save an int to a string map."""
+  for k in uworker_env:
+    uworker_env[k] = str(uworker_env[k])
 
 
 def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   serialized output."""
+  start = _timestamp_now()
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
     logs.log_error('No uworker_input returned from preprocess')
     return None
+
+  uworker_input.preprocess_start_time.CopyFrom(start)
+
   assert not uworker_input.module_name
   uworker_input.module_name = utask_module.__name__
-  return uworker_io.serialize_uworker_input(uworker_input)
+
+  result = uworker_io.serialize_uworker_input(uworker_input)
+  _record_e2e_duration(start, utask_module, job_type, _Subtask.PREPROCESS,
+                       _Mode.QUEUE)
+  return result
 
 
 def uworker_main_no_io(utask_module, serialized_uworker_input):
@@ -48,10 +116,16 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   uworker_output = utask_module.utask_main(uworker_input)
   if uworker_output is None:
     return None
-  return uworker_io.serialize_uworker_output(uworker_output)
+  result = uworker_io.serialize_uworker_output(uworker_output)
+  _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
+                       uworker_input.job_type, _Subtask.UWORKER_MAIN,
+                       _Mode.QUEUE)
+  return result
 
 
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
+  """Executes the postprocess step on the trusted (t)worker (in this case it is
+  the same bot as the uworker)."""
   # TODO(metzman): Stop passing module to this function and uworker_main_no_io.
   # Make them consistent with the I/O versions.
   uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
@@ -60,13 +134,18 @@ def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   uworker_output.uworker_input.CopyFrom(uworker_input)
   set_uworker_env(uworker_output.uworker_input.uworker_env)
   utask_module.utask_postprocess(uworker_output)
+  _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
+                       uworker_input.job_type, _Subtask.POSTPROCESS,
+                       _Mode.QUEUE)
 
 
 def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
+  start = _timestamp_now()
   logs.log('Starting utask_preprocess: %s.' % utask_module)
+  ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   # Do preprocessing.
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
@@ -75,6 +154,8 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
     # Bail if preprocessing failed since we can't proceed.
     return None
 
+  uworker_input.preprocess_start_time.CopyFrom(start)
+
   assert not uworker_input.module_name
   uworker_input.module_name = utask_module.__name__
 
@@ -82,6 +163,9 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   # case the caller needs it.
   uworker_input_signed_download_url, uworker_output_download_gcs_url = (
       uworker_io.serialize_and_upload_uworker_input(uworker_input))
+
+  _record_e2e_duration(start, utask_module, job_type, _Subtask.PREPROCESS,
+                       _Mode.BATCH)
 
   # Return the uworker_input_signed_download_url for the remote executor to pass
   # to the batch job and for the local executor to download locally. Return
@@ -114,6 +198,9 @@ def uworker_main(input_download_url) -> None:
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
   logs.log('Finished uworker_main.')
+  _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
+                       uworker_input.job_type, _Subtask.UWORKER_MAIN,
+                       _Mode.BATCH)
   return True
 
 
@@ -136,3 +223,6 @@ def tworker_postprocess(output_download_url) -> None:
   set_uworker_env(uworker_output.uworker_input.uworker_env)
   utask_module = get_utask_module(uworker_output.uworker_input.module_name)
   utask_module.utask_postprocess(uworker_output)
+  _record_e2e_duration(uworker_output.uworker_input.preprocess_start_time,
+                       utask_module, uworker_output.uworker_input.job_type,
+                       _Subtask.POSTPROCESS, _Mode.BATCH)

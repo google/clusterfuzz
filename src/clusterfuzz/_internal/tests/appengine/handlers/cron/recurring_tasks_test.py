@@ -92,7 +92,7 @@ class ProgressionTasksSchedulerTest(OpenReproducibleTestcaseTasksSchedulerTest):
     schedule_progression_tasks.main()
     self.mock.add_task.assert_has_calls([
         mock.call('progression', 1, 'job', queue='jobs-linux'),
-        mock.call('progression', 5, 'job_windows', queue='jobs-windows')
+        mock.call('progression', 5, 'job_windows', queue='jobs-windows'),
     ])
 
 

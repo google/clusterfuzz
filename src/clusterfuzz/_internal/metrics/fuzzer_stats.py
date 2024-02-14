@@ -1032,8 +1032,11 @@ def upload_stats(stats_list, filename=None):
     day_path = 'gs:/' + get_gcs_stats_path(
         kind, fuzzer_or_engine_name, timestamp=timestamp) + filename
 
-    if not storage.write_data(upload_data.encode('utf-8'), day_path):
-      logs.log_error('Failed to upload FuzzerRun.')
+    if storage.write_data(upload_data.encode('utf-8'), day_path):
+      logs.log(f'Uploaded {kind} stats for {fuzzer} to {day_path}.')
+    else:
+      logs.log_error(
+          f'Failed to upload {kind} stats for {fuzzer} to {day_path}.')
 
 
 def parse_stats_column_fields(column_fields):

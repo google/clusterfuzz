@@ -32,6 +32,11 @@ except ImportError:
 FAIL_RETRIES = 5
 FAIL_WAIT = 10
 
+_SCOPES = [
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/prodxmon'
+]
+
 
 def _use_anonymous_credentials():
   """Returns whether or not to use anonymous credentials."""
@@ -68,16 +73,20 @@ def get_signing_credentials():
 
   google_application_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS',
                                              None)
-  if google_application_credentials is None:
-    # The normal case, when we are on GCE.
-    creds, _ = get_default()
-    request = requests.Request()
-    creds.refresh(request)
-    signing_creds = compute_engine.IDTokenCredentials(
-        request, '', service_account_email=creds.service_account_email)
-  else:
+  if google_application_credentials is not None:
     # Handle cases like android and Mac where bots are run outside of Google
     # Cloud Platform and don't have access to metadata server.
     signing_creds = service_account.Credentials.from_service_account_file(
-        google_application_credentials)
-  return signing_creds
+        google_application_credentials, scopes=_SCOPES)
+    token = signing_creds.token
+  else:
+    # The normal case, when we are on GCE.
+    creds, _ = get_default()
+
+    request = requests.Request()
+    creds.refresh(request)
+
+    signing_creds = compute_engine.IDTokenCredentials(
+        request, '', service_account_email=creds.service_account_email)
+    token = creds.token
+  return signing_creds, token

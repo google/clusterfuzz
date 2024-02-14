@@ -200,7 +200,8 @@ def filter_stacktrace(crash_stacktrace, crash_type, revisions_dict, platform,
     line = html.escape(line, quote=True)
     line = linkifier.linkify_stack_frame(line)
 
-    if 'android' in platform or environment.is_lkl_job(job_type):
+    is_android = platform is not None and 'android' in platform
+    if is_android or environment.is_lkl_job(job_type):
       line = _linkify_android_kernel_stack_frame_if_needed(line)
 
     filtered_crash_lines.append(line)

@@ -22,7 +22,6 @@ from unittest import mock
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import init as fuzzers_init
-from clusterfuzz._internal.bot.tasks import setup
 from clusterfuzz._internal.bot.tasks.utasks import minimize_task
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
@@ -86,18 +85,22 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
     self.mock._run_libfuzzer_testcase.return_value = CrashResult(  # pylint: disable=protected-access
         1, 1.0, stacktrace)
 
-    self.mock._run_libfuzzer_tool.return_value = (None, None)  # pylint: disable=protected-access
+    self.mock._run_libfuzzer_tool.return_value = (None, None, None)  # pylint: disable=protected-access
 
-    minimize_task.do_libfuzzer_minimization(testcase, '/testcase_file_path')
-
-    testcase = data_handler.get_testcase_by_id(testcase.key.id())
-    self.assertEqual('Heap-buffer-overflow', testcase.crash_type)
-    self.assertEqual('frame0\nframe1\nframe2\n', testcase.crash_state)
-    self.assertEqual('0x61b00001f7d0', testcase.crash_address)
+    minimize_task_input = uworker_msg_pb2.MinimizeTaskInput()
+    output = minimize_task.do_libfuzzer_minimization(
+        minimize_task_input, testcase, '/testcase_file_path')
+    self.assertEqual(output.error_type,
+                     uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED)
+    crash_result_dict = output.minimize_task_output.last_crash_result_dict
+    self.assertEqual('Heap-buffer-overflow', crash_result_dict['crash_type'])
+    self.assertEqual('frame0\nframe1\nframe2\n',
+                     crash_result_dict['crash_state'])
+    self.assertEqual('0x61b00001f7d0', crash_result_dict['crash_address'])
     self.assertEqual(
         '+----------------------------------------Release Build Stacktrace'
         '----------------------------------------+\n%s' % stacktrace,
-        testcase.crash_stacktrace)
+        crash_result_dict['crash_stacktrace'])
 
 
 class MinimizeTaskTestUntrusted(
@@ -154,8 +157,18 @@ class MinimizeTaskTestUntrusted(
 
   def test_minimize(self):
     """Test minimize."""
-    helpers.patch(self, ['clusterfuzz._internal.base.utils.is_oss_fuzz'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.utils.is_oss_fuzz',
+        'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url'
+    ])
     self.mock.is_oss_fuzz.return_value = True
+
+    # signing urls is not possible within tests, mock `upload_signed_url` to mimick blobs.write_blob behaviour.
+    def upload_signed_url(data, signed_url):
+      from clusterfuzz._internal.google_cloud_utils import storage
+      storage.write_data(data, signed_url)
+
+    self.mock.upload_signed_url.side_effect = upload_signed_url
 
     testcase_file_path = os.path.join(self.temp_dir, 'testcase')
     with open(testcase_file_path, 'wb') as f:
@@ -189,15 +202,13 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
-    setup_input = setup.preprocess_setup_testcase(testcase)
-    uworker_input = uworker_msg_pb2.Input(
-        job_type='libfuzzer_asan_job',
-        testcase=uworker_io.entity_to_protobuf(testcase),
-        setup_input=setup_input,
-        testcase_id=str(testcase.key.id()))
-    minimize_task.utask_main(uworker_input)
-
+    uworker_input = minimize_task.utask_preprocess(
+        str(testcase.key.id()), 'libfuzzer_asan_job', {})
+    output = minimize_task.utask_main(uworker_input)
+    output.uworker_input.CopyFrom(uworker_input)
+    minimize_task.update_testcase(output)
     testcase = data_handler.get_testcase_by_id(testcase.key.id())
+
     self.assertNotEqual('', testcase.minimized_keys)
     self.assertNotEqual('NA', testcase.minimized_keys)
     self.assertNotEqual(testcase.fuzzed_keys, testcase.minimized_keys)
@@ -281,13 +292,15 @@ class UTaskPostprocessTest(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.minimize_task.finalize_testcase',
+        'clusterfuzz._internal.system.environment.is_engine_fuzzer_job',
     ])
 
   def _get_generic_input(self):
     testcase = data_types.Testcase()
+    testcase.put()
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type',
-        testcase_id='testcase_id',
+        testcase_id=str(testcase.key.id()),
         testcase=uworker_io.entity_to_protobuf(testcase))
     return uworker_input
 
@@ -301,6 +314,7 @@ class UTaskPostprocessTest(unittest.TestCase):
   def test_generic_output_finalizes_testcase(self):
     """Checks that an output with all critical fields finalizes a testcase."""
     self.mock.finalize_testcase.return_value = None
+    self.mock.is_engine_fuzzer_job.return_value = False
     last_crash_result_dict = {'crash_type': 'type', 'crash_state': 'state'}
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=last_crash_result_dict)
@@ -343,3 +357,22 @@ class UTaskMainTest(unittest.TestCase):
     uworker_output = minimize_task.utask_main(uworker_input)
     self.assertEqual(uworker_output.error_type,
                      uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
+
+
+@test_utils.with_cloud_emulators('datastore')
+class UpdateTestcaseTest(unittest.TestCase):
+  """Tests for update_testcase."""
+
+  def test_gestures(self):
+    """Test that gestures save correctly."""
+    testcase = data_types.Testcase()
+    testcase.put()
+    gestures = ['mousemove_relative --sync,-86 -57']
+    minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
+        gestures=['mousemove_relative --sync,-86 -57'])
+    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
+    output = uworker_msg_pb2.Output(
+        minimize_task_output=minimize_task_output, uworker_input=uworker_input)
+    minimize_task.update_testcase(output)
+    testcase = testcase.key.get()
+    self.assertEqual(gestures, testcase.gestures)

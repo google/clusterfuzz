@@ -153,6 +153,12 @@ def get_sanitizer_tool_name():
   return None
 
 
+def is_mte_build():
+  """Return True if device is using Memory Tagging Extension."""
+  build_flavor = get_build_flavor()
+  return 'mte' in build_flavor
+
+
 def get_security_patch_level():
   """Return the security patch level reported by the device."""
   return adb.get_property('ro.build.version.security_patch')

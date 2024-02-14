@@ -22,10 +22,11 @@ import zipfile
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
-from clusterfuzz._internal.bot.tasks.utasks import utask_utils
+from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
@@ -189,7 +190,7 @@ def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
                                        uworker_output.error_message)
 
   # Then reschedule the task.
-  command = utask_utils.get_command_from_module(
+  command = task_utils.get_command_from_module(
       uworker_output.uworker_input.module_name)
 
   testcase_fail_wait = environment.get_value('FAIL_WAIT')
@@ -200,7 +201,9 @@ def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
       wait_time=testcase_fail_wait)
 
 
-HANDLED_ERRORS = [uworker_msg_pb2.ErrorType.TESTCASE_SETUP]
+ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.TESTCASE_SETUP: handle_setup_testcase_error,
+})
 
 
 def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
@@ -380,8 +383,10 @@ def unpack_testcase(testcase, testcase_download_url):
 
   file_list = []
   if archived:
-    archive.unpack(temp_filename, input_directory)
-    file_list = archive.get_file_list(temp_filename)
+    with archive.open(temp_filename) as reader:
+      archive.unpack(reader, input_directory)
+      file_list = [f.name for f in reader.list_members()]
+
     shell.remove_file(temp_filename)
 
     file_exists = False
@@ -591,7 +596,8 @@ def _update_fuzzer(update_input: uworker_msg_pb2.SetupInput,
     return False
 
   try:
-    archive.unpack(archive_path, fuzzer_directory)
+    with archive.open(archive_path) as reader:
+      archive.unpack(reader, fuzzer_directory)
   except Exception:
     error_message = (f'Failed to unpack fuzzer archive {fuzzer.filename} '
                      '(bad archive or unsupported format).')

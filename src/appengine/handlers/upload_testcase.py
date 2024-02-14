@@ -136,10 +136,10 @@ def guess_input_file(uploaded_file, filename):
   """Guess the main test case file from an archive."""
   for file_pattern in RUN_FILE_PATTERNS:
     blob_reader = _read_to_bytesio(uploaded_file.gcs_path)
-    file_path_input = archive.get_first_file_matching(file_pattern, blob_reader,
-                                                      filename)
-    if file_path_input:
-      return file_path_input
+    with archive.open(filename, blob_reader) as reader:
+      file_path_input = reader.get_first_file_matching(file_pattern)
+      if file_path_input:
+        return file_path_input
 
   return None
 
@@ -523,11 +523,14 @@ class UploadHandlerCommon:
           metadata.fuzzer_binary_name = target_name
           metadata.put()
 
+          # Use wait_time=0 to execute the task ASAP, since it is
+          # user-facing.
           tasks.add_task(
               'unpack',
               str(metadata.key.id()),
               job_type,
-              queue=tasks.queue_for_job(job_type))
+              queue=tasks.queue_for_job(job_type),
+              wait_time=0)
 
           # Create a testcase metadata object to show the user their upload.
           upload_metadata = data_types.TestcaseUploadMetadata()

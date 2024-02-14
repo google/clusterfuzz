@@ -127,11 +127,14 @@ class UtaskPreprocessTest(unittest.TestCase):
 
   def setUp(self):
     helpers.patch_environ(self)
-    helpers.patch(
-        self,
-        ['clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.bot.tasks.setup.preprocess_setup_testcase',
+        'clusterfuzz._internal.google_cloud_utils.blobs.get_blob_signed_upload_url'
+    ])
     setup_input = uworker_msg_pb2.SetupInput(fuzzer_name='fuzzer_name')
     self.mock.preprocess_setup_testcase.return_value = setup_input
+    self.mock.get_blob_signed_upload_url.return_value = (
+        'blob_name', 'https://blob_upload_url')
     os.environ['JOB_NAME'] = 'progression'
     # Add a bad build.
     data_handler.add_build_metadata(
@@ -172,6 +175,9 @@ class UtaskPreprocessTest(unittest.TestCase):
                                                         data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
     self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
+    self.assertEqual(result.progression_task_input.blob_name, 'blob_name')
+    self.assertEqual(result.progression_task_input.stacktrace_upload_url,
+                     'https://blob_upload_url')
     self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
   def test_preprocess_uworker_output_custom_binary(self):
@@ -187,6 +193,9 @@ class UtaskPreprocessTest(unittest.TestCase):
                                                         data_types.Testcase)
     self.assertTrue(returned_testcase.get_metadata('progression_pending'))
     self.assertEqual(result.progression_task_input.bad_revisions, [8888, 9999])
+    self.assertEqual(result.progression_task_input.blob_name, 'blob_name')
+    self.assertEqual(result.progression_task_input.stacktrace_upload_url,
+                     'https://blob_upload_url')
     self.assertEqual('fuzzer_name', result.setup_input.fuzzer_name)
 
 
@@ -197,70 +206,88 @@ class UTaskPostprocessTest(unittest.TestCase):
   def setUp(self):
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.bot.tasks.utasks.uworker_handle_errors.handle',
+        'clusterfuzz._internal.bot.tasks.utasks.progression_task._ERROR_HANDLER.handle',
         'clusterfuzz._internal.bot.tasks.utasks.progression_task.crash_on_latest',
         'clusterfuzz._internal.datastore.data_handler.is_first_attempt_for_task',
-        'clusterfuzz._internal.base.bisection.request_bisection'
+        'clusterfuzz._internal.base.bisection.request_bisection',
+        'clusterfuzz._internal.google_cloud_utils.blobs.delete_blob'
     ])
+    self.testcase = test_utils.create_generic_testcase()
+    self.progression_task_input = uworker_msg_pb2.ProgressionTaskInput(
+        blob_name='blob_name',
+        stacktrace_upload_url='https://signed_upload_url')
+    self.uworker_input = uworker_msg_pb2.Input(
+        testcase_id=str(self.testcase.key.id()),
+        progression_task_input=self.progression_task_input)
 
   def test_error_handling_called_on_error(self):
     """Checks that an output with an error is handled properly."""
-    testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
     uworker_output = uworker_msg_pb2.Output(
-        uworker_input=uworker_input,
+        uworker_input=self.uworker_input,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     progression_task.utask_postprocess(uworker_output)
+    self.mock.delete_blob.assert_called_with('blob_name')
     self.assertTrue(self.mock.handle.called)
 
   def test_handle_crash_on_latest_revision(self):
     """Tests utask_postprocess behaviour when there is a crash on latest revision."""
-    testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
         crash_on_latest=True)
     uworker_output = uworker_msg_pb2.Output(
-        uworker_input=uworker_input,
+        uworker_input=self.uworker_input,
         progression_task_output=progression_task_output)
     progression_task.utask_postprocess(uworker_output)
+    self.mock.delete_blob.assert_called_with('blob_name')
     self.assertFalse(self.mock.handle.called)
     self.assertTrue(self.mock.crash_on_latest.called)
 
   def test_handle_custom_binary_postprocess(self):
     """Tests utask_postprocess behaviour for custom binaries in the absence of errors."""
-    progression_task_input = uworker_msg_pb2.ProgressionTaskInput(
-        custom_binary=True)
-    testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_msg_pb2.Input(
-        testcase_id=str(testcase.key.id()),
-        progression_task_input=progression_task_input)
-    self.assertEqual(testcase.fixed, '')
-    self.assertTrue(testcase.open)
+    self.uworker_input.progression_task_input.custom_binary = True
+    self.assertEqual(self.testcase.fixed, '')
+    self.assertTrue(self.testcase.open)
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
         crash_revision=1)
     uworker_output = uworker_msg_pb2.Output(
-        uworker_input=uworker_input,
+        uworker_input=self.uworker_input,
         progression_task_output=progression_task_output)
-    self.assertTrue(testcase.open)
     self.mock.is_first_attempt_for_task.return_value = False
     progression_task.utask_postprocess(uworker_output)
+    self.mock.delete_blob.assert_called_with('blob_name')
     self.assertFalse(self.mock.handle.called)
     self.assertFalse(self.mock.crash_on_latest.called)
     self.assertTrue(self.mock.is_first_attempt_for_task.called)
-    updated_testcase = data_handler.get_testcase_by_id(testcase.key.id())
+    updated_testcase = data_handler.get_testcase_by_id(self.testcase.key.id())
     self.assertEqual(updated_testcase.fixed, 'Yes')
     self.assertFalse(updated_testcase.open)
 
   def test_handle_non_custom_binary_postprocess(self):
     """Tests utask_postprocess behaviour for non_custom binaries in the absence of errors."""
-    testcase = test_utils.create_generic_testcase()
-    uworker_input = uworker_msg_pb2.Input(testcase_id=str(testcase.key.id()))
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     uworker_output = uworker_msg_pb2.Output(
-        uworker_input=uworker_input,
+        uworker_input=self.uworker_input,
         progression_task_output=progression_task_output)
 
     progression_task.utask_postprocess(uworker_output)
+    self.mock.delete_blob.assert_called_with('blob_name')
+    self.assertFalse(self.mock.handle.called)
+    self.assertFalse(self.mock.crash_on_latest.called)
+    self.assertFalse(self.mock.is_first_attempt_for_task.called)
+    self.assertTrue(self.mock.request_bisection.called)
+
+  def test_handle_non_custom_binary_postprocess_with_stacktrace_uploaded_via_url(
+      self):
+    """Tests utask_postprocess behaviour for non_custom binaries in the absence of
+    errors and when the stacktrace is uploaded to blob storage."""
+    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
+        last_tested_crash_stacktrace='BLOB_KEY=blob_name')
+    uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self.uworker_input,
+        progression_task_output=progression_task_output)
+
+    progression_task.utask_postprocess(uworker_output)
+    # We should not delete the blob if the filtered stack traced is stored in it.
+    self.assertFalse(self.mock.delete_blob.called)
     self.assertFalse(self.mock.handle.called)
     self.assertFalse(self.mock.crash_on_latest.called)
     self.assertFalse(self.mock.is_first_attempt_for_task.called)
@@ -292,8 +319,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.mock.check_app_path.return_value = None
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
+    progression_input = uworker_msg_pb2.ProgressionTaskInput()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path)
+        testcase, testcase_file_path, progression_input)
     self.assertEqual(result.error_message,
                      'Build setup failed for custom binary')
     self.assertEqual(result.error_type,
@@ -320,8 +348,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
 
+    progression_input = uworker_msg_pb2.ProgressionTaskInput()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path)
+        testcase, testcase_file_path, progression_input)
     self.assertTrue(result.progression_task_output.crash_on_latest)
     self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message,
@@ -341,8 +370,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
 
+    progression_input = uworker_msg_pb2.ProgressionTaskInput()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path)
+        testcase, testcase_file_path, progression_input)
     self.assertFalse(result.progression_task_output.crash_on_latest)
     self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message, '')
@@ -414,12 +444,17 @@ class UpdateIssueMetadataTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
   """Test _store_testcase_for_regression_testing."""
+  SIGNED_URL = 'https://signed'
 
   def setUp(self):
     test_utils.set_up_pyfakefs(self)
     helpers.patch_environ(self)
     helpers.patch(self, [
-        'clusterfuzz._internal.google_cloud_utils.storage.copy_file_to',
+        'clusterfuzz._internal.google_cloud_utils.storage.upload_signed_url',
+        'clusterfuzz._internal.google_cloud_utils.storage.get',
+        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
+        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
+        'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
     ])
 
     os.environ['CORPUS_BUCKET'] = 'corpus'
@@ -440,41 +475,52 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
 
     self.testcase_file_path = '/testcase'
     self.fs.create_file(self.testcase_file_path, contents='A')
+    self.mock.list_blobs.return_value = []
+    self.mock.get_arbitrary_signed_upload_urls.return_value = (
+        ['https://upload'] * 10000)
+    self.mock.last_updated.return_value = None
 
   def test_open_testcase(self):
     """Test that an open testcase is not stored for regression testing."""
     self.testcase.open = True
     self.testcase.put()
-
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.assertEqual(0, self.mock.copy_file_to.call_count)
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.assertEqual(0, self.mock.upload_signed_url.call_count)
 
   def test_testcase_with_no_issue(self):
     """Test that a testcase with no associated issue is not stored for
     regression testing."""
     self.testcase.bug_information = ''
     self.testcase.put()
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
 
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.assertEqual(0, self.mock.copy_file_to.call_count)
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.assertEqual(0, self.mock.upload_signed_url.call_count)
 
   def test_testcase_with_no_fuzz_target(self):
     """Test that a testcase with no associated fuzz target is not stored for
     regression testing."""
     self.testcase.overridden_fuzzer_name = 'libFuzzer_not_exist'
     self.testcase.put()
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
+    progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
+        progression_task_input, self.testcase)
 
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.assertEqual(0, self.mock.copy_file_to.call_count)
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.assertEqual(0, self.mock.upload_signed_url.call_count)
 
   def test_testcase_stored(self):
     """Test that a testcase is stored for regression testing."""
+    self.mock.get.return_value = False
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
+    progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
+        progression_task_input, self.testcase)
+    progression_task_input.regression_testcase_url = 'https://upload-regression'
     progression_task._store_testcase_for_regression_testing(  # pylint: disable=protected-access
-        self.testcase, self.testcase_file_path)
-    self.mock.copy_file_to.assert_called_with(
-        '/testcase',
-        'gs://corpus/libFuzzer/test_project_test_fuzzer_regressions/'
-        '6dcd4ce23d88e2ee9568ba546c007c63d9131c1b')
+        self.testcase, self.testcase_file_path, progression_task_input)
+    self.mock.upload_signed_url.assert_called_with(
+        b'A', progression_task_input.regression_testcase_url)

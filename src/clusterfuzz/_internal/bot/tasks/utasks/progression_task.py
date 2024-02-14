@@ -13,7 +13,6 @@
 # limitations under the License.
 """Test to see if test cases are fixed."""
 
-import os
 import time
 from typing import List
 
@@ -32,6 +31,7 @@ from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.google_cloud_utils import big_query
+from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -109,6 +109,21 @@ def handle_progression_revision_list_error(
   testcase = data_handler.get_testcase_by_id(testcase_id)
   data_handler.close_testcase_with_error(testcase,
                                          'Failed to fetch revision list')
+
+
+def _cleanup_stacktrace_blob_from_storage(output: uworker_msg_pb2.Output):
+  """Cleanup the blob created in preprocess if it wasn't used to store the
+  filterd stacktrace."""
+  if output.HasField('progression_task_output'):
+    stacktrace = output.progression_task_output.last_tested_crash_stacktrace
+    if stacktrace.startswith(data_types.BLOBSTORE_STACK_PREFIX):
+      return
+
+  if not output.uworker_input.progression_task_input.blob_name:
+    raise ValueError('blob_name should not be empty here.')
+  blob_name = output.uworker_input.progression_task_input.blob_name
+
+  blobs.delete_blob(blob_name)
 
 
 def crash_on_latest(uworker_output: uworker_msg_pb2.Output):
@@ -228,7 +243,9 @@ def _log_output(revision, crash_result):
       output=crash_result.get_stacktrace(symbolized=True))
 
 
-def _check_fixed_for_custom_binary(testcase, testcase_file_path):
+def _check_fixed_for_custom_binary(
+    testcase: data_types.Testcase, testcase_file_path: str,
+    progression_task_input: uworker_msg_pb2.ProgressionTaskInput):
   """Simplified fixed check for test cases using custom binaries."""
   build_manager.setup_build()
   # 'APP_REVISION' is set during setup_build().
@@ -257,7 +274,9 @@ def _check_fixed_for_custom_binary(testcase, testcase_file_path):
     unsymbolized_crash_stacktrace = result.get_stacktrace(symbolized=False)
     stacktrace = utils.get_crash_stacktrace_output(
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
-    last_tested_crash_stacktrace = data_handler.filter_stacktrace(stacktrace)
+    last_tested_crash_stacktrace = data_handler.filter_stacktrace(
+        stacktrace, progression_task_input.blob_name,
+        progression_task_input.stacktrace_upload_url)
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
         crash_on_latest=True,
         crash_on_latest_message='Still crashes on latest custom build.',
@@ -306,7 +325,9 @@ def _testcase_reproduces_in_revision(
   build_manager.setup_build(revision)
   if not build_manager.check_app_path():
     # Let postprocess handle the failure and reschedule the task if needed.
+    error_message = f'Build setup failed at r{revision}'
     return None, uworker_msg_pb2.Output(
+        error_message=error_message,
         progression_task_output=progression_task_output,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
@@ -344,7 +365,9 @@ def _save_fixed_range(testcase_id, min_revision, max_revision):
   _write_to_bigquery(testcase, min_revision, max_revision)
 
 
-def _store_testcase_for_regression_testing(testcase, testcase_file_path):
+def _store_testcase_for_regression_testing(
+    testcase: data_types.Testcase, testcase_file_path: str,
+    progression_task_input: uworker_msg_pb2.ProgressionTaskInput):
   """Stores reproduction testcase for future regression testing in corpus
   pruning task."""
   if testcase.open:
@@ -355,23 +378,36 @@ def _store_testcase_for_regression_testing(testcase, testcase_file_path):
     # Only store crashes with bugs associated with them.
     return
 
+  if not progression_task_input.HasField('regression_testcase_url'):
+    return
+
+  regression_testcase_url = progression_task_input.regression_testcase_url
+
+  with open(testcase_file_path, 'rb') as testcase_file_handle:
+    testcase_file = testcase_file_handle.read()
+    try:
+      storage.upload_signed_url(testcase_file, regression_testcase_url)
+      logs.log('Successfully stored testcase for regression testing: ' +
+               regression_testcase_url)
+    except:
+      logs.log_error('Failed to store testcase for regression testing: ' +
+                     regression_testcase_url)
+
+
+def _set_regression_testcase_upload_url(
+    progression_input: uworker_msg_pb2.ProgressionTaskInput,
+    testcase: data_types.Testcase):
+  """Determines and sets the signed regression_testcase_url (if any) in
+  the progression task input.
+  Raises RuntimeError in case of UUID collision on the generated filename.
+  """
   fuzz_target = data_handler.get_fuzz_target(testcase.overridden_fuzzer_name)
   if not fuzz_target:
     # No work to do, only applicable for engine fuzzers.
     return
-
-  corpus = corpus_manager.FuzzTargetCorpus(fuzz_target.engine,
-                                           fuzz_target.project_qualified_name())
-  regression_testcase_url = os.path.join(
-      corpus.get_regressions_corpus_gcs_url(),
-      utils.file_hash(testcase_file_path))
-
-  if storage.copy_file_to(testcase_file_path, regression_testcase_url):
-    logs.log('Successfully stored testcase for regression testing: ' +
-             regression_testcase_url)
-  else:
-    logs.log_error('Failed to store testcase for regression testing: ' +
-                   regression_testcase_url)
+  progression_input.regression_testcase_url = (
+      corpus_manager.get_regressions_signed_upload_url(
+          fuzz_target.engine, fuzz_target.project_qualified_name()))
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
@@ -389,14 +425,19 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # triage cron.
   testcase.set_metadata('progression_pending', True)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
+  blob_name, blob_upload_url = blobs.get_blob_signed_upload_url()
   progression_input = uworker_msg_pb2.ProgressionTaskInput(
       custom_binary=build_manager.is_custom_binary(),
-      bad_revisions=build_manager.get_job_bad_revisions())
+      bad_revisions=build_manager.get_job_bad_revisions(),
+      blob_name=blob_name,
+      stacktrace_upload_url=blob_upload_url)
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
+
+  _set_regression_testcase_upload_url(progression_input, testcase)
   return uworker_msg_pb2.Input(
       job_type=job_type,
-      testcase_id=testcase_id,
+      testcase_id=str(testcase_id),
       uworker_env=uworker_env,
       progression_task_input=progression_input,
       testcase=uworker_io.entity_to_protobuf(testcase),
@@ -418,7 +459,8 @@ def find_fixed_range(uworker_input):
 
   # Custom binaries are handled as special cases.
   if build_manager.is_custom_binary():
-    return _check_fixed_for_custom_binary(testcase, testcase_file_path)
+    return _check_fixed_for_custom_binary(testcase, testcase_file_path,
+                                          uworker_input.progression_task_input)
 
   build_bucket_path = build_manager.get_primary_bucket_path()
   bad_revisions = uworker_input.progression_task_input.bad_revisions
@@ -488,7 +530,9 @@ def find_fixed_range(uworker_input):
     stacktrace = utils.get_crash_stacktrace_output(
         command, symbolized_crash_stacktrace, unsymbolized_crash_stacktrace)
 
-    last_tested_crash_stacktrace = data_handler.filter_stacktrace(stacktrace)
+    last_tested_crash_stacktrace = data_handler.filter_stacktrace(
+        stacktrace, uworker_input.progression_task_input.blob_name,
+        uworker_input.progression_task_input.stacktrace_upload_url)
 
     crash_on_latest_message = ('Still crashes on latest'
                                f' revision r{max_revision}.')
@@ -509,8 +553,7 @@ def find_fixed_range(uworker_input):
     return error
 
   if result and not result.is_crash():
-    error_message = (
-        f'Known crash revision {known_crash_revision} did not crash')
+    error_message = f'Minimum revision r{min_revision} did not crash.'
     progression_task_output.crash_revision = int(min_revision)
     return uworker_msg_pb2.Output(
         progression_task_output=progression_task_output,
@@ -528,9 +571,9 @@ def find_fixed_range(uworker_input):
     # If the min and max revisions are one apart this is as much as we can
     # narrow the range.
     if max_index - min_index == 1:
-      # TODO(alhijazi): This should be moved to postprocess.
       testcase.open = False
-      _store_testcase_for_regression_testing(testcase, testcase_file_path)
+      _store_testcase_for_regression_testing(
+          testcase, testcase_file_path, uworker_input.progression_task_input)
       progression_task_output.min_revision = int(min_revision)
       progression_task_output.max_revision = int(max_revision)
       return uworker_msg_pb2.Output(
@@ -597,16 +640,25 @@ def utask_main(uworker_input):
   return find_fixed_range(uworker_input)
 
 
-HANDLED_ERRORS = [
-    uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH,
-    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
-    uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT,
-    uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD,
-    uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR,
-    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND,
-    uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX,
-    uworker_msg_pb2.ErrorType.TESTCASE_SETUP,
-]
+_ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
+    uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
+        handle_progression_bad_build,
+    uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX:
+        handle_progression_bad_state_min_max,
+    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_NOT_FOUND:
+        handle_progression_build_not_found,
+    uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR:
+        handle_progression_build_setup_error,
+    uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH:
+        handle_progression_no_crash,
+    uworker_msg_pb2.ErrorType.PROGRESSION_REVISION_LIST_ERROR:
+        handle_progression_revision_list_error,
+    uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT:
+        handle_progression_timeout,
+}).compose_with(
+    setup.ERROR_HANDLER,
+    uworker_handle_errors.UNHANDLED_ERROR_HANDLER,
+)
 
 
 def utask_postprocess(output: uworker_msg_pb2.Output):
@@ -614,6 +666,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
   the db."""
   testcase = data_handler.get_testcase_by_id(output.uworker_input.testcase_id)
   _maybe_clear_progression_last_min_max_metadata(testcase, output)
+  _cleanup_stacktrace_blob_from_storage(output)
   task_output = None
   if output.HasField('progression_task_output'):
     task_output = output.progression_task_output
@@ -622,7 +675,7 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
                            task_output.build_data_list)
 
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
-    uworker_handle_errors.handle(output, HANDLED_ERRORS)
+    _ERROR_HANDLER.handle(output)
     return
 
   if task_output and task_output.crash_on_latest:

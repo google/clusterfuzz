@@ -1001,6 +1001,22 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_v8_oom(self):
     """Test a v8 JavaScript out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('v8_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = 'Allocation failed - JavaScript heap out of memory\n'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_oom_notdetected(self):
+    """Test a v8 JavaScript out of memory condition but without setting
+    REPORT_OOMS_AND_HANGS."""
     data = self._read_test_data('v8_oom.txt')
     expected_type = ''
     expected_address = ''
@@ -1014,11 +1030,47 @@ class StackAnalyzerTestcase(unittest.TestCase):
 
   def test_v8_process_oom(self):
     """Test a v8 process out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+
+    data = self._read_test_data('v8_process_oom.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = (
+        'Fatal process out of memory: base::SmallVector::Grow in small-vector.h\n'
+        'v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::G\n'
+        'v8::base::SmallVector<v8::internal::CompiledReplacement::ReplacementPart, 8u>::G\n'
+    )
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom_notdetected(self):
+    """Test a v8 process out of memory condition without setting
+    REPORT_OOMS_AND_HANGS."""
     data = self._read_test_data('v8_process_oom.txt')
     expected_type = ''
     expected_address = ''
     expected_state = ''
     expected_stacktrace = ''
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_process_oom_with_asan_abrt(self):
+    """Test a v8 process out of memory condition."""
+    os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+
+    data = self._read_test_data('v8_process_oom_with_asan_abrt.txt')
+    expected_type = 'Out-of-memory'
+    expected_address = ''
+    expected_state = 'mock-fuzz-target\n'
+    expected_stacktrace = data
     expected_security_flag = False
 
     self._validate_get_crash_data(data, expected_type, expected_address,
@@ -1757,6 +1809,21 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'Abrt'
     expected_address = '0x000000000001'
     expected_state = 'NULL'
+    expected_stacktrace = data
+    expected_security_flag = False
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_sanitizer_signal_abrt_fuzz_target(self):
+    """Same as above, but this time we specify a fuzz target which should
+    then be used as fallback crash state."""
+    os.environ['FUZZ_TARGET'] = 'mock-fuzz-target'
+    data = self._read_test_data('sanitizer_signal_abrt_unknown.txt')
+    expected_type = 'Abrt'
+    expected_address = '0x000000000001'
+    expected_state = 'mock-fuzz-target\n'
     expected_stacktrace = data
     expected_security_flag = False
 
@@ -3577,6 +3644,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_state = ('INTERNAL: Found a difference in '
                       'profile_expansion_util_fuzzer.cc\n'
                       'Die\nprofile_expansion_util_fuzzer.cc\n')
+    expected_address = ''
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_ignore_skia_abort(self):
+    """Test ignore  SkAbort_FileLine and SkMutex::~SkMutex"""
+    data = self._read_test_data("skia_abort.txt")
+    expected_type = 'Unexpected-exit'
+    expected_state = 'ImmediateCrash\nImmediateCrash\nSkMakeRuntimeEffect\n'
     expected_address = ''
     expected_stacktrace = data
     expected_security_flag = False

@@ -1046,8 +1046,21 @@ def update_component_labels(policy, testcase, issue):
   # Don't run on issues we've already applied automatic components to in case
   # labels are removed manually. This may cause issues in the event that we
   # rerun a test case, but it seems like a reasonable tradeoff to avoid spam.
+  logs.log(
+      'google_issue_tracker: Checking if auto_components_label %s (policy %s) '
+      'is in %s. Result: %s' %
+      (data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL,
+       policy.substitution_mapping(
+           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL),
+       list(issue.labels),
+       issue_tracker_utils.was_label_added(
+           issue,
+           policy.substitution_mapping(
+               data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))))
   if issue_tracker_utils.was_label_added(
-      issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL):
+      issue,
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL)):
     return
 
   for filtered_component in filtered_components:
@@ -1057,7 +1070,8 @@ def update_component_labels(policy, testcase, issue):
       policy.substitution_mapping(
           data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL))
   label_text = issue.issue_tracker.label_text(
-      data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL)
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_COMPONENTS_LABEL))
   issue_comment = (
       'Automatically applying components based on crash stacktrace and '
       'information from OWNERS files.\n\n'
@@ -1088,6 +1102,11 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
 
   # If we've assigned the ccs before, it likely means we were incorrect.
   # Don't try again for this particular issue.
+  logs.log(
+      'google_issue_tracker: Checking if auto_cc_label %s (policy: %s) is in '
+      '%s. Result: %s' %
+      (auto_cc_label, policy.label(auto_cc_label), list(issue.labels),
+       issue_tracker_utils.was_label_added(issue, auto_cc_label)))
   if issue_tracker_utils.was_label_added(issue, auto_cc_label):
     return
 
@@ -1189,9 +1208,13 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
   # If we've assigned an owner or cc once before, it likely means we were
   # incorrect. Don't try again for this particular issue.
   if (issue_tracker_utils.was_label_added(
-      issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL) or
+      issue,
+      policy.substitution_mapping(
+          data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL)) or
       issue_tracker_utils.was_label_added(
-          issue, data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL)):
+          issue,
+          policy.substitution_mapping(
+              data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))):
     return
   logs.log('never assigned')
 
@@ -1225,13 +1248,15 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
             data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL))
     issue.assignee = suspected_cl['author']
     issue.status = policy.status('assigned')
+    label_text = issue.issue_tracker.label_text(
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL))
     issue_comment = (
         'Automatically assigning owner based on suspected regression '
         f'changelist {suspected_cl["url"]} ({suspected_cl["description"]}).\n\n'
         'If this is incorrect, please let us know why and apply the '
-        f'{data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL} '
-        'label. If you aren\'t the correct owner for this issue, please '
-        'unassign yourself as soon as possible so it can be re-triaged.')
+        f'{label_text}. If you aren\'t the correct owner for this issue, '
+        'please unassign yourself as soon as possible so it can be re-triaged.')
 
   else:
     if testcase.get_metadata('has_issue_ccs_from_predator_results'):
@@ -1280,7 +1305,8 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       return
 
     label_text = issue.issue_tracker.label_text(
-        data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL)
+        policy.substitution_mapping(
+            data_types.CHROMIUM_ISSUE_PREDATOR_WRONG_CL_LABEL))
     issue.labels.add(
         policy.substitution_mapping(
             data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))
