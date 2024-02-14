@@ -1596,7 +1596,7 @@ FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 def record_fuzz_target(engine_name, binary_name, job_type):
   """Records exsistence of fuzz target to the DB."""
   result = record_fuzz_targets(
-      engine_name, [binary_name], job_type, save_actual_time=True)[0]
+      engine_name, [binary_name], job_type)[0]
 
   project = get_project_name(job_type)
   key_name = data_types.fuzz_target_fully_qualified_name(
