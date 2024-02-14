@@ -141,7 +141,7 @@ def _make_space(requested_size, current_build_dir=None):
       return True
 
     if not _evict_build(current_build_dir):
-      logs.log_perror(error_message)
+      logs.log_error(error_message)
       return False
 
   free_disk_space = shell.get_free_disk_space(builds_directory)
@@ -287,7 +287,7 @@ def _get_build_directory(bucket_path, job_name):
   return os.path.join(builds_directory, job_directory)
 
 
-def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
+def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
   fuzz_target = environment.get_value('FUZZ_TARGET')
   if fuzz_target:
@@ -397,7 +397,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
           llvm_symbolizer_path = os.path.join(root, llvm_symbolizer_filename)
           set_env_var('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
 
-  if not absolute_file_path:
+  if app_name and not absolute_file_path:
     logs.log_error(f'Could not find app {app_name!r} in search directories.')
 
 
@@ -422,7 +422,11 @@ class BaseBuild:
 class Build(BaseBuild):
   """Represent a build type at a particular revision."""
 
-  def __init__(self, base_build_dir, revision, build_prefix='', fuzz_targets=None):
+  def __init__(self,
+               base_build_dir,
+               revision,
+               build_prefix='',
+               fuzz_targets=None):
     super().__init__(base_build_dir)
     self.revision = revision
     self.build_prefix = build_prefix
@@ -631,8 +635,8 @@ class Build(BaseBuild):
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """Selects a fuzz target for fuzzing."""
     self.fuzz_targets = fuzz_targets
-    return _set_random_fuzz_target_for_fuzzing_if_needed(
-        fuzz_targets, target_weights)
+    return set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
+                                                        target_weights)
 
   def setup(self):
     """Set up the build on disk, and set all the necessary environment
@@ -822,8 +826,8 @@ class FuchsiaBuild(RegularBuild):
     # Select a fuzzer, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
     self.fuzz_targets = fuzz_targets
-    _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
-                                                  self.target_weights)
+    set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
+                                                 self.target_weights)
 
     return True
 
@@ -1228,7 +1232,7 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
     raise BuildManagerError(
         'No targets found in targets.list (path=%s).' % bucket_path)
 
-  fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
+  fuzz_target = set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
   if not fuzz_target:
     raise BuildManagerError(
@@ -1241,8 +1245,8 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
 
-  return setup_regular_build(revision, bucket_path=fuzz_target_bucket_path,
-                             fuzz_targets=targets_list)
+  return setup_regular_build(
+      revision, bucket_path=fuzz_target_bucket_path, fuzz_targets=targets_list)
 
 
 def _get_latest_revision(bucket_paths):
