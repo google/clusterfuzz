@@ -405,7 +405,7 @@ class GcsProvider(StorageProvider):
 
 
 @retry.wrap(
-    retries=3, delay=DEFAULT_FAIL_WAIT, function='google_cloud_utils._sign_url')
+    retries=2, delay=DEFAULT_FAIL_WAIT, function='google_cloud_utils._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
@@ -416,14 +416,24 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
-  url = blob.generate_signed_url(
-      version='v4',
-      expiration=minutes,
-      method=method,
-      credentials=signing_creds,
-      access_token=access_token,
-      service_account_email=signing_creds.service_account_email)
-  return url
+  try:
+    return blob.generate_signed_url(
+        version='v4',
+        expiration=minutes,
+        method=method,
+        credentials=signing_creds,
+        access_token=access_token,
+        service_account_email=signing_creds.service_account_email)
+  except google.auth.exceptions.TransportError:
+    logs.log('_sign_url: Trying to renew credentials.')
+    _new_signing_creds()
+    return blob.generate_signed_url(
+        version='v4',
+        expiration=minutes,
+        method=method,
+        credentials=signing_creds,
+        access_token=access_token,
+        service_account_email=signing_creds.service_account_email)
 
 
 class FileSystemProvider(StorageProvider):
@@ -739,8 +749,11 @@ def _storage_client():
 
 
 def _new_signing_creds():
-  _local.signing_creds_expiration = datetime.datetime.now(
-  ) + datetime.timedelta(minutes=45)
+  now = datetime.datetime.now()
+  new_expiry = now + datetime.timedelta(minutes=40)
+  logs.log(f'Credentials expiring: {_local.signing_creds_expiration}. '
+           f'New: {new_expiry}.')
+  _local.signing_creds_expiration = new_expiry
   _local.signing_creds = credentials.get_signing_credentials()
 
 
