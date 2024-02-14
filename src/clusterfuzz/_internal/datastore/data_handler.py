@@ -1630,30 +1630,33 @@ def get_or_create_multi(mapping, data_type):
     retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
     delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
     function='datastore.data_handler.record_fuzz_targets')
-def record_fuzz_targets(engine_name, binary_names, job_type):
+def record_fuzz_targets(engine_name, binaries, job_type):
   """Record existence of fuzz targets to the DB."""
-  if not binary_names:
-    logs.log_error('Expected binary_name.')
+  # TODO(metzman): All of this code assumes that fuzzing jobs are behaving
+  # reasonably and won't try to DoS us by putting bogus fuzzers in the db.
+  # This should be changed by limiting the number of fuzz targets saved and
+  # putting an expiration on them.
+  if not binaries:
+    logs.log_error('Expected binaries.')
     return None
 
   project = get_project_name(job_type)
 
   Target = collections.namedtuple(
-      'Target', ['engine_name', 'project', 'binary_name', 'expiry_timestamp'])
+      'Target', ['engine', 'project', 'binary'])
 
-  time_now = utils.utcnow()
-  expiry_timestamp = time_now + datetime.timedelta(hours=6)
   mapping = {
       data_types.fuzz_target_fully_qualified_name(engine_name, project,
-                                                  binary_name):
-      Target(engine_name, project, binary_name, expiry_timestamp)
-      for binary_name in binary_names
+                                                  binary):
+      Target(engine_name, project, binary)
+      for binary in binaries
   }
   fuzz_targets = get_or_create_multi(mapping, data_types.FuzzTarget)
 
   FuzzTargetJob = collections.namedtuple(
       'FuzzTargetJob', ['fuzz_target_name', 'job', 'engine', 'last_run'])
 
+  time_now = utils.utcnow()
   mapping = {
       data_types.fuzz_target_job_key(key_name, job_type): FuzzTargetJob(
           fuzz_target_name=key_name,
