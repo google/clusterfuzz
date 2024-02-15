@@ -495,9 +495,11 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
     # Test setting up build again.
     os.environ['FUZZ_TARGET'] = ''
     self.mock.time.return_value = 1005.0
-    self.assertIsInstance(
-        build_manager.setup_regular_build(
-            2, target_weights=self.target_weights), build_manager.RegularBuild)
+    build = build_manager.setup_regular_build(
+        2, target_weights=self.target_weights)
+
+    self.assertIsInstance(build, build_manager.RegularBuild)
+
     self.assertEqual(_get_timestamp(build.base_build_dir), 1005.0)
 
     # If it was a partial build, the unpack should be called again.
@@ -507,7 +509,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(2, self.mock.unpack.call_count)
 
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
-    self.assertEqual('3', os.environ['FUZZ_TARGET_COUNT'])
+    self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
   @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_fuzz_with_extra(self, unpack_all):
@@ -544,7 +546,7 @@ class RegularLibFuzzerBuildTest(fake_filesystem_unittest.TestCase):
       self.assertEqual(4, self.mock.unpack.call_count)
 
     self.assertEqual('target2', os.environ['FUZZ_TARGET'])
-    self.assertEqual('3', os.environ['FUZZ_TARGET_COUNT'])
+    self.assertCountEqual(['target1', 'target2', 'target3'], build.fuzz_targets)
 
   @parameterized.parameterized.expand(['True', 'False'])
   def test_setup_nonfuzz(self, unpack_all):
@@ -2022,7 +2024,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/revisions',
         file_match_callback=None,
         trusted=True)
-    self.assertEqual(3, environment.get_value('FUZZ_TARGET_COUNT'))
+    self.assertCountEqual(build.fuzz_targets, [])
 
   def test_setup_nonfuzz(self):
     """Tests setting up a build during a non-fuzz task."""
@@ -2050,7 +2052,7 @@ class SplitFuzzTargetsBuildTest(fake_filesystem_unittest.TestCase):
         '/revisions',
         file_match_callback=None,
         trusted=True)
-    self.assertIsNone(environment.get_value('FUZZ_TARGET_COUNT'))
+    self.assertEqual(build.fuzz_targets, [])
 
   def test_delete(self):
     """Test deleting this build."""

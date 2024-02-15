@@ -429,7 +429,7 @@ class Build(BaseBuild):
     self.revision = revision
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
-    self.fuzz_targets = fuzz_targets
+    self.fuzz_targets = list(fuzz_targets) if fuzz_targets is not None else None
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -632,7 +632,7 @@ class Build(BaseBuild):
 
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """Selects a fuzz target for fuzzing."""
-    self.fuzz_targets = fuzz_targets
+    self.fuzz_targets = list(fuzz_targets)
     return set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
                                                         target_weights)
 
@@ -823,7 +823,7 @@ class FuchsiaBuild(RegularBuild):
 
     # Select a fuzzer, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
-    self.fuzz_targets = fuzz_targets
+    self.fuzz_targets = list(fuzz_targets)
     set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
                                                  self.target_weights)
 
@@ -1305,7 +1305,7 @@ def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
                         target_weights=None,
-                        fuzz_targets=None):
+                        fuzz_targets=None) -> RegularBuild:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
