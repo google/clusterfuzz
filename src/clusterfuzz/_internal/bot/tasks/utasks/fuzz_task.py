@@ -1334,7 +1334,7 @@ class FuzzingSession:
     self.data_directory = None
 
     # Fuzzing engine specific state.
-    if uworker_input.fuzz_task_input.fuzz_target:
+    if uworker_input.fuzz_task_input.HasField('fuzz_target'):
       self.fuzz_target = uworker_io.entity_from_protobuf(
           uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
     else:
@@ -2036,7 +2036,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   else:
     fuzz_target = None
 
-  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(fuzz_target=fuzz_target)
+  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
+      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target))
   preprocess_store_fuzzer_run_results(fuzz_task_input)
   return uworker_msg_pb2.Input(
       fuzz_task_input=fuzz_task_input,
