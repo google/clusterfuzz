@@ -357,7 +357,7 @@ class FuzzTargetCorpus(GcsCorpus):
     return result
 
 
-class ProtoFuzzTargetCorpus(GcsCorpus):
+class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
