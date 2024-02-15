@@ -1334,9 +1334,9 @@ class FuzzingSession:
     self.data_directory = None
 
     # Fuzzing engine specific state.
-    if uworker_input.fuzz_target:
+    if uworker_input.fuzz_task_input.fuzz_target:
       self.fuzz_target = uworker_io.entity_from_protobuf(
-          uworker_input.fuzz_target, data_types.FuzzTarget)
+          uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
     else:
       # We take this branch when no fuzz target is picked. Such as on a new
       # build.
@@ -1989,6 +1989,14 @@ def _make_session(uworker_input):
   )
 
 
+def handle_fuzz_no_fuzz_target_selected(output):
+  save_fuzz_targets(output)
+  # Try again now that there are some fuzz targets.
+  utask_preprocess(output.uworker_input.fuzzer_name,
+                   output.uworker_input.job_type,
+                   output.uworker_input.uworker_env)
+
+
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
     uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
         handle_fuzz_build_setup_failure,
@@ -1997,7 +2005,7 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
     uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
         handle_fuzz_no_fuzzer,
     uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:
-        handle_fuzz_no_fuzzer_selected,
+        handle_fuzz_no_fuzz_target_selected,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
 
 
@@ -2011,18 +2019,8 @@ def pick_fuzz_target(job_type):
       for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job_type)
   ]
   target_weights = fuzzer_selection.get_fuzz_target_weights()
-  # !!! Test when no fuzz target.
-  # !!! AND CONFIRM FUZZ TARGET NAMES ARE THE SAME.
   return build_manager.set_random_fuzz_target_for_fuzzing_if_needed(
       targets, target_weights)
-
-
-def handle_fuzz_no_fuzzer_selected(output):
-  save_fuzz_targets(output)
-  # Try again now that there are some fuzz targets.
-  utask_preprocess(output.uworker_input.fuzzer_name,
-                   output.uworker_input.job_type,
-                   output.uworker_input.uworker_env)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):

@@ -302,8 +302,6 @@ def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
     logs.log_error('No fuzz targets found. Unable to pick random one.')
     return None
 
-  environment.set_value('FUZZ_TARGETS', ','.join(fuzz_targets))
-
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
   environment.set_value('FUZZ_TARGET', fuzz_target)

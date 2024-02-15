@@ -1642,14 +1642,11 @@ def record_fuzz_targets(engine_name, binaries, job_type):
 
   project = get_project_name(job_type)
 
-  Target = collections.namedtuple(
-      'Target', ['engine', 'project', 'binary'])
+  Target = collections.namedtuple('Target', ['engine', 'project', 'binary'])
 
   mapping = {
-      data_types.fuzz_target_fully_qualified_name(engine_name, project,
-                                                  binary):
-      Target(engine_name, project, binary)
-      for binary in binaries
+      data_types.fuzz_target_fully_qualified_name(engine_name, project, binary):
+      Target(engine_name, project, binary) for binary in binaries
   }
   fuzz_targets = get_or_create_multi(mapping, data_types.FuzzTarget)
 
