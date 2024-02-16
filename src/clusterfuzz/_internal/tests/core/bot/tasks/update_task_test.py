@@ -14,12 +14,15 @@
 """update_task tests."""
 import os
 import sys
+import tempfile
 import unittest
+import zipfile
 
 from pyfakefs import fake_filesystem_unittest
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.tasks import update_task
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import monitor
 from clusterfuzz._internal.metrics import monitoring_metrics
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -181,3 +184,79 @@ class GetUrlsTest(unittest.TestCase):
     self.assertEqual(
         'gs://test-deployment-bucket/linux%s.zip' % self.deployment_suffix,
         update_task.get_source_url())
+
+
+@test_utils.slow
+@test_utils.integration
+class UpdateSourceCodeIntegrationTest(unittest.TestCase):
+  """Tests updating clusterfuzz source code."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+    if os.getenv('PARALLEL_TESTS'):
+      self.skipTest('Package testing is disabled when running in parallel.')
+
+    self.temp_directory = self._make_temp_dir()
+    self.bot_tmpdir = self._make_temp_dir()
+    os.environ['ROOT_DIR'] = os.path.join(self.temp_directory, 'child')
+    os.mkdir(os.environ['ROOT_DIR'])
+    os.environ['BOT_TMPDIR'] = self.bot_tmpdir
+    os.environ['TEST_TMPDIR'] = self.bot_tmpdir
+    self.saved_cwd = os.getcwd()
+    os.chdir(os.environ['ROOT_DIR'])
+    helpers.patch(self, [
+        'clusterfuzz._internal.system.process_handler.cleanup_stale_processes',
+        'local.butler.common.is_git_dirty',
+        'clusterfuzz._internal.bot.tasks.update_task.get_source_url',
+        'clusterfuzz._internal.base.utils.read_data_from_file',
+    ])
+    self.mock.get_source_url.return_value = 'gs://clusterfuzz-deployment/linux-3.zip'
+    self.mock.read_data_from_file.return_value = b'version'
+
+  def tearDown(self):
+    os.chdir(self.saved_cwd)
+
+  def _make_temp_dir(self):
+    if not hasattr(self, '_dirs'):
+      self._dirs = []
+    created_dir = tempfile.TemporaryDirectory()
+    dir_name = created_dir.name
+    self._dirs.append(created_dir)
+    return dir_name
+
+  def test_files_have_read_and_write_permissions(self):
+    """Tests that all the extracted files have both read and write permissions."""
+    update_task.update_source_code()
+    for dirpath, _, filenames in os.walk(
+        os.path.join(self.temp_directory, 'clusterfuzz')):
+      for filename in filenames:
+        filepath = os.path.join(dirpath, filename)
+        self.assertTrue(os.access(filepath, os.R_OK))
+        self.assertTrue(os.access(filepath, os.W_OK))
+
+  def test_all_files_are_correctly_unpacked(self):
+    """Tests that all files in the zip archive are correctly unpacked."""
+    update_task.update_source_code()
+    zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
+    storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
+                           zipfile_path)
+    archive = zipfile.ZipFile(zipfile_path)
+    for file in archive.namelist():
+      if os.path.basename(file) == 'adb':
+        continue
+      self.assertTrue(os.path.exists(os.path.join(self.temp_directory, file)))
+
+  def test_archive_execute_permission_is_respected(self):
+    """Tests that the exectuable bit is correctly propagated to source files."""
+    update_task.update_source_code()
+    zipfile_path = os.path.join(self._make_temp_dir(), 'linux.zip')
+    storage.copy_file_from('gs://clusterfuzz-deployment/linux-3.zip',
+                           zipfile_path)
+    archive = zipfile.ZipFile(zipfile_path)
+    for member in archive.infolist():
+      if os.path.basename(member.filename) == 'adb':
+        continue
+      mode = (member.external_attr >> 16) & 0o7777
+      filepath = os.path.join(self.temp_directory, member.filename)
+      if mode & 0o100:
+        self.assertTrue(os.access(filepath, os.X_OK))

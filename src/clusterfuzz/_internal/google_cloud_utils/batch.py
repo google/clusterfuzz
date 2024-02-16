@@ -57,6 +57,8 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
 ])
 
+_UNPRIVILEGED_TASKS = {'variant'}
+
 
 def _create_batch_client_new():
   """Creates a batch client."""
@@ -263,15 +265,19 @@ def is_remote_task(command, job_name):
 def _get_spec_from_config(command, job_name):
   """Gets the configured specifications for a batch workload."""
   job = _get_job(job_name)
-  platform = job.platform
+  config_name = job.platform
   if command == 'fuzz':
-    platform += '-PREEMPTIBLE'
+    config_name += '-PREEMPTIBLE'
   else:
-    platform += '-NONPREEMPTIBLE'
+    config_name += '-NONPREEMPTIBLE'
+  # TODO(metzman): Get rid of this when we stop doing privileged operations in
+  # utasks.
+  if command in _UNPRIVILEGED_TASKS:
+    config_name += '-UNPRIVILEGED'
   batch_config = _get_batch_config()
-  instance_spec = batch_config.get('mapping').get(platform, None)
+  instance_spec = batch_config.get('mapping').get(config_name, None)
   if instance_spec is None:
-    raise ValueError(f'No mapping for {platform}')
+    raise ValueError(f'No mapping for {config_name}')
   project_name = batch_config.get('project')
   docker_image = instance_spec['docker_image']
   user_data = instance_spec['user_data']

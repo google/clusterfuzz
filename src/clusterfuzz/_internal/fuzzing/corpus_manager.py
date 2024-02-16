@@ -357,7 +357,7 @@ class FuzzTargetCorpus(GcsCorpus):
     return result
 
 
-class ProtoFuzzTargetCorpus(GcsCorpus):
+class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
@@ -433,7 +433,7 @@ class ProtoFuzzTargetCorpus(GcsCorpus):
       logs.log_error(
           f'Cannot upload {len(file_paths)} filepaths, only have '
           f'{len(self.proto_corpus.corpus.upload_urls)} upload urls.')
-      file_paths = file_paths[:len(num_upload_urls)]
+      file_paths = file_paths[:num_upload_urls]
 
     results = storage.upload_signed_urls(self.proto_corpus.corpus.upload_urls,
                                          file_paths)
