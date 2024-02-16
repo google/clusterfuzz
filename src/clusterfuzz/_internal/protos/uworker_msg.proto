@@ -234,6 +234,35 @@ message ProgressionTaskOutput{
   repeated BuildData build_data_list = 11;
 }
 
+
+message CrossPollinationStatistics {
+  optional string project_qualified_name = 1;
+  optional string sources = 3;
+  optional int32 initial_corpus_size = 5;
+  optional int32 corpus_size = 6;
+  optional int32 initial_edge_coverage = 7;
+  optional int32 edge_coverage = 8;
+  optional int32 initial_feature_coverage = 9;
+  optional int32 feature_coverage = 10;
+}
+
+message CoverageInformation{
+  optional string project_name= 1;
+  optional google.protobuf.Timestamp timestamp = 2;
+  optional int32 corpus_size_units = 3;
+  optional int32 corpus_size_bytes = 4;
+  optional string corpus_location = 5;
+  optional string corpus_backup_location = 6;
+  optional int32 quarantine_size_units = 7;
+  optional int32 quarantine_size_bytes = 8;
+  optional string quarantine_location = 9;
+}
+
+message CorpusPruningTaskOutput {
+  optional CrossPollinationStatistics cross_pollination_stats = 1;
+  optional CoverageInformation coverage_info = 2;
+}
+
 enum ErrorType {
   NO_ERROR = 0;
   ANALYZE_BUILD_SETUP = 1;
@@ -270,6 +299,7 @@ enum ErrorType {
   LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE = 33;
   LIBFUZZER_MINIMIZATION_FAILED = 34;
   CORPUS_PRUNING_FUZZER_SETUP_FAILED = 35;
+  CORPUS_PRUNING_ERROR = 36;  
 }
 
 message Output {
@@ -287,5 +317,6 @@ message Output {
   optional ProgressionTaskOutput progression_task_output = 12;
   optional SymbolizeTaskOutput symbolize_task_output = 13;
   optional VariantTaskOutput variant_task_output = 14;
-  optional string error_message = 15;
+  optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
+  optional string error_message = 17;
 }

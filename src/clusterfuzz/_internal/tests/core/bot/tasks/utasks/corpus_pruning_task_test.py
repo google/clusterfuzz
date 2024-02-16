@@ -222,8 +222,10 @@ class CorpusPruningTest(unittest.TestCase, BaseTest):
         job_type='libfuzzer_asan_job',
         fuzzer_name='libFuzzer_test_fuzzer',
         uworker_env={})
-    corpus_pruning_task.utask_main(uworker_input)
-
+    output = corpus_pruning_task.utask_main(uworker_input)
+    self.assertFalse(output.HasField('error_type'))
+    output.uworker_input.CopyFrom(uworker_input)
+    corpus_pruning_task.utask_postprocess(output)
     quarantined = os.listdir(self.quarantine_dir)
     self.assertEqual(quarantined,
                      ['crash-7acd6a2b3fe3c5ec97fa37e5a980c106367491fa'])

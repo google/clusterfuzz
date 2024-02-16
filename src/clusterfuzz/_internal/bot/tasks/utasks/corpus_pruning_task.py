@@ -21,6 +21,7 @@ import shutil
 from typing import List
 
 from google.cloud import ndb
+from google.protobuf import timestamp_pb2
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
@@ -548,12 +549,31 @@ class CrossPollinator:
     return result.stats
 
 
-def _record_cross_pollination_stats(stats):
-  """Log stats about cross pollination in BigQuery."""
-  # If no stats were gathered due to a timeout or lack of corpus, return.
+def _fill_cross_pollination_stats(stats, output):
+  """Fills the cross pollination statistics in the corpus pruning output."""
   if not stats:
     return
 
+  statistics = uworker_msg_pb2.CrossPollinationStatistics(
+      project_qualified_name=stats.project_qualified_name,
+      sources=stats.sources,
+      initial_corpus_size=stats.initial_corpus_size,
+      corpus_size=stats.corpus_size,
+      initial_edge_coverage=stats.initial_edge_coverage,
+      edge_coverage=stats.edge_coverage,
+      initial_feature_coverage=stats.initial_feature_coverage,
+      feature_coverage=stats.feature_coverage)
+
+  output.corpus_pruning_task_output.cross_pollination_stats.CopyFrom(statistics)
+
+
+def _record_cross_pollination_stats(output):
+  """Log stats about cross pollination in BigQuery."""
+  # If no stats were gathered due to a timeout or lack of corpus, return.
+
+  if not output.corpus_pruning_task_output.HasField('cross_pollination_stats'):
+    return
+  stats = output.corpus_pruning_task_output.cross_pollination_stats
   bigquery_row = {
       'project_qualified_name': stats.project_qualified_name,
       'sources': stats.sources,
@@ -646,7 +666,7 @@ def do_corpus_pruning(context, revision):
 
   # Store corpus stats into CoverageInformation entity.
   project_qualified_name = context.fuzz_target.project_qualified_name()
-  today = datetime.datetime.utcnow().date()
+  today = datetime.datetime.utcnow()
   coverage_info = data_types.CoverageInformation(
       fuzzer=project_qualified_name, date=today)
 
@@ -850,29 +870,30 @@ def _get_cross_pollinate_fuzzers_from_protos(cross_pollinate_fuzzers_protos):
   ]
 
 
-def _save_coverage_information(context, result):
+def _save_coverage_information(output):
   """Saves coverage information in datastore using an atomic transaction."""
+  if not output.corpus_pruning_task_output.HasField('coverage_info'):
+    return
+
+  cov_info = output.corpus_pruning_task_output.coverage_info
 
   # Use ndb.transaction with retries below to mitigate risk of a race condition.
   def _try_save_coverage_information():
     """Implements save_coverage_information function."""
     coverage_info = data_handler.get_coverage_information(
-        context.fuzz_target.project_qualified_name(),
-        result.coverage_info.date,
+        cov_info.project_name,
+        cov_info.timestamp.ToDatetime().date(),
         create_if_needed=True)
 
     # Intentionally skip edge and function coverage values as those would come
     # from fuzzer coverage cron task (see src/go/server/cron/coverage.go).
-    coverage_info.corpus_size_units = result.coverage_info.corpus_size_units
-    coverage_info.corpus_size_bytes = result.coverage_info.corpus_size_bytes
-    coverage_info.corpus_location = result.coverage_info.corpus_location
-    coverage_info.corpus_backup_location = (
-        result.coverage_info.corpus_backup_location)
-    coverage_info.quarantine_size_units = (
-        result.coverage_info.quarantine_size_units)
-    coverage_info.quarantine_size_bytes = (
-        result.coverage_info.quarantine_size_bytes)
-    coverage_info.quarantine_location = result.coverage_info.quarantine_location
+    coverage_info.corpus_size_units = cov_info.corpus_size_units
+    coverage_info.corpus_size_bytes = cov_info.corpus_size_bytes
+    coverage_info.corpus_location = cov_info.corpus_location
+    coverage_info.corpus_backup_location = cov_info.corpus_backup_location
+    coverage_info.quarantine_size_units = cov_info.quarantine_size_units
+    coverage_info.quarantine_size_bytes = cov_info.quarantine_size_bytes
+    coverage_info.quarantine_location = cov_info.quarantine_location
     coverage_info.put()
 
   try:
@@ -886,13 +907,33 @@ def _save_coverage_information(context, result):
         'Failed to save corpus pruning result: %s.' % repr(e))
 
 
+def _extract_coverage_information(context, result):
+  """Extracts and stores the coverage information in a proto."""
+  coverage_info = uworker_msg_pb2.CoverageInformation()
+  coverage_info.project_name = context.fuzz_target.project_qualified_name()
+  timestamp = timestamp_pb2.Timestamp()  # pylint: disable=no-member
+  timestamp.FromDatetime(result.coverage_info.date)
+  coverage_info.timestamp.CopyFrom(timestamp)
+  # Intentionally skip edge and function coverage values as those would come
+  # from fuzzer coverage cron task (see src/go/server/cron/coverage.go).
+  coverage_info.corpus_size_units = result.coverage_info.corpus_size_units
+  coverage_info.corpus_size_bytes = result.coverage_info.corpus_size_bytes
+  coverage_info.corpus_location = result.coverage_info.corpus_location
+  coverage_info.corpus_backup_location = (
+      result.coverage_info.corpus_backup_location)
+  coverage_info.quarantine_size_units = (
+      result.coverage_info.quarantine_size_units)
+  coverage_info.quarantine_size_bytes = (
+      result.coverage_info.quarantine_size_bytes)
+  coverage_info.quarantine_location = result.coverage_info.quarantine_location
+  return coverage_info
+
+
 def utask_main(uworker_input):
   """Execute corpus pruning task."""
   fuzz_target = uworker_io.entity_from_protobuf(
       uworker_input.corpus_pruning_task_input.fuzz_target,
       data_types.FuzzTarget)
-  task_name = (f'corpus_pruning_{uworker_input.fuzzer_name}_'
-               f'{uworker_input.job_type}')
   revision = 0  # Trunk revision
 
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
@@ -910,22 +951,31 @@ def utask_main(uworker_input):
   if is_lsan_enabled:
     leak_blacklist.copy_global_to_local_blacklist()
 
+  uworker_output = None
   try:
     result = do_corpus_pruning(context, revision)
-    _record_cross_pollination_stats(result.cross_pollination_stats)
-    _save_coverage_information(context, result)
+    uworker_output = uworker_msg_pb2.Output(
+        corpus_pruning_task_output=uworker_msg_pb2.CorpusPruningTaskOutput(
+            coverage_info=_extract_coverage_information(context, result)))
+    _fill_cross_pollination_stats(result.cross_pollination_stats,
+                                  uworker_output)
     _process_corpus_crashes(context, result)
-  except Exception:
+  except Exception as e:
     # TODO(metzman): Don't catch every exception, it makes testing almost
     # impossible.
-    logs.log_error('Corpus pruning failed.')
-    data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
-    return uworker_msg_pb2.Output()
+    logs.log_error(f'Corpus pruning failed: {e}')
+    uworker_output = uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.CORPUS_PRUNING_ERROR)
   finally:
     context.cleanup()
 
-  data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
-  return uworker_msg_pb2.Output()
+  return uworker_output
+
+
+def handle_corpus_pruning_failures(output: uworker_msg_pb2.Output):
+  task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'
+               f'{output.uworker_input.job_type}')
+  data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -986,6 +1036,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
     uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED:
         uworker_handle_errors.noop_handler,
+    uworker_msg_pb2.ErrorType.CORPUS_PRUNING_ERROR:
+        handle_corpus_pruning_failures,
 })
 
 
@@ -994,3 +1046,9 @@ def utask_postprocess(output):
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return
+  task_name = (f'corpus_pruning_{output.uworker_input.fuzzer_name}_'
+               f'{output.uworker_input.job_type}')
+
+  _record_cross_pollination_stats(output)
+  _save_coverage_information(output)
+  data_handler.update_task_status(task_name, data_types.TaskState.FINISHED)
