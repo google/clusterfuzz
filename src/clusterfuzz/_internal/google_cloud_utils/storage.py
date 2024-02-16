@@ -24,6 +24,7 @@ import threading
 import time
 import uuid
 
+import google.auth.exceptions
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import requests
@@ -87,6 +88,7 @@ _TRANSIENT_ERRORS = [
     requests.exceptions.ConnectionError,
     requests.exceptions.ChunkedEncodingError,
     ConnectionResetError,
+    google.auth.exceptions.TransportError,
 ]
 
 
@@ -402,6 +404,8 @@ class GcsProvider(StorageProvider):
     requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
 
 
+@retry.wrap(
+    retries=2, delay=DEFAULT_FAIL_WAIT, function='google_cloud_utils._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
@@ -412,14 +416,24 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
-  url = blob.generate_signed_url(
-      version='v4',
-      expiration=minutes,
-      method=method,
-      credentials=signing_creds,
-      access_token=access_token,
-      service_account_email=signing_creds.service_account_email)
-  return url
+  try:
+    return blob.generate_signed_url(
+        version='v4',
+        expiration=minutes,
+        method=method,
+        credentials=signing_creds,
+        access_token=access_token,
+        service_account_email=signing_creds.service_account_email)
+  except google.auth.exceptions.TransportError:
+    logs.log('_sign_url: Trying to renew credentials.')
+    _new_signing_creds()
+    return blob.generate_signed_url(
+        version='v4',
+        expiration=minutes,
+        method=method,
+        credentials=signing_creds,
+        access_token=access_token,
+        service_account_email=signing_creds.service_account_email)
 
 
 class FileSystemProvider(StorageProvider):
@@ -735,8 +749,11 @@ def _storage_client():
 
 
 def _new_signing_creds():
-  _local.signing_creds_expiration = datetime.datetime.now(
-  ) + datetime.timedelta(minutes=45)
+  now = datetime.datetime.now()
+  new_expiry = now + datetime.timedelta(minutes=40)
+  prev = getattr(_local, 'signing_creds_expiration', None)
+  logs.log(f'Credentials expiring: {prev}. New: {new_expiry}.')
+  _local.signing_creds_expiration = new_expiry
   _local.signing_creds = credentials.get_signing_credentials()
 
 
@@ -1262,7 +1279,7 @@ def download_signed_urls(signed_urls, directory):
 
 
 def delete_signed_urls(urls):
-  return _pool().starmap(_error_tolerant_delete_signed_url, urls)
+  return _pool().map(_error_tolerant_delete_signed_url, urls)
 
 
 def _sign_urls_for_existing_file(corpus_element_url,
@@ -1280,10 +1297,6 @@ def get_arbitrary_signed_upload_url(remote_directory):
   return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
 
 
-# @retry.wrap(
-#     retries=DEFAULT_FAIL_RETRIES,
-#     delay=DEFAULT_FAIL_WAIT,
-#     function='google_cloud_utils.get_arbitrary_signed_upload_urls')
 def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
   """Returns |num_uploads| number of signed upload URLs to upload files with
   unique arbitrary names to remote_directory."""
