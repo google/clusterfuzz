@@ -357,15 +357,15 @@ class TestRunner:
 
 
 def _get_minimize_task_input():
-  blobs_bucket = storage.blobs_bucket()
-  blob_name = blobs.generate_new_blob_name()
+  (testcase_blob_name, testcase_upload_url) = blobs.get_blob_signed_upload_url()
+  (stacktrace_blob_name,
+   stacktrace_upload_url) = blobs.get_blob_signed_upload_url()
 
-  gcs_path = storage.get_cloud_storage_file_path(blobs_bucket, blob_name)
-  if storage.get(gcs_path):
-    raise RuntimeError(f'UUID collision found: {blob_name}')
   return uworker_msg_pb2.MinimizeTaskInput(
-      testcase_upload_url=storage.get_signed_upload_url(gcs_path),
-      blob_name=blob_name)
+      testcase_upload_url=testcase_upload_url,
+      testcase_blob_name=testcase_blob_name,
+      stacktrace_blob_name=stacktrace_blob_name,
+      stacktrace_upload_url=stacktrace_upload_url)
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
@@ -621,9 +621,35 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
 
   minimize_task_output.last_crash_result_dict.clear()
   minimize_task_output.last_crash_result_dict.update(
-      _extract_crash_result(last_crash_result, command))
+      _extract_crash_result(last_crash_result, command, minimize_task_input))
 
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)
+
+
+def _cleanup_unused_blobs_from_storage(output: uworker_msg_pb2.Output):
+  """Cleanup the blobs created in preprocess if they weren't used during
+  utask_main."""
+  delete_testcase_blob = True
+  delete_stacktrace_blob = True
+
+  if output.HasField('minimize_task_output'):
+    testcase_blob_key = output.minimize_task_output.minimized_keys
+    if testcase_blob_key.startswith(data_types.BLOBSTORE_STACK_PREFIX):
+      delete_testcase_blob = False
+
+    stacktrace_blob_key = output.minimize_task_output.last_crash_result_dict[
+        'crash_stacktrace']
+    if stacktrace_blob_key.startswith(data_types.BLOBSTORE_STACK_PREFIX):
+      delete_stacktrace_blob = False
+
+  testcase_blob_name = (
+      output.uworker_input.minimize_task_input.testcase_blob_name)
+  stacktrace_blob_name = (
+      output.uworker_input.minimize_task_input.stacktrace_blob_name)
+  if delete_testcase_blob:
+    blobs.delete_blob(testcase_blob_name)
+  if delete_stacktrace_blob:
+    blobs.delete_blob(stacktrace_blob_name)
 
 
 def update_testcase(output: uworker_msg_pb2.Output):
@@ -800,6 +826,7 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   update_testcase(output)
+  _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return
@@ -997,7 +1024,7 @@ def store_minimized_testcase(
   # Store the testcase.
   data = file_handle.read()
   storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
-  minimized_keys = minimize_task_input.blob_name
+  minimized_keys = minimize_task_input.testcase_blob_name
   file_handle.close()
 
   testcase.minimized_keys = minimized_keys
@@ -1401,14 +1428,14 @@ def _run_libfuzzer_tool(tool_name: str,
   with open(output_file_path, 'rb') as file_handle:
     data = file_handle.read()
     storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
-    minimized_keys = minimize_task_input.blob_name
+    minimized_keys = minimize_task_input.testcase_blob_name
 
   testcase.minimized_keys = minimized_keys
 
   return output_file_path, crash_result, minimized_keys
 
 
-def _extract_crash_result(crash_result, command):
+def _extract_crash_result(crash_result, command, minimize_task_input):
   """Extract necessary data from CrashResult."""
   if not crash_result:
     raise errors.BadStateError(
@@ -1419,10 +1446,16 @@ def _extract_crash_result(crash_result, command):
   min_crash_stacktrace = utils.get_crash_stacktrace_output(
       command, min_state.crash_stacktrace, min_unsymbolized_crash_stacktrace)
   return {
-      'crash_type': min_state.crash_type,
-      'crash_address': min_state.crash_address,
-      'crash_state': min_state.crash_state,
-      'crash_stacktrace': data_handler.filter_stacktrace(min_crash_stacktrace),
+      'crash_type':
+          min_state.crash_type,
+      'crash_address':
+          min_state.crash_address,
+      'crash_state':
+          min_state.crash_state,
+      'crash_stacktrace':
+          data_handler.filter_stacktrace(
+              min_crash_stacktrace, minimize_task_input.stacktrace_blob_name,
+              minimize_task_input.stacktrace_upload_url),
   }
 
 
@@ -1557,8 +1590,8 @@ def do_libfuzzer_minimization(
   if not last_crash_result:
     repro_command = testcase_manager.get_command_line_for_application(
         file_to_run=testcase_file_path, needs_http=testcase.http_flag)
-    crash_result_dict = _extract_crash_result(initial_crash_result,
-                                              repro_command)
+    crash_result_dict = _extract_crash_result(
+        initial_crash_result, repro_command, minimize_task_input)
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
         last_crash_result_dict=crash_result_dict,
         memory_tool_options=memory_tool_options)
@@ -1581,8 +1614,8 @@ def do_libfuzzer_minimization(
   # Finalize the test case if we were able to reproduce it.
   repro_command = testcase_manager.get_command_line_for_application(
       file_to_run=current_testcase_path, needs_http=testcase.http_flag)
-  last_crash_result_dict = _extract_crash_result(last_crash_result,
-                                                 repro_command)
+  last_crash_result_dict = _extract_crash_result(
+      last_crash_result, repro_command, minimize_task_input)
 
   # Clean up after we're done.
   shell.clear_testcase_directories()

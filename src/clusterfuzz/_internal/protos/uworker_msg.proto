@@ -58,7 +58,9 @@ message Corpus {
 
 message MinimizeTaskInput {
   optional string testcase_upload_url = 1;
-  optional string blob_name = 2;
+  optional string testcase_blob_name = 2;
+  optional string stacktrace_blob_name = 3;
+  optional string stacktrace_upload_url = 4;
 }
 
 message RegressionTaskInput {
