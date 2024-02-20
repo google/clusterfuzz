@@ -276,7 +276,8 @@ def process_command_impl(task_name,
       logs.log_error(error_string)
       raise errors.BadStateError(error_string)
 
-    job_queue_suffix = tasks.queue_suffix_for_platform(job.platform)
+    job_queue_suffix = tasks.queue_suffix_for_platform(
+        environment.base_platform(job.platform))
     bot_platform = environment.platform().lower()
     bot_base_queue_suffix = tasks.queue_suffix_for_platform(
         environment.base_platform(bot_platform))
