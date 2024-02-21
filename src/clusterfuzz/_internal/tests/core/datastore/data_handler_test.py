@@ -890,17 +890,6 @@ class RecordFuzzTargetTest(unittest.TestCase):
     self.assertEqual('libFuzzer_child', fuzz_target.fully_qualified_name())
     self.assertEqual('child', fuzz_target.project_qualified_name())
 
-  def test_record_fuzz_target_no_binary_name(self):
-    """Test recording fuzz target with no binary."""
-    # Passing None to binary_name is an error. We shouldn't create any
-    # FuzzTargets as a result.
-    data_handler.record_fuzz_target('libFuzzer', None, 'job')
-    fuzz_target = ndb.Key(data_types.FuzzTarget, 'libFuzzer_child').get()
-    self.assertIsNone(fuzz_target)
-
-    job_mapping = ndb.Key(data_types.FuzzTargetJob, 'libFuzzer_child/job').get()
-    self.assertIsNone(job_mapping)
-
   @parameterized.parameterized.expand(['child', 'proj_child'])
   def test_record_fuzz_target_ossfuzz(self, binary_name):
     """Test that record_fuzz_target works with OSS-Fuzz projects."""

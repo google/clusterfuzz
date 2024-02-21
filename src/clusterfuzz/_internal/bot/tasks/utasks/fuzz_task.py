@@ -2019,20 +2019,19 @@ def pick_fuzz_target(job_type):
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
+  from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
   """Preprocess untrusted task."""
   setup_input = setup.preprocess_update_fuzzer_and_data_bundles(fuzzer_name)
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
   fuzz_target_name = pick_fuzz_target(job_type)
+  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
   if fuzz_target_name:
     fuzz_target = data_handler.record_fuzz_target(
-        fuzzer_name, [fuzz_target_name], job_type)[0]
-  else:
-    fuzz_target = None
+        fuzzer_name, fuzz_target_name, job_type)
+    fuzz_task_input.fuzz_target = uworker_io.entity_to_protobuf(fuzz_target)
 
-  fuzz_task_input = uworker_msg_pb2.FuzzTaskInput(
-      fuzz_target=uworker_io.entity_to_protobuf(fuzz_target))
   preprocess_store_fuzzer_run_results(fuzz_task_input)
   return uworker_msg_pb2.Input(
       fuzz_task_input=fuzz_task_input,

@@ -1635,6 +1635,7 @@ def record_fuzz_targets(engine_name, binaries, job_type):
   # reasonably and won't try to DoS us by putting bogus fuzzers in the db.
   # This should be changed by limiting the number of fuzz targets saved and
   # putting an expiration on them.
+  binaries = [binary for binary in binaries if binary]
   if not binaries:
     logs.log_error('Expected binaries.')
     return None
@@ -1661,8 +1662,8 @@ def record_fuzz_targets(engine_name, binaries, job_type):
   jobs = get_or_create_multi_entities_from_keys(job_mapping)
 
   for job in jobs:
-    if not job.last_run:
-      job.last_run = utils.utcnow()
+    # TODO(metzman): Decide if we want to handle unused fuzzers differentlyo.
+    job.last_run = utils.utcnow()
 
   ndb_utils.put_multi(jobs)
 

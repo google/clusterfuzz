@@ -540,15 +540,14 @@ class Build(BaseBuild):
       logs.log_error('Unable to download build url %s.' % build_url)
       return False
 
-    unpack_everything = environment.get_value(
-        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-
     try:
       reader = archive.open(build_local_archive)
     except:
       logs.log_error(f'Unable to open build archive {build_local_archive}.')
       return False
 
+    unpack_everything = environment.get_value(
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
     if not unpack_everything:
       # For fuzzing, pick a random fuzz target so that we only un-archive that
       # particular fuzz target and its dependencies and save disk space.  If we
@@ -761,7 +760,7 @@ class RegularBuild(Build):
     self._pre_setup()
     environment.set_value(self.env_prefix + 'BUILD_URL', self.build_url)
 
-    logs.log('Retrieving build r%d.' % self.revision)
+    logs.log(f'Retrieving build r{self.revision}.')
     build_update = not self.exists()
     if build_update:
       if not self._unpack_build(self.base_build_dir, self.build_dir,
