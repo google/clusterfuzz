@@ -2028,7 +2028,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
   if fuzz_target_name:
     fuzz_target = data_handler.record_fuzz_target(fuzzer_name, fuzz_target_name,
-                                                  job_typen)
+                                                  job_type)
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
 
