@@ -949,6 +949,13 @@ class StackParser:
             new_type='Out-of-memory',
             reset=True)
 
+      # V8 sandbox violations.
+      self.update_state_on_match(
+          V8_SANDBOX_VIOLATION_REGEX,
+          line,
+          state,
+          new_type='V8 sandbox violation')
+
       # The following parsing signatures don't lead to crash state overwrites.
       if not state.crash_type:
         # Windows cdb stack overflow.
@@ -1079,13 +1086,6 @@ class StackParser:
             state,
             new_type='V8 correctness failure',
             reset=True)
-
-        # V8 sandbox violations.
-        self.update_state_on_match(
-            V8_SANDBOX_VIOLATION_REGEX,
-            line,
-            state,
-            new_type='V8 sandbox violation')
 
         # Generic SEGV handler errors.
         self.update_state_on_match(

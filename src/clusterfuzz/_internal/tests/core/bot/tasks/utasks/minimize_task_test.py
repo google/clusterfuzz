@@ -236,6 +236,7 @@ class ExtractCrashResultTest(unittest.TestCase):
         'clusterfuzz._internal.bot.tasks.utasks.minimize_task.data_handler.filter_stacktrace',
         'clusterfuzz._internal.bot.tasks.utasks.minimize_task.utils.get_crash_stacktrace_output',
     ])
+    self.minimize_task_input = uworker_msg_pb2.MinimizeTaskInput()
 
   def test_nonnull_crash_result_returns(self):
     """Test a expected crash result input is extracted as expected."""
@@ -272,8 +273,10 @@ class ExtractCrashResultTest(unittest.TestCase):
             '+----------------------------------------Release Build Stacktrace'
             '----------------------------------------+\n%s' % stacktrace,
     }
-    self.assertEqual(expected,
-                     minimize_task._extract_crash_result(crash_result, command))  # pylint: disable=protected-access
+    self.assertEqual(
+        expected,
+        minimize_task._extract_crash_result(  # pylint: disable=protected-access
+            crash_result, command, self.minimize_task_input))
 
   def test_null_crash_result_raises_error(self):
     """Test a null crash result input raises an error as expected."""
@@ -281,7 +284,8 @@ class ExtractCrashResultTest(unittest.TestCase):
     command = ''
 
     with self.assertRaises(errors.BadStateError):
-      minimize_task._extract_crash_result(crash_result, command)  # pylint: disable=protected-access
+      minimize_task._extract_crash_result(  # pylint: disable=protected-access
+          crash_result, command, self.minimize_task_input)
 
 
 @test_utils.with_cloud_emulators('datastore')
@@ -293,31 +297,46 @@ class UTaskPostprocessTest(unittest.TestCase):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.tasks.utasks.minimize_task.finalize_testcase',
         'clusterfuzz._internal.system.environment.is_engine_fuzzer_job',
+        'clusterfuzz._internal.google_cloud_utils.blobs.delete_blob'
     ])
 
   def _get_generic_input(self):
+    """Creates a generic uworker_input."""
     testcase = data_types.Testcase()
     testcase.put()
+    minimize_task_input = uworker_msg_pb2.MinimizeTaskInput(
+        testcase_blob_name='testcase_blob_name',
+        stacktrace_blob_name='stacktrace_blob_name')
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type',
         testcase_id=str(testcase.key.id()),
+        minimize_task_input=minimize_task_input,
         testcase=uworker_io.entity_to_protobuf(testcase))
     return uworker_input
 
   def test_error_does_not_finalize_testcase(self):
     """Checks that an output with an error does not finalize a testcase."""
     uworker_output = uworker_msg_pb2.Output(
+        uworker_input=self._get_generic_input(),
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     minimize_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.finalize_testcase.called)
+    self.mock.delete_blob.assert_has_calls(
+        [mock.call('testcase_blob_name'),
+         mock.call('stacktrace_blob_name')])
 
   def test_generic_output_finalizes_testcase(self):
     """Checks that an output with all critical fields finalizes a testcase."""
     self.mock.finalize_testcase.return_value = None
     self.mock.is_engine_fuzzer_job.return_value = False
-    last_crash_result_dict = {'crash_type': 'type', 'crash_state': 'state'}
+    last_crash_result_dict = {
+        'crash_type': 'type',
+        'crash_state': 'state',
+        'crash_stacktrace': 'BLOB_KEY=some-key1'
+    }
     minimize_task_output = uworker_msg_pb2.MinimizeTaskOutput(
-        last_crash_result_dict=last_crash_result_dict)
+        last_crash_result_dict=last_crash_result_dict,
+        minimized_keys='BLOB_KEY=some-key2')
     uworker_output = uworker_msg_pb2.Output(
         uworker_input=self._get_generic_input(),
         minimize_task_output=minimize_task_output)
@@ -325,6 +344,9 @@ class UTaskPostprocessTest(unittest.TestCase):
     minimize_task.utask_postprocess(uworker_output)
 
     self.assertTrue(self.mock.finalize_testcase.called)
+    # delete_blob shouldn't be called here since minimize_task_output
+    # contains blob keys for uploaded testcase and stacktrace.
+    self.assertFalse(self.mock.delete_blob.called)
 
 
 @test_utils.with_cloud_emulators('datastore')
