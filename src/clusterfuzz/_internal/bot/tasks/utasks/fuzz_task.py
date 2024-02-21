@@ -1622,8 +1622,6 @@ class FuzzingSession:
 
     fuzzer_binary_name = generate_result.fuzzer_metadata.get(
         'fuzzer_binary_name')
-    if fuzzer_binary_name:
-      self.fuzz_task_output.used_fuzzer = fuzzer_binary_name
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
