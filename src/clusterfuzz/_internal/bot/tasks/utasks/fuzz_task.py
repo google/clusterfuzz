@@ -1620,9 +1620,6 @@ class FuzzingSession:
     if not generate_result.success:
       return None, None, None, None
 
-    fuzzer_binary_name = generate_result.fuzzer_metadata.get(
-        'fuzzer_binary_name')
-
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
     # Initialize a list of crashes.
