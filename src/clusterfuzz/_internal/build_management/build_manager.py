@@ -632,9 +632,8 @@ class Build(BaseBuild):
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """Selects a fuzz target for fuzzing."""
     self.fuzz_targets = list(fuzz_targets)
-    return set_random_fuzz_target_for_fuzzing_if_needed(
-        self.fuzz_targets,
-        target_weights)
+    return set_random_fuzz_target_for_fuzzing_if_needed(self.fuzz_targets,
+                                                        target_weights)
 
   def setup(self):
     """Set up the build on disk, and set all the necessary environment
