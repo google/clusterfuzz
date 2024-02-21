@@ -357,7 +357,7 @@ class TestRunner:
 
 
 def _get_minimize_task_input():
-  (testcase_blob_name, testcase_upload_url) = blobs.get_blob_signed_upload_url()
+  testcase_blob_name, testcase_upload_url = blobs.get_blob_signed_upload_url()
   (stacktrace_blob_name,
    stacktrace_upload_url) = blobs.get_blob_signed_upload_url()
 
