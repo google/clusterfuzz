@@ -1787,10 +1787,14 @@ class FuzzingSession:
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'))
 
-    output_to_report_targets = self.save_fuzz_targets(fuzz_target,
-                                                      build_setup_result)
-    if output_to_report_targets:
-      return output_to_report_targets
+    if engine.get(self.fuzzer.name) and build_setup_result:
+      # If we did not pick a fuzz target to fuzz with the engine, then return
+      # early to save the fuzz targets that are in the build for the next job to
+      # pick.
+      output_to_report_targets = self.record_fuzz_targets_to_output(
+          build_setup_result)
+      if not fuzz_target:
+        return output_to_report_targets
 
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
@@ -1914,21 +1918,10 @@ class FuzzingSession:
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
 
-  def save_fuzz_targets(self, build_setup_result,
-                        preprocess_picked_fuzz_target):
-    """Returns a utask output to return for postprocessing when preprocess
-    didn't decide which fuzzer to use for an engine fuzzer. This will be the
-    case with new fuzzers."""
-    if not engine.get(self.fuzzer.name):
-      return None
-
-    if build_setup_result is None:
-      return None
+  def record_fuzz_targets_to_output(self, build_setup_result):
+    """Returns a utask output to return for postprocessing."""
 
     self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
-
-    if preprocess_picked_fuzz_target:
-      return None
 
     assert self.fuzz_task_output.fuzz_targets
     return uworker_msg_pb2.Output(
@@ -1950,6 +1943,8 @@ class FuzzingSession:
         fuzz_task_output.testcases_executed, crash_groups)
     uworker_input = uworker_output.uworker_input
 
+    if environment.is_engine_fuzzer_job():
+      return
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if not fuzz_task_output.HasField('fuzz_targets'):
       new_targets_count = 0
@@ -2031,8 +2026,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
                         uworker_env)
   fuzz_target_name = pick_fuzz_target(job_type)
   if fuzz_target_name:
-    fuzz_target = data_handler.record_fuzz_target(fuzzer_name, fuzz_target_name,
-                                                  job_type)
+    fuzz_target = data_handler.record_fuzz_target(
+        fuzzer_name, [fuzz_target_name], job_type)[0]
   else:
     fuzz_target = None
 
@@ -2049,6 +2044,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
 
 
 def save_fuzz_targets(output):
+  """Saves fuzz targets that were seen in the build to the database."""
   if not output.fuzz_task_output.fuzz_targets:
     return
   data_handler.record_fuzz_targets(output.uworker_input.fuzzer_name,

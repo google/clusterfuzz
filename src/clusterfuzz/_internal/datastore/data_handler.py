@@ -1610,17 +1610,16 @@ def record_fuzz_target(engine_name, binary_name, job_type):
   return result
 
 
-def get_or_create_multi(mapping, data_type):
+def get_or_create_multi_entities_from_keys(mapping):
   """Gets or creates multiple db entities."""
   keys = list(mapping.keys())
-  entities = ndb.get_multi([ndb.Key(data_type, key) for key in mapping])
+  entities = ndb_utils.get_multi(
+      [ndb.Key(value.__class__, key) for key, value in mapping.items()])
   entities = dict(zip(keys, entities))
   new_entities = [
-      data_type(**mapping[key]._asdict())  # pylint: disable=protected-access
-      for key, entity in entities.items()
-      if not entity
+      mapping[key] for key, entity in entities.items() if not entity
   ]
-  new_entities = ndb.get_multi(ndb.put_multi(new_entities))
+  new_entities = ndb_utils.get_multi(ndb_utils.put_multi(new_entities))
   all_entities = [entity for entity in entities.values() if entity] + (
       new_entities)
   return all_entities
@@ -1641,32 +1640,31 @@ def record_fuzz_targets(engine_name, binaries, job_type):
     return None
 
   project = get_project_name(job_type)
-
-  Target = collections.namedtuple('Target', ['engine', 'project', 'binary'])
-
-  mapping = {
+  fuzz_target_mapping = {
       data_types.fuzz_target_fully_qualified_name(engine_name, project, binary):
-      Target(engine_name, project, binary) for binary in binaries
+      data_types.FuzzTarget(engine=engine_name, project=project, binary=binary)
+      for binary in binaries
   }
-  fuzz_targets = get_or_create_multi(mapping, data_types.FuzzTarget)
-
-  FuzzTargetJob = collections.namedtuple(
-      'FuzzTargetJob', ['fuzz_target_name', 'job', 'engine', 'last_run'])
+  fuzz_targets = get_or_create_multi_entities_from_keys(fuzz_target_mapping)
+  ndb_utils.put_multi(fuzz_targets)
 
   time_now = utils.utcnow()
-  mapping = {
-      data_types.fuzz_target_job_key(key_name, job_type): FuzzTargetJob(
+  job_mapping = {
+      data_types.fuzz_target_job_key(key_name, job_type):
+      data_types.FuzzTargetJob(
           fuzz_target_name=key_name,
           job=job_type,
           engine=engine_name,
-          last_run=time_now) for key_name in mapping
+          last_run=time_now) for key_name in fuzz_target_mapping
   }
 
-  jobs = get_or_create_multi(mapping, data_types.FuzzTargetJob)
+  jobs = get_or_create_multi_entities_from_keys(job_mapping)
+
   for job in jobs:
     if not job.last_run:
       job.last_run = utils.utcnow()
-      ndb.put_multi(jobs)
+
+  ndb_utils.put_multi(jobs)
 
   return fuzz_targets
 
