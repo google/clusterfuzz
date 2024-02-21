@@ -276,23 +276,23 @@ def process_command_impl(task_name,
       logs.log_error(error_string)
       raise errors.BadStateError(error_string)
 
-    job_queue_suffix = tasks.queue_suffix_for_platform(
+    job_base_queue_suffix = tasks.queue_suffix_for_platform(
         environment.base_platform(job.platform))
     bot_platform = environment.platform().lower()
     bot_base_queue_suffix = tasks.queue_suffix_for_platform(
         environment.base_platform(bot_platform))
 
     # A misconfiguration led to this point. Clean up the job if necessary.
-    if job_queue_suffix != bot_base_queue_suffix:
+    if job_base_queue_suffix != bot_base_queue_suffix:
       # This happens rarely, store this as a hard exception.
       logs.log_error(
           'Wrong platform for job %s: job queue [%s], bot queue [%s].' %
-          (job_name, job_queue_suffix, bot_base_queue_suffix))
+          (job_name, job_base_queue_suffix, bot_base_queue_suffix))
 
       # Try to recreate the job in the correct task queue.
       new_queue = (
           tasks.high_end_queue() if high_end else tasks.regular_queue())
-      new_queue += job_queue_suffix
+      new_queue += job_base_queue_suffix
 
       # Command override is continuously run by a bot. If we keep failing
       # and recreating the task, it will just DoS the entire task queue.
