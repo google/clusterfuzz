@@ -13,6 +13,7 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
+import contextlib
 import copy
 import datetime
 import json
@@ -767,15 +768,11 @@ def _signing_creds():
   return _local.signing_creds
 
 
+@contextlib.contextwrapper
 def _pool():
-  if hasattr(_local, 'pool'):
-    return _local.pool
-
   if environment.get_value('PY_UNITTESTS'):
-    _local.pool = multiprocessing.pool.ThreadPool(16)
-  else:
-    _local.pool = multiprocessing.Pool(16)
-  return _local.pool
+    return multiprocessing.pool.ThreadPool(16)
+  return multiprocessing.Pool(16)
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -1258,8 +1255,12 @@ def _error_tolerant_delete_signed_url(url):
 
 
 def upload_signed_urls(signed_urls, files):
-  return _pool().starmap(_error_tolerant_upload_signed_url,
-                         zip(signed_urls, files))
+  logs.log('Uploading URLs.')
+  with _pool() as pool:
+    result = pool.starmap(_error_tolerant_upload_signed_url,
+                          zip(signed_urls, files))
+  logs.log('Done uploading URLs.')
+  return result
 
 
 def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -1267,6 +1268,7 @@ def sign_delete_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
 
 
 def download_signed_urls(signed_urls, directory):
+  """Download |signed_urls| to |directory|."""
   # TODO(metzman): Use the actual names of the files stored on GCS instead of
   # renaming them.
   basename = uuid.uuid4().hex
@@ -1274,12 +1276,20 @@ def download_signed_urls(signed_urls, directory):
       os.path.join(directory, f'{basename}-{idx}')
       for idx in range(len(signed_urls))
   ]
-  return _pool().starmap(_error_tolerant_download_signed_url_to_file,
-                         zip(signed_urls, filepaths))
+  logs.log('Downloading URLs.')
+  with _pool() as pool:
+    result = pool.starmap(_error_tolerant_download_signed_url_to_file,
+                          zip(signed_urls, filepaths))
+  logs.log('Done downloading URLs.')
+  return result
 
 
 def delete_signed_urls(urls):
-  return _pool().map(_error_tolerant_delete_signed_url, urls)
+  logs.log('Deleting URLs.')
+  with _pool() as pool:
+    result = pool.map(_error_tolerant_delete_signed_url, urls)
+  logs.log('Done deleting URLs.')
+  return result
 
 
 def _sign_urls_for_existing_file(corpus_element_url,
@@ -1290,7 +1300,11 @@ def _sign_urls_for_existing_file(corpus_element_url,
 
 
 def sign_urls_for_existing_files(urls):
-  return _pool().map(_sign_urls_for_existing_file, urls)
+  logs.log('Signing URLs for existing files.')
+  with _pool() as pool:
+    result = pool.map(_sign_urls_for_existing_file, urls)
+  logs.log('Done signing URLs for existing files.')
+  return result
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
@@ -1319,4 +1333,8 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
     raise ValueError(f'UUID collision found {str(unique_id)}')
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
-  return _pool().map(get_signed_upload_url, urls)
+  logs.log('Signing URLs for arbitrary uploads.')
+  with _pool() as pool:
+    result = pool.map(get_signed_upload_url, urls)
+  logs.log('Done signing URLs for arbitrary uploads.')
+  return result

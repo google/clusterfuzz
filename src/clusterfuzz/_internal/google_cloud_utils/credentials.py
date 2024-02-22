@@ -62,10 +62,6 @@ def get_default(scopes=None):
   return google.auth.default(scopes=scopes)
 
 
-@retry.wrap(
-    retries=FAIL_RETRIES,
-    delay=FAIL_WAIT,
-    function='google_cloud_utils.credentials.get_signing_credentials')
 def get_signing_credentials():
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
