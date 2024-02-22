@@ -394,10 +394,9 @@ class PubSubTask(Task):
         self.attribute('command'), self.attribute('argument'),
         self.attribute('job'))
 
-    items = self._pubsub_message.items() or []
     self.extra_info = {
         key: value
-        for key, value in items
+        for key, value in self._pubsub_message.attributes.items()
         if key not in {'command', 'argument', 'job'}
     }
 
