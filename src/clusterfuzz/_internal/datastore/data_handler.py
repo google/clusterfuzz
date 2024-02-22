@@ -1593,37 +1593,13 @@ FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
 FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 
 
-@retry.wrap(
-    retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
-    delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
-    function='datastore.data_handler.record_fuzz_target')
 def record_fuzz_target(engine_name, binary_name, job_type):
-  """Record existence of fuzz target."""
-  if not binary_name:
-    logs.log_error('Expected binary_name.')
-    return None
+  """Records exsistence of fuzz target to the DB."""
+  result = record_fuzz_targets(engine_name, [binary_name], job_type)[0]
 
   project = get_project_name(job_type)
   key_name = data_types.fuzz_target_fully_qualified_name(
       engine_name, project, binary_name)
-
-  fuzz_target = ndb.Key(data_types.FuzzTarget, key_name).get()
-  if not fuzz_target:
-    fuzz_target = data_types.FuzzTarget(
-        engine=engine_name, project=project, binary=binary_name)
-    fuzz_target.put()
-
-  job_mapping_key = data_types.fuzz_target_job_key(key_name, job_type)
-  job_mapping = ndb.Key(data_types.FuzzTargetJob, job_mapping_key).get()
-  if job_mapping:
-    job_mapping.last_run = utils.utcnow()
-  else:
-    job_mapping = data_types.FuzzTargetJob(
-        fuzz_target_name=key_name,
-        job=job_type,
-        engine=engine_name,
-        last_run=utils.utcnow())
-  job_mapping.put()
 
   logs.log(
       'Recorded use of fuzz target %s.' % key_name,
@@ -1631,7 +1607,67 @@ def record_fuzz_target(engine_name, binary_name, job_type):
       engine=engine_name,
       binary_name=binary_name,
       job_type=job_type)
-  return fuzz_target
+  return result
+
+
+def get_or_create_multi_entities_from_keys(mapping):
+  """Gets or creates multiple db entities."""
+  keys = list(mapping.keys())
+  entities = ndb_utils.get_multi(
+      [ndb.Key(value.__class__, key) for key, value in mapping.items()])
+  entities = dict(zip(keys, entities))
+  new_entities = [
+      mapping[key] for key, entity in entities.items() if not entity
+  ]
+  new_entities = ndb_utils.get_multi(ndb_utils.put_multi(new_entities))
+  all_entities = [entity for entity in entities.values() if entity] + (
+      new_entities)
+  return all_entities
+
+
+@retry.wrap(
+    retries=FUZZ_TARGET_UPDATE_FAIL_RETRIES,
+    delay=FUZZ_TARGET_UPDATE_FAIL_DELAY,
+    function='datastore.data_handler.record_fuzz_targets')
+def record_fuzz_targets(engine_name, binaries, job_type):
+  """Record existence of fuzz targets to the DB."""
+  # TODO(metzman): All of this code assumes that fuzzing jobs are behaving
+  # reasonably and won't try to DoS us by putting bogus fuzzers in the db.
+  # This should be changed by limiting the number of fuzz targets saved and
+  # putting an expiration on them.
+  binaries = [binary for binary in binaries if binary]
+  if not binaries:
+    logs.log_error('Expected binaries.')
+    return None
+
+  project = get_project_name(job_type)
+  fuzz_target_mapping = {
+      data_types.fuzz_target_fully_qualified_name(engine_name, project, binary):
+      data_types.FuzzTarget(engine=engine_name, project=project, binary=binary)
+      for binary in binaries
+  }
+  fuzz_targets = get_or_create_multi_entities_from_keys(fuzz_target_mapping)
+  ndb_utils.put_multi(fuzz_targets)
+
+  time_now = utils.utcnow()
+  job_mapping = {
+      data_types.fuzz_target_job_key(key_name, job_type):
+      data_types.FuzzTargetJob(
+          fuzz_target_name=key_name,
+          job=job_type,
+          engine=engine_name,
+          last_run=time_now) for key_name in fuzz_target_mapping
+  }
+
+  jobs = get_or_create_multi_entities_from_keys(job_mapping)
+
+  for job in jobs:
+    # TODO(metzman): Decide if we want to handle unused fuzzers differentlyo.
+    job.last_run = utils.utcnow()
+
+  ndb_utils.put_multi(jobs)
+
+  return fuzz_targets
 
 
 def get_fuzz_target(name):

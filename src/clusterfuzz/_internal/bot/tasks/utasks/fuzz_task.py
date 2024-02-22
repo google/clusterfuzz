@@ -44,6 +44,7 @@ from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.datastore import fuzz_target_utils
 from clusterfuzz._internal.datastore import ndb_utils
 from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import fuzzer_selection
@@ -1216,8 +1217,8 @@ def process_crashes(crashes, context):
     time.sleep(1)
 
   logs.log('Finished processing crashes.')
-  logs.log('New crashes: {}, known crashes: {}, processed groups: {}'.format(
-      new_crash_count, known_crash_count, processed_groups))
+  logs.log(f'New crashes: {new_crash_count}, known crashes: {known_crash_count}'
+           f', processed groups: {processed_groups}')
   return new_crash_count, known_crash_count, processed_groups
 
 
@@ -1333,7 +1334,14 @@ class FuzzingSession:
     self.data_directory = None
 
     # Fuzzing engine specific state.
-    self.fuzz_target = None
+    if uworker_input.fuzz_task_input.HasField('fuzz_target'):
+      self.fuzz_target = uworker_io.entity_from_protobuf(
+          uworker_input.fuzz_task_input.fuzz_target, data_types.FuzzTarget)
+    else:
+      # We take this branch when no fuzz target is picked. Such as on a new
+      # build.
+      self.fuzz_target = None
+
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
 
@@ -1404,8 +1412,8 @@ class FuzzingSession:
     testcase_manager.remove_testcases_from_directories(testcase_directories)
 
     # Set an environment variable for fuzzer name.
-    # TODO(ochang): Investigate removing this. Only users appear to be chromebot
-    # fuzzer and fuzzer_logs, both of which can be removed.
+    # TODO(ochang): Investigate removing this. Only users appear to be
+    # fuzzer_logs, which can be removed.
     environment.set_value('FUZZER_NAME', fuzzer_name)
 
     # Set minimum redzone size, do not detect leaks and zero out the
@@ -1525,13 +1533,9 @@ class FuzzingSession:
 
   def do_engine_fuzzing(self, engine_impl):
     """Run fuzzing engine."""
-    # Record fuzz target.
     fuzz_target_name = environment.get_value('FUZZ_TARGET')
     if not fuzz_target_name:
       raise FuzzTaskError('No fuzz targets found.')
-
-    self.fuzz_target = data_handler.record_fuzz_target(
-        engine_impl.name, fuzz_target_name, self.job_type)
     environment.set_value('FUZZER_NAME',
                           self.fuzz_target.fully_qualified_name())
 
@@ -1615,13 +1619,6 @@ class FuzzingSession:
                                                        testcase_count)
     if not generate_result.success:
       return None, None, None, None
-
-    # TODO(metzman): Move this outside of fuzzing to preprocess or postprocess.
-    fuzzer_binary_name = generate_result.fuzzer_metadata.get(
-        'fuzzer_binary_name')
-    if fuzzer_binary_name:
-      self.fuzz_target = data_handler.record_fuzz_target(
-          fuzzer.name, fuzzer_binary_name, job_type)
 
     environment.set_value('FUZZER_NAME', self.fully_qualified_fuzzer_name)
 
@@ -1779,13 +1776,21 @@ class FuzzingSession:
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    # Set up a custom or regular build based on revision. By default, fuzzing
-    # is done on trunk build (using revision=None). Otherwise, a job definition
-    # can provide a revision to use via |APP_REVISION|.
-    target_weights = fuzzer_selection.get_fuzz_target_weights()
-
+    fuzz_target = self.uworker_input.fuzz_task_input.fuzz_target
+    if fuzz_target:
+      environment.set_value('FUZZ_TARGET', fuzz_target)
     build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'), target_weights=target_weights)
+        environment.get_value('APP_REVISION'))
+
+    if engine.get(self.fuzzer.name) and build_setup_result:
+      # If we did not pick a fuzz target to fuzz with the engine, then return
+      # early to save the fuzz targets that are in the build for the next job to
+      # pick.
+      output_to_report_targets = self.record_fuzz_targets_to_output(
+          build_setup_result)
+      if not fuzz_target:
+        return output_to_report_targets
+
     # Check if we have an application path. If not, our build failed
     # to setup correctly.
     if not build_setup_result or not build_manager.check_app_path():
@@ -1798,9 +1803,6 @@ class FuzzingSession:
           'SANITIZED_TARGET_BUILD_BUCKET_PATH')
       if sanitized_target_bucket_path:
         logs.log_error('Failed to set up sanitized_target_build.')
-
-    # Save fuzz targets count to aid with CPU weighting.
-    new_targets_count = environment.get_value('FUZZ_TARGET_COUNT')
 
     # Check if we have a bad build, i.e. one that crashes on startup.
     # If yes, bail out.
@@ -1828,7 +1830,6 @@ class FuzzingSession:
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
     engine_impl = engine.get(self.fuzzer.name)
-
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -1849,8 +1850,6 @@ class FuzzingSession:
 
     logs.log('Finished processing test cases.')
 
-    platform_id = environment.get_platform_id()
-
     # For Android, bring back device to a good state before analyzing crashes.
     if environment.is_android() and crashes:
       # Remove this variable so that application is fully shutdown before every
@@ -1861,7 +1860,7 @@ class FuzzingSession:
       # testcase is analyzed.
       android.device.initialize_device()
 
-    logs.log('Raw crash count: ' + str(len(crashes)))
+    logs.log(f'Raw crash count: {len(crashes)}')
 
     project_name = os.environ['PROJECT_NAME']
 
@@ -1876,7 +1875,7 @@ class FuzzingSession:
             fuzz_target=self.fuzz_target,
             redzone=self.redzone,
             disable_ubsan=self.disable_ubsan,
-            platform_id=platform_id,
+            platform_id=environment.get_platform_id(),
             crash_revision=crash_revision,
             fuzzer_name=self.fuzzer_name,
             window_argument=self.window_argument,
@@ -1900,9 +1899,6 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
-    if new_targets_count is not None:
-      self.fuzz_task_output.new_targets_count = new_targets_count
-
     self.fuzz_task_output.fully_qualified_fuzzer_name = (
         self.fully_qualified_fuzzer_name)
     self.fuzz_task_output.crash_revision = str(crash_revision)
@@ -1916,6 +1912,16 @@ class FuzzingSession:
       self.fuzz_task_output.job_run_crashes.extend(job_run_crashes)
 
     return uworker_msg_pb2.Output(fuzz_task_output=self.fuzz_task_output)
+
+  def record_fuzz_targets_to_output(self, build_setup_result):
+    """Returns a utask output to return for postprocessing."""
+
+    self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
+
+    assert self.fuzz_task_output.fuzz_targets
+    return uworker_msg_pb2.Output(
+        fuzz_task_output=self.fuzz_task_output,
+        error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)
 
   def postprocess(self, uworker_output):
     """Handles postprocessing."""
@@ -1931,13 +1937,17 @@ class FuzzingSession:
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
         fuzz_task_output.testcases_executed, crash_groups)
     uworker_input = uworker_output.uworker_input
+
+    if environment.is_engine_fuzzer_job():
+      return
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
-    if (not targets_count or
-        (fuzz_task_output.HasField('new_targets_count') and
-         targets_count.count != fuzz_task_output.new_targets_count)):
+    if not fuzz_task_output.HasField('fuzz_targets'):
+      new_targets_count = 0
+    else:
+      new_targets_count = len(fuzz_task_output.fuzz_targets)
+    if (not targets_count or targets_count.count != new_targets_count):
       data_types.FuzzTargetsCount(
-          id=uworker_input.job_type,
-          count=fuzz_task_output.new_targets_count).put()
+          id=uworker_input.job_type, count=new_targets_count).put()
 
 
 def handle_fuzz_build_setup_failure(output):
@@ -1969,6 +1979,14 @@ def _make_session(uworker_input):
   )
 
 
+def handle_fuzz_no_fuzz_target_selected(output):
+  save_fuzz_targets(output)
+  # Try again now that there are some fuzz targets.
+  utask_preprocess(output.uworker_input.fuzzer_name,
+                   output.uworker_input.job_type,
+                   output.uworker_input.uworker_env)
+
+
 _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
     uworker_msg_pb2.ErrorType.FUZZ_BUILD_SETUP_FAILURE:
         handle_fuzz_build_setup_failure,
@@ -1976,7 +1994,23 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
         handle_fuzz_data_bundle_setup_failure,
     uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZER:
         handle_fuzz_no_fuzzer,
+    uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED:
+        handle_fuzz_no_fuzz_target_selected,
 }).compose_with(uworker_handle_errors.UNHANDLED_ERROR_HANDLER)
+
+
+def pick_fuzz_target(job_type):
+  """Picks a random fuzz target from job_type for use in fuzzing."""
+  if not environment.is_engine_fuzzer_job():
+    logs.log('Not engine fuzzer. Not picking fuzz target.')
+    return None
+  targets = [
+      target_job.fuzz_target
+      for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job_type)
+  ]
+  target_weights = fuzzer_selection.get_fuzz_target_weights()
+  return build_manager.set_random_fuzz_target_for_fuzzing_if_needed(
+      targets, target_weights)
 
 
 def utask_preprocess(fuzzer_name, job_type, uworker_env):
@@ -1985,11 +2019,14 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   do_multiarmed_bandit_strategy_selection(uworker_env)
   environment.set_value('PROJECT_NAME', data_handler.get_project_name(job_type),
                         uworker_env)
-  targets_count = ndb.Key(data_types.FuzzTargetsCount, job_type).get()
+  fuzz_target_name = pick_fuzz_target(job_type)
   fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
-  if targets_count:
-    targets_count = uworker_io.entity_to_protobuf(targets_count)
-    fuzz_task_input.targets_count.CopyFrom(targets_count)
+  if fuzz_target_name:
+    fuzz_target = data_handler.record_fuzz_target(fuzzer_name, fuzz_target_name,
+                                                  job_type)
+    fuzz_task_input.fuzz_target.CopyFrom(
+        uworker_io.entity_to_protobuf(fuzz_target))
+
   preprocess_store_fuzzer_run_results(fuzz_task_input)
   return uworker_msg_pb2.Input(
       fuzz_task_input=fuzz_task_input,
@@ -2000,10 +2037,21 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   )
 
 
+def save_fuzz_targets(output):
+  """Saves fuzz targets that were seen in the build to the database."""
+  if not output.fuzz_task_output.fuzz_targets:
+    return
+  data_handler.record_fuzz_targets(output.uworker_input.fuzzer_name,
+                                   output.fuzz_task_output.fuzz_targets,
+                                   output.uworker_input.job_type)
+
+
 def utask_postprocess(output):
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return
+
+  save_fuzz_targets(output)
 
   session = _make_session(output.uworker_input)
   session.postprocess(output)
