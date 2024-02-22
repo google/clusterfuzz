@@ -768,7 +768,7 @@ def _signing_creds():
   return _local.signing_creds
 
 
-@contextlib.contextwrapper
+@contextlib.contextmanager
 def _pool():
   if environment.get_value('PY_UNITTESTS'):
     return multiprocessing.pool.ThreadPool(16)
