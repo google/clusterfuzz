@@ -1941,7 +1941,7 @@ class FuzzingSession:
     if environment.is_engine_fuzzer_job():
       return
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
-    if not fuzz_task_output.HasField('fuzz_targets'):
+    if not fuzz_task_output.fuzz_targets:
       new_targets_count = 0
     else:
       new_targets_count = len(fuzz_task_output.fuzz_targets)
