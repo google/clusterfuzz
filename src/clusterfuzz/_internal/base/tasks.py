@@ -349,6 +349,7 @@ class Task:
     self.eta = eta
     self.is_command_override = is_command_override
     self.high_end = high_end
+    self.extra_info = None
 
   def attribute(self, _):
     return None
@@ -364,6 +365,11 @@ class Task:
         'argument': str(self.argument),
         'job': self.job,
     }
+    if self.extra_info is not None:
+      for attribute, value in self.extra_info.items():
+        if attribute in attributes:
+          raise ValueError(f'Cannot set {attribute} using extra_info.')
+        attributes[attribute] = value
 
     if self.eta:
       attributes['eta'] = str(utils.utc_datetime_to_timestamp(self.eta))
@@ -387,6 +393,13 @@ class PubSubTask(Task):
     super().__init__(
         self.attribute('command'), self.attribute('argument'),
         self.attribute('job'))
+
+    items = self._pubsub_message.items() or []
+    self.extra_info = {
+        key: value
+        for key, value in items
+        if key not in {'command', 'argument', 'job'}
+    }
 
     self.eta = datetime.datetime.utcfromtimestamp(float(self.attribute('eta')))
 
@@ -462,10 +475,10 @@ def get_utask_mains() -> List[PubSubTask]:
   pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_messages(messages)
+  return handle_multiple_utask_main_messages(messages)
 
 
-def handle_multiple_messages(messages) -> List[PubSubTask]:
+def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
   """Merges tasks specified in |messages| into a list for processing on this
   bot."""
   tasks = []
@@ -475,6 +488,9 @@ def handle_multiple_messages(messages) -> List[PubSubTask]:
       continue
     tasks.append(task)
 
+  logs.log(
+      'Got utask_mains.',
+      tasks_extras_info=[task.extra_info for task in tasks if task])
   return tasks
 
 
