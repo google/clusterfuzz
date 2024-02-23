@@ -2004,8 +2004,9 @@ def pick_fuzz_target(job_type):
   if not environment.is_engine_fuzzer_job():
     logs.log('Not engine fuzzer. Not picking fuzz target.')
     return None
+  logs.log('Picking fuzz target.')
   targets = [
-      target_job.fuzz_target
+      target_job.fuzz_target_name
       for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job_type)
   ]
   target_weights = fuzzer_selection.get_fuzz_target_weights()
