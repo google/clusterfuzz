@@ -118,7 +118,7 @@ class UTask(BaseUTask):
     if download_url is None:
       return
 
-    logs.log('Queueing utask for remote execution.')
+    logs.log('Queueing utask for remote execution.', download_url=download_url)
     tasks.add_utask_main(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
