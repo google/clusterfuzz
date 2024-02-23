@@ -342,14 +342,15 @@ class Task:
                job,
                eta=None,
                is_command_override=False,
-               high_end=False):
+               high_end=False,
+               extra_info=None):
     self.command = command
     self.argument = argument
     self.job = job
     self.eta = eta
     self.is_command_override = is_command_override
     self.high_end = high_end
-    self.extra_info = None
+    self.extra_info = extra_info
 
   def attribute(self, _):
     return None
@@ -397,7 +398,7 @@ class PubSubTask(Task):
     self.extra_info = {
         key: value
         for key, value in self._pubsub_message.attributes.items()
-        if key not in {'command', 'argument', 'job'}
+        if key not in {'command', 'argument', 'job', 'eta'}
     }
 
     self.eta = datetime.datetime.utcfromtimestamp(float(self.attribute('eta')))
@@ -572,15 +573,22 @@ class _PubSubLeaserThread(threading.Thread):
 def add_utask_main(command, input_url, job_type, wait_time=None):
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
+  initial_command = environment.get_value('TASK_PAYLOAD')
   add_task(
       command,
       input_url,
       job_type,
       queue=UTASK_MAINS_QUEUE,
-      wait_time=wait_time)
+      wait_time=wait_time,
+      extra_info={'initial_command': initial_command})
 
 
-def add_task(command, argument, job_type, queue=None, wait_time=None):
+def add_task(command,
+             argument,
+             job_type,
+             queue=None,
+             wait_time=None,
+             extra_info=None):
   """Add a new task to the job queue."""
   # Old testcases may pass in queue=None explicitly,
   # so we must check this here.
@@ -601,7 +609,7 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
-  task = Task(command, argument, job_type, eta=eta)
+  task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(
       pubsub.topic_name(utils.get_application_id(), queue),
