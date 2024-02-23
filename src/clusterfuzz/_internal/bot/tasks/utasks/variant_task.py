@@ -80,7 +80,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase=uworker_io.entity_to_protobuf(testcase),
       uworker_env=uworker_env,
       testcase_id=testcase_id,
-      variant_input=variant_input,
+      variant_task_input=variant_input,
       setup_input=setup_input,
   )
   testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
@@ -223,7 +223,7 @@ def utask_postprocess(output):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     testcase.put = lambda: None
 
-  if (output.uworker_input.variant_input.original_job_type ==
+  if (output.uworker_input.variant_task_input.original_job_type ==
       output.uworker_input.job_type):
     # This case happens when someone clicks 'Update last tested stacktrace using
     # trunk build' button.

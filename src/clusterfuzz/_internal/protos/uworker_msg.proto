@@ -99,7 +99,7 @@ message Input {
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
-  optional VariantTaskInput variant = 8;
+  optional VariantTaskInput variant_task_input = 8;
   optional string fuzzer_name = 9;
   optional SetupInput setup_input = 10;
   optional AnalyzeTaskInput analyze_task_input = 11;

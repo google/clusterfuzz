@@ -79,18 +79,20 @@ def ensure_uworker_env_type_safety(uworker_env):
     uworker_env[k] = str(uworker_env[k])
 
 
-def _preprocess(uworker_module, task_argument, job_type, uworker_env):
+def _preprocess(utask_module, task_argument, job_type, uworker_env):
   """Shared logic for preprocessing between preprocess_no_io and the I/O
   tworker_preprocess."""
   start = _timestamp_now()
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
   logs.log('Starting utask_preprocess: %s.' % utask_module)
-  uworker_input = _preprocess(uworker_module, task_argument, job_type,
-                              uworker_env)
+  uworker_input = utask_module.utask_preprocess(task_argument, job_type,
+                                                uworker_env)
   if not uworker_input:
     logs.log_error('No uworker_input returned from preprocess')
     return None
+
+  logs.log_error('Preprocess finished.')
 
   uworker_input.uworker_env['INITIAL_TASK_PAYLOAD'] = (
       environment.get_value('TASK_PAYLOAD'))
@@ -105,14 +107,11 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
                              uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   serialized output."""
-  result = _preprocess(uworker_module, task_argument, job_type, uworker_env)
+  result = _preprocess(utask_module, task_argument, job_type, uworker_env)
   if not result:
     logs.log_error('No uworker_input returned from preprocess')
     return None
   uworker_input, start = result
-
-  _preprocess_handle_uworker_input(uworker_input, start)
-
   result = uworker_io.serialize_uworker_input(uworker_input)
   _record_e2e_duration(start, utask_module, job_type, _Subtask.PREPROCESS,
                        _Mode.QUEUE)
@@ -158,7 +157,7 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
-  result = _preprocess(uworker_module, task_argument, job_type, uworker_env)
+  result = _preprocess(utask_module, task_argument, job_type, uworker_env)
   if not result:
     # Bail if preprocessing failed since we can't proceed.
     return None
