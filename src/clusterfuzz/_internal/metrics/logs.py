@@ -200,6 +200,11 @@ def format_record(record: logging.LogRecord) -> str:
           record.name,
   }
 
+  initial_payload = os.getenv('INITIAL_TASK_PAYLOAD')
+  if initial_payload:
+    entry['actual_task_payload'] = entry['task_payload']
+    entry['task_payload'] = initial_payload
+
   entry['location'] = getattr(record, 'location', {'error': True})
   entry['extras'] = getattr(record, 'extras', {})
   update_entry_with_exc(entry, record.exc_info)
