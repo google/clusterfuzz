@@ -79,24 +79,39 @@ def ensure_uworker_env_type_safety(uworker_env):
     uworker_env[k] = str(uworker_env[k])
 
 
-def tworker_preprocess_no_io(utask_module, task_argument, job_type,
-                             uworker_env):
-  """Executes the preprocessing step of the utask |utask_module| and returns the
-  serialized output."""
+def _preprocess(uworker_module, task_argument, job_type, uworker_env):
+  """Shared logic for preprocessing between preprocess_no_io and the I/O
+  tworker_preprocess."""
   start = _timestamp_now()
-  logs.log('Starting utask_preprocess: %s.' % utask_module)
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
-  uworker_input = utask_module.utask_preprocess(task_argument, job_type,
-                                                uworker_env)
+  logs.log('Starting utask_preprocess: %s.' % utask_module)
+  uworker_input = _preprocess(uworker_module, task_argument, job_type,
+                              uworker_env)
   if not uworker_input:
     logs.log_error('No uworker_input returned from preprocess')
     return None
 
+  uworker_input.uworker_env['INITIAL_TASK_PAYLOAD'] = (
+      environment.get_value('TASK_PAYLOAD'))
   uworker_input.preprocess_start_time.CopyFrom(start)
 
   assert not uworker_input.module_name
   uworker_input.module_name = utask_module.__name__
+  return uworker_input, start
+
+
+def tworker_preprocess_no_io(utask_module, task_argument, job_type,
+                             uworker_env):
+  """Executes the preprocessing step of the utask |utask_module| and returns the
+  serialized output."""
+  result = _preprocess(uworker_module, task_argument, job_type, uworker_env)
+  if not result:
+    logs.log_error('No uworker_input returned from preprocess')
+    return None
+  uworker_input, start = result
+
+  _preprocess_handle_uworker_input(uworker_input, start)
 
   result = uworker_io.serialize_uworker_input(uworker_input)
   _record_e2e_duration(start, utask_module, job_type, _Subtask.PREPROCESS,
@@ -143,27 +158,17 @@ def tworker_preprocess(utask_module, task_argument, job_type, uworker_env):
   """Executes the preprocessing step of the utask |utask_module| and returns the
   signed download URL for the uworker's input and the (unsigned) download URL
   for its output."""
-  start = _timestamp_now()
-  logs.log('Starting utask_preprocess: %s.' % utask_module)
-  ensure_uworker_env_type_safety(uworker_env)
-  set_uworker_env(uworker_env)
-  # Do preprocessing.
-  uworker_input = utask_module.utask_preprocess(task_argument, job_type,
-                                                uworker_env)
-  if not uworker_input:
+  result = _preprocess(uworker_module, task_argument, job_type, uworker_env)
+  if not result:
     # Bail if preprocessing failed since we can't proceed.
     return None
 
-  uworker_input.preprocess_start_time.CopyFrom(start)
-
-  assert not uworker_input.module_name
-  uworker_input.module_name = utask_module.__name__
+  uworker_input, start = result
 
   # Write the uworker's input to GCS and get the URL to download the input in
   # case the caller needs it.
   uworker_input_signed_download_url, uworker_output_download_gcs_url = (
       uworker_io.serialize_and_upload_uworker_input(uworker_input))
-
   _record_e2e_duration(start, utask_module, job_type, _Subtask.PREPROCESS,
                        _Mode.BATCH)
 

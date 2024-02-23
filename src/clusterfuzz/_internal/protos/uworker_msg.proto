@@ -99,19 +99,22 @@ message Input {
   optional string job_type = 6;
   // uworker_io is the only module that should be using this.
   optional string uworker_output_upload_url = 7;
-  optional google.datastore.v1.Entity variant = 8;
-  optional string original_job_type = 9;
-  optional string fuzzer_name = 10;
-  optional SetupInput setup_input = 11;
-  optional AnalyzeTaskInput analyze_task_input = 12;
-  optional CorpusPruningTaskInput corpus_pruning_task_input = 13;
-  optional FuzzTaskInput fuzz_task_input = 14;
-  optional MinimizeTaskInput minimize_task_input = 15;
-  optional ProgressionTaskInput progression_task_input = 16;
-  optional RegressionTaskInput regression_task_input = 17;
-  optional SymbolizeTaskInput symbolize_task_input = 18;
-  optional string module_name = 19;
-  optional google.protobuf.Timestamp preprocess_start_time = 20;
+  optional VariantTaskInput variant = 8;
+  optional string fuzzer_name = 9;
+  optional SetupInput setup_input = 10;
+  optional AnalyzeTaskInput analyze_task_input = 11;
+  optional CorpusPruningTaskInput corpus_pruning_task_input = 12;
+  optional FuzzTaskInput fuzz_task_input = 13;
+  optional MinimizeTaskInput minimize_task_input = 14;
+  optional ProgressionTaskInput progression_task_input = 15;
+  optional RegressionTaskInput regression_task_input = 16;
+  optional SymbolizeTaskInput symbolize_task_input = 17;
+  optional string module_name = 18;
+  optional google.protobuf.Timestamp preprocess_start_time = 19;
+}
+
+message VariantTaskInput {
+  optional string original_job_type = 1;
 }
 
 message SymbolizeTaskOutput {
