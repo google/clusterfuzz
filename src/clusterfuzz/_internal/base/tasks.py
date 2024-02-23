@@ -573,7 +573,7 @@ class _PubSubLeaserThread(threading.Thread):
 def add_utask_main(command, input_url, job_type, wait_time=None):
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
-  initial_command = os.getenv('TASK_PAYLOAD')
+  initial_command = environment.get_value('TASK_PAYLOAD')
   add_task(
       command,
       input_url,
@@ -609,7 +609,7 @@ def add_task(command,
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
-  task = Task(command, argument, job_type, eta=eta)
+  task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(
       pubsub.topic_name(utils.get_application_id(), queue),
