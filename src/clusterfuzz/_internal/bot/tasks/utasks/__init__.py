@@ -92,7 +92,7 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env):
     logs.log_error('No uworker_input returned from preprocess')
     return None
 
-  logs.log_error('Preprocess finished.')
+  logs.log('Preprocess finished.')
 
   task_payload = environment.get_value('TASK_PAYLOAD')
   if task_payload:
