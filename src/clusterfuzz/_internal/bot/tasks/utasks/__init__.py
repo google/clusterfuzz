@@ -94,8 +94,10 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env):
 
   logs.log_error('Preprocess finished.')
 
-  uworker_input.uworker_env['INITIAL_TASK_PAYLOAD'] = (
-      environment.get_value('TASK_PAYLOAD'))
+  task_payload = environment.get_value('TASK_PAYLOAD')
+  if task_payload:
+    uworker_input.uworker_env['INITIAL_TASK_PAYLOAD'] = task_payload
+
   uworker_input.preprocess_start_time.CopyFrom(start)
 
   assert not uworker_input.module_name
