@@ -419,9 +419,10 @@ def start_cuttlefish_device(use_kernel=False):
 
   device_memory_mb = environment.get_value('DEVICE_MEMORY_MB',
                                            DEFAULT_DEVICE_MEMORY_MB)
+  # @TODO(https://github.com/google/clusterfuzz/issues/3777): Enable sandboxing
   launch_cvd_command_line = (
-      f'sudo {launch_cvd_path} --daemon --memory_mb={device_memory_mb} '
-      '--report_anonymous_usage_stats=Y --enable_sandbox=true --resume=false')
+      f'{launch_cvd_path} --daemon --memory_mb={device_memory_mb} '
+      '--report_anonymous_usage_stats=Y --enable_sandbox=false --resume=false')
   if use_kernel:
     kernel_path = os.path.join(cvd_dir, 'bzImage')
     initramfs_path = os.path.join(cvd_dir, 'initramfs.img')
