@@ -32,7 +32,7 @@ from . import credentials
 
 _local = threading.local()
 
-MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
+MAX_DURATION = f'{60 * 60 * 6}s'
 RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
