@@ -13,6 +13,7 @@
 # limitations under the License.
 """Test to see if test cases are fixed."""
 
+import os
 import time
 from typing import List
 
@@ -405,9 +406,17 @@ def _set_regression_testcase_upload_url(
   if not fuzz_target:
     # No work to do, only applicable for engine fuzzers.
     return
-  progression_input.regression_testcase_url = (
-      corpus_manager.get_regressions_signed_upload_url(
-          fuzz_target.engine, fuzz_target.project_qualified_name()))
+
+  corpus = corpus_manager.FuzzTargetCorpus(fuzz_target.engine,
+                                           fuzz_target.project_qualified_name())
+  regression_testcase_url = os.path.join(
+      corpus.get_regressions_corpus_gcs_url(),
+      uworker_io.generate_new_input_file_name())
+
+  if storage.get(regression_testcase_url):
+    raise RuntimeError(f'UUID collision found: {regression_testcase_url}.')
+  progression_input.regression_testcase_url = storage.get_signed_upload_url(
+      regression_testcase_url)
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):

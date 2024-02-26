@@ -39,22 +39,7 @@ message FuzzTaskInput {
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
   optional google.datastore.v1.Entity fuzz_target = 4;
-  optional FuzzTargetCorpus corpus = 5;
 }
-
-message FuzzTargetCorpus {
-  optional Corpus corpus = 1;
-  optional Corpus regressions_corpus = 2;
-}
-
-message Corpus {
-  // URLs for downloading and deleting corpus elements.
-  map<string, string> corpus_urls = 1;
-  optional google.protobuf.Timestamp last_updated_time = 2;
-  optional string gcs_url = 3;
-  repeated string upload_urls = 4;
-}
-
 
 message MinimizeTaskInput {
   optional string testcase_upload_url = 1;
@@ -85,8 +70,6 @@ message CorpusPruningTaskInput {
   optional google.datastore.v1.Entity fuzz_target = 1;
   optional bool last_execution_failed = 2;
   repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
-  optional FuzzTargetCorpus corpus = 4;
-  optional FuzzTargetCorpus quarantine_corpus = 5;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
