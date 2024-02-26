@@ -363,7 +363,7 @@ class ProtoFuzzTargetCorpus(GcsCorpus):
 
   def __init__(self, proto_corpus):  # pylint: disable=super-init-not-called
     self.proto_corpus = proto_corpus
-    self._filenames_to_delete_urls_mapping = {}
+    self.filenames_to_delete_urls_mapping = {}
 
   def rsync_from_disk(self,
                       directory,
@@ -381,18 +381,18 @@ class ProtoFuzzTargetCorpus(GcsCorpus):
     Returns:
       A bool indicating whether or not the command succeeded.
     """
-    files_to_delete = list(self._filenames_to_delete_urls_mapping.keys())
+    files_to_delete = list(self.filenames_to_delete_urls_mapping.keys())
     files_to_upload = []
 
     for filepath in shell.get_files_list(directory):
       files_to_upload.append(filepath)
       if filepath in files_to_delete:
-        del self._filenames_to_delete_urls_mapping[filepath]
+        del self.proto_corpus.corpus.filenames_to_delete_urls_mapping[filepath]
 
     results = self.upload_files(files_to_upload)
 
     urls_to_delete = [
-        self._filenames_to_delete_urls_mapping[filename]
+        self.proto_corpus.corpus.filenames_to_delete_urls_mapping[filename]
         for filename in files_to_delete
     ]
     storage.delete_signed_urls(urls_to_delete)
