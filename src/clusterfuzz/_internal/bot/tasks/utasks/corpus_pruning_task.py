@@ -613,6 +613,8 @@ def do_corpus_pruning(context, revision):
   # Sync minimized corpus back to GCS.
   context.sync_to_gcs()
 
+  logs.log('Saved minimize corpus.')
+
   # Create corpus backup.
   # Temporarily copy the past crash regressions folder into the minimized corpus
   # so that corpus backup archive can have both.
