@@ -199,10 +199,8 @@ class Context:
 
     if uworker_input is not None:
       self.corpus = corpus_manager.ProtoFuzzTargetCorpus(
-          self.fuzz_target.engine, self.fuzz_target.project_qualified_name(),
           uworker_input.corpus_pruning_task_input.corpus)
       self.quarantine_corpus = corpus_manager.ProtoFuzzTargetCorpus(
-          self.fuzz_target.engine, self.fuzz_target.project_qualified_name(),
           uworker_input.corpus_pruning_task_input.quarantine_corpus)
     else:
       # Delete this branch after we get rid of untrusted runnner.

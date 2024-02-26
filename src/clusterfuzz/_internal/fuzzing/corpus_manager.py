@@ -361,13 +361,7 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
   """Implementation of GCS corpus that uses protos (uworker-compatible) for fuzz
   targets."""
 
-  def __init__(self, engine, project_qualified_target_name, proto_corpus):  # pylint: disable=super-init-not-called
-    # TODO(metzman): Do we need project_qualified_target_name?
-
-    # This is used to let AFL share corpora with libFuzzer.
-    self._engine = os.getenv('CORPUS_FUZZER_NAME_OVERRIDE', engine)
-
-    self._project_qualified_target_name = project_qualified_target_name
+  def __init__(self, proto_corpus):  # pylint: disable=super-init-not-called
     self.proto_corpus = proto_corpus
     self._filenames_to_delete_urls_mapping = {}
 
@@ -618,8 +612,7 @@ def get_fuzz_target_corpus(engine,
     fuzz_target_corpus.regressions_corpus.CopyFrom(
         get_proto_corpus(bucket_name, regressions_bucket_path))
 
-  return ProtoFuzzTargetCorpus(engine, project_qualified_target_name,
-                               fuzz_target_corpus)
+  return ProtoFuzzTargetCorpus(fuzz_target_corpus)
 
 
 def get_regressions_signed_upload_url(engine, project_qualified_target_name):
