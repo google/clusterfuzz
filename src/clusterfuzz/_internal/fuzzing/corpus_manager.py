@@ -404,27 +404,17 @@ class ProtoFuzzTargetCorpus(GcsCorpus):
                     timeout=CORPUS_FILES_SYNC_TIMEOUT,
                     delete=True) -> bool:
     """Sync fuzz target corpus to disk."""
-    if not self._sync_corpus_to_disk(self.proto_corpus.corpus, directory):
+    if not _sync_corpus_to_disk(self.proto_corpus.corpus, directory):
       return False
 
     if self.proto_corpus.HasField('regressions_corpus'):
       regressions_dir = os.path.join(directory, 'regressions')
-      self._sync_corpus_to_disk(self.proto_corpus.regressions_corpus,
-                                regressions_dir)
+      _sync_corpus_to_disk(self.proto_corpus.regressions_corpus,
+                           regressions_dir)
 
     num_files = _count_corpus_files(directory)
     logs.log(f'{num_files} corpus files downloaded.')
     return True
-
-  def _sync_corpus_to_disk(self, corpus, directory):
-    shell.create_directory(directory, create_intermediates=True)
-    results = storage.download_signed_urls(corpus.corpus_urls, directory)
-    for filepath, upload_url in results:
-      self._filenames_to_delete_urls_mapping[filepath] = (
-          corpus.corpus_urls[upload_url])
-
-    # TODO(metzman): Add timeout and tolerance for missing URLs.
-    return results.count(None) < MAX_SYNC_ERRORS
 
   def upload_files(self, file_paths, timeout=CORPUS_FILES_SYNC_TIMEOUT):
     del timeout
@@ -620,3 +610,14 @@ def get_regressions_signed_upload_url(engine, project_qualified_target_name):
                                             project_qualified_target_name)
   regression_url = _get_regressions_corpus_gcs_url(bucket, path)
   return storage.get_arbitrary_signed_upload_url(regression_url)
+
+
+def _sync_corpus_to_disk(corpus, directory):
+  shell.create_directory(directory, create_intermediates=True)
+  results = storage.download_signed_urls(corpus.corpus_urls, directory)
+  for filepath, upload_url in results:
+    corpus.filenames_to_delete_urls_mapping[filepath] = (
+        corpus.corpus_urls[upload_url])
+
+  # TODO(metzman): Add timeout and tolerance for missing URLs.
+  return results.count(None) < MAX_SYNC_ERRORS
