@@ -625,3 +625,4 @@ class HoldAsNeededFile(io.RawIOBase):
 
 def get_temp_zip_filename():
   return shell.get_tempfile(suffix='.zip')
+
