@@ -2544,6 +2544,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_fuzztest(self):
+    """Test centipede stacktrace."""
+    data = self._read_test_data('centipede_fuzztest.txt')
+    expected_type = 'Abrt'
+    expected_state = 'v8::internal::ManyConditions\n'
+    expected_address = '0x0539000001ac'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_centipede_uaf(self):
     """Test centipede's ASAN error."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
@@ -3497,7 +3509,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test googletest stacktrace."""
     data = self._read_test_data('googletest.txt')
     expected_type = 'Abrt'
-    expected_state = 'v8::internal::SingleString\ncentipede::RunOneInput\nExecuteInputsFromShmem\n'
+    expected_state = 'v8::internal::SingleString\nExecuteInputsFromShmem\n'
     expected_address = '0x0539000a18ab'
     expected_stacktrace = data
     expected_security_flag = False
