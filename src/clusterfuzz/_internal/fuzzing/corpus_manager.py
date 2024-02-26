@@ -463,7 +463,6 @@ def backup_corpus(backup_bucket_name, corpus, directory):
   Returns:
     The backup GCS url, or None on failure.
   """
-  logs.log(f'Backing up corpus {backup_bucket_name} {corpus} {directory}')
   # TODO(metzman): Make this safe to run on a uworker.
   if not backup_bucket_name:
     logs.log('No backup bucket provided, skipping corpus backup.')
@@ -490,11 +489,11 @@ def backup_corpus(backup_bucket_name, corpus, directory):
         LATEST_BACKUP_TIMESTAMP)
 
     if not storage.copy_blob(dated_backup_url, latest_backup_url):
-      logs.log_error('backup_corpus: Failed to update latest corpus backup at '
-                     f'{latest_backup_url}.')
+      logs.log_error(
+          'Failed to update latest corpus backup at "%s"' % latest_backup_url)
   except Exception as ex:
     logs.log_error(
-        f'backup_corpus failed: {ex}\n',
+        'backup_corpus failed: %s\n' % str(ex),
         backup_bucket_name=backup_bucket_name,
         directory=directory,
         backup_archive_path=backup_archive_path)
