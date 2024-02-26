@@ -237,13 +237,13 @@ message ProgressionTaskOutput{
 
 message CrossPollinationStatistics {
   optional string project_qualified_name = 1;
-  optional string sources = 3;
-  optional int32 initial_corpus_size = 5;
-  optional int32 corpus_size = 6;
-  optional int32 initial_edge_coverage = 7;
-  optional int32 edge_coverage = 8;
-  optional int32 initial_feature_coverage = 9;
-  optional int32 feature_coverage = 10;
+  optional string sources = 2;
+  optional int32 initial_corpus_size = 3;
+  optional int32 corpus_size = 4;
+  optional int32 initial_edge_coverage = 5;
+  optional int32 edge_coverage = 6;
+  optional int32 initial_feature_coverage = 7;
+  optional int32 feature_coverage = 8;
 }
 
 message CoverageInformation{
@@ -317,6 +317,6 @@ message Output {
   optional ProgressionTaskOutput progression_task_output = 12;
   optional SymbolizeTaskOutput symbolize_task_output = 13;
   optional VariantTaskOutput variant_task_output = 14;
-  optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
-  optional string error_message = 17;
+  optional CorpusPruningTaskOutput corpus_pruning_task_output = 15;
+  optional string error_message = 16;
 }

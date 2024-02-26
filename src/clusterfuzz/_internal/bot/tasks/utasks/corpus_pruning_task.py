@@ -915,7 +915,7 @@ def _extract_coverage_information(context, result):
   timestamp.FromDatetime(result.coverage_info.date)
   coverage_info.timestamp.CopyFrom(timestamp)
   # Intentionally skip edge and function coverage values as those would come
-  # from fuzzer coverage cron task (see src/go/server/cron/coverage.go).
+  # from fuzzer coverage cron task.
   coverage_info.corpus_size_units = result.coverage_info.corpus_size_units
   coverage_info.corpus_size_bytes = result.coverage_info.corpus_size_bytes
   coverage_info.corpus_location = result.coverage_info.corpus_location
