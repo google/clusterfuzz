@@ -30,3 +30,7 @@ def is_remotely_executing_utasks() -> bool:
   executed on Google cloud batch."""
   return bool(environment.is_production() and
               environment.get_value('REMOTE_UTASK_EXECUTION'))
+
+
+class UworkerMsgParseError(RuntimeError):
+  """Error for parsing UworkerMsgs."""

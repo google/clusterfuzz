@@ -447,6 +447,9 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
     track_task_end()
 
+  def dont_retry(self):
+    self._pubsub_message.ack()
+
 
 def get_task_from_message(message) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
