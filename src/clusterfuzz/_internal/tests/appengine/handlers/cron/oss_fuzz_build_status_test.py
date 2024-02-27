@@ -68,7 +68,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
         'clusterfuzz._internal.base.utils.utcnow',
         'handlers.base_handler.Handler.is_cron',
         'clusterfuzz._internal.issue_management.issue_tracker_utils.get_issue_tracker',
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
         'requests.get',
     ])
 

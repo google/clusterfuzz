@@ -651,7 +651,7 @@ class Testcase(Model):
       # Failed put. An exception will be thrown automatically afterwards.
       return
 
-    logs.log(
+    logs.info(
         f'Updated testcase {self.key.id()} (bug {self.bug_information or "-"}).'
     )
 

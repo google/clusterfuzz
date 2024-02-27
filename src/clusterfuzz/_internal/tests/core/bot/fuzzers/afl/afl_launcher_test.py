@@ -573,7 +573,7 @@ class AflRunnerTest(LauncherTestBase):
     self.mock.run_and_wait.side_effect = one_cpu_error
     self.assertEqual(self.runner.run_afl_fuzz(self.args).return_code, 0)
 
-  @mock.patch('clusterfuzz._internal.metrics.logs.log_error')
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
   def test_run_afl_fuzz_two_cpu_errors(self, mock_log_error):
     """Test AflRunner.run_afl_fuzz_and_handle_error works as intended when there
     is an error binding to CPU and afl-fuzz is never able to run in the end.

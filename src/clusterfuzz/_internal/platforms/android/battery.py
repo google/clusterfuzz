@@ -42,13 +42,13 @@ def get_battery_level_and_temperature():
   # Get battery level.
   m_battery_level = re.match(r'.*level: (\d+).*', output, re.DOTALL)
   if not m_battery_level:
-    logs.log_error('Error occurred while getting battery status.')
+    logs.error('Error occurred while getting battery status.')
     return None
 
   # Get battery temperature.
   m_battery_temperature = re.match(r'.*temperature: (\d+).*', output, re.DOTALL)
   if not m_battery_temperature:
-    logs.log_error('Error occurred while getting battery temperature.')
+    logs.error('Error occurred while getting battery temperature.')
     return None
 
   level = int(m_battery_level.group(1))
@@ -84,19 +84,19 @@ def wait_until_good_state():
   while True:
     battery_information = get_battery_level_and_temperature()
     if battery_information is None:
-      logs.log_error('Failed to get battery information, skipping check.')
+      logs.error('Failed to get battery information, skipping check.')
       return
 
     battery_level = battery_information['level']
     battery_temperature = battery_information['temperature']
-    logs.log('Battery information: level (%d%%), temperature (%.1f celsius).' %
-             (battery_level, battery_temperature))
+    logs.info('Battery information: level (%d%%), temperature (%.1f celsius).' %
+              (battery_level, battery_temperature))
     if (battery_level >= battery_level_threshold and
         battery_temperature <= battery_temperature_threshold):
       persistent_cache.set_value(LAST_BATTERY_CHECK_TIME_KEY, time.time())
       return
 
-    logs.log('Battery in bad battery state, putting device in sleep mode.')
+    logs.info('Battery in bad battery state, putting device in sleep mode.')
 
     if not device_restarted:
       adb.reboot()

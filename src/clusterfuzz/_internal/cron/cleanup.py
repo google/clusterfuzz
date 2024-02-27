@@ -97,14 +97,14 @@ def cleanup_reports_metadata():
 
 def cleanup_testcases_and_issues():
   """Clean up unneeded open testcases and their associated issues."""
-  logs.log('Getting all job type names.')
+  logs.info('Getting all job type names.')
   jobs = data_handler.get_all_job_type_names()
-  logs.log('Getting test case keys from query.')
+  logs.info('Getting test case keys from query.')
   testcase_keys = ndb_utils.get_all_from_query(
       data_types.Testcase.query(
           ndb_utils.is_false(data_types.Testcase.triaged)),
       keys_only=True)
-  logs.log('Getting top crashes for all projects and platforms.')
+  logs.info('Getting top crashes for all projects and platforms.')
   top_crashes_by_project_and_platform_map = (
       get_top_crashes_for_all_projects_and_platforms())
 
@@ -120,28 +120,29 @@ def cleanup_testcases_and_issues():
       # Already deleted.
       continue
 
-    logs.log(f'Processing testcase {testcase_id}.')
+    logs.info(f'Processing testcase {testcase_id}.')
 
     try:
       issue = issue_tracker_utils.get_issue_for_testcase(testcase)
       policy = issue_tracker_utils.get_issue_tracker_policy_for_testcase(
           testcase)
       if not policy:
-        logs.log('No policy')
+        logs.info('No policy')
         policy = empty_issue_tracker_policy
 
       # Issue updates.
       update_os_labels(policy, testcase, issue)
-      logs.log('maybe updated os')
+      logs.info('maybe updated os')
       update_fuzz_blocker_label(policy, testcase, issue,
                                 top_crashes_by_project_and_platform_map)
-      logs.log('maybe updated fuzz blocker')
+      logs.info('maybe updated fuzz blocker')
       update_component_labels(policy, testcase, issue)
-      logs.log('maybe updated component labels')
+      logs.info('maybe updated component labels')
       update_issue_ccs_from_owners_file(policy, testcase, issue)
-      logs.log('maybe updated issueccs')
+      logs.info('maybe updated issueccs')
       update_issue_owner_and_ccs_from_predator_results(policy, testcase, issue)
-      logs.log('maybe updated update_issue_owner_and_ccs_from_predator_results')
+      logs.info(
+          'maybe updated update_issue_owner_and_ccs_from_predator_results')
       update_issue_labels_for_flaky_testcase(policy, testcase, issue)
 
       # Testcase marking rules.
@@ -167,7 +168,7 @@ def cleanup_testcases_and_issues():
       # Testcase deletion rules.
       delete_unreproducible_testcase_with_no_issue(testcase)
     except Exception:
-      logs.log_error(f'Failed to process testcase {testcase_id}.')
+      logs.error(f'Failed to process testcase {testcase_id}.')
 
     testcases_processed += 1
     if testcases_processed % 100 == 0:
@@ -376,7 +377,7 @@ def delete_unreproducible_testcase_with_no_issue(testcase):
     return
 
   testcase.key.delete()
-  logs.log(
+  logs.info(
       f'Deleted unreproducible testcase {testcase.key.id()} with no issue.')
 
 
@@ -400,7 +401,7 @@ def mark_duplicate_testcase_as_closed_with_no_issue(testcase):
   testcase.fixed = 'NA'
   testcase.open = False
   testcase.put()
-  logs.log(f'Closed duplicate testcase {testcase.key.id()} with no issue.')
+  logs.info(f'Closed duplicate testcase {testcase.key.id()} with no issue.')
 
 
 def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
@@ -483,8 +484,8 @@ def mark_issue_as_closed_if_testcase_is_fixed(policy, testcase, issue):
     issue.status = policy.status('verified')
 
   issue.save(new_comment=comment, notify=True)
-  logs.log(f'Mark issue {issue.id} as verified for '
-           f'fixed testcase {testcase.key.id()}.')
+  logs.info(f'Mark issue {issue.id} as verified for '
+            f'fixed testcase {testcase.key.id()}.')
   issue_filer.notify_issue_update(testcase, 'verified')
 
 
@@ -510,8 +511,8 @@ def mark_unreproducible_testcase_as_fixed_if_issue_is_closed(testcase, issue):
   testcase.fixed = 'NA'
   testcase.open = False
   testcase.put()
-  logs.log(f'Closed unreproducible testcase {testcase.key.id()} '
-           'with issue closed.')
+  logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
+            'with issue closed.')
 
 
 def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
@@ -601,8 +602,8 @@ def mark_unreproducible_testcase_and_issue_as_closed_after_deadline(
 
   issue_filer.notify_issue_update(testcase, 'wontfix')
 
-  logs.log(f'Closed unreproducible testcase {testcase.key.id()} '
-           'and associated issue.')
+  logs.info(f'Closed unreproducible testcase {testcase.key.id()} '
+            'and associated issue.')
 
 
 def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
@@ -646,7 +647,7 @@ def mark_na_testcase_issues_as_wontfix(policy, testcase, issue):
 
   issue_filer.notify_issue_update(testcase, 'wontfix')
 
-  logs.log(
+  logs.info(
       f'Closing issue {issue.id} for invalid testcase {testcase.key.id()}.')
 
 
@@ -696,7 +697,7 @@ def mark_testcase_as_closed_if_issue_is_closed(policy, testcase, issue):
   testcase.open = False
   testcase.fixed = 'NA'
   testcase.put()
-  logs.log(f'Closed testcase {testcase.key.id()} with issue closed.')
+  logs.info(f'Closed testcase {testcase.key.id()} with issue closed.')
 
 
 def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
@@ -712,7 +713,7 @@ def mark_testcase_as_closed_if_job_is_invalid(testcase, jobs):
   testcase.open = False
   testcase.fixed = 'NA'
   testcase.put()
-  logs.log(f'Closed testcase {testcase.key.id()} with invalid job.')
+  logs.info(f'Closed testcase {testcase.key.id()} with invalid job.')
 
 
 def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
@@ -783,7 +784,7 @@ def notify_closed_issue_if_testcase_is_open(policy, testcase, issue):
           'prevent future bug filing with similar crash stacktrace.')
 
   issue.save(new_comment=issue_comment, notify=True)
-  logs.log(f'Notified closed issue for open testcase {testcase.key.id()}.')
+  logs.info(f'Notified closed issue for open testcase {testcase.key.id()}.')
 
 
 def notify_issue_if_testcase_is_invalid(policy, testcase, issue):
@@ -816,8 +817,8 @@ def notify_issue_if_testcase_is_invalid(policy, testcase, issue):
   issue.labels.add(invalid_fuzzer_label)
   issue.save(new_comment=issue_comment, notify=True)
 
-  logs.log(f'Closed issue {issue.id} for '
-           f'invalid testcase {testcase.key.id()}.')
+  logs.info(f'Closed issue {issue.id} for '
+            f'invalid testcase {testcase.key.id()}.')
 
 
 def _send_email_to_uploader(testcase_id, to_email, content):
@@ -950,7 +951,7 @@ def update_os_labels(policy, testcase, issue):
 
   platforms = get_crash_occurrence_platforms(testcase)
   platforms = platforms.union(get_platforms_from_testcase_variants(testcase))
-  logs.log(
+  logs.info(
       f'Found {len(platforms)} platforms for the testcase {testcase.key.id()}.',
       platforms=platforms)
   for platform in platforms:
@@ -959,7 +960,7 @@ def update_os_labels(policy, testcase, issue):
       issue.labels.add(label)
 
   issue.save(notify=False)
-  logs.log(f'Updated labels of issue {issue.id}.', labels=issue.labels)
+  logs.info(f'Updated labels of issue {issue.id}.', labels=issue.labels)
 
 
 def update_fuzz_blocker_label(policy, testcase, issue,
@@ -1015,7 +1016,7 @@ def update_fuzz_blocker_label(policy, testcase, issue,
       issue.labels.remove_by_prefix('M-')
       issue.labels.add(beta_milestone_label)
 
-  logs.log(update_message)
+  logs.info(update_message)
   issue.labels.add(fuzz_blocker_label)
   issue.save(new_comment=update_message, notify=True)
 
@@ -1046,7 +1047,7 @@ def update_component_labels(policy, testcase, issue):
   # Don't run on issues we've already applied automatic components to in case
   # labels are removed manually. This may cause issues in the event that we
   # rerun a test case, but it seems like a reasonable tradeoff to avoid spam.
-  logs.log(
+  logs.info(
       'google_issue_tracker: Checking if auto_components_label %s (policy %s) '
       'is in %s. Result: %s' %
       (data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_COMPONENTS_LABEL,
@@ -1089,7 +1090,7 @@ def _sanitize_ccs_list(ccs_list):
     if len(cc.split()) == 1:
       ret_list.append(cc)
     else:
-      logs.log(f'google_issue_tracker: Filtering out CC "{cc}"')
+      logs.info(f'google_issue_tracker: Filtering out CC "{cc}"')
   return ret_list
 
 
@@ -1119,7 +1120,7 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
 
   # If we've assigned the ccs before, it likely means we were incorrect.
   # Don't try again for this particular issue.
-  logs.log(
+  logs.info(
       'google_issue_tracker: Checking if auto_cc_label %s (policy: %s) is in '
       '%s. Result: %s' %
       (auto_cc_label, policy.label(auto_cc_label), list(issue.labels),
@@ -1201,26 +1202,26 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
                                                      issue,
                                                      only_allow_ccs=False):
   """Assign the issue to an appropriate owner if possible."""
-  logs.log(f'{update_issue_owner_and_ccs_from_predator_results}')
+  logs.info(f'{update_issue_owner_and_ccs_from_predator_results}')
   if not issue or not issue.is_open:
     return
 
-  logs.log('is_open')
+  logs.info('is_open')
 
   # If the issue already has an owner, we don't need to update the bug.
   if issue.assignee:
     return
 
-  logs.log('noassignee')
+  logs.info('noassignee')
 
   # If there are more than 3 suspected CLs, we can't be confident in the
   # results. Just skip any sort of notification to CL authors in this case.
   suspected_cls = _get_predator_result_item(testcase, 'suspected_cls')
-  logs.log(f'suspected_cls {suspected_cls}')
+  logs.info(f'suspected_cls {suspected_cls}')
   if not suspected_cls or len(suspected_cls) > 3:
     return
 
-  logs.log('suspected_cls2')
+  logs.info('suspected_cls2')
 
   # If we've assigned an owner or cc once before, it likely means we were
   # incorrect. Don't try again for this particular issue.
@@ -1233,7 +1234,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
           policy.substitution_mapping(
               data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_CC_LABEL))):
     return
-  logs.log('never assigned')
+  logs.info('never assigned')
 
   # Validate that the suspected CLs have all of the information we need before
   # continuing. This allows us to assume that they are well-formed later,
@@ -1243,23 +1244,23 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
     description = suspected_cl.get('description')
     author = suspected_cl.get('author')
     if not url or not description or not author:
-      logs.log_error(f'Suspected CL for testcase {testcase.key.id()} '
-                     'is missing required information.')
+      logs.error(f'Suspected CL for testcase {testcase.key.id()} '
+                 'is missing required information.')
       return
 
   if len(suspected_cls) == 1 and not only_allow_ccs:
-    logs.log('only 1 CL')
+    logs.info('only 1 CL')
     suspected_cl = suspected_cls[0]
 
     # If this owner has already been assigned before but has since been removed,
     # don't assign it to them again.
     for action in issue.actions:
       if action.assignee == suspected_cls[0]['author']:
-        logs.log('already assigned')
+        logs.info('already assigned')
         return
 
     # We have high confidence for the single-CL case, so we assign the owner.
-    logs.log('Updating issue')
+    logs.info('Updating issue')
     issue.labels.add(
         policy.substitution_mapping(
             data_types.CHROMIUM_ISSUE_PREDATOR_AUTO_OWNER_LABEL))
@@ -1277,7 +1278,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
 
   else:
     if testcase.get_metadata('has_issue_ccs_from_predator_results'):
-      logs.log('has_issue_ccs_from_predator_results')
+      logs.info('has_issue_ccs_from_predator_results')
       return
 
     issue_comment = (
@@ -1292,9 +1293,9 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       author = suspected_cl['author']
       issue_comment += f'{suspected_cl["description"]} by ' \
                        f'{author} - {suspected_cl["url"]}\n\n'
-      logs.log('Suspected')
+      logs.info('Suspected')
       if author in issue.ccs:
-        logs.log('AUthor CCed')
+        logs.info('AUthor CCed')
         continue
 
       # If an author has previously been manually removed from the cc list,
@@ -1303,11 +1304,11 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       for action in issue.actions:
         if author in action.ccs.removed:
           author_was_removed = True
-          logs.log('Breaking')
+          logs.info('Breaking')
           break
 
       if author_was_removed:
-        logs.log('Author removed')
+        logs.info('Author removed')
         continue
 
       issue.ccs.add(author)
@@ -1318,7 +1319,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
       # to spam it with another comment. Also, set the metadata to avoid doing
       # this again.
       testcase.set_metadata('has_issue_ccs_from_owners_file', True)
-      logs.log('not ccs_added')
+      logs.info('not ccs_added')
       return
 
     label_text = issue.issue_tracker.label_text(
@@ -1336,8 +1337,7 @@ def update_issue_owner_and_ccs_from_predator_results(policy,
   except HttpError:
     # If we see such an error when we aren't setting an owner, it's unexpected.
     if only_allow_ccs or not issue.assignee:
-      logs.log_error(
-          f'Unable to update issue for test case {testcase.key.id()}.')
+      logs.error(f'Unable to update issue for test case {testcase.key.id()}.')
       return
 
     # Retry without setting the owner. They may not be a chromium project
@@ -1366,5 +1366,5 @@ def main():
   leak_blacklist.cleanup_global_blacklist()
   cleanup_unused_fuzz_targets_and_jobs()
   cleanup_unused_heartbeats()
-  logs.log('Cleanup task finished successfully.')
+  logs.info('Cleanup task finished successfully.')
   return True

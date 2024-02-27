@@ -123,14 +123,14 @@ def create_uworker_main_batch_jobs(batch_tasks):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
-    logs.log(f'Scheduling {batch_task.command}, {batch_task.job_type}.')
+    logs.info(f'Scheduling {batch_task.command}, {batch_task.job_type}.')
     spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 
-  logs.log('Creating batch jobs.')
+  logs.info('Creating batch jobs.')
   jobs = []
 
-  logs.log(f'Starting utask_mains: {job_specs}.')
+  logs.info(f'Starting utask_mains: {job_specs}.')
   for spec, input_urls in job_specs.items():
     for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
       jobs.append(_create_job(spec, input_urls_portion))
@@ -232,7 +232,7 @@ def _create_job(spec, input_urls):
   project_id = 'google.com:clusterfuzz'
   create_request.parent = f'projects/{project_id}/locations/us-west1'
   result = _send_create_job_request(create_request)
-  logs.log('Created batch job.')
+  logs.info('Created batch job.')
   return result
 
 

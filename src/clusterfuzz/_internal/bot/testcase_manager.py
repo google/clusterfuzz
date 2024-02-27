@@ -341,7 +341,7 @@ def run_testcase(thread_index, file_path, gestures, env_copy):
         env_copy=env_copy,
         current_working_directory=app_directory)
   except Exception:
-    logs.log_error('Exception occurred while running run_testcase.')
+    logs.error('Exception occurred while running run_testcase.')
 
     return None, None, None
 
@@ -365,7 +365,7 @@ def get_resource_paths(output):
 
     local_path = convert_dependency_url_to_local_path(match.group(2))
     if local_path:
-      logs.log('Detected resource: %s.' % local_path)
+      logs.info('Detected resource: %s.' % local_path)
       resource_paths.add(local_path)
 
   return list(resource_paths)
@@ -376,7 +376,7 @@ def convert_dependency_url_to_local_path(url):
   # Bot-specific import.
   from clusterfuzz._internal.bot.webserver import http_server
 
-  logs.log('Process dependency: %s.' % url)
+  logs.info('Process dependency: %s.' % url)
   file_match = FILE_URL_REGEX.search(url)
   http_match = HTTP_URL_REGEX.search(url)
   platform = environment.platform()
@@ -384,7 +384,7 @@ def convert_dependency_url_to_local_path(url):
   local_path = None
   if file_match:
     file_path = file_match.group(1)
-    logs.log('Detected file dependency: %s.' % file_path)
+    logs.info('Detected file dependency: %s.' % file_path)
     if platform == 'WINDOWS':
       local_path = file_path
     else:
@@ -399,13 +399,13 @@ def convert_dependency_url_to_local_path(url):
 
   elif http_match:
     relative_http_path = os.path.sep + http_match.group(2)
-    logs.log('Detected http dependency: %s.' % relative_http_path)
+    logs.info('Detected http dependency: %s.' % relative_http_path)
     local_path = http_server.get_absolute_testcase_file(relative_http_path)
     if not local_path:
       # This needs to be a warning since in many cases, it is actually a
       # non-existent path. For others, we need to add the directory aliases in
       # file http_server.py.
-      logs.log_warn(
+      logs.warning(
           'Unable to find server resource %s, skipping.' % relative_http_path)
 
   if local_path:
@@ -542,8 +542,8 @@ def _do_run_testcase_and_return_result_in_queue(crash_queue,
                                    return_code)
       upload_log(log, log_time)
   except Exception:
-    logs.log_error('Exception occurred while running '
-                   'run_testcase_and_return_result_in_queue.')
+    logs.error('Exception occurred while running '
+               'run_testcase_and_return_result_in_queue.')
 
 
 def engine_reproduce(engine_impl: engine.Engine, target_name, testcase_path,
@@ -641,7 +641,7 @@ class TestcaseRunner:
 
     crash_result = CrashResult(return_code, crash_time, output)
     if not crash_result.is_crash():
-      logs.log(
+      logs.info(
           f'No crash occurred (round {round_number}).',
           output=output,
       )
@@ -662,7 +662,7 @@ class TestcaseRunner:
     """Get crash state from a CrashResult."""
     state = crash_result.get_symbolized_data()
     if crash_result.is_crash():
-      logs.log(
+      logs.info(
           ('Crash occurred in {crash_time} seconds (round {round_number}). '
            'State:\n{crash_state}').format(
                crash_time=crash_result.crash_time,
@@ -690,31 +690,31 @@ class TestcaseRunner:
         continue
 
       if not expected_state:
-        logs.log('Crash stacktrace comparison skipped.')
+        logs.info('Crash stacktrace comparison skipped.')
         return crash_result
 
       if crash_result.should_ignore():
-        logs.log('Crash stacktrace matched ignore signatures, ignored.')
+        logs.info('Crash stacktrace matched ignore signatures, ignored.')
         continue
 
       if crash_result.is_security_issue() != expected_security_flag:
         unexpected_crash = True
-        logs.log('Crash security flag does not match, ignored.')
+        logs.info('Crash security flag does not match, ignored.')
         continue
 
       if flaky_stacktrace:
-        logs.log('Crash stacktrace is marked flaky, skipping comparison.')
+        logs.info('Crash stacktrace is marked flaky, skipping comparison.')
         return crash_result
 
       crash_comparer = CrashComparer(state.crash_state, expected_state)
       if crash_comparer.is_similar():
-        logs.log('Crash stacktrace is similar to original stacktrace.')
+        logs.info('Crash stacktrace is similar to original stacktrace.')
         return crash_result
 
       unexpected_crash = True
-      logs.log('Crash stacktrace does not match original stacktrace.')
+      logs.info('Crash stacktrace does not match original stacktrace.')
 
-    logs.log('Didn\'t crash at all.')
+    logs.info('Didn\'t crash at all.')
     return CrashResult(
         return_code=0,
         crash_time=0,
@@ -724,7 +724,7 @@ class TestcaseRunner:
   def test_reproduce_reliability(self, retries, expected_state,
                                  expected_security_flag) -> bool:
     """Test to see if a crash is fully reproducible or is a one-time crasher."""
-    logs.log("Beginning a reproducibility test.")
+    logs.info("Beginning a reproducibility test.")
     self._pre_run_cleanup()
 
     reproducible_crash_target_count = retries * REPRODUCIBILITY_FACTOR
@@ -748,23 +748,23 @@ class TestcaseRunner:
         expected_state = state.crash_state
 
       if crash_result.is_security_issue() != expected_security_flag:
-        logs.log('Detected a crash without the correct security flag.')
+        logs.info('Detected a crash without the correct security flag.')
         continue
 
       crash_comparer = CrashComparer(state.crash_state, expected_state)
       if not crash_comparer.is_similar():
-        logs.log(
+        logs.info(
             'Detected a crash with an unrelated state: '
             'Expected(%s), Found(%s).' % (expected_state, state.crash_state))
         continue
 
       crash_count += 1
       if crash_count >= reproducible_crash_target_count:
-        logs.log('Crash is reproducible.')
+        logs.info('Crash is reproducible.')
         return True
 
-    logs.log('Crash is not reproducible. Crash count: %d/%d.' % (crash_count,
-                                                                 round_number))
+    logs.info('Crash is not reproducible. Crash count: %d/%d.' % (crash_count,
+                                                                  round_number))
     return False
 
 
@@ -1185,7 +1185,7 @@ def check_for_bad_build(job_type: str,
         command,
         crash_result.get_stacktrace(symbolized=True),
         crash_result.get_stacktrace(symbolized=False))
-    logs.log(
+    logs.info(
         'Bad build for %s detected at r%d.' % (job_type, crash_revision),
         output=build_run_console_output)
 

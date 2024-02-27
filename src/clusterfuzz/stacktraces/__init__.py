@@ -627,8 +627,7 @@ class StackParser:
             break
 
         if state.crash_type == 'UNKNOWN':
-          logs.log_error(
-              'Unknown UBSan crash type: {reason}'.format(reason=reason))
+          logs.error('Unknown UBSan crash type: {reason}'.format(reason=reason))
 
         state.crash_address = ''
         state.crash_state = ''

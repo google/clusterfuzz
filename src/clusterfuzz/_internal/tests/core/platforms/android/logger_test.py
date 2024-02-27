@@ -58,7 +58,7 @@ class FilterLogOutputTest(unittest.TestCase):
   """Tests filter_log_output."""
 
   def setUp(self):
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
 
   def _get_log_content(self, filename):
     return open(os.path.join(DATA_PATH, filename)).read()

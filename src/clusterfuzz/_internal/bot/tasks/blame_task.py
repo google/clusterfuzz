@@ -277,7 +277,7 @@ def execute_task(testcase_id, _):
   # Make sure that predator topic is configured. If not, nothing to do here.
   topic = db_config.get_value('predator_crash_topic')
   if not topic:
-    logs.log('Predator is not configured, skipping blame task.')
+    logs.info('Predator is not configured, skipping blame task.')
     return
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
@@ -298,6 +298,6 @@ def execute_task(testcase_id, _):
   # Post request to pub sub.
   client = pubsub.PubSubClient()
   message_ids = client.publish(topic, [message])
-  logs.log('Successfully published testcase %s to Predator. Message IDs: %s.' %
-           (testcase_id, message_ids))
+  logs.info('Successfully published testcase %s to Predator. Message IDs: %s.' %
+            (testcase_id, message_ids))
   data_handler.update_testcase_comment(testcase, data_types.TaskState.FINISHED)

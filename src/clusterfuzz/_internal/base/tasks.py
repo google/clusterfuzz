@@ -214,7 +214,7 @@ def get_machine_template_for_queue(queue_name):
   templates = get_machine_templates()
   for template in templates:
     if template['name'] == template_name:
-      logs.log(
+      logs.info(
           f'Found machine template for {initial_queue_name}',
           machine_template=template)
       return template
@@ -253,7 +253,7 @@ class PubSubPuller:
     def is_done_collecting_messages():
       curr_time = time.time()
       if curr_time - start_time >= time_limit_secs:
-        logs.log('Timed out collecting messages.')
+        logs.info('Timed out collecting messages.')
         return True
 
       if len(messages) >= max_messages:
@@ -280,13 +280,13 @@ def get_postprocess_task():
   if not environment.platform().lower() == 'linux':
     return None
   pubsub_puller = PubSubPuller(POSTPROCESS_QUEUE)
-  logs.log('Pulling from postprocess queue')
+  logs.info('Pulling from postprocess queue')
   messages = pubsub_puller.get_messages(max_messages=1)
   if not messages:
     return None
   task = get_task_from_message(messages[0])
   if task:
-    logs.log('Pulled from postprocess queue.')
+    logs.info('Pulled from postprocess queue.')
   return task
 
 
@@ -322,7 +322,7 @@ def get_task():
 
   task = get_fuzz_task()
   if not task:
-    logs.log_error('Failed to get any fuzzing tasks. This should not happen.')
+    logs.error('Failed to get any fuzzing tasks. This should not happen.')
     time.sleep(TASK_EXCEPTION_WAIT_INTERVAL)
 
   return task
@@ -417,7 +417,7 @@ class PubSubTask(Task):
 
     # Extend the deadline until the ETA, or MAX_ACK_DEADLINE.
     time_until_eta = int((self.eta - now).total_seconds())
-    logs.log('Deferring task "%s".' % self.payload())
+    logs.info('Deferring task "%s".' % self.payload())
     self._pubsub_message.modify_ack_deadline(
         min(pubsub.MAX_ACK_DEADLINE, time_until_eta))
     return True
@@ -455,7 +455,7 @@ def get_task_from_message(message) -> Optional[PubSubTask]:
   try:
     task = initialize_task(message)
   except KeyError:
-    logs.log_error('Received an invalid task, discarding...')
+    logs.error('Received an invalid task, discarding...')
     message.ack()
     return None
 
@@ -488,7 +488,7 @@ def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
       continue
     tasks.append(task)
 
-  logs.log(
+  logs.info(
       'Got utask_mains.',
       tasks_extras_info=[task.extra_info for task in tasks if task])
   return tasks
@@ -548,13 +548,13 @@ class _PubSubLeaserThread(threading.Thread):
       try:
         time_left = latest_end_time - time.time()
         if time_left <= 0:
-          logs.log('Lease reached maximum lease time of {} seconds, '
-                   'stopping renewal.'.format(self._max_lease_seconds))
+          logs.info('Lease reached maximum lease time of {} seconds, '
+                    'stopping renewal.'.format(self._max_lease_seconds))
           break
 
         extension_seconds = min(self.EXTENSION_TIME_SECONDS, time_left)
 
-        logs.log(
+        logs.info(
             'Renewing lease for task by {} seconds.'.format(extension_seconds))
         self._message.modify_ack_deadline(extension_seconds)
 
@@ -564,10 +564,10 @@ class _PubSubLeaserThread(threading.Thread):
 
         # Wait until the next scheduled renewal, or if the task is complete.
         if self._done_event.wait(wait_seconds):
-          logs.log('Task complete, stopping renewal.')
+          logs.info('Task complete, stopping renewal.')
           break
       except Exception:
-        logs.log_error('Leaser thread failed.')
+        logs.error('Leaser thread failed.')
 
 
 def add_utask_main(command, input_url, job_type, wait_time=None):

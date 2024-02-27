@@ -262,8 +262,8 @@ def _file_issue(testcase, issue_tracker, throttler):
     return False
 
   if crash_analyzer.is_experimental_crash(testcase.crash_type):
-    logs.log(f'Skipping bug filing for {testcase.key.id()} as it '
-             'has an experimental crash type.')
+    logs.info(f'Skipping bug filing for {testcase.key.id()} as it '
+              'has an experimental crash type.')
     _add_triage_message(
         testcase, 'Skipping filing as this is an experimental crash type.')
     return False
@@ -275,7 +275,7 @@ def _file_issue(testcase, issue_tracker, throttler):
     file_exception = e
 
   if file_exception:
-    logs.log_error(f'Failed to file issue for testcase {testcase.key.id()}.')
+    logs.error(f'Failed to file issue for testcase {testcase.key.id()}.')
     _add_triage_message(
         testcase,
         f'Failed to file issue due to exception: {str(file_exception)}')
@@ -286,11 +286,11 @@ def _file_issue(testcase, issue_tracker, throttler):
 def main():
   """Files bugs."""
   try:
-    logs.log('Grouping testcases.')
+    logs.info('Grouping testcases.')
     grouper.group_testcases()
-    logs.log('Grouping done.')
+    logs.info('Grouping done.')
   except:
-    logs.log_error('Error occurred while grouping test cases.')
+    logs.error('Error occurred while grouping test cases.')
     return False
 
   # Free up memory after group task run.
@@ -378,10 +378,10 @@ def main():
     _create_filed_bug_metadata(testcase)
     issue_filer.notify_issue_update(testcase, 'new')
 
-    logs.log('Filed new issue %s for testcase %d.' % (testcase.bug_information,
-                                                      testcase_id))
+    logs.info('Filed new issue %s for testcase %d.' % (testcase.bug_information,
+                                                       testcase_id))
 
-  logs.log('Triage testcases succeeded.')
+  logs.info('Triage testcases succeeded.')
   return True
 
 
@@ -421,8 +421,8 @@ class Throttler:
       try:
         max_bugs = int(job.get_environment()['MAX_BUGS_PER_24HRS'])
       except Exception:
-        logs.log_error('Invalid environment value of \'MAX_BUGS_PER_24HRS\' '
-                       f'for job type {job_type}.')
+        logs.error('Invalid environment value of \'MAX_BUGS_PER_24HRS\' '
+                   f'for job type {job_type}.')
 
     self._max_bugs_per_job_per_24hrs[job_type] = max_bugs
     return max_bugs
@@ -440,9 +440,8 @@ class Throttler:
     try:
       max_bugs = int(config.get('max_bugs_per_project_per_24hrs', max_bugs))
     except:
-      logs.log_error(
-          'Invalid config value of \'max_bugs_per_project_per_24hrs\' '
-          f'for issue tracker {issue_tracker_name}')
+      logs.error('Invalid config value of \'max_bugs_per_project_per_24hrs\' '
+                 f'for issue tracker {issue_tracker_name}')
 
     self._max_bugs_per_project_per_24hrs[project] = max_bugs
     return max_bugs
@@ -461,7 +460,7 @@ class Throttler:
       if count_per_job < job_bugs_filing_max:
         self._bug_filed_per_job_per_24hrs[testcase.job_type] = count_per_job + 1
         return False
-      logs.log(
+      logs.info(
           f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
           f'{count_per_job} bugs have been filed fom '
           f'{self._bug_throttling_cutoff} '
@@ -478,7 +477,7 @@ class Throttler:
           count_per_project + 1)
       return False
 
-    logs.log(
+    logs.info(
         f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
         f'{count_per_project} bugs have been filed from '
         f'{self._bug_throttling_cutoff} '

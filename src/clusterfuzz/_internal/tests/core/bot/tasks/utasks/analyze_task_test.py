@@ -37,7 +37,7 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
             'get_all_issue_metadata_for_testcase',
             # Disable logging.
             'clusterfuzz._internal.datastore.data_types.Testcase._post_put_hook',
-            'clusterfuzz._internal.metrics.logs.log',
+            'clusterfuzz._internal.metrics.logs.info',
         ])
 
   def test_union(self):

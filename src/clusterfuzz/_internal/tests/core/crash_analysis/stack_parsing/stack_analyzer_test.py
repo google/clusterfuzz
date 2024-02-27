@@ -44,7 +44,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     helpers.patch_environ(self)
     helpers.patch(self, [
         'clusterfuzz._internal.crash_analysis.stack_parsing.stack_symbolizer.'
-        'symbolize_stacktrace', 'clusterfuzz._internal.metrics.logs.log_error',
+        'symbolize_stacktrace', 'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.platforms.android.kernel_utils.'
         'get_kernel_prefix_and_full_hash'
     ])

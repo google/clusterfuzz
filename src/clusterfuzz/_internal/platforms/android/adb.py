@@ -72,7 +72,7 @@ def bad_state_reached():
 
 def connect_to_cuttlefish_device():
   """Connect to Cuttlefish cvd."""
-  logs.log('Connect to cuttlefish device.')
+  logs.info('Connect to cuttlefish device.')
   device_serial = environment.get_value('ANDROID_SERIAL')
   connect_cmd = f'{get_adb_path()} connect {device_serial}'
   return execute_command(connect_cmd, timeout=RECOVERY_CMD_TIMEOUT)
@@ -148,10 +148,10 @@ def execute_command(cmd, timeout=None, log_error=True,
       if output:
         so.append(output)
     except OSError as _:
-      logs.log_warn('Failed to retrieve stdout from: %s' % cmd)
+      logs.warning('Failed to retrieve stdout from: %s' % cmd)
     if pipe.returncode:
       if log_error:
-        logs.log_warn(
+        logs.warning(
             '%s returned %d error code.' % (cmd, pipe.returncode),
             output=output)
 
@@ -159,7 +159,7 @@ def execute_command(cmd, timeout=None, log_error=True,
   thread.start()
   thread.join(timeout)
   if thread.is_alive():
-    logs.log_warn('Command %s timed out. Killing process.' % cmd)
+    logs.warning('Command %s timed out. Killing process.' % cmd)
     try:
       pipe.kill()
     except OSError:
@@ -183,7 +183,7 @@ def copy_to_cuttlefish(src_path, dest_path, timeout=None):
 
 def factory_reset():
   """Reset device to factory state."""
-  logs.log('reached factory_reset')
+  logs.info('reached factory_reset')
   if environment.is_android_cuttlefish():
     # We cannot recover from this since there can be cases like userdata image
     # corruption in /data/data. Till the bug is fixed, we just need to wait
@@ -377,13 +377,13 @@ def hard_reset():
   execute_command(soft_reset_cmd, timeout=RECOVERY_CMD_TIMEOUT)
 
   if environment.is_android_emulator():
-    logs.log('Platform ANDROID_EMULATOR detected.')
+    logs.info('Platform ANDROID_EMULATOR detected.')
     restart_adb()
     state = get_device_state()
 
-    logs.log('Device state is: %s' % state)
+    logs.info('Device state is: %s' % state)
     if state == 'recovery':
-      logs.log('Rebooting recovery state device with --wipe_data.')
+      logs.info('Rebooting recovery state device with --wipe_data.')
       run_command('root')
       run_shell_command('recovery --wipe_data')
 
@@ -452,7 +452,7 @@ def stop_cuttlefish_device():
   cvd_dir = environment.get_value('CVD_DIR')
   cvd_bin_dir = os.path.join(cvd_dir, 'bin')
   stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
-  logs.log('stop_cvd_cmd: %s' % str(stop_cvd_cmd))
+  logs.info('stop_cvd_cmd: %s' % str(stop_cvd_cmd))
 
   execute_command(
       stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
@@ -470,9 +470,9 @@ def restart_cuttlefish_device():
 
 def recreate_cuttlefish_device():
   """Recreate cuttlefish device, restoring from backup images."""
-  logs.log('Reimaging cuttlefish device.')
+  logs.info('Reimaging cuttlefish device.')
   cvd_dir = environment.get_value('CVD_DIR')
-  logs.log('cvd_dir: %s' % str(cvd_dir))
+  logs.info('cvd_dir: %s' % str(cvd_dir))
 
   copy_images_to_cuttlefish()
   stop_cuttlefish_device()
@@ -522,8 +522,8 @@ def reset_device_connection():
   # Check device status.
   state = get_device_state()
   if state != 'device':
-    logs.log_warn('Device state is %s, unable to recover using usb reset/'
-                  'cuttlefish reconnect.' % str(state))
+    logs.warning('Device state is %s, unable to recover using usb reset/'
+                 'cuttlefish reconnect.' % str(state))
     return False
 
   return True
@@ -542,7 +542,7 @@ def set_cuttlefish_device_serial():
   """Set the ANDROID_SERIAL to cuttlefish ip and port."""
   device_serial = '%s:%d' % (get_cuttlefish_device_ip(), CUTTLEFISH_CVD_PORT)
   environment.set_value('ANDROID_SERIAL', device_serial)
-  logs.log('Set cuttlefish device serial: %s' % device_serial)
+  logs.info('Set cuttlefish device serial: %s' % device_serial)
 
 
 def get_cuttlefish_ssh_target():
@@ -558,8 +558,8 @@ def get_device_path():
     usb_list_cmd = 'lsusb -v'
     output = execute_command(usb_list_cmd, timeout=RECOVERY_CMD_TIMEOUT)
     if output is None:
-      logs.log_error('Failed to populate usb devices using lsusb, '
-                     'host restart might be needed.')
+      logs.error('Failed to populate usb devices using lsusb, '
+                 'host restart might be needed.')
       bad_state_reached()
 
     devices = []
@@ -629,14 +629,14 @@ def reset_usb():
     # Try pulling from cache (if available).
     device_path = environment.get_value('DEVICE_PATH')
   if not device_path:
-    logs.log_warn('No device path found, unable to reset usb.')
+    logs.warning('No device path found, unable to reset usb.')
     return False
 
   try:
     with open(device_path, 'w') as f:
       fcntl.ioctl(f, USBDEVFS_RESET)
   except:
-    logs.log_warn('Failed to reset usb.')
+    logs.warning('Failed to reset usb.')
     return False
 
   # Wait for usb to recover.
@@ -681,14 +681,14 @@ def run_command(cmd,
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
   if log_output:
-    logs.log('Running: adb %s' % cmd)
+    logs.info('Running: adb %s' % cmd)
   if not timeout:
     timeout = ADB_TIMEOUT
 
   output = execute_command(get_adb_command_line(cmd), timeout, log_error)
   if not recover:
     if log_output:
-      logs.log('Output: (%s)' % output)
+      logs.info('Output: (%s)' % output)
     return output
 
   device_not_found_string_with_serial = DEVICE_NOT_FOUND_STRING.format(
@@ -697,7 +697,7 @@ def run_command(cmd,
       DEVICE_HANG_STRING, DEVICE_OFFLINE_STRING,
       device_not_found_string_with_serial
   ]):
-    logs.log_warn('Unable to query device, resetting device connection.')
+    logs.warning('Unable to query device, resetting device connection.')
     if reset_device_connection():
       # Device has successfully recovered, re-run command to get output.
       # Continue execution and validate output next for |None| condition.
@@ -708,7 +708,7 @@ def run_command(cmd,
   if output is DEVICE_HANG_STRING:
     # Handle the case where our command execution hung. This is usually when
     # device goes into a bad state and only way to recover is to restart it.
-    logs.log_warn('Unable to query device, restarting device to recover.')
+    logs.warning('Unable to query device, restarting device to recover.')
     hard_reset()
 
     # Wait until we've booted and try the command again.
@@ -716,7 +716,7 @@ def run_command(cmd,
     output = execute_command(get_adb_command_line(cmd), timeout, log_error)
 
   if log_output:
-    logs.log('Output: (%s)' % output)
+    logs.info('Output: (%s)' % output)
   return output
 
 
@@ -763,7 +763,7 @@ def run_fastboot_command(cmd, log_output=True, log_error=True, timeout=None):
   if isinstance(cmd, list):
     cmd = ' '.join([str(i) for i in cmd])
   if log_output:
-    logs.log('Running: fastboot %s' % cmd)
+    logs.info('Running: fastboot %s' % cmd)
   if not timeout:
     timeout = ADB_TIMEOUT
 

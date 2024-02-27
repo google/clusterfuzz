@@ -709,7 +709,7 @@ class IntegrationTests(BaseIntegrationTest):
     """Test that we log when libFuzzer's exit code indicates it ran into an
     error."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
@@ -735,7 +735,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_exit_target_bug_not_logged(self, exit_code):
     """Test that we don't log when exit code indicates bug found in target."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
@@ -759,7 +759,7 @@ class IntegrationTests(BaseIntegrationTest):
   def test_fuzz_invalid_dict(self):
     """Tests fuzzing with an invalid dictionary (ParseDictionaryFile crash)."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
@@ -859,7 +859,7 @@ class MinijailIntegrationTests(IntegrationTests):
   def test_exit_target_bug_not_logged(self, exit_code):
     """Test that we don't log when exit code indicates bug found in target."""
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
     ])
 
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
@@ -964,7 +964,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
       'Temporarily disabling the Fuchsia tests until build size reduced.')
   def test_qemu_logs_returned_on_error(self):
     """Test running against a qemu that has died"""
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_warn'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.warning'])
     # Pass-through logs just so we can see what's going on (but moving from
     # log_warn to plain log to avoid creating a loop)
     self.mock.log_warn.side_effect = logs.log

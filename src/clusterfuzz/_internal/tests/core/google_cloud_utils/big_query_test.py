@@ -651,7 +651,7 @@ class WriteRangeTest(unittest.TestCase):
   def setUp(self):
     self.client = mock.Mock(spec_set=big_query.Client)
     helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_error',
+        'clusterfuzz._internal.metrics.logs.error',
         'clusterfuzz._internal.google_cloud_utils.big_query.Client',
         'time.time',
     ])

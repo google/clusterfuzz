@@ -87,8 +87,8 @@ class ParseMemoryToolOptionsTest(unittest.TestCase):
 
   def setUp(self):
     test_helpers.patch(self, [
-        'clusterfuzz._internal.metrics.logs.log_warn',
-        'clusterfuzz._internal.metrics.logs.log_error'
+        'clusterfuzz._internal.metrics.logs.warning',
+        'clusterfuzz._internal.metrics.logs.error'
     ])
 
     self.windows_expected = {

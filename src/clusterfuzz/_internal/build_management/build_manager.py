@@ -141,13 +141,13 @@ def _make_space(requested_size, current_build_dir=None):
       return True
 
     if not _evict_build(current_build_dir):
-      logs.log_error(error_message)
+      logs.error(error_message)
       return False
 
   free_disk_space = shell.get_free_disk_space(builds_directory)
   result = requested_size + min_free_disk_space < free_disk_space
   if not result:
-    logs.log_error(error_message)
+    logs.error(error_message)
   return result
 
 
@@ -191,7 +191,7 @@ def _evict_build(current_build_dir):
   if not least_recently_used:
     return False
 
-  logs.log(
+  logs.info(
       'Deleting build %s to save space.' % least_recently_used.base_build_dir)
   least_recently_used.delete()
 
@@ -205,7 +205,7 @@ def _handle_unrecoverable_error_on_windows():
   if environment.platform() != 'WINDOWS':
     return
 
-  logs.log_error('Unrecoverable error, restarting machine...')
+  logs.error('Unrecoverable error, restarting machine...')
   time.sleep(60)
   utils.restart_machine()
 
@@ -225,7 +225,7 @@ def _get_file_match_callback():
     # File match regex is only applicable for libFuzzer and afl fuzz targets.
     return None
 
-  logs.log('Extracting only files for target %s.' % fuzz_target)
+  logs.info('Extracting only files for target %s.' % fuzz_target)
 
   allowlisted_names = tuple([fuzz_target] + FUZZ_TARGET_ALLOWLISTED_PREFIXES)
   blocklisted_extensions = tuple(
@@ -291,7 +291,7 @@ def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
   fuzz_target = environment.get_value('FUZZ_TARGET')
   if fuzz_target:
-    logs.log('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)
+    logs.info('Use previously picked fuzz target %s for fuzzing.' % fuzz_target)
     return fuzz_target
 
   if not environment.is_engine_fuzzer_job():
@@ -299,13 +299,13 @@ def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
 
   fuzz_targets = list(fuzz_targets)
   if not fuzz_targets:
-    logs.log_error('No fuzz targets found. Unable to pick random one.')
+    logs.error('No fuzz targets found. Unable to pick random one.')
     return None
 
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
   environment.set_value('FUZZ_TARGET', fuzz_target)
-  logs.log('Picked fuzz target %s for fuzzing.' % fuzz_target)
+  logs.info('Picked fuzz target %s for fuzzing.' % fuzz_target)
 
   return fuzz_target
 
@@ -347,7 +347,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
   # Chromium specific folder to ignore.
   initialexe_folder_path = f'{os.path.sep}initialexe'
 
-  logs.log('\n'.join([
+  logs.info('\n'.join([
       'Walking build directory to find files and set environment variables.',
       f'Environment prefix: {env_prefix!r}',
       f'App path environment variable name: {app_path!r}',
@@ -358,11 +358,11 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
 
   def set_env_var(name, value):
     full_name = env_prefix + name
-    logs.log(f'Setting environment variable: {full_name} = {value}')
+    logs.info(f'Setting environment variable: {full_name} = {value}')
     environment.set_value(full_name, value)
 
   for search_directory in search_directories:
-    logs.log(f'Searching in directory: {search_directory}')
+    logs.info(f'Searching in directory: {search_directory}')
     for root, _, files in shell.walk(search_directory):
       # .dSYM folder contain symbol files on Mac and should
       # not be searched for application binary.
@@ -396,7 +396,7 @@ def set_environment_vars(search_directories, app_path='APP_PATH',
           set_env_var('LLVM_SYMBOLIZER_PATH', llvm_symbolizer_path)
 
   if app_name and not absolute_file_path:
-    logs.log_error(f'Could not find app {app_name!r} in search directories.')
+    logs.error(f'Could not find app {app_name!r} in search directories.')
 
 
 class BaseBuild:
@@ -515,9 +515,9 @@ class Build(BaseBuild):
     utils.python_gc()
 
     # Remove the current build.
-    logs.log('Removing build directory %s.' % build_dir)
+    logs.info('Removing build directory %s.' % build_dir)
     if not shell.remove_directory(build_dir, recreate=True):
-      logs.log_error('Unable to clear build directory %s.' % build_dir)
+      logs.error('Unable to clear build directory %s.' % build_dir)
       _handle_unrecoverable_error_on_windows()
       return False
 
@@ -533,17 +533,17 @@ class Build(BaseBuild):
           'Failed to make space for download. '
           'Cleared all data directories to free up space, exiting.')
 
-    logs.log('Downloading build from url %s.' % build_url)
+    logs.info('Downloading build from url %s.' % build_url)
     try:
       storage.copy_file_from(build_url, build_local_archive)
     except:
-      logs.log_error('Unable to download build url %s.' % build_url)
+      logs.error('Unable to download build url %s.' % build_url)
       return False
 
     try:
       reader = archive.open(build_local_archive)
     except:
-      logs.log_error(f'Unable to open build archive {build_local_archive}.')
+      logs.error(f'Unable to open build archive {build_local_archive}.')
       return False
 
     unpack_everything = environment.get_value(
@@ -572,7 +572,7 @@ class Build(BaseBuild):
           'Cleared all data directories to free up space, exiting.')
 
     # Unpack the local build archive.
-    logs.log('Unpacking build archive %s.' % build_local_archive)
+    logs.info('Unpacking build archive %s.' % build_local_archive)
     trusted = not utils.is_oss_fuzz()
     try:
       archive.unpack(
@@ -581,7 +581,7 @@ class Build(BaseBuild):
           trusted=trusted,
           file_match_callback=file_match_callback)
     except:
-      logs.log_error('Unable to unpack build archive %s.' % build_local_archive)
+      logs.error('Unable to unpack build archive %s.' % build_local_archive)
       return False
 
     reader.close()
@@ -603,7 +603,7 @@ class Build(BaseBuild):
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    log_func = logs.log_warn if elapsed_time > UNPACK_TIME_LIMIT else logs.log
+    log_func = logs.warning if elapsed_time > UNPACK_TIME_LIMIT else logs.info
     log_func('Build took %0.02f minutes to unpack.' % (elapsed_time / 60.))
 
     return True
@@ -677,7 +677,7 @@ class Build(BaseBuild):
                               app_path='APP_PATH',
                               build_update=False):
     """Sets up APP_PATH environment variables for revision build."""
-    logs.log('Setup application path.')
+    logs.info('Setup application path.')
 
     if not build_dir:
       build_dir = self.build_dir
@@ -760,21 +760,21 @@ class RegularBuild(Build):
     self._pre_setup()
     environment.set_value(self.env_prefix + 'BUILD_URL', self.build_url)
 
-    logs.log(f'Retrieving build r{self.revision}.')
+    logs.info(f'Retrieving build r{self.revision}.')
     build_update = not self.exists()
     if build_update:
       if not self._unpack_build(self.base_build_dir, self.build_dir,
                                 self.build_url, self.target_weights):
         return False
 
-      logs.log('Retrieved build r%d.' % self.revision)
+      logs.info('Retrieved build r%d.' % self.revision)
     else:
       self._pick_fuzz_target(
           self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
 
       # We have the revision required locally, no more work to do, other than
       # setting application path environment variables.
-      logs.log('Build already exists.')
+      logs.info('Build already exists.')
 
     self._setup_application_path(build_update=build_update)
     self._post_setup_success(update_revision=build_update)
@@ -816,7 +816,7 @@ class FuchsiaBuild(RegularBuild):
     # path through which instances are shut down)
     fuchsia.undercoat.stop_all()
 
-    logs.log('Starting Fuchsia instance.')
+    logs.info('Starting Fuchsia instance.')
     handle = fuchsia.undercoat.start_instance()
     environment.set_value('FUCHSIA_INSTANCE_HANDLE', handle)
 
@@ -844,7 +844,7 @@ class CuttlefishKernelBuild(RegularBuild):
 
     # Download syzkaller binary folder.
     if not environment.get_value('SYZKALLER_BUCKET_PATH'):
-      logs.log_error('SYZKALLER_BUCKET_PATH is not set for syzkaller.')
+      logs.error('SYZKALLER_BUCKET_PATH is not set for syzkaller.')
       return False
     archive_src_path = environment.get_value('SYZKALLER_BUCKET_PATH')
     archive_dst_path = os.path.join(self.build_dir, 'syzkaller.zip')
@@ -894,7 +894,7 @@ class SymbolizedBuild(Build):
   def _unpack_builds(self):
     """Download and unpack builds."""
     if not shell.remove_directory(self.build_dir, recreate=True):
-      logs.log_error('Unable to clear symbolized build directory.')
+      logs.error('Unable to clear symbolized build directory.')
       _handle_unrecoverable_error_on_windows()
       return False
 
@@ -915,16 +915,16 @@ class SymbolizedBuild(Build):
 
   def setup(self):
     self._pre_setup()
-    logs.log('Retrieving symbolized build r%d.' % self.revision)
+    logs.info('Retrieving symbolized build r%d.' % self.revision)
 
     build_update = not self.exists()
     if build_update:
       if not self._unpack_builds():
         return False
 
-      logs.log('Retrieved symbolized build r%d.' % self.revision)
+      logs.info('Retrieved symbolized build r%d.' % self.revision)
     else:
-      logs.log('Build already exists.')
+      logs.info('Build already exists.')
 
     if self.release_build_url:
       self._setup_application_path(
@@ -963,7 +963,7 @@ class CustomBuild(Build):
   def _unpack_custom_build(self):
     """Unpack the custom build."""
     if not shell.remove_directory(self.build_dir, recreate=True):
-      logs.log_error('Unable to clear custom binary directory.')
+      logs.error('Unable to clear custom binary directory.')
       _handle_unrecoverable_error_on_windows()
       return False
 
@@ -975,7 +975,7 @@ class CustomBuild(Build):
     try:
       reader = archive.open(build_local_archive)
     except:
-      logs.log_error('Unable to open build archive %s.' % build_local_archive)
+      logs.error('Unable to open build archive %s.' % build_local_archive)
       return False
 
     # If custom binary is an archive, then unpack it.
@@ -991,8 +991,7 @@ class CustomBuild(Build):
       try:
         archive.unpack(reader, self.build_dir, trusted=True)
       except:
-        logs.log_error(
-            'Unable to unpack build archive %s.' % build_local_archive)
+        logs.error('Unable to unpack build archive %s.' % build_local_archive)
         return False
 
       # Remove the archive.
@@ -1011,7 +1010,7 @@ class CustomBuild(Build):
     # later.
     environment.set_value('BUILD_KEY', self.custom_binary_key)
 
-    logs.log('Retrieving custom binary build r%d.' % self.revision)
+    logs.info('Retrieving custom binary build r%d.' % self.revision)
 
     revision_file = os.path.join(self.build_dir, REVISION_FILE_NAME)
     build_update = revisions.needs_update(revision_file, self.revision)
@@ -1020,9 +1019,9 @@ class CustomBuild(Build):
       if not self._unpack_custom_build():
         return False
 
-      logs.log('Retrieved custom binary build r%d.' % self.revision)
+      logs.info('Retrieved custom binary build r%d.' % self.revision)
     else:
-      logs.log('Build already exists.')
+      logs.info('Build already exists.')
 
       self._pick_fuzz_target(
           self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
@@ -1085,7 +1084,7 @@ def _sort_build_urls_by_revision(build_urls, bucket_path, reverse):
         reverse=reverse,
         key=lambda x: list(map(int, x.split('.'))))
   except:
-    logs.log_warn(
+    logs.warning(
         'Revision pattern is not an integer, falling back to string sort.')
     sorted_revisions = sorted(filename_by_revision_dict, reverse=reverse)
 
@@ -1252,13 +1251,13 @@ def _get_latest_revision(bucket_paths):
   for bucket_path in bucket_paths:
     urls_list = get_build_urls_list(bucket_path)
     if not urls_list:
-      logs.log_error('Error getting list of build urls from %s.' % bucket_path)
+      logs.error('Error getting list of build urls from %s.' % bucket_path)
       return None
 
     build_urls.append(BuildUrls(bucket_path=bucket_path, urls_list=urls_list))
 
   if len(build_urls) == 0:
-    logs.log_error(
+    logs.error(
         'Attempted to get latest revision, but no build urls were found.')
     return None
 
@@ -1285,7 +1284,7 @@ def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
   """Sets up latest trunk build."""
   latest_revision = _get_latest_revision(bucket_paths)
   if latest_revision is None:
-    logs.log_error('Unable to find a matching revision.')
+    logs.error('Unable to find a matching revision.')
     return None
 
   build = setup_regular_build(
@@ -1294,7 +1293,7 @@ def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
       build_prefix=build_prefix,
       target_weights=target_weights)
   if not build:
-    logs.log_error('Failed to set up a build.')
+    logs.error('Failed to set up a build.')
     return None
 
   return build
@@ -1313,11 +1312,11 @@ def setup_regular_build(revision,
   build_urls = get_build_urls_list(bucket_path)
   job_type = environment.get_value('JOB_NAME')
   if not build_urls:
-    logs.log_error('Error getting build urls for job %s.' % job_type)
+    logs.error('Error getting build urls for job %s.' % job_type)
     return None
   build_url = revisions.find_build_url(bucket_path, build_urls, revision)
   if not build_url:
-    logs.log_error(
+    logs.error(
         'Error getting build url for job %s (r%d).' % (job_type, revision))
 
     return None
@@ -1356,8 +1355,8 @@ def setup_regular_build(revision,
     extra_build_url = revisions.find_build_url(extra_bucket_path,
                                                extra_build_urls, revision)
     if not extra_build_url:
-      logs.log_error('Error getting extra build url for job %s (r%d).' %
-                     (job_type, revision))
+      logs.error('Error getting extra build url for job %s (r%d).' % (job_type,
+                                                                      revision))
       return None
 
     build = build_class(
@@ -1384,9 +1383,8 @@ def setup_symbolized_builds(revision):
 
   # We should at least have a symbolized debug or release build.
   if not sym_release_build_urls and not sym_debug_build_urls:
-    logs.log_error(
-        'Error getting list of symbolized build urls from (%s, %s).' %
-        (sym_release_build_bucket_path, sym_debug_build_bucket_path))
+    logs.error('Error getting list of symbolized build urls from (%s, %s).' %
+               (sym_release_build_bucket_path, sym_debug_build_bucket_path))
     return None
 
   sym_release_build_url = revisions.find_build_url(
@@ -1425,7 +1423,7 @@ def setup_custom_binary(target_weights=None):
   # Verify that this is really a custom binary job.
   job = data_types.Job.query(data_types.Job.name == job_name).get()
   if not job or not job.custom_binary_key or not job.custom_binary_filename:
-    logs.log_error(
+    logs.error(
         'Job does not have a custom binary, even though CUSTOM_BINARY is set.')
     return False
 
@@ -1488,10 +1486,10 @@ def setup_build(revision=0, target_weights=None):
     if bucket_path:
       bucket_paths.append(bucket_path)
     else:
-      logs.log('Bucket path not found for %s' % env_var)
+      logs.info('Bucket path not found for %s' % env_var)
 
   if len(bucket_paths) == 0:
-    logs.log_error('Attempted a trunk build, but no bucket paths were found.')
+    logs.error('Attempted a trunk build, but no bucket paths were found.')
     return None
 
   return setup_trunk_build(bucket_paths, target_weights=target_weights)
@@ -1573,12 +1571,12 @@ def check_app_path(app_path='APP_PATH') -> bool:
   # If APP_NAME is not set (e.g. for grey box jobs), then we don't need
   # APP_PATH.
   if not environment.get_value('APP_NAME'):
-    logs.log('APP_NAME is not set.')
+    logs.info('APP_NAME is not set.')
     return True
-  logs.log('APP_NAME is set.')
+  logs.info('APP_NAME is set.')
 
   app_path_value = environment.get_value(app_path)
-  logs.log(f'app_path: {app_path} {app_path_value}')
+  logs.info(f'app_path: {app_path} {app_path_value}')
   return bool(app_path_value)
 
 

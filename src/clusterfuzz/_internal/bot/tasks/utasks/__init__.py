@@ -85,14 +85,14 @@ def _preprocess(utask_module, task_argument, job_type, uworker_env):
   start = _timestamp_now()
   ensure_uworker_env_type_safety(uworker_env)
   set_uworker_env(uworker_env)
-  logs.log('Starting utask_preprocess: %s.' % utask_module)
+  logs.info('Starting utask_preprocess: %s.' % utask_module)
   uworker_input = utask_module.utask_preprocess(task_argument, job_type,
                                                 uworker_env)
   if not uworker_input:
-    logs.log_error('No uworker_input returned from preprocess')
+    logs.error('No uworker_input returned from preprocess')
     return None
 
-  logs.log('Preprocess finished.')
+  logs.info('Preprocess finished.')
 
   task_payload = environment.get_value('TASK_PAYLOAD')
   if task_payload:
@@ -111,7 +111,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
   serialized output."""
   result = _preprocess(utask_module, task_argument, job_type, uworker_env)
   if not result:
-    logs.log_error('No uworker_input returned from preprocess')
+    logs.error('No uworker_input returned from preprocess')
     return None
   uworker_input, start = result
   result = uworker_io.serialize_uworker_input(uworker_input)
@@ -123,7 +123,7 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
 def uworker_main_no_io(utask_module, serialized_uworker_input):
   """Exectues the main part of a utask on the uworker (locally if not using
   remote executor)."""
-  logs.log('Starting utask_main: %s.' % utask_module)
+  logs.info('Starting utask_main: %s.' % utask_module)
   uworker_input = uworker_io.deserialize_uworker_input(serialized_uworker_input)
 
   # Deal with the environment.
@@ -199,11 +199,11 @@ def uworker_main(input_download_url) -> None:
   uworker_input.uworker_env.clear()
 
   utask_module = get_utask_module(uworker_input.module_name)
-  logs.log('Starting utask_main: %s.' % utask_module)
+  logs.info('Starting utask_main: %s.' % utask_module)
   uworker_output = utask_module.utask_main(uworker_input)
   uworker_io.serialize_and_upload_uworker_output(uworker_output,
                                                  uworker_output_upload_url)
-  logs.log('Finished uworker_main.')
+  logs.info('Finished uworker_main.')
   _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
                        uworker_input.job_type, _Subtask.UWORKER_MAIN,
                        _Mode.BATCH)
@@ -216,7 +216,7 @@ def get_utask_module(module_name):
 
 def uworker_bot_main():
   """The entrypoint for a uworker."""
-  logs.log('Starting utask_main on untrusted worker.')
+  logs.info('Starting utask_main on untrusted worker.')
   input_download_url = environment.get_value('UWORKER_INPUT_DOWNLOAD_URL')
   uworker_main(input_download_url)
   return 0

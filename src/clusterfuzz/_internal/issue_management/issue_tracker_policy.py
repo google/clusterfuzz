@@ -79,10 +79,10 @@ class IssueTrackerPolicy:
     extension_fields = {}
     # Extension fields are dynamically added to the policy
     # depending on which (if any) have been set in the config
-    logs.log('extension_fields: issue_type: %s' % issue_type)
+    logs.info('extension_fields: issue_type: %s' % issue_type)
     for k, v in issue_type.items():
       if k.startswith(EXTENSION_PREFIX):
-        logs.log('extension_fields: Found %s with value %s' % (k, v))
+        logs.info('extension_fields: Found %s with value %s' % (k, v))
         extension_fields[k] = v
     return extension_fields
 
@@ -212,8 +212,8 @@ def get(project_name):
   """Get policy."""
   issue_tracker_config = local_config.IssueTrackerConfig()
   project_config = issue_tracker_config.get(project_name)
-  logs.log('project_name: %s' % project_name)
-  logs.log('project_config: %s' % project_config)
+  logs.info('project_name: %s' % project_name)
+  logs.info('project_config: %s' % project_config)
   if not project_config:
     raise ConfigurationError(
         'Issue tracker for {} does not exist'.format(project_name))

@@ -370,13 +370,13 @@ class LogErrorTest(unittest.TestCase):
   def test_no_exception(self):
     """Tests no exception."""
     self.mock.exc_info.return_value = 'err'
-    logs.log_error('test', hello='1')
+    logs.error('test', hello='1')
     self.mock.emit.assert_called_once_with(
         logging.ERROR, 'test', exc_info='err', hello='1')
 
   def test_exception(self):
     """Tests exception."""
     self.mock.exc_info.return_value = 'err'
-    logs.log_error('test', exception='exception', hello='1')
+    logs.error('test', exception='exception', hello='1')
     self.mock.emit.assert_called_once_with(
         logging.ERROR, 'test', exc_info='err', hello='1')

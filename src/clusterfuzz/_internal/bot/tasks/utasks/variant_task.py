@@ -121,7 +121,7 @@ def utask_main(uworker_input):
   try:
     build_manager.setup_build()
   except errors.BuildNotFoundError:
-    logs.log_warn('Matching build not found.')
+    logs.warning('Matching build not found.')
     return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 

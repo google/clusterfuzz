@@ -124,15 +124,14 @@ def add_crash_to_global_blacklist_if_needed(testcase):
   """Adds relevant function from testcase crash state to global blacklist."""
   testcase_id = testcase.key.id()
   if not should_be_blacklisted(testcase):
-    logs.log('Testcase %s is not a reproducible leak, skipping leak blacklist.'
-             % testcase_id)
+    logs.info('Testcase %s is not a reproducible leak, skipping leak blacklist.'
+              % testcase_id)
     return False
 
   function_name = get_leak_function_for_blacklist(testcase)
   if not function_name:
-    logs.log_error(
-        'Testcase %s has invalid crash state, skipping leak blacklist.' %
-        testcase_id)
+    logs.error('Testcase %s has invalid crash state, skipping leak blacklist.' %
+               testcase_id)
     return False
 
   existing_query = data_types.Blacklist.query(
@@ -143,7 +142,7 @@ def add_crash_to_global_blacklist_if_needed(testcase):
       data_types.Blacklist.tool_name == LSAN_TOOL_NAME)
 
   if existing_query.get():
-    logs.log_error('Item already in leak blacklist.')
+    logs.error('Item already in leak blacklist.')
     return False
 
   blacklist_item = data_types.Blacklist(
@@ -151,7 +150,7 @@ def add_crash_to_global_blacklist_if_needed(testcase):
       testcase_id=testcase_id,
       tool_name=LSAN_TOOL_NAME)
   blacklist_item.put()
-  logs.log('Added %s to leak blacklist.' % function_name)
+  logs.info('Added %s to leak blacklist.' % function_name)
 
   return blacklist_item
 

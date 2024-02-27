@@ -65,7 +65,7 @@ def _add_default_issue_metadata(testcase):
     if new_value == uploader_value:
       continue
 
-    logs.log('Updating issue metadata for {} from {} to {}.'.format(
+    logs.info('Updating issue metadata for {} from {} to {}.'.format(
         key, uploader_value, new_value))
     testcase.set_metadata(key, new_value)
 
@@ -210,7 +210,7 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
         http_flag=True,
         compare_crash=False)
     if result_with_http.is_crash():
-      logs.log('Testcase needs http flag for crash.')
+      logs.info('Testcase needs http flag for crash.')
       http_flag = True
       result = result_with_http
     return result, http_flag
@@ -284,8 +284,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)
   if not testcase_upload_metadata:
-    logs.log_error(
-        'Testcase %s has no associated upload metadata.' % testcase_id)
+    logs.error('Testcase %s has no associated upload metadata.' % testcase_id)
     testcase.key.delete()
     return None
 
@@ -557,7 +556,7 @@ def utask_postprocess(output):
   testcase_upload_metadata.put()
 
   _add_default_issue_metadata(testcase)
-  logs.log('Creating post-analyze tasks.')
+  logs.info('Creating post-analyze tasks.')
 
   # Create tasks to
   # 1. Minimize testcase (minimize).

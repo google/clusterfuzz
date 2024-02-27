@@ -34,7 +34,7 @@ def start_if_needed(service):
     googlecloudprofiler.start(
         project_id=project_id, service=service_with_platform)
   except Exception:
-    logs.log_error(
+    logs.error(
         'Failed to start the profiler for service %s.' % service_with_platform)
     return False
 

@@ -196,5 +196,5 @@ def get_fuzz_target_options(fuzz_target_path):
   try:
     return FuzzerOptions(options_file_path, cwd=options_cwd)
   except FuzzerOptionsError:
-    logs.log_error('Invalid options file: %s.' % options_file_path)
+    logs.error('Invalid options file: %s.' % options_file_path)
     return None

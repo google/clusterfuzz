@@ -162,5 +162,5 @@ def wait_until_optimization_complete():
     if package_optimization_finished:
       return
 
-    logs.log('Waiting for package optimization to finish.')
+    logs.info('Waiting for package optimization to finish.')
     time.sleep(PACKAGE_OPTIMIZATION_INTERVAL)

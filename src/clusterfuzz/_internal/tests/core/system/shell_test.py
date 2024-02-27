@@ -76,8 +76,8 @@ class RemoveDirectoryTest(unittest.TestCase):
         'os.path.exists',
         'os.system',
         'clusterfuzz._internal.system.environment.platform',
-        'clusterfuzz._internal.metrics.logs.log_error',
-        'clusterfuzz._internal.metrics.logs.log_warn',
+        'clusterfuzz._internal.metrics.logs.error',
+        'clusterfuzz._internal.metrics.logs.warning',
         'shutil.rmtree',
     ])
 

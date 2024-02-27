@@ -88,7 +88,7 @@ def download_repo_prop_if_needed(symbols_directory, build_id, cache_target,
                               targets_with_type_and_san, artifact_file_name,
                               output_filename_override)
   if not os.path.exists(symbols_archive_path):
-    logs.log_error('Unable to locate repo.prop %s.' % symbols_archive_path)
+    logs.error('Unable to locate repo.prop %s.' % symbols_archive_path)
     return
 
   # Store the artifact for later use or for use by other bots.
@@ -106,7 +106,7 @@ def download_kernel_repo_prop_if_needed(symbols_directory):
   _, build_id = kernel_utils.get_kernel_hash_and_build_id()
   target = kernel_utils.get_kernel_name()
   if not build_id or not target:
-    logs.log_error('Could not get kernel parameters, exiting.')
+    logs.error('Could not get kernel parameters, exiting.')
     return
 
   tool_suffix = environment.get_value('SANITIZER_TOOL_NAME')
@@ -130,7 +130,7 @@ def download_system_symbols_if_needed(symbols_directory):
   # Get the build fingerprint parameters.
   build_params = settings.get_build_parameters()
   if not build_params:
-    logs.log_error('Unable to determine build parameters.')
+    logs.error('Unable to determine build parameters.')
     return
 
   build_params_check_path = os.path.join(symbols_directory,
@@ -144,7 +144,7 @@ def download_system_symbols_if_needed(symbols_directory):
   if environment.is_android():
     build_type = constants.RELEASE_CONFIGURATION + '-' + build_type
   if not build_id or not target or not build_type:
-    logs.log_error('Null build parameters found, exiting.')
+    logs.error('Null build parameters found, exiting.')
     return
 
   symbols_archive_filename = f'{target}-symbols-{build_id}.zip'
@@ -165,8 +165,7 @@ def download_system_symbols_if_needed(symbols_directory):
                               targets_with_type_and_san, artifact_file_name,
                               output_filename_override)
   if not os.path.exists(symbols_archive_path):
-    logs.log_error(
-        'Unable to locate symbols archive %s.' % symbols_archive_path)
+    logs.error('Unable to locate symbols archive %s.' % symbols_archive_path)
     return
 
   with archive.open(symbols_archive_path) as reader:
@@ -251,5 +250,5 @@ def filter_binary_path(binary_path):
       return local_binary_path
 
   # Unable to find library.
-  logs.log_error('Unable to find library %s for symbolization.' % binary_path)
+  logs.error('Unable to find library %s for symbolization.' % binary_path)
   return ''

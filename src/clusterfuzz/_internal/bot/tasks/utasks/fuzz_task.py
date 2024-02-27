@@ -142,7 +142,7 @@ class Crash:
       orig_unsymbolized_crash_stacktrace = (
           get_unsymbolized_crash_stacktrace(crash.stack_file_path))
     except Exception:
-      logs.log_error(
+      logs.error(
           'Unable to read stacktrace from file %s.' % crash.stack_file_path)
       return None
 
@@ -467,14 +467,14 @@ def _last_sync_time(sync_file_path):
 
   file_contents = utils.read_data_from_file(sync_file_path, eval_data=False)
   if not file_contents:
-    logs.log_warn('Empty last sync file.', path=sync_file_path)
+    logs.warning('Empty last sync file.', path=sync_file_path)
     return None
 
   last_sync_time = None
   try:
     last_sync_time = datetime.datetime.utcfromtimestamp(float(file_contents))
   except Exception as e:
-    logs.log_error(
+    logs.error(
         'Malformed last sync file: "%s".' % str(e),
         path=sync_file_path,
         contents=file_contents)
@@ -540,8 +540,8 @@ class GcsCorpus:
     if last_sync_time and os.path.exists(self._corpus_directory):
       last_update_time = storage.last_updated(self._get_gcs_url())
       if last_update_time and last_sync_time > last_update_time:
-        logs.log('Corpus for target %s has no new updates, skipping rsync.' %
-                 self._project_qualified_target_name)
+        logs.info('Corpus for target %s has no new updates, skipping rsync.' %
+                  self._project_qualified_target_name)
         already_synced = True
 
     time_before_sync_start = time.time()
@@ -549,7 +549,7 @@ class GcsCorpus:
     self._synced_files.clear()
     self._synced_files.update(self._walk())
 
-    logs.log('%d corpus files for target %s synced to disk.' % (len(
+    logs.info('%d corpus files for target %s synced to disk.' % (len(
         self._synced_files), self._project_qualified_target_name))
 
     # On success of rsync, update the last sync file with current timestamp.
@@ -615,7 +615,7 @@ def get_fuzzer_metadata_from_output(fuzzer_output):
 
 def get_testcases(testcase_count, testcase_directory, data_directory):
   """Return fuzzed testcases from the data directories."""
-  logs.log('Locating generated test cases.')
+  logs.info('Locating generated test cases.')
 
   # Get the list of testcase files.
   testcase_directories = [testcase_directory, data_directory]
@@ -641,7 +641,7 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
       'Generated %d/%d testcases.' % (generated_testcase_count, testcase_count))
 
   # Log the number of testcases generated.
-  logs.log(generated_testcase_string)
+  logs.info(generated_testcase_string)
 
   # If we are running the same command (again and again) on this bot,
   # we want to be careful of scenarios when the fuzzer starts failing
@@ -649,7 +649,7 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
   # will put lot of burden on appengine remote api.
   if (environment.get_value('COMMAND_OVERRIDE') and
       generated_testcase_count == 0):
-    logs.log('No testcases generated. Sleeping for ~30 minutes.')
+    logs.info('No testcases generated. Sleeping for ~30 minutes.')
     time.sleep(random.uniform(1800, 2100))
 
   return (testcase_file_paths, generated_testcase_count,
@@ -869,7 +869,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   if not save_test_results:
     return None
 
-  logs.log('Started storing results from fuzzer run.')
+  logs.info('Started storing results from fuzzer run.')
 
   fuzzer_run_results_output = uworker_msg_pb2.StoreFuzzerRunResultsOutput()
   if testcase_file_paths:
@@ -919,7 +919,7 @@ def postprocess_store_fuzzer_run_results(output):
 
   fuzzer_run_results = output.fuzz_task_output.fuzzer_run_results
   if fuzzer.revision != output.fuzz_task_output.fuzzer_revision:
-    logs.log('Fuzzer was recently updated, skipping results from old version.')
+    logs.info('Fuzzer was recently updated, skipping results from old version.')
     return
   fuzzer.sample_testcase = (
       uworker_input.fuzz_task_input.sample_testcase_upload_key)
@@ -929,7 +929,7 @@ def postprocess_store_fuzzer_run_results(output):
   fuzzer.return_code = fuzzer_run_results.fuzzer_return_code
   fuzzer.put()
 
-  logs.log('Finished storing results from fuzzer run.')
+  logs.info('Finished storing results from fuzzer run.')
 
 
 def get_regression(one_time_crasher_flag):
@@ -1027,7 +1027,7 @@ def filter_crashes(crashes: List[CrashInfo]) -> List[CrashInfo]:
 
   for crash in crashes:
     if not crash.is_valid():
-      logs.log(
+      logs.info(
           (f'Ignore crash (reason={crash.get_error()}, '
            f'type={crash.crash_type}, state={crash.crash_state})'),
           stacktrace=crash.crash_stacktrace)
@@ -1120,12 +1120,12 @@ def write_crashes_to_big_query(group, context):
         failed_count, {'success': False})
 
     for error in errors:
-      logs.log_error(
+      logs.error(
           ('Ignoring error writing the crash (%s) to BigQuery.' %
            group.crashes[error['index']].crash_type),
           exception=Exception(error))
   except Exception:
-    logs.log_error('Ignoring error writing a group of crashes to BigQuery')
+    logs.error('Ignoring error writing a group of crashes to BigQuery')
     monitoring_metrics.BIG_QUERY_WRITE_COUNT.increment_by(
         row_count, {'success': False})
 
@@ -1180,11 +1180,11 @@ def process_crashes(crashes, context):
     # Archiving testcase to blobstore might fail for all crashes within this
     # group.
     if not group.main_crash:
-      logs.log('Unable to store testcase in blobstore: %s' %
-               group.crashes[0].crash_state)
+      logs.info('Unable to store testcase in blobstore: %s' %
+                group.crashes[0].crash_state)
       continue
 
-    logs.log(
+    logs.info(
         'Process the crash group (file=%s, '
         'fuzzed_key=%s, '
         'return code=%s, '
@@ -1216,9 +1216,10 @@ def process_crashes(crashes, context):
     # Artificial delay to throttle appengine updates.
     time.sleep(1)
 
-  logs.log('Finished processing crashes.')
-  logs.log(f'New crashes: {new_crash_count}, known crashes: {known_crash_count}'
-           f', processed groups: {processed_groups}')
+  logs.info('Finished processing crashes.')
+  logs.info(
+      f'New crashes: {new_crash_count}, known crashes: {known_crash_count}'
+      f', processed groups: {processed_groups}')
   return new_crash_count, known_crash_count, processed_groups
 
 
@@ -1287,7 +1288,7 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
   result = engine_impl.fuzz(target_path, options, testcase_directory,
                             fuzz_test_timeout)
 
-  logs.log('Used strategies.', strategies=options.strategies)
+  logs.info('Used strategies.', strategies=options.strategies)
   for strategy, value in options.strategies.items():
     result.stats['strategy_' + strategy] = value
 
@@ -1377,9 +1378,9 @@ class FuzzingSession:
     """Sync new files from corpus to GCS."""
     new_files = self.gcs_corpus.get_new_files()
     new_files_count = len(new_files)
-    logs.log('%d new corpus files generated by fuzzer %s (job %s).' %
-             (new_files_count, self.fuzz_target.project_qualified_name(),
-              self.job_type))
+    logs.info('%d new corpus files generated by fuzzer %s (job %s).' %
+              (new_files_count, self.fuzz_target.project_qualified_name(),
+               self.job_type))
 
     filtered_new_files = []
     filtered_new_files_count = 0
@@ -1392,10 +1393,10 @@ class FuzzingSession:
       filtered_new_files_count += 1
 
     if filtered_new_files_count < new_files_count:
-      logs.log(('Uploading only %d out of %d new corpus files '
-                'generated by fuzzer %s (job %s).') %
-               (filtered_new_files_count, new_files_count,
-                self.fuzz_target.project_qualified_name(), self.job_type))
+      logs.info(('Uploading only %d out of %d new corpus files '
+                 'generated by fuzzer %s (job %s).') %
+                (filtered_new_files_count, new_files_count,
+                 self.fuzz_target.project_qualified_name(), self.job_type))
 
     self.gcs_corpus.upload_files(filtered_new_files)
 
@@ -1423,8 +1424,7 @@ class FuzzingSession:
 
     # Make sure we have a file to execute for the fuzzer.
     if not fuzzer.executable_path:
-      logs.log_error(
-          'Fuzzer %s does not have an executable path.' % fuzzer_name)
+      logs.error('Fuzzer %s does not have an executable path.' % fuzzer_name)
       return error_return_value
 
     # Get the fuzzer executable and chdir to its base directory. This helps to
@@ -1434,7 +1434,7 @@ class FuzzingSession:
 
     # Make sure the fuzzer executable exists on disk.
     if not os.path.exists(fuzzer_executable):
-      logs.log_error(
+      logs.error(
           'File %s does not exist. Cannot generate testcases for fuzzer %s.' %
           (fuzzer_executable, fuzzer_name))
       return error_return_value
@@ -1456,7 +1456,7 @@ class FuzzingSession:
     fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
 
     # Run the fuzzer.
-    logs.log('Running fuzzer - %s.' % fuzzer_command)
+    logs.info('Running fuzzer - %s.' % fuzzer_command)
     fuzzer_return_code, fuzzer_duration, fuzzer_output = (
         process_handler.run_process(
             fuzzer_command,
@@ -1503,13 +1503,13 @@ class FuzzingSession:
     if fuzzer_return_code:
       if float(
           generated_testcase_count) / testcase_count < FUZZER_FAILURE_THRESHOLD:
-        logs.log_error(
+        logs.error(
             ('Fuzzer failed to generate testcases '
              '(fuzzer={name}, return_code={return_code}).').format(
                  name=fuzzer_name, return_code=fuzzer_return_code),
             output=fuzzer_output)
       else:
-        logs.log_warn(
+        logs.warning(
             ('Fuzzer generated less than expected testcases '
              '(fuzzer={name}, return_code={return_code}).').format(
                  name=fuzzer_name, return_code=fuzzer_return_code),
@@ -1555,7 +1555,7 @@ class FuzzingSession:
 
     # Do the actual fuzzing.
     for fuzzing_round in range(environment.get_value('MAX_TESTCASES', 1)):
-      logs.log(f'Fuzzing round {fuzzing_round}.')
+      logs.info(f'Fuzzing round {fuzzing_round}.')
       result, current_fuzzer_metadata, fuzzing_strategies = run_engine_fuzzer(
           engine_impl, self.fuzz_target.binary, sync_corpus_directory,
           self.testcase_directory)
@@ -1589,7 +1589,7 @@ class FuzzingSession:
             if crash
         ])
 
-    logs.log('All fuzzing rounds complete.')
+    logs.info('All fuzzing rounds complete.')
     return crashes, fuzzer_metadata
 
   def do_blackbox_fuzzing(self, fuzzer, fuzzer_directory, job_type):
@@ -1658,11 +1658,11 @@ class FuzzingSession:
     # only apply some of the time. Adjust APP_ARGS for them if needed.
     trial_selector.setup_additional_args_for_app()
 
-    logs.log('Starting to process testcases.')
-    logs.log('Redzone is %d bytes.' % self.redzone)
-    logs.log('Timeout multiplier is %s.' % str(self.timeout_multiplier))
-    logs.log('App launch command is %s.' %
-             testcase_manager.get_command_line_for_application())
+    logs.info('Starting to process testcases.')
+    logs.info('Redzone is %d bytes.' % self.redzone)
+    logs.info('Timeout multiplier is %s.' % str(self.timeout_multiplier))
+    logs.info('App launch command is %s.' %
+              testcase_manager.get_command_line_for_application())
 
     # Start processing the testcases.
     while test_number < len(testcase_file_paths):
@@ -1672,7 +1672,7 @@ class FuzzingSession:
       temp_queue = process_handler.get_queue()
       if not temp_queue:
         process_handler.terminate_stale_application_instances()
-        logs.log_error('Unable to create temporary crash queue.')
+        logs.error('Unable to create temporary crash queue.')
         break
 
       while thread_index < max_threads and test_number < len(
@@ -1692,7 +1692,7 @@ class FuzzingSession:
         except:
           process_handler.terminate_stale_application_instances()
           thread_error_occurred = True
-          logs.log_error('Unable to start new thread.')
+          logs.error('Unable to start new thread.')
           break
 
         threads.append(thread)
@@ -1723,7 +1723,7 @@ class FuzzingSession:
 
       process_handler.close_queue(temp_queue)
 
-      logs.log('Upto %d' % test_number)
+      logs.info('Upto %d' % test_number)
 
       if thread_error_occurred:
         break
@@ -1762,11 +1762,11 @@ class FuzzingSession:
       leak_blacklist.copy_global_to_local_blacklist()
 
     # Ensure that that the fuzzer still exists.
-    logs.log('Setting up fuzzer and data bundles.')
+    logs.info('Setting up fuzzer and data bundles.')
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
         self.uworker_input.setup_input)
     if not self.fuzzer:
-      logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
+      logs.error('Unable to setup fuzzer %s.' % self.fuzzer_name)
 
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
@@ -1802,11 +1802,11 @@ class FuzzingSession:
       sanitized_target_bucket_path = environment.get_value(
           'SANITIZED_TARGET_BUILD_BUCKET_PATH')
       if sanitized_target_bucket_path:
-        logs.log_error('Failed to set up sanitized_target_build.')
+        logs.error('Failed to set up sanitized_target_build.')
 
     # Check if we have a bad build, i.e. one that crashes on startup.
     # If yes, bail out.
-    logs.log('Checking for bad build.')
+    logs.info('Checking for bad build.')
     crash_revision = environment.get_value('APP_REVISION')
 
     build_data = testcase_manager.check_for_bad_build(self.job_type,
@@ -1824,7 +1824,7 @@ class FuzzingSession:
     # because of dependencies.
     self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
     if not self.data_directory:
-      logs.log_error(
+      logs.error(
           'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
@@ -1848,7 +1848,7 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
-    logs.log('Finished processing test cases.')
+    logs.info('Finished processing test cases.')
 
     # For Android, bring back device to a good state before analyzing crashes.
     if environment.is_android() and crashes:
@@ -1860,7 +1860,7 @@ class FuzzingSession:
       # testcase is analyzed.
       android.device.initialize_device()
 
-    logs.log(f'Raw crash count: {len(crashes)}')
+    logs.info(f'Raw crash count: {len(crashes)}')
 
     project_name = os.environ['PROJECT_NAME']
 
@@ -1929,8 +1929,8 @@ class FuzzingSession:
     fuzz_task_output = uworker_output.fuzz_task_output
     postprocess_store_fuzzer_run_results(uworker_output)
     crash_groups = convert_crashes_to_dicts(fuzz_task_output.job_run_crashes)
-    logs.log('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
-             f'{fuzz_task_output.fully_qualified_fuzzer_name}')
+    logs.info('postprocess: fuzz_task_output.fully_qualified_fuzzer_name '
+              f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     upload_job_run_stats(
         fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
@@ -2002,9 +2002,9 @@ _ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 def pick_fuzz_target(job_type):
   """Picks a random fuzz target from job_type for use in fuzzing."""
   if not environment.is_engine_fuzzer_job():
-    logs.log('Not engine fuzzer. Not picking fuzz target.')
+    logs.info('Not engine fuzzer. Not picking fuzz target.')
     return None
-  logs.log('Picking fuzz target.')
+  logs.info('Picking fuzz target.')
   targets = [
       target_job.fuzz_target_name
       for target_job in fuzz_target_utils.get_fuzz_target_jobs(job=job_type)

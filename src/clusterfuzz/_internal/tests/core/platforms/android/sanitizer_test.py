@@ -73,7 +73,7 @@ class SetOptionsTest(android_helpers.AndroidTest):
     """Setup for set options test."""
     super().setUp()
 
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
 
     if settings.get_sanitizer_tool_name():
       self.skipTest('This test is not applicable on a system sanitizer build.')
@@ -109,7 +109,7 @@ class SetupASanIfNeededTest(android_helpers.AndroidTest):
     """Setup for setup ASan if needed test."""
     super().setUp()
 
-    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_error'])
+    test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
 
     if settings.get_sanitizer_tool_name():
       self.skipTest('This test is not applicable on a system sanitizer build.')
