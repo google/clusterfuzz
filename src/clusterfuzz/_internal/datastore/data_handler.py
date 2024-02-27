@@ -884,7 +884,7 @@ def update_testcase_comment(testcase, task_state, message=None):
     log_func = (
         logs.error if task_state == data_types.TaskState.ERROR else logs.info)
     testcase_id = testcase.key.id()
-    log_func(f'{message} (testcase {actual_id}, job {testcase.job_type}).')
+    log_func(f'{message} (testcase {testcase_id}, job {testcase.job_type}).')
 
 
 def get_open_testcase_id_iterator():
