@@ -1,0 +1,139 @@
++----------------------------------------Release Build Stacktrace----------------------------------------+
+[1537171:1537204:0214/065240.734167:ERROR:bus.cc(397)] Failed to connect to the bus: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+[1537171:1537204:0214/065240.734525:ERROR:bus.cc(397)] Failed to connect to the bus: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+[1537171:1537258:0214/065247.357449:ERROR:bus.cc(397)] Failed to connect to the bus: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+[1537171:1537258:0214/065247.358378:ERROR:bus.cc(397)] Failed to connect to the bus: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+[1537171:1537258:0214/065247.359490:ERROR:bus.cc(397)] Failed to connect to the bus: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+[1537171:1537258:0214/065247.359924:ERROR:bus.cc(397)] Failed to connect to the bus: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+[1537171:1537258:0214/065247.360210:ERROR:bus.cc(397)] Failed to connect to the bus: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+[1537211:1537211:0214/065249.998251:ERROR:sandbox_linux.cc(377)] InitializeSandbox() called with multiple threads in process gpu-process.
+[1537211:1537211:0214/065250.401202:ERROR:gpu_memory_buffer_support_x11.cc(44)] dri3 extension not supported.
+=================================================================
+==1537211==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x61500012fe48 at pc 0x7f3073c304dd bp 0x7ffda22c18b0 sp 0x7ffda22c18a8
+READ of size 8 at 0x61500012fe48 thread T0 (chrome)
+SCARINESS: 33 (8-byte-read-heap-buffer-overflow-far-from-bounds)
+    #0 0x7f3073c304dc in rx::RenderTargetVk::getImageActualFormat() const third_party/angle/src/libANGLE/renderer/vulkan/RenderTargetVk.cpp:255:12
+    #1 0x7f3073bf9138 in rx::FramebufferVk::updateColorAttachment(gl::Context const*, unsigned int) third_party/angle/src/libANGLE/renderer/vulkan/FramebufferVk.cpp:1651:59
+    #2 0x7f3073bfa05f in rx::FramebufferVk::syncState(gl::Context const*, unsigned int, angle::BitSetT<29ul, unsigned long, unsigned long> const&, gl::Command) third_party/angle/src/libANGLE/renderer/vulkan/FramebufferVk.cpp:1866:17
+    #3 0x7f307360033b in gl::Framebuffer::syncState(gl::Context const*, unsigned int, gl::Command) const third_party/angle/src/libANGLE/Framebuffer.cpp:2061:9
+    #4 0x7f307357feeb in syncDirtyObjects third_party/angle/src/libANGLE/State.h:1178:9
+    #5 0x7f307357feeb in syncDirtyObjects third_party/angle/src/libANGLE/Context.inl.h:107:19
+    #6 0x7f307357feeb in prepareForCopyImage third_party/angle/src/libANGLE/Context.cpp:4215:5
+    #7 0x7f307357feeb in gl::Context::copyTexSubImage3D(gl::TextureTarget, int, int, int, int, int, int, int, int) third_party/angle/src/libANGLE/Context.cpp:4630:5
+    #8 0x7f30734e4f35 in GL_CopyTexSubImage3D third_party/angle/src/libGLESv2/entry_points_gles_3_0_autogen.cpp:531:22
+    #9 0x55a917171a6b in gl::GLApiBase::glCopyTexSubImage3DFn(unsigned int, int, int, int, int, int, int, int, int) ui/gl/gl_bindings_autogen_gl.cc:3547:3
+    #10 0x55a919250e96 in gpu::gles2::GLES2DecoderPassthroughImpl::DoCopyTexSubImage3D(unsigned int, int, int, int, int, int, int, int, int) gpu/command_buffer/service/gles2_cmd_decoder_passthrough_doers.cc:950:10
+    #11 0x55a9192b9855 in gpu::gles2::GLES2DecoderPassthroughImpl::HandleCopyTexSubImage3D(unsigned int, void const volatile*) gpu/command_buffer/service/gles2_cmd_decoder_passthrough_handlers_autogen.cc:547:24
+    #12 0x55a91922760f in gpu::error::Error gpu::gles2::GLES2DecoderPassthroughImpl::DoCommandsImpl<false>(unsigned int, void const volatile*, int, int*) gpu/command_buffer/service/gles2_cmd_decoder_passthrough.cc:871:20
+    #13 0x55a9196c5be5 in gpu::CommandBufferService::Flush(int, gpu::AsyncAPIInterface*) gpu/command_buffer/service/command_buffer_service.cc:70:18
+    #14 0x55a9196b954f in gpu::CommandBufferStub::OnAsyncFlush(int, unsigned int, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > const&) gpu/ipc/service/command_buffer_stub.cc:499:22
+    #15 0x55a9196b8a06 in gpu::CommandBufferStub::ExecuteDeferredRequest(gpu::mojom::DeferredCommandBufferRequestParams&) gpu/ipc/service/command_buffer_stub.cc:151:7
+    #16 0x55a9196cc876 in gpu::GpuChannel::ExecuteDeferredRequest(mojo::StructPtr<gpu::mojom::DeferredRequestParams>) gpu/ipc/service/gpu_channel.cc:669:13
+    #17 0x55a9196d9ab6 in void base::internal::FunctorTraits<void (gpu::GpuChannel::*)(mojo::StructPtr<gpu::mojom::DeferredRequestParams>), void>::Invoke<void (gpu::GpuChannel::*)(mojo::StructPtr<gpu::mojom::DeferredRequestParams>), base::WeakPtr<gpu::GpuChannel>, mojo::StructPtr<gpu::mojom::DeferredRequestParams> >(void (gpu::GpuChannel::*)(mojo::StructPtr<gpu::mojom::DeferredRequestParams>), base::WeakPtr<gpu::GpuChannel>&&, mojo::StructPtr<gpu::mojom::DeferredRequestParams>&&) base/bind_internal.h:542:12
+    #18 0x55a9180d0a57 in Run base/callback.h:142:12
+    #19 0x55a9180d0a57 in gpu::Scheduler::RunNextTask() gpu/command_buffer/service/scheduler.cc:691:26
+    #20 0x55a913457603 in Run base/callback.h:142:12
+    #21 0x55a913457603 in base::TaskAnnotator::RunTaskImpl(base::PendingTask&) base/task/common/task_annotator.cc:135:32
+    #22 0x55a91349a6d7 in RunTask<(lambda at ../../base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:389:29)> base/task/common/task_annotator.h:74:5
+    #23 0x55a91349a6d7 in base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWorkImpl(base::sequence_manager::LazyNow*) base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:387:21
+    #24 0x55a913499db4 in base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWork() base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:292:41
+    #25 0x55a91349b391 in non-virtual thunk to base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWork() base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:0
+    #26 0x55a913350cba in base::MessagePumpGlib::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_glib.cc:405:48
+    #27 0x55a91349ba57 in base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::Run(bool, base::TimeDelta) base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:499:12
+    #28 0x55a9133d23d9 in base::RunLoop::Run(base::Location const&) base/run_loop.cc:141:14
+    #29 0x55a91fb5b943 in content::GpuMain(content::MainFunctionParams) content/gpu/gpu_main.cc:404:14
+    #30 0x55a912223012 in content::RunZygote(content::ContentMainDelegate*) content/app/content_main_runner_impl.cc:611:14
+    #31 0x55a912224b23 in content::RunOtherNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams, content::ContentMainDelegate*) content/app/content_main_runner_impl.cc:693:12
+    #32 0x55a9122268cf in content::ContentMainRunnerImpl::Run() content/app/content_main_runner_impl.cc:1044:10
+    #33 0x55a912220413 in content::RunContentProcess(content::ContentMainParams, content::ContentMainRunner*) content/app/content_main.cc:399:36
+    #34 0x55a912220aec in content::ContentMain(content::ContentMainParams) content/app/content_main.cc:427:10
+    #35 0x55a904bf2eb6 in ChromeMain chrome/app/chrome_main.cc:176:12
+    #36 0x7f307f7ef82f in __libc_start_main /build/glibc-LK5gWL/glibc-2.23/csu/libc-start.c:291
+0x61500012fe48 is located 8 bytes to the right of 448-byte region [0x61500012fc80,0x61500012fe40)
+allocated by thread T0 (chrome) here:
+    #0 0x55a904bf066d in operator new(unsigned long) third_party/llvm/compiler-rt/lib/asan/asan_new_delete.cpp:95:3
+    #1 0x7f3073cafcb1 in __libcpp_operator_new<unsigned long> buildtools/third_party/libc++/trunk/include/new:235:10
+    #2 0x7f3073cafcb1 in __libcpp_allocate buildtools/third_party/libc++/trunk/include/new:261:10
+    #3 0x7f3073cafcb1 in allocate buildtools/third_party/libc++/trunk/include/__memory/allocator.h:82:38
+    #4 0x7f3073cafcb1 in allocate buildtools/third_party/libc++/trunk/include/__memory/allocator_traits.h:261:20
+    #5 0x7f3073cafcb1 in __split_buffer buildtools/third_party/libc++/trunk/include/__split_buffer:314:29
+    #6 0x7f3073cafcb1 in std::__1::vector<rx::RenderTargetVk, std::__1::allocator<rx::RenderTargetVk> >::__append(unsigned long) buildtools/third_party/libc++/trunk/include/vector:1094:53
+    #7 0x7f3073caa517 in resize buildtools/third_party/libc++/trunk/include/vector:2025:15
+    #8 0x7f3073caa517 in rx::TextureVk::initSingleLayerRenderTargets(rx::ContextVk*, unsigned int, gl::LevelIndexWrapper<int>, gl::RenderToTextureImageIndex) third_party/angle/src/libANGLE/renderer/vulkan/TextureVk.cpp:2453:19
+    #9 0x7f3073caa146 in rx::TextureVk::getAttachmentRenderTarget(gl::Context const*, unsigned int, gl::ImageIndex const&, int, rx::FramebufferAttachmentRenderTarget**) third_party/angle/src/libANGLE/renderer/vulkan/TextureVk.cpp:2373:9
+    #10 0x7f3073bf96c2 in getRenderTargetImpl third_party/angle/src/libANGLE/FramebufferAttachment.h:277:23
+    #11 0x7f3073bf96c2 in getRenderTarget<rx::RenderTargetVk> third_party/angle/src/libANGLE/FramebufferAttachment.h:151:16
+    #12 0x7f3073bf96c2 in updateCachedRenderTarget third_party/angle/src/libANGLE/renderer/RenderTargetCache.h:163:9
+    #13 0x7f3073bf96c2 in updateReadColorRenderTarget third_party/angle/src/libANGLE/renderer/RenderTargetCache.h:124:12
+    #14 0x7f3073bf96c2 in rx::RenderTargetCache<rx::RenderTargetVk>::updateColorRenderTarget(gl::Context const*, gl::FramebufferState const&, unsigned long) third_party/angle/src/libANGLE/renderer/RenderTargetCache.h:137:9
+    #15 0x7f3073bf90f5 in rx::FramebufferVk::updateColorAttachment(gl::Context const*, unsigned int) third_party/angle/src/libANGLE/renderer/vulkan/FramebufferVk.cpp:1645:5
+    #16 0x7f3073bfa05f in rx::FramebufferVk::syncState(gl::Context const*, unsigned int, angle::BitSetT<29ul, unsigned long, unsigned long> const&, gl::Command) third_party/angle/src/libANGLE/renderer/vulkan/FramebufferVk.cpp:1866:17
+    #17 0x7f307360033b in gl::Framebuffer::syncState(gl::Context const*, unsigned int, gl::Command) const third_party/angle/src/libANGLE/Framebuffer.cpp:2061:9
+    #18 0x7f307357feeb in syncDirtyObjects third_party/angle/src/libANGLE/State.h:1178:9
+    #19 0x7f307357feeb in syncDirtyObjects third_party/angle/src/libANGLE/Context.inl.h:107:19
+    #20 0x7f307357feeb in prepareForCopyImage third_party/angle/src/libANGLE/Context.cpp:4215:5
+    #21 0x7f307357feeb in gl::Context::copyTexSubImage3D(gl::TextureTarget, int, int, int, int, int, int, int, int) third_party/angle/src/libANGLE/Context.cpp:4630:5
+    #22 0x7f30734e4f35 in GL_CopyTexSubImage3D third_party/angle/src/libGLESv2/entry_points_gles_3_0_autogen.cpp:531:22
+    #23 0x55a917171a6b in gl::GLApiBase::glCopyTexSubImage3DFn(unsigned int, int, int, int, int, int, int, int, int) ui/gl/gl_bindings_autogen_gl.cc:3547:3
+    #24 0x55a919250e96 in gpu::gles2::GLES2DecoderPassthroughImpl::DoCopyTexSubImage3D(unsigned int, int, int, int, int, int, int, int, int) gpu/command_buffer/service/gles2_cmd_decoder_passthrough_doers.cc:950:10
+    #25 0x55a9192b9855 in gpu::gles2::GLES2DecoderPassthroughImpl::HandleCopyTexSubImage3D(unsigned int, void const volatile*) gpu/command_buffer/service/gles2_cmd_decoder_passthrough_handlers_autogen.cc:547:24
+    #26 0x55a91922760f in gpu::error::Error gpu::gles2::GLES2DecoderPassthroughImpl::DoCommandsImpl<false>(unsigned int, void const volatile*, int, int*) gpu/command_buffer/service/gles2_cmd_decoder_passthrough.cc:871:20
+    #27 0x55a9196c5be5 in gpu::CommandBufferService::Flush(int, gpu::AsyncAPIInterface*) gpu/command_buffer/service/command_buffer_service.cc:70:18
+    #28 0x55a9196b954f in gpu::CommandBufferStub::OnAsyncFlush(int, unsigned int, std::__1::vector<gpu::SyncToken, std::__1::allocator<gpu::SyncToken> > const&) gpu/ipc/service/command_buffer_stub.cc:499:22
+    #29 0x55a9196b8a06 in gpu::CommandBufferStub::ExecuteDeferredRequest(gpu::mojom::DeferredCommandBufferRequestParams&) gpu/ipc/service/command_buffer_stub.cc:151:7
+    #30 0x55a9196cc876 in gpu::GpuChannel::ExecuteDeferredRequest(mojo::StructPtr<gpu::mojom::DeferredRequestParams>) gpu/ipc/service/gpu_channel.cc:669:13
+    #31 0x55a9196d9ab6 in void base::internal::FunctorTraits<void (gpu::GpuChannel::*)(mojo::StructPtr<gpu::mojom::DeferredRequestParams>), void>::Invoke<void (gpu::GpuChannel::*)(mojo::StructPtr<gpu::mojom::DeferredRequestParams>), base::WeakPtr<gpu::GpuChannel>, mojo::StructPtr<gpu::mojom::DeferredRequestParams> >(void (gpu::GpuChannel::*)(mojo::StructPtr<gpu::mojom::DeferredRequestParams>), base::WeakPtr<gpu::GpuChannel>&&, mojo::StructPtr<gpu::mojom::DeferredRequestParams>&&) base/bind_internal.h:542:12
+    #32 0x55a9180d0a57 in Run base/callback.h:142:12
+    #33 0x55a9180d0a57 in gpu::Scheduler::RunNextTask() gpu/command_buffer/service/scheduler.cc:691:26
+    #34 0x55a913457603 in Run base/callback.h:142:12
+    #35 0x55a913457603 in base::TaskAnnotator::RunTaskImpl(base::PendingTask&) base/task/common/task_annotator.cc:135:32
+    #36 0x55a91349a6d7 in RunTask<(lambda at ../../base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:389:29)> base/task/common/task_annotator.h:74:5
+    #37 0x55a91349a6d7 in base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWorkImpl(base::sequence_manager::LazyNow*) base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:387:21
+    #38 0x55a913499db4 in base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWork() base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:292:41
+    #39 0x55a91349b391 in non-virtual thunk to base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::DoWork() base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:0
+    #40 0x55a913350cba in base::MessagePumpGlib::Run(base::MessagePump::Delegate*) base/message_loop/message_pump_glib.cc:405:48
+    #41 0x55a91349ba57 in base::sequence_manager::internal::ThreadControllerWithMessagePumpImpl::Run(bool, base::TimeDelta) base/task/sequence_manager/thread_controller_with_message_pump_impl.cc:499:12
+    #42 0x55a9133d23d9 in base::RunLoop::Run(base::Location const&) base/run_loop.cc:141:14
+    #43 0x55a91fb5b943 in content::GpuMain(content::MainFunctionParams) content/gpu/gpu_main.cc:404:14
+    #44 0x55a912223012 in content::RunZygote(content::ContentMainDelegate*) content/app/content_main_runner_impl.cc:611:14
+    #45 0x55a912224b23 in content::RunOtherNamedProcessTypeMain(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, content::MainFunctionParams, content::ContentMainDelegate*) content/app/content_main_runner_impl.cc:693:12
+    #46 0x55a9122268cf in content::ContentMainRunnerImpl::Run() content/app/content_main_runner_impl.cc:1044:10
+    #47 0x55a912220413 in content::RunContentProcess(content::ContentMainParams, content::ContentMainRunner*) content/app/content_main.cc:399:36
+    #48 0x55a912220aec in content::ContentMain(content::ContentMainParams) content/app/content_main.cc:427:10
+    #49 0x55a904bf2eb6 in ChromeMain chrome/app/chrome_main.cc:176:12
+    #50 0x7f307f7ef82f in __libc_start_main /build/glibc-LK5gWL/glibc-2.23/csu/libc-start.c:291
+SUMMARY: AddressSanitizer: heap-buffer-overflow (/mnt/scratch0/clusterfuzz/bot/builds/chromium-browser-asan_linux-release_4392242b7f59878a2775b4607420a2b37e17ff13/symbolized/release/asan-linux-release-970422/libGLESv2.so+0xebe4dc) (BuildId: 7f9f52637178c581)
+Shadow bytes around the buggy address:
+  0x0c2a8001df70: 00 00 00 00 fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c2a8001df80: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c2a8001df90: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c2a8001dfa0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  0x0c2a8001dfb0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+=>0x0c2a8001dfc0: 00 00 00 00 00 00 00 00 fa[fa]fa fa fa fa fa fa
+  0x0c2a8001dfd0: fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa fa
+  0x0c2a8001dfe0: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2a8001dff0: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2a8001e000: fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd fd
+  0x0c2a8001e010: fd fd fd fa fa fa fa fa fa fa fa fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:00
+  Partially addressable: 01 02 03 04 05 06 07
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==1537211==ABORTING
+[1537171:1537171:0214/065255.116023:ERROR:gpu_process_host.cc(974)] GPU process exited unexpectedly: exit_code=256
+[1537277:1537277:0100/000000.271811:ERROR:sandbox_linux.cc(377)] InitializeSandbox() called with multiple threads in process gpu-process.
