@@ -221,10 +221,9 @@ class StackAnalyzerTestcase(unittest.TestCase):
     expected_type = 'Heap-buffer-overflow\nREAD 8'
     expected_address = '0x61500012fe48'
     expected_stacktrace = data
-    expected_state = (
-        'rx::RenderTargetVk::getImageActualFormat\n'
-        'rx::FramebufferVk::updateColorAttachment\n'
-        'rx::FramebufferVk::syncState\n')
+    expected_state = ('rx::RenderTargetVk::getImageActualFormat\n'
+                      'rx::FramebufferVk::updateColorAttachment\n'
+                      'rx::FramebufferVk::syncState\n')
     expected_security_flag = True
     self._validate_get_crash_data(data, expected_type, expected_address,
                                   expected_state, expected_stacktrace,
