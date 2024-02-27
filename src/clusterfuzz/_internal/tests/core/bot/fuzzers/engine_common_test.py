@@ -323,7 +323,7 @@ class GetSeedCorpusPath(fake_filesystem_unittest.TestCase):
     self._create_seed_corpus('.tar.gz')
     self._create_seed_corpus('.zip')
     self.assertIsNotNone(self._get_seed_corpus_path(fuzz_target_path))
-    self.assertEqual(self.mock.log_error.call_count, 1)
+    self.assertEqual(self.mock.error.call_count, 1)
 
   @parameterized.parameterized.expand(
       [FUZZ_TARGET_PATH, FUZZ_TARGET_PATH_WITH_EXTENSION])

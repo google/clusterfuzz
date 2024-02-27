@@ -489,7 +489,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             gestures=[],
             timeout=10),
     ])
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call('No crash occurred (round 1).', output='output'),
         mock.call('No crash occurred (round 2).', output='output'),
         mock.call('No crash occurred (round 3).', output='output'),
@@ -518,7 +518,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   10),
     ])
-    self.mock.log.assert_has_calls(
+    self.mock.info.assert_has_calls(
         [
             mock.call(
                 'No crash occurred (round 1).',
@@ -558,7 +558,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             gestures=[],
             timeout=10),
     ])
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call('No crash occurred (round 1).', output='output'),
         mock.call(
             'Crash occurred in 1 seconds (round 2). State:\nstate',
@@ -593,7 +593,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             gestures=[],
             timeout=10),
     ])
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call('No crash occurred (round 1).', output='output'),
         mock.call(
             'Crash occurred in 1 seconds (round 2). State:\nstate',
@@ -631,7 +631,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             gestures=[],
             timeout=10),
     ])
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call('No crash occurred (round 1).', output='output'),
         mock.call(
             'Crash occurred in 1 seconds (round 2). State:\nstate',
@@ -660,7 +660,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   10),
     ])
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call(
             'No crash occurred (round 1).',
             output=self.GREYBOX_FUZZER_NO_CRASH),
@@ -692,7 +692,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   10),
     ])
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call(
             'No crash occurred (round 1).',
             output=self.GREYBOX_FUZZER_NO_CRASH),
@@ -719,7 +719,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   120),
     ])
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call(
             'Crash occurred in 1 seconds (round 1). State:\nstate',
             output=self.GREYBOX_FUZZER_CRASH),
@@ -743,7 +743,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
     # Only 2/3 runs needed to verify reproducibility.
     self.assertEqual(2, self.mock.run_process.call_count)
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call(
             'Crash occurred in 1 seconds (round 1). State:\nstate',
             output='crash'),
@@ -774,7 +774,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(result)
 
     self.assertEqual(3, self.mock.run_process.call_count)
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call('No crash occurred (round 1).', output='output'),
         mock.call(
             'Crash occurred in 1 seconds (round 2). State:\nstate',
@@ -806,7 +806,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
     # Only 2/3 runs needed to verify reproducibility.
     self.assertEqual(2, mock_engine.reproduce.call_count)
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call(
             'Crash occurred in 1 seconds (round 1). State:\nstate',
             output=self.GREYBOX_FUZZER_CRASH),
@@ -840,7 +840,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.assertTrue(result)
 
     self.assertEqual(3, mock_engine.reproduce.call_count)
-    self.mock.log.assert_has_calls([
+    self.mock.info.assert_has_calls([
         mock.call(
             'No crash occurred (round 1).',
             output=self.GREYBOX_FUZZER_NO_CRASH),

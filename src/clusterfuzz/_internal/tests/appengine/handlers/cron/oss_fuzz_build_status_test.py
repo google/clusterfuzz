@@ -510,7 +510,7 @@ class OssFuzzBuildStatusTest(unittest.TestCase):
 
     self.mock.get.side_effect = _mock_requests_get
     oss_fuzz_build_status.main()
-    self.mock.log_error.assert_has_calls([
+    self.mock.error.assert_has_calls([
         mock.call('proj0 has not been built in fuzzing config for 2 days.'),
         mock.call('proj1 has not been built in coverage config for 2 days.')
     ])

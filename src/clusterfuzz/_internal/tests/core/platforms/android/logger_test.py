@@ -72,7 +72,7 @@ class FilterLogOutputTest(unittest.TestCase):
     actual_filtered_log_output = logger.filter_log_output(unfiltered_log_output)
 
     self.assertEqual(actual_filtered_log_output, expected_filtered_log_output)
-    self.assertEqual(0, self.mock.log_error.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
 
   def test_process_with_type(self):
     """Tests log output where process has a type specifier."""

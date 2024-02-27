@@ -419,5 +419,5 @@ class LegalizeFilenamesTest(FileMixin, fake_filesystem_unittest.TestCase):
     failed_to_move_files = [(self.FILE_PATH,
                              os.path.join(self.DIRECTORY, self.FILE_SHA1SUM))]
 
-    self.mock.log_error.assert_called_with(
+    self.mock.error.assert_called_with(
         'Failed to rename files.', failed_to_move_files=failed_to_move_files)

@@ -160,8 +160,8 @@ class ParseMemoryToolOptionsTest(unittest.TestCase):
     had |expected| result."""
     parsed_options = environment._parse_memory_tool_options(options_str)  # pylint: disable=protected-access
     self.assertEqual(expected, parsed_options)
-    self.assertEqual(0, self.mock.log_error.call_count)
-    self.assertEqual(0, self.mock.log_warn.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
+    self.assertEqual(0, self.mock.warning.call_count)
 
   def test_non_windows(self):
     """Test that a non-Windows options string is parsed correctly."""

@@ -132,9 +132,9 @@ class RemoveDirectoryTest(unittest.TestCase):
     """Test remove with shutil but fails."""
     self.mock.exists.side_effect = [True, True, True]
     self.assertFalse(shell.remove_directory('dir'))
-    self.mock.log_error.assert_has_calls(
+    self.mock.error.assert_has_calls(
         [mock.call('Failed to clear directory dir.')])
-    self.assertEqual(0, self.mock.log_warn.call_count)
+    self.assertEqual(0, self.mock.warning.call_count)
     self.mock.system.assert_has_calls(
         [mock.call('rm -rf "dir" > /dev/null 2>&1')])
     self.mock.rmtree.assert_has_calls([mock.call('dir', onerror=mock.ANY)])
@@ -142,9 +142,9 @@ class RemoveDirectoryTest(unittest.TestCase):
   def test_remove_shutil_failure_ignore_errors(self):
     self.mock.exists.side_effect = [True, True, True]
     self.assertFalse(shell.remove_directory('dir', ignore_errors=True))
-    self.mock.log_warn.assert_has_calls(
+    self.mock.warning.assert_has_calls(
         [mock.call('Failed to clear directory dir.')])
-    self.assertEqual(0, self.mock.log_error.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
     self.mock.system.assert_has_calls(
         [mock.call('rm -rf "dir" > /dev/null 2>&1')])
     self.mock.rmtree.assert_has_calls([mock.call('dir', onerror=mock.ANY)])

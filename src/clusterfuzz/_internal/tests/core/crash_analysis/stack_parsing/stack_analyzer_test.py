@@ -3259,7 +3259,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-    self.mock.log_error.assert_called_once_with(
+    self.mock.error.assert_called_once_with(
         'Unknown UBSan crash type: '
         'unsupported ubsan error that needs a new signature')
 

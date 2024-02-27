@@ -715,7 +715,7 @@ class IntegrationTests(BaseIntegrationTest):
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -725,7 +725,7 @@ class IntegrationTests(BaseIntegrationTest):
     options.extra_env['EXIT_FUZZER_CODE'] = '1'
 
     results = engine_impl.fuzz(target_path, options, TEMP_DIR, 5)
-    self.assertEqual(1, self.mock.log_error.call_count)
+    self.assertEqual(1, self.mock.error.call_count)
 
     self.assertEqual(1, len(results.crashes))
     self.assertEqual(TEMP_DIR, os.path.dirname(results.crashes[0].input_path))
@@ -741,7 +741,7 @@ class IntegrationTests(BaseIntegrationTest):
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -766,7 +766,7 @@ class IntegrationTests(BaseIntegrationTest):
       self.assertIn('Dictionary parsing failed (target=test_fuzzer, line=2).',
                     args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
 
@@ -865,7 +865,7 @@ class MinijailIntegrationTests(IntegrationTests):
     def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.log_error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_log_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -967,7 +967,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
     test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.warning'])
     # Pass-through logs just so we can see what's going on (but moving from
     # log_warn to plain log to avoid creating a loop)
-    self.mock.log_warn.side_effect = logs.log
+    self.mock.warning.side_effect = logs.log
 
     environment.set_value('FUZZ_TARGET', 'example-fuzzers/crash_fuzzer')
     environment.set_value('JOB_NAME', 'libfuzzer_asan_fuchsia')
@@ -995,7 +995,7 @@ class IntegrationTestsFuchsia(BaseIntegrationTest):
       pass
 
     # Check the logs for syslog presence
-    self.assertIn('{{{reset}}}', self.mock.log_warn.call_args[0][0])
+    self.assertIn('{{{reset}}}', self.mock.warning.call_args[0][0])
 
   @unittest.skipIf(
       not environment.get_value('FUCHSIA_TESTS'),

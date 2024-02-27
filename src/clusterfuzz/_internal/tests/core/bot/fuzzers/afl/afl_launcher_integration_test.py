@@ -47,7 +47,7 @@ def no_errors(f):
     test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
 
     result = f(self, *args, **kwargs)
-    self.assertEqual(0, self.mock.log_error.call_count)
+    self.assertEqual(0, self.mock.error.call_count)
     return result
 
   return call_f
@@ -145,7 +145,7 @@ class BaseLauncherTest(unittest.TestCase):
     def mocked_log(message, **kwargs):  # pylint: disable=unused-argument
       self.logged_messages.append(message)
 
-    self.mock.log.side_effect = mocked_log
+    self.mock.info.side_effect = mocked_log
     self.mock.getpid.return_value = 1337
 
   def _test_abnormal_return_code(self):
@@ -154,7 +154,7 @@ class BaseLauncherTest(unittest.TestCase):
     test_helpers.patch(self, ['clusterfuzz._internal.metrics.logs.error'])
     testcase_path = setup_testcase_and_corpus(self, 'crash', 'empty_corpus')
     run_launcher(testcase_path, 'return_code_255')
-    self.mock.log_error.assert_called_with(
+    self.mock.error.assert_called_with(
         'AFL target exited with abnormal exit code: 255.',
         output='ERROR: returning 255\n')
 
