@@ -405,8 +405,6 @@ class GcsProvider(StorageProvider):
     requests.delete(signed_url, timeout=HTTP_TIMEOUT_SECONDS)
 
 
-@retry.wrap(
-    retries=2, delay=DEFAULT_FAIL_WAIT, function='google_cloud_utils._sign_url')
 def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   """Returns a signed URL for |remote_path| with |method|."""
   if _integration_test_env_doesnt_support_signed_urls():
@@ -417,24 +415,13 @@ def _sign_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES, method='GET'):
   client = _storage_client()
   bucket = client.bucket(bucket_name)
   blob = bucket.blob(object_path)
-  try:
-    return blob.generate_signed_url(
-        version='v4',
-        expiration=minutes,
-        method=method,
-        credentials=signing_creds,
-        access_token=access_token,
-        service_account_email=signing_creds.service_account_email)
-  except google.auth.exceptions.TransportError:
-    logs.log('_sign_url: Trying to renew credentials.')
-    _new_signing_creds()
-    return blob.generate_signed_url(
-        version='v4',
-        expiration=minutes,
-        method=method,
-        credentials=signing_creds,
-        access_token=access_token,
-        service_account_email=signing_creds.service_account_email)
+  return blob.generate_signed_url(
+      version='v4',
+      expiration=minutes,
+      method=method,
+      credentials=signing_creds,
+      access_token=access_token,
+      service_account_email=signing_creds.service_account_email)
 
 
 class FileSystemProvider(StorageProvider):
@@ -750,19 +737,12 @@ def _storage_client():
 
 
 def _new_signing_creds():
-  now = datetime.datetime.now()
-  new_expiry = now + datetime.timedelta(minutes=40)
-  prev = getattr(_local, 'signing_creds_expiration', None)
-  logs.log(f'Credentials expiring: {prev}. New: {new_expiry}.')
-  _local.signing_creds_expiration = new_expiry
-  _local.signing_creds = credentials.get_signing_credentials()
+  service_account = credentials.get_storage_signing_service_account()
+  _local.signing_creds = credentials.get_signing_credentials(service_account)
 
 
 def _signing_creds():
   if not hasattr(_local, 'signing_creds'):
-    _new_signing_creds()
-
-  if datetime.datetime.now() >= _local.signing_creds_expiration:
     _new_signing_creds()
 
   return _local.signing_creds

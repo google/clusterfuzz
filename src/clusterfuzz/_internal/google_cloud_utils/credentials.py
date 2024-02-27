@@ -20,7 +20,10 @@ from google.auth.transport import requests
 from google.oauth2 import service_account
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.googel_cloud_utils import secret_manager
 from clusterfuzz._internal.system import environment
+
 
 try:
   import google.auth
@@ -36,6 +39,8 @@ _SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
     'https://www.googleapis.com/auth/prodxmon'
 ]
+
+_SIGNING_KEY_SECRET_ID = 'gcs-signer-key'
 
 
 def _use_anonymous_credentials():
@@ -58,22 +63,49 @@ def get_default(scopes=None):
   """Get default Google Cloud credentials."""
   if _use_anonymous_credentials():
     return credentials.AnonymousCredentials(), ''
-
   return google.auth.default(scopes=scopes)
 
 
-def get_signing_credentials():
+
+def _set_gcs_signing_service_account():
+  project_id = get_application_id()
+  if not environment.get_value('USE_SPECIALIZED_STORARGE_SIGINING_ACCOUNT'):
+    logs.log_error('Not getting Specialized GCS siging service account.')
+    return None
+  service_account_key = secret_manager.get(_SIGNING_KEY_SECRET_ID, project_id)
+  service_account_key_path = os.path.join(environment.get_value('ROOT_DIR'),
+                                          'bot', 'gcs_key')
+  with open(service_account_key_path, 'w') as fp:
+    fp.write(service_account_key)
+  return service_account_key_path
+
+
+@retry.wrap(
+  retries=FAIL_RETRIES,
+  delay=FAIL_WAIT,
+  function='google_cloud_utils.credentials.get_signing_service_account')
+def get_storage_signing_service_account():
+  if _use_anonymous_credentials():
+    logs.log_error('Using anonymous creds instead of a signing service account')
+    return None
+  google_application_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS',
+                                             None)
+  if google_application_credentials:
+    return google_application_credentials
+
+  return _set_gcs_signing_service_account()
+
+
+def get_signing_credentials(service_account_path):
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
     return None
 
-  google_application_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS',
-                                             None)
-  if google_application_credentials is not None:
+  if service_account_path is not None:
     # Handle cases like android and Mac where bots are run outside of Google
     # Cloud Platform and don't have access to metadata server.
     signing_creds = service_account.Credentials.from_service_account_file(
-        google_application_credentials, scopes=_SCOPES)
+        service_account, scopes=_SCOPES)
     request = requests.Request()
     signing_creds.refresh(request)
     token = signing_creds.token
