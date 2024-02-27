@@ -21,9 +21,8 @@ from google.oauth2 import service_account
 
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
-from clusterfuzz._internal.googel_cloud_utils import secret_manager
+from clusterfuzz._internal.google_cloud_utils import secret_manager
 from clusterfuzz._internal.system import environment
-
 
 try:
   import google.auth
@@ -66,27 +65,23 @@ def get_default(scopes=None):
   return google.auth.default(scopes=scopes)
 
 
-
 def _set_gcs_signing_service_account():
-  project_id = get_application_id()
-  if not environment.get_value('USE_SPECIALIZED_STORARGE_SIGINING_ACCOUNT'):
-    logs.log_error('Not getting Specialized GCS siging service account.')
-    return None
+  project_id = utils.get_application_id()
   service_account_key = secret_manager.get(_SIGNING_KEY_SECRET_ID, project_id)
-  service_account_key_path = os.path.join(environment.get_value('ROOT_DIR'),
-                                          'bot', 'gcs_key')
+  service_account_key_path = os.path.join(
+      environment.get_value('ROOT_DIR'), 'bot', 'gcs_key')
   with open(service_account_key_path, 'w') as fp:
     fp.write(service_account_key)
   return service_account_key_path
 
 
 @retry.wrap(
-  retries=FAIL_RETRIES,
-  delay=FAIL_WAIT,
-  function='google_cloud_utils.credentials.get_signing_service_account')
+    retries=FAIL_RETRIES,
+    delay=FAIL_WAIT,
+    function='google_cloud_utils.credentials.get_signing_service_account')
 def get_storage_signing_service_account():
+  """Gets a dedicated signing account for signing storage objects."""
   if _use_anonymous_credentials():
-    logs.log_error('Using anonymous creds instead of a signing service account')
     return None
   google_application_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS',
                                              None)

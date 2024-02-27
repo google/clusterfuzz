@@ -14,15 +14,16 @@
 """Code for Google Cloud's Secret Manager."""
 from google.cloud import secretmanager
 
+
 def get_secret_manager_client():
-    """Returns the secretmanager client."""
-    return secretmanager.SecretManagerServiceClient()
+  """Returns the secretmanager client."""
+  return secretmanager.SecretManagerServiceClient()
 
 
 def get(secret_id, project):
-    """Returns the value of the secret identified by |secret_id| in
+  """Returns the value of the secret identified by |secret_id| in
     |project|."""
-    client = get_secret_manager_client()
-    name = f'projects/{project}/secrets/{secret_id}/versions/1'
-    response = client.access_secret_version(request={'name': name})
-    return response.payload.data
+  client = get_secret_manager_client()
+  name = f'projects/{project}/secrets/{secret_id}/versions/1'
+  response = client.access_secret_version(request={'name': name})
+  return response.payload.data
