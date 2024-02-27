@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cloud credential helpers."""
-import os
+import json
 
 from google.auth import compute_engine
 from google.auth import credentials
@@ -66,22 +66,12 @@ def get_default(scopes=None):
   return google.auth.default(scopes=scopes)
 
 
-def _set_gcs_signing_service_account():
-  project_id = utils.get_application_id()
-  service_account_key = secret_manager.get(_SIGNING_KEY_SECRET_ID, project_id)
-  service_account_key_path = os.path.join(
-      environment.get_value('ROOT_DIR'), 'bot', 'gcs_key')
-  with open(service_account_key_path, 'w') as fp:
-    fp.write(service_account_key)
-  return service_account_key_path
-
-
 def get_storage_signing_service_account():
   """Gets a dedicated signing account for signing storage objects."""
   if _use_anonymous_credentials():
     return None
-  signing_account = _set_gcs_signing_service_account()
-  return signing_account
+  project_id = utils.get_application_id()
+  return json.loads(secret_manager.get(_SIGNING_KEY_SECRET_ID, project_id))
 
 
 def get_signing_credentials(service_account_info):
