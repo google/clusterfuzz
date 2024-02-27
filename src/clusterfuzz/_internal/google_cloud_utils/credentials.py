@@ -80,12 +80,7 @@ def get_storage_signing_service_account():
   """Gets a dedicated signing account for signing storage objects."""
   if _use_anonymous_credentials():
     return None
-
-  # signing_account = _set_gcs_signing_service_account()
-  with open(os.getenv('GOOGLE_APPLICATION_CREDENTIALS')) as fp:
-    import json
-    return json.loads(fp.read())
-
+  signing_account = _set_gcs_signing_service_account()
   return signing_account
 
 
