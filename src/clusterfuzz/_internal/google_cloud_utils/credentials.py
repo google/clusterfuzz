@@ -22,6 +22,7 @@ from google.oauth2 import service_account
 from clusterfuzz._internal.base import retry
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.google_cloud_utils import secret_manager
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 try:
@@ -75,37 +76,33 @@ def _set_gcs_signing_service_account():
   return service_account_key_path
 
 
-@retry.wrap(
-    retries=FAIL_RETRIES,
-    delay=FAIL_WAIT,
-    function='google_cloud_utils.credentials.get_signing_service_account')
 def get_storage_signing_service_account():
   """Gets a dedicated signing account for signing storage objects."""
   if _use_anonymous_credentials():
     return None
-  google_application_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS',
-                                             None)
-  if google_application_credentials:
-    return google_application_credentials
 
-  return _set_gcs_signing_service_account()
+  # signing_account = _set_gcs_signing_service_account()
+  with open(os.getenv('GOOGLE_APPLICATION_CREDENTIALS')) as fp:
+    import json
+    return json.loads(fp.read())
+
+  return signing_account
 
 
-def get_signing_credentials(service_account_path):
+def get_signing_credentials(service_account_info):
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
     return None
 
-  if service_account_path is not None:
-    # Handle cases like android and Mac where bots are run outside of Google
-    # Cloud Platform and don't have access to metadata server.
-    signing_creds = service_account.Credentials.from_service_account_file(
-        service_account, scopes=_SCOPES)
+  if service_account_info is not None:
+    signing_creds = service_account.Credentials.from_service_account_info(
+        service_account_info, scopes=_SCOPES)
     request = requests.Request()
     signing_creds.refresh(request)
-    token = signing_creds.token
+    token = None
   else:
-    # The normal case, when we are on GCE.
+    # Fallback for when a dedicated singing account is not configured.
+    logs.log_error('Please configure dedicated signing credentials.')
     creds, _ = get_default()
 
     request = requests.Request()

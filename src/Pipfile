@@ -31,9 +31,9 @@ PyYAML = "==6.0"
 redis = "==3.3.11"
 requests = "==2.21.0"
 sendgrid = "==6.0.4"
+google-cloud-secret-manager = "==2.18.0"
 # Hack: We are using this to specify App Engine packages,
 # since there is no support for custom package sets.
-google-cloud-secret-manager = "==2.18.0"
 
 [dev-packages]
 firebase-admin = "==2.16.0"
