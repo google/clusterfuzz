@@ -880,15 +880,6 @@ class StackParser:
           state,
           new_type='Kernel failure\nGeneral-protection-fault')
 
-      # GPU Failure.
-      self.update_state_on_match(
-          GPU_PROCESS_FAILURE,
-          line,
-          state,
-          new_type='GPU failure',
-          new_state='',
-          reset=True)
-
       # Command injection bugs detected by extra sanitizers.
       self.update_state_on_match(
           EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX,
@@ -989,6 +980,15 @@ class StackParser:
             line,
             state,
             address_from_group=1)
+
+        # Chrome GPU Failure.
+        self.update_state_on_match(
+            GPU_PROCESS_FAILURE,
+            line,
+            state,
+            new_type='GPU failure',
+            new_state='',
+            reset=True)
 
         if self.update_state_on_match(
             JAZZER_JAVA_SECURITY_EXCEPTION_REGEX,
