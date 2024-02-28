@@ -633,8 +633,8 @@ def _cleanup_unused_blobs_from_storage(output: uworker_msg_pb2.Output):
   delete_stacktrace_blob = True
 
   if output.HasField('minimize_task_output'):
-    testcase_blob_key = output.minimize_task_output.minimized_keys
-    if testcase_blob_key.startswith(data_types.BLOBSTORE_STACK_PREFIX):
+    # If minimized_keys was set, we should not cleanup the corresponding blob.
+    if output.minimize_task_output.HasField("minimized_keys"):
       delete_testcase_blob = False
 
     stacktrace_blob_key = output.minimize_task_output.last_crash_result_dict[
@@ -826,8 +826,7 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   update_testcase(output)
-  # TODO(alihijazi): Reenable this once it stops causing errors.
-  # _cleanup_unused_blobs_from_storage(output)
+  _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return
