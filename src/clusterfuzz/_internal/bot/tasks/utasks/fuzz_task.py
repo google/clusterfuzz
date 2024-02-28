@@ -1775,10 +1775,9 @@ class FuzzingSession:
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    fuzz_target = self.uworker_input.fuzz_task_input.fuzz_target
-    if fuzz_target:
+    if self.fuzz_target:
       logs.log('Setting fuzz target {fuzz_target}.')
-      environment.set_value('FUZZ_TARGET', fuzz_target.binary)
+      environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'))
 
