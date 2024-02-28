@@ -1427,8 +1427,8 @@ def _run_libfuzzer_tool(tool_name: str,
 
   with open(output_file_path, 'rb') as file_handle:
     data = file_handle.read()
-    storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
-    minimized_keys = minimize_task_input.testcase_blob_name
+  storage.upload_signed_url(data, minimize_task_input.testcase_upload_url)
+  minimized_keys = minimize_task_input.testcase_blob_name
 
   testcase.minimized_keys = minimized_keys
 
