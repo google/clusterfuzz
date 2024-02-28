@@ -590,7 +590,7 @@ class AflRunnerTest(LauncherTestBase):
     self.assertNotEqual(0, fuzz_result.return_code)
     mock_error.assert_called_with(
         f'Afl exited with a non-zero exitcode: {fuzz_result.return_code}. '
-        'Cannot recover.'
+        'Cannot recover.',
         engine_output=fuzz_result.output)
 
   def _write_bad_input(self):
