@@ -712,10 +712,10 @@ class IntegrationTests(BaseIntegrationTest):
         'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -738,10 +738,10 @@ class IntegrationTests(BaseIntegrationTest):
         'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def log_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 
@@ -762,11 +762,11 @@ class IntegrationTests(BaseIntegrationTest):
         'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertIn('Dictionary parsing failed (target=test_fuzzer, line=2).',
                     args[0])
 
-    self.mock.error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty', 'corpus')
     engine_impl = engine.Engine()
 
@@ -862,10 +862,10 @@ class MinijailIntegrationTests(IntegrationTests):
         'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def mocked_log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
-    self.mock.error.side_effect = mocked_log_error
+    self.mock.error.side_effect = mocked_error
     _, corpus_path = setup_testcase_and_corpus('empty',
                                                'corpus_with_some_files')
 

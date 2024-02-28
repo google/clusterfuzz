@@ -574,7 +574,7 @@ class AflRunnerTest(LauncherTestBase):
     self.assertEqual(self.runner.run_afl_fuzz(self.args).return_code, 0)
 
   @mock.patch('clusterfuzz._internal.metrics.logs.error')
-  def test_run_afl_fuzz_two_cpu_errors(self, mock_log_error):
+  def test_run_afl_fuzz_two_cpu_errors(self, mock_error):
     """Test AflRunner.run_afl_fuzz_and_handle_error works as intended when there
     is an error binding to CPU and afl-fuzz is never able to run in the end.
     Note that this should never happen in real life."""
@@ -588,9 +588,9 @@ class AflRunnerTest(LauncherTestBase):
     self.mock.run_and_wait.side_effect = two_cpu_errors
     fuzz_result = self.runner.run_afl_fuzz(self.args)
     self.assertNotEqual(0, fuzz_result.return_code)
-    mock_log_error.assert_called_with(
-        ('Afl exited with a non-zero exitcode: %s. Cannot recover.' %
-         fuzz_result.return_code),
+    mock_error.assert_called_with(
+        f'Afl exited with a non-zero exitcode: {fuzz_result.return_code}. '
+        'Cannot recover.'
         engine_output=fuzz_result.output)
 
   def _write_bad_input(self):

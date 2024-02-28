@@ -322,7 +322,7 @@ class EmitTest(unittest.TestCase):
             }
         })
 
-  def test_log_error(self):
+  def test_error(self):
     """Test log error."""
     logger = mock.MagicMock()
     self.mock.get_logger.return_value = logger
@@ -342,7 +342,7 @@ class EmitTest(unittest.TestCase):
             'location': {
                 'path': os.path.abspath(__file__).rstrip('c'),
                 'line': statement_line,
-                'method': 'test_log_error'
+                'method': 'test_error'
             }
         })
 
@@ -360,8 +360,8 @@ class TruncateTest(unittest.TestCase):
                      logs.truncate('abcdefghijk', 6))
 
 
-class LogErrorTest(unittest.TestCase):
-  """Tests log_error."""
+class ErrorTest(unittest.TestCase):
+  """Tests error."""
 
   def setUp(self):
     helpers.patch(self,
