@@ -2023,8 +2023,6 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   fuzz_target_name = pick_fuzz_target(job_type)
   fuzz_task_input = uworker_msg_pb2.FuzzTaskInput()
   if fuzz_target_name:
-    fuzz_target = data_handler.record_fuzz_target(fuzzer_name, fuzz_target_name,
-                                                  job_type)
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
 
@@ -2042,6 +2040,8 @@ def save_fuzz_targets(output):
   """Saves fuzz targets that were seen in the build to the database."""
   if not output.fuzz_task_output.fuzz_targets:
     return
+
+  logs.info(f'Saving fuzz targets: {output.fuzz_task_output.fuzz_targets}.')
   data_handler.record_fuzz_targets(output.uworker_input.fuzzer_name,
                                    output.fuzz_task_output.fuzz_targets,
                                    output.uworker_input.job_type)
