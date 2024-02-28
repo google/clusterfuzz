@@ -345,8 +345,14 @@ def _get_testcase_key_and_archive_status(testcase):
   """Returns the testcase's key and whether or not it is archived."""
   if _is_testcase_minimized(testcase):
     key = testcase.minimized_keys
-    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
-    return key, archived
+    # TODO(alhijazi): Remove this check once the issue with blob cleanup
+    # in minimize postprocess is resolved.
+    if storage.get(blobs.get_gcs_path(key)):
+      archived = bool(
+          testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
+      return key, archived
+    logs.log(f'blob key {key} does not exist in storage'
+             'for the minimized_task, will use the fuzzed_key.')
 
   key = testcase.fuzzed_keys
   archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)
