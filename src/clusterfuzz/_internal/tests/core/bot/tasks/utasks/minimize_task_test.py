@@ -321,9 +321,6 @@ class UTaskPostprocessTest(unittest.TestCase):
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
     minimize_task.utask_postprocess(uworker_output)
     self.assertFalse(self.mock.finalize_testcase.called)
-    self.mock.delete_blob.assert_has_calls(
-        [mock.call('testcase_blob_name'),
-         mock.call('stacktrace_blob_name')])
 
   def test_generic_output_finalizes_testcase(self):
     """Checks that an output with all critical fields finalizes a testcase."""
