@@ -239,9 +239,15 @@ def create_tasks(testcase):
     testcase.put()
     return
 
-  # Just create the minimize task for now. Once minimization is complete, it
-  # automatically created the rest of the needed tasks.
-  create_minimize_task_if_needed(testcase)
+  if environment.is_minimization_supported():
+    # For supported environments, just create the minimize task for now.
+    # Once minimization is complete, it automatically creates the rest of the
+    # needed tasks.
+    create_minimize_task_if_needed(testcase)
+  else:
+    # Environments that don't support minimization skip directly to other
+    # tasks.
+    create_postminimize_tasks(testcase)
 
 
 def create_postminimize_tasks(testcase):

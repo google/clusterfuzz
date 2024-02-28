@@ -972,14 +972,13 @@ class CustomBuild(Build):
     if not blobs.read_blob_to_disk(self.custom_binary_key, build_local_archive):
       return False
 
-    try:
-      reader = archive.open(build_local_archive)
-    except:
-      logs.error('Unable to open build archive %s.' % build_local_archive)
-      return False
-
     # If custom binary is an archive, then unpack it.
     if archive.is_archive(self.custom_binary_filename):
+      try:
+        reader = archive.open(build_local_archive)
+      except:
+        logs.log_error('Unable to open build archive %s.' % build_local_archive)
+        return False
       if not _make_space_for_build(reader, self.base_build_dir):
         # Remove downloaded archive to free up space and otherwise, it won't get
         # deleted until next job run.
@@ -991,13 +990,14 @@ class CustomBuild(Build):
       try:
         archive.unpack(reader, self.build_dir, trusted=True)
       except:
+        reader.close()
         logs.error('Unable to unpack build archive %s.' % build_local_archive)
         return False
 
+      reader.close()
       # Remove the archive.
       shell.remove_file(build_local_archive)
 
-    reader.close()
     self._pick_fuzz_target(
         self._get_fuzz_targets_from_dir(self.build_dir), self.target_weights)
     return True

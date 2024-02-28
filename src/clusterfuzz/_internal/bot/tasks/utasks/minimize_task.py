@@ -379,7 +379,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase, fuzzer_override=minimize_fuzzer_override)
 
   # TODO(metzman): This should be removed.
-  if not environment.is_libfuzzer_job() and environment.is_engine_fuzzer_job():
+  if not environment.is_minimization_supported():
     # TODO(ochang): More robust check for engine minimization support.
     _skip_minimization(testcase, 'Engine does not support minimization.')
     return None
@@ -826,7 +826,8 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   update_testcase(output)
-  _cleanup_unused_blobs_from_storage(output)
+  # TODO(alihijazi): Reenable this once it stops causing errors.
+  # _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return

@@ -29,6 +29,7 @@ import traceback
 
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks as taskslib
 from clusterfuzz._internal.base import untrusted
 from clusterfuzz._internal.base import utils
@@ -150,6 +151,11 @@ def task_loop():
       stacktrace = traceback.format_exc()
     except commands.AlreadyRunningError:
       exception_occurred = False
+    except task_utils.UworkerMsgParseError:
+      logs.log_error('Task cannot be retried because of utask parse error.')
+      task.dont_retry()
+      exception_occurred = True
+      stacktrace = traceback.format_exc()
     except Exception:
       logs.error('Error occurred while working on task.')
       exception_occurred = True

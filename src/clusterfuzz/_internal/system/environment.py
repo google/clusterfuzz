@@ -693,6 +693,14 @@ def get_engine_for_job(job_name=None):
   return None
 
 
+def is_minimization_supported():
+  """Return True if the current job supports minimization.
+
+  Currently blackbox-fuzzer jobs or libfuzzer support minimization.
+  """
+  return not is_engine_fuzzer_job() or is_libfuzzer_job()
+
+
 def is_posix():
   """Return True if we are on a posix platform (linux/unix and mac os)."""
   return os.name == 'posix'

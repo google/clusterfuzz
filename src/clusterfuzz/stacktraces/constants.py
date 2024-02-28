@@ -600,6 +600,9 @@ STACK_FRAME_IGNORE_REGEXES = [
     # Swift specific.
     r'^_swift_stdlib_',
 
+    # centipede specific.
+    r'.*centipede::',
+
     # googlefuzztest specific.
     r'.*fuzztest::internal::',
 
