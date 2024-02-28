@@ -1775,10 +1775,9 @@ class FuzzingSession:
 
     self.testcase_directory = environment.get_value('FUZZ_INPUTS')
 
-    fuzz_target = self.uworker_input.fuzz_task_input.fuzz_target
-    if fuzz_target:
+    if self.fuzz_target:
       logs.log('Setting fuzz target {fuzz_target}.')
-      environment.set_value('FUZZ_TARGET', fuzz_target.binary)
+      environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'))
 
@@ -1790,7 +1789,7 @@ class FuzzingSession:
       if not self.fuzz_task_output.fuzz_targets:
         logs.log_error('No fuzz targets.')
 
-      if not fuzz_target:
+      if not self.fuzz_target:
         return uworker_msg_pb2.Output(
             fuzz_task_output=self.fuzz_task_output,
             error_type=uworker_msg_pb2.ErrorType.FUZZ_NO_FUZZ_TARGET_SELECTED)
