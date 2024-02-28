@@ -79,7 +79,11 @@ def deserialize_uworker_input(
     serialized_uworker_input: bytes) -> uworker_msg_pb2.Input:
   """Deserializes input for the untrusted part of a task."""
   uworker_input_proto = uworker_msg_pb2.Input()
-  uworker_input_proto.ParseFromString(serialized_uworker_input)
+  try:
+    uworker_input_proto.ParseFromString(serialized_uworker_input)
+  except google.protobuf.message.DecodeError:
+    logs.log_error('Cannot decode uworker msg.')
+    raise task_utils.UworkerMsgParseError('Cannot decode uworker msg.')
   return uworker_input_proto
 
 
