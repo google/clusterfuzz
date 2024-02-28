@@ -738,7 +738,7 @@ class IntegrationTests(BaseIntegrationTest):
         'clusterfuzz._internal.metrics.logs.error',
     ])
 
-    def log_error(*args, **kwargs):  # pylint: disable=unused-argument
+    def mocked_error(*args, **kwargs):  # pylint: disable=unused-argument
       self.assertNotIn(engine.ENGINE_ERROR_MESSAGE, args[0])
 
     self.mock.error.side_effect = mocked_error
