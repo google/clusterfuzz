@@ -1593,6 +1593,23 @@ FUZZ_TARGET_UPDATE_FAIL_RETRIES = 5
 FUZZ_TARGET_UPDATE_FAIL_DELAY = 2
 
 
+def record_fuzz_target(engine_name, binary_name, job_type):
+  """Records exsistence of fuzz target to the DB."""
+  result = record_fuzz_targets(engine_name, [binary_name], job_type)[0]
+
+  project = get_project_name(job_type)
+  key_name = data_types.fuzz_target_fully_qualified_name(
+      engine_name, project, binary_name)
+
+  logs.log(
+      'Recorded use of fuzz target %s.' % key_name,
+      project=project,
+      engine=engine_name,
+      binary_name=binary_name,
+      job_type=job_type)
+  return result
+
+
 def get_or_create_multi_entities_from_keys(mapping):
   """Gets or creates multiple db entities."""
   keys = list(mapping.keys())
