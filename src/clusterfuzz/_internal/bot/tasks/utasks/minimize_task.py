@@ -379,7 +379,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase, fuzzer_override=minimize_fuzzer_override)
 
   # TODO(metzman): This should be removed.
-  if not environment.is_libfuzzer_job() and environment.is_engine_fuzzer_job():
+  if not environment.is_minimization_supported():
     # TODO(ochang): More robust check for engine minimization support.
     _skip_minimization(testcase, 'Engine does not support minimization.')
     return None
