@@ -21,7 +21,9 @@ import uuid
 from google.cloud import ndb
 from google.cloud.datastore_v1.proto import entity_pb2
 from google.cloud.ndb import model
+import google.protobuf.message
 
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
@@ -122,7 +124,11 @@ def serialize_uworker_output(
 
 def deserialize_uworker_output(serialized: bytes) -> uworker_msg_pb2.Output:
   output = uworker_msg_pb2.Output()
-  output.ParseFromString(serialized)
+  try:
+    output.ParseFromString(serialized)
+  except google.protobuf.message.DecodeError:
+    logs.log_error('Cannot decode uworker msg.')
+    raise task_utils.UworkerMsgParseError('Cannot decode uworker msg.')
   return output
 
 
