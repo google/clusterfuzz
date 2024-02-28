@@ -880,15 +880,6 @@ class StackParser:
           state,
           new_type='Kernel failure\nGeneral-protection-fault')
 
-      # GPU Failure.
-      self.update_state_on_match(
-          GPU_PROCESS_FAILURE,
-          line,
-          state,
-          new_type='GPU failure',
-          new_state='',
-          reset=True)
-
       # Command injection bugs detected by extra sanitizers.
       self.update_state_on_match(
           EXTRA_SANITIZERS_COMMAND_INJECTION_REGEX,
@@ -949,6 +940,13 @@ class StackParser:
             new_type='Out-of-memory',
             reset=True)
 
+      # V8 sandbox violations.
+      self.update_state_on_match(
+          V8_SANDBOX_VIOLATION_REGEX,
+          line,
+          state,
+          new_type='V8 sandbox violation')
+
       # The following parsing signatures don't lead to crash state overwrites.
       if not state.crash_type:
         # Windows cdb stack overflow.
@@ -982,6 +980,15 @@ class StackParser:
             line,
             state,
             address_from_group=1)
+
+        # Chrome GPU Failure.
+        self.update_state_on_match(
+            GPU_PROCESS_FAILURE,
+            line,
+            state,
+            new_type='GPU failure',
+            new_state='',
+            reset=True)
 
         if self.update_state_on_match(
             JAZZER_JAVA_SECURITY_EXCEPTION_REGEX,
@@ -1079,13 +1086,6 @@ class StackParser:
             state,
             new_type='V8 correctness failure',
             reset=True)
-
-        # V8 sandbox violations.
-        self.update_state_on_match(
-            V8_SANDBOX_VIOLATION_REGEX,
-            line,
-            state,
-            new_type='V8 sandbox violation')
 
         # Generic SEGV handler errors.
         self.update_state_on_match(

@@ -111,12 +111,15 @@ class RunCommandTest(unittest.TestCase):
     """Test run_command with a normal command."""
     self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = (
         uworker_msg_pb2.SetupInput())
-    commands.run_command('fuzz', 'fuzzer', 'job', {})
+
+    job_name = 'libfuzzer_job'
+    os.environ['JOB_NAME'] = job_name
+    commands.run_command('fuzz', 'fuzzer', job_name, {})
 
     uworker_input = self.mock.fuzz_utask_main.call_args_list[0][0][0]
     self.assertEqual(1, self.mock.fuzz_utask_main.call_count)
     self.assertEqual(uworker_input.fuzzer_name, 'fuzzer')
-    self.assertEqual(uworker_input.job_type, 'job')
+    self.assertEqual(uworker_input.job_type, job_name)
 
     # Fuzz task should not create any TaskStatus entities.
     task_status_entities = list(data_types.TaskStatus.query())

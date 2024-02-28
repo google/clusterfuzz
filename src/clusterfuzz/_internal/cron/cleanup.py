@@ -1079,6 +1079,20 @@ def update_component_labels(policy, testcase, issue):
   issue.save(new_comment=issue_comment, notify=True)
 
 
+def _sanitize_ccs_list(ccs_list):
+  """Remove and log all entries with trailing comments.
+
+  Eg: Do not add "xyz@test.com #{LAST_RESORT_SUGGESTION}".
+  """
+  ret_list = []
+  for cc in ccs_list:
+    if len(cc.split()) == 1:
+      ret_list.append(cc)
+    else:
+      logs.log(f'google_issue_tracker: Filtering out CC "{cc}"')
+  return ret_list
+
+
 def update_issue_ccs_from_owners_file(policy, testcase, issue):
   """Add cc to an issue based on owners list from owners file. This is
   currently applicable to fuzz targets only."""
@@ -1099,6 +1113,9 @@ def update_issue_ccs_from_owners_file(policy, testcase, issue):
       remove_empty=True)
   if not ccs_list:
     return
+
+  # Remove unsupported entries.
+  ccs_list = _sanitize_ccs_list(ccs_list)
 
   # If we've assigned the ccs before, it likely means we were incorrect.
   # Don't try again for this particular issue.

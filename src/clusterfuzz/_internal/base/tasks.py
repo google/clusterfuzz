@@ -342,13 +342,15 @@ class Task:
                job,
                eta=None,
                is_command_override=False,
-               high_end=False):
+               high_end=False,
+               extra_info=None):
     self.command = command
     self.argument = argument
     self.job = job
     self.eta = eta
     self.is_command_override = is_command_override
     self.high_end = high_end
+    self.extra_info = extra_info
 
   def attribute(self, _):
     return None
@@ -364,6 +366,11 @@ class Task:
         'argument': str(self.argument),
         'job': self.job,
     }
+    if self.extra_info is not None:
+      for attribute, value in self.extra_info.items():
+        if attribute in attributes:
+          raise ValueError(f'Cannot set {attribute} using extra_info.')
+        attributes[attribute] = value
 
     if self.eta:
       attributes['eta'] = str(utils.utc_datetime_to_timestamp(self.eta))
@@ -387,6 +394,12 @@ class PubSubTask(Task):
     super().__init__(
         self.attribute('command'), self.attribute('argument'),
         self.attribute('job'))
+
+    self.extra_info = {
+        key: value
+        for key, value in self._pubsub_message.attributes.items()
+        if key not in {'command', 'argument', 'job', 'eta'}
+    }
 
     self.eta = datetime.datetime.utcfromtimestamp(float(self.attribute('eta')))
 
@@ -434,6 +447,9 @@ class PubSubTask(Task):
     self._pubsub_message.ack()
     track_task_end()
 
+  def dont_retry(self):
+    self._pubsub_message.ack()
+
 
 def get_task_from_message(message) -> Optional[PubSubTask]:
   """Returns a task constructed from the first of |messages| if possible."""
@@ -462,10 +478,10 @@ def get_utask_mains() -> List[PubSubTask]:
   pubsub_puller = PubSubPuller(UTASK_MAINS_QUEUE)
   messages = pubsub_puller.get_messages_time_limited(MAX_UTASKS,
                                                      UTASK_QUEUE_PULL_SECONDS)
-  return handle_multiple_messages(messages)
+  return handle_multiple_utask_main_messages(messages)
 
 
-def handle_multiple_messages(messages) -> List[PubSubTask]:
+def handle_multiple_utask_main_messages(messages) -> List[PubSubTask]:
   """Merges tasks specified in |messages| into a list for processing on this
   bot."""
   tasks = []
@@ -475,6 +491,9 @@ def handle_multiple_messages(messages) -> List[PubSubTask]:
       continue
     tasks.append(task)
 
+  logs.log(
+      'Got utask_mains.',
+      tasks_extras_info=[task.extra_info for task in tasks if task])
   return tasks
 
 
@@ -557,15 +576,22 @@ class _PubSubLeaserThread(threading.Thread):
 def add_utask_main(command, input_url, job_type, wait_time=None):
   """Adds the utask_main portion of a utask to the utasks queue for scheduling
   on batch. This should only be done after preprocessing."""
+  initial_command = environment.get_value('TASK_PAYLOAD')
   add_task(
       command,
       input_url,
       job_type,
       queue=UTASK_MAINS_QUEUE,
-      wait_time=wait_time)
+      wait_time=wait_time,
+      extra_info={'initial_command': initial_command})
 
 
-def add_task(command, argument, job_type, queue=None, wait_time=None):
+def add_task(command,
+             argument,
+             job_type,
+             queue=None,
+             wait_time=None,
+             extra_info=None):
   """Add a new task to the job queue."""
   # Old testcases may pass in queue=None explicitly,
   # so we must check this here.
@@ -586,7 +612,7 @@ def add_task(command, argument, job_type, queue=None, wait_time=None):
 
   # Add the task.
   eta = utils.utcnow() + datetime.timedelta(seconds=wait_time)
-  task = Task(command, argument, job_type, eta=eta)
+  task = Task(command, argument, job_type, eta=eta, extra_info=extra_info)
   pubsub_client = pubsub.PubSubClient()
   pubsub_client.publish(
       pubsub.topic_name(utils.get_application_id(), queue),

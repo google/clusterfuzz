@@ -136,7 +136,8 @@ class UworkerMainTest(unittest.TestCase):
 
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type-value',
-        original_job_type='original_job_type-value',
+        variant_task_input=uworker_msg_pb2.VariantTaskInput(
+            original_job_type='original_job_type-value'),
         uworker_env=self.UWORKER_ENV,
         uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
         preprocess_start_time=start_timestamp,

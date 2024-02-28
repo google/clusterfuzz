@@ -215,6 +215,20 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_gpu_failure_with_asan(self):
+    """Basic test for GPU failure with an ASAN stacktrace available."""
+    data = self._read_test_data('gpu_crash_with_asan.txt')
+    expected_type = 'Heap-buffer-overflow\nREAD 8'
+    expected_address = '0x61500012fe48'
+    expected_stacktrace = data
+    expected_state = ('rx::RenderTargetVk::getImageActualFormat\n'
+                      'rx::FramebufferVk::updateColorAttachment\n'
+                      'rx::FramebufferVk::syncState\n')
+    expected_security_flag = True
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_android_kernel(self):
     """Basic test for Android kernel format."""
     data = self._read_test_data('android_kernel.txt')
@@ -1206,14 +1220,29 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
-  def test_v8_sandbox_violation(self):
-    """Test a v8 sandbox violation."""
-    data = self._read_test_data('v8_sandbox_violation.txt')
+  def test_v8_sandbox_violation_segv(self):
+    """Test a v8 sandbox violation observed as SIGSEGV."""
+    data = self._read_test_data('v8_sandbox_violation_segv.txt')
     expected_type = 'V8 sandbox violation'
     expected_address = '0x414141414141'
     expected_state = ('Builtins_JSToWasmWrapperAsm\n'
                       'Builtins_JSToWasmWrapper\n'
                       'Builtins_InterpreterEntryTrampoline\n')
+    expected_stacktrace = data
+    expected_security_flag = True
+
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
+  def test_v8_sandbox_violation_asan(self):
+    """Test a v8 sandbox violation observed as ASan error."""
+    data = self._read_test_data('v8_sandbox_violation_asan.txt')
+    expected_type = 'V8 sandbox violation'
+    expected_address = '0x5765f349d5e8'
+    expected_state = ('v8::internal::ElementsAccessor::ForKind\n'
+                      'v8::internal::LookupIterator::WriteDataValue\n'
+                      'v8::internal::Object::SetDataProperty\n')
     expected_stacktrace = data
     expected_security_flag = True
 
@@ -2529,6 +2558,18 @@ class StackAnalyzerTestcase(unittest.TestCase):
                                   expected_state, expected_stacktrace,
                                   expected_security_flag)
 
+  def test_centipede_fuzztest(self):
+    """Test centipede stacktrace."""
+    data = self._read_test_data('centipede_fuzztest.txt')
+    expected_type = 'Abrt'
+    expected_state = 'v8::internal::ManyConditions\n'
+    expected_address = '0x0539000001ac'
+    expected_stacktrace = data
+    expected_security_flag = False
+    self._validate_get_crash_data(data, expected_type, expected_address,
+                                  expected_state, expected_stacktrace,
+                                  expected_security_flag)
+
   def test_centipede_uaf(self):
     """Test centipede's ASAN error."""
     os.environ['REPORT_OOMS_AND_HANGS'] = 'True'
@@ -3482,7 +3523,7 @@ class StackAnalyzerTestcase(unittest.TestCase):
     """Test googletest stacktrace."""
     data = self._read_test_data('googletest.txt')
     expected_type = 'Abrt'
-    expected_state = 'v8::internal::SingleString\ncentipede::RunOneInput\nExecuteInputsFromShmem\n'
+    expected_state = 'v8::internal::SingleString\nExecuteInputsFromShmem\n'
     expected_address = '0x0539000a18ab'
     expected_stacktrace = data
     expected_security_flag = False

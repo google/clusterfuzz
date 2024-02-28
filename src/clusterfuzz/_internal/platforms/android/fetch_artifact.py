@@ -153,7 +153,7 @@ def get_client():
       'androidbuildinternal',
       'v3',
       credentials=credentials,
-      cache_discovery=False)
+      static_discovery=False)
 
   return client
 

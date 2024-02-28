@@ -32,7 +32,7 @@ from . import credentials
 
 _local = threading.local()
 
-MAX_DURATION = f'{int(60 * 60 * 2.5)}s'
+MAX_DURATION = f'{60 * 60 * 6}s'
 RETRY_COUNT = 0
 
 TASK_BUNCH_SIZE = 20
@@ -123,6 +123,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
   """Creates batch jobs."""
   job_specs = collections.defaultdict(list)
   for batch_task in batch_tasks:
+    logs.log(f'Scheduling {batch_task.command}, {batch_task.job_type}.')
     spec = _get_spec_from_config(batch_task.command, batch_task.job_type)
     job_specs[spec].append(batch_task.input_download_url)
 

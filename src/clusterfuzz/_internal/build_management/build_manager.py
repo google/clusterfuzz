@@ -287,7 +287,7 @@ def _get_build_directory(bucket_path, job_name):
   return os.path.join(builds_directory, job_directory)
 
 
-def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
+def set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   """Sets a random fuzz target for fuzzing."""
   fuzz_target = environment.get_value('FUZZ_TARGET')
   if fuzz_target:
@@ -301,8 +301,6 @@ def _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets, target_weights):
   if not fuzz_targets:
     logs.log_error('No fuzz targets found. Unable to pick random one.')
     return None
-
-  environment.set_value('FUZZ_TARGET_COUNT', len(fuzz_targets))
 
   fuzz_target = fuzzer_selection.select_fuzz_target(fuzz_targets,
                                                     target_weights)
@@ -422,11 +420,16 @@ class BaseBuild:
 class Build(BaseBuild):
   """Represent a build type at a particular revision."""
 
-  def __init__(self, base_build_dir, revision, build_prefix=''):
+  def __init__(self,
+               base_build_dir,
+               revision,
+               build_prefix='',
+               fuzz_targets=None):
     super().__init__(base_build_dir)
     self.revision = revision
     self.build_prefix = build_prefix
     self.env_prefix = build_prefix + '_' if build_prefix else ''
+    self.fuzz_targets = list(fuzz_targets) if fuzz_targets is not None else None
 
   def _reset_cwd(self):
     """Reset current working directory. Needed to clean up build
@@ -537,15 +540,14 @@ class Build(BaseBuild):
       logs.log_error('Unable to download build url %s.' % build_url)
       return False
 
-    unpack_everything = environment.get_value(
-        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
-
     try:
       reader = archive.open(build_local_archive)
     except:
       logs.log_error(f'Unable to open build archive {build_local_archive}.')
       return False
 
+    unpack_everything = environment.get_value(
+        'UNPACK_ALL_FUZZ_TARGETS_AND_FILES')
     if not unpack_everything:
       # For fuzzing, pick a random fuzz target so that we only un-archive that
       # particular fuzz target and its dependencies and save disk space.  If we
@@ -629,8 +631,9 @@ class Build(BaseBuild):
 
   def _pick_fuzz_target(self, fuzz_targets, target_weights):
     """Selects a fuzz target for fuzzing."""
-    return _set_random_fuzz_target_for_fuzzing_if_needed(
-        fuzz_targets, target_weights)
+    self.fuzz_targets = list(fuzz_targets)
+    return set_random_fuzz_target_for_fuzzing_if_needed(self.fuzz_targets,
+                                                        target_weights)
 
   def setup(self):
     """Set up the build on disk, and set all the necessary environment
@@ -735,7 +738,8 @@ class RegularBuild(Build):
                revision,
                build_url,
                target_weights=None,
-               build_prefix=''):
+               build_prefix='',
+               fuzz_targets=None):
     super().__init__(base_build_dir, revision, build_prefix)
     self.build_url = build_url
 
@@ -756,7 +760,7 @@ class RegularBuild(Build):
     self._pre_setup()
     environment.set_value(self.env_prefix + 'BUILD_URL', self.build_url)
 
-    logs.log('Retrieving build r%d.' % self.revision)
+    logs.log(f'Retrieving build r{self.revision}.')
     build_update = not self.exists()
     if build_update:
       if not self._unpack_build(self.base_build_dir, self.build_dir,
@@ -818,8 +822,9 @@ class FuchsiaBuild(RegularBuild):
 
     # Select a fuzzer, now that a list is available
     fuzz_targets = fuchsia.undercoat.list_fuzzers(handle)
-    _set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
-                                                  self.target_weights)
+    self.fuzz_targets = list(fuzz_targets)
+    set_random_fuzz_target_for_fuzzing_if_needed(fuzz_targets,
+                                                 self.target_weights)
 
     return True
 
@@ -1224,7 +1229,7 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
     raise BuildManagerError(
         'No targets found in targets.list (path=%s).' % bucket_path)
 
-  fuzz_target = _set_random_fuzz_target_for_fuzzing_if_needed(
+  fuzz_target = set_random_fuzz_target_for_fuzzing_if_needed(
       targets_list, target_weights)
   if not fuzz_target:
     raise BuildManagerError(
@@ -1237,7 +1242,8 @@ def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   if not revision:
     revision = _get_latest_revision([fuzz_target_bucket_path])
 
-  return setup_regular_build(revision, bucket_path=fuzz_target_bucket_path)
+  return setup_regular_build(
+      revision, bucket_path=fuzz_target_bucket_path, fuzz_targets=targets_list)
 
 
 def _get_latest_revision(bucket_paths):
@@ -1297,7 +1303,8 @@ def setup_trunk_build(bucket_paths, build_prefix=None, target_weights=None):
 def setup_regular_build(revision,
                         bucket_path=None,
                         build_prefix='',
-                        target_weights=None):
+                        target_weights=None,
+                        fuzz_targets=None) -> RegularBuild:
   """Sets up build with a particular revision."""
   if not bucket_path:
     # Bucket path can be customized, otherwise get it from the default env var.
@@ -1333,7 +1340,8 @@ def setup_regular_build(revision,
       revision,
       build_url,
       target_weights=target_weights,
-      build_prefix=build_prefix)
+      build_prefix=build_prefix,
+      fuzz_targets=fuzz_targets)
   if build.setup():
     result = build
   else:

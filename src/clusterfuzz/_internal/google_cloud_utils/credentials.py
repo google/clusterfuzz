@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Cloud credential helpers."""
-import os
+import json
 
 from google.auth import compute_engine
 from google.auth import credentials
@@ -20,6 +20,9 @@ from google.auth.transport import requests
 from google.oauth2 import service_account
 
 from clusterfuzz._internal.base import retry
+from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.google_cloud_utils import secret_manager
+from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.system import environment
 
 try:
@@ -36,6 +39,8 @@ _SCOPES = [
     'https://www.googleapis.com/auth/cloud-platform',
     'https://www.googleapis.com/auth/prodxmon'
 ]
+
+_SIGNING_KEY_SECRET_ID = 'gcs-signer-key'
 
 
 def _use_anonymous_credentials():
@@ -58,29 +63,31 @@ def get_default(scopes=None):
   """Get default Google Cloud credentials."""
   if _use_anonymous_credentials():
     return credentials.AnonymousCredentials(), ''
-
   return google.auth.default(scopes=scopes)
 
 
-@retry.wrap(
-    retries=FAIL_RETRIES,
-    delay=FAIL_WAIT,
-    function='google_cloud_utils.credentials.get_signing_credentials')
-def get_signing_credentials():
+def get_storage_signing_service_account():
+  """Gets a dedicated signing account for signing storage objects."""
+  if _use_anonymous_credentials():
+    return None
+  project_id = utils.get_application_id()
+  return json.loads(secret_manager.get(_SIGNING_KEY_SECRET_ID, project_id))
+
+
+def get_signing_credentials(service_account_info):
   """Returns signing credentials for signing URLs."""
   if _use_anonymous_credentials():
     return None
 
-  google_application_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS',
-                                             None)
-  if google_application_credentials is not None:
-    # Handle cases like android and Mac where bots are run outside of Google
-    # Cloud Platform and don't have access to metadata server.
-    signing_creds = service_account.Credentials.from_service_account_file(
-        google_application_credentials, scopes=_SCOPES)
-    token = signing_creds.token
+  if service_account_info is not None:
+    signing_creds = service_account.Credentials.from_service_account_info(
+        service_account_info, scopes=_SCOPES)
+    request = requests.Request()
+    signing_creds.refresh(request)
+    token = None
   else:
-    # The normal case, when we are on GCE.
+    # Fallback for when a dedicated singing account is not configured.
+    logs.log_error('Please configure dedicated signing credentials.')
     creds, _ = get_default()
 
     request = requests.Request()
