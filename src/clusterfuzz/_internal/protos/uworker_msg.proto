@@ -247,7 +247,7 @@ message CrossPollinationStatistics {
 }
 
 message CoverageInformation{
-  optional string project_name= 1;
+  optional string project_name = 1;
   optional google.protobuf.Timestamp timestamp = 2;
   optional int32 corpus_size_units = 3;
   optional int32 corpus_size_bytes = 4;
