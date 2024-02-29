@@ -1040,10 +1040,10 @@ def set_value(environment_variable, value, env=None):
 
 
 def get_initial_task_name():
-  initial_task_payload = environment.get_value('INITIAL_TASK_PAYLOAD')
+  initial_task_payload = get_value('INITIAL_TASK_PAYLOAD')
   if initial_task_payload is None:
     return None
-  return environment.get_value('INITIAL_TASK_PAYLOAD').split(' ')[0]
+  return initial_task_payload.split(' ')[0]
 
 
 def tool_matches(tool_name, job_name):
