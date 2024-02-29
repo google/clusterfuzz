@@ -853,6 +853,8 @@ def update_testcase_comment(testcase, task_state, message=None):
   """Add task status and message to the test case's comment field."""
   bot_name = environment.get_value('BOT_NAME', 'Unknown')
   task_name = environment.get_value('TASK_NAME', 'Unknown')
+  # Override in postprocess.
+  task_name = environment.get_initial_task_name() or task_name
   task_string = '%s task' % task_name.capitalize()
   timestamp = utils.current_date_time()
 
