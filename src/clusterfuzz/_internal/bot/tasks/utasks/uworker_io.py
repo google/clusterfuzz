@@ -82,7 +82,7 @@ def deserialize_uworker_input(
   try:
     uworker_input_proto.ParseFromString(serialized_uworker_input)
   except google.protobuf.message.DecodeError:
-    logs.log_error('Cannot decode uworker msg.')
+    logs.error('Cannot decode uworker msg.')
     raise task_utils.UworkerMsgParseError('Cannot decode uworker msg.')
   return uworker_input_proto
 

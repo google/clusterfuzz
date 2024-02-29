@@ -977,7 +977,7 @@ class CustomBuild(Build):
       try:
         reader = archive.open(build_local_archive)
       except:
-        logs.log_error('Unable to open build archive %s.' % build_local_archive)
+        logs.error(f'Unable to open build archive {build_local_archive}.')
         return False
       if not _make_space_for_build(reader, self.base_build_dir):
         # Remove downloaded archive to free up space and otherwise, it won't get

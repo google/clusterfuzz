@@ -351,8 +351,8 @@ def _get_testcase_key_and_archive_status(testcase):
       archived = bool(
           testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
       return key, archived
-    logs.log(f'blob key {key} does not exist in storage'
-             'for the minimized_task, will use the fuzzed_key.')
+    logs.info(f'blob key {key} does not exist in storage'
+              'for the minimized_task, will use the fuzzed_key.')
 
   key = testcase.fuzzed_keys
   archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)

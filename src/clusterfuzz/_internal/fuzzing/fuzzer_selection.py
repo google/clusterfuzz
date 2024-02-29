@@ -165,7 +165,7 @@ def get_fuzz_target_weights():
   for fuzz_target, target_job in zip(fuzz_targets, target_jobs):
     if not fuzz_target:
       logs.error('Skipping weight assignment for fuzz target '
-                     f'{target_job.fuzz_target_name}.')
+                 f'{target_job.fuzz_target_name}.')
       continue
 
     weights[fuzz_target.binary] = target_job.weight
