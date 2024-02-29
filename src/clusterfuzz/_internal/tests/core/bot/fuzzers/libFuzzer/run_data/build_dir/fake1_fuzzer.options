@@ -9,3 +9,4 @@ runs=9999999
 # The value below is intentionnaly large. The script should use default value
 # instead of that one below.
 rss_limit_mb=12345
+fork=0

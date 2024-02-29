@@ -23,6 +23,7 @@ import pyfakefs.fake_filesystem_unittest as fake_fs_unittest
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import libfuzzer
 from clusterfuzz._internal.bot.fuzzers import strategy_selection
+from clusterfuzz._internal.bot.fuzzers.libFuzzer import fuzzer
 from clusterfuzz._internal.fuzzing import strategy
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -37,6 +38,8 @@ FAKE_ROOT_DIR = '/fake_root'
 
 # An arbirtrary SHA1 sum.
 ARBITRARY_SHA1_HASH = 'dd122581c8cd44d0227f9c305581ffcb4b6f1b46'
+
+SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 def _read_test_data(name):
@@ -209,6 +212,30 @@ class SelectGeneratorTest(unittest.TestCase):
     self.assertEqual(engine_common.Generator.NONE,
                      engine_common.select_generator(self.pool,
                                                     self.FUZZER_PATH))  # pylint: disable=protected-access
+
+
+class ShouldSetForkFlagTest(unittest.TestCase):
+  """Tests for should_set_fork_flag."""
+
+  def setUp(self):
+    test_helpers.patch_environ(self)
+    self.build_dir = os.path.join(SCRIPT_DIR, 'run_data', 'build_dir')
+
+  def test_zero(self):
+    """Tests that should_set_fork_flag doesn't return True when it is already
+    set to 0."""
+    fuzzer_path = os.path.join(self.build_dir, 'fake1_fuzzer')
+    existing_arguments = fuzzer.get_arguments(fuzzer_path)
+
+    class MockPool:
+
+      def do_strategy(self, *args, **kwargs):
+        del args
+        del kwargs
+        return True
+
+    self.assertFalse(
+        libfuzzer.should_set_fork_flag(existing_arguments, MockPool()))
 
 
 if __name__ == '__main__':

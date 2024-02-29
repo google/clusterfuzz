@@ -43,7 +43,7 @@ class GenerateArgumentsTests(unittest.TestCase):
     fuzzer_path = os.path.join(self.build_dir, 'fake0_fuzzer')
     libfuzzer = fuzzer.LibFuzzer()
     arguments = libfuzzer.generate_arguments(fuzzer_path)
-    expected_arguments = '-timeout=25 -rss_limit_mb=2560'
+    expected_arguments = '-timeout=25 -rss_limit_mb=2560 -fork=0'
 
     self.assertEqual(arguments, expected_arguments)
 

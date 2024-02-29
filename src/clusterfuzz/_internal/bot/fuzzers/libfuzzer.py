@@ -1476,21 +1476,8 @@ def pick_strategies(strategy_pool,
     arguments[constants.VALUE_PROFILE_FLAGNAME] = 1
     fuzzing_strategies.append(strategy.VALUE_PROFILE_STRATEGY.name)
 
-  # FIXME: Disable for now to avoid severe battery drainage. Stabilize and
-  # re-enable with a lower process count.
-  is_android = environment.is_android()
-  # Fork mode is not supported on Fuchsia platform.
-  is_fuchsia = environment.platform() == 'FUCHSIA'
-  # Fork mode is disabled on ephemeral bots due to a bug on the platform.
-  is_ephemeral = environment.is_ephemeral()
-
-  # Do not use fork mode for DFT-based fuzzing. This is needed in order to
-  # collect readable and actionable logs from fuzz targets running with DFT.
-  # If fork_server is already set by the user, let's keep it that way.
-  fork_server = existing_arguments.get(constants.FORK_FLAGNAME, constructor=int)
-  if (not is_fuchsia and not is_android and not is_ephemeral and
-      not use_dataflow_tracing and not fork_server and
-      strategy_pool.do_strategy(strategy.FORK_STRATEGY)):
+  if not use_dataflow_tracing and should_set_fork_flag(existing_arguments,
+                                                       strategy_pool):
     max_fuzz_threads = environment.get_value('MAX_FUZZ_THREADS', 1)
     num_fuzz_processes = max(1, utils.cpu_count() // max_fuzz_threads)
     arguments[constants.FORK_FLAGNAME] = num_fuzz_processes
@@ -1510,3 +1497,23 @@ def pick_strategies(strategy_pool,
 
   return StrategyInfo(fuzzing_strategies, arguments, additional_corpus_dirs,
                       extra_env, use_dataflow_tracing, is_mutations_run)
+
+
+def should_set_fork_flag(existing_arguments, strategy_pool):
+  """Returns True if fork flag should be set."""
+  # FIXME: Disable for now to avoid severe battery drainage. Stabilize and
+  # re-enable with a lower process count.
+  if environment.is_android():
+    return False
+  # Fork mode is not supported on Fuchsia platform.
+  if environment.platform() == 'FUCHSIA':
+    return False
+  # Fork mode is disabled on ephemeral bots due to a bug on the platform.
+  if environment.is_ephemeral():
+    return False
+  # Do not use fork mode for DFT-based fuzzing. This is needed in order to
+  # collect readable and actionable logs from fuzz targets running with DFT.
+  # If fork_server is already set by the user, let's keep it that way.
+  if constants.FORK_FLAGNAME in existing_arguments.flags:
+    return False
+  return strategy_pool.do_strategy(strategy.FORK_STRATEGY)
