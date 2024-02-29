@@ -43,7 +43,7 @@ class GenerateArgumentsTests(unittest.TestCase):
     fuzzer_path = os.path.join(self.build_dir, 'fake0_fuzzer')
     libfuzzer = fuzzer.LibFuzzer()
     arguments = libfuzzer.generate_arguments(fuzzer_path)
-    expected_arguments = '-timeout=25 -rss_limit_mb=2560 -fork=0'
+    expected_arguments = '-timeout=25 -rss_limit_mb=2560'
 
     self.assertEqual(arguments, expected_arguments)
 
@@ -59,7 +59,7 @@ class GenerateArgumentsTests(unittest.TestCase):
                            (1 << 20)) - constants.MEMORY_OVERHEAD
     rss_limit = min(12345, max_memory_limit_mb)
     expected_arguments = (
-        f'-max_len=31337 -timeout=11 -runs=9999999 -rss_limit_mb={rss_limit}')
+        f'-max_len=31337 -timeout=11 -runs=9999999 -rss_limit_mb={rss_limit} -fork=0')
     self.assertEqual(arguments, expected_arguments)
 
 
