@@ -133,7 +133,7 @@ def write_range(table_id, testcase, range_name, start, end):
   ])
 
   for error in result.get('insertErrors', []):
-    logs.log_error(
+    logs.error(
         ("Ignoring error writing the testcase's %s range (%s) to "
          'BigQuery.' % (range_name, testcase.key.id())),
         exception=ValueError(error))

@@ -141,7 +141,7 @@ class MinijailChroot:
             stdin=devnull,
             stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-      logs.log_error('Failed to call mknod.', output=e.output)
+      logs.error('Failed to call mknod.', output=e.output)
 
   def _create_devices(self):
     """Create /dev/null, /dev/random, /dev/urandom, and /dev/shm."""

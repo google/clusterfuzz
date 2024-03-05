@@ -44,7 +44,7 @@ def main():
   backup_bucket = local_config.Config(
       local_config.PROJECT_PATH).get('backup.bucket')
   if not backup_bucket:
-    logs.log_error('No backup bucket is set, skipping.')
+    logs.error('No backup bucket is set, skipping.')
     return False
 
   kinds = [
@@ -68,10 +68,10 @@ def main():
     request = _datastore_client().projects().export(projectId=app_id, body=body)
     response = request.execute()
     message = 'Datastore export succeeded.'
-    logs.log(message, response=response)
+    logs.info(message, response=response)
     return True
   except errors.HttpError as e:
     status_code = e.resp.status
     message = f'Datastore export failed. Status code: {status_code}'
-    logs.log_error(message)
+    logs.error(message)
     return False

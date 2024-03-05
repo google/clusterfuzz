@@ -65,9 +65,9 @@ def main():
       previous_state = subprocess.check_output(
           beat_command, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
-      logs.log_error('Failed to beat.', output=e.output)
+      logs.error('Failed to beat.', output=e.output)
     except Exception:
-      logs.log_error('Failed to beat.')
+      logs.error('Failed to beat.')
 
     # See if our run timed out, if yes bail out.
     if data_handler.bot_run_timed_out():

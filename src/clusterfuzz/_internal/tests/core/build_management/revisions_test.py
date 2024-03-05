@@ -137,7 +137,7 @@ class RevisionsTestcase(unittest.TestCase):
     revision = revisions.convert_revision_to_integer('12345')
     self.assertEqual(revision, 12345)
 
-  @mock.patch('clusterfuzz._internal.metrics.logs.log_error')
+  @mock.patch('clusterfuzz._internal.metrics.logs.error')
   def test_convert_revision_to_integer_version_string(self, _):
     """Test version string conversions in convert_revision_to_integer."""
     revision = revisions.convert_revision_to_integer('1.1.1.1')

@@ -385,7 +385,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
   def _push_corpora_from_host_to_target(self, corpus_directories):
     # Push corpus directories to the device.
     self._clear_all_target_corpora()
-    logs.log('Push corpora from host to target.')
+    logs.info('Push corpora from host to target.')
     for corpus_dir in corpus_directories:
       undercoat.put_data(self.handle, self.executable_path, corpus_dir,
                          'data/corpus')
@@ -394,7 +394,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
     """Pull corpus directories from device to host."""
     # Appending '/*' indicates we want all the *files* in the target's
     # directory, rather than the directory itself.
-    logs.log('Fuzzer ran; pulling down corpus')
+    logs.info('Fuzzer ran; pulling down corpus')
     new_corpus_files_target = self._new_corpus_dir_target(
         corpus_directories) + '/*'
     undercoat.get_data(self.handle, self.executable_path,
@@ -403,7 +403,7 @@ class FuchsiaUndercoatLibFuzzerRunner(new_process.UnicodeProcessRunner,
 
   def _clear_all_target_corpora(self):
     """Clears out all the corpora on the target."""
-    logs.log('Clearing corpora on target')
+    logs.info('Clearing corpora on target')
     # prepare_fuzzer resets the data/ directory
     undercoat.prepare_fuzzer(self.handle, self.executable_path)
 
@@ -841,7 +841,7 @@ class AndroidLibFuzzerRunner(new_process.UnicodeProcessRunner, LibFuzzerCommon):
   def _get_local_path(self, device_path):
     """Return local path for the given device path."""
     if not device_path.startswith(android.constants.DEVICE_FUZZING_DIR + '/'):
-      logs.log_error('Bad device path: ' + device_path)
+      logs.error('Bad device path: ' + device_path)
       return None
 
     root_directory = environment.get_root_directory()
@@ -1298,7 +1298,7 @@ def parse_log_stats(log_lines):
     value = match.group(2)
     if not value.isdigit():
       # We do not expect any non-numeric stats from libFuzzer, skip those.
-      logs.log_error('Corrupted stats reported by libFuzzer: "%s".' % line)
+      logs.error('Corrupted stats reported by libFuzzer: "%s".' % line)
       continue
 
     value = int(value)
@@ -1449,7 +1449,7 @@ def pick_strategies(strategy_pool,
       arguments[constants.FOCUS_FUNCTION_FLAGNAME] = 'auto'
       fuzzing_strategies.append(strategy.DATAFLOW_TRACING_STRATEGY.name)
     else:
-      logs.log_warn(
+      logs.warning(
           'Dataflow trace is not found in dataflow build, skipping strategy.')
       use_dataflow_tracing = False
 

@@ -160,7 +160,7 @@ class Engine(engine.Engine):
     dict_path = arguments.get(
         constants.DICT_FLAGNAME, default=None, constructor=str)
     if dict_path and not os.path.exists(dict_path):
-      logs.log_error(f'Invalid dict {dict_path} for {target_path}.')
+      logs.error(f'Invalid dict {dict_path} for {target_path}.')
       del arguments[constants.DICT_FLAGNAME]
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
@@ -205,7 +205,7 @@ class Engine(engine.Engine):
     new_units_added = shell.get_directory_file_count(new_corpus_dir)
     if not new_units_added:
       stat_overrides['new_units_added'] = 0
-      logs.log('Skipped corpus merge since no new units added by fuzzing.')
+      logs.info('Skipped corpus merge since no new units added by fuzzing.')
       return
 
     # If this times out, it's possible that we will miss some units. However, if
@@ -240,16 +240,16 @@ class Engine(engine.Engine):
 
       stat_overrides.update(result.stats)
     except (MergeError, TimeoutError) as e:
-      logs.log_warn('Merge failed.', error=repr(e))
+      logs.warning('Merge failed.', error=repr(e))
 
     stat_overrides['new_units_added'] = new_units_added
 
     # Record the stats to make them easily searchable in stackdriver.
-    logs.log('Stats calculated.', stats=stat_overrides)
+    logs.info('Stats calculated.', stats=stat_overrides)
     if new_units_added:
-      logs.log(f'New units added to corpus: {new_units_added}.')
+      logs.info(f'New units added to corpus: {new_units_added}.')
     else:
-      logs.log('No new units found.')
+      logs.info('No new units found.')
 
   def _fuzz_output_contains_trusty_kernel_panic(self, log_lines):
     for line in log_lines:
@@ -292,7 +292,7 @@ class Engine(engine.Engine):
         engine_common.get_project_qualified_fuzzer_name(target_path))
     dict_error_match = DICT_PARSING_FAILED_REGEX.search(fuzz_result.output)
     if dict_error_match:
-      logs.log_error(
+      logs.error(
           'Dictionary parsing failed '
           f'(target={project_qualified_fuzzer_name}, '
           f'line={dict_error_match.group(1)}).',
@@ -302,7 +302,7 @@ class Engine(engine.Engine):
       # Minijail returns 1 if the exit code is nonzero.
       # Otherwise: we can assume that a return code of 1 means that libFuzzer
       # itself ran into an error.
-      logs.log_error(
+      logs.error(
           ENGINE_ERROR_MESSAGE + f' (target={project_qualified_fuzzer_name}).',
           engine_output=fuzz_result.output)
 
@@ -403,7 +403,7 @@ class Engine(engine.Engine):
         input_path, timeout=max_time, additional_args=arguments.list())
 
     if result.timed_out:
-      logs.log_warn('Reproducing timed out.', fuzzer_output=result.output)
+      logs.warning('Reproducing timed out.', fuzzer_output=result.output)
       raise TimeoutError('Reproducing timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
@@ -431,7 +431,7 @@ class Engine(engine.Engine):
     if not _is_multistep_merge_supported(target_path):
       # Fallback to the old single step merge. It does not support incremental
       # stats and provides only `edge_coverage` and `feature_coverage` stats.
-      logs.log('Old version of libFuzzer is used. Using single step merge.')
+      logs.info('Old version of libFuzzer is used. Using single step merge.')
       return self.minimize_corpus(target_path, arguments,
                                   existing_corpus_dirs + [new_corpus_dir],
                                   output_corpus_dir, reproducers_dir, max_time)
@@ -458,7 +458,7 @@ class Engine(engine.Engine):
     # Adjust the time limit for the time we spent on the first merge step.
     max_time -= result_1.time_executed
     if max_time <= 0:
-      logs.log_error(
+      logs.error(
           'Merging new testcases timed out.', fuzzer_output=result_1.logs)
       raise TimeoutError('Merging new testcases timed out.')
 
@@ -478,7 +478,7 @@ class Engine(engine.Engine):
 
     output = result_1.logs + '\n\n' + result_2.logs
     if (merge_stats['new_edges'] < 0 or merge_stats['new_features'] < 0):
-      logs.log_error(
+      logs.error(
           'Two step merge failed.', merge_stats=merge_stats, output=output)
       merge_stats['new_edges'] = 0
       merge_stats['new_features'] = 0
@@ -522,12 +522,12 @@ class Engine(engine.Engine):
         merge_control_file=getattr(self, '_merge_control_file', None))
 
     if result.timed_out:
-      logs.log_error(
+      logs.error(
           'Merging new testcases timed out.', fuzzer_output=result.output)
       raise TimeoutError('Merging new testcases timed out.')
 
     if result.return_code != 0:
-      logs.log_error(
+      logs.error(
           'Merging new testcases timed out.', fuzzer_output=result.output)
       raise MergeError('Merging new testcases failed.')
 
@@ -566,7 +566,7 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      logs.log_error('Minimization timed out.', fuzzer_output=result.output)
+      logs.error('Minimization timed out.', fuzzer_output=result.output)
       raise TimeoutError('Minimization timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,
@@ -600,7 +600,7 @@ class Engine(engine.Engine):
         additional_args=arguments)
 
     if result.timed_out:
-      logs.log_error('Cleanse timed out.', fuzzer_output=result.output)
+      logs.error('Cleanse timed out.', fuzzer_output=result.output)
       raise TimeoutError('Cleanse timed out.')
 
     return engine.ReproduceResult(result.command, result.return_code,

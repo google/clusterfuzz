@@ -102,7 +102,7 @@ def cleanup_defunct_processes():
         if not p:
           break
 
-        logs.log('Clearing defunct process %s.' % str(p))
+        logs.info('Clearing defunct process %s.' % str(p))
       except:
         break
 
@@ -193,7 +193,7 @@ def run_process(cmdline,
           ignore_children=ignore_children)
       start_process(process_handle)
     except:
-      logs.log_error('Exception occurred when running command: %s.' % cmdline)
+      logs.error('Exception occurred when running command: %s.' % cmdline)
       return None, None, ''
 
   while True:
@@ -256,7 +256,7 @@ def run_process(cmdline,
     if android.constants.LOW_MEMORY_REGEX.search(output):
       # If the device is low on memory, we should force reboot and bail out to
       # prevent device from getting in a frozen state.
-      logs.log('Device is low on memory, rebooting.', output=output)
+      logs.info('Device is low on memory, rebooting.', output=output)
       android.adb.hard_reset()
       android.adb.wait_for_device()
 
@@ -326,7 +326,7 @@ def run_process(cmdline,
     # X Server hack when max client reached.
     if ('Maximum number of clients reached' in output or
         'Unable to get connection to X server' in output):
-      logs.log_error('Unable to connect to X server, exiting.')
+      logs.error('Unable to connect to X server, exiting.')
       os.system('sudo killall -9 Xvfb blackbox >/dev/null 2>&1')
       sys.exit(0)
 
@@ -342,7 +342,7 @@ def run_process(cmdline,
       output += ps_output
 
   if return_code:
-    logs.log_warn(
+    logs.warning(
         'Process (%s) ended with exit code (%s).' % (repr(cmdline),
                                                      str(return_code)),
         output=output)
@@ -366,7 +366,7 @@ def close_queue(queue_to_close):
   try:
     queue_to_close.close()
   except:
-    logs.log_error('Unable to close queue.')
+    logs.error('Unable to close queue.')
 
 
 def get_process():
@@ -415,7 +415,7 @@ def get_queue():
   except:
     # FIXME: Invalid cross-device link error. Happens sometimes with
     # chroot jobs even though /dev/shm and /run/shm are mounted.
-    logs.log_error('Unable to get multiprocessing queue.')
+    logs.error('Unable to get multiprocessing queue.')
     return None
 
   return result_queue
@@ -430,7 +430,7 @@ def terminate_hung_threads(threads):
       return
     time.sleep(0.1)
 
-  logs.log_warn('Hang detected.', snapshot=get_runtime_snapshot())
+  logs.warning('Hang detected.', snapshot=get_runtime_snapshot())
 
   if environment.is_trusted_host():
     from clusterfuzz._internal.bot.untrusted_runner import host
@@ -584,7 +584,7 @@ def terminate_stale_application_instances():
 
   duration = int(time.time() - start_time)
   if duration >= 5:
-    logs.log('Process kill took longer than usual - %s.' % str(
+    logs.info('Process kill took longer than usual - %s.' % str(
         datetime.timedelta(seconds=duration)))
 
 
@@ -599,7 +599,7 @@ def terminate_process(process_id, kill=False):
       process.terminate()
 
   except (psutil.AccessDenied, psutil.NoSuchProcess, OSError):
-    logs.log_warn('Failed to terminate process.')
+    logs.warning('Failed to terminate process.')
 
 
 def terminate_processes_matching_names(match_strings, kill=False):

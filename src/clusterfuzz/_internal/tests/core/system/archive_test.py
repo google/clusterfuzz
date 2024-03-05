@@ -82,7 +82,7 @@ class ArchiveReaderTest(unittest.TestCase):
   def test_tar_xz_broken_links(self):
     """Test that a .tar file with broken links is handled properly by
     iterator()."""
-    helpers.patch(self, ['clusterfuzz._internal.metrics.logs.log_warn'])
+    helpers.patch(self, ['clusterfuzz._internal.metrics.logs.warning'])
 
     archive_name = 'broken-links.tar.xz'
     archive_path = os.path.join(TESTDATA_PATH, archive_name)

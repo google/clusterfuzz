@@ -218,7 +218,7 @@ def get_github_url(url):
   response = requests.get(
       url, auth=(client_id, client_secret), timeout=HTTP_TIMEOUT_SECONDS)
   if response.status_code != 200:
-    logs.log_error(
+    logs.error(
         f'Failed to get github url: {url}.', status_code=response.status_code)
     response.raise_for_status()
 
@@ -243,7 +243,7 @@ def get_oss_fuzz_projects():
 
   projects_url = find_github_item_url(tree, 'projects')
   if not projects_url:
-    logs.log_error('No projects found.')
+    logs.error('No projects found.')
     return []
 
   tree = get_github_url(projects_url)
@@ -305,7 +305,7 @@ def get_jobs_for_project(project, info):
   sanitizers = _process_sanitizers_field(
       info.get('sanitizers', DEFAULT_SANITIZERS))
   if not sanitizers:
-    logs.log_error(f'Invalid sanitizers field for {project}.')
+    logs.error(f'Invalid sanitizers field for {project}.')
     return []
 
   engines = info.get('fuzzing_engines', DEFAULT_ENGINES)
@@ -376,7 +376,7 @@ def _add_users_to_bucket(info, client, bucket_name, iam_policy):
     if cc in binding['members']:
       continue
 
-    logs.log(f'Adding {cc} to bucket IAM for {bucket_name}.')
+    logs.info(f'Adding {cc} to bucket IAM for {bucket_name}.')
     # Add CCs one at a time since the API does not work with invalid or
     # non-Google emails.
     modified_iam_policy = storage.add_single_bucket_iam(
@@ -485,7 +485,7 @@ def update_fuzzer_jobs(fuzzer_entities, job_names):
       if job.name in job_names:
         continue
 
-      logs.log(f'Deleting job {job.name}')
+      logs.info(f'Deleting job {job.name}')
       to_delete[job.name] = job.key
 
       try:
@@ -506,7 +506,7 @@ def cleanup_old_projects_settings(project_names):
 
   for project in data_types.OssFuzzProject.query():
     if project.name not in project_names:
-      logs.log(f'Deleting project {project.name}.')
+      logs.info(f'Deleting project {project.name}.')
       to_delete.append(project.key)
 
   if to_delete:
@@ -701,7 +701,7 @@ class ProjectSetup:
       add_bucket_iams(info, client, logs_bucket_name, service_account)
       add_bucket_iams(info, client, quarantine_bucket_name, service_account)
     except Exception as e:
-      logs.log_error(f'Failed to add bucket IAMs for {project}: {e}.')
+      logs.error(f'Failed to add bucket IAMs for {project}: {e}.')
 
     # Grant the service account read access to deployment bucket.
     add_service_account_to_bucket(client, self._deployment_bucket_name(),
@@ -859,9 +859,8 @@ class ProjectSetup:
           job.environment_string += (
               f'ISSUE_VIEW_RESTRICTIONS = {view_restrictions}\n')
         else:
-          logs.log_error(
-              f'Invalid view restriction setting {view_restrictions} '
-              f'for project {project}.')
+          logs.error(f'Invalid view restriction setting {view_restrictions} '
+                     f'for project {project}.')
 
       if not has_maintainer(info):
         job.environment_string += 'DISABLE_DISCLOSURE = True\n'
@@ -960,7 +959,7 @@ class ProjectSetup:
     up."""
     job_names = []
     for project, info in projects:
-      logs.log(f'Syncing configs for {project}.')
+      logs.info(f'Syncing configs for {project}.')
 
       backup_bucket_name = None
       corpus_bucket_name = None
@@ -1012,30 +1011,30 @@ def main():
   libfuzzer = data_types.Fuzzer.query(
       data_types.Fuzzer.name == 'libFuzzer').get()
   if not libfuzzer:
-    logs.log_error('Failed to get libFuzzer Fuzzer entity.')
+    logs.error('Failed to get libFuzzer Fuzzer entity.')
     return False
 
   afl = data_types.Fuzzer.query(data_types.Fuzzer.name == 'afl').get()
   if not afl:
-    logs.log_error('Failed to get AFL Fuzzer entity.')
+    logs.error('Failed to get AFL Fuzzer entity.')
     return False
 
   honggfuzz = data_types.Fuzzer.query(
       data_types.Fuzzer.name == 'honggfuzz').get()
   if not honggfuzz:
-    logs.log_error('Failed to get honggfuzz Fuzzer entity.')
+    logs.error('Failed to get honggfuzz Fuzzer entity.')
     return False
 
   gft = data_types.Fuzzer.query(
       data_types.Fuzzer.name == 'googlefuzztest').get()
   if not gft:
-    logs.log_error('Failed to get googlefuzztest Fuzzer entity.')
+    logs.error('Failed to get googlefuzztest Fuzzer entity.')
     return False
 
   centipede = data_types.Fuzzer.query(
       data_types.Fuzzer.name == 'centipede').get()
   if not centipede:
-    logs.log_error('Failed to get Centipede Fuzzer entity.')
+    logs.error('Failed to get Centipede Fuzzer entity.')
     return False
 
   project_config = local_config.ProjectConfig()
@@ -1101,5 +1100,5 @@ def main():
       list(fuzzer_entities.values()), project_names, job_names,
       segregate_projects)
 
-  logs.log('Project setup succeeded.')
+  logs.info('Project setup succeeded.')
   return True

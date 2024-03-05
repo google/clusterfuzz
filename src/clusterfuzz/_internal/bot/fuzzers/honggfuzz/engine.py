@@ -98,13 +98,13 @@ def _get_stats(line):
 
   for part in parts:
     if ':' not in part:
-      logs.log_error('Invalid stat part.', value=part)
+      logs.error('Invalid stat part.', value=part)
 
     key, value = part.split(':', 2)
     try:
       stats[key] = int(value)
     except (ValueError, TypeError):
-      logs.log_error('Invalid stat value.', key=key, value=value)
+      logs.error('Invalid stat value.', key=key, value=value)
 
   return stats
 
@@ -249,7 +249,7 @@ class Engine(engine.Engine):
     # Copy all of the seeds into corpus.
     idx = 0
     for input_dir in input_dirs:
-      logs.log(f'Copying input dir {input_dir}.')
+      logs.info(f'Copying input dir {input_dir}.')
       src_corpus_files = []
       for root, _, files in shell.walk(input_dir):
         for filename in files:

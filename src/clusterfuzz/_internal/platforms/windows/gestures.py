@@ -41,13 +41,13 @@ def find_windows_for_process(process_id):
     try:
       app.connect(process=pid)
     except:
-      logs.log_warn('Unable to connect to process.')
+      logs.warning('Unable to connect to process.')
       continue
 
     try:
       windows = app.windows()
     except:
-      logs.log_warn('Unable to get application windows.')
+      logs.warning('Unable to get application windows.')
       continue
 
     for window in windows:

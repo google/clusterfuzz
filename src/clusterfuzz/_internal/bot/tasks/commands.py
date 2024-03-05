@@ -189,7 +189,7 @@ def start_web_server_if_needed():
   try:
     http_server.start()
   except Exception:
-    logs.log_error('Failed to start web server, skipping.')
+    logs.error('Failed to start web server, skipping.')
 
 
 def run_command(task_name,
@@ -200,7 +200,7 @@ def run_command(task_name,
   """Run the command."""
   task = COMMAND_MAP.get(task_name)
   if not task:
-    logs.log_error("Unknown command '%s'" % task_name)
+    logs.error("Unknown command '%s'" % task_name)
     return None
 
   # If applicable, ensure this is the only instance of the task running.
@@ -208,8 +208,8 @@ def run_command(task_name,
   if should_update_task_status(task_name):
     if not data_handler.update_task_status(task_state_name,
                                            data_types.TaskState.STARTED):
-      logs.log('Another instance of "{}" already '
-               'running, exiting.'.format(task_state_name))
+      logs.info('Another instance of "{}" already '
+                'running, exiting.'.format(task_state_name))
       raise AlreadyRunningError
 
   result = None
@@ -222,7 +222,7 @@ def run_command(task_name,
     # It is difficult to try to handle the case where a test case is deleted
     # during processing. Rather than trying to catch by checking every point
     # where a test case is reloaded from the datastore, just abort the task.
-    logs.log_warn('Test case %s no longer exists.' % task_argument)
+    logs.warning('Test case %s no longer exists.' % task_argument)
   except BaseException:
     # On any other exceptions, update state to reflect error and re-raise.
     if should_update_task_status(task_name):
@@ -240,9 +240,9 @@ def run_command(task_name,
 
 def process_command(task):
   """Figures out what to do with the given task and executes the command."""
-  logs.log(f'Executing command "{task.payload()}"')
+  logs.info(f'Executing command "{task.payload()}"')
   if not task.payload().strip():
-    logs.log_error('Empty task received.')
+    logs.error('Empty task received.')
     return None
 
   return process_command_impl(task.command, task.argument, task.job,
@@ -268,12 +268,12 @@ def process_command_impl(task_name,
     # Job might be removed. In that case, we don't want an exception
     # raised and causing this task to be retried by another bot.
     if not job:
-      logs.log_error("Job '%s' not found." % job_name)
+      logs.error("Job '%s' not found." % job_name)
       return None
 
     if not job.platform:
       error_string = "No platform set for job '%s'" % job_name
-      logs.log_error(error_string)
+      logs.error(error_string)
       raise errors.BadStateError(error_string)
 
     job_base_queue_suffix = tasks.queue_suffix_for_platform(
@@ -285,9 +285,8 @@ def process_command_impl(task_name,
     # A misconfiguration led to this point. Clean up the job if necessary.
     if job_base_queue_suffix != bot_base_queue_suffix:
       # This happens rarely, store this as a hard exception.
-      logs.log_error(
-          'Wrong platform for job %s: job queue [%s], bot queue [%s].' %
-          (job_name, job_base_queue_suffix, bot_base_queue_suffix))
+      logs.error('Wrong platform for job %s: job queue [%s], bot queue [%s].' %
+                 (job_name, job_base_queue_suffix, bot_base_queue_suffix))
 
       # Try to recreate the job in the correct task queue.
       new_queue = (
@@ -305,7 +304,7 @@ def process_command_impl(task_name,
           # This can happen on trying to publish on a non-existent topic, e.g.
           # a topic for a high-end bot on another platform. In this case, just
           # give up.
-          logs.log_error('Failed to fix platform and re-add task.')
+          logs.error('Failed to fix platform and re-add task.')
 
       # Add a wait interval to avoid overflowing task creation.
       failure_wait_interval = environment.get_value('FAIL_WAIT')
@@ -328,7 +327,7 @@ def process_command_impl(task_name,
         if (task_name != 'variant' and testcase_platform_id and
             not utils.fields_match(testcase_platform_id, current_platform_id)):
 
-          logs.log(f'Testcase {testcase_id} platform {testcase_platform_id}\
+          logs.info(f'Testcase {testcase_id} platform {testcase_platform_id}\
                does not match with ours {current_platform_id}, checking ...')
 
           # Check if the device or branch is deprecated.
@@ -336,7 +335,7 @@ def process_command_impl(task_name,
           if not (environment.is_testcase_deprecated(testcase_platform_id) and
                   environment.can_testcase_run_on_platform(
                       testcase_platform_id, current_platform_id)):
-            logs.log('Testcase %d platform (%s) does not match with ours\
+            logs.info('Testcase %d platform (%s) does not match with ours\
                  (%s), exiting' % (testcase.key.id(), testcase_platform_id,
                                    current_platform_id))
             tasks.add_task(
@@ -346,7 +345,7 @@ def process_command_impl(task_name,
                 wait_time=utils.random_number(1, TASK_RETRY_WAIT_LIMIT))
             return None
 
-          logs.log(f'Testcase {testcase_id} platform {testcase_platform_id}\
+          logs.info(f'Testcase {testcase_id} platform {testcase_platform_id}\
                can run on current platform {current_platform_id}')
 
     # Some fuzzers contain additional environment variables that should be
@@ -374,7 +373,7 @@ def process_command_impl(task_name,
           environment_string += '\nORIGINAL_JOB_NAME = %s\n' % job_name
           job_name = minimize_job_override
         else:
-          logs.log_error(
+          logs.error(
               'Job for minimization not found: %s.' % minimize_job_override)
           # Fallback to using own job for minimization.
 
@@ -409,7 +408,7 @@ def process_command_impl(task_name,
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
   if not is_supported_cpu_arch_for_job():
-    logs.log(
+    logs.info(
         'Unsupported cpu architecture specified in job definition, exiting.')
     tasks.add_task(
         task_name,

@@ -133,7 +133,7 @@ def get_newer_source_revision():
   current source is up to date."""
   if (environment.get_value('LOCAL_SRC') or
       environment.get_value('LOCAL_DEVELOPMENT')):
-    logs.log('Using local source, skipping source code update.')
+    logs.info('Using local source, skipping source code update.')
     return None
 
   root_directory = environment.get_value('ROOT_DIR')
@@ -141,35 +141,35 @@ def get_newer_source_revision():
   source_manifest_url = get_source_manifest_url()
   if (not get_source_url() or not source_manifest_url or not temp_directory or
       not root_directory):
-    logs.log('Skipping source code update.')
+    logs.info('Skipping source code update.')
     return None
 
-  logs.log('Checking source code for updates.')
+  logs.info('Checking source code for updates.')
   try:
     source_version = get_remote_source_revision(source_manifest_url)
   except Exception:
-    logs.log_error('Error occurred while checking source version.')
+    logs.error('Error occurred while checking source version.')
     return None
 
   local_source_version = get_local_source_revision()
   if not local_source_version:
-    logs.log('No manifest found. Forcing an update.')
+    logs.info('No manifest found. Forcing an update.')
     return source_version
 
-  logs.log('Local source code version: %s.' % local_source_version)
-  logs.log('Remote source code version: %s.' % source_version)
+  logs.info('Local source code version: %s.' % local_source_version)
+  logs.info('Remote source code version: %s.' % source_version)
   if local_source_version >= source_version:
-    logs.log('Remote souce code <= local source code. No update.')
+    logs.info('Remote souce code <= local source code. No update.')
     # No source code update found. Source code is current, bail out.
     return None
 
-  logs.log(f'New source code: {source_version}')
+  logs.info(f'New source code: {source_version}')
   return source_version
 
 
 def run_platform_init_scripts():
   """Run platform specific initialization scripts."""
-  logs.log('Running platform initialization scripts.')
+  logs.info('Running platform initialization scripts.')
 
   plt = environment.platform()
   if environment.is_android():
@@ -187,7 +187,7 @@ def run_platform_init_scripts():
   else:
     raise RuntimeError('Unsupported platform')
 
-  logs.log('Completed running platform initialization scripts.')
+  logs.info('Completed running platform initialization scripts.')
 
 
 def update_source_code():
@@ -203,13 +203,13 @@ def update_source_code():
   try:
     storage.copy_file_from(get_source_url(), temp_archive)
   except Exception:
-    logs.log_error('Could not retrieve source code archive from url.')
+    logs.error('Could not retrieve source code archive from url.')
     return
 
   try:
     reader = archive.open(temp_archive)
   except Exception:
-    logs.log_error('Bad zip file.')
+    logs.error('Bad zip file.')
     return
 
   src_directory = os.path.join(root_directory, 'src')
@@ -246,8 +246,8 @@ def update_source_code():
           os.path.exists(absolute_filepath)):
         _rename_dll_for_update(absolute_filepath)
     except Exception:
-      logs.log_error('Failed to remove or move %s before extracting new '
-                     'version.' % absolute_filepath)
+      logs.error('Failed to remove or move %s before extracting new '
+                 'version.' % absolute_filepath)
 
     try:
       extracted_path = reader.extract(
@@ -257,7 +257,7 @@ def update_source_code():
       os.chmod(extracted_path, mode)
     except:
       error_occurred = True
-      logs.log_error(f'Failed to extract file {file.name} from source archive.')
+      logs.error(f'Failed to extract file {file.name} from source archive.')
 
   reader.close()
 
@@ -272,7 +272,7 @@ def update_source_code():
   source_version = utils.read_data_from_file(
       local_manifest_path, eval_data=False).decode('utf-8').strip()
   os.remove(temp_archive)
-  logs.log('Source code updated to %s.' % source_version)
+  logs.info('Source code updated to %s.' % source_version)
 
 
 def update_tests_if_needed():
@@ -302,7 +302,7 @@ def update_tests_if_needed():
       last_modified_time, days=TESTS_UPDATE_INTERVAL_DAYS)):
     return
 
-  logs.log('Updating layout tests.')
+  logs.info('Updating layout tests.')
   tasks.track_task_start(
       tasks.Task('update_tests', '', ''), expected_task_duration)
 
@@ -317,7 +317,7 @@ def update_tests_if_needed():
       error_occured = False
       break
     except:
-      logs.log_error(
+      logs.error(
           'Could not retrieve and unpack layout tests archive. Retrying.')
       error_occured = True
 
@@ -344,7 +344,7 @@ def run():
     # Download new layout tests once per day.
     update_tests_if_needed()
   except Exception:
-    logs.log_error('Error occurred while running update task.')
+    logs.error('Error occurred while running update task.')
 
   # Even if there is an exception in one of the other steps, we want to try to
   # update the source. If for some reason the source code update fails, it is
@@ -361,4 +361,4 @@ def run():
     # Run platform specific initialization scripts.
     run_platform_init_scripts()
   except Exception:
-    logs.log_error('Error occurred while running update task.')
+    logs.error('Error occurred while running update task.')

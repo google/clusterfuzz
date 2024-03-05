@@ -237,7 +237,7 @@ def _write_to_bigquery(testcase, progression_range_start,
 
 def _log_output(revision, crash_result):
   """Log process output."""
-  logs.log(
+  logs.info(
       f'Testing {revision}',
       revision=revision,
       output=crash_result.get_stacktrace(symbolized=True))
@@ -251,7 +251,7 @@ def _check_fixed_for_custom_binary(
   # 'APP_REVISION' is set during setup_build().
   revision = environment.get_value('APP_REVISION')
   if revision is None:
-    logs.log_error('APP_REVISION is not set, setting revision to 0')
+    logs.error('APP_REVISION is not set, setting revision to 0')
     revision = 0
 
   if not build_manager.check_app_path():
@@ -297,7 +297,7 @@ def _update_issue_metadata(testcase, metadata):
   for key, value in metadata.items():
     old_value = testcase.get_metadata(key)
     if old_value != value:
-      logs.log('Updating issue metadata for {} from {} to {}.'.format(
+      logs.info('Updating issue metadata for {} from {} to {}.'.format(
           key, old_value, value))
       testcase.set_metadata(key, value)
 
@@ -387,11 +387,11 @@ def _store_testcase_for_regression_testing(
     testcase_file = testcase_file_handle.read()
     try:
       storage.upload_signed_url(testcase_file, regression_testcase_url)
-      logs.log('Successfully stored testcase for regression testing: ' +
-               regression_testcase_url)
+      logs.info('Successfully stored testcase for regression testing: ' +
+                regression_testcase_url)
     except:
-      logs.log_error('Failed to store testcase for regression testing: ' +
-                     regression_testcase_url)
+      logs.error('Failed to store testcase for regression testing: ' +
+                 regression_testcase_url)
 
 
 def _set_regression_testcase_upload_url(
@@ -417,7 +417,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
     return None
 
   if testcase.fixed:
-    logs.log_error(f'Fixed range is already set as {testcase.fixed}, skip.')
+    logs.error(f'Fixed range is already set as {testcase.fixed}, skip.')
     return None
 
   # Set a flag to indicate we are running progression task. This shows pending
@@ -520,8 +520,8 @@ def find_fixed_range(uworker_input):
     return error
 
   if result.is_crash():
-    logs.log(f'Found crash with same signature on latest'
-             f' revision r{max_revision}.')
+    logs.info(f'Found crash with same signature on latest'
+              f' revision r{max_revision}.')
     app_path = environment.get_value('APP_PATH')
     command = testcase_manager.get_command_line_for_application(
         testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)

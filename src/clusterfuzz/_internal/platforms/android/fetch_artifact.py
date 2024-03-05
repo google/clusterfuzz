@@ -43,7 +43,7 @@ def execute_request_with_retries(request):
       result = request.execute()
       break
     except Exception as e:
-      logs.log_error(f'Error calling endpoint {request.uri}: Error {e}')
+      logs.error(f'Error calling endpoint {request.uri}: Error {e}')
 
   return result
 
@@ -51,17 +51,16 @@ def execute_request_with_retries(request):
 def download_artifact(client, bid, target, attempt_id, name, output_directory,
                       output_filename):
   """Download one artifact."""
-  logs.log('reached download_artifact')
-  logs.log('artifact to download: %s' % name)
-  logs.log('output_directory: %s' % output_directory)
-  logs.log('output_filename: %s' % output_filename)
+  logs.info('reached download_artifact')
+  logs.info('artifact to download: %s' % name)
+  logs.info('output_directory: %s' % output_directory)
+  logs.info('output_filename: %s' % output_filename)
   artifact_query = client.buildartifact().get(
       buildId=bid, target=target, attemptId=attempt_id, resourceId=name)
   artifact = execute_request_with_retries(artifact_query)
   if artifact is None:
-    logs.log_error(
-        'Artifact unreachable with name %s, target %s and build id %s.' %
-        (name, target, bid))
+    logs.error('Artifact unreachable with name %s, target %s and build id %s.' %
+               (name, target, bid))
     return False
 
   # Lucky us, we always have the size.
@@ -83,14 +82,14 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
   output_path = os.path.join(output_directory, file_name)
   # If the artifact already exists, then bail out.
   if os.path.exists(output_path) and os.path.getsize(output_path) == size:
-    logs.log('Artifact %s already exists, skipping download.' % name)
+    logs.info('Artifact %s already exists, skipping download.' % name)
     return output_path
 
-  logs.log('Downloading artifact %s.' % name)
+  logs.info('Downloading artifact %s.' % name)
   output_dir = os.path.dirname(output_path)
-  logs.log('Output dir: %s' % output_dir)
+  logs.info('Output dir: %s' % output_dir)
   if not os.path.exists(output_dir):
-    logs.log(f'Creating directory {output_dir}')
+    logs.info(f'Creating directory {output_dir}')
     os.mkdir(output_dir)
 
   with io.FileIO(output_path, mode='wb') as file_handle:
@@ -103,7 +102,7 @@ def download_artifact(client, bid, target, attempt_id, name, output_directory,
       if status:
         size_completed = int(status.resumable_progress)
         percent_completed = (size_completed * 100.0) / size
-        logs.log('%.1f%% complete.' % percent_completed)
+        logs.info('%.1f%% complete.' % percent_completed)
 
   return output_path
 
@@ -129,8 +128,8 @@ def get_artifacts_for_build(client, bid, target, attempt_id='latest'):
     request = client.buildartifact().list_next(request, result)
 
   if not artifacts:
-    logs.log_error(f'No artifact found for target {target}, build id {bid}.\n'
-                   f'request {request_str}, results {results}')
+    logs.error(f'No artifact found for target {target}, build id {bid}.\n'
+               f'request {request_str}, results {results}')
     adb.bad_state_reached()
 
   return artifacts
@@ -142,7 +141,7 @@ def get_client():
   build_apiary_service_account_private_key = db_config.get_value(
       'build_apiary_service_account_private_key')
   if not build_apiary_service_account_private_key:
-    logs.log(
+    logs.info(
         'Android build apiary credentials are not set, skip artifact fetch.')
     return None
 
@@ -176,8 +175,8 @@ def get_latest_artifact_info(branch, target, signed=False):
 
   builds = execute_request_with_retries(request)
   if not builds:
-    logs.log_error(f'No build found for target {target}, branch {branch}, '
-                   f'request: {request_str}.')
+    logs.error(f'No build found for target {target}, branch {branch}, '
+               f'request: {request_str}.')
     return None
 
   build = builds['builds'][0]
@@ -207,8 +206,8 @@ def run_script(client, bid, target, regex, output_directory, output_filename):
   artifacts = get_artifacts_for_build(
       client=client, bid=bid, target=target, attempt_id='latest')
   if not artifacts:
-    logs.log_error('Artifact could not be fetched for target %s, build id %s.' %
-                   (target, bid))
+    logs.error('Artifact could not be fetched for target %s, build id %s.' %
+               (target, bid))
     return False
 
   regex = re.compile(regex)

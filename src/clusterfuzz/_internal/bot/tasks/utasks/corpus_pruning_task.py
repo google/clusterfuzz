@@ -141,8 +141,8 @@ def _limit_corpus_size(corpus_url):
       deleted_corpus_count += 1
 
   if deleted_corpus_count:
-    logs.log('Removed %d files from oversized corpus: %s.' %
-             (deleted_corpus_count, corpus_url))
+    logs.info('Removed %d files from oversized corpus: %s.' %
+              (deleted_corpus_count, corpus_url))
 
 
 def _get_time_remaining(start_time):
@@ -217,7 +217,7 @@ class Context:
 
   def restore_quarantined_units(self):
     """Restore units from the quarantine."""
-    logs.log('Restoring units from quarantine.')
+    logs.info('Restoring units from quarantine.')
     # Limit the number of quarantine units to restore, in case there are a lot.
     quarantine_unit_paths = _get_corpus_file_paths(self.quarantine_corpus_path)
     if len(quarantine_unit_paths) > MAX_QUARANTINE_UNITS_TO_RESTORE:
@@ -245,7 +245,7 @@ class Context:
       raise CorpusPruningError('Failed to sync corpus to disk.')
 
     if not self.quarantine_corpus.rsync_to_disk(self.initial_corpus_path):
-      logs.log_error(
+      logs.error(
           'Failed to sync quarantine corpus to disk.',
           fuzz_target=self.fuzz_target)
 
@@ -285,7 +285,7 @@ class Context:
         # missed to capture a backup for a particular day (for OSS-Fuzz, this
         # will result in a 403 instead of 404 since that GCS path belongs to
         # other project). So, just log a warning for debugging purposes only.
-        logs.log_warn(
+        logs.warning(
             'Corpus backup does not exist, ignoring: %s.' % corpus_backup_url)
         continue
 
@@ -301,11 +301,11 @@ class Context:
       shell.remove_file(corpus_backup_local_path)
 
       if result:
-        logs.log(
+        logs.info(
             'Corpus backup url %s successfully unpacked into shared corpus.' %
             corpus_backup_url)
       else:
-        logs.log_error(
+        logs.error(
             'Failed to unpack corpus backup from url %s.' % corpus_backup_url)
 
 
@@ -415,14 +415,14 @@ class CorpusPruner:
     environment.reset_current_memory_tool_options(redzone_size=DEFAULT_REDZONE)
     self.runner.process_sanitizer_options()
 
-    logs.log('Processing bad units.')
+    logs.info('Processing bad units.')
     corpus_file_paths = _get_corpus_file_paths(bad_units_path)
     num_bad_units = 0
 
     # Run each corpus item individually.
     for i, unit_path in enumerate(corpus_file_paths, 1):
       if i % 100 == 0:
-        logs.log('Up to %d' % i)
+        logs.info('Up to %d' % i)
 
       unit_name = os.path.basename(unit_path)
       if unit_name.startswith('timeout-') or unit_name.startswith('oom-'):
@@ -461,8 +461,8 @@ class CorpusPruner:
             state.crash_state, state.crash_type, state.crash_address,
             state.crash_stacktrace, unit_path, security_flag)
 
-    logs.log('Found %d bad units, %d unique crashes.' % (num_bad_units,
-                                                         len(crashes)))
+    logs.info('Found %d bad units, %d unique crashes.' % (num_bad_units,
+                                                          len(crashes)))
 
   def run(self, initial_corpus_path, minimized_corpus_path, bad_units_path):
     """Run corpus pruning. Output result to directory."""
@@ -480,7 +480,7 @@ class CorpusPruner:
     additional_args = self.runner.get_libfuzzer_flags()
 
     # Execute fuzzer with arguments for corpus pruning.
-    logs.log('Running merge...')
+    logs.info('Running merge...')
     try:
       result = self.runner.minimize_corpus(
           additional_args, [initial_corpus_path], minimized_corpus_path,
@@ -499,7 +499,7 @@ class CorpusPruner:
       raise CorpusPruningError('Corpus pruning failed to minimize corpus\n' +
                                symbolized_output)
 
-    logs.log('Corpus merge finished successfully.', output=symbolized_output)
+    logs.info('Corpus merge finished successfully.', output=symbolized_output)
 
     return result.stats
 
@@ -514,11 +514,11 @@ class CrossPollinator:
   def run(self, timeout):
     """Merge testcases from corpus from other fuzz targets."""
     if not shell.get_directory_file_count(self.context.shared_corpus_path):
-      logs.log('No files found in shared corpus, skip merge.')
+      logs.info('No files found in shared corpus, skip merge.')
       return None
 
     # Run pruning on the shared corpus and log the result in case of error.
-    logs.log('Merging shared corpus...')
+    logs.info('Merging shared corpus...')
     environment.reset_current_memory_tool_options(redzone_size=DEFAULT_REDZONE)
     self.runner.process_sanitizer_options()
 
@@ -530,19 +530,19 @@ class CrossPollinator:
                                            self.context.minimized_corpus_path,
                                            self.context.bad_units_path, timeout)
       symbolized_output = stack_symbolizer.symbolize_stacktrace(result.logs)
-      logs.log(
+      logs.info(
           'Shared corpus merge finished successfully.',
           output=symbolized_output)
     except TimeoutError as e:
       # Other cross pollinated fuzzer corpuses can have unexpected test cases
       # that time us out. This is expected, so bail out.
-      logs.log_warn('Corpus pruning timed out while merging shared corpus\n' +
-                    repr(e))
+      logs.warning('Corpus pruning timed out while merging shared corpus\n' +
+                   repr(e))
       return None
     except engine.Error as e:
       # Other cross pollinated fuzzer corpuses can be large, so we can run out
       # of disk space and exception out. This is expected, so bail out.
-      logs.log_warn('Corpus pruning failed to merge shared corpus\n' + repr(e))
+      logs.warning('Corpus pruning failed to merge shared corpus\n' + repr(e))
       return None
 
     return result.stats
@@ -613,7 +613,7 @@ def do_corpus_pruning(context, revision):
   # Sync minimized corpus back to GCS.
   context.sync_to_gcs()
 
-  logs.log('Saved minimize corpus.')
+  logs.info('Saved minimize corpus.')
 
   # Create corpus backup.
   # Temporarily copy the past crash regressions folder into the minimized corpus
@@ -634,8 +634,8 @@ def do_corpus_pruning(context, revision):
   minimized_corpus_size_bytes = shell.get_directory_size(
       context.minimized_corpus_path)
 
-  logs.log('Corpus pruned from %d to %d units.' % (initial_corpus_size,
-                                                   minimized_corpus_size_units))
+  logs.info('Corpus pruned from %d to %d units.' %
+            (initial_corpus_size, minimized_corpus_size_units))
 
   # Process bad units found during merge.
   # Mapping of crash state -> CorpusCrash
@@ -670,7 +670,7 @@ def do_corpus_pruning(context, revision):
   # Calculate remaining time to use for shared corpus merging.
   time_remaining = _get_time_remaining(start_time)
   if time_remaining <= 0:
-    logs.log_warn('Not enough time for shared corpus merging.')
+    logs.warning('Not enough time for shared corpus merging.')
     return None
 
   cross_pollinator = CrossPollinator(runner)
@@ -686,7 +686,7 @@ def do_corpus_pruning(context, revision):
   coverage_info.corpus_size_units = minimized_corpus_size_units
   coverage_info.corpus_size_bytes = minimized_corpus_size_bytes
 
-  logs.log('Finished.')
+  logs.info('Finished.')
 
   sources = ','.join([
       fuzzer.fuzz_target.project_qualified_name()
@@ -897,7 +897,7 @@ def utask_main(uworker_input):
 
   if not setup.update_fuzzer_and_data_bundles(uworker_input.setup_input):
     error_message = f'Failed to set up fuzzer {fuzz_target.engine}.'
-    logs.log_error(error_message)
+    logs.error(error_message)
     return uworker_msg_pb2.Output(
         error_type=uworker_msg_pb2.ErrorType.CORPUS_PRUNING_FUZZER_SETUP_FAILED)
 
@@ -918,7 +918,7 @@ def utask_main(uworker_input):
   except Exception:
     # TODO(metzman): Don't catch every exception, it makes testing almost
     # impossible.
-    logs.log_error('Corpus pruning failed.')
+    logs.error('Corpus pruning failed.')
     data_handler.update_task_status(task_name, data_types.TaskState.ERROR)
     return uworker_msg_pb2.Output()
   finally:
@@ -944,7 +944,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   # job_type.
   if not data_handler.update_task_status(task_name,
                                          data_types.TaskState.STARTED):
-    logs.log('A previous corpus pruning task is still running, exiting.')
+    logs.info('A previous corpus pruning task is still running, exiting.')
     return None
 
   setup_input = (

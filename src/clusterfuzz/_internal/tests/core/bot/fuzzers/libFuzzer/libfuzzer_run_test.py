@@ -53,7 +53,7 @@ class GenerateArgumentsTests(unittest.TestCase):
     libfuzzer = fuzzer.LibFuzzer()
     arguments = libfuzzer.generate_arguments(fuzzer_path)
 
-    # we expect the fuzzer to set the maximum value possible when rss_limit_mb
+    # We expect the fuzzer to set the maximum value possible when rss_limit_mb
     # is too large.
     max_memory_limit_mb = (psutil.virtual_memory().total //
                            (1 << 20)) - constants.MEMORY_OVERHEAD

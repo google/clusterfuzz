@@ -53,7 +53,7 @@ def start_bot(bot_command):
   # Wait until the process terminates or until run timed out.
   run_timeout = environment.get_value('RUN_TIMEOUT')
   if run_timeout and run_timeout > MAX_SUBPROCESS_TIMEOUT:
-    logs.log_error(
+    logs.error(
         'Capping RUN_TIMEOUT to max allowed value: %d' % MAX_SUBPROCESS_TIMEOUT)
     run_timeout = MAX_SUBPROCESS_TIMEOUT
 
@@ -70,7 +70,7 @@ def start_bot(bot_command):
     exit_code = 0
     output = e.stdout
   except Exception:
-    logs.log_error('Unable to start bot process (%s).' % bot_command)
+    logs.error('Unable to start bot process (%s).' % bot_command)
     return 1
 
   if output:
@@ -78,12 +78,12 @@ def start_bot(bot_command):
   log_message = f'Command: {command} (exit={exit_code})\n{output}'
 
   if exit_code == 0:
-    logs.log(log_message)
+    logs.info(log_message)
   elif exit_code == 1:
     # Anecdotally, exit=1 means there's a fatal Python exception.
-    logs.log_error(log_message)
+    logs.error(log_message)
   else:
-    logs.log_warn(log_message)
+    logs.warning(log_message)
 
   return exit_code
 
@@ -105,8 +105,7 @@ def start_heartbeat(heartbeat_command):
     command = shell.get_command(heartbeat_command)
     process_handle = subprocess.Popen(command)  # pylint: disable=consider-using-with
   except Exception:
-    logs.log_error(
-        'Unable to start heartbeat process (%s).' % heartbeat_command)
+    logs.error('Unable to start heartbeat process (%s).' % heartbeat_command)
     return
 
   # If heartbeat is successfully started, set its handle now.
@@ -149,8 +148,8 @@ def start_android_heartbeat():
   try:
     process_handle = subprocess.Popen(android_beat_command)
   except Exception:
-    logs.log_error('Unable to start android heartbeat process (%s).' %
-                   android_beat_command)
+    logs.error('Unable to start android heartbeat process (%s).' %
+               android_beat_command)
     return
 
   # If heartbeat is successfully started, set its handle now.
@@ -167,7 +166,7 @@ def stop_android_heartbeat():
   try:
     _android_heartbeat_handle.kill()
   except Exception as e:
-    logs.log_error('Unable to stop android heartbeat process: %s' % str(e))
+    logs.error('Unable to stop android heartbeat process: %s' % str(e))
 
   _android_heartbeat_handle = None
 
@@ -185,7 +184,7 @@ def update_source_code_if_needed():
 
       update_task.update_source_code()
   except Exception:
-    logs.log_error('Failed to update source.')
+    logs.error('Failed to update source.')
 
 
 def run_loop(bot_command, heartbeat_command):
@@ -202,7 +201,7 @@ def run_loop(bot_command, heartbeat_command):
       start_heartbeat(heartbeat_command)
     exit_code = start_bot(bot_command)
     if environment.is_uworker():
-      logs.log(f'Batch job exited with code: {exit_code}. Exiting.')
+      logs.info(f'Batch job exited with code: {exit_code}. Exiting.')
       sys.exit(exit_code)
 
     # See if our run timed out, if yes bail out.
@@ -210,7 +209,7 @@ def run_loop(bot_command, heartbeat_command):
       if data_handler.bot_run_timed_out():
         break
     except Exception:
-      logs.log_error('Failed to check for bot run timeout.')
+      logs.error('Failed to check for bot run timeout.')
 
     sleep(LOOP_SLEEP_INTERVAL)
 
@@ -255,7 +254,7 @@ def main():
 
   run_loop(bot_command, heartbeat_command)
 
-  logs.log('Exit run.py')
+  logs.info('Exit run.py')
 
 
 if __name__ == '__main__':

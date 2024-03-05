@@ -150,7 +150,7 @@ def process_strategies(strategies, name_modifier=strategy_column_name):
       strategy_value = suffix_type(line[len(strategy_prefix):])
       stats[name_modifier(strategy_name)] = strategy_value
     except (IndexError, ValueError) as e:
-      logs.log_error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
+      logs.error('Failed to parse strategy "%s":\n%s\n' % (line, str(e)))
 
   # These strategies are used with different values specified in the prefix.
   for strategy_type in strategy.LIBFUZZER_STRATEGIES_WITH_PREFIX_VALUE:

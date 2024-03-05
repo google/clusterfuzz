@@ -305,9 +305,9 @@ def notify_issue_update(testcase, status):
       ])
 
   if status in ('verified', 'wontfix'):
-    logs.log(f'Closing issue {testcase.github_issue_num} '
-             f'in GitHub repo {testcase.github_repo_id}: '
-             f'Testcase {testcase.key.id()} is marked as {status}.')
+    logs.info(f'Closing issue {testcase.github_issue_num} '
+              f'in GitHub repo {testcase.github_repo_id}: '
+              f'Testcase {testcase.key.id()} is marked as {status}.')
     oss_fuzz_github.close_issue(testcase)
 
 
@@ -320,7 +320,7 @@ def check_miracleptr_status(testcase):
       try:
         return MIRACLEPTR_STATUS[status]
       except:
-        logs.log_error(f'Unknown MiraclePtr status: {line}')
+        logs.error(f'Unknown MiraclePtr status: {line}')
         break
   return None
 
@@ -331,10 +331,10 @@ def file_issue(testcase,
                user_email=None,
                additional_ccs=None):
   """File an issue for the given test case."""
-  logs.log(f'Filing new issue for testcase: {testcase.key.id()}.')
+  logs.info(f'Filing new issue for testcase: {testcase.key.id()}.')
 
   policy = issue_tracker_policy.get(issue_tracker.project)
-  logs.log('policy: %s' % policy)
+  logs.info('policy: %s' % policy)
   is_crash = not utils.sub_string_exists_in(NON_CRASH_TYPES,
                                             testcase.crash_type)
   properties = policy.get_new_issue_properties(
@@ -405,7 +405,7 @@ def file_issue(testcase,
   if fuzzer_metadata and 'assignee' in fuzzer_metadata:
     issue.status = policy.status('assigned')
     issue.assignee = fuzzer_metadata['assignee']
-    logs.log('Testcase has assignee metadata %s' % issue.assignee)
+    logs.info('Testcase has assignee metadata %s' % issue.assignee)
 
   # Add additional ccs from the job definition and fuzzer.
   ccs = data_handler.get_additional_values_for_variable(
@@ -488,7 +488,7 @@ def file_issue(testcase,
   issue.reporter = user_email
 
   if issue_tracker.project in ('chromium', 'chromium-testing'):
-    logs.log(
+    logs.info(
         'google_issue_tracker labels before saving: %s' % list(issue.labels))
 
   recovered_exception = None

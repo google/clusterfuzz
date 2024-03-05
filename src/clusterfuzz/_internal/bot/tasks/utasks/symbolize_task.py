@@ -141,8 +141,8 @@ def utask_main(uworker_input):
             state.crash_type == testcase.crash_type and
             (state.crash_type != sym_crash_type or
              state.crash_state != sym_crash_state)):
-          logs.log('Changing crash parameters.\nOld : %s, %s, %s' %
-                   (sym_crash_type, sym_crash_address, sym_crash_state))
+          logs.info('Changing crash parameters.\nOld : %s, %s, %s' %
+                    (sym_crash_type, sym_crash_address, sym_crash_state))
 
           sym_crash_type = state.crash_type
           sym_crash_address = state.crash_address
@@ -150,8 +150,8 @@ def utask_main(uworker_input):
           sym_redzone = redzone
           old_crash_stacktrace = state.crash_stacktrace
 
-          logs.log('\nNew : %s, %s, %s' % (sym_crash_type, sym_crash_address,
-                                           sym_crash_state))
+          logs.info('\nNew : %s, %s, %s' % (sym_crash_type, sym_crash_address,
+                                            sym_crash_state))
           break
 
       redzone /= 2

@@ -52,12 +52,12 @@ def main():
       # Already generated.
       continue
 
-    logs.log('Generating cert for %s.' % project.name)
+    logs.info('Generating cert for %s.' % project.name)
     cert_contents, key_contents = generate_cert(project.name)
 
     tls_cert = data_types.WorkerTlsCert(
         id=project.name, cert_contents=cert_contents, key_contents=key_contents)
     tls_cert.put()
 
-  logs.log('OSS fuzz generate certs succeeded.')
+  logs.info('OSS fuzz generate certs succeeded.')
   return True

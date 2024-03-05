@@ -113,7 +113,7 @@ def get_kernel_prefix_and_full_hash():
   kernel_partial_hash, build_id = get_kernel_hash_and_build_id()
   target = get_kernel_name()
   if not build_id or not target:
-    logs.log_error('Could not get kernel parameters, exiting.')
+    logs.error('Could not get kernel parameters, exiting.')
     return None
 
   android_kernel_repo_data = _get_repo_prop_data(build_id, target)

@@ -36,5 +36,5 @@ def schedule(task):
           queue=tasks.queue_for_testcase(testcase))
       testcase_ids.append(testcase_id)
 
-  logs.log(
+  logs.info(
       'Created progression tasks for testcases.', testcase_ids=testcase_ids)

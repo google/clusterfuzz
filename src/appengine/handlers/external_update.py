@@ -41,7 +41,7 @@ def _mark_as_fixed(testcase, revision):
 def _mark_errored(testcase, revision, error):
   """Mark testcase as errored out."""
   message = 'Received error from external infra, marking testcase as NA.'
-  logs.log_warn(message, error=error, testcase_id=testcase.key.id())
+  logs.warning(message, error=error, testcase_id=testcase.key.id())
 
   testcase.fixed = 'NA'
   testcase.open = False
@@ -66,23 +66,23 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
     if not crash_comparer.is_similar():
       return False
 
-    logs.log(f'State for trial {st_index} of {testcase_id} '
-             f'remains similar'
-             f'(old_state={testcase.crash_state}, '
-             f'new_state={state.crash_state}).')
+    logs.info(f'State for trial {st_index} of {testcase_id} '
+              f'remains similar'
+              f'(old_state={testcase.crash_state}, '
+              f'new_state={state.crash_state}).')
 
     is_security = crash_analyzer.is_security_issue(
         state.crash_stacktrace, state.crash_type, state.crash_address)
     if is_security != testcase.security_flag:
       return False
 
-    logs.log(f'Security flag for trial {st_index} of {testcase_id} '
-             f'still matches'
-             f'({testcase.security_flag}).')
+    logs.info(f'Security flag for trial {st_index} of {testcase_id} '
+              f'still matches'
+              f'({testcase.security_flag}).')
     return True
 
   testcase_id = testcase.key.id()
-  logs.log('Got external update for testcase.', testcase_id=testcase_id)
+  logs.info('Got external update for testcase.', testcase_id=testcase_id)
   if error:
     _mark_errored(testcase, revision, error)
     return
@@ -91,20 +91,20 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
       testcase.get_metadata('last_tested_revision') or testcase.crash_revision)
 
   if revision < last_tested_revision:
-    logs.log_warn(f'Revision {revision} less than previously tested '
-                  f'revision {last_tested_revision}.')
+    logs.warning(f'Revision {revision} less than previously tested '
+                 f'revision {last_tested_revision}.')
     return
 
   if protocol_version not in [OLD_PROTOCOL, NEW_PROTOCOL]:
-    logs.log_error(f'Invalid protocol_version provided: '
-                   f'{protocol_version} '
-                   f'is not one of {{{OLD_PROTOCOL, NEW_PROTOCOL}}} '
-                   f'(testcase_id={testcase_id}).')
+    logs.error(f'Invalid protocol_version provided: '
+               f'{protocol_version} '
+               f'is not one of {{{OLD_PROTOCOL, NEW_PROTOCOL}}} '
+               f'(testcase_id={testcase_id}).')
     return
 
   if not stacktraces:
-    logs.log_error(f'Empty JSON stacktrace list provided '
-                   f'(testcase_id={testcase_id}).')
+    logs.error(f'Empty JSON stacktrace list provided '
+               f'(testcase_id={testcase_id}).')
     return
 
   fuzz_target = testcase.get_fuzz_target()
@@ -120,15 +120,15 @@ def handle_update(testcase, revision, stacktraces, error, protocol_version):
 
   for st_index, stacktrace in enumerate(stacktraces):
     if is_still_crashing(st_index, stacktrace):
-      logs.log(f'stacktrace {st_index} of {testcase_id} still crashes.')
+      logs.info(f'stacktrace {st_index} of {testcase_id} still crashes.')
       testcase.last_tested_crash_stacktrace = stacktrace
       data_handler.update_progression_completion_metadata(
           testcase, revision, is_crash=True)
       return
 
   # All trials resulted in a non-crash. Close the testcase.
-  logs.log(f'No matching crash detected in {testcase_id} '
-           f'over {len(stacktraces)} trials, marking as fixed.')
+  logs.info(f'No matching crash detected in {testcase_id} '
+            f'over {len(stacktraces)} trials, marking as fixed.')
   _mark_as_fixed(testcase, revision)
 
 
@@ -155,20 +155,20 @@ class Handler(base_handler.Handler):
     if message.data:
       stacktrace = message.data.decode()
     else:
-      logs.log(f'No stacktrace provided (testcase_id={testcase_id}).')
+      logs.info(f'No stacktrace provided (testcase_id={testcase_id}).')
       stacktrace = ''
 
     protocol_version = message.attributes.get('protocolVersion', OLD_PROTOCOL)
     if protocol_version == OLD_PROTOCOL:
       # Old: stacktrace is a str.
       stacktraces = [stacktrace]
-      logs.log(f'Old format stacktrace string provided '
-               f'(testcase_id={testcase_id}).')
+      logs.info(f'Old format stacktrace string provided '
+                f'(testcase_id={testcase_id}).')
     elif protocol_version == NEW_PROTOCOL:
       # New: stacktrace is a JSON array.
       stacktraces = json.loads(stacktrace)
-      logs.log(f'New format stacktrace JSON list provided '
-               f'(testcase_id={testcase_id}).')
+      logs.info(f'New format stacktrace JSON list provided '
+                f'(testcase_id={testcase_id}).')
     else:
       # Invalid: stacktrace is presumably ill-formed.
       stacktraces = []

@@ -87,7 +87,7 @@ def get_signing_credentials(service_account_info):
     token = None
   else:
     # Fallback for when a dedicated singing account is not configured.
-    logs.log_error('Please configure dedicated signing credentials.')
+    logs.error('Please configure dedicated signing credentials.')
     creds, _ = get_default()
 
     request = requests.Request()

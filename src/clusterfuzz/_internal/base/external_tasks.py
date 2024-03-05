@@ -51,7 +51,7 @@ def add_external_task(command, testcase_id, job):
   min_revision = (
       testcase.get_metadata('last_tested_revision') or testcase.crash_revision)
 
-  logs.log(f'Publishing external reproduction task for {testcase_id}.')
+  logs.info(f'Publishing external reproduction task for {testcase_id}.')
   attributes = {
       'project': job.project,
       'target': fuzz_target.binary,
