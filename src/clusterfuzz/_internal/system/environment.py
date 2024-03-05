@@ -1040,6 +1040,8 @@ def set_value(environment_variable, value, env=None):
 
 
 def get_initial_task_name():
+  """Returns the name of the task that this task (postprocess or utask_main) is
+  part of."""
   initial_task_payload = get_value('INITIAL_TASK_PAYLOAD')
   if initial_task_payload is None:
     return None
