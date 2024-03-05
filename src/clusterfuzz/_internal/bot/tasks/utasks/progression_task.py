@@ -405,6 +405,16 @@ def _set_regression_testcase_upload_url(
   if not fuzz_target:
     # No work to do, only applicable for engine fuzzers.
     return
+
+  if testcase.uploader_email:
+    logs.log_warn('Not saving uploaded to regression corpus.')
+    return
+  upload_metadata = data_types.TestcaseUploadMetadata.query(
+        data_types.TestcaseUploadMetadata.testcase_id ==
+        testcase.key.id()).get()
+  if upload_metadata:
+    logs.log_warn('Not saving uploaded to regression corpus.')
+    return
   progression_input.regression_testcase_url = (
       corpus_manager.get_regressions_signed_upload_url(
           fuzz_target.engine, fuzz_target.project_qualified_name()))
