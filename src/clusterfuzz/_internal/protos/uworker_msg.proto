@@ -299,7 +299,7 @@ enum ErrorType {
   LIBFUZZER_MINIMIZATION_UNREPRODUCIBLE = 33;
   LIBFUZZER_MINIMIZATION_FAILED = 34;
   CORPUS_PRUNING_FUZZER_SETUP_FAILED = 35;
-  CORPUS_PRUNING_ERROR = 36;  
+  CORPUS_PRUNING_ERROR = 36;
 }
 
 message Output {
@@ -317,6 +317,6 @@ message Output {
   optional ProgressionTaskOutput progression_task_output = 12;
   optional SymbolizeTaskOutput symbolize_task_output = 13;
   optional VariantTaskOutput variant_task_output = 14;
-  optional CorpusPruningTaskOutput corpus_pruning_task_output = 15;
-  optional string error_message = 16;
+  optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
+  optional string error_message = 15;
 }
