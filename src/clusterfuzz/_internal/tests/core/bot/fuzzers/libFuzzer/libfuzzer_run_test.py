@@ -59,7 +59,8 @@ class GenerateArgumentsTests(unittest.TestCase):
                            (1 << 20)) - constants.MEMORY_OVERHEAD
     rss_limit = min(12345, max_memory_limit_mb)
     expected_arguments = (
-        f'-max_len=31337 -timeout=11 -runs=9999999 -rss_limit_mb={rss_limit}')
+        f'-max_len=31337 -timeout=11 -runs=9999999 -rss_limit_mb={rss_limit} -fork=0'
+    )
     self.assertEqual(arguments, expected_arguments)
 
 
