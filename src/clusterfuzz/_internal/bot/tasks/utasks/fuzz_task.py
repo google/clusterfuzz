@@ -1779,7 +1779,8 @@ class FuzzingSession:
       logs.log('Setting fuzz target {fuzz_target}.')
       environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
     build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'))
+        environment.get_value('APP_REVISION'),
+        fuzzer_selection.get_fuzz_target_weights())
 
     if engine.get(self.fuzzer.name) and build_setup_result:
       # If we did not pick a fuzz target to fuzz with the engine, then return
