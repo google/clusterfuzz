@@ -110,7 +110,7 @@ Most of the Continuous Integration systems can be used for providing builds to
 ClusterFuzz. Examples include [Google Cloud Build](https://cloud.google.com/cloud-build/docs/),
 [Jenkins](https://jenkins.io/), and others.
 
-[libFuzzer or AFL]:{{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/
-[seed corpus]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/#seed-corpus
-[dictionary]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer_and_afl/#dictionaries
+[libFuzzer or AFL]:{{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/
+[seed corpus]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/#seed-corpus
+[dictionary]: {{ site.baseurl }}/setting-up-fuzzing/libfuzzer-and-afl/#dictionaries
 [setting up a fuzzing job]: {{ site.baseurl }}/production-setup/setting-up-fuzzing-job/
