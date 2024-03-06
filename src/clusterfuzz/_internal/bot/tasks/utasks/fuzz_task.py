@@ -1997,6 +1997,11 @@ def _pick_fuzz_target():
   if not environment.is_engine_fuzzer_job():
     logs.log('Not engine fuzzer. Not picking fuzz target.')
     return None
+
+  if environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'):
+    logs.log('Split build. Not picking fuzz target.')
+    return None
+
   logs.log('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
   return build_manager.set_random_fuzz_target_for_fuzzing_if_needed(
