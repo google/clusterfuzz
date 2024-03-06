@@ -234,10 +234,17 @@ class Crash:
     self.crash_frames = state.frames
     self.crash_info = None
 
+
+    self.archived_testcase_in_blobstore_run = False
+    self.fuzzed_key = None
+    self.archived = False
+    self.absolute_path = None
+    self.archive_filename = None
+
   def is_archived(self):
     """Return true if archive_testcase_in_blobstore(..) was
       performed."""
-    return hasattr(self, 'fuzzed_key')
+    return self.archived_testcase_in_blobstore_run
 
   def archive_testcase_in_blobstore(self):
     """Calling setup.archive_testcase_and_dependencies_in_gcs(..)
@@ -245,6 +252,8 @@ class Crash:
       expensive and we want to do it at the very last minute."""
     if self.is_archived():
       return
+
+    self.archived_testcase_in_blobstore_run = True
 
     (self.fuzzed_key, self.archived, self.absolute_path,
      self.archive_filename) = (
