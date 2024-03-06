@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+f# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -337,13 +337,14 @@ def initialize_environment():
   environment.set_value('BUILD_VERSION', settings.get_build_version())
   environment.set_value('DEVICE_CODENAME', settings.get_device_codename())
   environment.set_value('DEVICE_PATH', adb.get_device_path())
+  environment.set_value('LOG_TASK_TIMES', True)
   environment.set_value('PLATFORM_ID', settings.get_platform_id())
+  environment.set_value('PREEMPTIBLE', settings.using_preemptible_host())
   environment.set_value('PRODUCT_BRAND', settings.get_product_brand())
   environment.set_value('SANITIZER_TOOL_NAME',
                         settings.get_sanitizer_tool_name())
   environment.set_value('SECURITY_PATCH_LEVEL',
                         settings.get_security_patch_level())
-  environment.set_value('LOG_TASK_TIMES', True)
 
 
 def install_application_if_needed(apk_path, force_update):
