@@ -523,6 +523,7 @@ class GcsCorpus:
   def sync_from_gcs(self):
     """Update sync state after a sync from GCS."""
     already_synced = False
+    start = time.time()
     sync_file_path = os.path.join(
         self._data_directory, '.%s_sync' % self._project_qualified_target_name)
 
@@ -560,6 +561,7 @@ class GcsCorpus:
         worker_sync_file_path = file_host.rebase_to_worker_root(sync_file_path)
         file_host.copy_file_to_worker(sync_file_path, worker_sync_file_path)
 
+    logs.log(f'Syncing corpus took {start - time.time()}.')
     return result
 
   def upload_files(self, new_files):
@@ -1354,9 +1356,12 @@ class FuzzingSession:
 
   def sync_corpus(self, sync_corpus_directory):
     """Sync corpus from GCS."""
+    start = time.time()
     self.gcs_corpus = GcsCorpus(self.fuzzer_name,
                                 self.fuzz_target.project_qualified_name(),
                                 sync_corpus_directory, self.data_directory)
+    end = time.time()
+    logs.info(f'Took {end - start} to create corpus object.')
     if not self.gcs_corpus.sync_from_gcs():
       raise FuzzTaskError(
           'Failed to sync corpus for fuzzer %s (job %s).' %
@@ -1997,6 +2002,7 @@ def _pick_fuzz_target():
   if not environment.is_engine_fuzzer_job():
     logs.log('Not engine fuzzer. Not picking fuzz target.')
     return None
+
   logs.log('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
   return build_manager.set_random_fuzz_target_for_fuzzing_if_needed(
