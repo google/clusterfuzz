@@ -410,8 +410,7 @@ def _set_regression_testcase_upload_url(
     logs.log_warn('Not saving uploaded to regression corpus.')
     return
   upload_metadata = data_types.TestcaseUploadMetadata.query(
-        data_types.TestcaseUploadMetadata.testcase_id ==
-        testcase.key.id()).get()
+      data_types.TestcaseUploadMetadata.testcase_id == testcase.key.id()).get()
   if upload_metadata:
     logs.log_warn('Not saving uploaded to regression corpus.')
     return
