@@ -234,7 +234,6 @@ class Crash:
     self.crash_frames = state.frames
     self.crash_info = None
 
-
     self.archived_testcase_in_blobstore_run = False
     self.fuzzed_key = None
     self.archived = False
