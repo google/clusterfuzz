@@ -234,25 +234,24 @@ class Crash:
     self.crash_frames = state.frames
     self.crash_info = None
 
-    self.archived_testcase_in_blobstore_run = False
+    self.saved_testcase_in_blobstore_run = False
     self.fuzzed_key = None
     self.archived = False
     self.absolute_path = None
     self.archive_filename = None
 
-  def is_archived(self):
-    """Return true if archive_testcase_in_blobstore(..) was
-      performed."""
+  def is_saved(self):
+    """Returns true if save_testcase_in_blobstore(..) was done."""
     return self.archived_testcase_in_blobstore_run
 
-  def archive_testcase_in_blobstore(self):
-    """Calling setup.archive_testcase_and_dependencies_in_gcs(..)
-      and hydrate certain attributes. We single out this method because it's
-      expensive and we want to do it at the very last minute."""
-    if self.is_archived():
+  def save_testcase_in_blobstore(self):
+    """Calling setup.archive_testcase_and_dependencies_in_gcs(..) and hydrate
+      certain attributes. We single out this method because it's expensive and
+      we want to do it at the very last minute."""
+    if self.is_saved():
       return
 
-    self.archived_testcase_in_blobstore_run = True
+    self.saved_testcase_in_blobstore_run = True
 
     (self.fuzzed_key, self.archived, self.absolute_path,
      self.archive_filename) = (
@@ -274,7 +273,7 @@ class Crash:
               (self.crash_state, self.unsymbolized_crash_stacktrace,
                self.crash_stacktrace))
 
-    if self.is_archived() and not self.fuzzed_key:
+    if self.is_saved() and not self.fuzzed_key:
       return 'Unable to store testcase in blobstore: %s' % self.crash_state
 
     if not self.crash_state or not self.crash_type:
@@ -288,10 +287,10 @@ def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout):
     And return the crash and the one_time_crasher_flag."""
   for crash in crashes:
     # Archiving testcase to blobstore when we need to because it's expensive.
-    crash.archive_testcase_in_blobstore()
+    crash.save_testcase_in_blobstore()
 
     # We need to check again if the crash is valid. In other words, we check
-    # if archiving to blobstore succeeded.
+    # if saving to blobstore succeeded.
     if not crash.is_valid():
       continue
 
