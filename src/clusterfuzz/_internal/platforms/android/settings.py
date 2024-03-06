@@ -163,6 +163,7 @@ def using_preemptible_host():
   """Return True if using a peemptible host."""
   return '-pre-' in environment.get_value('DOCKER_HOSTNAME')
 
+
 def get_security_patch_level():
   """Return the security patch level reported by the device."""
   return adb.get_property('ro.build.version.security_patch')
