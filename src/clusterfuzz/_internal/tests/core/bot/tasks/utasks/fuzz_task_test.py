@@ -729,7 +729,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     new_crash_count, known_crash_count, groups = fuzz_task.process_crashes(
         crashes=crashes,
-        context=fuzz_task.Context(
+        context=uworker_msg_pb2.FuzzContext(
             project_name='some_project',
             bot_name='bot',
             job_type='job',
@@ -804,7 +804,7 @@ class ProcessCrashesTest(fake_filesystem_unittest.TestCase):
 
     new_crash_count, known_crash_count, groups = fuzz_task.process_crashes(
         crashes=crashes,
-        context=fuzz_task.Context(
+        context=uworker_msg_pb2.FuzzContext(
             project_name=project_name,
             bot_name='bot',
             job_type='job',
@@ -954,7 +954,7 @@ class WriteCrashToBigQueryTest(unittest.TestCase):
     self.group.is_new.return_value = True
 
   def _create_context(self, job_type, platform_id):
-    return fuzz_task.Context(
+    return uworker_msg_pb2.FuzzContext(
         project_name='some_project',
         bot_name='bot',
         job_type=job_type,

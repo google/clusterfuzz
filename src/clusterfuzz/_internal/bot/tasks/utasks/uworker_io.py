@@ -186,3 +186,7 @@ def entity_from_protobuf(entity_proto: entity_pb2.Entity,
   entity = model._entity_from_protobuf(entity_proto)  # pylint: disable=protected-access
   assert isinstance(entity, model_type)
   return entity
+
+
+def create_proto(proto_cls, **kwargs):
+  return proto_cls(**{k: v for k, v in kwargs.items() if v is not None})

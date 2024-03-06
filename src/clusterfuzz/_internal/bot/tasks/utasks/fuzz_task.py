@@ -91,13 +91,6 @@ class FuzzErrorCode:
   BUILD_SETUP_FAILED = -5
 
 
-Context = collections.namedtuple('Context', [
-    'project_name', 'bot_name', 'job_type', 'fuzz_target', 'redzone',
-    'disable_ubsan', 'platform_id', 'crash_revision', 'fuzzer_name',
-    'window_argument', 'fuzzer_metadata', 'testcases_metadata',
-    'timeout_multiplier', 'test_timeout', 'thread_wait_timeout',
-    'data_directory'
-])
 Redzone = collections.namedtuple('Redzone', ['size', 'weight'])
 
 GenerateBlackboxTestcasesResult = collections.namedtuple(
@@ -879,13 +872,13 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
                                 fuzz_task_input.sample_testcase_upload_url)
 
   # Store fuzzer console output.
-  bot_name = environment.get_value('BOT_NAME')
   if fuzzer_return_code is not None:
     fuzzer_return_code_string = 'Return code (%d).' % fuzzer_return_code
   else:
     fuzzer_return_code_string = 'Fuzzer timed out.'
   truncated_fuzzer_output = truncate_fuzzer_output(fuzzer_output,
                                                    data_types.ENTITY_SIZE_LIMIT)
+  bot_name = environment.get_value('BOT_NAME')
   console_output = (f'{bot_name}: {fuzzer_return_code_string}\n{fuzzer_command}'
                     f'\n{truncated_fuzzer_output}')
   fuzzer_run_results_output.console_output = console_output
@@ -1343,6 +1336,24 @@ class FuzzingSession:
 
     self.gcs_corpus = None
     self.fuzz_task_output = uworker_msg_pb2.FuzzTaskOutput()
+
+  def _create_context(self, **kwargs):
+    project_name = os.environ['PROJECT_NAME']
+    kwargs['project_name'] = project_name
+    bot_name = environment.get_value('BOT_NAME')
+    kwargs['bot_name'] = bot_name
+    kwargs['platform_id'] = environment.get_platform_id()
+    kwargs['thread_wait_timeout'] = THREAD_WAIT_TIMEOUT
+    kwargs['job_type'] = self.job_type
+    kwargs['fuzz_target'] = self.fuzz_target
+    kwargs['redzone'] = self.redzone
+    kwargs['disable_ubsan'] = self.disable_ubsan
+    kwargs['fuzzer_name'] = self.fuzzer_name
+    kwargs['window_argument'] = self.window_argument
+    kwargs['timeout_multiplier'] = self.timeout_multiplier
+    kwargs['test_timeout'] = self.test_timeout
+    kwargs['data_directory'] = self.data_directory
+    return create_context(uworker_msg_pb2.FuzzContext, **kwargs)
 
   @property
   def fully_qualified_fuzzer_name(self):
@@ -1865,29 +1876,13 @@ class FuzzingSession:
 
     logs.log(f'Raw crash count: {len(crashes)}')
 
-    project_name = os.environ['PROJECT_NAME']
-
     # Process and save crashes to datastore.
-    bot_name = environment.get_value('BOT_NAME')
     new_crash_count, known_crash_count, processed_groups = process_crashes(
         crashes=crashes,
-        context=Context(
-            project_name=project_name,
-            bot_name=bot_name,
-            job_type=self.job_type,
-            fuzz_target=self.fuzz_target,
-            redzone=self.redzone,
-            disable_ubsan=self.disable_ubsan,
-            platform_id=environment.get_platform_id(),
+        context=_create_context(
             crash_revision=crash_revision,
-            fuzzer_name=self.fuzzer_name,
-            window_argument=self.window_argument,
             fuzzer_metadata=fuzzer_metadata,
-            testcases_metadata=testcases_metadata,
-            timeout_multiplier=self.timeout_multiplier,
-            test_timeout=self.test_timeout,
-            thread_wait_timeout=THREAD_WAIT_TIMEOUT,
-            data_directory=self.data_directory))
+            testcases_metadata=testcases_metadata))
 
     # Delete the fuzzed testcases. This was once explicitly needed since some
     # testcases resided on NFS and would otherwise be left forever. Now it's
