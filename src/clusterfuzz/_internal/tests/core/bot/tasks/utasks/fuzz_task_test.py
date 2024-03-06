@@ -1633,3 +1633,16 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     self.assertEqual(fuzzer.return_code, fuzzer_return_code)
     self.assertEqual(fuzzer.console_output, console_output)
     self.assertEqual(fuzzer.result, generated_testcase_string)
+
+
+class PickFuzzTargetTest(unittest.TestCase):
+  """Tests for _pick_fuzz_target."""
+
+  def setUp(self):
+    helpers.patch_environ(self)
+
+  def test_split_build(self):
+    """Tests that we don't pick a target for a split build."""
+    os.environ['FUZZ_TARGET_BUILD_BUCKET_PATH'] = 'Fake'
+    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
+    self.assertIsNone(fuzz_task._pick_fuzz_target())
