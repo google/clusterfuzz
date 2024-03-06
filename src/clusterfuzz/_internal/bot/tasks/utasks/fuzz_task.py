@@ -132,54 +132,74 @@ def get_unsymbolized_crash_stacktrace(stack_file_path):
     return utils.decode_to_unicode(f.read())
 
 
-class Crash:
-  """Represents a crash (before creating a testcase)."""
+def _proto_crash_from_testcase_manager_crash(cls, crash):
+  """Create a Crash from a testcase_manager.Crash."""
+  try:
+    orig_unsymbolized_crash_stacktrace = (
+        get_unsymbolized_crash_stacktrace(crash.stack_file_path))
+  except Exception:
+    logs.log_error(
+        'Unable to read stacktrace from file %s.' % crash.stack_file_path)
+    return None
 
-  @classmethod
-  def from_testcase_manager_crash(cls, crash):
-    """Create a Crash from a testcase_manager.Crash."""
-    try:
-      orig_unsymbolized_crash_stacktrace = (
-          get_unsymbolized_crash_stacktrace(crash.stack_file_path))
-    except Exception:
-      logs.log_error(
-          'Unable to read stacktrace from file %s.' % crash.stack_file_path)
-      return None
+  # If there are per-testcase additional flags, we need to store them.
+  arguments = testcase_manager.get_command_line_flags(crash.file_path)
 
-    # If there are per-testcase additional flags, we need to store them.
-    arguments = testcase_manager.get_command_line_flags(crash.file_path)
+  needs_http = '-http-' in os.path.basename(crash.file_path)
+  application_command_line = (
+      testcase_manager.get_command_line_for_application(
+          crash.file_path, needs_http=needs_http))
 
-    needs_http = '-http-' in os.path.basename(crash.file_path)
-    application_command_line = (
-        testcase_manager.get_command_line_for_application(
-            crash.file_path, needs_http=needs_http))
+  # TODO(ochang): Remove once all engines are migrated to new pipeline.
+  fuzzing_strategies = libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
+      orig_unsymbolized_crash_stacktrace)
+  if fuzzing_strategies:
+    assert len(fuzzing_strategies.groups()) == 1
+    fuzzing_strategies_string = fuzzing_strategies.groups()[0]
+    fuzzing_strategies = [
+        strategy.strip() for strategy in fuzzing_strategies_string.split(',')
+    ]
 
-    # TODO(ochang): Remove once all engines are migrated to new pipeline.
-    fuzzing_strategies = libfuzzer_stats.LIBFUZZER_FUZZING_STRATEGIES.search(
-        orig_unsymbolized_crash_stacktrace)
-    if fuzzing_strategies:
-      assert len(fuzzing_strategies.groups()) == 1
-      fuzzing_strategies_string = fuzzing_strategies.groups()[0]
-      fuzzing_strategies = [
-          strategy.strip() for strategy in fuzzing_strategies_string.split(',')
-      ]
+  return _make_crash(
+      file_path=crash.file_path,
+      crash_time=crash.crash_time,
+      return_code=crash.return_code,
+      resource_list=crash.resource_list,
+      gestures=crash.gestures,
+      unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace,
+      arguments=arguments,
+      application_command_line=application_command_line,
+      http_flag=needs_http,
+      fuzzing_strategies=fuzzing_strategies)
 
-    return Crash(
-        file_path=crash.file_path,
-        crash_time=crash.crash_time,
-        return_code=crash.return_code,
-        resource_list=crash.resource_list,
-        gestures=crash.gestures,
-        unsymbolized_crash_stacktrace=orig_unsymbolized_crash_stacktrace,
-        arguments=arguments,
-        application_command_line=application_command_line,
-        http_flag=needs_http,
-        fuzzing_strategies=fuzzing_strategies)
 
-  @classmethod
-  def from_engine_crash(cls, crash, fuzzing_strategies):
+def _make_crash(http_flag=False,
+                fuzzing_strategies=None, **kwargs):
+  filename = os.path.basename(file_path)
+  security_flag = False
+  should_be_ignored = False
+  state = stack_analyzer.get_crash_data(unsymbolized_crash_stacktrace)
+  crash_type = state.crash_type
+  crash_address = state.crash_address
+  crash_state = state.crash_state
+  crash_stacktrace = utils.get_crash_stacktrace_output(
+      application_command_line, state.crash_stacktrace,
+      unsymbolized_crash_stacktrace)
+  crash_categories = state.crash_categories
+  security_flag = crash_analyzer.is_security_issue(
+      unsymbolized_crash_stacktrace, crash_type, crash_address)
+  key = f'{crash_type},{crash_state},{security_flag}'
+  should_be_ignored = crash_analyzer.ignore_stacktrace(
+      state.crash_stacktrace)
+
+  # self.crash_info gets populated in create_testcase; save what we need.
+  crash_frames = state.frames
+  crash_info = None
+
+
+def _proto_crash_from_engine_crash(crash, fuzzing_strategies):
     """Create a Crash from a engine.Crash."""
-    return Crash(
+    return _make_crash(
         file_path=crash.input_path,
         crash_time=crash.crash_time,
         return_code=1,
@@ -190,50 +210,8 @@ class Crash:
         application_command_line='',  # TODO(ochang): Write actual command line.
         fuzzing_strategies=fuzzing_strategies)
 
-  def __init__(self,
-               file_path,
-               crash_time,
-               return_code,
-               resource_list,
-               gestures,
-               unsymbolized_crash_stacktrace,
-               arguments,
-               application_command_line,
-               http_flag=False,
-               fuzzing_strategies=None):
-    self.file_path = file_path
-    self.crash_time = crash_time
-    self.return_code = return_code
-    self.resource_list = resource_list
-    self.gestures = gestures
-    self.arguments = arguments
-    self.fuzzing_strategies = fuzzing_strategies
-
-    self.security_flag = False
-    self.should_be_ignored = False
-
-    self.filename = os.path.basename(file_path)
-    self.http_flag = http_flag
-    self.application_command_line = application_command_line
-    self.unsymbolized_crash_stacktrace = unsymbolized_crash_stacktrace
-    state = stack_analyzer.get_crash_data(self.unsymbolized_crash_stacktrace)
-    self.crash_type = state.crash_type
-    self.crash_address = state.crash_address
-    self.crash_state = state.crash_state
-    self.crash_stacktrace = utils.get_crash_stacktrace_output(
-        self.application_command_line, state.crash_stacktrace,
-        self.unsymbolized_crash_stacktrace)
-    self.crash_categories = state.crash_categories
-    self.security_flag = crash_analyzer.is_security_issue(
-        self.unsymbolized_crash_stacktrace, self.crash_type, self.crash_address)
-    self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,
-                             self.security_flag)
-    self.should_be_ignored = crash_analyzer.ignore_stacktrace(
-        state.crash_stacktrace)
-
-    # self.crash_infoo gets populated in create_testcase; save what we need.
-    self.crash_frames = state.frames
-    self.crash_info = None
+class Crash:
+  """Represents a crash (before creating a testcase)."""
 
   def is_archived(self):
     """Return true if archive_testcase_in_blobstore(..) was
