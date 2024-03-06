@@ -1778,6 +1778,9 @@ class FuzzingSession:
     if self.fuzz_target:
       logs.log('Setting fuzz target {fuzz_target}.')
       environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
+    elif environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'):
+      self.fuzz_target = data_handler.record_fuzz_target(
+          engine_impl.name, fuzz_target_name, self.job_type)
     build_setup_result = build_manager.setup_build(
         environment.get_value('APP_REVISION'),
         fuzzer_selection.get_fuzz_target_weights())
