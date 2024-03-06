@@ -1014,8 +1014,8 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
-      corpus=corpus.proto_corpus,
-      quarantine_corpus=quarantine_corpus.proto_corpus)
+      corpus=proto_corpus,
+      quarantine_corpus=proto_corpus)
 
   # If our last execution failed, shrink to a randomized corpus of usable size
   # to prevent corpus from growing unbounded and recurring failures when trying
