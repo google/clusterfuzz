@@ -1999,7 +1999,7 @@ def _pick_fuzz_target():
     return None
 
   if environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'):
-    logs.log('Not engine fuzzer. Not picking fuzz target.')
+    logs.log('Split build. Not picking fuzz target.')
     return None
 
   logs.log('Picking fuzz target.')
