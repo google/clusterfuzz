@@ -17,6 +17,7 @@ import os
 import unittest
 
 from clusterfuzz._internal.platforms.android import settings
+from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 
 DATA_PATH = os.path.join(
@@ -56,6 +57,6 @@ class DockerLauncherTests(unittest.TestCase):
     test_helpers.patch_environ(self)
 
   def test_docker_host_is_pre(self):
-    """Ensure that we report the correct codename for serial number."""
-    os.environ['DOCKER_HOST'] = 'clusterfuzz-android-pre-0123'
+    """Ensure that we report the correct preemptible status."""
+    environment.set_value('DOCKER_HOST', 'clusterfuzz-android-pre-0123')
     self.assertEqual(settings.using_preemptible_host(), True)

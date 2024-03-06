@@ -161,7 +161,7 @@ def is_mte_build():
 
 def using_preemptible_host():
   """Return True if using a peemptible host."""
-  return '-pre-' in environment.get_value('DOCKER_HOSTNAME')
+  return '-pre-' in environment.get_value('DOCKER_HOST', '')
 
 
 def get_security_patch_level():
