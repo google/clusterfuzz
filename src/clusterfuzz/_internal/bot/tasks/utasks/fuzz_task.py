@@ -40,7 +40,8 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_handle_errors
 from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis import crash_analyzer
-from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
+from clusterfuzz._internal.crash_analysis import crash_result as \
+  crash_result_utils
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -62,7 +63,7 @@ from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
 from clusterfuzz.fuzz import engine
-from clusterfuzz.stacktraces.__init__ import CrashInfo
+from clusterfuzz import stacktraces
 
 SelectionMethod = collections.namedtuple('SelectionMethod',
                                          'method_name probability')
@@ -1020,7 +1021,7 @@ def create_testcase(group, context):
   return testcase
 
 
-def filter_crashes(crashes: List[CrashInfo]) -> List[CrashInfo]:
+def filter_crashes(crashes: List[stacktraces.CrashInfo]) -> List[stacktraces.CrashInfo]:
   """Filter crashes based on is_valid()."""
   filtered = []
 
@@ -1569,7 +1570,8 @@ class FuzzingSession:
       # testcases, and stats.
       log_time = datetime.datetime.utcfromtimestamp(
           float(testcase_run.timestamp))
-      crash_result = CrashResult(return_code, result.time_executed, result.logs)
+      crash_result = crash_result_utils.CrashResult(
+          return_code, result.time_executed, result.logs)
       log = testcase_manager.prepare_log_for_upload(
           crash_result.get_stacktrace(), return_code)
       testcase_manager.upload_log(log, log_time)
