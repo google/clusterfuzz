@@ -496,12 +496,14 @@ class GcsCorpus:
       self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
           engine_name, project_qualified_target_name)
     elif proto_corpus:
-      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus.from_proto(
+      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus(
           engine, project_qualified_target_name, proto_corpus)
     else:
       # This only works on a trusted bot.
-      self.gcs_corpus = corpus_manager.get_fuzz_target_corpus(
+      proto_corpus = corpus_manager.get_fuzz_target_corpus(
           engine_name, project_qualified_target_name)
+      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus(
+          engine, project_qualified_target_name, proto_corpus)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory

@@ -618,7 +618,7 @@ def get_fuzz_target_corpus(engine,
     fuzz_target_corpus.regressions_corpus.CopyFrom(
         get_proto_corpus(bucket_name, regressions_bucket_path))
 
-  return proto_corpus
+  return corpus
 
 
 def get_regressions_signed_upload_url(engine, project_qualified_target_name):
