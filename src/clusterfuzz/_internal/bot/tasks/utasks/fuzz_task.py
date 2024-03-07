@@ -127,8 +127,8 @@ def do_multiarmed_bandit_strategy_selection(uworker_env):
 
 def has_standard_build():
   if environment.platform() == 'FUCHSIA':
-    return True
-  return bool(environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'))
+    return False
+  return not bool(environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'))
 
 
 def get_unsymbolized_crash_stacktrace(stack_file_path):
@@ -1797,7 +1797,7 @@ class FuzzingSession:
       if not self.fuzz_task_output.fuzz_targets:
         logs.log_error('No fuzz targets.')
 
-      if has_standard_buidl():
+      if not has_standard_build():
         # Handle split builds where fuzz target is picked as side effect of
         # build setup.
         fuzz_target_name = environment.get_value('FUZZ_TARGET')
@@ -2012,7 +2012,7 @@ def _pick_fuzz_target():
     logs.log('Not engine fuzzer. Not picking fuzz target.')
     return None
 
-  if has_standard_build():
+  if not has_standard_build():
     logs.log('Split build. Not picking fuzz target.')
     return None
 
