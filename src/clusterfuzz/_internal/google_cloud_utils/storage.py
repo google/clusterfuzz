@@ -1283,13 +1283,14 @@ def _sign_urls_for_existing_file(corpus_element_url,
     delete_url = sign_delete_url(corpus_element_url, minutes)
   else:
     delete_url = None
-  return (download_url, '')
+  return (download_url, delete_url)
 
 
 def sign_urls_for_existing_files(urls, include_delete_urls):
   logs.log('Signing URLs for existing files.')
-  result = [_sign_urls_for_existing_file(url, include_delete_urls)
-            for url in urls]
+  result = [
+      _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
+  ]
   logs.log('Done signing URLs for existing files.')
   return result
 

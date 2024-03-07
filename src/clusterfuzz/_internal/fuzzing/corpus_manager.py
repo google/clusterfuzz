@@ -561,13 +561,17 @@ def _get_gcs_url(bucket_name, bucket_path, suffix=''):
   return url
 
 
-def get_proto_corpus(bucket_name, bucket_path, max_upload_urls, include_delete_urls=False):
+def get_proto_corpus(bucket_name,
+                     bucket_path,
+                     max_upload_urls,
+                     include_delete_urls=False):
   """Returns a proto representation of a corpus."""
   gcs_url = _get_gcs_url(bucket_name, bucket_path)
   # TODO(metzman): Allow this step to be skipped by trusted fuzzers.
   urls = (f'{storage.GS_PREFIX}/{bucket_name}/{url}'
           for url in storage.list_blobs(gcs_url))
-  corpus_urls = dict(storage.sign_urls_for_existing_files(urls, include_delete_urls))
+  corpus_urls = dict(
+      storage.sign_urls_for_existing_files(urls, include_delete_urls))
 
   upload_urls = storage.get_arbitrary_signed_upload_urls(
       gcs_url, num_uploads=max_num_uploads)
@@ -610,16 +614,22 @@ def get_fuzz_target_corpus(engine,
   fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()
   bucket_name, bucket_path = get_target_bucket_and_path(
       engine, project_qualified_target_name, quarantine)
-  corpus = get_proto_corpus(bucket_name, bucket_path,
-                            include_delete_urls=include_delete_urls, max_upload_urls=max_upload_urls)
+  corpus = get_proto_corpus(
+      bucket_name,
+      bucket_path,
+      include_delete_urls=include_delete_urls,
+      max_upload_urls=max_upload_urls)
   print('bucket_name', bucket_name, 'bucket_path', bucket_path, corpus.gcs_url)
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
+  assert not
   if include_regressions:
     regressions_bucket_path = f'{bucket_path}{REGRESSIONS_GCS_PATH_SUFFIX}'
     regressions_corpus = get_proto_corpus(
-        bucket_name, regressions_bucket_path, max_upload_urls=0,
-        include_delete_urls=False)
+        bucket_name,
+        regressions_bucket_path,
+        max_upload_urls=0,  # This is never uploaded to using this mechanism.
+        include_delete_urls=False)  # This is never deleted from.
     fuzz_target_corpus.regressions_corpus.CopyFrom(regressions_corpus)
 
   return ProtoFuzzTargetCorpus(engine, project_qualified_target_name,
@@ -631,3 +641,34 @@ def get_regressions_signed_upload_url(engine, project_qualified_target_name):
                                             project_qualified_target_name)
   regression_url = _get_regressions_corpus_gcs_url(bucket, path)
   return storage.get_arbitrary_signed_upload_url(regression_url)
+
+
+def get_pruning_corpora_urls(engine, project_qualified_name):
+  bucket_name, bucket_path = get_target_bucket_and_path(
+      engine, project_qualified_target_name, False)
+  gcs_url = _get_gcs_url(bucket_name, bucket_path)
+  bucket_name, bucket_path = get_target_bucket_and_path(
+      engine, project_qualified_target_name, True)
+  quarantine_gcs_url = _get_gcs_url(bucket_name, bucket_path)
+  return gcs_url, quarantine_gcs_url
+
+
+def get_corpuses_for_pruning(engine, project_qualified_name):
+  corpus = get_fuzz_target_corpus(
+      engine,
+      qualified_name,
+      include_regressions=True,
+      include_delete_urls=True,
+      include_upload_urls=False)
+  max_upload_urls = len(corpus.corpus.corpus_urls)
+  # We will never need to upload more than the number of testcases in the
+  # corpus to the quarantine.
+  quarantine_corpus = corpus_manager.get_fuzz_target_corpus(
+      engine,
+      project_qualified_name,
+      quarantine=True,
+      max_upload_urls=max_upload_urls)
+  return corpus, quarantine_corpus
+
+
+def get_corpus_for_fuzzing(engine_name, project_qualified_target_name):

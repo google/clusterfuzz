@@ -494,8 +494,8 @@ class GcsCorpus:
     else:
       # TODO(metzman): After fuzz target selection is moved to preprocess, move
       # this to preprocess.
-      self.gcs_corpus = corpus_manager.get_fuzz_target_corpus(
-          engine_name, project_qualified_target_name, include_delete_urls=False)
+      self.gcs_corpus = corpus_manager.get_corpus_for_fuzzing(
+          engine_name, project_qualified_target_name)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -546,7 +546,7 @@ class GcsCorpus:
     time_before_sync_start = time.time()
     result = already_synced or self._sync_to_disk(self._corpus_directory)
     self._synced_files.clear()
-    self._synced_files.update(self._walk())
+    self._synced_files.update(self._walk())1
 
     logs.log('%d corpus files for target %s synced to disk.' % (len(
         self._synced_files), self._project_qualified_target_name))
@@ -2062,7 +2062,6 @@ def save_fuzz_targets(output):
   data_handler.record_fuzz_targets(output.uworker_input.fuzzer_name,
                                    output.fuzz_task_output.fuzz_targets,
                                    output.uworker_input.job_type)
-
 
 
 def utask_postprocess(output):

@@ -1004,31 +1004,25 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   cross_pollinate_fuzzers = _get_cross_pollinate_fuzzers(
       fuzz_target.engine, fuzzer_name)
 
-  corpus = corpus_manager.get_fuzz_target_corpus(
-      fuzz_target.engine,
-      fuzz_target.project_qualified_name(),
-      include_regressions=True,
-      include_delete_urls=True,
-      cap_uploads_by_existing=True)
-  # We will never need to upload more than the number of testcases in the
-  # corpus.
-  max_upload_urls = len(corpus.corpus_urls)
-  quarantine_corpus = corpus_manager.get_fuzz_target_corpus(
-      fuzz_target.engine, fuzz_target.project_qualified_name(), quarantine=True, max_upload_urls=max_upload_urls)
+  # If our last execution failed, shrink to a randomized corpus of usable size
+  # to prevent corpus from growing unbounded and recurring failures when trying
+  # to minimize it.
+  if last_execution_failed:
+    # TODO(metzman): Is this too expensive to do in preprocess?
+    corpus_urls = corpus_manager.get_pruning_corpora_urls(
+        fuzz_target.engine, fuzz_target.project_qualified_name())
+    for corpus_url in corpus_urls:
+      _limit_corpus_size(corpus_url)
+
+  corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
+      fuzz_target)
+
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
       corpus=corpus.proto_corpus,
       quarantine_corpus=quarantine_corpus.proto_corpus)
-
-  # If our last execution failed, shrink to a randomized corpus of usable size
-  # to prevent corpus from growing unbounded and recurring failures when trying
-  # to minimize it.
-  if last_execution_failed:
-    # TODO(metzman): Is this too expensive to do in preprocess?
-    for corpus_url in [corpus.get_gcs_url(), quarantine_corpus.get_gcs_url()]:
-      _limit_corpus_size(corpus_url)
 
   return uworker_msg_pb2.Input(
       job_type=job_type,
