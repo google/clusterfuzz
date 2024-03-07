@@ -1282,7 +1282,7 @@ def _sign_urls_for_existing_file(corpus_element_url,
   if include_delete_urls:
     delete_url = sign_delete_url(corpus_element_url, minutes)
   else:
-    delete_url = None
+    delete_url = ''
   return (download_url, delete_url)
 
 
