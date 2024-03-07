@@ -608,8 +608,7 @@ def get_fuzz_target_corpus(engine,
                            quarantine=False,
                            include_regressions=False,
                            include_delete_urls=False,
-                           max_upload_urls=10000,
-                           cap_uploads_by_existing=False):
+                           max_upload_urls=10000):
   """Copies the corpus from gcs to disk. Can run on uworker."""
   fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()
   bucket_name, bucket_path = get_target_bucket_and_path(
@@ -669,6 +668,3 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       quarantine=True,
       max_upload_urls=max_upload_urls)
   return corpus, quarantine_corpus
-
-
-def get_corpus_for_fuzzing(engine_name, project_qualified_target_name):
