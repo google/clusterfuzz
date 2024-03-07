@@ -1294,6 +1294,7 @@ def sign_urls_for_existing_files(urls):
 def get_arbitrary_signed_upload_url(remote_directory):
   return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
 
+
 def _cpu_bound_pool():
   return _pool(multiprocessing.cpu_count())
 
