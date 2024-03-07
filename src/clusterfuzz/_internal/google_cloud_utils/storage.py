@@ -18,6 +18,7 @@ import contextlib
 import copy
 import datetime
 import json
+import multiprocessing
 import os
 import shutil
 import threading
@@ -1284,13 +1285,17 @@ def _sign_urls_for_existing_file(corpus_element_url,
 
 def sign_urls_for_existing_files(urls):
   logs.log('Signing URLs for existing files.')
-  result = [_sign_urls_for_existing_file(url) for url in urls]
+  with _cpu_bound_pool() as pool:
+    result = list(pool.map(_sign_urls_for_existing_file, urls))
   logs.log('Done signing URLs for existing files.')
   return result
 
 
 def get_arbitrary_signed_upload_url(remote_directory):
   return get_arbitrary_signed_upload_urls(remote_directory, num_uploads=1)[0]
+
+def _cpu_bound_pool():
+  return _pool(multiprocessing.cpu_count())
 
 
 def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
@@ -1316,6 +1321,7 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.log('Signing URLs for arbitrary uploads.')
-  result = [get_signed_upload_url(url) for url in urls]
+  with _cpu_bound_pool() as pool:
+    result = list(pool.map(get_signed_upload_url, urls))
   logs.log('Done signing URLs for arbitrary uploads.')
   return result
