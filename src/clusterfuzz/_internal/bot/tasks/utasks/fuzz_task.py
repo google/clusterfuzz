@@ -1782,13 +1782,21 @@ class FuzzingSession:
         environment.get_value('APP_REVISION'),
         fuzzer_selection.get_fuzz_target_weights())
 
-    if engine.get(self.fuzzer.name) and build_setup_result:
+    engine_impl = engine.get(self.fuzzer.name)
+    if engine_impl and build_setup_result:
       # If we did not pick a fuzz target to fuzz with the engine, then return
       # early to save the fuzz targets that are in the build for the next job to
       # pick.
       self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
       if not self.fuzz_task_output.fuzz_targets:
         logs.log_error('No fuzz targets.')
+
+      if environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'):
+        # Handle split builds where fuzz target is picked as side effect of
+        # build setup.
+        fuzz_target_name = environment.get_value('FUZZ_TARGET')
+        self.fuzz_target = data_handler.record_fuzz_target(
+            engine_impl.name, fuzz_target_name, self.job_type)
 
       if not self.fuzz_target:
         return uworker_msg_pb2.Output(
@@ -1833,7 +1841,6 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
-    engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 

@@ -748,11 +748,11 @@ def _signing_creds():
 
 
 @contextlib.contextmanager
-def _pool():
+def _pool(pool_size=16):
   if environment.get_value('PY_UNITTESTS'):
-    yield futures.ThreadPoolExecutor(16)
+    yield futures.ThreadPoolExecutor(pool_size)
   else:
-    yield futures.ProcessPoolExecutor(16)
+    yield futures.ProcessPoolExecutor(pool_size)
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -1281,8 +1281,7 @@ def _sign_urls_for_existing_file(corpus_element_url,
 
 def sign_urls_for_existing_files(urls):
   logs.log('Signing URLs for existing files.')
-  with _pool() as pool:
-    result = pool.map(_sign_urls_for_existing_file, urls)
+  result = [_sign_urls_for_existing_file(url) for url in urls]
   logs.log('Done signing URLs for existing files.')
   return result
 
@@ -1314,7 +1313,6 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.log('Signing URLs for arbitrary uploads.')
-  with _pool() as pool:
-    result = pool.map(get_signed_upload_url, urls)
+  result = [get_signed_upload_url(url) for url in urls]
   logs.log('Done signing URLs for arbitrary uploads.')
   return result
