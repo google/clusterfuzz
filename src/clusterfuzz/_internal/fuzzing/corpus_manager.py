@@ -621,7 +621,7 @@ def get_fuzz_target_corpus(engine,
   print('bucket_name', bucket_name, 'bucket_path', bucket_path, corpus.gcs_url)
   fuzz_target_corpus.corpus.CopyFrom(corpus)
 
-  assert not include_regressions and quarantine
+  assert not (include_regressions and quarantine)
   if include_regressions:
     regressions_bucket_path = f'{bucket_path}{REGRESSIONS_GCS_PATH_SUFFIX}'
     regressions_corpus = get_proto_corpus(
