@@ -13,12 +13,11 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
+from concurrent import futures
 import contextlib
 import copy
 import datetime
 import json
-import multiprocessing
-import multiprocessing.pool
 import os
 import shutil
 import threading
@@ -751,9 +750,9 @@ def _signing_creds():
 @contextlib.contextmanager
 def _pool():
   if environment.get_value('PY_UNITTESTS'):
-    yield multiprocessing.pool.ThreadPoolExecutor(16)
+    yield futures.ThreadPoolExecutor(16)
   else:
-    yield multiprocessing.ProcessPoolExecutor(16)
+    yield futures.ProcessPoolExecutor(16)
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
