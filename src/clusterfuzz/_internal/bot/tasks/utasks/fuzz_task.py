@@ -495,7 +495,7 @@ class GcsCorpus:
       # TODO(metzman): After fuzz target selection is moved to preprocess, move
       # this to preprocess.
       self.gcs_corpus = corpus_manager.get_fuzz_target_corpus(
-          engine_name, project_qualified_target_name)
+          engine_name, project_qualified_target_name, include_delete_urls=False)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -2062,6 +2062,7 @@ def save_fuzz_targets(output):
   data_handler.record_fuzz_targets(output.uworker_input.fuzzer_name,
                                    output.fuzz_task_output.fuzz_targets,
                                    output.uworker_input.job_type)
+
 
 
 def utask_postprocess(output):

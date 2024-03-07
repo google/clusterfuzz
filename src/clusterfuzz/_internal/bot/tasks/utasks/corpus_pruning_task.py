@@ -1007,9 +1007,14 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   corpus = corpus_manager.get_fuzz_target_corpus(
       fuzz_target.engine,
       fuzz_target.project_qualified_name(),
-      include_regressions=True)
+      include_regressions=True,
+      include_delete_urls=True,
+      cap_uploads_by_existing=True)
+  # We will never need to upload more than the number of testcases in the
+  # corpus.
+  max_upload_urls = len(corpus.corpus_urls)
   quarantine_corpus = corpus_manager.get_fuzz_target_corpus(
-      fuzz_target.engine, fuzz_target.project_qualified_name(), quarantine=True)
+      fuzz_target.engine, fuzz_target.project_qualified_name(), quarantine=True, max_upload_urls=max_upload_urls)
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
