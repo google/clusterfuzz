@@ -1015,7 +1015,7 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       _limit_corpus_size(corpus_url)
 
   corpus, quarantine_corpus = corpus_manager.get_corpuses_for_pruning(
-      fuzz_target, fuzz_target.project_qualified_name())
+      fuzz_target.engine, fuzz_target.project_qualified_name())
 
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
