@@ -751,9 +751,9 @@ def _signing_creds():
 @contextlib.contextmanager
 def _pool():
   if environment.get_value('PY_UNITTESTS'):
-    yield multiprocessing.pool.ThreadPool(16)
+    yield multiprocessing.pool.ThreadPoolExecutor(16)
   else:
-    yield multiprocessing.Pool(16)
+    yield multiprocessing.ProcessPoolExecutor(16)
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
