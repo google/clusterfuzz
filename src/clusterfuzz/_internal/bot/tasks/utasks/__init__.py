@@ -111,7 +111,6 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
   serialized output."""
   result = _preprocess(utask_module, task_argument, job_type, uworker_env)
   if not result:
-    logs.log_error('No uworker_input returned from preprocess')
     return None
   uworker_input, start = result
   result = uworker_io.serialize_uworker_input(uworker_input)
