@@ -531,7 +531,9 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
     testing."""
     self.mock.get.return_value = False
     progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
-    with mock.patch('data_handler.get_fuzz_target', return_value=mock.Mock()):
+    with mock.patch(
+        'clusterfuzz._internal.datastore.data_handler.get_fuzz_target',
+        return_value=mock.Mock()):
       progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
           progression_task_input, self.testcase)
     self.assertFalse(bool(progression_task_input.regression_testcase_url))
