@@ -406,7 +406,7 @@ def _set_regression_testcase_upload_url(
     # No work to do, only applicable for engine fuzzers.
     return
 
-  if testcase.untrusted:
+  if not testcase.trusted:
     logs.log_warn('Not saving untrusted testcase to regression corpus.')
 
   # We probably don't need these checks, but do them anyway since it is

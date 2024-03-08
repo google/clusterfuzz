@@ -193,7 +193,7 @@ def check_handling_testcase_safe(testcase):
   """Exits when the current task execution model is trusted but the testcase is
   untrusted. This will allow uploading testcases to trusted jobs (e.g. Mac) more
   safely."""
-  if not testcase.untrusted:
+  if testcase.trusted:
     return
   if not environment.get_value('UNTRUSTED_UTASK'):
     # TODO(https://b.corp.google.com/issues/328691756): Change this to

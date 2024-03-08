@@ -937,7 +937,7 @@ class TestTrustedVsUntrusted(unittest.TestCase):
         None, None, None, None, None, None, self.job, None, None, gestures,
         None, None, None, None, None, None, None, None, None, None, None, None,
         None)
-    self.assertTrue(data_handler.get_testcase_by_id(testcase_id).uploaded)
+    self.assertFalse(data_handler.get_testcase_by_id(testcase_id).trusted)
 
   def test_fuzzer_created(self):
     """Tests that fuzzer created testcases are marked as such."""
@@ -953,5 +953,5 @@ class TestTrustedVsUntrusted(unittest.TestCase):
     testcase_id = data_handler.store_testcase(
         crash, None, None, None, None, None, None, None, None, gestures, None,
         self.job.name, None, None, None, None, None, None, None,
-        timeout_multiplier, None, None)
-    self.assertFalse(data_handler.get_testcase_by_id(testcase_id).uploaded)
+        timeout_multiplier, None, True)
+    self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
