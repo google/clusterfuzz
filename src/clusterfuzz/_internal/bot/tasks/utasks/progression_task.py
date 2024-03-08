@@ -408,6 +408,7 @@ def _set_regression_testcase_upload_url(
 
   if not testcase.trusted:
     logs.log_warn('Not saving untrusted testcase to regression corpus.')
+    return
 
   # We probably don't need these checks, but do them anyway since it is
   # important not to mess this up.
@@ -431,7 +432,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
     return None
-  uworker_io.check_handling_testcase_safe(testcase)
 
   if testcase.fixed:
     logs.log_error(f'Fixed range is already set as {testcase.fixed}, skip.')
@@ -654,6 +654,9 @@ def find_fixed_range(uworker_input):
 
 def utask_main(uworker_input):
   """Executes the untrusted part of progression_task."""
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
   return find_fixed_range(uworker_input)
 
 

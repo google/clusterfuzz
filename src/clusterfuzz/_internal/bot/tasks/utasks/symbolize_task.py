@@ -53,7 +53,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for symbolize task."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  uworker_io.check_handling_testcase_safe(testcase)
 
   # We should atleast have a symbolized debug or release build.
   if not build_manager.has_symbolized_builds():
@@ -77,9 +76,10 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
 def utask_main(uworker_input):
   """Execute the untrusted part of a symbolize command."""
-  job_type = uworker_input.job_type
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
+  job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
 
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,

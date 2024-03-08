@@ -61,8 +61,8 @@ class TestcaseTest(unittest.TestCase):
         'es', 'es.1', 's', 's.1', 'b', 'b.3', 'stable', 'beta',
         'extended_stable'
     }, set(testcase.impact_version_indices))
-    # Assert that this is true by default.
-    self.assertTrue(testcase.uploaded)
+    # Assert that this is False by default.
+    self.assertFalse(testcase.trusted)
 
   def test_put_head(self):
     """Tests put() when the impact is head."""

@@ -372,7 +372,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   """Preprocess in a trusted bot."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  uworker_io.check_handling_testcase_safe(testcase)
 
   # Allow setting up a different fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
@@ -401,6 +400,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   """Attempt to minimize a given testcase."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
   minimize_task_input = uworker_input.minimize_task_input
   # Setup testcase and its dependencies.
   file_list, testcase_file_path, uworker_error_output = setup.setup_testcase(
