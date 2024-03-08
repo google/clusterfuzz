@@ -584,7 +584,8 @@ class UploadOAuthTest(unittest.TestCase):
         'timestamp': datetime.datetime(2021, 1, 1, 0, 0),
         'triaged': False,
         'uploader_email': 'uploader@email',
-        'window_argument': ''
+        'window_argument': '',
+        'uploaded': True,
     }, testcase._to_dict())
 
     metadata = data_types.TestcaseUploadMetadata.query(

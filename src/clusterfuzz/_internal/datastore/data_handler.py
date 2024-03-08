@@ -749,7 +749,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
                    absolute_path, fuzzer_name, fully_qualified_fuzzer_name,
                    job_type, archived, archive_filename, http_flag, gestures,
                    redzone, disable_ubsan, window_argument, timeout_multiplier,
-                   minimized_arguments):
+                   minimized_arguments, uploaded):
   """Create a testcase and store it in the datastore using remote api."""
   # Initialize variable to prevent invalid values.
   if archived:
@@ -793,6 +793,7 @@ def store_testcase(crash, fuzzed_keys, minimized_keys, regression, fixed,
   testcase.timeout_multiplier = float(timeout_multiplier)
   testcase.minimized_arguments = minimized_arguments
   testcase.project_name = get_project_name(job_type)
+  testcase.uploaded = uploaded
 
   # Set metadata fields (e.g. build url, build key, platform string, etc).
   set_initial_testcase_metadata(testcase)
@@ -1304,6 +1305,7 @@ def create_user_uploaded_testcase(key,
                                   crash_data=None):
   """Create a testcase object, metadata, and task for a user uploaded test."""
   testcase = data_types.Testcase()
+  assert job, (timeout, job, queue)
   if crash_data:
     # External job with provided stacktrace.
     testcase.crash_type = crash_data.crash_type
@@ -1346,6 +1348,7 @@ def create_user_uploaded_testcase(key,
   testcase.http_flag = bool(http_flag)
   testcase.archive_state = archive_state
   testcase.project_name = get_project_name(job.name)
+  testcase.uploaded = True
 
   if archive_state or bundled:
     testcase.absolute_path = file_path_input

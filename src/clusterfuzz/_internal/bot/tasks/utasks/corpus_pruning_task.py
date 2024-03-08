@@ -793,7 +793,8 @@ def _process_corpus_crashes(context, result):
         disable_ubsan=False,
         window_argument=None,
         timeout_multiplier=1.0,
-        minimized_arguments=minimized_arguments)
+        minimized_arguments=minimized_arguments,
+        uploaded=False)
 
     # Set fuzzer_binary_name in testcase metadata.
     testcase = data_handler.get_testcase_by_id(testcase_id)

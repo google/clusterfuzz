@@ -979,11 +979,11 @@ def create_testcase(group, context):
       redzone=context.redzone,
       disable_ubsan=context.disable_ubsan,
       window_argument=context.window_argument,
-      found_by_cf=True,
       timeout_multiplier=get_testcase_timeout_multiplier(
           context.timeout_multiplier, crash, context.test_timeout,
           context.thread_wait_timeout),
-      minimized_arguments=crash.arguments)
+      minimized_arguments=crash.arguments,
+      uploaded=False)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:
