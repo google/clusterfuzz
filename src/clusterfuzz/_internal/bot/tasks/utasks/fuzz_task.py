@@ -983,7 +983,7 @@ def create_testcase(group, context):
           context.timeout_multiplier, crash, context.test_timeout,
           context.thread_wait_timeout),
       minimized_arguments=crash.arguments,
-      uploaded=False)
+      untrusted=False)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:

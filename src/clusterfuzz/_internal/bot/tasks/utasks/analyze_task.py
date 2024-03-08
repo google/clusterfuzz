@@ -280,6 +280,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for analyze task."""
   # Get the testcase from the database and mark it as started.
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  uworker_io.check_handling_testcase_safe(testcase)
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   testcase_upload_metadata = query_testcase_upload_metadata(testcase_id)

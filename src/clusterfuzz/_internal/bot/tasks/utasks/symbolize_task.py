@@ -53,6 +53,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   """Runs preprocessing for symbolize task."""
   # Locate the testcase associated with the id.
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  uworker_io.check_handling_testcase_safe(testcase)
 
   # We should atleast have a symbolized debug or release build.
   if not build_manager.has_symbolized_builds():

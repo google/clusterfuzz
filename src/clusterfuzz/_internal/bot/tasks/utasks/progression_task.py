@@ -406,8 +406,8 @@ def _set_regression_testcase_upload_url(
     # No work to do, only applicable for engine fuzzers.
     return
 
-  if testcase.uploaded:
-    logs.log_warn('Not saving uploaded testcase to regression corpus.')
+  if testcase.untrusted:
+    logs.log_warn('Not saving untrusted testcase to regression corpus.')
 
   # We probably don't need these checks, but do them anyway since it is
   # important not to mess this up.
@@ -431,6 +431,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   testcase = data_handler.get_testcase_by_id(testcase_id)
   if not testcase:
     return None
+  uworker_io.check_handling_testcase_safe(testcase)
 
   if testcase.fixed:
     logs.log_error(f'Fixed range is already set as {testcase.fixed}, skip.')

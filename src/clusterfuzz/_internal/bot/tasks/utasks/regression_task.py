@@ -400,6 +400,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
   Runs on a trusted worker.
   """
   testcase = data_handler.get_testcase_by_id(testcase_id)
+  uworker_io.check_handling_testcase_safe(testcase)
 
   if testcase.regression:
     logs.log_error(

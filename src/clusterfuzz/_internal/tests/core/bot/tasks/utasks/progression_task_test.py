@@ -526,7 +526,7 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
     self.mock.upload_signed_url.assert_called_with(
         b'A', progression_task_input.regression_testcase_url)
 
-  def test_uploaded_testcase(self):
+  def test_untrusted_testcase(self):
     """Tests that a user-uploaded testcase is not stored for regression
     testing."""
     self.mock.get.return_value = False

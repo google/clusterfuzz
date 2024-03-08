@@ -919,8 +919,8 @@ class RecordFuzzTargetTest(unittest.TestCase):
 
 
 @test_utils.with_cloud_emulators('datastore')
-class TestUploadVsNotUploaded(unittest.TestCase):
-  """Tests that helpers for creating testcases handle the uploaded field
+class TestTrustedVsUntrusted(unittest.TestCase):
+  """Tests that helpers for creating testcases handle the untrusted field
   correctly."""
 
   def setUp(self):
