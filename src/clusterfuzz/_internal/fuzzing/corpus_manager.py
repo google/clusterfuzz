@@ -603,12 +603,13 @@ def get_target_bucket_and_path(engine,
   return sync_corpus_bucket_name, f'/{engine}/{project_qualified_target_name}'
 
 
-def get_fuzz_target_corpus(engine,
-                           project_qualified_target_name,
-                           quarantine=False,
-                           include_regressions=False,
-                           include_delete_urls=False,
-                           max_upload_urls=10000):
+def get_fuzz_target_corpus(
+    engine,
+    project_qualified_target_name,
+    quarantine=False,
+    include_regressions=False,
+    include_delete_urls=False,
+    max_upload_urls=10000) -> uworker_msg_pb2.FuzzTargetCorpus:
   """Copies the corpus from gcs to disk. Can run on uworker."""
   fuzz_target_corpus = uworker_msg_pb2.FuzzTargetCorpus()
   bucket_name, bucket_path = get_target_bucket_and_path(
@@ -655,12 +656,12 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
   """Returns a fuzz target corpus and quarantine corpus for pruning."""
   # We need to include upload URLs because of corpus pollination. This is
   # unfortunate as it is probably rarely used.
-  corpus = get_fuzz_target_corpus(
+  fuzz_target_corpus = get_fuzz_target_corpus(
       engine,
       project_qualified_name,
       include_regressions=True,
       include_delete_urls=True)
-  max_upload_urls = len(corpus.proto_corpus.corpus.corpus_urls)
+  max_upload_urls = len(fuzz_target_corpus.corpus.corpus_urls)
   # We will never need to upload more than the number of testcases in the
   # corpus to the quarantine.
   quarantine_corpus = get_fuzz_target_corpus(
@@ -668,4 +669,4 @@ def get_corpuses_for_pruning(engine, project_qualified_name):
       project_qualified_name,
       quarantine=True,
       max_upload_urls=max_upload_urls)
-  return corpus, quarantine_corpus
+  return fuzz_target_corpus, quarantine_corpus
