@@ -632,7 +632,7 @@ def get_fuzz_target_corpus(
         include_delete_urls=False)  # This is never deleted from.
     fuzz_target_corpus.regressions_corpus.CopyFrom(regressions_corpus)
 
-  return corpus
+  return fuzz_target_corpus
 
 
 def get_regressions_signed_upload_url(engine, project_qualified_target_name):
