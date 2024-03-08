@@ -1587,7 +1587,7 @@ class FuzzingSession:
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
                                        self.job_type, revision)
-      self.fuzz_task_output.testcase_run_json = json.dumps(testcase_run)
+      self.fuzz_task_output.testcase_run_json = testcase_run.to_json()
       if result.crashes:
         crashes.extend([
             Crash.from_engine_crash(crash, fuzzing_strategies)
