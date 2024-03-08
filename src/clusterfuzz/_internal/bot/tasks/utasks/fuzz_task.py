@@ -1587,7 +1587,7 @@ class FuzzingSession:
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
                                        self.job_type, revision)
-      self.fuzz_task_output.testcase_run = json.dumps(testcase_run)
+      self.fuzz_task_output.testcase_run_json = json.dumps(testcase_run)
       if result.crashes:
         crashes.extend([
             Crash.from_engine_crash(crash, fuzzing_strategies)
@@ -1958,8 +1958,11 @@ class FuzzingSession:
           id=uworker_input.job_type, count=new_targets_count).put()
 
     if uworker_output.fuzz_task_output.HasField('testcase_run'):
-      upload_testcase_run_stats(
-          json.loads(uworker_output.fuzz_task_output.testcase_run))
+      testcase_run = json.loads(uworker_output.fuzz_task_output.testcase_run)
+      testcase_run = fuzzer_stats.TestcaseRun(
+          testcase_run['fuzzer'], testcase_run['job'],
+          testcase_run['build_revision'], testcase_run['timestamp'])
+      upload_testcase_run_stats(testcase_run)
 
 
 def handle_fuzz_build_setup_failure(output):
