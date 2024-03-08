@@ -456,7 +456,7 @@ def stop_cuttlefish_device():
 
   if get_device_state() == 'device':
     execute_command(
-      stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
+        stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
     time.sleep(STOP_CVD_WAIT)
 
 
