@@ -13,12 +13,11 @@
 # limitations under the License.
 """Functions for managing Google Cloud Storage."""
 
+from concurrent import futures
 import contextlib
 import copy
 import datetime
 import json
-import multiprocessing
-import multiprocessing.pool
 import os
 import shutil
 import threading
@@ -749,11 +748,11 @@ def _signing_creds():
 
 
 @contextlib.contextmanager
-def _pool():
+def _pool(pool_size=16):
   if environment.get_value('PY_UNITTESTS'):
-    yield multiprocessing.pool.ThreadPool(16)
+    yield futures.ThreadPoolExecutor(pool_size)
   else:
-    yield multiprocessing.Pool(16)
+    yield futures.ProcessPoolExecutor(pool_size)
 
 
 def get_bucket_name_and_path(cloud_storage_file_path):
@@ -1214,11 +1213,13 @@ def get_signed_download_url(remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
   return provider.sign_download_url(remote_path, minutes=minutes)
 
 
-def _error_tolerant_download_signed_url_to_file(url, path):
+def _error_tolerant_download_signed_url_to_file(url_and_path):
+  url, path = url_and_path
   return download_signed_url_to_file(url, path), url
 
 
-def _error_tolerant_upload_signed_url(url, path):
+def _error_tolerant_upload_signed_url(url_and_path):
+  url, path = url_and_path
   with open(path, 'rb') as fp:
     return upload_signed_url(fp, url)
 
@@ -1238,8 +1239,8 @@ def _error_tolerant_delete_signed_url(url):
 def upload_signed_urls(signed_urls, files):
   logs.log('Uploading URLs.')
   with _pool() as pool:
-    result = pool.starmap(_error_tolerant_upload_signed_url,
-                          zip(signed_urls, files))
+    result = list(
+        pool.map(_error_tolerant_upload_signed_url, zip(signed_urls, files)))
   logs.log('Done uploading URLs.')
   return result
 
@@ -1259,8 +1260,9 @@ def download_signed_urls(signed_urls, directory):
   ]
   logs.log('Downloading URLs.')
   with _pool() as pool:
-    result = pool.starmap(_error_tolerant_download_signed_url_to_file,
-                          zip(signed_urls, filepaths))
+    result = list(
+        pool.map(_error_tolerant_download_signed_url_to_file,
+                 zip(signed_urls, filepaths)))
   logs.log('Done downloading URLs.')
   return result
 
@@ -1268,22 +1270,27 @@ def download_signed_urls(signed_urls, directory):
 def delete_signed_urls(urls):
   logs.log('Deleting URLs.')
   with _pool() as pool:
-    result = pool.map(_error_tolerant_delete_signed_url, urls)
+    result = list(pool.map(_error_tolerant_delete_signed_url, urls))
   logs.log('Done deleting URLs.')
   return result
 
 
 def _sign_urls_for_existing_file(corpus_element_url,
+                                 include_delete_urls,
                                  minutes=SIGNED_URL_EXPIRATION_MINUTES):
   download_url = get_signed_download_url(corpus_element_url, minutes)
-  delete_url = sign_delete_url(corpus_element_url, minutes)
+  if include_delete_urls:
+    delete_url = sign_delete_url(corpus_element_url, minutes)
+  else:
+    delete_url = None
   return (download_url, delete_url)
 
 
-def sign_urls_for_existing_files(urls):
+def sign_urls_for_existing_files(urls, include_delete_urls):
   logs.log('Signing URLs for existing files.')
-  with _pool() as pool:
-    result = pool.map(_sign_urls_for_existing_file, urls)
+  result = [
+      _sign_urls_for_existing_file(url, include_delete_urls) for url in urls
+  ]
   logs.log('Done signing URLs for existing files.')
   return result
 
@@ -1315,7 +1322,6 @@ def get_arbitrary_signed_upload_urls(remote_directory, num_uploads):
 
   urls = (f'{base_path}-{idx}' for idx in range(num_uploads))
   logs.log('Signing URLs for arbitrary uploads.')
-  with _pool() as pool:
-    result = pool.map(get_signed_upload_url, urls)
+  result = [get_signed_upload_url(url) for url in urls]
   logs.log('Done signing URLs for arbitrary uploads.')
   return result

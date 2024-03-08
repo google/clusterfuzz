@@ -125,6 +125,12 @@ def do_multiarmed_bandit_strategy_selection(uworker_env):
                         uworker_env)
 
 
+def has_standard_build():
+  if environment.platform() == 'FUCHSIA':
+    return False
+  return not bool(environment.get_value('FUZZ_TARGET_BUILD_BUCKET_PATH'))
+
+
 def get_unsymbolized_crash_stacktrace(stack_file_path):
   """Read unsymbolized crash stacktrace."""
   with open(stack_file_path, 'rb') as f:
@@ -1787,15 +1793,24 @@ class FuzzingSession:
       logs.log('Setting fuzz target {fuzz_target}.')
       environment.set_value('FUZZ_TARGET', self.fuzz_target.binary)
     build_setup_result = build_manager.setup_build(
-        environment.get_value('APP_REVISION'))
+        environment.get_value('APP_REVISION'),
+        fuzzer_selection.get_fuzz_target_weights())
 
-    if engine.get(self.fuzzer.name) and build_setup_result:
+    engine_impl = engine.get(self.fuzzer.name)
+    if engine_impl and build_setup_result:
       # If we did not pick a fuzz target to fuzz with the engine, then return
       # early to save the fuzz targets that are in the build for the next job to
       # pick.
       self.fuzz_task_output.fuzz_targets.extend(build_setup_result.fuzz_targets)
       if not self.fuzz_task_output.fuzz_targets:
         logs.log_error('No fuzz targets.')
+
+      if not has_standard_build():
+        # Handle split builds where fuzz target is picked as side effect of
+        # build setup.
+        fuzz_target_name = environment.get_value('FUZZ_TARGET')
+        self.fuzz_target = data_handler.record_fuzz_target(
+            engine_impl.name, fuzz_target_name, self.job_type)
 
       if not self.fuzz_target:
         return uworker_msg_pb2.Output(
@@ -1840,7 +1855,6 @@ class FuzzingSession:
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
-    engine_impl = engine.get(self.fuzzer.name)
     if engine_impl:
       crashes, fuzzer_metadata = self.do_engine_fuzzing(engine_impl)
 
@@ -2005,6 +2019,11 @@ def _pick_fuzz_target():
   if not environment.is_engine_fuzzer_job():
     logs.log('Not engine fuzzer. Not picking fuzz target.')
     return None
+
+  if not has_standard_build():
+    logs.log('Split build. Not picking fuzz target.')
+    return None
+
   logs.log('Picking fuzz target.')
   target_weights = fuzzer_selection.get_fuzz_target_weights()
   return build_manager.set_random_fuzz_target_for_fuzzing_if_needed(

@@ -247,6 +247,9 @@ def create_tasks(testcase):
   else:
     # Environments that don't support minimization skip directly to other
     # tasks.
+    testcase = data_handler.get_testcase_by_id(testcase_id)
+    testcase.minimized_keys = 'NA'
+    testcase.put()
     create_postminimize_tasks(testcase)
 
 
