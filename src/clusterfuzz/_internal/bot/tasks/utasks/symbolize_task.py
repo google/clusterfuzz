@@ -61,7 +61,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
   # Setup testcase and its dependencies.
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
 
   old_crash_stacktrace = data_handler.get_stacktrace(testcase)
   return uworker_msg_pb2.Input(

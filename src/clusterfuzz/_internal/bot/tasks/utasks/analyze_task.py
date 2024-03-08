@@ -296,7 +296,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   initialize_testcase_for_main(testcase, job_type)
 
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
   analyze_task_input = get_analyze_task_input()
   return uworker_msg_pb2.Input(
       testcase_upload_metadata=uworker_io.entity_to_protobuf(
