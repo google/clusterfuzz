@@ -585,7 +585,7 @@ class UploadOAuthTest(unittest.TestCase):
         'triaged': False,
         'uploader_email': 'uploader@email',
         'window_argument': '',
-        'untrusted': True,
+        'trusted': False,
     }, testcase._to_dict())
 
     metadata = data_types.TestcaseUploadMetadata.query(
