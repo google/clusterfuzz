@@ -454,9 +454,10 @@ def stop_cuttlefish_device():
   stop_cvd_cmd = os.path.join(cvd_bin_dir, 'stop_cvd')
   logs.log('stop_cvd_cmd: %s' % str(stop_cvd_cmd))
 
-  execute_command(
+  if get_device_state() == 'device':
+    execute_command(
       stop_cvd_cmd, timeout=RECOVERY_CMD_TIMEOUT, on_cuttlefish_host=True)
-  time.sleep(STOP_CVD_WAIT)
+    time.sleep(STOP_CVD_WAIT)
 
 
 def restart_cuttlefish_device():
