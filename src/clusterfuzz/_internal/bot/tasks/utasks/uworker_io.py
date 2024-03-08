@@ -190,6 +190,9 @@ def entity_from_protobuf(entity_proto: entity_pb2.Entity,
 
 
 def check_handling_testcase_safe(testcase):
+  """Exits when the current task execution model is trusted but the testcase is
+  untrusted. This will allow uploading testcases to trusted jobs (e.g. Mac) more
+  safely."""
   if not testcase.untrusted:
     return
   if not environment.get_value('UNTRUSTED_UTASK'):
