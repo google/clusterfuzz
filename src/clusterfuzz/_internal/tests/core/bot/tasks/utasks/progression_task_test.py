@@ -16,6 +16,7 @@
 import json
 import os
 import unittest
+from unittest import mock
 
 from pyfakefs import fake_filesystem_unittest
 
@@ -524,3 +525,13 @@ class StoreTestcaseForRegressionTesting(fake_filesystem_unittest.TestCase):
         self.testcase, self.testcase_file_path, progression_task_input)
     self.mock.upload_signed_url.assert_called_with(
         b'A', progression_task_input.regression_testcase_url)
+
+  def test_uploaded_testcase(self):
+    """Tests that a user-uploaded testcase is not stored for regression
+    testing."""
+    self.mock.get.return_value = False
+    progression_task_input = uworker_msg_pb2.ProgressionTaskInput()
+    with mock.patch('data_handler.get_fuzz_target', return_value=mock.Mock()):
+      progression_task._set_regression_testcase_upload_url(  # pylint: disable=protected-access
+        progression_task_input, self.testcase)
+    self.assertFalse(bool(progression_task_input.regression_testcase_url))

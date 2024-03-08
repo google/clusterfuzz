@@ -406,14 +406,20 @@ def _set_regression_testcase_upload_url(
     # No work to do, only applicable for engine fuzzers.
     return
 
-  if testcase.uploader_email:
+  if testcase.uploaded:
     logs.log_warn('Not saving uploaded testcase to regression corpus.')
+
+  # We probably don't need these checks, but do them anyway since it is
+  # important not to mess this up.
+  if testcase.uploader_email:
+    logs.log_error(
+        'Not saving uploaded testcase to regression corpus (uploaded not set).')
     return
-  # Uploaded
   upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == testcase.key.id()).get()
   if upload_metadata:
-    logs.log_warn('Not saving uploaded to regression corpus.')
+    logs.log_error('Not saving uploaded testcase to regression corpus '
+                   '(uploaded and email not set).')
     return
   progression_input.regression_testcase_url = (
       corpus_manager.get_regressions_signed_upload_url(
