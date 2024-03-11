@@ -32,7 +32,7 @@ To upload a new testcase:
      - Bundle all the files in an archive. Supported archive formats include *zip* and *tar*.
      - **Exception**: If you want to test multiple testcases at once, you don't
        need to rename them. Just bundle them in an archive, and select the
-       **Test every file in archive independently** checkbox in the form.
+       **Test every file in zip archive independently** checkbox in the form.
 
 3. Click the "Choose File" button and provide the testcase archive in the file chooser dialog.
 4. Select a **Job**. This provides information of which build or application to

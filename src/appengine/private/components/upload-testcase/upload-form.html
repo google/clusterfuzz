@@ -224,7 +224,7 @@
       <template is="dom-if" if="[[fieldValues.isChromium]]">
         <paper-checkbox value="true" checked="{{uploadParams.http}}">Load testcase from HTTP server.</paper-checkbox>
       </template>
-      <paper-checkbox value="true" checked="{{uploadParams.multiple}}">Test every file in archive independently.</paper-checkbox>
+      <paper-checkbox value="true" checked="{{uploadParams.multiple}}">Test every file in zip archive independently.</paper-checkbox>
       <template is="dom-if" if="[[shouldShowIssueSummaryUpdateCheckbox()]]">
         <paper-checkbox value="true" checked="{{uploadParams.updateIssue}}">Update issue's title based on crash result.</paper-checkbox>
       </template>
