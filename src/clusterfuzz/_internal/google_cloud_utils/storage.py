@@ -123,7 +123,7 @@ class StorageProvider:
     """Read the data of a remote file."""
     raise NotImplementedError
 
-  def write_data(self, data, remote_path, metadata=None):
+  def write_data(self, data_or_fileobj, remote_path, metadata=None):
     """Write the data of a remote file."""
     raise NotImplementedError
 
@@ -153,7 +153,7 @@ class StorageProvider:
     """Downloads |signed_url|."""
     raise NotImplementedError
 
-  def upload_signed_url(self, data, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url):
     """Uploads |data| to |signed_url|."""
     raise NotImplementedError
 
@@ -310,7 +310,7 @@ class GcsProvider(StorageProvider):
       logs.log_warn('Failed to read cloud storage file %s.' % remote_path)
       raise
 
-  def write_data(self, data, remote_path, metadata=None):
+  def write_data(self, data_or_fileobj, remote_path, metadata=None):
     """Write the data of a remote file."""
     client = _storage_client()
     bucket_name, path = get_bucket_name_and_path(remote_path)
@@ -320,7 +320,11 @@ class GcsProvider(StorageProvider):
       blob = bucket.blob(path, chunk_size=self._chunk_size())
       if metadata:
         blob.metadata = metadata
-      blob.upload_from_string(data)
+      if isinstance(data_or_fileobj, (bytes, str)):
+        blob.upload_from_string(data_or_fileobj)
+      else:
+        blob.upload_from_file(data_or_fileobj)
+
     except google.cloud.exceptions.GoogleCloudError:
       logs.log_warn('Failed to write cloud storage file %s.' % remote_path)
       raise
@@ -389,9 +393,9 @@ class GcsProvider(StorageProvider):
     """Downloads |signed_url|."""
     return _download_url(signed_url)
 
-  def upload_signed_url(self, data, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url):
     """Uploads |data| to |signed_url|."""
-    requests.put(signed_url, data=data, timeout=HTTP_TIMEOUT_SECONDS)
+    requests.put(signed_url, data=data_or_fileobj, timeout=HTTP_TIMEOUT_SECONDS)
     return True
 
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
@@ -585,14 +589,17 @@ class FileSystemProvider(StorageProvider):
     with open(fs_path, 'rb') as f:
       return f.read()
 
-  def write_data(self, data, remote_path, metadata=None):
+  def write_data(self, data_or_fileobj, remote_path, metadata=None):
     """Write the data of a remote file."""
     fs_path = self.convert_path_for_write(remote_path)
-    if isinstance(data, str):
-      data = data.encode()
+    if isinstance(data_or_fileobj, str):
+      data_or_fileobj = data_or_fileobj.encode()
 
     with open(fs_path, 'wb') as f:
-      f.write(data)
+      if isinstance(data_or_fileobj, bytes):
+        f.write(data_or_fileobj)
+      else:
+        shutil.copyfileobj(data_or_fileobj, f)
 
     self._write_metadata(remote_path, metadata)
     return True
@@ -645,9 +652,9 @@ class FileSystemProvider(StorageProvider):
     """Downloads |signed_url|."""
     return self.read_data(signed_url)
 
-  def upload_signed_url(self, data, signed_url):
+  def upload_signed_url(self, data_or_fileobj, signed_url):
     """Uploads |data| to |signed_url|."""
-    return self.write_data(data, signed_url)
+    return self.write_data(data_or_fileobj, signed_url)
 
   def sign_delete_url(self, remote_path, minutes=SIGNED_URL_EXPIRATION_MINUTES):
     """Signs a DELETE URL for a remote file."""
@@ -1009,10 +1016,10 @@ def read_data(cloud_storage_file_path):
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.write_data',
     exception_types=_TRANSIENT_ERRORS)
-def write_data(data, cloud_storage_file_path, metadata=None):
+def write_data(data_or_fileobj, cloud_storage_file_path, metadata=None):
   """Return content of a cloud storage file."""
   return _provider().write_data(
-      data, cloud_storage_file_path, metadata=metadata)
+      data_or_fileobj, cloud_storage_file_path, metadata=metadata)
 
 
 @retry.wrap(
@@ -1174,9 +1181,9 @@ def _download_url(url):
     retries=DEFAULT_FAIL_RETRIES,
     delay=DEFAULT_FAIL_WAIT,
     function='google_cloud_utils.storage.upload_signed_url')
-def upload_signed_url(data, url):
+def upload_signed_url(data_or_fileobj, url):
   """Uploads data to the |signed_url|."""
-  return _provider().upload_signed_url(str_to_bytes(data), url)
+  return _provider().upload_signed_url(str_to_bytes(data_or_fileobj), url)
 
 
 def download_signed_url(url):
