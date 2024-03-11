@@ -158,6 +158,8 @@ def main():
       '--prod', action='store_true', help='Deploy to production.')
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
+  parser_deploy.add_argument(
+      '--redis-instance-id', default='redis-instance', help='ID for Redis Instance.')
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')
@@ -245,6 +247,11 @@ def main():
       type=str,
       default='us-central',
       help='Location for App Engine.')
+  parser_create_config.add_argument(
+      '--redis-instance-id',
+      type=str,
+      default='redis-instance',
+      help='ID for Redis Instance.')
 
   subparsers.add_parser(
       'integration_tests', help='Run end-to-end integration tests.')

@@ -143,7 +143,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
   def test_app(self):
     """Test deploy app."""
-    deploy._prod_deployment_helper('/config_dir',
+    deploy._prod_deployment_helper('/config_dir', 'redis-instance',
                                    ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
@@ -217,7 +217,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     """Test deploy app with retries."""
     self.deploy_failure_count = 1
 
-    deploy._prod_deployment_helper('/config_dir',
+    deploy._prod_deployment_helper('/config_dir', 'redis-instance',
                                    ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([
@@ -282,7 +282,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
     self.deploy_failure_count = 4
 
     with self.assertRaises(SystemExit):
-      deploy._prod_deployment_helper('/config_dir',
+      deploy._prod_deployment_helper('/config_dir', 'redis-instance',
                                      ['/windows.zip', '/mac.zip', '/linux.zip'])
 
     self.mock.run.assert_has_calls([

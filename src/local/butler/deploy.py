@@ -66,13 +66,13 @@ def _get_services(paths):
   return services
 
 
-def _get_redis_ip(project):
+def _get_redis_ip(project, redis_instance_id='redis-instance'):
   """Get the redis IP address."""
   region = appengine.region(project)
   return_code, ip = common.execute(
-      'gcloud redis instances describe redis-instance '
+      'gcloud redis instances describe {redis_instance_id} '
       '--project={project} --region={region} '
-      '--format="value(host)"'.format(project=project, region=region))
+      '--format="value(host)"'.format(redis_instance_id=redis_instance_id, project=project, region=region))
 
   if return_code:
     raise RuntimeError('Failed to get redis IP.')
@@ -80,10 +80,10 @@ def _get_redis_ip(project):
   return ip.decode('utf-8').strip()
 
 
-def _additional_app_env_vars(project):
+def _additional_app_env_vars(project, redis_instance_id):
   """Additional environment variables to include for App Engine."""
   return {
-      'REDIS_HOST': _get_redis_ip(project),
+      'REDIS_HOST': _get_redis_ip(project, redis_instance_id),
   }
 
 
@@ -91,13 +91,14 @@ def _deploy_app_prod(project,
                      deployment_bucket,
                      yaml_paths,
                      package_zip_paths,
+                     redis_instance_id,
                      deploy_appengine=True,
                      test_deployment=False):
   """Deploy app in production."""
   if deploy_appengine:
     services = _get_services(yaml_paths)
     rebased_yaml_paths = appengine.copy_yamls_and_preprocess(
-        yaml_paths, _additional_app_env_vars(project))
+        yaml_paths, _additional_app_env_vars(project, redis_instance_id))
 
     _deploy_appengine(
         project, [INDEX_YAML_PATH] + rebased_yaml_paths,
@@ -119,12 +120,12 @@ def _deploy_app_prod(project,
         test_deployment=test_deployment)
 
 
-def _deploy_app_staging(project, yaml_paths):
+def _deploy_app_staging(project, yaml_paths, redis_instance_id):
   """Deploy app in staging."""
   services = _get_services(yaml_paths)
 
   rebased_yaml_paths = appengine.copy_yamls_and_preprocess(
-      yaml_paths, _additional_app_env_vars(project))
+      yaml_paths, _additional_app_env_vars(project, redis_instance_id))
   _deploy_appengine(project, rebased_yaml_paths, stop_previous_version=True)
   for path in rebased_yaml_paths:
     os.remove(path)
@@ -376,7 +377,7 @@ def is_diff_origin_master():
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
 
-def _staging_deployment_helper(python3=True):
+def _staging_deployment_helper(redis_instance_id, python3=True):
   """Helper for staging deployment."""
   config = local_config.Config(local_config.GAE_CONFIG_PATH)
   project = config.get('application_id')
@@ -391,12 +392,13 @@ def _staging_deployment_helper(python3=True):
 
   yaml_paths = deployment_config.get_absolute_path(path)
 
-  _deploy_app_staging(project, yaml_paths)
+  _deploy_app_staging(project, yaml_paths, redis_instance_id)
   print('Staging deployment finished.')
 
 
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
+                            redis_instance_id,
                             deploy_appengine=True,
                             deploy_k8s=True,
                             python3=True,
@@ -430,6 +432,7 @@ def _prod_deployment_helper(config_dir,
       deployment_bucket,
       yaml_paths,
       package_zip_paths,
+      redis_instance_id,
       deploy_appengine=deploy_appengine,
       test_deployment=test_deployment)
 
@@ -561,11 +564,12 @@ def execute(args):
     sys.exit(1)
 
   if args.staging:
-    _staging_deployment_helper(python3=is_python3)
+    _staging_deployment_helper(args.redis_instance_id, python3=is_python3)
   else:
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
+        args.redis_instance_id,
         deploy_appengine,
         deploy_k8s,
         python3=is_python3,

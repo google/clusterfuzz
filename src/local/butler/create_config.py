@@ -188,7 +188,7 @@ def create_new_config(gcloud, project_id, new_config_dir,
       replace_file_contents(file_path, replacements)
 
 
-def deploy_appengine(gcloud, config_dir, appengine_location):
+def deploy_appengine(gcloud, config_dir, appengine_location, redis_instance_id):
   """Deploy to App Engine."""
   try:
     gcloud.run('app', 'describe')
@@ -198,7 +198,7 @@ def deploy_appengine(gcloud, config_dir, appengine_location):
 
   subprocess.check_call([
       'python', 'butler.py', 'deploy', '--force', '--targets', 'appengine',
-      '--prod', '--config-dir', config_dir
+      '--prod', '--config-dir', config_dir, '--redis-instance-id', redis_instance_id
   ])
 
 
@@ -279,7 +279,7 @@ def execute(args):
   # Deploy App Engine and finish verification of domain.
   os.chdir(prev_dir)
   deploy_appengine(
-      gcloud, args.new_config_dir, appengine_location=args.appengine_location)
+      gcloud, args.new_config_dir, args.appengine_location, args.redis_instance_id)
   verifier.verify(appspot_domain)
 
   # App Engine service account requires:
