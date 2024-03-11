@@ -378,7 +378,7 @@ def open(archive_path: str,
   """
   archive_type = get_archive_type(archive_path)
   if archive_type == ArchiveType.ZIP:
-    return ZipArchiveReader(archive_path or file_obj)
+    return ZipArchiveReader(file_obj or archive_path)
   if archive_type in (ArchiveType.TAR_LZMA, ArchiveType.TAR):
     return TarArchiveReader(archive_path, file_obj=file_obj)
   raise ArchiveError('Unhandled archive type.')
