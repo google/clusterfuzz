@@ -89,13 +89,12 @@ def copy_global_to_local_blacklist(blacklisted_functions,
   with open(lsan_suppressions_path, 'w') as local_blacklist:
     # Insert comment on top to avoid parsing errors on empty file.
     local_blacklist.write(LSAN_HEADER_COMMENT)
-    for blacklist in global_blacklists:
+    for blacklist in blacklisted_functions:
       if blacklist.function_name == excluded_function_name:
         continue
 
       local_blacklist.write(
           LSAN_SUPPRESSION_LINE.format(function=blacklist.function_name))
-      blacklisted_functions.append(blacklist.function_name)
 
 
 def get_leak_function_for_blacklist(testcase):
