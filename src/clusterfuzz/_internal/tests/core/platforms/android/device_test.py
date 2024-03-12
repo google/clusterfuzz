@@ -18,7 +18,7 @@ from clusterfuzz._internal.tests.test_libs import android_helpers
 
 
 class InitializeEnvironmentTest(android_helpers.AndroidTest):
-  """Tests for """
+  """Tests for initializing the device environment."""
 
   def test(self):
     """Ensure that initialize_environment throws no exceptions."""
