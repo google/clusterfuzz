@@ -65,7 +65,20 @@ def cleanup_global_blacklist():
   ndb_utils.delete_multi(blacklists_to_delete)
 
 
-def copy_global_to_local_blacklist(excluded_testcase=None):
+def get_global_blacklisted_functions():
+  # Copy global blacklist into local blacklist.
+  global_blacklists = data_types.Blacklist.query(
+      data_types.Blacklist.tool_name == LSAN_TOOL_NAME)
+  blacklisted_functions = []
+  for blacklist in global_blacklists:
+    if blacklist.function_name in blacklisted_functions:
+      continue
+    blacklisted_functions.append(blacklist.function_name)
+  return blacklisted_functions
+
+
+def copy_global_to_local_blacklist(blacklisted_functions,
+                                   excluded_testcase=None):
   """Copies contents of global blacklist into local blacklist file, excluding
   a particular testcase (if any)."""
   lsan_suppressions_path = get_local_blacklist_file_path()
@@ -76,14 +89,7 @@ def copy_global_to_local_blacklist(excluded_testcase=None):
   with open(lsan_suppressions_path, 'w') as local_blacklist:
     # Insert comment on top to avoid parsing errors on empty file.
     local_blacklist.write(LSAN_HEADER_COMMENT)
-
-    # Copy global blacklist into local blacklist.
-    global_blacklists = data_types.Blacklist.query(
-        data_types.Blacklist.tool_name == LSAN_TOOL_NAME)
-    blacklisted_functions = []
     for blacklist in global_blacklists:
-      if blacklist.function_name in blacklisted_functions:
-        continue
       if blacklist.function_name == excluded_function_name:
         continue
 

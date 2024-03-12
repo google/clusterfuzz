@@ -235,6 +235,9 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
   else:
     setup_input = uworker_msg_pb2.SetupInput()
   setup_input.testcase_download_url = get_signed_testcase_download_url(testcase)
+  if environment.get_value('LSAN'):
+    setup_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
   return setup_input
 
 
@@ -293,10 +296,10 @@ def setup_testcase(
     file_host.push_testcases_to_worker()
 
   # Copy global blacklist into local blacklist.
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
+  if setup_input.global_blacklisted_functions:
     # Get local blacklist without this testcase's entry.
-    leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
+    leak_blacklist.copy_global_to_local_blacklist(
+        setup_input.global_blacklisted_functions, excluded_testcase=testcase)
 
   task_name = environment.get_value('TASK_NAME')
   prepare_environment_for_testcase(testcase, job_type, task_name)

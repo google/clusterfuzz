@@ -1766,9 +1766,9 @@ class FuzzingSession:
     failure_wait_interval = environment.get_value('FAIL_WAIT')
 
     # Update LSAN local blacklist with global blacklist.
-    is_lsan_enabled = environment.get_value('LSAN')
-    if is_lsan_enabled:
-      leak_blacklist.copy_global_to_local_blacklist()
+    if self.uworker_input.global_blacklisted_functions:
+      leak_blacklist.copy_global_to_local_blacklist(
+          self.uworker_input.global_blacklisted_functions)
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
@@ -2054,6 +2054,12 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
         uworker_io.entity_to_protobuf(fuzz_target))
 
   preprocess_store_fuzzer_run_results(fuzz_task_input)
+
+  if environment.get_value('LSAN'):
+    # Copy global blacklist into local suppressions file if LSan is enabled.
+    setup_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
+
   return uworker_msg_pb2.Input(
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,

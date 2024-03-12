@@ -949,10 +949,9 @@ def utask_main(uworker_input):
       uworker_input.corpus_pruning_task_input.cross_pollinate_fuzzers)
   context = Context(uworker_input, fuzz_target, cross_pollinate_fuzzers)
 
-  # Copy global blacklist into local suppressions file if LSan is enabled.
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
-    leak_blacklist.copy_global_to_local_blacklist()
+  if self.uworker_input.global_blacklisted_functions:
+    leak_blacklist.copy_global_to_local_blacklist(
+        uworker_input.corpus_task_input.global_blacklisted_functions)
 
   uworker_output = None
   try:
@@ -1026,6 +1025,11 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
       corpus=corpus.proto_corpus,
       quarantine_corpus=quarantine_corpus.proto_corpus)
+
+  if environment.get_value('LSAN'):
+    # Copy global blacklist into local suppressions file if LSan is enabled.
+    setup_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
 
   return uworker_msg_pb2.Input(
       job_type=job_type,
