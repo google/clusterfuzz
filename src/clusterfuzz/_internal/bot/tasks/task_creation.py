@@ -147,6 +147,8 @@ def create_regression_task_if_needed(testcase):
 
 def create_variant_tasks_if_needed(testcase):
   """Creates a variant task if needed."""
+  # TODO(https://b.corp.google.com/issues/328691756): Allow untrusted
+  # testcases to only run untrusted variants.
   if testcase.duplicate_of:
     # If another testcase exists with same params, no need to spend cycles on
     # calculating variants again.

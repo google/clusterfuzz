@@ -964,6 +964,9 @@ def create_testcase(group, context):
   """Create a testcase based on crash."""
   crash = group.main_crash
   fully_qualified_fuzzer_name = get_fully_qualified_fuzzer_name(context)
+
+  # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on the
+  # job when we start doing untrusted fuzzing.
   testcase_id = data_handler.store_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key,
@@ -988,7 +991,8 @@ def create_testcase(group, context):
       timeout_multiplier=get_testcase_timeout_multiplier(
           context.timeout_multiplier, crash, context.test_timeout,
           context.thread_wait_timeout),
-      minimized_arguments=crash.arguments)
+      minimized_arguments=crash.arguments,
+      trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:

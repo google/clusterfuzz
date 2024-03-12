@@ -27,6 +27,7 @@ from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.metrics import logs
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.system import environment
 
 
 def generate_new_input_file_name() -> str:
@@ -186,3 +187,15 @@ def entity_from_protobuf(entity_proto: entity_pb2.Entity,
   entity = model._entity_from_protobuf(entity_proto)  # pylint: disable=protected-access
   assert isinstance(entity, model_type)
   return entity
+
+
+def check_handling_testcase_safe(testcase):
+  """Exits when the current task execution model is trusted but the testcase is
+  untrusted. This will allow uploading testcases to trusted jobs (e.g. Mac) more
+  safely."""
+  if testcase.trusted:
+    return
+  if not environment.get_value('UNTRUSTED_UTASK'):
+    # TODO(https://b.corp.google.com/issues/328691756): Change this to
+    # log_fatal_and_exit once we are handling untrusted tasks properly.
+    logs.log_warn(f'Cannot handle {testcase.key.id()} in trusted task.')
