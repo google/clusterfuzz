@@ -232,7 +232,7 @@ def _create_job(spec, input_urls):
   project_id = 'google.com:clusterfuzz'
   create_request.parent = f'projects/{project_id}/locations/us-west1'
   job_result = _send_create_job_request(create_request)
-  logs.log(f'Created batch job id={job_result.job_id}.', spec=spec)
+  logs.log(f'Created batch job id={job_name}.', spec=spec)
   return job_result
 
 
