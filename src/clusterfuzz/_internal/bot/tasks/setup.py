@@ -770,11 +770,12 @@ def get_fuzzer_directory(fuzzer_name):
   return fuzzer_directory
 
 
-def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
+def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path: str,
+                                             upload_url: str):
   """Archive testcase and its dependencies, and store in blobstore."""
   if not os.path.exists(testcase_path):
     logs.log_error('Unable to find testcase %s.' % testcase_path)
-    return None, None, None, None
+    return None, None, None
 
   absolute_filename = testcase_path
   archived = False
@@ -801,7 +802,7 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
       file_handle = open(testcase_path, 'rb')
     except OSError:
       logs.log_error('Unable to open testcase %s.' % testcase_path)
-      return None, None, None, None
+      return None, None, None
   else:
     # If there are resources, create an archive.
 
@@ -843,16 +844,19 @@ def archive_testcase_and_dependencies_in_gcs(resource_list, testcase_path):
       file_handle = open(zip_path, 'rb')
     except OSError:
       logs.log_error('Unable to open testcase archive %s.' % zip_path)
-      return None, None, None, None
+      return None, None, None
 
     archived = True
     absolute_filename = testcase_path[base_len:]
 
-  fuzzed_key = blobs.write_blob(file_handle)
+  if not storage.upload_signed_url(file_handle, upload_url):
+    logs.log_error('Failed to upload testcase.')
+    return None, None, None
+
   file_handle.close()
 
   # Don't need the archive after writing testcase to blobstore.
   if zip_path:
     shell.remove_file(zip_path)
 
-  return fuzzed_key, archived, absolute_filename, zip_filename
+  return archived, absolute_filename, zip_filename
