@@ -72,7 +72,8 @@ def _get_redis_ip(project, redis_instance_id='redis-instance'):
   return_code, ip = common.execute(
       'gcloud redis instances describe {redis_instance_id} '
       '--project={project} --region={region} '
-      '--format="value(host)"'.format(redis_instance_id=redis_instance_id, project=project, region=region))
+      '--format="value(host)"'.format(
+          redis_instance_id=redis_instance_id, project=project, region=region))
 
   if return_code:
     raise RuntimeError('Failed to get redis IP.')

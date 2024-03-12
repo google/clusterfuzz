@@ -197,7 +197,7 @@ class DeployTest(fake_filesystem_unittest.TestCase):
 
   def test_app_staging(self):
     """Test deploy app to staging."""
-    deploy._staging_deployment_helper()
+    deploy._staging_deployment_helper('redis-instance')
 
     self.mock.execute.assert_has_calls([
         mock.call(

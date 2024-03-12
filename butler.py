@@ -159,7 +159,9 @@ def main():
   parser_deploy.add_argument(
       '--targets', nargs='*', default=['appengine', 'k8s', 'zips'])
   parser_deploy.add_argument(
-      '--redis-instance-id', default='redis-instance', help='ID for Redis Instance.')
+      '--redis-instance-id',
+      default='redis-instance',
+      help='ID for Redis Instance.')
 
   parser_run_server = subparsers.add_parser(
       'run_server', help='Run the local Clusterfuzz server.')
