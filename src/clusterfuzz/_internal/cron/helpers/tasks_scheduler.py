@@ -29,12 +29,15 @@ def schedule(task):
         ndb_utils.is_false(data_types.Testcase.one_time_crasher_flag),
         data_types.Testcase.status == status):
       testcase_id = testcase.key.id()
-      tasks.add_task(
-          task,
-          testcase_id,
-          testcase.job_type,
-          queue=tasks.queue_for_testcase(testcase))
-      testcase_ids.append(testcase_id)
+      try:
+        tasks.add_task(
+            task,
+            testcase_id,
+            testcase.job_type,
+            queue=tasks.queue_for_testcase(testcase))
+        testcase_ids.append(testcase_id)
+      except Exception:
+        logs.log_error(f'Failed to create task for {testcase_id}')
 
   logs.log(
       'Created progression tasks for testcases.', testcase_ids=testcase_ids)
