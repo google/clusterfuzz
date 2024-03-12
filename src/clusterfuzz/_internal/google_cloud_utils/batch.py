@@ -130,7 +130,7 @@ def create_uworker_main_batch_jobs(batch_tasks):
   logs.log('Creating batch jobs.')
   jobs = []
 
-  logs.log(f'Batching utask_mains.', job_specs=job_specs)
+  logs.log('Batching utask_mains.', job_specs=job_specs)
   for spec, input_urls in job_specs.items():
     for input_urls_portion in _bunched(input_urls, MAX_CONCURRENT_VMS_PER_JOB):
       jobs.append(_create_job(spec, input_urls_portion))
@@ -233,7 +233,7 @@ def _create_job(spec, input_urls):
   create_request.parent = f'projects/{project_id}/locations/us-west1'
   job_result = _send_create_job_request(create_request)
   logs.log(f'Created batch job id={job_result.job_id}.', spec=spec)
-  return result
+  return job_result
 
 
 @retry.wrap(
