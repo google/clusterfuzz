@@ -160,7 +160,7 @@ class Engine(engine.Engine):
     dict_path = arguments.get(
         constants.DICT_FLAGNAME, default=None, constructor=str)
     if dict_path and not os.path.exists(dict_path):
-      logs.log_error(f'Invalid dict {dict_path} for {target_path}.')
+      logs.log_error(f'Cannot find dict: {dict_path} for {target_path}.')
       del arguments[constants.DICT_FLAGNAME]
 
     # If there's no dict argument, check for %target_binary_name%.dict file.
