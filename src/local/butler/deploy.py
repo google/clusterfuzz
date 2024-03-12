@@ -378,7 +378,8 @@ def is_diff_origin_master():
   return diff_output.strip() or remote_sha.strip() != local_sha.strip()
 
 
-def _staging_deployment_helper(redis_instance_id, python3=True):
+def _staging_deployment_helper(python3=True,
+                               redis_instance_id='redis-instance'):
   """Helper for staging deployment."""
   config = local_config.Config(local_config.GAE_CONFIG_PATH)
   project = config.get('application_id')
@@ -399,11 +400,11 @@ def _staging_deployment_helper(redis_instance_id, python3=True):
 
 def _prod_deployment_helper(config_dir,
                             package_zip_paths,
-                            redis_instance_id,
                             deploy_appengine=True,
                             deploy_k8s=True,
                             python3=True,
-                            test_deployment=False):
+                            test_deployment=False,
+                            redis_instance_id='redis-instance'):
   """Helper for production deployment."""
   config = local_config.Config()
   deployment_bucket = config.get('project.deployment.bucket')
@@ -565,16 +566,17 @@ def execute(args):
     sys.exit(1)
 
   if args.staging:
-    _staging_deployment_helper(args.redis_instance_id, python3=is_python3)
+    _staging_deployment_helper(
+        python3=is_python3, redis_instance_id=args.redis_instance_id)
   else:
     _prod_deployment_helper(
         args.config_dir,
         package_zip_paths,
-        args.redis_instance_id,
         deploy_appengine,
         deploy_k8s,
         python3=is_python3,
-        test_deployment=test_deployment)
+        test_deployment=test_deployment,
+        redis_instance_id=args.redis_instance_id)
 
   with open(constants.PACKAGE_TARGET_MANIFEST_PATH) as f:
     print('Source updated to %s' % f.read())
