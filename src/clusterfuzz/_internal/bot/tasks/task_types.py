@@ -122,6 +122,7 @@ class UTask(BaseUTask):
     tasks.add_utask_main(command, download_url, job_type)
 
   def preprocess(self, task_argument, job_type, uworker_env):
+    uworker_env['UNTRUSTED_UTASK'] = True
     result = utasks.tworker_preprocess(self.module, task_argument, job_type,
                                        uworker_env)
     if not result:
