@@ -148,7 +148,7 @@ class Crash:
           get_unsymbolized_crash_stacktrace(crash.stack_file_path))
     except Exception:
       logs.log_error(
-          'Unable to read stacktrace from file %s.' % crash.stack_file_path)
+          f'Unable to read stacktrace from file {crash.stack_file_path}.')
       return None
 
     # If there are per-testcase additional flags, we need to store them.
@@ -231,8 +231,7 @@ class Crash:
     self.crash_categories = state.crash_categories
     self.security_flag = crash_analyzer.is_security_issue(
         self.unsymbolized_crash_stacktrace, self.crash_type, self.crash_address)
-    self.key = '%s,%s,%s' % (self.crash_type, self.crash_state,
-                             self.security_flag)
+    self.key = f'{self.crash_type},{self.crash_state},{self.security_flag}'
     self.should_be_ignored = crash_analyzer.ignore_stacktrace(
         state.crash_stacktrace)
 
@@ -265,15 +264,15 @@ class Crash:
     """Return the reason why the crash is invalid."""
     filter_functional_bugs = environment.get_value('FILTER_FUNCTIONAL_BUGS')
     if filter_functional_bugs and not self.security_flag:
-      return 'Functional crash is ignored: %s' % self.crash_state
+      return f'Functional crash is ignored: {self.crash_state}'
 
     if self.should_be_ignored:
-      return ('False crash: %s\n\n---%s\n\n---%s' %
-              (self.crash_state, self.unsymbolized_crash_stacktrace,
-               self.crash_stacktrace))
+      return (f'False crash: {self.crash_state}\n\n'
+              f'---{self.unsymbolized_crash_stacktrace}\n\n'
+              f'---{self.crash_stacktrace}')
 
     if self.is_archived() and not self.fuzzed_key:
-      return 'Unable to store testcase in blobstore: %s' % self.crash_state
+      return f'Unable to store testcase in blobstore: {self.crash_state}'
 
     if not self.crash_state or not self.crash_type:
       return 'Empty crash state or type'
@@ -480,7 +479,7 @@ def _last_sync_time(sync_file_path):
     last_sync_time = datetime.datetime.utcfromtimestamp(float(file_contents))
   except Exception as e:
     logs.log_error(
-        'Malformed last sync file: "%s".' % str(e),
+        f'Malformed last sync file: "{e}".',
         path=sync_file_path,
         contents=file_contents)
 
@@ -530,7 +529,7 @@ class GcsCorpus:
     """Update sync state after a sync from GCS."""
     already_synced = False
     sync_file_path = os.path.join(
-        self._data_directory, '.%s_sync' % self._project_qualified_target_name)
+        self._data_directory, f'.{self._project_qualified_target_name}_sync')
 
     # Get last time we synced corpus.
     if environment.is_trusted_host():
@@ -554,8 +553,8 @@ class GcsCorpus:
     self._synced_files.clear()
     self._synced_files.update(self._walk())
 
-    logs.log('%d corpus files for target %s synced to disk.' % (len(
-        self._synced_files), self._project_qualified_target_name))
+    logs.log(f'{len(self._synced_files)} corpus files for target '
+             f'{self._project_qualified_target_name} synced to disk.')
 
     # On success of rsync, update the last sync file with current timestamp.
     if result and self._synced_files and not already_synced:
@@ -643,7 +642,7 @@ def get_testcases(testcase_count, testcase_directory, data_directory):
 
   # Create output strings.
   generated_testcase_string = (
-      'Generated %d/%d testcases.' % (generated_testcase_count, testcase_count))
+      f'Generated {generated_testcase_count}/{testcase_count} testcases.')
 
   # Log the number of testcases generated.
   logs.log(generated_testcase_string)
@@ -682,7 +681,7 @@ def pick_gestures(test_timeout):
   max_gesture_time = test_timeout - 1
   gesture_time = utils.random_number(min_gesture_time, max_gesture_time)
 
-  gestures.append('Trigger:%d' % gesture_time)
+  gestures.append(f'Trigger:{gesture_time}')
   return gestures
 
 
@@ -784,7 +783,7 @@ def pick_window_argument():
     if window_argument:
       window_argument += ' '
     seed = utils.random_number(-2147483648, 2147483647)
-    window_argument += '%s=%d' % (random_seed_argument.strip(), seed)
+    window_argument += f'{random_seed_argument.strip()}={seed}'
 
   environment.set_value('WINDOW_ARG', window_argument)
   return window_argument
@@ -887,7 +886,7 @@ def store_fuzzer_run_results(testcase_file_paths, fuzzer, fuzzer_command,
   # Store fuzzer console output.
   bot_name = environment.get_value('BOT_NAME')
   if fuzzer_return_code is not None:
-    fuzzer_return_code_string = 'Return code (%d).' % fuzzer_return_code
+    fuzzer_return_code_string = f'Return code ({fuzzer_return_code}).'
   else:
     fuzzer_return_code_string = 'Fuzzer timed out.'
   truncated_fuzzer_output = truncate_fuzzer_output(fuzzer_output,
@@ -1110,7 +1109,7 @@ def write_crashes_to_big_query(group, context):
                 'new_flag': group.is_new() and crash == group.main_crash,
                 'testcase_id': created_testcase_id
             },
-            insert_id='%s:%s' % (insert_id_prefix, index)))
+            insert_id=f'{insert_id_prefix}:{index}'))
 
   row_count = len(rows)
 
@@ -1189,23 +1188,18 @@ def process_crashes(crashes, context):
     # Archiving testcase to blobstore might fail for all crashes within this
     # group.
     if not group.main_crash:
-      logs.log('Unable to store testcase in blobstore: %s' %
-               group.crashes[0].crash_state)
+      logs.log('Unable to store testcase in blobstore: '
+               f'{group.crashes[0].crash_state}')
       continue
 
-    logs.log(
-        'Process the crash group (file=%s, '
-        'fuzzed_key=%s, '
-        'return code=%s, '
-        'crash time=%d, '
-        'crash type=%s, '
-        'crash state=%s, '
-        'security flag=%s, '
-        'crash stacktrace=%s)' %
-        (group.main_crash.filename, group.main_crash.fuzzed_key,
-         group.main_crash.return_code, group.main_crash.crash_time,
-         group.main_crash.crash_type, group.main_crash.crash_state,
-         group.main_crash.security_flag, group.main_crash.crash_stacktrace))
+    logs.log(f'Process the crash group (file={group.main_crash.filename}, '
+             f'fuzzed_key={group.main_crash.fuzzed_key}, '
+             f'return code={group.main_crash.return_code}, '
+             f'crash time={group.main_crash.crash_time}, '
+             f'crash type={group.main_crash.crash_type}, '
+             f'crash state={group.main_crash.crash_state}, '
+             f'security flag={group.main_crash.security_flag}, '
+             f'crash stacktrace={group.main_crash.crash_stacktrace})')
 
     if group.should_create_testcase():
       group.newly_created_testcase = create_testcase(
@@ -1432,8 +1426,8 @@ class FuzzingSession:
 
     # Make sure we have a file to execute for the fuzzer.
     if not fuzzer.executable_path:
-      logs.log_error(
-          'Fuzzer %s does not have an executable path.' % fuzzer_name)
+      logs.log_error(f'Fuzzer {fuzzer_name} does not have an executable path.')
+
       return error_return_value
 
     # Get the fuzzer executable and chdir to its base directory. This helps to
@@ -1465,7 +1459,7 @@ class FuzzingSession:
     fuzzer_timeout = environment.get_value('FUZZER_TIMEOUT')
 
     # Run the fuzzer.
-    logs.log('Running fuzzer - %s.' % fuzzer_command)
+    logs.log(f'Running fuzzer - {fuzzer_command}.')
     fuzzer_return_code, fuzzer_duration, fuzzer_output = (
         process_handler.run_process(
             fuzzer_command,
@@ -1668,10 +1662,10 @@ class FuzzingSession:
     trial_selector.setup_additional_args_for_app()
 
     logs.log('Starting to process testcases.')
-    logs.log('Redzone is %d bytes.' % self.redzone)
-    logs.log('Timeout multiplier is %s.' % str(self.timeout_multiplier))
-    logs.log('App launch command is %s.' %
-             testcase_manager.get_command_line_for_application())
+    logs.log(f'Redzone is {self.redzone} bytes.')
+    logs.log(f'Timeout multiplier is {self.timeout_multiplier}.')
+    logs.log('App launch command is '
+             f'{testcase_manager.get_command_line_for_application()}.')
 
     # Start processing the testcases.
     while test_number < len(testcase_file_paths):
@@ -1732,7 +1726,7 @@ class FuzzingSession:
 
       process_handler.close_queue(temp_queue)
 
-      logs.log('Upto %d' % test_number)
+      logs.log(f'Upto {test_number}')
 
       if thread_error_occurred:
         break
@@ -1775,7 +1769,7 @@ class FuzzingSession:
     self.fuzzer = setup.update_fuzzer_and_data_bundles(
         self.uworker_input.setup_input)
     if not self.fuzzer:
-      logs.log_error('Unable to setup fuzzer %s.' % self.fuzzer_name)
+      logs.log_error(f'Unable to setup fuzzer {self.fuzzer_name}.')
 
       # Artificial sleep to slow down continuous failed fuzzer runs if the bot
       # is using command override for task execution.
@@ -1847,7 +1841,7 @@ class FuzzingSession:
     self.data_directory = setup.get_data_bundle_directory(self.fuzzer_name)
     if not self.data_directory:
       logs.log_error(
-          'Unable to setup data bundle %s.' % self.fuzzer.data_bundle_name)
+          f'Unable to setup data bundle {self.fuzzer.data_bundle_name}.')
       return uworker_msg_pb2.Output(
           error_type=uworker_msg_pb2.ErrorType.FUZZ_DATA_BUNDLE_SETUP_FAILURE)
 
