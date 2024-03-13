@@ -1022,9 +1022,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   corpus_pruning_task_input = uworker_msg_pb2.CorpusPruningTaskInput(
       fuzz_target=uworker_io.entity_to_protobuf(fuzz_target),
       last_execution_failed=last_execution_failed,
-      cross_pollinate_fuzzers=cross_pollinate_fuzzers,
-      corpus=corpus.proto_corpus,
-      quarantine_corpus=quarantine_corpus.proto_corpus)
+      cross_pollinate_fuzzers=cross_pollinate_fuzzers)
+  corpus_pruning_task_input.corpus.CopyFrom(corpus)
+  corpus_pruning_task_input.quarantine_corpus.CopyFrom(quarantine_corpus)
 
   if environment.get_value('LSAN'):
     # Copy global blacklist into local suppressions file if LSan is enabled.

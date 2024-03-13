@@ -491,18 +491,26 @@ def _last_sync_time(sync_file_path):
 class GcsCorpus:
   """Sync state for a corpus."""
 
-  def __init__(self, engine_name, project_qualified_target_name,
-               corpus_directory, data_directory):
+  def __init__(self,
+               engine_name,
+               project_qualified_target_name,
+               corpus_directory,
+               data_directory,
+               proto_corpus=None):
     if environment.is_trusted_host():
       from clusterfuzz._internal.bot.untrusted_runner import \
           corpus_manager as remote_corpus_manager
       self.gcs_corpus = remote_corpus_manager.RemoteFuzzTargetCorpus(
           engine_name, project_qualified_target_name)
+    elif proto_corpus:
+      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus(
+          engine, project_qualified_target_name, proto_corpus)
     else:
-      # TODO(metzman): After fuzz target selection is moved to preprocess, move
-      # this to preprocess.
-      self.gcs_corpus = corpus_manager.get_fuzz_target_corpus(
+      # This only works on a trusted bot.
+      proto_corpus = corpus_manager.get_fuzz_target_corpus(
           engine_name, project_qualified_target_name)
+      self.gcs_corpus = corpus_manager.ProtoFuzzTargetCorpus(
+          engine, project_qualified_target_name, proto_corpus)
 
     self._corpus_directory = corpus_directory
     self._data_directory = data_directory
@@ -2062,6 +2070,9 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
   if fuzz_target:
     fuzz_task_input.fuzz_target.CopyFrom(
         uworker_io.entity_to_protobuf(fuzz_target))
+    corpus = corpus_manager.get_fuzz_target_corpus(
+        fuzzer_name, fuzz_target.project_qualified_target_name())
+    fuzz_task_input.corpus.CopyFrom(corpus)
 
   preprocess_store_fuzzer_run_results(fuzz_task_input)
 
