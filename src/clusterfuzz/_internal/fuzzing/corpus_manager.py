@@ -423,9 +423,12 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     return True
 
   def _sync_corpus_to_disk(self, corpus, directory):
+    """Syncs a corpus from GCS to disk."""
     shell.create_directory(directory, create_intermediates=True)
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     for filepath, upload_url in results:
+      if filepath is None:
+        continue
       self._filenames_to_delete_urls_mapping[filepath] = (
           corpus.corpus_urls[upload_url])
 
