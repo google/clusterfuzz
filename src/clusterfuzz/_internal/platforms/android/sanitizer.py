@@ -59,7 +59,7 @@ def get_options_file_path(sanitizer_tool_name):
   if sanitizer_tool_name.lower() == "hwasan":
     logs.log('Unsupported sanitizer: ' + sanitizer_tool_name)
     return None
-    
+
   sanitizer_filename = SANITIZER_TOOL_TO_FILE_MAPPINGS.get(
       sanitizer_tool_name.lower())
   if sanitizer_filename is None:
