@@ -400,6 +400,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   """Attempt to minimize a given testcase."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
   minimize_task_input = uworker_input.minimize_task_input
   # Setup testcase and its dependencies.
   file_list, testcase_file_path, uworker_error_output = setup.setup_testcase(

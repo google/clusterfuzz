@@ -338,10 +338,11 @@ def _build_task_output(
 
 def utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
-  testcase_upload_metadata = uworker_io.entity_from_protobuf(
-      uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
+  testcase_upload_metadata = uworker_io.entity_from_protobuf(
+      uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
   prepare_env_for_main(testcase_upload_metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')

@@ -576,6 +576,11 @@ class Testcase(Model):
   # Note that the number is specific to the repository.
   github_issue_num = ndb.IntegerProperty()
 
+  # Whether the testcase is from a trustworthy source.
+  # False by default since this will determine what is put in the regression
+  # corpus.
+  trusted = ndb.BooleanProperty(default=False)
+
   def is_chromium(self):
     return self.project_name in ('chromium', 'chromium-testing')
 

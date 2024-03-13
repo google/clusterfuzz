@@ -436,6 +436,9 @@ def utask_main(uworker_input: uworker_msg_pb2.Input,
 
   Runs on an untrusted worker.
   """
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
   return find_regression_range(uworker_input)
 
 

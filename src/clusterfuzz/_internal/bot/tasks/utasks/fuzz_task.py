@@ -965,6 +965,9 @@ def create_testcase(group, context):
   """Create a testcase based on crash."""
   crash = group.main_crash
   fully_qualified_fuzzer_name = get_fully_qualified_fuzzer_name(context)
+
+  # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on the
+  # job when we start doing untrusted fuzzing.
   testcase_id = data_handler.store_testcase(
       crash=crash,
       fuzzed_keys=crash.fuzzed_key,
@@ -989,7 +992,8 @@ def create_testcase(group, context):
       timeout_multiplier=get_testcase_timeout_multiplier(
           context.timeout_multiplier, crash, context.test_timeout,
           context.thread_wait_timeout),
-      minimized_arguments=crash.arguments)
+      minimized_arguments=crash.arguments,
+      trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if context.fuzzer_metadata:
@@ -1763,9 +1767,11 @@ class FuzzingSession:
     failure_wait_interval = environment.get_value('FAIL_WAIT')
 
     # Update LSAN local blacklist with global blacklist.
-    is_lsan_enabled = environment.get_value('LSAN')
-    if is_lsan_enabled:
-      leak_blacklist.copy_global_to_local_blacklist()
+    global_blacklisted_functions = (
+        self.uworker_input.fuzz_task_input.global_blacklisted_functions)
+    if global_blacklisted_functions:
+      leak_blacklist.copy_global_to_local_blacklist(
+          global_blacklisted_functions)
 
     # Ensure that that the fuzzer still exists.
     logs.log('Setting up fuzzer and data bundles.')
@@ -2058,6 +2064,12 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
         uworker_io.entity_to_protobuf(fuzz_target))
 
   preprocess_store_fuzzer_run_results(fuzz_task_input)
+
+  if environment.get_value('LSAN'):
+    # Copy global blacklist into local suppressions file if LSan is enabled.
+    fuzz_task_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
+
   return uworker_msg_pb2.Input(
       fuzz_task_input=fuzz_task_input,
       job_type=job_type,

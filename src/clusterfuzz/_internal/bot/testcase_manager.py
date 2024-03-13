@@ -777,6 +777,7 @@ def test_for_crash_with_retries(testcase,
                                 crash_retries=None):
   """Test for a crash and return crash parameters like crash type, crash state,
   crash stacktrace, etc."""
+  logs.log('Testing for crash.')
   set_extra_sanitizers(testcase.crash_type)
   gestures = testcase.gestures if use_gestures else None
   try:

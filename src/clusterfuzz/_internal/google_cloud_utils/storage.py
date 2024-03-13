@@ -749,7 +749,8 @@ def _signing_creds():
 
 @contextlib.contextmanager
 def _pool(pool_size=16):
-  if environment.get_value('PY_UNITTESTS'):
+  if (environment.get_value('PY_UNITTESTS') or
+      environment.platform() == 'WINDOWS'):
     yield futures.ThreadPoolExecutor(pool_size)
   else:
     yield futures.ProcessPoolExecutor(pool_size)
@@ -1282,7 +1283,7 @@ def _sign_urls_for_existing_file(corpus_element_url,
   if include_delete_urls:
     delete_url = sign_delete_url(corpus_element_url, minutes)
   else:
-    delete_url = None
+    delete_url = ''
   return (download_url, delete_url)
 
 
