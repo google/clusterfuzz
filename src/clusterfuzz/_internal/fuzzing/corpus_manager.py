@@ -426,6 +426,8 @@ class ProtoFuzzTargetCorpus(FuzzTargetCorpus):
     shell.create_directory(directory, create_intermediates=True)
     results = storage.download_signed_urls(corpus.corpus_urls, directory)
     for filepath, upload_url in results:
+      if filepath is None:
+        continue
       self._filenames_to_delete_urls_mapping[filepath] = (
           corpus.corpus_urls[upload_url])
 

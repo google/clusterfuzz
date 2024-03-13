@@ -1219,7 +1219,7 @@ def _error_tolerant_download_signed_url_to_file(url_and_path):
   try:
     return download_signed_url_to_file(url, path), url
   except Exception:
-    return False
+    return None, None
 
 
 def _error_tolerant_upload_signed_url(url_and_path):
