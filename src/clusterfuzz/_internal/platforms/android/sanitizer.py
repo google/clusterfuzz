@@ -54,6 +54,12 @@ def get_options_file_path(sanitizer_tool_name):
   sanitizer_directory = ('/system' if settings.get_sanitizer_tool_name() else
                          constants.DEVICE_TMP_DIR)
 
+  # Reduce the log severity for HWASAN
+  # TODO(crbug.com/329346758) properly handle HWASAN options.
+  if sanitizer_tool_name.lower() == "hwasan":
+    logs.log('Unsupported sanitizer: ' + sanitizer_tool_name)
+    return None
+    
   sanitizer_filename = SANITIZER_TOOL_TO_FILE_MAPPINGS.get(
       sanitizer_tool_name.lower())
   if sanitizer_filename is None:
