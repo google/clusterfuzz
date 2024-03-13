@@ -100,7 +100,7 @@ class SetOptionsTest(android_helpers.AndroidTest):
     """Test that options are not set with an invalid sanitizer name."""
     sanitizer.set_options('invalid', 'a=b:c=d')
     self.assertEqual(1, self.mock.log_error.call_count)
-      
+
   def test_hwasan(self):
     """Test that options are not set with hwasan sanitizer, and no errors
     are logged."""
