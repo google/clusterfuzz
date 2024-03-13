@@ -27,7 +27,6 @@ import uuid
 import google.auth.exceptions
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import OpenSSL.SSL
 import requests
 import requests.exceptions
 
@@ -88,10 +87,8 @@ _TRANSIENT_ERRORS = [
     ConnectionError,
     requests.exceptions.ConnectionError,
     requests.exceptions.ChunkedEncodingError,
-    requests.exceptions.ReadTimeout,
     ConnectionResetError,
     google.auth.exceptions.TransportError,
-    OpenSSL.SSL.Error,
 ]
 
 
