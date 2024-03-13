@@ -749,7 +749,8 @@ def _signing_creds():
 
 @contextlib.contextmanager
 def _pool(pool_size=16):
-  if environment.get_value('PY_UNITTESTS'):
+  if (environment.get_value('PY_UNITTESTS') or
+      environment.platform() == 'WINDOWS'):
     yield futures.ThreadPoolExecutor(pool_size)
   else:
     yield futures.ProcessPoolExecutor(pool_size)
