@@ -772,6 +772,8 @@ def _process_corpus_crashes(context, result):
     absolute_testcase_path = os.path.join(
         environment.get_value('FUZZ_INPUTS'), 'testcase')
 
+    # TODO(https://b.corp.google.com/issues/328691756): Set trusted based on the
+    # job when we start doing untrusted fuzzing.
     testcase_id = data_handler.store_testcase(
         crash=crash,
         fuzzed_keys=key,
@@ -793,7 +795,8 @@ def _process_corpus_crashes(context, result):
         disable_ubsan=False,
         window_argument=None,
         timeout_multiplier=1.0,
-        minimized_arguments=minimized_arguments)
+        minimized_arguments=minimized_arguments,
+        trusted=True)
 
     # Set fuzzer_binary_name in testcase metadata.
     testcase = data_handler.get_testcase_by_id(testcase_id)
@@ -946,10 +949,9 @@ def utask_main(uworker_input):
       uworker_input.corpus_pruning_task_input.cross_pollinate_fuzzers)
   context = Context(uworker_input, fuzz_target, cross_pollinate_fuzzers)
 
-  # Copy global blacklist into local suppressions file if LSan is enabled.
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
-    leak_blacklist.copy_global_to_local_blacklist()
+  if uworker_input.global_blacklisted_functions:
+    leak_blacklist.copy_global_to_local_blacklist(
+        uworker_input.corpus_task_input.global_blacklisted_functions)
 
   uworker_output = None
   try:
@@ -1023,6 +1025,11 @@ def utask_preprocess(fuzzer_name, job_type, uworker_env):
       cross_pollinate_fuzzers=cross_pollinate_fuzzers,
       corpus=corpus.proto_corpus,
       quarantine_corpus=quarantine_corpus.proto_corpus)
+
+  if environment.get_value('LSAN'):
+    # Copy global blacklist into local suppressions file if LSan is enabled.
+    setup_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
 
   return uworker_msg_pb2.Input(
       job_type=job_type,

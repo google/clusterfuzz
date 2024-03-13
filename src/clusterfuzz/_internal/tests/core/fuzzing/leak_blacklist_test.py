@@ -93,7 +93,8 @@ class LeaksTest(unittest.TestCase):
     self.assertTrue(blacklist_item.key.get())
 
     # Test that a reproducible leak gets copied to local blacklist file.
-    leak_blacklist.copy_global_to_local_blacklist()
+    global_blacklist = leak_blacklist.get_global_blacklisted_functions()
+    leak_blacklist.copy_global_to_local_blacklist(global_blacklist)
     blacklist_function = leak_blacklist.get_leak_function_for_blacklist(
         testcase)
     expected_lsan_suppression_line = (
@@ -104,7 +105,9 @@ class LeaksTest(unittest.TestCase):
                   self._read_test_data(local_blacklist_file_path))
 
     # Test that an excluded reproducible leak is not copied to blacklist file.
-    leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
+    global_blacklist = leak_blacklist.get_global_blacklisted_functions()
+    leak_blacklist.copy_global_to_local_blacklist(
+        global_blacklist, excluded_testcase=testcase)
     self.assertTrue(os.path.isfile(local_blacklist_file_path))
     self.assertNotIn(expected_lsan_suppression_line,
                      self._read_test_data(local_blacklist_file_path))

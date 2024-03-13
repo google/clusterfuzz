@@ -916,3 +916,42 @@ class RecordFuzzTargetTest(unittest.TestCase):
 
     self.assertEqual('libFuzzer_proj_child', fuzz_target.fully_qualified_name())
     self.assertEqual('proj_child', fuzz_target.project_qualified_name())
+
+
+@test_utils.with_cloud_emulators('datastore')
+class TestTrustedVsUntrusted(unittest.TestCase):
+  """Tests that helpers for creating testcases handle the untrusted field
+  correctly."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.base.tasks.add_task',
+    ])
+    self.job = data_types.Job(
+        name='job', environment_string='PROJECT_NAME = proj\n')
+
+  def test_user_uploaded(self):
+    """Tests that user uploaded testcases are marked as such."""
+    gestures = []
+    testcase_id = data_handler.create_user_uploaded_testcase(
+        None, None, None, None, None, None, self.job, None, None, gestures,
+        None, None, None, None, None, None, None, None, None, None, None, None,
+        None)
+    self.assertFalse(data_handler.get_testcase_by_id(testcase_id).trusted)
+
+  def test_fuzzer_created(self):
+    """Tests that fuzzer created testcases are marked as such."""
+    crash = mock.Mock(
+        crash_type='heap-buffer-overflow',
+        crash_address='0x0',
+        crash_state='BAD',
+        crash_stacktrace='s\na\nd\n',
+        security_flag=True,
+        crash_categories=[])
+    gestures = ''
+    timeout_multiplier = 1
+    testcase_id = data_handler.store_testcase(
+        crash, None, None, None, None, None, None, None, None, gestures, None,
+        self.job.name, None, None, None, None, None, None, None,
+        timeout_multiplier, None, True)
+    self.assertTrue(data_handler.get_testcase_by_id(testcase_id).trusted)
