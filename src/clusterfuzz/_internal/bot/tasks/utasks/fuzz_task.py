@@ -16,6 +16,7 @@
 import collections
 import datetime
 import itertools
+import json
 import os
 import random
 import re
@@ -1590,7 +1591,7 @@ class FuzzingSession:
       add_additional_testcase_run_data(testcase_run,
                                        self.fuzz_target.fully_qualified_name(),
                                        self.job_type, revision)
-      upload_testcase_run_stats(testcase_run)
+      self.fuzz_task_output.testcase_run_jsons.append(testcase_run.to_json())
       if result.crashes:
         crashes.extend([
             Crash.from_engine_crash(crash, fuzzing_strategies)
@@ -1961,6 +1962,13 @@ class FuzzingSession:
     if (not targets_count or targets_count.count != new_targets_count):
       data_types.FuzzTargetsCount(
           id=uworker_input.job_type, count=new_targets_count).put()
+
+    for testcase_run in uworker_output.fuzz_task_output.testcase_run_jsons:
+      testcase_run = json.loads(uworker_output.fuzz_task_output.testcase_run)
+      testcase_run = fuzzer_stats.TestcaseRun(
+          testcase_run['fuzzer'], testcase_run['job'],
+          testcase_run['build_revision'], testcase_run['timestamp'])
+      upload_testcase_run_stats(testcase_run)
 
 
 def handle_fuzz_build_setup_failure(output):

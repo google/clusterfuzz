@@ -177,6 +177,7 @@ message FuzzTaskOutput {
   optional int32 new_targets_count = 9;
   optional int32 fuzzer_revision = 10;
   repeated string fuzz_targets = 11;
+  repeated string testcase_run_jsons = 12;
 }
 
 message MinimizeTaskOutput {

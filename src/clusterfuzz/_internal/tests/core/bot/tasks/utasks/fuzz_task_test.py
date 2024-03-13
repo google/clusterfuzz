@@ -15,6 +15,7 @@
 # pylint: disable=protected-access
 
 import datetime
+import json
 import os
 import queue
 import shutil
@@ -1346,7 +1347,6 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
         'clusterfuzz._internal.build_management.revisions.get_component_list',
         'clusterfuzz._internal.bot.testcase_manager.upload_log',
         'clusterfuzz._internal.bot.testcase_manager.upload_testcase',
-        'clusterfuzz._internal.metrics.fuzzer_stats.upload_stats',
         'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
         'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
         'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
@@ -1453,8 +1453,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
       self.assertEqual('args', crashes[i].arguments)
 
     for i in range(2):
-      upload_args = self.mock.upload_stats.call_args_list[i][0][0]
-      testcase_run = upload_args[0]
+      testcase_run = json.loads(session.fuzz_task_output.testcase_run_jsons[i])
       self.assertDictEqual({
           'build_revision': 1,
           'command': ['cmd'],
@@ -1465,7 +1464,7 @@ class DoEngineFuzzingTest(fake_filesystem_unittest.TestCase):
           'strategy_strategy_1': 1,
           'strategy_strategy_2': 50,
           'timestamp': 0.0,
-      }, testcase_run.data)
+      }, testcase_run)
 
 
 class UntrustedRunEngineFuzzerTest(
