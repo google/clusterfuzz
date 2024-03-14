@@ -50,18 +50,6 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
-def _set_timeout_value_from_user_upload(testcase_id, metadata):
-  """Get the timeout associated with this testcase."""
-  if metadata is None:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
-    # query once consolidation is complete.
-    metadata = data_types.TestcaseUploadMetadata.query(
-        data_types.TestcaseUploadMetadata.testcase_id == int(
-            testcase_id)).get()
-  if metadata and metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
-
-
 def _copy_testcase_to_device_and_setup_environment(testcase,
                                                    testcase_file_path):
   """Android specific setup steps for testcase."""
@@ -267,7 +255,7 @@ def setup_testcase(
   # Adjust the test timeout value if this is coming from an user uploaded
   # testcase.
   if testcase.uploader_email:
-    _set_timeout_value_from_user_upload(testcase_id, metadata)
+    environment.set_value('TEST_TIMEOUT', metadata.timeout)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if setup_input.fuzzer_name:
