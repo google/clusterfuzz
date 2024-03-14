@@ -467,6 +467,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     """Test test_for_crash_with_retries failing to reproduce a crash
     (blackbox)."""
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         self.blackbox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
@@ -505,6 +506,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(0, crash_result.return_code)
     self.assertEqual(0, crash_result.crash_time)
@@ -540,6 +542,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ]
 
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         self.blackbox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
@@ -575,7 +578,12 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ]
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.blackbox_testcase, '/fuzz-testcase', 10, compare_crash=False)
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
+        self.blackbox_testcase,
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
+        '/fuzz-testcase',
+        10,
+        compare_crash=False)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual('crash', crash_result.output)
@@ -613,7 +621,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
     # compare_crash should be overridden to False.
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.blackbox_testcase, '/fuzz-testcase', 10, compare_crash=True)
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
+        self.blackbox_testcase,
+        '/fuzz-testcase',
+        10,
+        compare_crash=True)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual('crash', crash_result.output)
@@ -649,6 +661,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         self.greybox_testcase, '/fuzz-testcase', 10)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
@@ -681,7 +694,11 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     crash_result = testcase_manager.test_for_crash_with_retries(
-        self.greybox_testcase, '/fuzz-testcase', 10, compare_crash=False)
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
+        self.greybox_testcase,
+        '/fuzz-testcase',
+        10,
+        compare_crash=False)
     self.assertEqual(1, crash_result.return_code)
     self.assertEqual(1, crash_result.crash_time)
     self.assertEqual(self.GREYBOX_FUZZER_CRASH, crash_result.output)
@@ -713,8 +730,9 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     with open('/flags-testcase', 'w', encoding='utf-8') as f:
       f.write('%TESTCASE% target -arg1 -arg2')
 
-    testcase_manager.test_for_crash_with_retries(self.greybox_testcase,
-                                                 '/fuzz-testcase', 10)
+    testcase_manager.test_for_crash_with_retries(
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
+        self.greybox_testcase, '/fuzz-testcase', 10)
     mock_engine.reproduce.assert_has_calls([
         mock.call('/build_dir/target', '/fuzz-testcase', ['-arg1', '-arg2'],
                   120),

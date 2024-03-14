@@ -89,7 +89,7 @@ class LibFuzzerMinimizeTaskTest(unittest.TestCase):
 
     minimize_task_input = uworker_msg_pb2.MinimizeTaskInput()
     output = minimize_task.do_libfuzzer_minimization(
-        minimize_task_input, testcase, '/testcase_file_path')
+        None, minimize_task_input, testcase, '/testcase_file_path')
     self.assertEqual(output.error_type,
                      uworker_msg_pb2.ErrorType.LIBFUZZER_MINIMIZATION_FAILED)
     crash_result_dict = output.minimize_task_output.last_crash_result_dict

@@ -20,6 +20,7 @@ import threading
 import time
 from typing import Dict
 from typing import List
+from typing import Optional
 import zipfile
 
 from clusterfuzz._internal.base import errors
@@ -427,7 +428,9 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
-    return do_libfuzzer_minimization(minimize_task_input, testcase,
+    fuzz_target = testcase_manager.get_fuzz_target_from_input(
+        uworker_input.testcase_manager_input)
+    return do_libfuzzer_minimization(fuzz_target, minimize_task_input, testcase,
                                      testcase_file_path)
 
   if environment.is_engine_fuzzer_job():
@@ -1313,7 +1316,10 @@ def do_js_minimization(test_function, get_temp_file, data, deadline, threads,
                               threads, cleanup_interval, delete_temp_files)
 
 
-def _run_libfuzzer_testcase(testcase, testcase_file_path, crash_retries=1):
+def _run_libfuzzer_testcase(fuzz_target,
+                            testcase,
+                            testcase_file_path,
+                            crash_retries=1):
   """Run libFuzzer testcase, and return the CrashResult."""
   # Cleanup any existing application instances and temp directories.
   process_handler.cleanup_stale_processes()
@@ -1327,6 +1333,7 @@ def _run_libfuzzer_testcase(testcase, testcase_file_path, crash_retries=1):
   test_timeout = environment.get_value('TEST_TIMEOUT',
                                        process_handler.DEFAULT_TEST_TIMEOUT)
   return testcase_manager.test_for_crash_with_retries(
+      fuzz_target,
       testcase,
       testcase_file_path,
       test_timeout,
@@ -1367,6 +1374,7 @@ def _run_libfuzzer_tool(tool_name: str,
                         timeout: int,
                         expected_crash_state: str,
                         minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,
+                        fuzz_target: Optional[data_types.FuzzTarget],
                         set_dedup_flags: bool = False):
   """Run libFuzzer tool to either minimize or cleanse."""
   memory_tool_options_var = environment.get_current_memory_tool_var()
@@ -1414,7 +1422,8 @@ def _run_libfuzzer_tool(tool_name: str,
 
   # Ensure that the crash parameters match. It's possible that we will
   # minimize/cleanse to an unrelated bug, such as a timeout.
-  crash_result = _run_libfuzzer_testcase(testcase, output_file_path)
+  crash_result = _run_libfuzzer_testcase(fuzz_target, testcase,
+                                         output_file_path)
   state = crash_result.get_symbolized_data()
   security_flag = crash_result.is_security_issue()
   if (security_flag != testcase.security_flag or
@@ -1495,6 +1504,7 @@ def _update_testcase_memory_tool_options(testcase: data_types.Testcase,
 
 
 def do_libfuzzer_minimization(
+    fuzz_target: Optional[data_types.FuzzTarget],
     minimize_task_input: uworker_msg_pb2.MinimizeTaskInput,
     testcase: data_types.Testcase,
     testcase_file_path: str) -> uworker_msg_pb2.Output:
@@ -1506,7 +1516,8 @@ def do_libfuzzer_minimization(
 
   # Get initial crash state.
   initial_crash_result = _run_libfuzzer_testcase(
-      testcase, testcase_file_path, crash_retries=None)  # Use default retries.
+      fuzz_target, testcase, testcase_file_path,
+      crash_retries=None)  # Use default retries.
   if not initial_crash_result.is_crash():
     logs.log_warn('Did not crash. Output:\n' +
                   initial_crash_result.get_stacktrace(symbolized=True))
@@ -1543,7 +1554,8 @@ def do_libfuzzer_minimization(
 
       reproduced = False
       for _ in range(MINIMIZE_SANITIZER_OPTIONS_RETRIES):
-        crash_result = _run_libfuzzer_testcase(testcase, testcase_file_path)
+        crash_result = _run_libfuzzer_testcase(fuzz_target, testcase,
+                                               testcase_file_path)
         if (crash_result.is_crash() and crash_result.is_security_issue() ==
             initial_crash_result.is_security_issue() and
             crash_result.get_type() == initial_crash_result.get_type() and
@@ -1583,6 +1595,7 @@ def do_libfuzzer_minimization(
         timeout,
         expected_state.crash_state,
         minimize_task_input,
+        fuzz_target,
         set_dedup_flags=True)
     if output_file_path:
       last_crash_result = crash_result
@@ -1607,8 +1620,8 @@ def do_libfuzzer_minimization(
   if utils.is_oss_fuzz():
     # Scrub the testcase of non-essential data.
     cleansed_testcase_path, minimized_keys = do_libfuzzer_cleanse(
-        testcase, current_testcase_path, expected_state.crash_state,
-        minimize_task_input)
+        fuzz_target, testcase, current_testcase_path,
+        expected_state.crash_state, minimize_task_input)
     if cleansed_testcase_path:
       current_testcase_path = cleansed_testcase_path
 
@@ -1628,13 +1641,14 @@ def do_libfuzzer_minimization(
   return uworker_msg_pb2.Output(minimize_task_output=minimize_task_output)
 
 
-def do_libfuzzer_cleanse(testcase, testcase_file_path, expected_crash_state,
+def do_libfuzzer_cleanse(fuzz_target: Optional[data_types.FuzzTarget], testcase,
+                         testcase_file_path, expected_crash_state,
                          minimize_task_input):
   """Cleanse testcase using libFuzzer."""
   timeout = environment.get_value('LIBFUZZER_CLEANSE_TIMEOUT', 180)
   output_file_path, _, minimized_keys = _run_libfuzzer_tool(
       'cleanse', testcase, testcase_file_path, timeout, expected_crash_state,
-      minimize_task_input)
+      minimize_task_input, fuzz_target)
 
   if output_file_path:
     logs.log('LibFuzzer cleanse succeeded.')

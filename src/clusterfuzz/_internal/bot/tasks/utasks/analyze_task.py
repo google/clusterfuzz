@@ -185,13 +185,15 @@ def initialize_testcase_for_main(testcase, job_type):
   testcase.put()
 
 
-def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
+def test_for_crash_with_retries(fuzz_target, testcase, testcase_file_path,
+                                test_timeout):
   """Tests for a crash with retries. Tries with HTTP (with retries) if initial
   attempts fail. Returns the most recent crash result and the possibly updated
   HTTP flag."""
   # Get the crash output.
   http_flag = testcase.http_flag
   result = testcase_manager.test_for_crash_with_retries(
+      fuzz_target,
       testcase,
       testcase_file_path,
       test_timeout,
@@ -204,6 +206,7 @@ def test_for_crash_with_retries(testcase, testcase_file_path, test_timeout):
   if (not result.is_crash() and not http_flag and
       not environment.is_engine_fuzzer_job()):
     result_with_http = testcase_manager.test_for_crash_with_retries(
+        fuzz_target,
         testcase,
         testcase_file_path,
         test_timeout,
@@ -365,8 +368,10 @@ def utask_main(uworker_input):
 
   # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  result, http_flag = test_for_crash_with_retries(testcase, testcase_file_path,
-                                                  test_timeout)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(
+      uworker_input.testcase_manager_input)
+  result, http_flag = test_for_crash_with_retries(
+      fuzz_target, testcase, testcase_file_path, test_timeout)
 
   # Set application command line with the correct http flag.
   application_command_line = (
@@ -411,8 +416,6 @@ def utask_main(uworker_input):
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
-  fuzz_target = testcase_manager.get_fuzz_target_from_input(
-      uworker_input.testcase_manager_input)
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
   analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag

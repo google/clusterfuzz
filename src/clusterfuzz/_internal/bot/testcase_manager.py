@@ -769,7 +769,8 @@ class TestcaseRunner:
     return False
 
 
-def test_for_crash_with_retries(testcase,
+def test_for_crash_with_retries(fuzz_target,
+                                testcase,
                                 testcase_path,
                                 test_timeout,
                                 http_flag=False,
@@ -781,30 +782,22 @@ def test_for_crash_with_retries(testcase,
   logs.log('Testing for crash.')
   set_extra_sanitizers(testcase.crash_type)
   gestures = testcase.gestures if use_gestures else None
-  try:
-    fuzz_target = testcase.get_fuzz_target()
-    if engine.get(testcase.fuzzer_name) and not fuzz_target:
-      raise TargetNotFoundError
+  runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
+                          http_flag)
 
-    runner = TestcaseRunner(fuzz_target, testcase_path, test_timeout, gestures,
-                            http_flag)
+  if crash_retries is None:
+    crash_retries = environment.get_value('CRASH_RETRIES')
 
-    if crash_retries is None:
-      crash_retries = environment.get_value('CRASH_RETRIES')
+  if compare_crash and testcase.crash_type not in IGNORE_STATE_CRASH_TYPES:
+    expected_state = testcase.crash_state
+    expected_security_flag = testcase.security_flag
+  else:
+    expected_state = None
+    expected_security_flag = None
 
-    if compare_crash and testcase.crash_type not in IGNORE_STATE_CRASH_TYPES:
-      expected_state = testcase.crash_state
-      expected_security_flag = testcase.security_flag
-    else:
-      expected_state = None
-      expected_security_flag = None
-
-    return runner.reproduce_with_retries(crash_retries, expected_state,
-                                         expected_security_flag,
-                                         testcase.flaky_stack)
-  except TargetNotFoundError:
-    # If a target isn't found, treat it as not crashing.
-    return CrashResult(return_code=0, crash_time=0, output='')
+  return runner.reproduce_with_retries(crash_retries, expected_state,
+                                       expected_security_flag,
+                                       testcase.flaky_stack)
 
 
 def get_fuzz_target_from_input(testcase_manager_input):
@@ -817,11 +810,9 @@ def get_fuzz_target_from_input(testcase_manager_input):
 def preprocess_testcase_manager(testcase):
   """Preprocess function for users of test_for_reproducibility."""
   # TODO(metzman): Make this work for test_for_crash_with_retries.
-  fuzzer_name = testcase.fuzzer_name
-  full_fuzzer_name = testcase.actual_fuzzer_name()
-  testcase_manager_input = uworker_msg_pb2.TestCaseManagerInput()
-  fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
-  engine_obj = engine.get(fuzzer_name)
+  testcase_manager_input = uworker_msg_pb2.TestcaseManagerInput()
+  fuzz_target = testcase.get_fuzz_target(testcase.fuzzer_name)
+  engine_obj = engine.get(testcase.fuzzer_name)
   if engine_obj and not fuzz_target:
     raise TargetNotFoundError
 

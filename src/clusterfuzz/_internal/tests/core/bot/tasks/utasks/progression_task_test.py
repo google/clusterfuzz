@@ -78,7 +78,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     # we won't have the build directory properly set.
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1, progression_task_output)
+        None, '/tmp/blah', 'job_type', 1, None, progression_task_output)
     self.assertIsNone(result)
     self.assertIs(worker_output.error_type,
                   uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR,
@@ -95,7 +95,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     self.mock.check_for_bad_build.return_value = build_data
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        None, '/tmp/blah', 'job_type', 1, progression_task_output)
+        None, '/tmp/blah', 'job_type', 1, None, progression_task_output)
     self.assertIsNone(result)
     self.assertEqual(worker_output.error_type,
                      uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
@@ -115,7 +115,7 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     testcase = data_types.Testcase()
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        testcase, '/tmp/blah', 'job_type', 1, progression_task_output)
+        testcase, '/tmp/blah', 'job_type', 1, None, progression_task_output)
     self.assertIsNone(worker_output)
     self.assertIsNotNone(result)
     self.assertEqual(len(progression_task_output.build_data_list), 1)
