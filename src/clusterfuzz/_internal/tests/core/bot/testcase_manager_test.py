@@ -731,7 +731,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.run_process.return_value = (1, 1, 'crash')
     result = testcase_manager.test_for_reproducibility(
         'fuzzer',
-        'fuzzer',
         '/fuzz-testcase',
         'type',
         'state',
@@ -763,7 +762,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     ]
     result = testcase_manager.test_for_reproducibility(
         'fuzzer',
-        'fuzzer',
         '/fuzz-testcase',
         'type',
         'state',
@@ -793,7 +791,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(
-        'engine',
         'engine_target',
         '/fuzz-testcase',
         'type',
@@ -828,7 +825,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(
-        'engine',
         'engine_target',
         '/fuzz-testcase',
         'type',
