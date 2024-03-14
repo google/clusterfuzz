@@ -443,7 +443,7 @@ def _clear_old_data_bundles_if_needed():
 
 
 def _should_update_data_bundle(data_bundle, data_bundle_directory):
-  """Returns True if the data bundle should b updated because it is out of
+  """Returns True if the data bundle should be updated because it is out of
   date."""
   # Check if data bundle is up to date. If yes, skip the update.
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
@@ -560,10 +560,10 @@ def preprocess_get_data_bundles(data_bundle_name, setup_input):
   data_bundles = ndb_utils.get_all_from_query(
       data_types.DataBundle.query(
           data_types.DataBundle.name == data_bundle_name))
-  logs.log('Data bundles: %s' % data_bundles)
-  for bundle_entity in data_bundles:
-    setup_input.append(
-        corpus_manager.get_proto_data_bundle_corpus(bundle_entity))
+  logs.log(f'Data bundles: {data_bundles}')
+  setup_input.data_bundle_corpuses.extend([
+      corpus_manager.get_proto_data_bundle_corpus(bundle_entity)
+      for bundle_entity in data_bundles])
 
 
 def preprocess_update_fuzzer_and_data_bundles(
@@ -737,8 +737,8 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
 
   # Check when the bucket url had last updates. If no new updates, no need to
   # update directory.
-  gcs_url = data_handler.get_data_bundle_bucket_url(data_bundle.name)
-  last_updated_time = storage.last_updated(gcs_url)
+  bucket_url = data_handler.get_data_bundle_bucket_url(data_bundle.name)
+  last_updated_time = storage.last_updated(bucket_url)
   if last_updated_time and last_sync_time > last_updated_time:
     logs.log(
         'Data bundle %s has no new content from last sync.' % data_bundle.name)
