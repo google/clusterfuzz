@@ -973,3 +973,43 @@ class GetCommandLineFlagsTest(fake_filesystem_unittest.TestCase):
     """Test both APP_ARGS and additional args."""
     self.assertEqual('',
                      testcase_manager.get_command_line_flags('/fuzz-testcase'))
+
+
+@test_utils.with_cloud_emulators('datastore')
+class PreprocessTestcaseManagerTest(unittest.TestCase):
+  def setUp(self):
+    self.fuzz_target = data_types.FuzzTarget(engine='engine', binary='target')
+    self.fuzz_target.put()
+
+  def test_engine_fuzzer_target(self):
+    """Tests that everything works properly when a testcase was found by a
+    target using an engine fuzzer."""
+    greybox_testcase = data_types.Testcase(
+        crash_state='state', overridden_fuzzer_name='engine_target')
+    greybox_testcase.put()
+    testcase_manager_input = testcase_manager.preprocess_testcase_manager(
+        greybox_testcase)
+    actual_target = testcase_manager.get_fuzz_target_from_input(
+        testcase_manager_input)
+    name = actual_target.fully_qualified_name()
+    self.assertEqual(name, self.fuzz_target.fully_qualified_name())
+
+  @mock.patch('clusterfuzz.fuzz.engine.get', return_value=mock.Mock())
+  def test_engine_fuzzer_no_target(self, _):
+    """Tests that a TargetNotFoundError is thrown when the target doesn't
+    exist."""
+    testcase = data_types.Testcase(
+        crash_state='state', overridden_fuzzer_name='engine_target_nonexistent')
+    testcase.put()
+    with self.assertRaises(testcase_manager.TargetNotFoundError):
+      testcase_manager.preprocess_testcase_manager(
+          testcase)
+
+  def test_blackbox_fuzzer_no_target(self):
+    """Tests that fuzz_target is not set on the output proto"""
+    blackbox_testcase = data_types.Testcase(
+        crash_state='state', fuzzer_name='nonengine')
+    blackbox_testcase.put()
+    uworker_input = testcase_manager.preprocess_testcase_manager(
+        blackbox_testcase)
+    self.assertFalse(uworker_input.HasField('fuzz_target'))
