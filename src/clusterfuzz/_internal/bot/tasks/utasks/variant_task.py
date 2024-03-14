@@ -159,7 +159,8 @@ def utask_main(uworker_input):
     security_flag = result.is_security_issue()
 
     gestures = testcase.gestures if use_gestures else None
-    fuzz_target = uworker_input.testcase_manager_input.fuzz_target
+    fuzz_target = testcase_manager.get_fuzz_target_from_input(
+        uworker_input.testcase_manager_input)
     one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
         fuzz_target, testcase_file_path, crash_type, crash_state, security_flag,
         test_timeout, testcase.http_flag, gestures)

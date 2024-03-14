@@ -411,7 +411,8 @@ def utask_main(uworker_input):
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
-  fuzz_target = uworker_input.testcase_manager_input.fuzz_target
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(
+      uworker_input.testcase_manager_input)
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
   analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
