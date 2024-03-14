@@ -1224,6 +1224,8 @@ def _full_fuzz_target_path(bucket_path, fuzz_target):
 
 def _setup_split_targets_build(bucket_path, target_weights, revision=None):
   """Set up targets build."""
+  import ipdb
+  ipdb.set_trace()
   targets_list = _get_targets_list(bucket_path)
   if not targets_list:
     raise BuildManagerError(
