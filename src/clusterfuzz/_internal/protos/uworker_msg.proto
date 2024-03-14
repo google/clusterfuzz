@@ -114,7 +114,11 @@ message Input {
   optional string module_name = 18;
   optional google.protobuf.Timestamp preprocess_start_time = 19;
   repeated string global_blacklisted_functions = 20;
-  optional google.datastore.v1.Entity fuzz_target = 21;
+  optional TestCaseManagerInput testcase_manager_input = 21;
+}
+
+message TestCaseManagerInput {
+  optional google.datastore.v1.Entity fuzz_target = 1;
 }
 
 message VariantTaskInput {

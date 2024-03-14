@@ -282,7 +282,7 @@ class Crash:
     return None
 
 
-def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout):
+def find_main_crash(crashes, full_fuzzer_name, test_timeout):
   """Find the first reproducible crash or the first valid crash.
     And return the crash and the one_time_crasher_flag."""
   for crash in crashes:
@@ -299,9 +299,10 @@ def find_main_crash(crashes, fuzzer_name, full_fuzzer_name, test_timeout):
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state parameters.
+
+    fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
     if testcase_manager.test_for_reproducibility(
-        fuzzer_name,
-        full_fuzzer_name,
+        fuzz_target,
         crash.file_path,
         crash.crash_type,
         None,
@@ -337,8 +338,7 @@ class CrashGroup:
       fully_qualified_fuzzer_name = context.fuzzer_name
 
     self.main_crash, self.one_time_crasher_flag = find_main_crash(
-        crashes, context.fuzzer_name, fully_qualified_fuzzer_name,
-        context.test_timeout)
+        crashes, fully_qualified_fuzzer_name, context.test_timeout)
 
     self.newly_created_testcase = None
 

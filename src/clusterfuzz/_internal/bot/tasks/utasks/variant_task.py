@@ -75,6 +75,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
   variant_input = uworker_msg_pb2.VariantTaskInput(
       original_job_type=original_job_type)
+  testcase_manager_input = testcase_manager.preprocess_testcase_manager(
+      testcase)
 
   uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
@@ -83,6 +85,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       variant_task_input=variant_input,
       setup_input=setup_input,
+      testcase_manager_input=testcase_manager_input,
   )
   testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
@@ -156,10 +159,10 @@ def utask_main(uworker_input):
     security_flag = result.is_security_issue()
 
     gestures = testcase.gestures if use_gestures else None
+    fuzz_target = uworker_input.testcase_manager_input.fuzz_target
     one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-        testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
-        crash_type, crash_state, security_flag, test_timeout,
-        testcase.http_flag, gestures)
+        fuzz_target, testcase_file_path, crash_type, crash_state, security_flag,
+        test_timeout, testcase.http_flag, gestures)
     if one_time_crasher_flag:
       status = data_types.TestcaseVariantStatus.FLAKY
     else:

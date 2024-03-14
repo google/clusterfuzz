@@ -807,11 +807,20 @@ def test_for_crash_with_retries(testcase,
     return CrashResult(return_code=0, crash_time=0, output='')
 
 
-def preprocess_testcase_manager(fuzzer_name, full_fuzzer_name, uworker_input):
+def preprocess_testcase_manager(testcase):
+  """Preprocess function for users of test_for_reproducibility."""
+  # TODO(metzman): Make this work for test_for_crash_with_retries.
+  fuzzer_name = testcase.fuzzer_name
+  full_fuzzer_name = testcase.actual_fuzzer_name()
+  testcase_manager_input = uworker_msg_pb2.TestCaseManagerInput()
   fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
-  if engine.get(fuzzer_name) and not fuzz_target:
+  engine_obj = engine.get(fuzzer_name)
+  if engine_obj and not fuzz_target:
     raise TargetNotFoundError
-  uworker_input.fuzz_target = uworker_io.entity_to_protobuf(fuzz_target)
+  testcase_manager_input.fuzz_target.CopyFrom(
+      uworker_io.entity_to_protobuf(fuzz_target))
+  return testcase_manager_input
+
 
 def test_for_reproducibility(fuzz_target,
                              testcase_path,
@@ -823,6 +832,10 @@ def test_for_reproducibility(fuzz_target,
                              gestures,
                              arguments=None) -> bool:
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
+  if not isinstance(fuzz_target, data_types.FuzzTarget):
+    # TODO(metzman): Get rid of this when fuzz_task is migrated.
+    fuzz_target = uworker_io.entity_from_protobuf(fuzz_target,
+                                                  data_types.FuzzTarget)
   set_extra_sanitizers(crash_type)
   runner = TestcaseRunner(
       fuzz_target,
@@ -834,7 +847,8 @@ def test_for_reproducibility(fuzz_target,
 
   crash_retries = environment.get_value('CRASH_RETRIES')
   return runner.test_reproduce_reliability(crash_retries, expected_state,
-                                             expected_security_flag)
+                                           expected_security_flag)
+
 
 def prepare_log_for_upload(symbolized_output, return_code):
   """Prepare log for upload."""
