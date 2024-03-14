@@ -114,8 +114,10 @@ class TestcaseReproducesInRevisionTest(unittest.TestCase):
     self.mock.check_for_bad_build.return_value = build_data
     testcase = data_types.Testcase()
     progression_task_output = uworker_msg_pb2.ProgressionTaskOutput()
+    testcase_manager_input = uworker_msg_pb2.TestcaseManagerInput()
     result, worker_output = progression_task._testcase_reproduces_in_revision(  # pylint: disable=protected-access
-        testcase, '/tmp/blah', 'job_type', 1, None, progression_task_output)
+        testcase, '/tmp/blah', 'job_type', 1, testcase_manager_input,
+        progression_task_output)
     self.assertIsNone(worker_output)
     self.assertIsNotNone(result)
     self.assertEqual(len(progression_task_output.build_data_list), 1)
@@ -320,9 +322,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     self.mock.check_app_path.return_value = None
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
-    progression_input = uworker_msg_pb2.ProgressionTaskInput()
+    uworker_input = uworker_msg_pb2.Input()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path, progression_input)
+        testcase, testcase_file_path, uworker_input)
     self.assertEqual(result.error_message,
                      'Build setup failed for custom binary')
     self.assertEqual(result.error_type,
@@ -349,9 +351,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
 
-    progression_input = uworker_msg_pb2.ProgressionTaskInput()
+    uworker_input = uworker_msg_pb2.Input()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path, progression_input)
+        testcase, testcase_file_path, uworker_input)
     self.assertTrue(result.progression_task_output.crash_on_latest)
     self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message,
@@ -371,9 +373,9 @@ class CheckFixedForCustomBinaryTest(unittest.TestCase):
     testcase_file_path = '/a/b/c'
     testcase = test_utils.create_generic_testcase()
 
-    progression_input = uworker_msg_pb2.ProgressionTaskInput()
+    uworker_input = uworker_msg_pb2.Input()
     result = progression_task._check_fixed_for_custom_binary(  # pylint: disable=protected-access
-        testcase, testcase_file_path, progression_input)
+        testcase, testcase_file_path, uworker_input)
     self.assertFalse(result.progression_task_output.crash_on_latest)
     self.assertEqual(result.progression_task_output.crash_revision, 1234)
     self.assertEqual(result.progression_task_output.crash_on_latest_message, '')

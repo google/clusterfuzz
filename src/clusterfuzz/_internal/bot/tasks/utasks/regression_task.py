@@ -153,8 +153,8 @@ def found_regression_near_extreme_revisions(
     revision_list: List[int],
     min_index: int,
     max_index: int,
-    regression_task_output: uworker_msg_pb2.RegressionTaskOutput,
     fuzz_target: Optional[data_types.FuzzTarget],
+    regression_task_output: uworker_msg_pb2.RegressionTaskOutput,
 ) -> Optional[uworker_msg_pb2.Output]:
   """Test to see if we regressed near either the min or max revision.
   Returns a uworker_msg_pb2.Output or None.
@@ -349,7 +349,7 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
   if first_run:
     result = found_regression_near_extreme_revisions(
         testcase, testcase_file_path, job_type, revision_list, min_index,
-        max_index, regression_task_output, fuzz_target)
+        max_index, fuzz_target, regression_task_output)
     if result:
       return result
 

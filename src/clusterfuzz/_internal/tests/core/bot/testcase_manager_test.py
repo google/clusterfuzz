@@ -580,7 +580,6 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     crash_result = testcase_manager.test_for_crash_with_retries(
         _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         self.blackbox_testcase,
-        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         '/fuzz-testcase',
         10,
         compare_crash=False)

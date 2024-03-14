@@ -811,7 +811,7 @@ def preprocess_testcase_manager(testcase):
   """Preprocess function for users of test_for_reproducibility."""
   # TODO(metzman): Make this work for test_for_crash_with_retries.
   testcase_manager_input = uworker_msg_pb2.TestcaseManagerInput()
-  fuzz_target = testcase.get_fuzz_target(testcase.fuzzer_name)
+  fuzz_target = testcase.get_fuzz_target()
   engine_obj = engine.get(testcase.fuzzer_name)
   if engine_obj and not fuzz_target:
     raise TargetNotFoundError
