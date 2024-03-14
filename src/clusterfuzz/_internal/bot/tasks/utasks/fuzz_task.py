@@ -299,7 +299,6 @@ def find_main_crash(crashes, full_fuzzer_name, test_timeout):
     # security flag and crash state generated from re-running testcase in
     # test_for_reproducibility. Minimize task will later update the new crash
     # type and crash state parameters.
-
     fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
     if testcase_manager.test_for_reproducibility(
         fuzz_target,

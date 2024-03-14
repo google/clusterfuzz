@@ -31,6 +31,7 @@ from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -869,8 +870,9 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
 
 def _get_fuzz_target_from_preprocess(testcase):
-  return testcase_manager.get_fuzz_target_from_input(
-      testcase_manager.preprocess_testcase_manager(testcase))
+  uworker_input = uworker_msg_pb2.Input()
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return testcase_manager.get_fuzz_target_from_input(uworker_input)
 
 
 class UntrustedEngineReproduceTest(
@@ -977,6 +979,8 @@ class GetCommandLineFlagsTest(fake_filesystem_unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class PreprocessTestcaseManagerTest(unittest.TestCase):
+  """Tests for preprocess_testcase_manager."""
+
   def setUp(self):
     self.fuzz_target = data_types.FuzzTarget(engine='engine', binary='target')
     self.fuzz_target.put()
@@ -987,10 +991,10 @@ class PreprocessTestcaseManagerTest(unittest.TestCase):
     greybox_testcase = data_types.Testcase(
         crash_state='state', overridden_fuzzer_name='engine_target')
     greybox_testcase.put()
-    testcase_manager_input = testcase_manager.preprocess_testcase_manager(
-        greybox_testcase)
-    actual_target = testcase_manager.get_fuzz_target_from_input(
-        testcase_manager_input)
+    uworker_input = uworker_msg_pb2.Input()
+    testcase_manager.preprocess_testcase_manager(greybox_testcase,
+                                                 uworker_input)
+    actual_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
     name = actual_target.fully_qualified_name()
     self.assertEqual(name, self.fuzz_target.fully_qualified_name())
 
@@ -1001,15 +1005,16 @@ class PreprocessTestcaseManagerTest(unittest.TestCase):
     testcase = data_types.Testcase(
         crash_state='state', overridden_fuzzer_name='engine_target_nonexistent')
     testcase.put()
+    uworker_input = uworker_msg_pb2.Input()
     with self.assertRaises(testcase_manager.TargetNotFoundError):
-      testcase_manager.preprocess_testcase_manager(
-          testcase)
+      testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
 
   def test_blackbox_fuzzer_no_target(self):
     """Tests that fuzz_target is not set on the output proto"""
     blackbox_testcase = data_types.Testcase(
         crash_state='state', fuzzer_name='nonengine')
     blackbox_testcase.put()
-    uworker_input = testcase_manager.preprocess_testcase_manager(
-        blackbox_testcase)
+    uworker_input = uworker_msg_pb2.Input()
+    testcase_manager.preprocess_testcase_manager(blackbox_testcase,
+                                                 uworker_input)
     self.assertFalse(uworker_input.HasField('fuzz_target'))

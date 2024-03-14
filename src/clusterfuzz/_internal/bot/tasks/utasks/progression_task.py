@@ -260,8 +260,7 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BUILD_SETUP_ERROR)
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
-  fuzz_target = testcase_manager.get_fuzz_target_from_input(
-      uworker_input.testcase_manager_input)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   result = testcase_manager.test_for_crash_with_retries(
       fuzz_target,
       testcase,
@@ -324,7 +323,7 @@ def _testcase_reproduces_in_revision(
     testcase_file_path: str,
     job_type: str,
     revision: int,
-    testcase_manager_input: uworker_msg_pb2.TestcaseManagerInput,
+    fuzz_target: data_types.FuzzTarget,
     progression_task_output: uworker_msg_pb2.ProgressionTaskOutput,
     update_metadata: bool = False):
   """Tests to see if a test case reproduces in the specified revision.
@@ -350,8 +349,6 @@ def _testcase_reproduces_in_revision(
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD)
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
-  fuzz_target = testcase_manager.get_fuzz_target_from_input(
-      testcase_manager_input)
   result = testcase_manager.test_for_crash_with_retries(
       fuzz_target,
       testcase,
@@ -464,18 +461,18 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       stacktrace_upload_url=blob_upload_url)
   # Setup testcase and its dependencies.
   setup_input = setup.preprocess_setup_testcase(testcase)
-  testcase_manager_input = testcase_manager.preprocess_testcase_manager(
-      testcase)
 
   _set_regression_testcase_upload_url(progression_input, testcase)
-  return uworker_msg_pb2.Input(
+  uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=str(testcase_id),
       uworker_env=uworker_env,
       progression_task_input=progression_input,
       testcase=uworker_io.entity_to_protobuf(testcase),
-      setup_input=setup_input,
-      testcase_manager_input=testcase_manager_input)
+      setup_input=setup_input)
+
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return uworker_input
 
 
 def find_fixed_range(uworker_input):
@@ -485,6 +482,7 @@ def find_fixed_range(uworker_input):
                                              data_types.Testcase)
   job_type = uworker_input.job_type
   setup_input = uworker_input.setup_input
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
 
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
                                                       setup_input)
@@ -548,7 +546,7 @@ def find_fixed_range(uworker_input):
       testcase_file_path,
       job_type,
       max_revision,
-      uworker_input.testcase_manager_input,
+      fuzz_target,
       progression_task_output,
       update_metadata=True)
   if error is not None:
@@ -582,8 +580,8 @@ def find_fixed_range(uworker_input):
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.
   result, error = _testcase_reproduces_in_revision(
-      testcase, testcase_file_path, job_type, min_revision,
-      progression_task_output, uworker_input.testcase_manager_input)
+      testcase, testcase_file_path, job_type, min_revision, fuzz_target,
+      progression_task_output)
   if error is not None:
     return error
 
@@ -634,8 +632,8 @@ def find_fixed_range(uworker_input):
     middle_revision = revision_list[middle_index]
 
     result, error = _testcase_reproduces_in_revision(
-        testcase, testcase_file_path, job_type, middle_revision,
-        uworker_input.testcase_manager_input, progression_task_output)
+        testcase, testcase_file_path, job_type, middle_revision, fuzz_target,
+        progression_task_output)
     if error is not None:
       if error.error_type == uworker_msg_pb2.ErrorType.PROGRESSION_BAD_BUILD:
         # Skip this revision.

@@ -133,11 +133,10 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
       return revision > 20, None
 
     self.mock._testcase_reproduces_in_revision.side_effect = testcase_reproduces
-    testcase_manager_input = uworker_msg_pb2.TestcaseManagerInput()
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
-        testcase_manager_input, regression_task_output)
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9, None,
+        regression_task_output)
     self.assertIsNotNone(result)
     self.assertEqual(result.regression_task_output.regression_range_start, 19)
     self.assertEqual(result.regression_task_output.regression_range_end, 21)
@@ -146,11 +145,10 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
     """Ensures that `found_regression_near_extreme_revisions` returns a result
     if we reproduce in min revision."""
     self.mock._testcase_reproduces_in_revision.return_value = True, None
-    testcase_manager_input = uworker_msg_pb2.TestcaseManagerInput()
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
     result = regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
-        testcase_manager_input, regression_task_output)
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9, None,
+        regression_task_output)
     self.assertIsNotNone(result)
     self.assertEqual(result.regression_task_output.regression_range_start, 0)
     self.assertEqual(result.regression_task_output.regression_range_end, 1)
@@ -172,10 +170,9 @@ class TestFoundRegressionNearExtremeRevisions(unittest.TestCase):
 
     self.mock._testcase_reproduces_in_revision.side_effect = testcase_reproduces
     regression_task_output = uworker_msg_pb2.RegressionTaskOutput()
-    testcase_manager_input = uworker_msg_pb2.TestcaseManagerInput()
     result = regression_task.found_regression_near_extreme_revisions(
-        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9,
-        testcase_manager_input, regression_task_output)
+        self.testcase, '/a/b', 'job_name', self.revision_list, 0, 9, None,
+        regression_task_output)
     self.assertIsNone(result)
 
 

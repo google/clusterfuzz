@@ -75,8 +75,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
   variant_input = uworker_msg_pb2.VariantTaskInput(
       original_job_type=original_job_type)
-  testcase_manager_input = testcase_manager.preprocess_testcase_manager(
-      testcase)
 
   uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
@@ -85,8 +83,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=testcase_id,
       variant_task_input=variant_input,
       setup_input=setup_input,
-      testcase_manager_input=testcase_manager_input,
   )
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
   testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   if testcase_upload_metadata:
@@ -145,8 +143,7 @@ def utask_main(uworker_input):
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   revision = environment.get_value('APP_REVISION')
-  fuzz_target = testcase_manager.get_fuzz_target_from_input(
-      uworker_input.testcase_manager_input)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   result = testcase_manager.test_for_crash_with_retries(
       fuzz_target,
       testcase,

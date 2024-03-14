@@ -279,8 +279,7 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
 
   deadline = tasks.get_task_completion_deadline()
 
-  fuzz_target = testcase_manager.get_fuzz_target_from_input(
-      uworker_input.testcase_manager_input)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
 
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,

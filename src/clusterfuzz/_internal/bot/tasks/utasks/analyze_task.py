@@ -300,10 +300,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   initialize_testcase_for_main(testcase, job_type)
 
   setup_input = setup.preprocess_setup_testcase(testcase)
-  testcase_manager_input = testcase_manager.preprocess_testcase_manager(
-      testcase)
   analyze_task_input = get_analyze_task_input()
-  return uworker_msg_pb2.Input(
+  uworker_input = uworker_msg_pb2.Input(
       testcase_upload_metadata=uworker_io.entity_to_protobuf(
           testcase_upload_metadata),
       testcase=uworker_io.entity_to_protobuf(testcase),
@@ -311,9 +309,10 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       uworker_env=uworker_env,
       setup_input=setup_input,
       job_type=job_type,
-      testcase_manager_input=testcase_manager_input,
       analyze_task_input=analyze_task_input,
   )
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return uworker_input
 
 
 def get_analyze_task_input():
@@ -368,8 +367,7 @@ def utask_main(uworker_input):
 
   # Initialize some variables.
   test_timeout = environment.get_value('TEST_TIMEOUT')
-  fuzz_target = testcase_manager.get_fuzz_target_from_input(
-      uworker_input.testcase_manager_input)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   result, http_flag = test_for_crash_with_retries(
       fuzz_target, testcase, testcase_file_path, test_timeout)
 

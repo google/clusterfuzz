@@ -428,8 +428,7 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
         error_type=uworker_msg_pb2.ErrorType.MINIMIZE_SETUP)
 
   if environment.is_libfuzzer_job():
-    fuzz_target = testcase_manager.get_fuzz_target_from_input(
-        uworker_input.testcase_manager_input)
+    fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
     return do_libfuzzer_minimization(fuzz_target, minimize_task_input, testcase,
                                      testcase_file_path)
 
