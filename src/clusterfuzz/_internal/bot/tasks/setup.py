@@ -441,6 +441,36 @@ def _clear_old_data_bundles_if_needed():
     shell.remove_directory(dir_to_remove)
 
 
+def _should_update_data_bundle(data_bundle, data_bundle_directory):
+  # Check if data bundle is up to date. If yes, skip the update.
+  if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
+    logs.log('Data bundle was recently synced, skip.')
+    return False
+
+  # Re-check if another bot did the sync already. If yes, skip.
+  # TODO(metzman): Figure out if is this even needed without NFS?
+  if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
+    logs.log('Another bot finished the sync, skip.')
+    return False
+
+  return True
+
+
+def _prepare_update_data_bundle(fuzzer, data_bundle):
+  data_bundle_directory = get_data_bundle_directory(fuzzer.name)
+  if not data_bundle_directory:
+    logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
+    return None
+
+  if not shell.create_directory(
+      data_bundle_directory, create_intermediates=True):
+    logs.log_error(
+        'Failed to create data bundle %s directory.' % data_bundle.name)
+    return None
+
+  return data_bundle_directory
+
+
 def update_data_bundle(fuzzer: data_types.Fuzzer,
                        data_bundle: data_types.DataBundle) -> bool:
   """Updates a data bundle to the latest version."""
@@ -448,28 +478,10 @@ def update_data_bundle(fuzzer: data_types.Fuzzer,
   logs.log('Setting up data bundle %s.' % data_bundle)
   # This module can't be in the global imports due to appengine issues
   # with multiprocessing and psutil imports.
-  from clusterfuzz._internal.google_cloud_utils import gsutil
 
-  data_bundle_directory = get_data_bundle_directory(fuzzer.name)
-  if not data_bundle_directory:
-    logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
-    return False
+  data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
 
-  if not shell.create_directory(
-      data_bundle_directory, create_intermediates=True):
-    logs.log_error(
-        'Failed to create data bundle %s directory.' % data_bundle.name)
-    return False
-
-  # Check if data bundle is up to date. If yes, skip the update.
-  if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
-    logs.log('Data bundle was recently synced, skip.')
-    return True
-
-  # Re-check if another bot did the sync already. If yes, skip.
-  # TODO(metzman): Figure out if is this even needed without NFS?
-  if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
-    logs.log('Another bot finished the sync, skip.')
+  if not _should_update_data_bundle(data_bundle, data_bundle_directory):
     return True
 
   time_before_sync_start = time.time()
@@ -479,7 +491,10 @@ def update_data_bundle(fuzzer: data_types.Fuzzer,
   if not _is_search_index_data_bundle(data_bundle.name):
     bucket_url = data_handler.get_data_bundle_bucket_url(data_bundle.name)
 
-    if environment.is_trusted_host() and data_bundle.sync_to_worker:
+    if not (environment.is_trusted_host() and data_bundle.sync_to_worker):
+      result = gsutil.GSUtilRunner().rsync(
+          bucket_url, data_bundle_directory, delete=False)
+    else:
       from clusterfuzz._internal.bot.untrusted_runner import corpus_manager
       from clusterfuzz._internal.bot.untrusted_runner import file_host
       worker_data_bundle_directory = file_host.rebase_to_worker_root(
@@ -489,9 +504,6 @@ def update_data_bundle(fuzzer: data_types.Fuzzer,
           worker_data_bundle_directory, create_intermediates=True)
       result = corpus_manager.RemoteGSUtilRunner().rsync(
           bucket_url, worker_data_bundle_directory, delete=False)
-    else:
-      result = gsutil.GSUtilRunner().rsync(
-          bucket_url, data_bundle_directory, delete=False)
 
     if result.return_code != 0:
       logs.log_error('Failed to sync data bundle %s: %s.' % (data_bundle.name,
