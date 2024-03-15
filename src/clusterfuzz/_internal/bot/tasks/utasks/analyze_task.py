@@ -298,7 +298,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   setup_input = setup.preprocess_setup_testcase(testcase)
   analyze_task_input = get_analyze_task_input()
-  return uworker_msg_pb2.Input(
+  uworker_input = uworker_msg_pb2.Input(
       testcase_upload_metadata=uworker_io.entity_to_protobuf(
           testcase_upload_metadata),
       testcase=uworker_io.entity_to_protobuf(testcase),
@@ -308,6 +308,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       job_type=job_type,
       analyze_task_input=analyze_task_input,
   )
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return uworker_input
 
 
 def get_analyze_task_input():
@@ -408,7 +410,9 @@ def utask_main(uworker_input):
         analyze_task_output=analyze_task_output,
         error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
-  test_for_reproducibility(testcase, testcase_file_path, state, test_timeout)
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
+  test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
+                           test_timeout)
   analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
   return uworker_msg_pb2.Output(
       analyze_task_output=analyze_task_output,
@@ -416,11 +420,12 @@ def utask_main(uworker_input):
       crash_time=crash_time)
 
 
-def test_for_reproducibility(testcase, testcase_file_path, state, test_timeout):
+def test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
+                             test_timeout):
   one_time_crasher_flag = not testcase_manager.test_for_reproducibility(
-      testcase.fuzzer_name, testcase.actual_fuzzer_name(), testcase_file_path,
-      state.crash_type, state.crash_state, testcase.security_flag, test_timeout,
-      testcase.http_flag, testcase.gestures)
+      fuzz_target, testcase_file_path, state.crash_type, state.crash_state,
+      testcase.security_flag, test_timeout, testcase.http_flag,
+      testcase.gestures)
   testcase.one_time_crasher_flag = one_time_crasher_flag
 
 

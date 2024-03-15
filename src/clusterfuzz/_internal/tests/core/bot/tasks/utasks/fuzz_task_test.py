@@ -498,8 +498,8 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context)
 
     self.assertTrue(group.should_create_testcase())
-    self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', 'test', self.context.test_timeout)
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
+                                                      self.context.test_timeout)
 
     self.assertIsNone(group.existing_testcase)
     self.assertEqual(self.crashes[0], group.main_crash)
@@ -514,8 +514,8 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', 'test', self.context.test_timeout)
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
+                                                      self.context.test_timeout)
     self.assertFalse(group.is_new())
     self.assertFalse(group.should_create_testcase())
     self.assertTrue(group.has_existing_reproducible_testcase())
@@ -528,8 +528,8 @@ class CrashGroupTest(unittest.TestCase):
     group = fuzz_task.CrashGroup(self.crashes, self.context)
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', 'test', self.context.test_timeout)
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
+                                                      self.context.test_timeout)
     self.assertFalse(group.is_new())
     self.assertTrue(group.should_create_testcase())
     self.assertFalse(group.has_existing_reproducible_testcase())
@@ -546,8 +546,8 @@ class CrashGroupTest(unittest.TestCase):
     self.assertFalse(group.should_create_testcase())
 
     self.assertEqual(self.crashes[0].gestures, group.main_crash.gestures)
-    self.mock.find_main_crash.assert_called_once_with(
-        self.crashes, 'test', 'test', self.context.test_timeout)
+    self.mock.find_main_crash.assert_called_once_with(self.crashes, 'test',
+                                                      self.context.test_timeout)
     self.assertFalse(group.is_new())
     self.assertFalse(group.has_existing_reproducible_testcase())
     self.assertTrue(group.one_time_crasher_flag)
@@ -559,6 +559,7 @@ class FindMainCrashTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.testcase_manager.test_for_reproducibility',
+        'clusterfuzz._internal.datastore.data_handler.get_fuzz_target',
     ])
     self.crashes = [
         self._make_crash('g1'),
@@ -569,8 +570,7 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = []
 
     # pylint: disable=unused-argument
-    def test_for_repro(fuzzer_name,
-                       full_fuzzer_name,
+    def test_for_repro(fuzz_target,
                        file_path,
                        crash_type,
                        state,
@@ -604,8 +604,7 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = [self.crashes[2]]
 
     self.assertEqual((self.crashes[2], False),
-                     fuzz_task.find_main_crash(self.crashes, 'test', 'test',
-                                               99))
+                     fuzz_task.find_main_crash(self.crashes, 'test', 99))
 
     self.crashes[0].archive_testcase_in_blobstore.assert_called_once_with()
     self.crashes[1].archive_testcase_in_blobstore.assert_called_once_with()
@@ -623,8 +622,7 @@ class FindMainCrashTest(unittest.TestCase):
     self.reproducible_crashes = []
 
     self.assertEqual((self.crashes[1], True),
-                     fuzz_task.find_main_crash(self.crashes, 'test', 'test',
-                                               99))
+                     fuzz_task.find_main_crash(self.crashes, 'test', 99))
 
     for c in self.crashes:
       c.archive_testcase_in_blobstore.assert_called_once_with()
@@ -639,9 +637,8 @@ class FindMainCrashTest(unittest.TestCase):
       c.is_valid.return_value = False
     self.reproducible_crashes = []
 
-    self.assertEqual((None, None),
-                     fuzz_task.find_main_crash(self.crashes, 'test', 'test',
-                                               99))
+    result = fuzz_task.find_main_crash(self.crashes, 'test', 99)
+    self.assertEqual((None, None), result)
 
     for c in self.crashes:
       c.archive_testcase_in_blobstore.assert_called_once_with()

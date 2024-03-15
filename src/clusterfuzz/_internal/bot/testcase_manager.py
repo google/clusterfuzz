@@ -22,6 +22,7 @@ import zlib
 
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
+from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.crash_analysis import crash_analyzer
 from clusterfuzz._internal.crash_analysis.crash_comparer import CrashComparer
@@ -806,8 +807,28 @@ def test_for_crash_with_retries(testcase,
     return CrashResult(return_code=0, crash_time=0, output='')
 
 
-def test_for_reproducibility(fuzzer_name,
-                             full_fuzzer_name,
+def get_fuzz_target_from_input(uworker_input):
+  if uworker_input and uworker_input.HasField('fuzz_target'):
+    return uworker_io.entity_from_protobuf(uworker_input.fuzz_target,
+                                           data_types.FuzzTarget)
+  return None
+
+
+def preprocess_testcase_manager(testcase, uworker_input):
+  """Preprocess function for users of test_for_reproducibility."""
+  # TODO(metzman): Make this work for test_for_crash_with_retries.
+  fuzz_target = testcase.get_fuzz_target()
+  engine_obj = engine.get(testcase.fuzzer_name)
+  if engine_obj and not fuzz_target:
+    raise TargetNotFoundError
+
+  if not fuzz_target:
+    return
+
+  uworker_input.fuzz_target.CopyFrom(uworker_io.entity_to_protobuf(fuzz_target))
+
+
+def test_for_reproducibility(fuzz_target,
                              testcase_path,
                              crash_type,
                              expected_state,
@@ -818,25 +839,17 @@ def test_for_reproducibility(fuzzer_name,
                              arguments=None) -> bool:
   """Test to see if a crash is fully reproducible or is a one-time crasher."""
   set_extra_sanitizers(crash_type)
-  try:
-    fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
-    if engine.get(fuzzer_name) and not fuzz_target:
-      raise TargetNotFoundError
+  runner = TestcaseRunner(
+      fuzz_target,
+      testcase_path,
+      test_timeout,
+      gestures,
+      http_flag,
+      arguments=arguments)
 
-    runner = TestcaseRunner(
-        fuzz_target,
-        testcase_path,
-        test_timeout,
-        gestures,
-        http_flag,
-        arguments=arguments)
-
-    crash_retries = environment.get_value('CRASH_RETRIES')
-    return runner.test_reproduce_reliability(crash_retries, expected_state,
-                                             expected_security_flag)
-  except TargetNotFoundError:
-    # If a target isn't found, treat it as not crashing.
-    return False
+  crash_retries = environment.get_value('CRASH_RETRIES')
+  return runner.test_reproduce_reliability(crash_retries, expected_state,
+                                           expected_security_flag)
 
 
 def prepare_log_for_upload(symbolized_output, return_code):
