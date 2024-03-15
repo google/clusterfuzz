@@ -807,29 +807,25 @@ def test_for_crash_with_retries(testcase,
     return CrashResult(return_code=0, crash_time=0, output='')
 
 
-def get_fuzz_target_from_input(testcase_manager_input):
-  if testcase_manager_input.HasField('fuzz_target'):
-    return uworker_io.entity_from_protobuf(testcase_manager_input.fuzz_target,
+def get_fuzz_target_from_input(uworker_input):
+  if uworker_input.HasField('fuzz_target'):
+    return uworker_io.entity_from_protobuf(uworker_input.fuzz_target,
                                            data_types.FuzzTarget)
   return None
 
 
-def preprocess_testcase_manager(testcase):
+def preprocess_testcase_manager(testcase, uworker_input):
   """Preprocess function for users of test_for_reproducibility."""
   # TODO(metzman): Make this work for test_for_crash_with_retries.
-  fuzzer_name = testcase.fuzzer_name
-  full_fuzzer_name = testcase.actual_fuzzer_name()
-  testcase_manager_input = uworker_msg_pb2.TestCaseManagerInput()
-  fuzz_target = data_handler.get_fuzz_target(full_fuzzer_name)
-  engine_obj = engine.get(fuzzer_name)
+  fuzz_target = testcase.get_fuzz_target()
+  engine_obj = engine.get(testcase.fuzzer_name)
   if engine_obj and not fuzz_target:
     raise TargetNotFoundError
 
   if not fuzz_target:
-    return testcase_manager_input
-  testcase_manager_input.fuzz_target.CopyFrom(
-      uworker_io.entity_to_protobuf(fuzz_target))
-  return testcase_manager_input
+    return
+
+  uworker_input.fuzz_target.CopyFrom(uworker_io.entity_to_protobuf(fuzz_target))
 
 
 def test_for_reproducibility(fuzz_target,

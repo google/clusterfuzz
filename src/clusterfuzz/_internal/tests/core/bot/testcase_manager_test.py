@@ -31,6 +31,7 @@ from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -852,8 +853,9 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
 
 def _get_fuzz_target_from_preprocess(testcase):
+  uworker_input = uworker_msg_pb2.Input()
   return testcase_manager.get_fuzz_target_from_input(
-      testcase_manager.preprocess_testcase_manager(testcase))
+      testcase_manager.preprocess_testcase_manager(testcase, uworker_input))
 
 
 class UntrustedEngineReproduceTest(
