@@ -530,8 +530,8 @@ class UntrustedRunnerIntegrationTest(
     data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus()
     data_bundle_corpus.data_bundle.CopyFrom(
         uworker_io.entity_to_protobuf(bundle))
-    self.assertTrue(setup.update_data_bundle(
-        returned_fuzzer, data_bundle_corpus))
+    self.assertTrue(
+        setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
         setup.get_data_bundle_directory('fuzzer'))
