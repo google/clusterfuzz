@@ -563,7 +563,8 @@ def preprocess_get_data_bundles(data_bundle_name, setup_input):
   logs.log(f'Data bundles: {data_bundles}')
   setup_input.data_bundle_corpuses.extend([
       corpus_manager.get_proto_data_bundle_corpus(bundle_entity)
-      for bundle_entity in data_bundles])
+      for bundle_entity in data_bundles
+  ])
 
 
 def preprocess_update_fuzzer_and_data_bundles(

@@ -171,27 +171,33 @@ class ClearOldDataBundlesIfNeededTest(fake_filesystem_unittest.TestCase):
 
 @test_utils.with_cloud_emulators('datastore')
 class PreprocessGetDataBundlesTest(unittest.TestCase):
+  """Tests for preprocess_get_data_bundles."""
+
   def setUp(self):
     self.setup_input = uworker_msg_pb2.SetupInput()
     helpers.patch_environ(self)
     environment.set_value('TASK_NAME', 'fuzz')
     environment.set_value('JOB_NAME', 'libfuzzer_chrome_asan')
 
-
   def test_no_bundles(self):
+    """Tests that preprocess_get_data_bundles works when there are no data
+    bundles."""
     setup.preprocess_get_data_bundles('fake', self.setup_input)
     self.assertEqual(list(self.setup_input.data_bundle_corpuses), [])
 
-
   def test_bundles(self):
+    """Tests that preprocess_get_data_bundles works when there are bundles."""
     bundles_name = 'mybundle'
-    bundles = [data_types.DataBundle(name=bundles_name),
-               data_types.DataBundle(name=bundles_name)]
+    bundles = [
+        data_types.DataBundle(name=bundles_name),
+        data_types.DataBundle(name=bundles_name)
+    ]
     for bundle in bundles:
       bundle.put()
     setup.preprocess_get_data_bundles(bundles_name, self.setup_input)
     saved_bundles = [
-        uworker_io.entity_from_protobuf(
-            corpus.data_bundle, data_types.DataBundle)
-        for corpus in self.setup_input.data_bundle_corpuses]
+        uworker_io.entity_from_protobuf(corpus.data_bundle,
+                                        data_types.DataBundle)
+        for corpus in self.setup_input.data_bundle_corpuses
+    ]
     self.assertEqual(bundles, saved_bundles)
