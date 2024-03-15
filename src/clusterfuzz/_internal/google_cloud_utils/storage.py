@@ -27,7 +27,6 @@ import uuid
 import google.auth.exceptions
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import OpenSSL.SSL
 import requests
 import requests.exceptions
 
@@ -49,6 +48,12 @@ try:
 except ImportError:
   # This is expected to fail on AppEngine.
   pass
+
+try:
+  import OpenSSL.SSL
+except ImportError:
+  # This is expected to fail on non-linux platforms.
+  OpenSSL = None  # pylint: disable=invalid-name
 
 # Usually, authentication time have expiry of ~30 minutes, but keeping this
 # values lower to avoid failures and any future changes.
@@ -91,8 +96,11 @@ _TRANSIENT_ERRORS = [
     requests.exceptions.ReadTimeout,
     ConnectionResetError,
     google.auth.exceptions.TransportError,
-    OpenSSL.SSL.Error,
 ]
+
+if OpenSSL:
+  # We haven't imported this on non-linux platforms.
+  _TRANSIENT_ERRORS.append(OpenSSL.SSL.Error)
 
 
 class StorageProvider:
