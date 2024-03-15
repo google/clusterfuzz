@@ -132,14 +132,19 @@ def utask_main(uworker_input):
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   revision = environment.get_value('APP_REVISION')
   fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
-  result = testcase_manager.test_for_crash_with_retries(
-      fuzz_target,
-      testcase,
-      testcase_file_path,
-      test_timeout,
-      http_flag=testcase.http_flag,
-      use_gestures=use_gestures,
-      compare_crash=False)
+  try:
+    result = testcase_manager.test_for_crash_with_retries(
+        fuzz_target,
+        testcase,
+        testcase_file_path,
+        test_timeout,
+        http_flag=testcase.http_flag,
+        use_gestures=use_gestures,
+        compare_crash=False)
+  except testcase_manager.TargetNotFoundError:
+    logs.log_warn('Could not find target in build, probably does not exist.')
+    return uworker_msg_pb2.Output(
+        error_type=uworker_msg_pb2.ErrorType.UNHANDLED)
 
   if result.is_crash() and not result.should_ignore():
     crash_state = result.get_state()
