@@ -517,6 +517,8 @@ class UntrustedRunnerIntegrationTest(
     fuzzer.blobstore_key = blobs.write_blob(__file__)
     fuzzer.put()
 
+    os.environ['TASK_NAME'] = 'fuzz'
+    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
     setup_input = setup.preprocess_update_fuzzer_and_data_bundles('fuzzer')
     bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == 'bundle').get()
