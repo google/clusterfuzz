@@ -25,7 +25,6 @@ message SetupInput {
   optional string fuzzer_download_url = 5;
   optional string testcase_download_url = 6;
   repeated string global_blacklisted_functions = 7;
-  repeated DataBundleCorpus data_bundle_corpuses = 8;
 }
 
 message AnalyzeTaskInput {
@@ -44,12 +43,6 @@ message FuzzTaskInput {
   optional google.datastore.v1.Entity fuzz_target = 4;
   optional FuzzTargetCorpus corpus = 5;
   repeated string global_blacklisted_functions = 6;
-}
-
-message DataBundleCorpus {
-  optional google.datastore.v1.Entity data_bundle = 1;
-  optional string gcs_url = 2;
-  repeated string corpus_urls = 3;
 }
 
 message FuzzTargetCorpus {
