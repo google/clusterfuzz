@@ -527,7 +527,8 @@ class UntrustedRunnerIntegrationTest(
     returned_fuzzer = uworker_io.entity_from_protobuf(setup_input.fuzzer,
                                                       data_types.Fuzzer)
 
-    data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus()
+    data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus(
+        gcs_url='gs://clusterfuzz-test-bundle')
     data_bundle_corpus.data_bundle.CopyFrom(
         uworker_io.entity_to_protobuf(bundle))
     self.assertTrue(
@@ -538,7 +539,8 @@ class UntrustedRunnerIntegrationTest(
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'a')))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'b')))
 
-    self.assertTrue(setup.update_data_bundle(returned_fuzzer, bundle))
+    self.assertTrue(
+        setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
 
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""
