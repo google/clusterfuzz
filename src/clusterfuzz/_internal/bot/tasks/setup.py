@@ -511,6 +511,7 @@ def update_data_bundle(
 
   # Update the testcase list file.
   testcase_manager.create_testcase_list_file(data_bundle_directory)
+  logs.log(f'Synced data bundle.')
 
   #  Write last synced time in the sync file.
   sync_file_path = _get_data_bundle_sync_file_path(data_bundle_directory)

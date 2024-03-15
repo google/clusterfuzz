@@ -405,6 +405,9 @@ def process_command_impl(task_name,
 
     # Update environment for the job.
     uworker_env = update_environment_for_job(environment_string)
+    uworker_env['TASK_NAME'] = task_name
+    uworker_env['TASK_ARGUMENT'] = task_argument
+    uworker_env['JOB_NAME'] = job_name
 
   # Match the cpu architecture with the ones required in the job definition.
   # If they don't match, then bail out and recreate task.
