@@ -405,6 +405,24 @@ def _set_regression_testcase_upload_url(
   if not fuzz_target:
     # No work to do, only applicable for engine fuzzers.
     return
+
+  if not testcase.trusted:
+    logs.log_warn('Not saving untrusted testcase to regression corpus.')
+    return
+
+  # We probably don't need these checks, but do them anyway since it is
+  # important not to mess this up.
+  if testcase.uploader_email:
+    logs.log_error(
+        'Not saving uploaded testcase to regression corpus (uploaded not set).')
+    return
+  upload_metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == testcase.key.id()).get()
+  if upload_metadata:
+    logs.log_error('Not saving uploaded testcase to regression corpus '
+                   '(uploaded and email not set).')
+    return
+
   progression_input.regression_testcase_url = (
       corpus_manager.get_regressions_signed_upload_url(
           fuzz_target.engine, fuzz_target.project_qualified_name()))
@@ -637,6 +655,9 @@ def find_fixed_range(uworker_input):
 
 def utask_main(uworker_input):
   """Executes the untrusted part of progression_task."""
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
+  uworker_io.check_handling_testcase_safe(testcase)
   return find_fixed_range(uworker_input)
 
 

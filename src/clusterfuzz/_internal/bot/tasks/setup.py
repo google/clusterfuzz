@@ -55,7 +55,7 @@ def _set_timeout_value_from_user_upload(testcase_id, uworker_env):
   metadata = data_types.TestcaseUploadMetadata.query(
       data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   if metadata and metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+    uworker_env['TEST_TIMEOUT'] = str(metadata.timeout)
 
 
 def _copy_testcase_to_device_and_setup_environment(testcase,
@@ -234,6 +234,9 @@ def preprocess_setup_testcase(testcase,
   else:
     setup_input = uworker_msg_pb2.SetupInput()
   setup_input.testcase_download_url = get_signed_testcase_download_url(testcase)
+  if environment.get_value('LSAN'):
+    setup_input.global_blacklisted_functions.extend(
+        leak_blacklist.get_global_blacklisted_functions())
   if testcase.uploader_email:
     _set_timeout_value_from_user_upload(testcase_id, uworker_env)
   return setup_input
@@ -286,10 +289,9 @@ def setup_testcase(testcase: data_types.Testcase, job_type: str,
     file_host.push_testcases_to_worker()
 
   # Copy global blacklist into local blacklist.
-  is_lsan_enabled = environment.get_value('LSAN')
-  if is_lsan_enabled:
-    # Get local blacklist without this testcase's entry.
-    leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
+  if setup_input.global_blacklisted_functions:
+    leak_blacklist.copy_global_to_local_blacklist(
+        setup_input.global_blacklisted_functions, excluded_testcase=testcase)
 
   task_name = environment.get_value('TASK_NAME')
   prepare_environment_for_testcase(testcase, job_type, task_name)
@@ -338,14 +340,8 @@ def _get_testcase_key_and_archive_status(testcase):
   """Returns the testcase's key and whether or not it is archived."""
   if _is_testcase_minimized(testcase):
     key = testcase.minimized_keys
-    # TODO(alhijazi): Remove this check once the issue with blob cleanup
-    # in minimize postprocess is resolved.
-    if storage.get(blobs.get_gcs_path(key)):
-      archived = bool(
-          testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
-      return key, archived
-    logs.log(f'blob key {key} does not exist in storage'
-             'for the minimized_task, will use the fuzzed_key.')
+    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
+    return key, archived
 
   key = testcase.fuzzed_keys
   archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)
