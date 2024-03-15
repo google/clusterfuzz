@@ -513,8 +513,7 @@ def update_data_bundle(
       result = result.return_code == 0
 
     if not result:
-      logs.log_error('Failed to sync data bundle %s: %s.' % (data_bundle.name,
-                                                             result.output))
+      logs.log_error(f'Failed to sync data bundle {data_bundle.name}.')
       return False
 
   # Update the testcase list file.
