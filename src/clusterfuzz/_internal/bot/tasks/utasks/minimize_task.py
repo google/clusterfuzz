@@ -388,7 +388,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # Update comments to reflect bot information.
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  uworker_input =uworker_msg_pb2.Input(
+  uworker_input = uworker_msg_pb2.Input(
       job_type=job_type,
       testcase_id=str(testcase_id),
       testcase=uworker_io.entity_to_protobuf(testcase),
