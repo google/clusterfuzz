@@ -808,7 +808,7 @@ def test_for_crash_with_retries(testcase,
 
 
 def get_fuzz_target_from_input(uworker_input):
-  if uworker_input.HasField('fuzz_target'):
+  if uworker_input and uworker_input.HasField('fuzz_target'):
     return uworker_io.entity_from_protobuf(uworker_input.fuzz_target,
                                            data_types.FuzzTarget)
   return None

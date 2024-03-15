@@ -854,8 +854,8 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
 
 def _get_fuzz_target_from_preprocess(testcase):
   uworker_input = uworker_msg_pb2.Input()
-  return testcase_manager.get_fuzz_target_from_input(
-      testcase_manager.preprocess_testcase_manager(testcase, uworker_input))
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return testcase_manager.get_fuzz_target_from_input(uworker_input)
 
 
 class UntrustedEngineReproduceTest(
