@@ -290,6 +290,7 @@ def setup_testcase(testcase: data_types.Testcase, job_type: str,
 
   # Copy global blacklist into local blacklist.
   if setup_input.global_blacklisted_functions:
+     # Get local blacklist without this testcase's entry.
     leak_blacklist.copy_global_to_local_blacklist(
         setup_input.global_blacklisted_functions, excluded_testcase=testcase)
 

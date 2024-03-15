@@ -422,7 +422,6 @@ def _set_regression_testcase_upload_url(
     logs.log_error('Not saving uploaded testcase to regression corpus '
                    '(uploaded and email not set).')
     return
-
   progression_input.regression_testcase_url = (
       corpus_manager.get_regressions_signed_upload_url(
           fuzz_target.engine, fuzz_target.project_qualified_name()))
