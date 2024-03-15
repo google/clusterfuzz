@@ -35,7 +35,6 @@ from clusterfuzz._internal.bot.untrusted_runner import symbolize_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.google_cloud_utils import blobs
-from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.system import process_handler
 from clusterfuzz._internal.system import shell
@@ -518,29 +517,20 @@ class UntrustedRunnerIntegrationTest(
     fuzzer.blobstore_key = blobs.write_blob(__file__)
     fuzzer.put()
 
-    os.environ['TASK_NAME'] = 'fuzz'
-    os.environ['JOB_NAME'] = 'libfuzzer_chrome_asan'
     setup_input = setup.preprocess_update_fuzzer_and_data_bundles('fuzzer')
     bundle = data_types.DataBundle.query(
         data_types.DataBundle.name == 'bundle').get()
 
     returned_fuzzer = uworker_io.entity_from_protobuf(setup_input.fuzzer,
                                                       data_types.Fuzzer)
-
-    data_bundle_corpus = uworker_msg_pb2.DataBundleCorpus(
-        gcs_url='gs://clusterfuzz-test-bundle')
-    data_bundle_corpus.data_bundle.CopyFrom(
-        uworker_io.entity_to_protobuf(bundle))
-    self.assertTrue(
-        setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
+    self.assertTrue(setup.update_data_bundle(returned_fuzzer, bundle))
 
     data_bundle_directory = file_host.rebase_to_worker_root(
         setup.get_data_bundle_directory('fuzzer'))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'a')))
     self.assertTrue(os.path.exists(os.path.join(data_bundle_directory, 'b')))
 
-    self.assertTrue(
-        setup.update_data_bundle(returned_fuzzer, data_bundle_corpus))
+    self.assertTrue(setup.update_data_bundle(returned_fuzzer, bundle))
 
   def test_get_fuzz_targets(self):
     """Test get_fuzz_targets."""
