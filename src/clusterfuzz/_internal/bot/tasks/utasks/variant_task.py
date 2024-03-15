@@ -72,7 +72,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # a different fuzzing engine.
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
-  setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
+  setup_input = setup.preprocess_setup_testcase(
+      testcase, uworker_env, with_deps=False)
   variant_input = uworker_msg_pb2.VariantTaskInput(
       original_job_type=original_job_type)
 
@@ -85,11 +86,6 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       setup_input=setup_input,
   )
   testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
-  testcase_upload_metadata = data_types.TestcaseUploadMetadata.query(
-      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
-  if testcase_upload_metadata:
-    uworker_input.testcase_upload_metadata.CopyFrom(
-        uworker_io.entity_to_protobuf(testcase_upload_metadata))
   return uworker_input
 
 
@@ -98,11 +94,6 @@ def utask_main(uworker_input):
   if the build can reproduce the error."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  testcase_upload_metadata = None
-  if uworker_input.HasField('testcase_upload_metadata'):
-    testcase_upload_metadata = uworker_io.entity_from_protobuf(
-        uworker_input.testcase_upload_metadata,
-        data_types.TestcaseUploadMetadata)
   if environment.is_engine_fuzzer_job(testcase.job_type):
     # Remove put() method to avoid updates. DO NOT REMOVE THIS.
     # Repeat this because the in-memory executor may allow puts.
@@ -111,10 +102,7 @@ def utask_main(uworker_input):
 
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(
-      testcase,
-      uworker_input.job_type,
-      uworker_input.setup_input,
-      metadata=testcase_upload_metadata)
+      testcase, uworker_input.job_type, uworker_input.setup_input)
   if error:
     return error
 

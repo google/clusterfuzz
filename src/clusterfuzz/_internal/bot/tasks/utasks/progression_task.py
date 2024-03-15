@@ -449,7 +449,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       blob_name=blob_name,
       stacktrace_upload_url=blob_upload_url)
   # Setup testcase and its dependencies.
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
   _set_regression_testcase_upload_url(progression_input, testcase)
   return uworker_msg_pb2.Input(

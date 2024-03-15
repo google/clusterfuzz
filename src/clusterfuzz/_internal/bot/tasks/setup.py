@@ -50,16 +50,12 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
-def _set_timeout_value_from_user_upload(testcase_id, metadata):
+def _set_timeout_value_from_user_upload(testcase_id, uworker_env):
   """Get the timeout associated with this testcase."""
-  if metadata is None:
-    # TODO(https://github.com/google/clusterfuzz/issues/3008): Get rid of this
-    # query once consolidation is complete.
-    metadata = data_types.TestcaseUploadMetadata.query(
-        data_types.TestcaseUploadMetadata.testcase_id == int(
-            testcase_id)).get()
+  metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
   if metadata and metadata.timeout:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+    uworker_env['TEST_TIMEOUT'] = str(metadata.timeout)
 
 
 def _copy_testcase_to_device_and_setup_environment(testcase,
@@ -206,7 +202,10 @@ ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 })
 
 
-def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
+def preprocess_setup_testcase(testcase,
+                              uworker_env,
+                              fuzzer_override=None,
+                              with_deps=True):
   """Preprocessing for setup_testcase function."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
@@ -238,14 +237,13 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
   if environment.get_value('LSAN'):
     setup_input.global_blacklisted_functions.extend(
         leak_blacklist.get_global_blacklisted_functions())
+  if testcase.uploader_email:
+    _set_timeout_value_from_user_upload(testcase_id, uworker_env)
   return setup_input
 
 
-def setup_testcase(
-    testcase: data_types.Testcase,
-    job_type: str,
-    setup_input: uworker_msg_pb2.SetupInput,
-    metadata: Optional[data_types.TestcaseUploadMetadata] = None):
+def setup_testcase(testcase: data_types.Testcase, job_type: str,
+                   setup_input: uworker_msg_pb2.SetupInput):
   """Sets up the testcase and needed dependencies like fuzzer, data bundle,
   etc."""
   testcase_id = testcase.key.id()
@@ -263,11 +261,6 @@ def setup_testcase(
 
   # Clear testcase directories.
   shell.clear_testcase_directories()
-
-  # Adjust the test timeout value if this is coming from an user uploaded
-  # testcase.
-  if testcase.uploader_email:
-    _set_timeout_value_from_user_upload(testcase_id, metadata)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if setup_input.fuzzer_name:

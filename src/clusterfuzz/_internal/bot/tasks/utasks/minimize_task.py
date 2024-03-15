@@ -376,7 +376,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # Allow setting up a different fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
   setup_input = setup.preprocess_setup_testcase(
-      testcase, fuzzer_override=minimize_fuzzer_override)
+      testcase, uworker_env, fuzzer_override=minimize_fuzzer_override)
 
   # TODO(metzman): This should be removed.
   if not environment.is_minimization_supported():

@@ -415,7 +415,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
   task_input = uworker_msg_pb2.RegressionTaskInput(
       bad_revisions=build_manager.get_job_bad_revisions())

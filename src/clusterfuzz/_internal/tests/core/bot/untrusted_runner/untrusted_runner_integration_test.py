@@ -426,7 +426,7 @@ class UntrustedRunnerIntegrationTest(
 
     testcase.put()
 
-    setup_input = setup.preprocess_setup_testcase(testcase)
+    setup_input = setup.preprocess_setup_testcase(testcase, {})
     file_list, testcase_file_path, error = setup.setup_testcase(
         testcase, job_type, setup_input)
 
