@@ -114,6 +114,7 @@ message Input {
   optional string module_name = 18;
   optional google.protobuf.Timestamp preprocess_start_time = 19;
   repeated string global_blacklisted_functions = 20;
+  optional google.datastore.v1.Entity fuzz_target = 21;
 }
 
 message VariantTaskInput {
@@ -150,7 +151,7 @@ message AnalyzeTaskOutput {
   optional string platform_id = 17;
 }
 
-message CrashInfo{
+message CrashInfo {
   optional bool is_new = 1;
   optional int64 count = 2;
   optional string crash_type = 3;

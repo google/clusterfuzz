@@ -31,6 +31,7 @@ from clusterfuzz._internal.bot.untrusted_runner import file_host
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.crash_analysis.crash_result import CrashResult
 from clusterfuzz._internal.datastore import data_types
+from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers as test_helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -729,9 +730,9 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
   def test_test_for_reproducibility_blackbox_succeed(self):
     """Test test_for_reproducibility with success on all runs (blackbox)."""
     self.mock.run_process.return_value = (1, 1, 'crash')
+    fuzz_target = _get_fuzz_target_from_preprocess(self.blackbox_testcase)
     result = testcase_manager.test_for_reproducibility(
-        'fuzzer',
-        'fuzzer',
+        fuzz_target,
         '/fuzz-testcase',
         'type',
         'state',
@@ -762,8 +763,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
         (1, 1, 'crash'),
     ]
     result = testcase_manager.test_for_reproducibility(
-        'fuzzer',
-        'fuzzer',
+        _get_fuzz_target_from_preprocess(self.blackbox_testcase),
         '/fuzz-testcase',
         'type',
         'state',
@@ -793,8 +793,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(
-        'engine',
-        'engine_target',
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         '/fuzz-testcase',
         'type',
         'state',
@@ -828,8 +827,7 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
     self.mock.get.return_value = mock_engine
 
     result = testcase_manager.test_for_reproducibility(
-        'engine',
-        'engine_target',
+        _get_fuzz_target_from_preprocess(self.greybox_testcase),
         '/fuzz-testcase',
         'type',
         'state',
@@ -852,6 +850,12 @@ class TestcaseRunningTest(fake_filesystem_unittest.TestCase):
             output=self.GREYBOX_FUZZER_CRASH),
         mock.call('Crash is reproducible.'),
     ])
+
+
+def _get_fuzz_target_from_preprocess(testcase):
+  uworker_input = uworker_msg_pb2.Input()
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return testcase_manager.get_fuzz_target_from_input(uworker_input)
 
 
 class UntrustedEngineReproduceTest(
