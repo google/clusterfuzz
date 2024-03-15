@@ -32,6 +32,7 @@ from clusterfuzz._internal.build_management import revisions
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.datastore import ndb_utils
+from clusterfuzz._internal.fuzzing import corpus_manager
 from clusterfuzz._internal.fuzzing import leak_blacklist
 from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import storage
@@ -434,35 +435,50 @@ def _clear_old_data_bundles_if_needed():
     shell.remove_directory(dir_to_remove)
 
 
-def update_data_bundle(fuzzer: data_types.Fuzzer,
-                       data_bundle: data_types.DataBundle) -> bool:
-  """Updates a data bundle to the latest version."""
-  # TODO(metzman): Migrate this functionality to utask.
-  logs.log('Setting up data bundle %s.' % data_bundle)
-  # This module can't be in the global imports due to appengine issues
-  # with multiprocessing and psutil imports.
-  from clusterfuzz._internal.google_cloud_utils import gsutil
-
-  data_bundle_directory = get_data_bundle_directory(fuzzer.name)
-  if not data_bundle_directory:
-    logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
-    return False
-
-  if not shell.create_directory(
-      data_bundle_directory, create_intermediates=True):
-    logs.log_error(
-        'Failed to create data bundle %s directory.' % data_bundle.name)
-    return False
-
+def _should_update_data_bundle(data_bundle, data_bundle_directory):
+  """Returns True if the data bundle should be updated because it is out of
+  date."""
   # Check if data bundle is up to date. If yes, skip the update.
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.log('Data bundle was recently synced, skip.')
-    return True
+    return False
 
   # Re-check if another bot did the sync already. If yes, skip.
   # TODO(metzman): Figure out if is this even needed without NFS?
   if _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
     logs.log('Another bot finished the sync, skip.')
+    return False
+
+  return True
+
+
+def _prepare_update_data_bundle(fuzzer, data_bundle):
+  """Create necessary directories to download the data bundle."""
+  data_bundle_directory = get_data_bundle_directory(fuzzer.name)
+  if not data_bundle_directory:
+    logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
+    return None
+
+  if not shell.create_directory(
+      data_bundle_directory, create_intermediates=True):
+    logs.log_error(
+        'Failed to create data bundle %s directory.' % data_bundle.name)
+    return None
+
+  return data_bundle_directory
+
+
+def update_data_bundle(
+    fuzzer: data_types.Fuzzer,
+    data_bundle_corpus: uworker_msg_pb2.DataBundleCorpus) -> bool:
+  """Updates a data bundle to the latest version."""
+  data_bundle = uworker_io.entity_from_protobuf(data_bundle_corpus.data_bundle,
+                                                data_types.DataBundle)
+  logs.log('Setting up data bundle %s.' % data_bundle)
+
+  data_bundle_directory = _prepare_update_data_bundle(fuzzer, data_bundle)
+
+  if not _should_update_data_bundle(data_bundle, data_bundle_directory):
     return True
 
   time_before_sync_start = time.time()
@@ -470,25 +486,27 @@ def update_data_bundle(fuzzer: data_types.Fuzzer,
   # No need to sync anything if this is a search index data bundle. In that
   # case, the fuzzer will generate testcases from a gcs bucket periodically.
   if not _is_search_index_data_bundle(data_bundle.name):
-    bucket_url = data_handler.get_data_bundle_bucket_url(data_bundle.name)
 
-    if environment.is_trusted_host() and data_bundle.sync_to_worker:
-      from clusterfuzz._internal.bot.untrusted_runner import corpus_manager
+    if not (environment.is_trusted_host() and data_bundle.sync_to_worker):
+      result = corpus_manager.sync_data_bundle_corpus_to_disk(
+          data_bundle_corpus, data_bundle_directory)
+    else:
+      from clusterfuzz._internal.bot.untrusted_runner import \
+          corpus_manager as untrusted_corpus_manager
       from clusterfuzz._internal.bot.untrusted_runner import file_host
       worker_data_bundle_directory = file_host.rebase_to_worker_root(
           data_bundle_directory)
 
       file_host.create_directory(
           worker_data_bundle_directory, create_intermediates=True)
-      result = corpus_manager.RemoteGSUtilRunner().rsync(
-          bucket_url, worker_data_bundle_directory, delete=False)
-    else:
-      result = gsutil.GSUtilRunner().rsync(
-          bucket_url, data_bundle_directory, delete=False)
+      result = untrusted_corpus_manager.RemoteGSUtilRunner().rsync(
+          data_bundle_corpus.gcs_url,
+          worker_data_bundle_directory,
+          delete=False)
+      result = result.return_code == 0
 
-    if result.return_code != 0:
-      logs.log_error('Failed to sync data bundle %s: %s.' % (data_bundle.name,
-                                                             result.output))
+    if not result:
+      logs.log_error(f'Failed to sync data bundle {data_bundle.name}.')
       return False
 
   # Update the testcase list file.
@@ -530,6 +548,17 @@ def _set_fuzzer_env_vars(fuzzer):
     environment.set_value('FUZZ_INPUTS', testcase_disk_directory)
 
 
+def preprocess_get_data_bundles(data_bundle_name, setup_input):
+  data_bundles = ndb_utils.get_all_from_query(
+      data_types.DataBundle.query(
+          data_types.DataBundle.name == data_bundle_name))
+  logs.log(f'Data bundles: {data_bundles}')
+  setup_input.data_bundle_corpuses.extend([
+      corpus_manager.get_proto_data_bundle_corpus(bundle_entity)
+      for bundle_entity in data_bundles
+  ])
+
+
 def preprocess_update_fuzzer_and_data_bundles(
     fuzzer_name: str) -> uworker_msg_pb2.SetupInput:
   """Does preprocessing for calls to update_fuzzer_and_data_bundles in
@@ -539,20 +568,9 @@ def preprocess_update_fuzzer_and_data_bundles(
     logs.log_error('No fuzzer exists with name %s.' % fuzzer_name)
     raise errors.InvalidFuzzerError
 
-  data_bundles = list(
-      ndb_utils.get_all_from_query(
-          data_types.DataBundle.query(
-              data_types.DataBundle.name == fuzzer.data_bundle_name)))
-  logs.log('Data bundles: %s' % data_bundles)
-
-  data_bundle_protos = [
-      uworker_io.entity_to_protobuf(data_bundle) for data_bundle in data_bundles
-  ]
   update_input = uworker_msg_pb2.SetupInput(
-      fuzzer_name=fuzzer_name,
-      data_bundles=data_bundle_protos,
-      fuzzer=uworker_io.entity_to_protobuf(fuzzer))
-
+      fuzzer_name=fuzzer_name, fuzzer=uworker_io.entity_to_protobuf(fuzzer))
+  preprocess_get_data_bundles(fuzzer.data_bundle_name, update_input)
   update_input.fuzzer_log_upload_url = storage.get_signed_upload_url(
       fuzzer_logs.get_logs_gcs_path(fuzzer_name=fuzzer_name))
   if not fuzzer.builtin:
@@ -631,12 +649,10 @@ def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):
   """Sets up data bundles. Helper for update_fuzzer_and_data_bundles."""
   # Setup data bundles associated with this fuzzer.
   logs.log('Setting up data bundles.')
+  fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
+                                           data_types.Fuzzer)
   for data_bundle_proto in update_input.data_bundles:
-    data_bundle = uworker_io.entity_from_protobuf(data_bundle_proto,
-                                                  data_types.DataBundle)
-    fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
-                                             data_types.Fuzzer)
-    if not update_data_bundle(fuzzer, data_bundle):
+    if not update_data_bundle(fuzzer, data_bundle_proto):
       return False
 
   return True

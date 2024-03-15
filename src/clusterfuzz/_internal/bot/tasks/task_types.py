@@ -82,6 +82,14 @@ def is_remote_utask(command, job):
   return batch.is_remote_task(command, job)
 
 
+def task_main_runs_on_uworker():
+  """This returns True if the uworker_main portion of this task is
+  unprivileged."""
+  command = environment.get_value('TASK_NAME')
+  job = environment.get_value('JOB_NAME')
+  return is_remote_utask(command, job)
+
+
 class UTaskLocalExecutor(BaseUTask):
   """Represents an untrusted task. Executes it entirely locally and in
   memory."""
