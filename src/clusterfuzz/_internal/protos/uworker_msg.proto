@@ -39,6 +39,7 @@ message FuzzTaskInput {
   optional string sample_testcase_upload_key = 1;
   optional string sample_testcase_upload_url = 2;
   optional string script_log_upload_url = 3;
+  // TODO(metzman): Merge this with input's fuzz_target.
   optional google.datastore.v1.Entity fuzz_target = 4;
   optional FuzzTargetCorpus corpus = 5;
   repeated string global_blacklisted_functions = 6;
@@ -84,6 +85,7 @@ message CrossPollinateFuzzerProto{
 }
 
 message CorpusPruningTaskInput {
+  // TODO(metzman): Merge this with Input's fuzz_target.
   optional google.datastore.v1.Entity fuzz_target = 1;
   optional bool last_execution_failed = 2;
   repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;

@@ -106,6 +106,7 @@ def _testcase_reproduces_in_revision(
     job_type: str,
     revision: int,
     regression_task_output: uworker_msg_pb2.RegressionTaskOutput,
+    fuzz_target: Optional[data_types.FuzzTarget],
     should_log: bool = True,
     min_revision: Optional[int] = None,
     max_revision: Optional[int] = None):
@@ -137,14 +138,23 @@ def _testcase_reproduces_in_revision(
 
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   result = testcase_manager.test_for_crash_with_retries(
-      testcase, testcase_file_path, test_timeout, http_flag=testcase.http_flag)
+      fuzz_target,
+      testcase,
+      testcase_file_path,
+      test_timeout,
+      http_flag=testcase.http_flag)
   return result.is_crash(), None
 
 
 def found_regression_near_extreme_revisions(
-    testcase: data_types.Testcase, testcase_file_path: str, job_type: str,
-    revision_list: List[int], min_index: int, max_index: int,
-    regression_task_output: uworker_msg_pb2.RegressionTaskOutput
+    testcase: data_types.Testcase,
+    testcase_file_path: str,
+    job_type: str,
+    revision_list: List[int],
+    min_index: int,
+    max_index: int,
+    fuzz_target: Optional[data_types.FuzzTarget],
+    regression_task_output: uworker_msg_pb2.RegressionTaskOutput,
 ) -> Optional[uworker_msg_pb2.Output]:
   """Test to see if we regressed near either the min or max revision.
   Returns a uworker_msg_pb2.Output or None.
@@ -163,7 +173,7 @@ def found_regression_near_extreme_revisions(
     # commits between the current revision and the one at the next index.
     is_crash, error = _testcase_reproduces_in_revision(
         testcase, testcase_file_path, job_type, revision_list[current_index],
-        regression_task_output)
+        regression_task_output, fuzz_target)
 
     if error:
       # Skip this revision only on bad build errors.
@@ -193,6 +203,7 @@ def found_regression_near_extreme_revisions(
         job_type,
         min_revision,
         regression_task_output,
+        fuzz_target,
         should_log=False)
     if error:
       if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:
@@ -223,9 +234,13 @@ def found_regression_near_extreme_revisions(
 
 
 def validate_regression_range(
-    testcase: data_types.Testcase, testcase_file_path: str, job_type: str,
-    revision_list: List[int], min_index: int,
-    regression_task_output: uworker_msg_pb2.RegressionTaskOutput
+    testcase: data_types.Testcase,
+    testcase_file_path: str,
+    job_type: str,
+    revision_list: List[int],
+    min_index: int,
+    regression_task_output: uworker_msg_pb2.RegressionTaskOutput,
+    fuzz_target: Optional[data_types.FuzzTarget],
 ) -> Optional[uworker_msg_pb2.Output]:
   """Ensure that we found the correct min revision by testing earlier ones.
   Returns a uworker_msg_pb2.Output in case of error or crash, None otherwise."""
@@ -237,7 +252,7 @@ def validate_regression_range(
   for revision in revisions_to_test:
     is_crash, error = _testcase_reproduces_in_revision(
         testcase, testcase_file_path, job_type, revision,
-        regression_task_output)
+        regression_task_output, fuzz_target)
     if error:
       if error.error_type == uworker_msg_pb2.REGRESSION_BAD_BUILD_ERROR:
         continue
@@ -263,6 +278,8 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
   job_type = uworker_input.job_type
 
   deadline = tasks.get_task_completion_deadline()
+
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
 
   # Setup testcase and its dependencies.
   _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
@@ -312,6 +329,7 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
       job_type,
       max_revision,
       regression_task_output,
+      fuzz_target,
       should_log=False)
   if error:
     return error
@@ -330,7 +348,7 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
   if first_run:
     result = found_regression_near_extreme_revisions(
         testcase, testcase_file_path, job_type, revision_list, min_index,
-        max_index, regression_task_output)
+        max_index, fuzz_target, regression_task_output)
     if result:
       return result
 
@@ -344,7 +362,7 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
       # Verify that the regression range seems correct, and save it if so.
       error = validate_regression_range(testcase, testcase_file_path, job_type,
                                         revision_list, min_index,
-                                        regression_task_output)
+                                        regression_task_output, fuzz_target)
       if error:
         return error
       regression_task_output.regression_range_start = min_revision
@@ -361,6 +379,7 @@ def find_regression_range(uworker_input: uworker_msg_pb2.Input,
         job_type,
         middle_revision,
         regression_task_output,
+        fuzz_target,
         min_revision=min_revision,
         max_revision=max_revision)
     if error:
@@ -420,7 +439,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
   task_input = uworker_msg_pb2.RegressionTaskInput(
       bad_revisions=build_manager.get_job_bad_revisions())
 
-  return uworker_msg_pb2.Input(
+  uworker_input = uworker_msg_pb2.Input(
       testcase_id=testcase_id,
       testcase=uworker_io.entity_to_protobuf(testcase),
       job_type=job_type,
@@ -428,6 +447,8 @@ def utask_preprocess(testcase_id: str, job_type: str,
       setup_input=setup_input,
       regression_task_input=task_input,
   )
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return uworker_input
 
 
 def utask_main(uworker_input: uworker_msg_pb2.Input,

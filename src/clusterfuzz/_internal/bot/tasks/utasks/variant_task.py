@@ -131,7 +131,9 @@ def utask_main(uworker_input):
       testcase_file_path, app_path=app_path, needs_http=testcase.http_flag)
   test_timeout = environment.get_value('TEST_TIMEOUT', 10)
   revision = environment.get_value('APP_REVISION')
+  fuzz_target = testcase_manager.get_fuzz_target_from_input(uworker_input)
   result = testcase_manager.test_for_crash_with_retries(
+      fuzz_target,
       testcase,
       testcase_file_path,
       test_timeout,
