@@ -206,6 +206,7 @@ class PreprocessGetDataBundlesTest(unittest.TestCase):
 @test_utils.with_cloud_emulators('datastore')
 class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
   """Tests for preprocess_update_fuzzer_and_data_bundles."""
+
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.google_cloud_utils.storage.get_signed_upload_url',
@@ -222,6 +223,7 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
     data_types.Fuzzer(
         name=self.fuzzer_name, data_bundle_name=data_bundle_name).put()
     self.data_bundle = data_types.DataBundle(name=data_bundle_name)
+    self.data_bundle.put()
     data_types.DataBundle(name=data_bundle_name).put()
     helpers.patch_environ(self)
     environment.set_value('FUZZERS_DIR', '/fuzzer')
@@ -231,6 +233,5 @@ class TestPreprocessUpdateFuzzerAndDataBundles(unittest.TestCase):
     self.mock.is_remote_utask.return_value = False
     setup_input = setup.preprocess_update_fuzzer_and_data_bundles(
         self.fuzzer_name)
-    bundles = list(setup_input.data_bundles)
     setup.update_fuzzer_and_data_bundles(setup_input)
-    self.assertEqual(update_data_bundle.call_count, 2)
+    self.assertEqual(self.mock.update_data_bundle.call_count, 2)

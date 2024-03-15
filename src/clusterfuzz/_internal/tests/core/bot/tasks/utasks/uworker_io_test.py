@@ -258,18 +258,22 @@ class RoundTripTest(unittest.TestCase):
     bundle2 = data_types.DataBundle(name='name2')
     bundle1.put()
     bundle2.put()
-    data_bundles = [
-        uworker_io.entity_to_protobuf(bundle1),
-        uworker_io.entity_to_protobuf(bundle2),
+    data_bundle_corpuses = [
+        uworker_msg_pb2.DataBundleCorpus(
+            data_bundle=uworker_io.entity_to_protobuf(bundle1)),
+        uworker_msg_pb2.DataBundleCorpus(
+            data_bundle=uworker_io.entity_to_protobuf(bundle2)),
     ]
-    setup_input = uworker_msg_pb2.SetupInput(data_bundles=data_bundles)
+    setup_input = uworker_msg_pb2.SetupInput(
+        data_bundle_corpuses=data_bundle_corpuses)
     uworker_input = uworker_msg_pb2.Input(setup_input=setup_input)
     serialized = uworker_io.serialize_uworker_input(uworker_input)
     deserialized = uworker_io.deserialize_uworker_input(serialized)
     setup_input = deserialized.setup_input
     deserialized_data_bundles = [
-        uworker_io.entity_from_protobuf(bundle, data_types.DataBundle)
-        for bundle in setup_input.data_bundles
+        uworker_io.entity_from_protobuf(bundle.data_bundle,
+                                        data_types.DataBundle)
+        for bundle in setup_input.data_bundle_corpuses
     ]
     self.assertEqual(deserialized_data_bundles[0].name, bundle1.name)
     self.assertEqual(deserialized_data_bundles[1].name, bundle2.name)
