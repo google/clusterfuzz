@@ -342,7 +342,8 @@ def run():
     shell.clear_data_directories_on_low_disk_space()
 
     # Download new layout tests once per day.
-    update_tests_if_needed()
+    if not environment.is_uworker():
+      update_tests_if_needed()
   except Exception:
     logs.log_error('Error occurred while running update task.')
 
