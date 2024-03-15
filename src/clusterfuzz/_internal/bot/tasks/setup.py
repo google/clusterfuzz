@@ -50,6 +50,14 @@ _SYNC_FILENAME = '.sync'
 _TESTCASE_ARCHIVE_EXTENSION = '.zip'
 
 
+def _set_timeout_value_from_user_upload(testcase_id, uworker_env):
+  """Get the timeout associated with this testcase."""
+  metadata = data_types.TestcaseUploadMetadata.query(
+      data_types.TestcaseUploadMetadata.testcase_id == int(testcase_id)).get()
+  if metadata and metadata.timeout:
+    environment.set_value('TEST_TIMEOUT', metadata.timeout)
+
+
 def _copy_testcase_to_device_and_setup_environment(testcase,
                                                    testcase_file_path):
   """Android specific setup steps for testcase."""
@@ -194,7 +202,10 @@ ERROR_HANDLER = uworker_handle_errors.CompositeErrorHandler({
 })
 
 
-def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
+def preprocess_setup_testcase(testcase,
+                              uworker_env,
+                              fuzzer_override=None,
+                              with_deps=True):
   """Preprocessing for setup_testcase function."""
   fuzzer_name = fuzzer_override or testcase.fuzzer_name
   testcase_id = testcase.key.id()
@@ -223,17 +234,13 @@ def preprocess_setup_testcase(testcase, fuzzer_override=None, with_deps=True):
   else:
     setup_input = uworker_msg_pb2.SetupInput()
   setup_input.testcase_download_url = get_signed_testcase_download_url(testcase)
-  if environment.get_value('LSAN'):
-    setup_input.global_blacklisted_functions.extend(
-        leak_blacklist.get_global_blacklisted_functions())
+  if testcase.uploader_email:
+    _set_timeout_value_from_user_upload(testcase_id, uworker_env)
   return setup_input
 
 
-def setup_testcase(
-    testcase: data_types.Testcase,
-    job_type: str,
-    setup_input: uworker_msg_pb2.SetupInput,
-    metadata: Optional[data_types.TestcaseUploadMetadata] = None):
+def setup_testcase(testcase: data_types.Testcase, job_type: str,
+                   setup_input: uworker_msg_pb2.SetupInput):
   """Sets up the testcase and needed dependencies like fuzzer, data bundle,
   etc."""
   testcase_id = testcase.key.id()
@@ -251,11 +258,6 @@ def setup_testcase(
 
   # Clear testcase directories.
   shell.clear_testcase_directories()
-
-  # Adjust the test timeout value if this is coming from an user uploaded
-  # testcase.
-  if testcase.uploader_email:
-    environment.set_value('TEST_TIMEOUT', metadata.timeout)
 
   # Update the fuzzer if necessary in order to get the updated data bundle.
   if setup_input.fuzzer_name:
@@ -284,10 +286,10 @@ def setup_testcase(
     file_host.push_testcases_to_worker()
 
   # Copy global blacklist into local blacklist.
-  if setup_input.global_blacklisted_functions:
+  is_lsan_enabled = environment.get_value('LSAN')
+  if is_lsan_enabled:
     # Get local blacklist without this testcase's entry.
-    leak_blacklist.copy_global_to_local_blacklist(
-        setup_input.global_blacklisted_functions, excluded_testcase=testcase)
+    leak_blacklist.copy_global_to_local_blacklist(excluded_testcase=testcase)
 
   task_name = environment.get_value('TASK_NAME')
   prepare_environment_for_testcase(testcase, job_type, task_name)
@@ -336,8 +338,14 @@ def _get_testcase_key_and_archive_status(testcase):
   """Returns the testcase's key and whether or not it is archived."""
   if _is_testcase_minimized(testcase):
     key = testcase.minimized_keys
-    archived = bool(testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
-    return key, archived
+    # TODO(alhijazi): Remove this check once the issue with blob cleanup
+    # in minimize postprocess is resolved.
+    if storage.get(blobs.get_gcs_path(key)):
+      archived = bool(
+          testcase.archive_state & data_types.ArchiveStatus.MINIMIZED)
+      return key, archived
+    logs.log(f'blob key {key} does not exist in storage'
+             'for the minimized_task, will use the fuzzed_key.')
 
   key = testcase.fuzzed_keys
   archived = bool(testcase.archive_state & data_types.ArchiveStatus.FUZZED)

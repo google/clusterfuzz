@@ -60,7 +60,6 @@ def _get_variant_testcase_for_job(testcase, job_type):
 def utask_preprocess(testcase_id, job_type, uworker_env):
   """Run a test case with a different job type to see if they reproduce."""
   testcase = data_handler.get_testcase_by_id(testcase_id)
-  uworker_io.check_handling_testcase_safe(testcase)
 
   if (environment.is_engine_fuzzer_job(testcase.job_type) !=
       environment.is_engine_fuzzer_job(job_type)):
@@ -72,7 +71,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # a different fuzzing engine.
   original_job_type = testcase.job_type
   testcase = _get_variant_testcase_for_job(testcase, job_type)
-  setup_input = setup.preprocess_setup_testcase(testcase, with_deps=False)
+  setup_input = setup.preprocess_setup_testcase(
+      testcase, uworker_env, with_deps=False)
   variant_input = uworker_msg_pb2.VariantTaskInput(
       original_job_type=original_job_type)
 

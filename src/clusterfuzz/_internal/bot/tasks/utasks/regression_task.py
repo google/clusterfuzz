@@ -415,7 +415,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
 
   data_handler.update_testcase_comment(testcase, data_types.TaskState.STARTED)
 
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
 
   task_input = uworker_msg_pb2.RegressionTaskInput(
       bad_revisions=build_manager.get_job_bad_revisions())
@@ -436,9 +436,6 @@ def utask_main(uworker_input: uworker_msg_pb2.Input,
 
   Runs on an untrusted worker.
   """
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
-                                             data_types.Testcase)
-  uworker_io.check_handling_testcase_safe(testcase)
   return find_regression_range(uworker_input)
 
 

@@ -129,13 +129,13 @@ def prepare_env_for_main(testcase_upload_metadata):
 
 
 def setup_testcase_and_build(
-    testcase, testcase_upload_metadata, job_type, setup_input,
+    testcase, job_type, setup_input,
     bad_revisions) -> (Optional[str], Optional[uworker_msg_pb2.Output]):
   """Sets up the |testcase| and builds. Returns the path to the testcase on
   success, None on error."""
   # Set up testcase and get absolute testcase path.
-  _, testcase_file_path, error = setup.setup_testcase(
-      testcase, job_type, setup_input, metadata=testcase_upload_metadata)
+  _, testcase_file_path, error = setup.setup_testcase(testcase, job_type,
+                                                      setup_input)
   if error:
     return None, error
 
@@ -296,7 +296,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
 
   initialize_testcase_for_main(testcase, job_type)
 
-  setup_input = setup.preprocess_setup_testcase(testcase)
+  setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
   analyze_task_input = get_analyze_task_input()
   return uworker_msg_pb2.Input(
       testcase_upload_metadata=uworker_io.entity_to_protobuf(
@@ -338,11 +338,10 @@ def _build_task_output(
 
 def utask_main(uworker_input):
   """Executes the untrusted part of analyze_task."""
-  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
-                                             data_types.Testcase)
-  uworker_io.check_handling_testcase_safe(testcase)
   testcase_upload_metadata = uworker_io.entity_from_protobuf(
       uworker_input.testcase_upload_metadata, data_types.TestcaseUploadMetadata)
+  testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
+                                             data_types.Testcase)
   prepare_env_for_main(testcase_upload_metadata)
 
   is_lsan_enabled = environment.get_value('LSAN')
@@ -351,8 +350,8 @@ def utask_main(uworker_input):
     leak_blacklist.create_empty_local_blacklist()
 
   testcase_file_path, output = setup_testcase_and_build(
-      testcase, testcase_upload_metadata, uworker_input.job_type,
-      uworker_input.setup_input, uworker_input.analyze_task_input.bad_revisions)
+      testcase, uworker_input.job_type, uworker_input.setup_input,
+      uworker_input.analyze_task_input.bad_revisions)
   testcase.crash_revision = environment.get_value('APP_REVISION')
 
   if not testcase_file_path:

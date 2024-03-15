@@ -376,7 +376,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
   # Allow setting up a different fuzzer.
   minimize_fuzzer_override = environment.get_value('MINIMIZE_FUZZER_OVERRIDE')
   setup_input = setup.preprocess_setup_testcase(
-      testcase, fuzzer_override=minimize_fuzzer_override)
+      testcase, uworker_env, fuzzer_override=minimize_fuzzer_override)
 
   # TODO(metzman): This should be removed.
   if not environment.is_minimization_supported():
@@ -400,7 +400,6 @@ def utask_main(uworker_input: uworker_msg_pb2.Input):
   """Attempt to minimize a given testcase."""
   testcase = uworker_io.entity_from_protobuf(uworker_input.testcase,
                                              data_types.Testcase)
-  uworker_io.check_handling_testcase_safe(testcase)
   minimize_task_input = uworker_input.minimize_task_input
   # Setup testcase and its dependencies.
   file_list, testcase_file_path, uworker_error_output = setup.setup_testcase(
@@ -634,8 +633,8 @@ def _cleanup_unused_blobs_from_storage(output: uworker_msg_pb2.Output):
   delete_stacktrace_blob = True
 
   if output.HasField('minimize_task_output'):
-    # If minimized_keys was set, we should not cleanup the corresponding blob.
-    if output.minimize_task_output.HasField("minimized_keys"):
+    testcase_blob_key = output.minimize_task_output.minimized_keys
+    if testcase_blob_key.startswith(data_types.BLOBSTORE_STACK_PREFIX):
       delete_testcase_blob = False
 
     stacktrace_blob_key = output.minimize_task_output.last_crash_result_dict[
@@ -827,7 +826,8 @@ def finalize_testcase(testcase_id, last_crash_result_dict, flaky_stack=False):
 def utask_postprocess(output):
   """Postprocess in a trusted bot."""
   update_testcase(output)
-  _cleanup_unused_blobs_from_storage(output)
+  # TODO(alihijazi): Reenable this once it stops causing errors.
+  # _cleanup_unused_blobs_from_storage(output)
   if output.error_type != uworker_msg_pb2.ErrorType.NO_ERROR:
     _ERROR_HANDLER.handle(output)
     return
