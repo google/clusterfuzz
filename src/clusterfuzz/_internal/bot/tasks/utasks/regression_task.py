@@ -439,7 +439,7 @@ def utask_preprocess(testcase_id: str, job_type: str,
   task_input = uworker_msg_pb2.RegressionTaskInput(
       bad_revisions=build_manager.get_job_bad_revisions())
 
-  return uworker_msg_pb2.Input(
+  uworker_input = uworker_msg_pb2.Input(
       testcase_id=testcase_id,
       testcase=uworker_io.entity_to_protobuf(testcase),
       job_type=job_type,
@@ -447,6 +447,8 @@ def utask_preprocess(testcase_id: str, job_type: str,
       setup_input=setup_input,
       regression_task_input=task_input,
   )
+  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  return uworker_input
 
 
 def utask_main(uworker_input: uworker_msg_pb2.Input,
