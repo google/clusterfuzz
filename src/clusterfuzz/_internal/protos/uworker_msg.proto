@@ -20,7 +20,6 @@ import "google/protobuf/timestamp.proto";
 message SetupInput {
   optional google.datastore.v1.Entity fuzzer = 1;
   optional string fuzzer_name = 2;
-  repeated google.datastore.v1.Entity data_bundles = 3;
   optional string fuzzer_log_upload_url = 4;
   optional string fuzzer_download_url = 5;
   optional string testcase_download_url = 6;

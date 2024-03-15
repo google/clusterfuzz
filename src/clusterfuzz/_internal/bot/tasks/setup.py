@@ -549,9 +549,10 @@ def _set_fuzzer_env_vars(fuzzer):
 
 
 def preprocess_get_data_bundles(data_bundle_name, setup_input):
-  data_bundles = ndb_utils.get_all_from_query(
-      data_types.DataBundle.query(
-          data_types.DataBundle.name == data_bundle_name))
+  data_bundles = list(
+      ndb_utils.get_all_from_query(
+          data_types.DataBundle.query(
+              data_types.DataBundle.name == data_bundle_name)))
   logs.log(f'Data bundles: {data_bundles}')
   setup_input.data_bundle_corpuses.extend([
       corpus_manager.get_proto_data_bundle_corpus(bundle_entity)
@@ -651,8 +652,8 @@ def _set_up_data_bundles(update_input: uworker_msg_pb2.SetupInput):
   logs.log('Setting up data bundles.')
   fuzzer = uworker_io.entity_from_protobuf(update_input.fuzzer,
                                            data_types.Fuzzer)
-  for data_bundle_proto in update_input.data_bundles:
-    if not update_data_bundle(fuzzer, data_bundle_proto):
+  for data_bundle_corpus in update_input.data_bundle_corpuses:
+    if not update_data_bundle(fuzzer, data_bundle_corpus):
       return False
 
   return True
