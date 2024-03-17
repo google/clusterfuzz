@@ -258,7 +258,7 @@ def process_command_impl(task_name,
                          high_end,
                          is_command_override,
                          preprocess=False):
-  """Implmentation of process_command."""
+  """Implementation of process_command."""
   uworker_env = None
   environment.set_value('TASK_NAME', task_name)
   environment.set_value('TASK_ARGUMENT', task_argument)

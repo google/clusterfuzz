@@ -427,7 +427,11 @@ class UntrustedRunnerIntegrationTest(
 
     testcase.put()
 
-    setup_input = setup.preprocess_setup_testcase(testcase, {})
+    uworker_env = {
+        'TASK_NAME': 'progression',
+        'JOB_NAME': 'libfuzzer_chrome_asan'
+    }
+    setup_input = setup.preprocess_setup_testcase(testcase, uworker_env)
     file_list, testcase_file_path, error = setup.setup_testcase(
         testcase, job_type, setup_input)
 

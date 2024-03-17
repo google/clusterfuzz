@@ -202,7 +202,10 @@ class MinimizeTaskTestUntrusted(
     environment.set_value('LIBFUZZER_MINIMIZATION_ROUNDS', 3)
     environment.set_value('UBSAN_OPTIONS',
                           'unneeded_option=1:silence_unsigned_overflow=1')
-    uworker_env = {}
+    uworker_env = {
+        'JOB_NAME': 'libfuzzer_chrome_asan',
+        'TASK_NAME': 'progression'
+    }
     uworker_input = minimize_task.utask_preprocess(
         str(testcase.key.id()), 'libfuzzer_asan_job', uworker_env)
     output = minimize_task.utask_main(uworker_input)
