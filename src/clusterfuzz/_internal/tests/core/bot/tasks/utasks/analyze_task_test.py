@@ -175,6 +175,8 @@ class AnalyzeTaskIntegrationTest(utask_helpers.UtaskIntegrationTest):
     helpers.patch(self, [
         'clusterfuzz._internal.base.tasks.add_task',
     ])
+    self.uworker_env['TASK_NAME'] = 'analyze'
+    self.uworker_env['JOB_NAME'] = 'libfuzzer_chrome_asan'
 
   def test_analyze_reproducible(self):
     """Tests that analyze_task handles reproducible testcases properly."""
