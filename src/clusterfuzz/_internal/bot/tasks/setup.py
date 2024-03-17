@@ -167,13 +167,6 @@ def prepare_environment_for_testcase(testcase, job_type, task_name):
   if fuzz_target:
     environment.set_value('FUZZ_TARGET', fuzz_target)
 
-  # Override APP_ARGS with minimized arguments (if available). Don't do this
-  # for variant task since other job types can have its own set of required
-  # arguments, so use the full set of arguments of that job.
-  app_args = _get_application_arguments(testcase, job_type, task_name)
-  if app_args:
-    environment.set_value('APP_ARGS', app_args)
-
 
 def handle_setup_testcase_error(uworker_output: uworker_msg_pb2.Output):
   """Error handler for setup_testcase that is called by uworker_postprocess."""
@@ -240,6 +233,13 @@ def preprocess_setup_testcase(testcase,
         leak_blacklist.get_global_blacklisted_functions())
   if testcase.uploader_email:
     _set_timeout_value_from_user_upload(testcase_id, uworker_env)
+
+  # Override APP_ARGS with minimized arguments (if available). Don't do this
+  # for variant task since other job types can have its own set of required
+  # arguments, so use the full set of arguments of that job.
+  app_args = _get_application_arguments(testcase, uworker_env['JOB_NAME'], task_name)
+  if app_args:
+    environment.set_value('APP_ARGS', app_args, uworker_env)
   return setup_input
 
 
