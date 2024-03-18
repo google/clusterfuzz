@@ -31,7 +31,7 @@ class UnpackTest(unittest.TestCase):
     tgz_path = os.path.join(TESTDATA_PATH, 'cwd-prefix.tgz')
     output_directory = tempfile.mkdtemp(prefix='cwd-prefix')
     with archive.open(tgz_path) as reader:
-      reader.extract_all(output_directory, trusted=False)
+      archive.unpack(reader, output_directory, trusted=False)
 
     test_file_path = os.path.join(output_directory, 'test')
     self.assertTrue(os.path.exists(test_file_path))
