@@ -1949,10 +1949,11 @@ class FuzzingSession:
         fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
         fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
         fuzz_task_output.testcases_executed, crash_groups)
-    uworker_input = uworker_output.uworker_input
 
-    if environment.is_engine_fuzzer_job():
+    if not environment.is_engine_fuzzer_job():
       return
+
+    uworker_input = uworker_output.uworker_input
     targets_count = ndb.Key(data_types.FuzzTargetsCount, self.job_type).get()
     if not fuzz_task_output.fuzz_targets:
       new_targets_count = 0
