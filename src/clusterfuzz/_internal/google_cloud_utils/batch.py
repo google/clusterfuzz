@@ -57,7 +57,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
 ])
 
-_UNPRIVILEGED_TASKS = {'analyze', 'variant', 'symbolize'}
+_UNPRIVILEGED_TASKS = {'analyze', 'symbolize', 'regression', 'minimize', 'variant'}
 
 
 def _create_batch_client_new():
