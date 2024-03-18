@@ -180,13 +180,3 @@ def get_file_from_untrusted_worker(worker_file_path):
 def cleanup():
   """Clean up temporary metadata."""
   shell.remove_directory(get_temp_dir())
-
-
-def normalize_target_name(target_path):
-  """Normalize target path, removing file extensions."""
-  target_name = os.path.basename(target_path)
-  if '@' in target_name:
-    # GFT target names often have periods in their name.
-    return target_name
-
-  return os.path.splitext(target_name)[0]
