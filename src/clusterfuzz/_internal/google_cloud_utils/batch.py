@@ -57,7 +57,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
 ])
 
-_UNPRIVILEGED_TASKS = {'analyze'}
+_UNPRIVILEGED_TASKS = {'analyze', 'variant', 'symbolize'}
 
 
 def _create_batch_client_new():
@@ -273,7 +273,8 @@ def _get_spec_from_config(command, job_name):
     config_name += '-NONPREEMPTIBLE'
   # TODO(metzman): Get rid of this when we stop doing privileged operations in
   # utasks.
-  if command in _UNPRIVILEGED_TASKS:
+  # TODO(metzman): Remove linux_asan_chrome_media part when cl/616752659 lands.
+  if command in _UNPRIVILEGED_TASKS and job_name != 'linux_asan_chrome_media':
     config_name += '-UNPRIVILEGED'
   batch_config = _get_batch_config()
   instance_spec = batch_config.get('mapping').get(config_name, None)
