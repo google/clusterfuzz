@@ -49,6 +49,12 @@ except ImportError:
   # This is expected to fail on AppEngine.
   pass
 
+try:
+  import OpenSSL.SSL
+except ImportError:
+  # This is expected to fail on non-linux platforms.
+  OpenSSL = None  # pylint: disable=invalid-name
+
 # Usually, authentication time have expiry of ~30 minutes, but keeping this
 # values lower to avoid failures and any future changes.
 AUTH_TOKEN_EXPIRY_TIME = 10 * 60
@@ -87,9 +93,14 @@ _TRANSIENT_ERRORS = [
     ConnectionError,
     requests.exceptions.ConnectionError,
     requests.exceptions.ChunkedEncodingError,
+    requests.exceptions.ReadTimeout,
     ConnectionResetError,
     google.auth.exceptions.TransportError,
 ]
+
+if OpenSSL:
+  # We haven't imported this on non-linux platforms.
+  _TRANSIENT_ERRORS.append(OpenSSL.SSL.Error)
 
 
 class StorageProvider:
