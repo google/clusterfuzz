@@ -454,7 +454,7 @@ def _should_update_data_bundle(data_bundle, data_bundle_directory):
 
 def _prepare_update_data_bundle(fuzzer, data_bundle):
   """Create necessary directories to download the data bundle."""
-  data_bundle_directory = get_data_bundle_directory(fuzzer.name)
+  data_bundle_directory = get_data_bundle_directory(fuzzer, data_bundle)
   if not data_bundle_directory:
     logs.log_error('Failed to setup data bundle %s.' % data_bundle.name)
     return None
@@ -742,13 +742,18 @@ def _is_data_bundle_up_to_date(data_bundle, data_bundle_directory):
   return False
 
 
-def get_data_bundle_directory(fuzzer_name):
-  """Return data bundle data directory."""
-  fuzzer = data_types.Fuzzer.query(data_types.Fuzzer.name == fuzzer_name).get()
-  if not fuzzer:
-    logs.log_error('Unable to find fuzzer %s.' % fuzzer_name)
-    return None
+def trusted_get_data_bundle_directory(fuzzer):
+  """For fuzz_task which doesn't get data bundles in an untrusted manner."""
+  # TODO(metzman): Delete this when fuzz_task is migrated.
+  # Check if we have a fuzzer-specific data bundle. Use it to calculate the
+  # data directory we will fetch our testcases from.
+  data_bundle = data_types.DataBundle.query(
+      data_types.DataBundle.name == fuzzer.data_bundle_name).get()
+  return get_data_bundle_directory(fuzzer, data_bundle)
 
+
+def get_data_bundle_directory(fuzzer, data_bundle):
+  """Return data bundle data directory."""
   # Store corpora for built-in fuzzers like libFuzzer in the same directory
   # as other local data bundles. This makes it easy to clear them when we run
   # out of disk space.
@@ -756,10 +761,6 @@ def get_data_bundle_directory(fuzzer_name):
   if fuzzer.builtin:
     return local_data_bundles_directory
 
-  # Check if we have a fuzzer-specific data bundle. Use it to calculate the
-  # data directory we will fetch our testcases from.
-  data_bundle = data_types.DataBundle.query(
-      data_types.DataBundle.name == fuzzer.data_bundle_name).get()
   if not data_bundle:
     # Generic data bundle directory. Available to all fuzzers if they don't
     # have their own data bundle.
