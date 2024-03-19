@@ -357,16 +357,18 @@ class TestRunner:
     return results
 
 
-def _get_minimize_task_input():
+def _get_minimize_task_input(testcase):
   testcase_blob_name, testcase_upload_url = blobs.get_blob_signed_upload_url()
   (stacktrace_blob_name,
    stacktrace_upload_url) = blobs.get_blob_signed_upload_url()
 
+  arguments = data_handler.get_arguments(testcase).split()
   return uworker_msg_pb2.MinimizeTaskInput(
       testcase_upload_url=testcase_upload_url,
       testcase_blob_name=testcase_blob_name,
       stacktrace_blob_name=stacktrace_blob_name,
-      stacktrace_upload_url=stacktrace_upload_url)
+      stacktrace_upload_url=stacktrace_upload_url,
+      arguments=arguments)
 
 
 def utask_preprocess(testcase_id, job_type, uworker_env):
@@ -393,7 +395,7 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       testcase_id=str(testcase_id),
       testcase=uworker_io.entity_to_protobuf(testcase),
       setup_input=setup_input,
-      minimize_task_input=_get_minimize_task_input(),
+      minimize_task_input=_get_minimize_task_input(testcase),
       uworker_env=uworker_env)
   testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
   return uworker_input
@@ -1400,15 +1402,14 @@ def _run_libfuzzer_tool(tool_name: str,
       environment.set_value(memory_tool_options_var, saved_memory_tool_options)
 
   output_file_path = get_temporary_file_name(testcase_file_path)
-
-  arguments = data_handler.get_arguments(testcase).split()
   fuzzer_display = data_handler.get_fuzzer_display(testcase)
 
   if set_dedup_flags:
     _set_dedup_flags()
 
   try:
-    result = run_libfuzzer_engine(tool_name, fuzzer_display.target, arguments,
+    result = run_libfuzzer_engine(tool_name, fuzzer_display.target,
+                                  minimize_task_input.arguments,
                                   testcase_file_path, output_file_path, timeout)
   except TimeoutError:
     logs.log_warn('LibFuzzer timed out.')

@@ -298,7 +298,7 @@ class Context:
                                                     project_qualified_name)
       shell.create_directory(corpus_backup_output_directory)
       with archive.open(corpus_backup_local_path) as reader:
-        result = archive.unpack(reader, corpus_backup_output_directory)
+        result = reader.extract_all(corpus_backup_output_directory)
       shell.remove_file(corpus_backup_local_path)
 
       if result:
