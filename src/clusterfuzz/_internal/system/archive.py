@@ -229,6 +229,8 @@ class ArchiveReader(abc.ABC):
     """Returns the root directory of this archive. If there is None, returns an
     empty string.
     """
+    if not self.list_members():
+      return ""
     return os.path.commonpath([f.name for f in self.list_members()])
 
   def file_exists(self, path: str) -> bool:
