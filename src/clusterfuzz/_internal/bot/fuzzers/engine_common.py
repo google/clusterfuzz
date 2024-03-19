@@ -453,6 +453,9 @@ def get_all_issue_metadata(fuzz_target_path):
 
 def get_fuzz_target_issue_metadata(fuzz_target):
   """Get issue related metadata given a testcase."""
+  if fuzz_target is None:
+    return None
+
   if environment.is_trusted_host():
     # Not applicable.
     return None
