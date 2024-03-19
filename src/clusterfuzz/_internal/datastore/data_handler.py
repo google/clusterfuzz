@@ -321,6 +321,11 @@ def get_reproduction_help_url(testcase, config):
 
 
 def get_fuzzer_display(testcase):
+  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
+  return get_fuzzer_display_unprivileged(testcase, fuzz_target)
+
+
+def get_fuzzer_display_unprivileged(testcase, fuzz_target):
   """Return FuzzerDisplay tuple."""
   if (testcase.overridden_fuzzer_name == testcase.fuzzer_name or
       not testcase.overridden_fuzzer_name):
@@ -329,8 +334,6 @@ def get_fuzzer_display(testcase):
         target=None,
         name=testcase.fuzzer_name,
         fully_qualified_name=testcase.fuzzer_name)
-
-  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
   if not fuzz_target:
     # Legacy testcases.
     return FuzzerDisplay(
