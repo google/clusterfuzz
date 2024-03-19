@@ -33,7 +33,6 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     helpers.patch(
         self,
         [
-            'clusterfuzz._internal.bot.fuzzers.engine_common.'
             # Disable logging.
             'clusterfuzz._internal.datastore.data_types.Testcase._post_put_hook',
             'clusterfuzz._internal.metrics.logs.log',
