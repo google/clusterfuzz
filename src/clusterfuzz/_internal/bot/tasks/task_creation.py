@@ -15,6 +15,8 @@
 from clusterfuzz._internal.base import bisection
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.base import task_utils
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.build_management import build_manager
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -168,6 +170,10 @@ def create_variant_tasks_if_needed(testcase):
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
     job_type = job.name
+    if not testcase.trusted:
+      if (task_utils.is_remotely_executing_utasks() and not
+          task_types.is_untrusted_task('variant', job_type):
+        continue
     if testcase.job_type == job_type:
       continue
 
