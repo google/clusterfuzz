@@ -230,7 +230,7 @@ class ArchiveReader(abc.ABC):
     empty string.
     """
     if not self.list_members():
-      return ""
+      return ''
     return os.path.commonpath([f.name for f in self.list_members()])
 
   def file_exists(self, path: str) -> bool:
