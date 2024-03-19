@@ -1402,7 +1402,8 @@ def _run_libfuzzer_tool(tool_name: str,
       environment.set_value(memory_tool_options_var, saved_memory_tool_options)
 
   output_file_path = get_temporary_file_name(testcase_file_path)
-  fuzzer_display = data_handler.get_fuzzer_display(testcase)
+  fuzzer_display = data_handler.get_fuzzer_display_unprivileged(
+      testcase, fuzz_target)
 
   if set_dedup_flags:
     _set_dedup_flags()
