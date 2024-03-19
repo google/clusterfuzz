@@ -312,7 +312,7 @@ def update_tests_if_needed():
       shell.remove_directory(data_directory, recreate=True)
       storage.copy_file_from(tests_url, temp_archive)
       with archive.open(temp_archive) as reader:
-        reader.extract_all(data_directory, trusted=True)
+        archive.unpack(reader, data_directory, trusted=True)
       shell.remove_file(temp_archive)
       error_occured = False
       break
