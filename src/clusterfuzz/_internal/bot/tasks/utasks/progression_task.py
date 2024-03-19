@@ -490,7 +490,6 @@ def find_fixed_range(uworker_input):
   max_revision = testcase.get_metadata('last_progression_max')
   progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
       clear_min_max_metadata=False, build_data_list=[])
-
   if min_revision or max_revision:
     # Clear these to avoid using them in next run. If this run fails, then we
     # should try next run without them to see it succeeds. If this run succeeds,
