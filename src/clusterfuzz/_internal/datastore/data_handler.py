@@ -321,6 +321,11 @@ def get_reproduction_help_url(testcase, config):
 
 
 def get_fuzzer_display(testcase):
+  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
+  return get_fuzzer_display_unprivileged(testcase, fuzz_target)
+
+
+def get_fuzzer_display_unprivileged(testcase, fuzz_target):
   """Return FuzzerDisplay tuple."""
   if (testcase.overridden_fuzzer_name == testcase.fuzzer_name or
       not testcase.overridden_fuzzer_name):
@@ -330,7 +335,6 @@ def get_fuzzer_display(testcase):
         name=testcase.fuzzer_name,
         fully_qualified_name=testcase.fuzzer_name)
 
-  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
   if not fuzz_target:
     # Legacy testcases.
     return FuzzerDisplay(
@@ -357,18 +361,12 @@ def filter_arguments(arguments, fuzz_target_name=None):
   return arguments.strip()
 
 
-def get_arguments(testcase):
+def get_arguments(testcase, fuzz_target):
   """Return minimized arguments, without testcase argument and fuzz target
   binary itself (for engine fuzzers)."""
   arguments = (
-      testcase.minimized_arguments or
-      get_value_from_job_definition(testcase.job_type, 'APP_ARGS', default=''))
-
-  # Filter out fuzz target argument. We shouldn't have any case for this other
-  # than what is needed by launcher.py for engine based fuzzers.
-  fuzzer_display = get_fuzzer_display(testcase)
-  fuzz_target = fuzzer_display.target
-  return filter_arguments(arguments, fuzz_target)
+      testcase.minimized_arguments or environment.get_value('APP_ARGS'))
+  return filter_arguments(arguments, fuzz_target.binary)
 
 
 def _get_memory_tool_options(testcase):
@@ -405,8 +403,9 @@ def _get_bazel_test_args(arguments, sanitizer_options):
 
 def format_issue_information(testcase, format_string):
   """Format a string with information from the testcase."""
-  arguments = get_arguments(testcase)
   fuzzer_display = get_fuzzer_display(testcase)
+  fuzz_target = get_fuzz_target(testcase.overridden_fuzzer_name)
+  arguments = get_arguments(testcase, fuzz_target)
   fuzzer_name = fuzzer_display.name or 'NA'
   fuzz_target = fuzzer_display.target or 'NA'
   engine = fuzzer_display.engine or 'NA'

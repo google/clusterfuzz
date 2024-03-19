@@ -395,7 +395,8 @@ def utask_preprocess(testcase_id, job_type, uworker_env):
       setup_input=setup_input,
       minimize_task_input=_get_minimize_task_input(),
       uworker_env=uworker_env)
-  testcase_manager.preprocess_testcase_manager(testcase, uworker_input)
+  uworker_input.fuzz_target.CopyFrom(
+      data_handler.get_fuzz_target(testcase.overridden_fuzzer_name))
   return uworker_input
 
 
@@ -1401,8 +1402,10 @@ def _run_libfuzzer_tool(tool_name: str,
 
   output_file_path = get_temporary_file_name(testcase_file_path)
 
-  arguments = data_handler.get_arguments(testcase).split()
-  fuzzer_display = data_handler.get_fuzzer_display(testcase)
+  assert fuzz_target
+  arguments = data_handler.get_arguments(testcase, fuzz_target).split()
+  fuzzer_display = data_handler.get_fuzzer_display_unprivileged(
+      testcase, fuzz_target)
 
   if set_dedup_flags:
     _set_dedup_flags()
