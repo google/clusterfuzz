@@ -308,24 +308,10 @@ def _update_issue_metadata(testcase, metadata):
       testcase.set_metadata(key, value)
 
 
-def _get_and_update_issue_metadata(testcase):
-  """Update issue metadata."""
-  metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
-  if not metadata:
-    return None
-
-  _update_issue_metadata(testcase, metadata)
-  return metadata
-
-
 def _testcase_reproduces_in_revision(
-    testcase: data_types.Testcase,
-    testcase_file_path: str,
-    job_type: str,
-    revision: int,
-    fuzz_target: data_types.FuzzTarget,
-    progression_task_output: uworker_msg_pb2.ProgressionTaskOutput,
-    update_metadata: bool = False):
+    testcase: data_types.Testcase, testcase_file_path: str, job_type: str,
+    revision: int, fuzz_target: data_types.FuzzTarget,
+    progression_task_output: uworker_msg_pb2.ProgressionTaskOutput):
   """Tests to see if a test case reproduces in the specified revision.
   Returns a tuple containing the (result, error) depending on whether
   there was an error."""
@@ -356,13 +342,6 @@ def _testcase_reproduces_in_revision(
       test_timeout,
       http_flag=testcase.http_flag)
   _log_output(revision, result)
-
-  if update_metadata:
-    issue_metadata = _get_and_update_issue_metadata(testcase)
-    if issue_metadata:
-      progression_task_output.issue_metadata.clear()
-      progression_task_output.issue_metadata.update(issue_metadata)
-
   return result, None
 
 
@@ -511,6 +490,7 @@ def find_fixed_range(uworker_input):
   max_revision = testcase.get_metadata('last_progression_max')
   progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
       clear_min_max_metadata=False, build_data_list=[])
+
   if min_revision or max_revision:
     # Clear these to avoid using them in next run. If this run fails, then we
     # should try next run without them to see it succeeds. If this run succeeds,
@@ -542,13 +522,13 @@ def find_fixed_range(uworker_input):
   # Check to see if this testcase is still crashing now. If it is, then just
   # bail out.
   result, error = _testcase_reproduces_in_revision(
-      testcase,
-      testcase_file_path,
-      job_type,
-      max_revision,
-      fuzz_target,
-      progression_task_output,
-      update_metadata=True)
+      testcase, testcase_file_path, job_type, max_revision, fuzz_target,
+      progression_task_output)
+
+  issue_metadata = engine_common.get_all_issue_metadata_for_fuzz_target(
+      fuzz_target)
+  issue_metadata = issue_metadata or {}
+
   if error is not None:
     return error
 
@@ -575,7 +555,8 @@ def find_fixed_range(uworker_input):
     progression_task_output.last_tested_crash_stacktrace = (
         last_tested_crash_stacktrace)
     return uworker_msg_pb2.Output(
-        progression_task_output=progression_task_output)
+        progression_task_output=progression_task_output,
+        issue_metadata=issue_metadata)
 
   # Verify that we do crash in the min revision. This is assumed to be true
   # while we are doing the bisect.
@@ -590,6 +571,7 @@ def find_fixed_range(uworker_input):
     progression_task_output.crash_revision = int(min_revision)
     return uworker_msg_pb2.Output(
         progression_task_output=progression_task_output,
+        issue_metadata=issue_metadata,
         error_message=error_message,
         error_type=uworker_msg_pb2.ErrorType.PROGRESSION_NO_CRASH)
 
@@ -610,7 +592,8 @@ def find_fixed_range(uworker_input):
       progression_task_output.min_revision = int(min_revision)
       progression_task_output.max_revision = int(max_revision)
       return uworker_msg_pb2.Output(
-          progression_task_output=progression_task_output)
+          progression_task_output=progression_task_output,
+          issue_metadata=issue_metadata)
 
     # Occasionally, we get into this bad state. It seems to be related to test
     # cases with flaky stacks, but the exact cause is unknown.
@@ -625,6 +608,7 @@ def find_fixed_range(uworker_input):
         progression_task_output.last_progression_max = int(last_progression_max)
       return uworker_msg_pb2.Output(
           progression_task_output=progression_task_output,
+          issue_metadata=issue_metadata,
           error_type=uworker_msg_pb2.ErrorType.PROGRESSION_BAD_STATE_MIN_MAX)
 
     # Test the middle revision of our range.
@@ -664,6 +648,7 @@ def find_fixed_range(uworker_input):
     progression_task_output.last_progression_max = last_progression_max
   return uworker_msg_pb2.Output(
       error_message=error_message,
+      issue_metadata=issue_metadata,
       progression_task_output=progression_task_output,
       error_type=uworker_msg_pb2.ErrorType.PROGRESSION_TIMEOUT)
 
@@ -704,9 +689,12 @@ def utask_postprocess(output: uworker_msg_pb2.Output):
   _maybe_clear_progression_last_min_max_metadata(testcase, output)
   _cleanup_stacktrace_blob_from_storage(output)
   task_output = None
+
+  if output.issue_metadata:
+    _update_issue_metadata(testcase, output.issue_metadata)
+
   if output.HasField('progression_task_output'):
     task_output = output.progression_task_output
-    _update_issue_metadata(testcase, task_output.issue_metadata)
     _update_build_metadata(output.uworker_input.job_type,
                            task_output.build_data_list)
 

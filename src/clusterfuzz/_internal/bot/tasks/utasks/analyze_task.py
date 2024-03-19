@@ -36,14 +36,10 @@ from clusterfuzz._internal.protos import uworker_msg_pb2
 from clusterfuzz._internal.system import environment
 
 
-def _add_default_issue_metadata(testcase):
+def _add_default_issue_metadata(testcase, fuzz_target_metadata):
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
-  default_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
-  if not default_metadata:
-    return
-
   testcase_metadata = testcase.get_metadata()
-  for key, default_value in default_metadata.items():
+  for key, default_value in fuzz_target_metadata.items():
     # Only string metadata are supported.
     if not isinstance(default_value, str):
       continue
@@ -417,10 +413,15 @@ def utask_main(uworker_input):
   test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
                            test_timeout)
   analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
+
+  fuzz_target_metadata = engine_common.get_all_issue_metadata_for_fuzz_target(
+      fuzz_target)
+
   return uworker_msg_pb2.Output(
       analyze_task_output=analyze_task_output,
       test_timeout=test_timeout,
-      crash_time=crash_time)
+      crash_time=crash_time,
+      issue_metadata=fuzz_target_metadata)
 
 
 def test_for_reproducibility(fuzz_target, testcase, testcase_file_path, state,
@@ -565,7 +566,7 @@ def utask_postprocess(output):
   testcase_upload_metadata.security_flag = testcase.security_flag
   testcase_upload_metadata.put()
 
-  _add_default_issue_metadata(testcase)
+  _add_default_issue_metadata(testcase, output.issue_metadata)
   logs.log('Creating post-analyze tasks.')
 
   # Create tasks to

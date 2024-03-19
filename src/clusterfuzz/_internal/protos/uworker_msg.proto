@@ -229,7 +229,7 @@ message BuildData{
   optional string build_run_console_output = 4;
 }
 
-message ProgressionTaskOutput{
+message ProgressionTaskOutput {
   optional int64 min_revision = 1;
   optional int64 max_revision = 2;
   // Set to true when latest revision or latest custom build still crash.
@@ -243,7 +243,6 @@ message ProgressionTaskOutput{
   // When set to True, we delete the metadata related to: last_progression_min
   // and last_progression_max from the testcase on postprocess.
   optional bool clear_min_max_metadata = 9;
-  map<string, string> issue_metadata = 10;
   repeated BuildData build_data_list = 11;
 }
 
@@ -331,5 +330,6 @@ message Output {
   optional SymbolizeTaskOutput symbolize_task_output = 13;
   optional VariantTaskOutput variant_task_output = 14;
   optional CorpusPruningTaskOutput corpus_pruning_task_output = 16;
+  map<string,string> issue_metadata = 17;
   optional string error_message = 15;
 }

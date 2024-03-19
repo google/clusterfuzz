@@ -802,7 +802,9 @@ def _process_corpus_crashes(context, result):
     testcase = data_handler.get_testcase_by_id(testcase_id)
     testcase.set_metadata('fuzzer_binary_name', result.fuzzer_binary_name)
 
-    issue_metadata = engine_common.get_all_issue_metadata_for_testcase(testcase)
+    # TODO(alhijazi): This should be added to Output.
+    issue_metadata = engine_common.get_all_issue_metadata_for_fuzz_target(
+        context.fuzz_target)
     if issue_metadata:
       for key, value in issue_metadata.items():
         testcase.set_metadata(key, value, update_testcase=False)

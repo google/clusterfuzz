@@ -57,9 +57,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
     'machine_type',
 ])
 
-_UNPRIVILEGED_TASKS = {
-    'analyze', 'symbolize', 'regression', 'variant'
-}
+_UNPRIVILEGED_TASKS = {'analyze', 'symbolize', 'regression', 'variant'}
 _PRIVILEGED_JOBS = {'linux_asan_chrome_media', 'linux_d8_dbg_cm'}
 
 

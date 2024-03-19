@@ -451,14 +451,10 @@ def get_all_issue_metadata(fuzz_target_path):
   return metadata
 
 
-def get_all_issue_metadata_for_testcase(testcase):
+def get_all_issue_metadata_for_fuzz_target(fuzz_target):
   """Get issue related metadata given a testcase."""
   if environment.is_trusted_host():
     # Not applicable.
-    return None
-
-  fuzz_target = testcase.get_fuzz_target()
-  if not fuzz_target:
     return None
 
   build_dir = environment.get_value('BUILD_DIR')
