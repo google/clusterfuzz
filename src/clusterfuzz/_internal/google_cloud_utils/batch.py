@@ -58,7 +58,7 @@ BatchWorkloadSpec = collections.namedtuple('BatchWorkloadSpec', [
 ])
 
 _UNPRIVILEGED_TASKS = {
-    'analyze', 'symbolize', 'regression', 'variant', 'progression'
+    'analyze', 'symbolize', 'regression', 'variant'
 }
 _PRIVILEGED_JOBS = {'linux_asan_chrome_media', 'linux_d8_dbg_cm'}
 
