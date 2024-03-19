@@ -414,7 +414,7 @@ def utask_main(uworker_input):
                            test_timeout)
   analyze_task_output.one_time_crasher_flag = testcase.one_time_crasher_flag
 
-  fuzz_target_metadata = engine_common.get_all_issue_metadata_for_fuzz_target(
+  fuzz_target_metadata = engine_common.get_fuzz_target_issue_metadata(
       fuzz_target)
 
   return uworker_msg_pb2.Output(

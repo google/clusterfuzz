@@ -525,8 +525,7 @@ def find_fixed_range(uworker_input):
       testcase, testcase_file_path, job_type, max_revision, fuzz_target,
       progression_task_output)
 
-  issue_metadata = engine_common.get_all_issue_metadata_for_fuzz_target(
-      fuzz_target)
+  issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
   issue_metadata = issue_metadata or {}
 
   if error is not None:

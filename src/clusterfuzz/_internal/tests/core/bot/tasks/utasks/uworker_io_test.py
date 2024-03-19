@@ -350,19 +350,12 @@ class ComplexFieldsTest(unittest.TestCase):
 
   def test_map_update(self):
     """Tests that updating a map works."""
-    progression_task_output = uworker_msg_pb2.ProgressionTaskOutput(
-        issue_metadata={
-            'a': 'b',
-            'c': 'd'
-        })
-    progression_task_output.issue_metadata.clear()
-    progression_task_output.issue_metadata.update({'e': 'f'})
-    output = uworker_msg_pb2.Output(
-        progression_task_output=progression_task_output)
+    output = uworker_msg_pb2.Output(issue_metadata={'a': 'b', 'c': 'd'})
+    output.issue_metadata.clear()
+    output.issue_metadata.update({'e': 'f'})
     wire_format = uworker_io.serialize_uworker_output(output)
     deserialized = uworker_io.deserialize_uworker_output(wire_format)
-    self.assertEqual(deserialized.progression_task_output.issue_metadata,
-                     {'e': 'f'})
+    self.assertEqual(deserialized.issue_metadata, {'e': 'f'})
 
   def test_submessage_references(self):
     """Tests that updating a submessage works both when directly reading from
