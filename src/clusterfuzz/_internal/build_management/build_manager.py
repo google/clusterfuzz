@@ -1409,7 +1409,7 @@ def setup_symbolized_builds(revision):
   return None
 
 
-def setup_custom_binary(target_weights=None):
+def setup_custom_binary(target_weights=None, build_manager_input):
   """Set up the custom binary for a particular job."""
   # Check if this build is dependent on any other custom job. If yes,
   # then fake out our job name for setting up the build.
@@ -1422,19 +1422,12 @@ def setup_custom_binary(target_weights=None):
   else:
     job_name = environment.get_value('JOB_NAME', '')
 
-  # Verify that this is really a custom binary job.
-  job = data_types.Job.query(data_types.Job.name == job_name).get()
-  if not job or not job.custom_binary_key or not job.custom_binary_filename:
-    logs.log_error(
-        'Job does not have a custom binary, even though CUSTOM_BINARY is set.')
-    return False
-
   base_build_dir = _base_build_dir('')
   build = CustomBuild(
       base_build_dir,
-      job.custom_binary_key,
-      job.custom_binary_filename,
-      job.custom_binary_revision,
+      build_manager_input.url
+      build_manager_input.custom_binary_filename,
+      build_manager_input.custom_binary_revision,
       target_weights=target_weights)
 
   # Revert back the actual job name.
@@ -1457,12 +1450,12 @@ def setup_system_binary():
   return None
 
 
-def setup_build(revision=0, target_weights=None):
+def setup_build(revision=0, target_weights=None, custom_build_url=None):
   """Set up a custom or regular build based on revision."""
   # For custom binaries we always use the latest version. Revision is ignored.
   custom_binary = environment.get_value('CUSTOM_BINARY')
   if custom_binary:
-    return setup_custom_binary(target_weights=target_weights)
+    return setup_custom_binary(target_weights=target_weights, custom_build_url=None)
 
   # In this case, we assume the build is already installed on the system.
   system_binary = environment.get_value('SYSTEM_BINARY_DIR')
