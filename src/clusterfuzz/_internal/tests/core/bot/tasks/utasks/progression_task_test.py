@@ -386,11 +386,10 @@ class UpdateIssueMetadataTest(unittest.TestCase):
   def setUp(self):
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.find_fuzzer_path',
-        'clusterfuzz._internal.bot.fuzzers.engine_common.get_all_issue_metadata',
     ])
 
     data_types.FuzzTarget(engine='libFuzzer', binary='fuzzer').put()
-    self.mock.get_all_issue_metadata.return_value = {
+    self.issue_metadata = {
         'issue_labels': 'label1',
         'issue_components': 'component1',
     }
@@ -398,11 +397,10 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.testcase = data_types.Testcase(
         overridden_fuzzer_name='libFuzzer_fuzzer')
     self.testcase.put()
+    progression_task._update_issue_metadata(self.testcase, self.issue_metadata)  # pylint: disable=protected-access
 
   def test_update_issue_metadata_non_existent(self):
     """Test update issue metadata a testcase with no metadata."""
-    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
-
     testcase = self.testcase.key.get()
     self.assertDictEqual({
         'issue_labels': 'label1',
@@ -415,7 +413,6 @@ class UpdateIssueMetadataTest(unittest.TestCase):
         'issue_labels': 'label1',
         'issue_components': 'component2',
     })
-    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
@@ -432,7 +429,6 @@ class UpdateIssueMetadataTest(unittest.TestCase):
     self.testcase.put()
 
     self.testcase.crash_type = 'test'  # Should not be written.
-    progression_task._get_and_update_issue_metadata(self.testcase)  # pylint: disable=protected-access
 
     testcase = self.testcase.key.get()
     self.assertDictEqual({
