@@ -162,6 +162,7 @@ def create_variant_tasks_if_needed(testcase):
   testcase_job_is_engine = environment.is_engine_fuzzer_job(testcase.job_type)
   testcase_job_app_name = None
   if not testcase_job_is_engine:
+    # from remote_pdb import RemotePdb; RemotePdb('127.0.0.1', 4444).set_trace()
     testcase_job = (
         data_types.Job.query(data_types.Job.name == testcase.job_type).get())
     testcase_job_environment = testcase_job.get_environment()
@@ -170,10 +171,6 @@ def create_variant_tasks_if_needed(testcase):
   for job in jobs:
     # The variant needs to be tested in a different job type than us.
     job_type = job.name
-    if not testcase.trusted:
-      if (task_utils.is_remotely_executing_utasks() and
-          not task_types.is_untrusted_task('variant', job_type)):
-        continue
     if testcase.job_type == job_type:
       continue
 
@@ -194,6 +191,11 @@ def create_variant_tasks_if_needed(testcase):
     if (not testcase_job_is_engine and
         job_environment.get('APP_NAME') != testcase_job_app_name):
       continue
+
+    if not testcase.trusted:
+      if (task_utils.is_remotely_executing_utasks() and
+          not task_types.is_untrusted_task('variant', job_type)):
+        continue
     queue = tasks.queue_for_platform(job.platform)
     tasks.add_task('variant', testcase_id, job_type, queue)
 
