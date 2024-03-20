@@ -192,12 +192,11 @@
           </paper-dropdown-menu>
         </template>
       </div>
-      <div class="warning">
-        <b>WARNING</b>: ClusterFuzz doesn't support untrusted workloads.<br>
-        Only upload testcases that you trust enough to run on your own
-        machine. Note that the following jobs do use the Chrome sandbox,
-        but this is not a guarantee of protection:<br>
-        [[formatSandboxedJobs(fieldValues.sandboxedJobs)]]
+        <b>WARNING</b>: ClusterFuzz only has partial support for untrusted workloads.<br>
+        ClusterFuzz only supports untrusted workloads on Linux jobs except for these:<br>
+        [[formatSandboxedJobs(fieldValues.trustedJobs)]]<br>
+        If your job is one of these, or runs on an operating system other than Linux, only upload it to ClusterFuzz if you trust it enough to run on your own machine.<br>
+        If you are uploading a testcase to a job that only supports trusted workloads, you must fill out the extra form field indictating you undestand what you are doing.
       </div>
       <div class="inline narrow">
         <template is="dom-if" if="[[shouldShowIssueField()]]">
@@ -228,6 +227,7 @@
       </template>
       <template is="dom-if" if="[[fieldValues.isChromium]]">
         <paper-checkbox value="true" checked="{{uploadParams.highEnd}}">Use a multi-core bot (linux only).</paper-checkbox>
+        <paper-input value="{{uploadParams.trustedAgreement}}" label="Type in 'This testcase is safe to run' to run trusted testcases on trusted jobs."></paper-input>
       </template>
       <br/>
       <paper-button class="get-link-button" slot="more-buttons" on-tap="generatePermalink">Permalink</paper-button>
@@ -254,7 +254,7 @@
             value: [
                 'job', 'target', 'multiple', 'http', 'highEnd', 'issue',
                 'revision', 'timeout', 'retries', 'updateIssue', 'args', 'cmd',
-                'platform', 'gestures', 'testcaseId']
+                'platform', 'gestures', 'testcaseId', 'trustedAgreement']
           },
           uploadParams: {
             type: Object,
