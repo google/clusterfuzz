@@ -25,8 +25,10 @@ from google.cloud import ndb
 from clusterfuzz._internal import fuzzing
 from clusterfuzz._internal.base import external_users
 from clusterfuzz._internal.base import memoize
+from clusterfuzz._internal.base import task_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
+from clusterfuzz._internal.bot.tasks import task_types
 from clusterfuzz._internal.crash_analysis.stack_parsing import stack_analyzer
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
@@ -49,6 +51,8 @@ PAGE_SIZE = 20
 MORE_LIMIT = 100 - PAGE_SIZE
 UPLOAD_URL = '/upload-testcase/upload-oauth'
 MEMCACHE_TTL_IN_SECONDS = 60 * 60  # 1 hour.
+
+TRUSTED_AGREEMENT_TEXT = 'This testcase is safe to run'
 
 
 def _is_uploader_allowed(email):
@@ -385,6 +389,16 @@ class UploadHandlerCommon:
     issue_labels = request.get('issue_labels')
     gestures = request.get('gestures') or '[]'
     stacktrace = request.get('stacktrace')
+    trusted_agreement_signed = request.get(
+        'trustedAgreement') == TRUSTED_AGREEMENT_TEXT
+
+    if (not trusted_agreement_signed and
+        task_utils.is_remotely_executing_utasks() and
+        not task_types.is_untrusted_task('analyze', job_type)):
+      # Trusted agreement was not signed even though the job has privileges and
+      # there are other jobs that don't have privileges.
+      raise helpers.EarlyExitError(
+          'Sign the trusted job statement or upload to a trusted job.', 400)
 
     crash_data = None
     if job.is_external():
