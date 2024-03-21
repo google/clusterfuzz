@@ -2049,8 +2049,8 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-android/libfuzzer/hardware/%TARGET%/([0-9]+).zip\n'
-        'PROJECT_NAME = android_pixel7\n'
-        'SUMMARY_PREFIX = android_pixel7\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
@@ -2069,8 +2069,8 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-android/a-b-android/afl/address/%TARGET%/([0-9]+).zip\n'
-        'PROJECT_NAME = android_pixel8\n'
-        'SUMMARY_PREFIX = android_pixel8\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
         'MINIMIZE_JOB_OVERRIDE = libfuzzer_asan_android_pixel8\n'
         'DISABLE_DISCLOSURE = True\n'
@@ -2090,8 +2090,8 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-android/a-b-android/libfuzzer/address/%TARGET%/([0-9]+).zip\n'
-        'PROJECT_NAME = android_pixel8\n'
-        'SUMMARY_PREFIX = android_pixel8\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
@@ -2111,8 +2111,8 @@ class GenericProjectSetupTest(unittest.TestCase):
     self.assertEqual(
         'FUZZ_TARGET_BUILD_BUCKET_PATH = '
         'gs://bucket-android/a-b-android/libfuzzer/none/%TARGET%/([0-9]+).zip\n'
-        'PROJECT_NAME = android_mte\n'
-        'SUMMARY_PREFIX = android_mte\n'
+        'PROJECT_NAME = android\n'
+        'SUMMARY_PREFIX = android\n'
         'MANAGED = True\n'
         'DISABLE_DISCLOSURE = True\n'
         'FILE_GITHUB_ISSUE = False\n'
