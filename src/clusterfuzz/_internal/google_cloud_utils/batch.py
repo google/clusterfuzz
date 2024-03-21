@@ -258,7 +258,7 @@ def _get_job(job_name):
   return data_types.Job.query(data_types.Job.name == job_name).get()
 
 
-def is_untrusted_task(command, job_name):
+def is_no_privilege_workload(command, job_name):
   if not is_remote_task(command, job_name):
     return False
   return job_name not in _PRIVILEGED_JOBS
