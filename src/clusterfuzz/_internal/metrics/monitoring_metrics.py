@@ -175,6 +175,23 @@ UTASK_E2E_DURATION_SECS = monitor.CumulativeDistributionMetric(
     ],
 )
 
+UTASK_DURATION_SECS = monitor.CumulativeDistributionMetric(
+    'utask/duration_secs',
+    description=(
+        'Duration of each subtask ("preprocess", "uworker_main" and ' +
+        '"postprocess"). Mode is either "batch" or "queue" depending on ' +
+        'whether uworker_main was scheduled and executed on Cloud Batch or ' +
+        'not, respectively.'),
+    bucketer=monitor.GeometricBucketer(),
+    field_spec=[
+        monitor.StringField('task'),
+        monitor.StringField('job'),
+        monitor.StringField('subtask'),
+        monitor.StringField('mode'),
+        monitor.StringField('platform'),
+    ],
+)
+
 ANDROID_UPTIME = monitor.CounterMetric(
     'android_device_uptime',
     description='Android device uptime',

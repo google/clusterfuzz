@@ -72,16 +72,23 @@ class TworkerPreprocessTest(unittest.TestCase):
     self.assertLessEqual(uworker_input.preprocess_start_time.ToNanoseconds(),
                          end_time_ns)
 
-    durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
+    metric_labels = {
         'task': 'mock',
         'job': self.JOB_TYPE,
         'subtask': 'preprocess',
         'mode': 'batch',
         'platform': 'LINUX',
-    })
+    }
+
+    durations = monitoring_metrics.UTASK_DURATION_SECS.get(metric_labels)
     self.assertEqual(durations.count, 1)
+    self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
+
+    e2e_durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(e2e_durations.count, 1)
     self.assertLess(
-        durations.sum * 10**9,
+        e2e_durations.sum * 10**9,
         end_time_ns - uworker_input.preprocess_start_time.ToNanoseconds())
 
     self.assertEqual(
@@ -132,9 +139,11 @@ class UworkerMainTest(unittest.TestCase):
 
   def test_uworker_main(self):
     """Tests that uworker_main works as intended."""
-    start_time_ns = time.time_ns() - 42 * 10**9  # Sometime in the past.
-    start_timestamp = timestamp_pb2.Timestamp()
-    start_timestamp.FromNanoseconds(start_time_ns)
+    start_time_ns = time.time_ns()
+
+    preprocess_start_time_ns = start_time_ns - 42 * 10**9  # In the past.
+    preprocess_start_timestamp = timestamp_pb2.Timestamp()
+    preprocess_start_timestamp.FromNanoseconds(preprocess_start_time_ns)
 
     uworker_input = uworker_msg_pb2.Input(
         job_type='job_type-value',
@@ -142,7 +151,7 @@ class UworkerMainTest(unittest.TestCase):
             original_job_type='original_job_type-value'),
         uworker_env=self.UWORKER_ENV,
         uworker_output_upload_url=self.UWORKER_OUTPUT_UPLOAD_URL,
-        preprocess_start_time=start_timestamp,
+        preprocess_start_time=preprocess_start_timestamp,
     )
     self.mock.download_and_deserialize_uworker_input.return_value = (
         uworker_input)
@@ -160,16 +169,24 @@ class UworkerMainTest(unittest.TestCase):
 
     self.module.utask_main.assert_called_with(uworker_input)
 
-    durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
+    metric_labels = {
         'task': 'analyze',
         'job': uworker_input.job_type,
         'subtask': 'uworker_main',
         'mode': 'batch',
         'platform': 'LINUX',
-    })
+    }
+
+    durations = monitoring_metrics.UTASK_DURATION_SECS.get(metric_labels)
     self.assertEqual(durations.count, 1)
     self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
-    self.assertGreaterEqual(durations.sum, 42)
+
+    e2e_durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(e2e_durations.count, 1)
+    self.assertLess(e2e_durations.sum * 10**9,
+                    end_time_ns - preprocess_start_time_ns)
+    self.assertGreaterEqual(e2e_durations.sum, 42)
 
 
 class GetUtaskModuleTest(unittest.TestCase):
@@ -197,13 +214,16 @@ class TworkerPostprocessTest(unittest.TestCase):
     """
     download_url = 'https://uworker_output_download_url'
 
-    start_time_ns = time.time_ns() - 42 * 10**9  # Sometime in the past.
-    start_timestamp = timestamp_pb2.Timestamp()
-    start_timestamp.FromNanoseconds(start_time_ns)
+    start_time_ns = time.time_ns()
+
+    preprocess_start_time_ns = start_time_ns - 42 * 10**9  # In the past.
+    preprocess_start_timestamp = timestamp_pb2.Timestamp()
+    preprocess_start_timestamp.FromNanoseconds(preprocess_start_time_ns)
 
     uworker_output = uworker_msg_pb2.Output(
         uworker_input=uworker_msg_pb2.Input(
-            job_type='foo-job', preprocess_start_time=start_timestamp),)
+            job_type='foo-job',
+            preprocess_start_time=preprocess_start_timestamp),)
     self.mock.download_and_deserialize_uworker_output.return_value = (
         uworker_output)
 
@@ -217,13 +237,21 @@ class TworkerPostprocessTest(unittest.TestCase):
         download_url)
     module.utask_postprocess.assert_called_with(uworker_output)
 
-    durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get({
+    metric_labels = {
         'task': 'mock',
         'job': 'foo-job',
         'subtask': 'postprocess',
         'mode': 'batch',
         'platform': 'LINUX',
-    })
+    }
+
+    durations = monitoring_metrics.UTASK_DURATION_SECS.get(metric_labels)
     self.assertEqual(durations.count, 1)
     self.assertLess(durations.sum * 10**9, end_time_ns - start_time_ns)
-    self.assertGreaterEqual(durations.sum, 42)
+
+    e2e_durations = monitoring_metrics.UTASK_E2E_DURATION_SECS.get(
+        metric_labels)
+    self.assertEqual(e2e_durations.count, 1)
+    self.assertLess(e2e_durations.sum * 10**9,
+                    end_time_ns - preprocess_start_time_ns)
+    self.assertGreaterEqual(e2e_durations.sum, 42)
