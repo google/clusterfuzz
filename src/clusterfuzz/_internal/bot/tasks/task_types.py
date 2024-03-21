@@ -71,10 +71,10 @@ class BaseUTask(BaseTask):
     raise NotImplementedError('Child class must implement.')
 
 
-def is_untrusted_task(command, job):
+def is_no_privilege_workload(command, job):
   if not COMMAND_TYPES[command].is_execution_remote():
     return False
-  return batch.is_untrusted_task(command, job)
+  return batch.is_no_privilege_workload(command, job)
 
 
 def is_remote_utask(command, job):
