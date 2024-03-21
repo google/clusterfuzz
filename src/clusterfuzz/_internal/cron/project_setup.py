@@ -739,7 +739,7 @@ class ProjectSetup:
     build_path = build_path.replace('%ENGINE%', engine)
     build_path = build_path.replace('%SANITIZER%', memory_tool)
     return build_path
-  
+
   def _get_base_project_name(self, project):
     """Returns the base project if subqueues are being used."""
     for base_project in PROJECTS_USING_SUBQUEUES:
