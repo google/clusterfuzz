@@ -177,14 +177,13 @@ def tworker_preprocess_no_io(utask_module, task_argument, job_type,
 
 
 def uworker_main_no_io(utask_module, serialized_uworker_input):
-  """Exectues the main part of a utask on the uworker (locally if not using
+  """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
   with _MetricRecorder(_Subtask.UWORKER_MAIN, _Mode.QUEUE) as recorder:
     logs.log('Starting utask_main: %s.' % utask_module)
     uworker_input = uworker_io.deserialize_uworker_input(
         serialized_uworker_input)
 
-    # Deal with the environment.
     set_uworker_env(uworker_input.uworker_env)
     uworker_input.uworker_env.clear()
 
@@ -199,16 +198,18 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
     return uworker_io.serialize_uworker_output(uworker_output)
 
 
+# TODO(metzman): Stop passing module to this function and `uworker_main_no_io`.
+# Make them consistent with the I/O versions.
 def tworker_postprocess_no_io(utask_module, uworker_output, uworker_input):
   """Executes the postprocess step on the trusted (t)worker (in this case it is
   the same bot as the uworker)."""
   with _MetricRecorder(_Subtask.POSTPROCESS, _Mode.QUEUE) as recorder:
-    # TODO(metzman): Stop passing module to this function and
-    # uworker_main_no_io. Make them consistent with the I/O versions.
     uworker_output = uworker_io.deserialize_uworker_output(uworker_output)
+
     # Do this to simulate out-of-band tamper-proof storage of the input.
     uworker_input = uworker_io.deserialize_uworker_input(uworker_input)
     uworker_output.uworker_input.CopyFrom(uworker_input)
+
     set_uworker_env(uworker_output.uworker_input.uworker_env)
 
     recorder.set_task_details(utask_module, uworker_input.job_type,
@@ -245,7 +246,7 @@ def set_uworker_env(uworker_env: dict) -> None:
 
 
 def uworker_main(input_download_url) -> None:
-  """Exectues the main part of a utask on the uworker (locally if not using
+  """Executes the main part of a utask on the uworker (locally if not using
   remote executor)."""
   with _MetricRecorder(_Subtask.UWORKER_MAIN, _Mode.BATCH) as recorder:
     uworker_input = uworker_io.download_and_deserialize_uworker_input(
