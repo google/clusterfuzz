@@ -795,9 +795,13 @@ def test_for_crash_with_retries(fuzz_target,
     expected_state = None
     expected_security_flag = None
 
-  return runner.reproduce_with_retries(crash_retries, expected_state,
-                                       expected_security_flag,
-                                       testcase.flaky_stack)
+  try:
+    return runner.reproduce_with_retries(crash_retries, expected_state,
+                                         expected_security_flag,
+                                         testcase.flaky_stack)
+  except TargetNotFoundError:
+    # If a target isn't found, treat it as not crashing.
+    return CrashResult(return_code=0, crash_time=0, output='')
 
 
 def get_fuzz_target_from_input(uworker_input):
