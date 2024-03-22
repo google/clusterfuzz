@@ -1964,7 +1964,10 @@ class FuzzingSession:
           id=uworker_input.job_type, count=new_targets_count).put()
 
     for testcase_run in uworker_output.fuzz_task_output.testcase_run_jsons:
-      testcase_run = fuzzer_stats.BaseRun.from_json(json.loads(testcase_run))
+      testcase_run = json.loads(testcase_run)
+      if not testcase_run:
+        continue
+      testcase_run = fuzzer_stats.BaseRun.from_json(testcase_run)
       upload_testcase_run_stats(testcase_run)
 
 
