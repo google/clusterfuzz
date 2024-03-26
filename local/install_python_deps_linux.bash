@@ -16,7 +16,7 @@
 
 # Setup pipenv and install python dependencies.
 echo If this fails, you may need to build older Python from source
-$PYTHON -m pip install --user pipenv==2022.8.5
+$PYTHON -m pip install --user pipenv==2023.12.1
 if $PYTHON -m pipenv --venv > /dev/null 2>&1; then
   # Remove existing pipenv virtual environment.
   $PYTHON -m pipenv --rm
