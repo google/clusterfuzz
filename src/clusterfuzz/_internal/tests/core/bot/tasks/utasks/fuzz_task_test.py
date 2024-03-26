@@ -1643,8 +1643,8 @@ class UploadTestcaseRunJsons(unittest.TestCase):
     """Tests that upload_testcase_run_jsons works as intended."""
     testcase_run_json_path = os.path.join(
         os.path.dirname(__file__), 'test_data', 'testcase_run.json')
-    with open(testcase_run_json_path, 'r'):
-      testcase_run_jsons = [testcase_run_json_path.read(), None]
+    with open(testcase_run_json_path, 'r') as fp:
+      testcase_run_jsons = [fp.read(), None]
     fuzz_task._upload_testcase_run_jsons(testcase_run_jsons)
     self.assertEqual(self.mock.upload_stats.call_count, 1)
 
