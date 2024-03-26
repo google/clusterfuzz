@@ -13,6 +13,7 @@
 # limitations under the License.
 """Tests fuzzers.engine_common."""
 
+import json
 import os
 import unittest
 
@@ -61,6 +62,15 @@ class GetIssueOwnersTest(fake_filesystem_unittest.TestCase):
     self.assertEqual(
         ['dev1@example.com', 'dev3@example.com', 'dev4@example.com'],
         engine_common.get_issue_owners('/test/fuzz_target.exe'))
+
+  def test_additional_metadata(self):
+    """Test additional issue metadata."""
+    self.fs.create_file(
+        '/test/fuzz_target.issue_metadata',
+        contents=('{"assignee": "abc@example.com"}'
+                  '  \n'))
+    result = engine_common.get_additional_issue_metadata('/test/fuzz_target')
+    self.assertEqual({'assignee': 'abc@example.com'}, json.loads(result))
 
 
 class GetIssueLabelsTest(fake_filesystem_unittest.TestCase):

@@ -15,6 +15,7 @@
 
 import collections
 import datetime
+import json
 import os
 import re
 import shlex
@@ -491,6 +492,16 @@ def get_fixed_range_url(testcase):
       revision_range=testcase.fixed)
 
 
+def get_issue_metadata(testcase):
+  """Parses the issue_metadata string and returns it as a python dict."""
+  issue_metadata = testcase.get_metadata('issue_metadata', '')
+  try:
+    issue_metadata = json.loads(issue_metadata)
+    return issue_metadata
+  except:
+    return {}
+
+
 def get_issue_description(testcase,
                           reporter=None,
                           show_reporter=False,
@@ -599,6 +610,10 @@ def get_issue_description(testcase,
 
   # Add additional body text from metadata.
   issue_metadata = testcase.get_metadata('issue_metadata', {})
+  try:
+    issue_metadata = json.loads(issue_metadata)
+  except:
+    pass
   additional_fields = issue_metadata.get('additional_fields', {})
   additional_fields_strs = []
   for key, value in additional_fields.items():
