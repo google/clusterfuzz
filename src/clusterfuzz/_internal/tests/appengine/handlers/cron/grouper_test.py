@@ -335,7 +335,7 @@ class GrouperTest(unittest.TestCase):
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
 
-  def test_similar_variants_for_varinat_analysis(self):
+  def test_similar_variants_for_variant_analysis(self):
     """Tests that testcases with similar variants get deduplicated."""
     self.testcases[0].job_type = 'some_type1'
     self.testcases[0].project_name = 'project1'
@@ -369,7 +369,7 @@ class GrouperTest(unittest.TestCase):
     for t in self.testcases:
       t.put()
 
-    # testcase2's varinat will be evaluated against testcase1
+    # testcase2's variant will be evaluated against testcase1
     self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
     self.testcase_variants[0].testcase_id = self.testcases[0].key.id()
     self.testcase_variants[0].security_flag = True
@@ -403,7 +403,7 @@ class GrouperTest(unittest.TestCase):
       self.assertEqual(self.testcases[i].group_id, 0)
       self.assertTrue(self.testcases[i].is_leader)
 
-  def test_similar_but_anomalous_variants_for_varinat_analysis(self):
+  def test_similar_but_anomalous_variants_for_variant_analysis(self):
     """Tests that testcases with similar variants but anomalous do not
     get deduplicated. Anomalous variant matches with more than threshold
     testcases. Here, testcase1 matches all (5) testcases, no grouping
@@ -445,7 +445,7 @@ class GrouperTest(unittest.TestCase):
     for t in self.testcases:
       t.put()
 
-    # testcase2's varinat will be evaluated against testcase1
+    # testcase2's variant will be evaluated against testcase1
     self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
     self.testcase_variants[0].testcase_id = self.testcases[0].key.id()
     self.testcase_variants[0].security_flag = True
@@ -476,7 +476,7 @@ class GrouperTest(unittest.TestCase):
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
 
-  def test_no_reproducible_for_varinat_analysis(self):
+  def test_no_reproducible_for_variant_analysis(self):
     """Tests that no-reproducible testcases with similar variants do not
     get grouped together."""
     self.testcases[0].job_type = 'some_type1'
@@ -495,7 +495,7 @@ class GrouperTest(unittest.TestCase):
     for t in self.testcases:
       t.put()
 
-    # testcase2's varinat will be evaluated against testcase1
+    # testcase2's variant will be evaluated against testcase1
     self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
     self.testcase_variants[0].testcase_id = self.testcases[0].key.id()
     self.testcase_variants[0].security_flag = True
@@ -515,7 +515,7 @@ class GrouperTest(unittest.TestCase):
       self.assertEqual(self.testcases[index].group_id, 0)
       self.assertTrue(self.testcases[index].is_leader)
 
-  def test_ignored_crash_type_for_varinat_analysis(self):
+  def test_ignored_crash_type_for_variant_analysis(self):
     """Tests that testcases of ignored crash type with similar variants
     do not get grouped together."""
     self.testcases[0].job_type = 'some_type1'
@@ -534,7 +534,7 @@ class GrouperTest(unittest.TestCase):
     for t in self.testcases:
       t.put()
 
-    # testcase2's varinat will be evaluated against testcase1
+    # testcase2's variant will be evaluated against testcase1
     self.testcase_variants[0].job_type = 'fake_engine_asan_project1'
     self.testcase_variants[0].testcase_id = self.testcases[0].key.id()
     self.testcase_variants[0].security_flag = True
