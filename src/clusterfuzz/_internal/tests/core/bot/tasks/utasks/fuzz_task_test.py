@@ -1631,6 +1631,24 @@ class PostprocessStoreFuzzerRunResultsTest(unittest.TestCase):
     self.assertEqual(fuzzer.result, generated_testcase_string)
 
 
+class UploadTestcaseRunJsons(unittest.TestCase):
+  """Tests for upload_testcase_run_jsons."""
+
+  def setUp(self):
+    helpers.patch(self, [
+        'clusterfuzz._internal.metrics.fuzzer_stats.upload_stats',
+    ])
+
+  def test_upload_testcase_run_jsons(self):
+    """Tests that upload_testcase_run_jsons works as intended."""
+    testcase_run_json_path = os.path.join(
+        os.path.dirname(__file__), 'test_data', 'testcase_run.json')
+    with open(testcase_run_json_path, 'r'):
+      testcase_run_jsons = [testcase_run_json_path.read(), None]
+    fuzz_task._upload_testcase_run_jsons(testcase_run_jsons)
+    self.assertEqual(self.mock.upload_stats.call_count, 1)
+
+
 class PickFuzzTargetTest(unittest.TestCase):
   """Tests for _pick_fuzz_target."""
 

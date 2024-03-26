@@ -16,7 +16,6 @@
 import collections
 import datetime
 import itertools
-import json
 import os
 import random
 import re
@@ -1963,15 +1962,18 @@ class FuzzingSession:
       data_types.FuzzTargetsCount(
           id=uworker_input.job_type, count=new_targets_count).put()
 
-    for testcase_run in uworker_output.fuzz_task_output.testcase_run_jsons:
-      testcase_run = json.loads(testcase_run)
-      if not testcase_run:
-        continue
-      testcase_run = fuzzer_stats.BaseRun.from_json(testcase_run)
-      if not testcase_run:
-        logs.log_error('Failed to create testcase_run')
-        continue
-      upload_testcase_run_stats(testcase_run)
+    _upload_testcase_run_jsons(
+        uworker_output.fuzz_task_output.testcase_run_jsons)
+
+
+def _upload_testcase_run_jsons(testcase_run_jsons):
+  for testcase_run in testcase_run_jsons:
+    testcase_run = fuzzer_stats.BaseRun.from_json(testcase_run)
+    if not testcase_run:
+      logs.log_error('Failed to create testcase_run')
+      continue
+    upload_testcase_run_stats(testcase_run)
+  # TODO(metzman): Find out if this can be a single upload.
 
 
 def handle_fuzz_build_setup_failure(output):
