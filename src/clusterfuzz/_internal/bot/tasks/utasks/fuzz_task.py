@@ -1968,6 +1968,9 @@ class FuzzingSession:
       if not testcase_run:
         continue
       testcase_run = fuzzer_stats.BaseRun.from_json(testcase_run)
+      if not testcase_run:
+        logs.log_error('Failed to create testcase_run')
+        continue
       upload_testcase_run_stats(testcase_run)
 
 
