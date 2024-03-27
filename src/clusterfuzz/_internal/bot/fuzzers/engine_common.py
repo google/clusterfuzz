@@ -418,14 +418,14 @@ def get_additional_issue_metadata(fuzz_target_path):
         metadata_file_path)
 
   if not os.path.exists(metadata_file_path):
-    return ""
+    return ''
 
   with open(metadata_file_path) as handle:
     try:
       return json.dumps(json.load(handle))
     except (ValueError, TypeError):
       logs.log_error('Invalid metadata file format.', path=metadata_file_path)
-      return ""
+      return ''
 
 
 def get_all_issue_metadata(fuzz_target_path):
