@@ -465,6 +465,24 @@ class ThrottleBugTest(unittest.TestCase):
     self.assertEqual(
         5, self.throttler._get_project_bugs_filing_max(testcase.job_type))
 
+  def test_throttle_bug_with_project_limit_other_projects(self):
+    """Tests the throttling bug with a project limit when other projects have
+    filed bugs not this one."""
+    testcase = test_utils.create_generic_testcase_variant()
+    testcase.project_name = 'test_project'
+    testcase.job_type = 'test_job_without_limit'
+    other_project_name = 'other_project'
+    for _ in range(10):
+      data_types.FiledBug(
+          project_name=other_project_name,
+          job_type='test_job_without_limit',
+          timestamp=datetime.datetime.now()).put()
+    self.assertFalse(self.throttler.should_throttle(testcase))
+    testcase = test_utils.create_generic_testcase_variant()
+    testcase.project_name = other_project_name
+    testcase.job_type = 'test_job_without_limit'
+    self.assertTrue(self.throttler.should_throttle(testcase))
+
   def test_default_limit(self):
     """Tests the throttling bug with default limit."""
     self.mock.get.return_value = {}
