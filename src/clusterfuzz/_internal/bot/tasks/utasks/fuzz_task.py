@@ -27,6 +27,7 @@ from typing import List
 from google.cloud import ndb
 
 from clusterfuzz._internal.base import dates
+from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
 from clusterfuzz._internal.bot.fuzzers import builtin
@@ -1312,7 +1313,8 @@ def run_engine_fuzzer(engine_impl, target_name, sync_corpus_directory,
       'fuzzer_binary_name': target_name,
   }
 
-  fuzzer_metadata.update(engine_common.get_all_issue_metadata(target_path))
+  issue_metadata = engine_common.get_all_issue_metadata(target_path)
+  fuzzer_metadata.update(json_utils.loads(issue_metadata))
   _add_issue_metadata_from_environment(fuzzer_metadata)
 
   # Cleanup fuzzer temporary artifacts (e.g. mutations dir, merge dirs. etc).

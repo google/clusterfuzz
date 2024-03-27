@@ -348,15 +348,6 @@ class ComplexFieldsTest(unittest.TestCase):
     deserialized = uworker_io.deserialize_uworker_input(wire_format)
     self.assertEqual(deserialized.analyze_task_input.bad_revisions, [0, 1])
 
-  def test_map_update(self):
-    """Tests that updating a map works."""
-    output = uworker_msg_pb2.Output(issue_metadata={'a': 'b', 'c': 'd'})
-    output.issue_metadata.clear()
-    output.issue_metadata.update({'e': 'f'})
-    wire_format = uworker_io.serialize_uworker_output(output)
-    deserialized = uworker_io.deserialize_uworker_output(wire_format)
-    self.assertEqual(deserialized.issue_metadata, {'e': 'f'})
-
   def test_submessage_references(self):
     """Tests that updating a submessage works both when directly reading from
     uworker_input and from reading from it once it has been serialized and

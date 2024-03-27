@@ -17,6 +17,7 @@ import time
 from typing import List
 
 from clusterfuzz._internal.base import bisection
+from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -297,9 +298,11 @@ def _check_fixed_for_custom_binary(testcase: data_types.Testcase,
 
 
 def _update_issue_metadata(testcase, metadata):
+  """Updates the testcase metadata."""
   if not metadata:
     return
 
+  metadata = json_utils.loads(metadata)
   for key, value in metadata.items():
     old_value = testcase.get_metadata(key)
     if old_value != value:
@@ -525,7 +528,7 @@ def find_fixed_range(uworker_input):
       progression_task_output)
 
   issue_metadata = engine_common.get_fuzz_target_issue_metadata(fuzz_target)
-  issue_metadata = issue_metadata or {}
+  issue_metadata = issue_metadata or ''
 
   if error is not None:
     return error

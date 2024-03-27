@@ -18,6 +18,7 @@ import os
 import tempfile
 import unittest
 
+from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.bot.tasks.utasks import analyze_task
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.tests.test_libs import helpers
@@ -51,7 +52,8 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     testcase.set_metadata('issue_components', 'component2')
     testcase.set_metadata('issue_labels', 'label4,label5, label2,')
 
-    analyze_task._add_default_issue_metadata(testcase, issue_metadata)  # pylint: disable=protected-access
+    analyze_task._add_default_issue_metadata(  # pylint: disable=protected-access
+        testcase, json_utils.dumps(issue_metadata))
     self.assertEqual('dev1@example1.com,dev2@example2.com,dev3@example3.com',
                      testcase.get_metadata('issue_owners'))
     self.assertEqual('component1,component2',
@@ -70,7 +72,8 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     testcase.set_metadata('issue_components', 'component1')
     testcase.set_metadata('issue_labels', 'label1,label2,label3')
 
-    analyze_task._add_default_issue_metadata(testcase, issue_metadata)  # pylint: disable=protected-access
+    analyze_task._add_default_issue_metadata(  # pylint: disable=protected-access
+        testcase, json_utils.dumps(issue_metadata))
     self.assertEqual('dev1@example1.com,dev2@example2.com',
                      testcase.get_metadata('issue_owners'))
     self.assertEqual('component1', testcase.get_metadata('issue_components'))
@@ -89,7 +92,8 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
 
     testcase = test_utils.create_generic_testcase()
 
-    analyze_task._add_default_issue_metadata(testcase, issue_metadata)  # pylint: disable=protected-access
+    analyze_task._add_default_issue_metadata(  # pylint: disable=protected-access
+        testcase, json_utils.dumps(issue_metadata))
     self.assertEqual('dev1@example1.com,dev2@example2.com',
                      testcase.get_metadata('issue_owners'))
     self.assertEqual('component1', testcase.get_metadata('issue_components'))
@@ -110,7 +114,8 @@ class AddDefaultIssueMetadataTest(unittest.TestCase):
     testcase.set_metadata('issue_components', 'component1')
     testcase.set_metadata('issue_labels', 'label1,label2,label3')
 
-    analyze_task._add_default_issue_metadata(testcase, issue_metadata)  # pylint: disable=protected-access
+    analyze_task._add_default_issue_metadata(  # pylint: disable=protected-access
+        testcase, json_utils.dumps(issue_metadata))
     self.assertEqual('dev1@example1.com,dev2@example2.com',
                      testcase.get_metadata('issue_owners'))
     self.assertEqual('component1', testcase.get_metadata('issue_components'))
