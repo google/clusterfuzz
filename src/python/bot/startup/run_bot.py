@@ -27,6 +27,8 @@ import sys
 import time
 import traceback
 
+import google.auth.exceptions
+
 from clusterfuzz._internal.base import dates
 from clusterfuzz._internal.base import errors
 from clusterfuzz._internal.base import task_utils
@@ -156,6 +158,10 @@ def task_loop():
     except task_utils.UworkerMsgParseError:
       logs.log_error('Task cannot be retried because of utask parse error.')
       task.dont_retry()
+      exception_occurred = True
+      stacktrace = traceback.format_exc()
+    except google.auth.exceptions:
+      logs.log_error('Metadata refresh failed.')
       exception_occurred = True
       stacktrace = traceback.format_exc()
     except Exception:
