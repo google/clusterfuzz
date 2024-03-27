@@ -160,7 +160,7 @@ def task_loop():
       task.dont_retry()
       exception_occurred = True
       stacktrace = traceback.format_exc()
-    except google.auth.exceptions:
+    except google.auth.exceptions.RefreshError:
       logs.log_error('Metadata refresh failed.')
       exception_occurred = True
       stacktrace = traceback.format_exc()
