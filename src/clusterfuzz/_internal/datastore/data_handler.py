@@ -492,16 +492,6 @@ def get_fixed_range_url(testcase):
       revision_range=testcase.fixed)
 
 
-def get_issue_metadata(testcase):
-  """Parses the issue_metadata string and returns it as a python dict."""
-  issue_metadata = testcase.get_metadata('issue_metadata', '')
-  try:
-    issue_metadata = json.loads(issue_metadata)
-    return issue_metadata
-  except:
-    return {}
-
-
 def get_issue_description(testcase,
                           reporter=None,
                           show_reporter=False,

@@ -365,13 +365,13 @@ class DataHandlerTest(unittest.TestCase):
         'Command: /fuzzer -rss_limit_mb=2048 -timeout=25 -max_len=10 /testcase')
     self.testcase.job_type = 'windows_asan_chrome'
     self.testcase.one_time_crasher_flag = True
-    issue_metadata_value = json.dumps({
-        'additional_fields': {
-            'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
-            'Answer': 42,
-        }
-    })
-    self.testcase.set_metadata('issue_metadata', issue_metadata_value)
+    self.testcase.set_metadata(
+        'issue_metadata', {
+            'additional_fields': {
+                'Acknowledgements': ['Alice', 'Bob', 'Eve', 'Mallory'],
+                'Answer': 42,
+            }
+        })
     self.testcase.put()
 
     description = data_handler.get_issue_description(self.testcase)
