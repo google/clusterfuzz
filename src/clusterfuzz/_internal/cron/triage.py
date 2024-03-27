@@ -400,14 +400,14 @@ class Throttler:
     """Gets the number of bugs that have been filed for a given job
     within a given time period."""
     return data_types.FiledBug.query(
-        data_types.FiledBug.job_type == job_type and
+        data_types.FiledBug.job_type == job_type,
         data_types.FiledBug.timestamp >= self._bug_throttling_cutoff).count()
 
   def _query_project_bugs_filed_count(self, project_name):
     """Gets the number of bugs that have been filed for a given project
     within a given time period."""
     return data_types.FiledBug.query(
-        data_types.FiledBug.project_name == project_name and
+        data_types.FiledBug.project_name == project_name,
         data_types.FiledBug.timestamp >= self._bug_throttling_cutoff).count()
 
   def _get_job_bugs_filing_max(self, job_type):
@@ -461,7 +461,7 @@ class Throttler:
       if count_per_job < job_bugs_filing_max:
         self._bug_filed_per_job_per_24hrs[testcase.job_type] = count_per_job + 1
         return False
-      logs.log(
+      logs.log_error(
           f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
           f'{count_per_job} bugs have been filed fom '
           f'{self._bug_throttling_cutoff} '
@@ -478,7 +478,7 @@ class Throttler:
           count_per_project + 1)
       return False
 
-    logs.log(
+    logs.log_error(
         f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
         f'{count_per_project} bugs have been filed from '
         f'{self._bug_throttling_cutoff} '
