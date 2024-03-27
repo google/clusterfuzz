@@ -402,11 +402,9 @@ def file_issue(testcase,
   else:
     issue.status = properties.status
 
-  fuzzer_metadata = testcase.get_metadata('issue_metadata')
-  try:
-    fuzzer_metadata = json.loads(fuzzer_metadata)
-  except:
-    pass
+  fuzzer_metadata = testcase.get_metadata('issue_metadata', '{}')
+  fuzzer_metadata = json.loads(fuzzer_metadata)
+
   if fuzzer_metadata and 'assignee' in fuzzer_metadata:
     issue.status = policy.status('assigned')
     issue.assignee = fuzzer_metadata['assignee']
