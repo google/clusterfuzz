@@ -452,7 +452,7 @@ class Throttler:
       # First check the cache, then query the datastore if not exists.
       count_per_job = self._bug_filed_per_job_per_24hrs[testcase.job_type]
       if count_per_job < job_bugs_filing_max:
-        self._bug_filed_per_job_per_24hrs[testcase.job_type] = count_per_job + 1
+        self._bug_filed_per_job_per_24hrs[testcase.job_type] += 1
         return False
       logs.log_error(
           f'Skipping bug filing for {testcase.key.id()} as it is throttled.\n'
@@ -467,8 +467,7 @@ class Throttler:
         self._bug_filed_per_project_per_24hrs[testcase.project_name])
 
     if count_per_project < self._get_project_bugs_filing_max(testcase.job_type):
-      self._bug_filed_per_project_per_24hrs[testcase.project_name] = (
-          count_per_project + 1)
+      self._bug_filed_per_project_per_24hrs[testcase.project_name] += 1
       return False
 
     logs.log_error(
