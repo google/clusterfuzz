@@ -254,6 +254,7 @@ def _check_and_update_similar_bug(testcase, issue_tracker):
 
 def _file_issue(testcase, issue_tracker, throttler):
   """File an issue for the testcase."""
+  logs.log(f'_file_issue for {testcase.key.id()}')
   filed = False
   file_exception = None
 
@@ -306,6 +307,7 @@ def main():
   throttler = Throttler()
 
   for testcase_id in data_handler.get_open_testcase_id_iterator():
+    logs.log(f'Triaging {testcase_id}')
     try:
       testcase = data_handler.get_testcase_by_id(testcase_id)
     except errors.InvalidTestcaseError:
