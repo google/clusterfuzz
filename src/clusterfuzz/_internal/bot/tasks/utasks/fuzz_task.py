@@ -326,7 +326,9 @@ class Crash:
         crash_frames=self.crash_frames,
     )
 
-def find_main_crash(crashes, full_fuzzer_name, test_timeout, upload_urls: UploadUrlCollection):
+
+def find_main_crash(crashes, full_fuzzer_name, test_timeout,
+                    upload_urls: UploadUrlCollection):
   """Find the first reproducible crash or the first valid crash.
     And return the crash and the one_time_crasher_flag."""
   for crash in crashes:
@@ -1061,7 +1063,8 @@ def create_testcase(group: uworker_msg_pb2.FuzzTaskCrashGroup,
       window_argument=group.context.window_argument,
       timeout_multiplier=get_testcase_timeout_multiplier(
           group.context.timeout_multiplier, crash, group.context.test_timeout),
-      minimized_arguments=crash.arguments, trusted=True)
+      minimized_arguments=crash.arguments,
+      trusted=True)
   testcase = data_handler.get_testcase_by_id(testcase_id)
 
   if group.context.fuzzer_metadata:
@@ -1979,7 +1982,7 @@ class FuzzingSession:
     del testcases_metadata
     utils.python_gc()
 
-    #TODO(metzman): Remove this since the tworkers should know what this is
+    # TODO(metzman): Remove this since the tworkers should know what this is
     # based on the input.
     self.fuzz_task_output.fully_qualified_fuzzer_name = (
         self.fully_qualified_fuzzer_name)
@@ -2000,11 +2003,6 @@ class FuzzingSession:
              f'{fuzz_task_output.fully_qualified_fuzzer_name}')
     uworker_input = uworker_output.uworker_input
     postprocess_process_crashes(uworker_input, uworker_output)
-    upload_job_run_stats(
-        fuzz_task_output.fully_qualified_fuzzer_name, self.job_type,
-        fuzz_task_output.crash_revision, fuzz_task_output.job_run_timestamp,
-        fuzz_task_output.new_crash_count, fuzz_task_output.known_crash_count,
-        fuzz_task_output.testcases_executed, crash_groups)
 
     if not environment.is_engine_fuzzer_job():
       return
