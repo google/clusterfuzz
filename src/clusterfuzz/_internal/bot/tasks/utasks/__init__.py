@@ -131,6 +131,8 @@ def uworker_main_no_io(utask_module, serialized_uworker_input):
   uworker_output = utask_module.utask_main(uworker_input)
   if uworker_output is None:
     return None
+  uworker_output.bot_name = environment.get_value('BOT_NAME', '')
+  uworker_output.platform_id = environment.get_platform_id()
   result = uworker_io.serialize_uworker_output(uworker_output)
   _record_e2e_duration(uworker_input.preprocess_start_time, utask_module,
                        uworker_input.job_type, _Subtask.UWORKER_MAIN,
