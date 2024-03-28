@@ -14,6 +14,7 @@
 """Helper functions to file issues."""
 
 import itertools
+import json
 import re
 
 from clusterfuzz._internal.base import external_users
@@ -400,7 +401,9 @@ def file_issue(testcase,
   else:
     issue.status = properties.status
 
-  fuzzer_metadata = testcase.get_metadata('issue_metadata')
+  fuzzer_metadata = testcase.get_metadata('issue_metadata', '{}')
+  fuzzer_metadata = json.loads(fuzzer_metadata)
+
   if fuzzer_metadata and 'assignee' in fuzzer_metadata:
     issue.status = policy.status('assigned')
     issue.assignee = fuzzer_metadata['assignee']

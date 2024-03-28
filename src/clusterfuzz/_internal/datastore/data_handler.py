@@ -15,6 +15,7 @@
 
 import collections
 import datetime
+import json
 import os
 import re
 import shlex
@@ -598,7 +599,8 @@ def get_issue_description(testcase,
     content_string += '\n\n' + FILE_UNREPRODUCIBLE_TESTCASE_TEXT
 
   # Add additional body text from metadata.
-  issue_metadata = testcase.get_metadata('issue_metadata', {})
+  issue_metadata = testcase.get_metadata('issue_metadata', '{}')
+  issue_metadata = json.loads(issue_metadata)
   additional_fields = issue_metadata.get('additional_fields', {})
   additional_fields_strs = []
   for key, value in additional_fields.items():
