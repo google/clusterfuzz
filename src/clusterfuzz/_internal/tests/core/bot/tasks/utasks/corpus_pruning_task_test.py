@@ -31,8 +31,11 @@ from clusterfuzz._internal.bot.tasks.utasks import uworker_io
 from clusterfuzz._internal.datastore import data_handler
 from clusterfuzz._internal.datastore import data_types
 from clusterfuzz._internal.fuzzing import corpus_manager
+from clusterfuzz._internal.google_cloud_utils import blobs
 from clusterfuzz._internal.google_cloud_utils import gsutil
+from clusterfuzz._internal.google_cloud_utils import storage
 from clusterfuzz._internal.protos import uworker_msg_pb2
+from clusterfuzz._internal.system import archive
 from clusterfuzz._internal.system import environment
 from clusterfuzz._internal.tests.test_libs import helpers
 from clusterfuzz._internal.tests.test_libs import test_utils
@@ -51,6 +54,10 @@ class BaseTest:
   def setUp(self):
     """Setup."""
     helpers.patch_environ(self)
+    self.local_gcs_buckets_path = tempfile.mkdtemp()
+    os.environ['LOCAL_GCS_BUCKETS_PATH'] = self.local_gcs_buckets_path
+    os.environ['TEST_BLOBS_BUCKET'] = 'blobs-bucket'
+    storage._provider().create_bucket('blobs-bucket', None, None)
     helpers.patch(self, [
         'clusterfuzz._internal.bot.fuzzers.engine_common.unpack_seed_corpus_if_needed',
         'clusterfuzz._internal.bot.tasks.task_creation.create_tasks',
@@ -65,13 +72,7 @@ class BaseTest:
         ('proto_rsync_from_disk',
          'clusterfuzz._internal.fuzzing.corpus_manager.ProtoFuzzTargetCorpus.rsync_from_disk'
         ),
-        'clusterfuzz._internal.google_cloud_utils.blobs.write_blob',
-        'clusterfuzz._internal.google_cloud_utils.storage.write_data',
         'clusterfuzz.fuzz.engine.get',
-        'clusterfuzz._internal.google_cloud_utils.storage.list_blobs',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_blobs',
-        'clusterfuzz._internal.google_cloud_utils.storage.get_arbitrary_signed_upload_urls',
-        'clusterfuzz._internal.google_cloud_utils.storage.last_updated',
     ])
     self.mock.get.return_value = libFuzzer_engine.Engine()
     self.mock.rsync_to_disk.side_effect = self._mock_rsync_to_disk
@@ -80,12 +81,7 @@ class BaseTest:
     self.mock.proto_rsync_from_disk.side_effect = self._mock_rsync_from_disk
     self.mock.update_fuzzer_and_data_bundles.return_value = True
     self.mock.preprocess_update_fuzzer_and_data_bundles.return_value = None
-    self.mock.write_blob.return_value = 'key'
     self.mock.backup_corpus.return_value = 'backup_link'
-    self.mock.list_blobs.return_value = []
-    self.mock.get_arbitrary_signed_upload_urls.return_value = (
-        ['https://upload'] * 10000)
-    self.mock.last_updated.return_value = None
 
     def mocked_unpack_seed_corpus_if_needed(*args, **kwargs):
       """Mock's assert called methods are not powerful enough to ensure that
@@ -130,6 +126,7 @@ class BaseTest:
     shutil.rmtree(self.fuzz_inputs_disk, ignore_errors=True)
     shutil.rmtree(self.bot_tmpdir, ignore_errors=True)
     shutil.rmtree(self.corpus_bucket, ignore_errors=True)
+    shutil.rmtree(self.local_gcs_buckets_path, ignore_errors=True)
 
   def _mock_setup_build(self, revision=None):
     os.environ['BUILD_DIR'] = self.build_dir
@@ -585,3 +582,75 @@ class CorpusPruningTestUntrusted(
       self.assertEqual(stats.feature_coverage, feature_coverage)
 
     return compare
+
+
+@test_utils.supported_platforms('LINUX')
+@test_utils.with_cloud_emulators('datastore')
+class CrashProcessingTest(unittest.TestCase, BaseTest):
+  """Tests uploading corpus crashes zip from utask_main."""
+
+  def setUp(self):
+    """Set up."""
+    BaseTest.setUp(self)
+    helpers.patch_environ(self)
+    (self.corpus_crashes_blob_name,
+     self.corpus_crashes_upload_url) = blobs.get_blob_signed_upload_url()
+    self.temp_dir = tempfile.mkdtemp()
+
+  def test_upload_corpus_crashes_zip(self):
+    """Test that _upload_corpus_crashes_zip works as expected."""
+
+    os.makedirs('a/b')
+    unit1_path = 'a/b/unit1'
+    with open(unit1_path, 'w') as f:
+      f.write('unit1_contents')
+
+    crash1 = corpus_pruning_task.CorpusCrash(
+        'crash_state1', 'crash_type1', 'crash_address1', 'crash_stacktrace1',
+        unit1_path, False)
+
+    os.makedirs('c/d')
+    unit2_path = 'c/d/unit2'
+    with open(unit2_path, 'w') as f:
+      f.write('unit2_contents')
+
+    crash2 = corpus_pruning_task.CorpusCrash(
+        'crash_state2', 'crash_type2', 'crash_address2', 'crash_stacktrace2',
+        unit2_path, False)
+
+    result = corpus_pruning_task.CorpusPruningResult(
+        coverage_info=None,
+        crashes=[crash1, crash2],
+        fuzzer_binary_name='fuzzer_binary_name',
+        revision='1234',
+        cross_pollination_stats=None)
+
+    corpus_pruning_task._upload_corpus_crashes_zip(
+        None, result, self.corpus_crashes_blob_name,
+        self.corpus_crashes_upload_url)
+
+    corpus_crashes_zip_local_path = os.path.join(
+        self.temp_dir, f'{self.corpus_crashes_blob_name}.zip')
+    storage.copy_file_from(
+        blobs.get_gcs_path(self.corpus_crashes_blob_name),
+        corpus_crashes_zip_local_path)
+
+    with archive.open(corpus_crashes_zip_local_path) as zip_reader:
+      members = zip_reader.list_members()
+      self.assertEqual(2, len(members))
+      zip_reader.extract_all(self.temp_dir)
+
+      with open(os.path.join(self.temp_dir, os.path.basename(unit1_path)),
+                'r') as f:
+        self.assertEqual('unit1_contents', f.read())
+
+      with open(os.path.join(self.temp_dir, os.path.basename(unit2_path)),
+                'r') as f:
+        self.assertEqual('unit2_contents', f.read())
+
+  def tearDown(self):
+    """Tear Down."""
+    super().tearDown()
+    shutil.rmtree('a')
+    shutil.rmtree('c')
+    shutil.rmtree(self.temp_dir)

@@ -98,6 +98,8 @@ message CorpusPruningTaskInput {
   repeated CrossPollinateFuzzerProto cross_pollinate_fuzzers = 3;
   optional FuzzTargetCorpus corpus = 4;
   optional FuzzTargetCorpus quarantine_corpus = 5;
+  optional string corpus_crashes_blob_name = 6;
+  optional string corpus_crashes_upload_url = 7;
 }
 
 // TODO(metzman): Handle None in protobuf. Right now, it's hard to tell if a
@@ -166,6 +168,9 @@ message CrashInfo {
   optional string crash_type = 3;
   optional string crash_state = 4;
   optional bool security_flag = 5;
+  optional string unit_name = 6;
+  optional string crash_address = 7;
+  optional string crash_stacktrace = 8;
 }
 
 message StoreFuzzerRunResultsOutput {
@@ -274,6 +279,9 @@ message CoverageInformation{
 message CorpusPruningTaskOutput {
   optional CrossPollinationStatistics cross_pollination_stats = 1;
   optional CoverageInformation coverage_info = 2;
+  optional string fuzzer_binary_name = 3;
+  optional int32 crash_revision = 4;
+  repeated CrashInfo crashes = 5;
 }
 
 enum ErrorType {
