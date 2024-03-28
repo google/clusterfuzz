@@ -23,6 +23,7 @@ from typing import List
 from google.cloud import ndb
 from google.protobuf import timestamp_pb2
 
+from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot.fuzzers import engine_common
 from clusterfuzz._internal.bot.fuzzers import options
@@ -805,6 +806,7 @@ def _process_corpus_crashes(context, result):
     # TODO(alhijazi): This should be added to Output.
     issue_metadata = engine_common.get_fuzz_target_issue_metadata(
         context.fuzz_target)
+    issue_metadata = json_utils.loads(issue_metadata)
     if issue_metadata:
       for key, value in issue_metadata.items():
         testcase.set_metadata(key, value, update_testcase=False)

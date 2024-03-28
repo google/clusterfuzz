@@ -16,6 +16,7 @@
 import datetime
 from typing import Optional
 
+from clusterfuzz._internal.base import json_utils
 from clusterfuzz._internal.base import tasks
 from clusterfuzz._internal.base import utils
 from clusterfuzz._internal.bot import testcase_manager
@@ -39,6 +40,8 @@ from clusterfuzz._internal.system import environment
 def _add_default_issue_metadata(testcase, fuzz_target_metadata):
   """Adds the default issue metadata (e.g. components, labels) to testcase."""
   testcase_metadata = testcase.get_metadata()
+  fuzz_target_metadata = json_utils.loads(fuzz_target_metadata)
+
   for key, default_value in fuzz_target_metadata.items():
     # Only string metadata are supported.
     if not isinstance(default_value, str):
